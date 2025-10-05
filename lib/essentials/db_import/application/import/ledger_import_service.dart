@@ -351,6 +351,7 @@ class LedgerImportService {
     );
 
     var processed = 0;
+    var skippedSpam = 0;
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
       final rawIdentifier = (row['id'] as String?)?.trim();
@@ -361,6 +362,13 @@ class LedgerImportService {
           DateConverter.toIntSafe(row['last_read_date']) ??
           DateConverter.toIntSafe(row['last_use']);
       final lastSeenUtc = DateConverter.appleToIsoString(lastSeen);
+
+      // Skip spam short codes (4-9 digit numbers)
+      if (_isSpamShortCode(normalizedAddress, rawIdentifier)) {
+        skippedSpam++;
+        processed++;
+        continue;
+      }
 
       await ledgerDb.insertHandle(
         id: sourceRowId,
@@ -375,10 +383,14 @@ class LedgerImportService {
 
       processed++;
       if (processed % 200 == 0 || processed == rows.length) {
+        final imported = processed - skippedSpam;
+        final message = skippedSpam > 0
+            ? 'Imported $imported/${rows.length} handles (skipped $skippedSpam spam)'
+            : 'Imported $processed/${rows.length} new handles';
         emit(
           DbImportStage.importingHandles,
           0.12,
-          'Imported $processed/${rows.length} new handles',
+          message,
           stageProgress: rows.isEmpty ? 1 : processed / rows.length,
           stageCurrent: processed,
           stageTotal: rows.length,
@@ -1175,6 +1187,24 @@ FROM attachment
       return normalized.substring(1);
     }
     return normalized;
+  }
+
+  /// Returns true if identifier appears to be a short-code spam number (4-9 digits)
+  /// These are typically one-off spam/automated messages that shouldn't clutter the database
+  bool _isSpamShortCode(String? normalizedAddress, String? rawIdentifier) {
+    if (normalizedAddress == null || normalizedAddress.isEmpty) {
+      return false;
+    }
+
+    // If it has @ symbol, it's an email - not spam
+    if (rawIdentifier?.contains('@') ?? false) {
+      return false;
+    }
+
+    // Check if it's purely numeric and between 4-9 digits (spam short codes)
+    // 10+ digits are legitimate phone numbers (allow them)
+    final digitsOnly = normalizedAddress.replaceAll(RegExp(r'[^0-9]'), '');
+    return digitsOnly.length >= 4 && digitsOnly.length <= 9;
   }
 
   bool? _nullableBool(int? value) {

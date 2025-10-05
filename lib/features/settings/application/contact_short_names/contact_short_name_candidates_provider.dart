@@ -84,10 +84,9 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
     if (participant.isSystem) {
       continue;
     }
-    final contactRef = participant.contactRef?.trim();
-    final key = contactRef != null && contactRef.isNotEmpty
-        ? 'contact:$contactRef'
-        : 'participant:${participant.id}';
+
+    // Always use participant ID as the key (matches overlay database format)
+    final key = 'participant:${participant.id}';
 
     final participantEntry = SettingsContactIdentity(
       identityId: participant.id,
@@ -110,10 +109,44 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
     );
   }).toList();
 
-  entries.sort(
-    (a, b) =>
-        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
-  );
+  // Sort with real names (containing letters) before phone numbers/emails
+  entries.sort((a, b) {
+    final aHasLetters = _alphabeticPattern.hasMatch(a.displayName);
+    final bHasLetters = _alphabeticPattern.hasMatch(b.displayName);
 
+    // Check if it's a short numeric identifier (4-10 digits, likely spam)
+    final shortNumericPattern = RegExp(r'^\+?[0-9]{4,10}$');
+    final aIsShortNumeric = shortNumericPattern.hasMatch(a.displayName);
+    final bIsShortNumeric = shortNumericPattern.hasMatch(b.displayName);
+
+    // Priority order:
+    // 1. Real names (has letters, not short numeric)
+    // 2. Long phone numbers (11+ digits, legitimate contacts)
+    // 3. Short numeric identifiers (4-10 digits, spam)
+
+    // Both are short numeric spam - sort by display name
+    if (aIsShortNumeric && bIsShortNumeric) {
+      return a.displayName.compareTo(b.displayName);
+    }
+
+    // One is short numeric spam - push it to bottom
+    if (aIsShortNumeric) {
+      return 1; // a goes to bottom
+    }
+    if (bIsShortNumeric) {
+      return -1; // b goes to bottom
+    }
+
+    // Neither is short numeric spam - prioritize names with letters
+    if (aHasLetters && !bHasLetters) {
+      return -1; // a (has letters) comes before b (no letters)
+    }
+    if (!aHasLetters && bHasLetters) {
+      return 1; // b (has letters) comes before a (no letters)
+    }
+
+    // Both have letters or both are long phone numbers - sort alphabetically
+    return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+  });
   return entries;
 }

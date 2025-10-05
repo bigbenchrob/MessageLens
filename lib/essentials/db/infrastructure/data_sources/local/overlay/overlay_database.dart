@@ -5,17 +5,25 @@ part 'overlay_database.g.dart';
 /// Overlay database for user preferences and customizations (user_overlays.db).
 /// This database stores user-specific overrides that enhance the working database
 /// without polluting it with UI-specific state.
-@DriftDatabase(tables: [ParticipantOverrides, ChatOverrides])
+@DriftDatabase(
+  tables: [ParticipantOverrides, ChatOverrides, MessageAnnotations],
+)
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        // Add MessageAnnotations table in schema version 2
+        await m.createTable(messageAnnotations);
+      }
     },
   );
 
@@ -84,6 +92,236 @@ class OverlayDatabase extends _$OverlayDatabase {
       chatOverrides,
     )..where((tbl) => tbl.chatId.equals(chatId))).go();
   }
+
+  // Helper methods for message annotations
+
+  /// Get annotation for a specific message
+  Future<MessageAnnotation?> getMessageAnnotation(int messageId) {
+    return (select(
+      messageAnnotations,
+    )..where((tbl) => tbl.messageId.equals(messageId))).getSingleOrNull();
+  }
+
+  /// Get all starred messages
+  Future<List<MessageAnnotation>> getStarredMessages() {
+    return (select(
+      messageAnnotations,
+    )..where((tbl) => tbl.isStarred.equals(true))).get();
+  }
+
+  /// Get all messages with a specific tag
+  Future<List<MessageAnnotation>> getMessagesByTag(String tag) async {
+    final allAnnotations = await select(messageAnnotations).get();
+    return allAnnotations.where((annotation) {
+      if (annotation.tags == null) {
+        return false;
+      }
+      // Tags stored as JSON array string: '["tag1","tag2"]'
+      return annotation.tags!.contains('"$tag"');
+    }).toList();
+  }
+
+  /// Toggle starred status for a message
+  Future<void> toggleMessageStar(int messageId) async {
+    final existing = await getMessageAnnotation(messageId);
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    if (existing == null) {
+      // Create new annotation with starred = true
+      await into(messageAnnotations).insert(
+        MessageAnnotationsCompanion.insert(
+          messageId: Value(messageId),
+          isStarred: const Value(true),
+          createdAtUtc: now,
+          updatedAtUtc: now,
+        ),
+      );
+    } else {
+      // Toggle existing starred status
+      await (update(
+        messageAnnotations,
+      )..where((tbl) => tbl.messageId.equals(messageId))).write(
+        MessageAnnotationsCompanion(
+          isStarred: Value(!existing.isStarred),
+          updatedAtUtc: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Set archived status for a message
+  Future<void> setMessageArchived(int messageId, bool archived) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(messageAnnotations).insertOnConflictUpdate(
+      MessageAnnotationsCompanion.insert(
+        messageId: Value(messageId),
+        isArchived: Value(archived),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Add tag(s) to a message (tags stored as JSON array)
+  Future<void> addMessageTags(int messageId, List<String> tagsToAdd) async {
+    final existing = await getMessageAnnotation(messageId);
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    // Parse existing tags
+    List<String> currentTags = [];
+    if (existing?.tags != null) {
+      // Parse JSON array: '["tag1","tag2"]'
+      final tagsStr = existing!.tags!
+          .replaceAll('[', '')
+          .replaceAll(']', '')
+          .replaceAll('"', '');
+      if (tagsStr.isNotEmpty) {
+        currentTags = tagsStr.split(',').map((t) => t.trim()).toList();
+      }
+    }
+
+    // Add new tags (avoid duplicates)
+    for (final tag in tagsToAdd) {
+      if (!currentTags.contains(tag)) {
+        currentTags.add(tag);
+      }
+    }
+
+    // Serialize back to JSON array string
+    final tagsJson = '[${currentTags.map((t) => '"$t"').join(',')}]';
+
+    await into(messageAnnotations).insertOnConflictUpdate(
+      MessageAnnotationsCompanion.insert(
+        messageId: Value(messageId),
+        tags: Value(tagsJson),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Remove tag(s) from a message
+  Future<void> removeMessageTags(
+    int messageId,
+    List<String> tagsToRemove,
+  ) async {
+    final existing = await getMessageAnnotation(messageId);
+    if (existing == null || existing.tags == null) {
+      return;
+    }
+
+    // Parse existing tags
+    final tagsStr = existing.tags!
+        .replaceAll('[', '')
+        .replaceAll(']', '')
+        .replaceAll('"', '');
+    if (tagsStr.isEmpty) {
+      return;
+    }
+
+    List<String> currentTags = tagsStr.split(',').map((t) => t.trim()).toList();
+
+    // Remove specified tags
+    currentTags.removeWhere((tag) => tagsToRemove.contains(tag));
+
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    if (currentTags.isEmpty) {
+      // If no tags remain, set to null
+      await (update(
+        messageAnnotations,
+      )..where((tbl) => tbl.messageId.equals(messageId))).write(
+        MessageAnnotationsCompanion(
+          tags: const Value(null),
+          updatedAtUtc: Value(now),
+        ),
+      );
+    } else {
+      // Update with remaining tags
+      final tagsJson = '[${currentTags.map((t) => '"$t"').join(',')}]';
+      await (update(
+        messageAnnotations,
+      )..where((tbl) => tbl.messageId.equals(messageId))).write(
+        MessageAnnotationsCompanion(
+          tags: Value(tagsJson),
+          updatedAtUtc: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Set user notes for a message
+  Future<void> setMessageNotes(int messageId, String? notes) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(messageAnnotations).insertOnConflictUpdate(
+      MessageAnnotationsCompanion.insert(
+        messageId: Value(messageId),
+        userNotes: Value(notes),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Set priority for a message (1-5, where 5 is highest)
+  Future<void> setMessagePriority(int messageId, int? priority) async {
+    if (priority != null && (priority < 1 || priority > 5)) {
+      throw ArgumentError('Priority must be between 1 and 5');
+    }
+
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(messageAnnotations).insertOnConflictUpdate(
+      MessageAnnotationsCompanion.insert(
+        messageId: Value(messageId),
+        priority: Value(priority),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Set reminder for a message
+  Future<void> setMessageReminder(int messageId, DateTime? remindAt) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(messageAnnotations).insertOnConflictUpdate(
+      MessageAnnotationsCompanion.insert(
+        messageId: Value(messageId),
+        remindAt: Value(remindAt?.toUtc().toIso8601String()),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Delete message annotation
+  Future<void> deleteMessageAnnotation(int messageId) async {
+    await (delete(
+      messageAnnotations,
+    )..where((tbl) => tbl.messageId.equals(messageId))).go();
+  }
+
+  /// Get messages with reminders due before a given time
+  Future<List<MessageAnnotation>> getMessagesDueForReminder(DateTime before) {
+    return (select(messageAnnotations)
+          ..where((tbl) => tbl.remindAt.isNotNull())
+          ..where(
+            (tbl) => tbl.remindAt.isSmallerThanValue(
+              before.toUtc().toIso8601String(),
+            ),
+          ))
+        .get();
+  }
+
+  /// Get high priority messages (priority >= 4)
+  Future<List<MessageAnnotation>> getHighPriorityMessages() {
+    return (select(
+      messageAnnotations,
+    )..where((tbl) => tbl.priority.isBiggerOrEqualValue(4))).get();
+  }
 }
 
 /// User-defined short names and preferences for participants
@@ -133,4 +371,39 @@ class ChatOverrides extends Table {
 
   @override
   Set<Column> get primaryKey => {chatId};
+}
+
+/// User annotations and metadata for individual messages
+class MessageAnnotations extends Table {
+  @override
+  String get tableName => 'message_annotations';
+
+  /// Matches working.messages.id
+  IntColumn get messageId => integer().named('message_id')();
+
+  /// User-defined tags as JSON array: '["receipt","important","todo"]'
+  TextColumn get tags => text().named('tags').nullable()();
+
+  /// Whether user has starred this message
+  BoolColumn get isStarred =>
+      boolean().named('is_starred').withDefault(const Constant(false))();
+
+  /// Whether user has archived this message
+  BoolColumn get isArchived =>
+      boolean().named('is_archived').withDefault(const Constant(false))();
+
+  /// User's personal notes about this message
+  TextColumn get userNotes => text().named('user_notes').nullable()();
+
+  /// Priority level (1-5, where 5 is highest)
+  IntColumn get priority => integer().named('priority').nullable()();
+
+  /// ISO8601 timestamp for reminder
+  TextColumn get remindAt => text().named('remind_at').nullable()();
+
+  TextColumn get createdAtUtc => text().named('created_at_utc')();
+  TextColumn get updatedAtUtc => text().named('updated_at_utc')();
+
+  @override
+  Set<Column> get primaryKey => {messageId};
 }

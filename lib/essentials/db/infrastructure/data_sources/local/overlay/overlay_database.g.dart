@@ -865,12 +865,593 @@ class ChatOverridesCompanion extends UpdateCompanion<ChatOverride> {
   }
 }
 
+class $MessageAnnotationsTable extends MessageAnnotations
+    with TableInfo<$MessageAnnotationsTable, MessageAnnotation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MessageAnnotationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<int> messageId = GeneratedColumn<int>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isStarredMeta = const VerificationMeta(
+    'isStarred',
+  );
+  @override
+  late final GeneratedColumn<bool> isStarred = GeneratedColumn<bool>(
+    'is_starred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_starred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _userNotesMeta = const VerificationMeta(
+    'userNotes',
+  );
+  @override
+  late final GeneratedColumn<String> userNotes = GeneratedColumn<String>(
+    'user_notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remindAtMeta = const VerificationMeta(
+    'remindAt',
+  );
+  @override
+  late final GeneratedColumn<String> remindAt = GeneratedColumn<String>(
+    'remind_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    messageId,
+    tags,
+    isStarred,
+    isArchived,
+    userNotes,
+    priority,
+    remindAt,
+    createdAtUtc,
+    updatedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'message_annotations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MessageAnnotation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('is_starred')) {
+      context.handle(
+        _isStarredMeta,
+        isStarred.isAcceptableOrUnknown(data['is_starred']!, _isStarredMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('user_notes')) {
+      context.handle(
+        _userNotesMeta,
+        userNotes.isAcceptableOrUnknown(data['user_notes']!, _userNotesMeta),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('remind_at')) {
+      context.handle(
+        _remindAtMeta,
+        remindAt.isAcceptableOrUnknown(data['remind_at']!, _remindAtMeta),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {messageId};
+  @override
+  MessageAnnotation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MessageAnnotation(
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}message_id'],
+      )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      ),
+      isStarred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_starred'],
+      )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      userNotes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_notes'],
+      ),
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      ),
+      remindAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remind_at'],
+      ),
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $MessageAnnotationsTable createAlias(String alias) {
+    return $MessageAnnotationsTable(attachedDatabase, alias);
+  }
+}
+
+class MessageAnnotation extends DataClass
+    implements Insertable<MessageAnnotation> {
+  /// Matches working.messages.id
+  final int messageId;
+
+  /// User-defined tags as JSON array: '["receipt","important","todo"]'
+  final String? tags;
+
+  /// Whether user has starred this message
+  final bool isStarred;
+
+  /// Whether user has archived this message
+  final bool isArchived;
+
+  /// User's personal notes about this message
+  final String? userNotes;
+
+  /// Priority level (1-5, where 5 is highest)
+  final int? priority;
+
+  /// ISO8601 timestamp for reminder
+  final String? remindAt;
+  final String createdAtUtc;
+  final String updatedAtUtc;
+  const MessageAnnotation({
+    required this.messageId,
+    this.tags,
+    required this.isStarred,
+    required this.isArchived,
+    this.userNotes,
+    this.priority,
+    this.remindAt,
+    required this.createdAtUtc,
+    required this.updatedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['message_id'] = Variable<int>(messageId);
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
+    }
+    map['is_starred'] = Variable<bool>(isStarred);
+    map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || userNotes != null) {
+      map['user_notes'] = Variable<String>(userNotes);
+    }
+    if (!nullToAbsent || priority != null) {
+      map['priority'] = Variable<int>(priority);
+    }
+    if (!nullToAbsent || remindAt != null) {
+      map['remind_at'] = Variable<String>(remindAt);
+    }
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    return map;
+  }
+
+  MessageAnnotationsCompanion toCompanion(bool nullToAbsent) {
+    return MessageAnnotationsCompanion(
+      messageId: Value(messageId),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
+      isStarred: Value(isStarred),
+      isArchived: Value(isArchived),
+      userNotes: userNotes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userNotes),
+      priority: priority == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priority),
+      remindAt: remindAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remindAt),
+      createdAtUtc: Value(createdAtUtc),
+      updatedAtUtc: Value(updatedAtUtc),
+    );
+  }
+
+  factory MessageAnnotation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MessageAnnotation(
+      messageId: serializer.fromJson<int>(json['messageId']),
+      tags: serializer.fromJson<String?>(json['tags']),
+      isStarred: serializer.fromJson<bool>(json['isStarred']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      userNotes: serializer.fromJson<String?>(json['userNotes']),
+      priority: serializer.fromJson<int?>(json['priority']),
+      remindAt: serializer.fromJson<String?>(json['remindAt']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+      updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'messageId': serializer.toJson<int>(messageId),
+      'tags': serializer.toJson<String?>(tags),
+      'isStarred': serializer.toJson<bool>(isStarred),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'userNotes': serializer.toJson<String?>(userNotes),
+      'priority': serializer.toJson<int?>(priority),
+      'remindAt': serializer.toJson<String?>(remindAt),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+      'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
+    };
+  }
+
+  MessageAnnotation copyWith({
+    int? messageId,
+    Value<String?> tags = const Value.absent(),
+    bool? isStarred,
+    bool? isArchived,
+    Value<String?> userNotes = const Value.absent(),
+    Value<int?> priority = const Value.absent(),
+    Value<String?> remindAt = const Value.absent(),
+    String? createdAtUtc,
+    String? updatedAtUtc,
+  }) => MessageAnnotation(
+    messageId: messageId ?? this.messageId,
+    tags: tags.present ? tags.value : this.tags,
+    isStarred: isStarred ?? this.isStarred,
+    isArchived: isArchived ?? this.isArchived,
+    userNotes: userNotes.present ? userNotes.value : this.userNotes,
+    priority: priority.present ? priority.value : this.priority,
+    remindAt: remindAt.present ? remindAt.value : this.remindAt,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+  );
+  MessageAnnotation copyWithCompanion(MessageAnnotationsCompanion data) {
+    return MessageAnnotation(
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      isStarred: data.isStarred.present ? data.isStarred.value : this.isStarred,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      userNotes: data.userNotes.present ? data.userNotes.value : this.userNotes,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      remindAt: data.remindAt.present ? data.remindAt.value : this.remindAt,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessageAnnotation(')
+          ..write('messageId: $messageId, ')
+          ..write('tags: $tags, ')
+          ..write('isStarred: $isStarred, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('userNotes: $userNotes, ')
+          ..write('priority: $priority, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    messageId,
+    tags,
+    isStarred,
+    isArchived,
+    userNotes,
+    priority,
+    remindAt,
+    createdAtUtc,
+    updatedAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MessageAnnotation &&
+          other.messageId == this.messageId &&
+          other.tags == this.tags &&
+          other.isStarred == this.isStarred &&
+          other.isArchived == this.isArchived &&
+          other.userNotes == this.userNotes &&
+          other.priority == this.priority &&
+          other.remindAt == this.remindAt &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.updatedAtUtc == this.updatedAtUtc);
+}
+
+class MessageAnnotationsCompanion extends UpdateCompanion<MessageAnnotation> {
+  final Value<int> messageId;
+  final Value<String?> tags;
+  final Value<bool> isStarred;
+  final Value<bool> isArchived;
+  final Value<String?> userNotes;
+  final Value<int?> priority;
+  final Value<String?> remindAt;
+  final Value<String> createdAtUtc;
+  final Value<String> updatedAtUtc;
+  const MessageAnnotationsCompanion({
+    this.messageId = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.isStarred = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.userNotes = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.remindAt = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+  });
+  MessageAnnotationsCompanion.insert({
+    this.messageId = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.isStarred = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.userNotes = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.remindAt = const Value.absent(),
+    required String createdAtUtc,
+    required String updatedAtUtc,
+  }) : createdAtUtc = Value(createdAtUtc),
+       updatedAtUtc = Value(updatedAtUtc);
+  static Insertable<MessageAnnotation> custom({
+    Expression<int>? messageId,
+    Expression<String>? tags,
+    Expression<bool>? isStarred,
+    Expression<bool>? isArchived,
+    Expression<String>? userNotes,
+    Expression<int>? priority,
+    Expression<String>? remindAt,
+    Expression<String>? createdAtUtc,
+    Expression<String>? updatedAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (messageId != null) 'message_id': messageId,
+      if (tags != null) 'tags': tags,
+      if (isStarred != null) 'is_starred': isStarred,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (userNotes != null) 'user_notes': userNotes,
+      if (priority != null) 'priority': priority,
+      if (remindAt != null) 'remind_at': remindAt,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+    });
+  }
+
+  MessageAnnotationsCompanion copyWith({
+    Value<int>? messageId,
+    Value<String?>? tags,
+    Value<bool>? isStarred,
+    Value<bool>? isArchived,
+    Value<String?>? userNotes,
+    Value<int?>? priority,
+    Value<String?>? remindAt,
+    Value<String>? createdAtUtc,
+    Value<String>? updatedAtUtc,
+  }) {
+    return MessageAnnotationsCompanion(
+      messageId: messageId ?? this.messageId,
+      tags: tags ?? this.tags,
+      isStarred: isStarred ?? this.isStarred,
+      isArchived: isArchived ?? this.isArchived,
+      userNotes: userNotes ?? this.userNotes,
+      priority: priority ?? this.priority,
+      remindAt: remindAt ?? this.remindAt,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (messageId.present) {
+      map['message_id'] = Variable<int>(messageId.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (isStarred.present) {
+      map['is_starred'] = Variable<bool>(isStarred.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (userNotes.present) {
+      map['user_notes'] = Variable<String>(userNotes.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (remindAt.present) {
+      map['remind_at'] = Variable<String>(remindAt.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessageAnnotationsCompanion(')
+          ..write('messageId: $messageId, ')
+          ..write('tags: $tags, ')
+          ..write('isStarred: $isStarred, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('userNotes: $userNotes, ')
+          ..write('priority: $priority, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
   late final $ParticipantOverridesTable participantOverrides =
       $ParticipantOverridesTable(this);
   late final $ChatOverridesTable chatOverrides = $ChatOverridesTable(this);
+  late final $MessageAnnotationsTable messageAnnotations =
+      $MessageAnnotationsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -878,6 +1459,7 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     participantOverrides,
     chatOverrides,
+    messageAnnotations,
   ];
 }
 
@@ -1343,6 +1925,295 @@ typedef $$ChatOverridesTableProcessedTableManager =
       ChatOverride,
       PrefetchHooks Function()
     >;
+typedef $$MessageAnnotationsTableCreateCompanionBuilder =
+    MessageAnnotationsCompanion Function({
+      Value<int> messageId,
+      Value<String?> tags,
+      Value<bool> isStarred,
+      Value<bool> isArchived,
+      Value<String?> userNotes,
+      Value<int?> priority,
+      Value<String?> remindAt,
+      required String createdAtUtc,
+      required String updatedAtUtc,
+    });
+typedef $$MessageAnnotationsTableUpdateCompanionBuilder =
+    MessageAnnotationsCompanion Function({
+      Value<int> messageId,
+      Value<String?> tags,
+      Value<bool> isStarred,
+      Value<bool> isArchived,
+      Value<String?> userNotes,
+      Value<int?> priority,
+      Value<String?> remindAt,
+      Value<String> createdAtUtc,
+      Value<String> updatedAtUtc,
+    });
+
+class $$MessageAnnotationsTableFilterComposer
+    extends Composer<_$OverlayDatabase, $MessageAnnotationsTable> {
+  $$MessageAnnotationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userNotes => $composableBuilder(
+    column: $table.userNotes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MessageAnnotationsTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $MessageAnnotationsTable> {
+  $$MessageAnnotationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userNotes => $composableBuilder(
+    column: $table.userNotes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MessageAnnotationsTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $MessageAnnotationsTable> {
+  $$MessageAnnotationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get messageId =>
+      $composableBuilder(column: $table.messageId, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<bool> get isStarred =>
+      $composableBuilder(column: $table.isStarred, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get userNotes =>
+      $composableBuilder(column: $table.userNotes, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get remindAt =>
+      $composableBuilder(column: $table.remindAt, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$MessageAnnotationsTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $MessageAnnotationsTable,
+          MessageAnnotation,
+          $$MessageAnnotationsTableFilterComposer,
+          $$MessageAnnotationsTableOrderingComposer,
+          $$MessageAnnotationsTableAnnotationComposer,
+          $$MessageAnnotationsTableCreateCompanionBuilder,
+          $$MessageAnnotationsTableUpdateCompanionBuilder,
+          (
+            MessageAnnotation,
+            BaseReferences<
+              _$OverlayDatabase,
+              $MessageAnnotationsTable,
+              MessageAnnotation
+            >,
+          ),
+          MessageAnnotation,
+          PrefetchHooks Function()
+        > {
+  $$MessageAnnotationsTableTableManager(
+    _$OverlayDatabase db,
+    $MessageAnnotationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MessageAnnotationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MessageAnnotationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MessageAnnotationsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> messageId = const Value.absent(),
+                Value<String?> tags = const Value.absent(),
+                Value<bool> isStarred = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<String?> userNotes = const Value.absent(),
+                Value<int?> priority = const Value.absent(),
+                Value<String?> remindAt = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
+              }) => MessageAnnotationsCompanion(
+                messageId: messageId,
+                tags: tags,
+                isStarred: isStarred,
+                isArchived: isArchived,
+                userNotes: userNotes,
+                priority: priority,
+                remindAt: remindAt,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> messageId = const Value.absent(),
+                Value<String?> tags = const Value.absent(),
+                Value<bool> isStarred = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<String?> userNotes = const Value.absent(),
+                Value<int?> priority = const Value.absent(),
+                Value<String?> remindAt = const Value.absent(),
+                required String createdAtUtc,
+                required String updatedAtUtc,
+              }) => MessageAnnotationsCompanion.insert(
+                messageId: messageId,
+                tags: tags,
+                isStarred: isStarred,
+                isArchived: isArchived,
+                userNotes: userNotes,
+                priority: priority,
+                remindAt: remindAt,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MessageAnnotationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $MessageAnnotationsTable,
+      MessageAnnotation,
+      $$MessageAnnotationsTableFilterComposer,
+      $$MessageAnnotationsTableOrderingComposer,
+      $$MessageAnnotationsTableAnnotationComposer,
+      $$MessageAnnotationsTableCreateCompanionBuilder,
+      $$MessageAnnotationsTableUpdateCompanionBuilder,
+      (
+        MessageAnnotation,
+        BaseReferences<
+          _$OverlayDatabase,
+          $MessageAnnotationsTable,
+          MessageAnnotation
+        >,
+      ),
+      MessageAnnotation,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -1351,4 +2222,6 @@ class $OverlayDatabaseManager {
       $$ParticipantOverridesTableTableManager(_db, _db.participantOverrides);
   $$ChatOverridesTableTableManager get chatOverrides =>
       $$ChatOverridesTableTableManager(_db, _db.chatOverrides);
+  $$MessageAnnotationsTableTableManager get messageAnnotations =>
+      $$MessageAnnotationsTableTableManager(_db, _db.messageAnnotations);
 }

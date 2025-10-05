@@ -81,13 +81,21 @@ void main() {
       final result = await container.read(
         contactShortNameCandidatesProvider.future,
       );
-      expect(result.length, 2);
+      expect(result.length, 3);
 
-      final group = result.firstWhere(
-        (entry) => entry.contactKey == 'contact:alpha',
+      // Participant 1 - Claire Jennings
+      final claire = result.firstWhere(
+        (entry) => entry.contactKey == 'participant:1',
       );
-      expect(group.identities.length, 2);
-      expect(group.displayName, 'Claire Jennings');
+      expect(claire.identities.length, 1);
+      expect(claire.displayName, 'Claire Jennings');
+
+      // Participant 2 - Mom
+      final mom = result.firstWhere(
+        (entry) => entry.contactKey == 'participant:2',
+      );
+      expect(mom.identities.length, 1);
+      expect(mom.displayName, 'Mom');
 
       final individual = result.firstWhere(
         (entry) => entry.contactKey == 'participant:4',
@@ -127,8 +135,9 @@ void main() {
       contactShortNameCandidatesProvider.future,
     );
 
+    // Participant 10 has the alphabetic name
     final entry = result.firstWhere(
-      (candidate) => candidate.contactKey == 'contact:beta',
+      (candidate) => candidate.contactKey == 'participant:11',
     );
 
     expect(entry.displayName, 'Jamie Rivera');
@@ -155,7 +164,7 @@ void main() {
       );
 
       final entry = result.firstWhere(
-        (candidate) => candidate.contactKey == 'contact:gamma',
+        (candidate) => candidate.contactKey == 'participant:20',
       );
 
       expect(entry.displayName, '+12024742228');

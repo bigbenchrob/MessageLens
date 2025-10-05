@@ -1,28 +1,28 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
+import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/features/settings/application/contact_short_names/contact_short_names_controller.dart';
-import 'package:remember_this_text/providers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late SharedPreferences preferences;
   late ProviderContainer container;
+  late OverlayDatabase testDb;
 
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    preferences = await SharedPreferences.getInstance();
+  setUp(() {
+    // Create in-memory database for testing
+    testDb = OverlayDatabase(NativeDatabase.memory());
 
     container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWith((ref) async => preferences),
-      ],
+      overrides: [overlayDatabaseProvider.overrideWith((ref) async => testDb)],
     );
   });
 
-  tearDown(() {
+  tearDown(() async {
+    await testDb.close();
     container.dispose();
   });
 
@@ -35,29 +35,31 @@ void main() {
     final notifier = container.read(contactShortNamesProvider.notifier);
 
     await notifier.setShortName(
-      contactKey: 'contact:abc123',
+      contactKey: 'participant:123',
       shortName: 'Claire',
     );
 
     final stored = await container.read(contactShortNamesProvider.future);
-    expect(stored['contact:abc123'], 'Claire');
+    expect(stored['participant:123'], 'Claire');
 
-    expect(preferences.getString('contact_short_names'), contains('Claire'));
+    // Verify in database by querying participant overrides
+    final allShortNames = await testDb.getAllShortNamesByKey();
+    expect(allShortNames['participant:123'], 'Claire');
 
-    await notifier.setShortName(contactKey: 'contact:abc123', shortName: '');
+    // Clear by setting to empty string
+    await notifier.setShortName(contactKey: 'participant:123', shortName: '');
     final afterClear = await container.read(contactShortNamesProvider.future);
-    expect(afterClear.containsKey('contact:abc123'), isFalse);
-
-    expect(preferences.getString('contact_short_names'), isNull);
+    expect(afterClear.containsKey('participant:123'), isFalse);
   });
 
   test('refresh re-reads values from storage', () async {
-    await preferences.setString('contact_short_names', '{"identity:1":"CJ"}');
+    // Add short name directly to database
+    await testDb.setParticipantShortName(1, 'CJ');
 
     final notifier = container.read(contactShortNamesProvider.notifier);
     await notifier.refresh();
 
     final result = await container.read(contactShortNamesProvider.future);
-    expect(result, equals({'identity:1': 'CJ'}));
+    expect(result, equals({'participant:1': 'CJ'}));
   });
 }
