@@ -458,11 +458,12 @@ class LedgerToWorkingMigrationService {
     );
   }
 
-  Future<_ParticipantProjection> _projectParticipants({
+  /// Phase 1: Import handles from chat.db to working.db handles table
+  /// Following new architecture: handles exist independently of participants
+  Future<_HandleProjection> _projectHandles({
     required Database importDb,
     required WorkingDatabase workingDb,
     required int batchId,
-    required _ContactIndex contactIndex,
   }) async {
     final rows = await importDb.query(
       'handles',
@@ -470,17 +471,12 @@ class LedgerToWorkingMigrationService {
       whereArgs: <Object>[batchId],
     );
 
-    final handleToParticipant = <int, int>{};
-    final handleToContactId = <int, int>{};
-    final participantDisplayNames = <int, String>{};
-    final participantLookup = <_ParticipantKey, int>{};
-
-    var participantsInserted = 0;
-    var linksInserted = 0;
+    final importHandleToWorkingHandle = <int, int>{};
+    var handlesInserted = 0;
 
     for (final row in rows) {
-      final handleId = row['id'] as int?;
-      if (handleId == null) {
+      final importHandleId = row['id'] as int?;
+      if (importHandleId == null) {
         continue;
       }
 
@@ -493,7 +489,59 @@ class LedgerToWorkingMigrationService {
         normalizedAddress: normalizedAddressRaw,
       );
 
+      final handleId = normalized.canonical ?? rawIdentifier ?? 'unknown';
+
+      // Insert handle into working database (preserving chat.db ROWID)
+      await workingDb.into(workingDb.workingHandles).insert(
+        WorkingHandlesCompanion.insert(
+          id: Value(importHandleId), // Preserve chat.db ROWID
+          handleId: handleId,
+          service: Value(service),
+          isValid: const Value(true), // Will be validated in Phase 3
+          isBlacklisted: const Value(false),
+        ),
+        mode: InsertMode.insertOrReplace,
+      );
+
+      importHandleToWorkingHandle[importHandleId] = importHandleId;
+      handlesInserted++;
+    }
+
+    return _HandleProjection(
+      importHandleToWorkingHandle: importHandleToWorkingHandle,
+      handleCount: handlesInserted,
+    );
+  }
+
+  /// Phase 2: Match handles to AddressBook contacts and create participants
+  /// Only creates participants when AddressBook matches exist
+  Future<_ParticipantProjection> _projectParticipants({
+    required Database importDb,
+    required WorkingDatabase workingDb,
+    required int batchId,
+    required _ContactIndex contactIndex,
+    required Map<int, int> importHandleToWorkingHandle,
+  }) async {
+    final handleToParticipant = <int, int>{};
+    final participantDisplayNames = <int, String>{};
+    final createdParticipants = <int>{}; // Track AddressBook Z_PKs used
+
+    var participantsInserted = 0;
+    var linksInserted = 0;
+
+    // Get all handles from working database
+    final workingHandles = await workingDb.select(workingDb.workingHandles).get();
+
+    for (final handle in workingHandles) {
+      final handleId = handle.handleId;
+      
+      // Try to match handle to AddressBook contact
       int? matchedContactId;
+      final normalized = _normalizeHandleIdentifier(
+        rawIdentifier: handleId,
+        normalizedAddress: handleId,
+      );
+
       for (final key in normalized.matchingKeys) {
         final contactId = contactIndex.normalizedChannelToContactId[key];
         if (contactId != null) {
@@ -502,50 +550,47 @@ class LedgerToWorkingMigrationService {
         }
       }
 
-      final displayName = matchedContactId != null
-          ? contactIndex.contactsById[matchedContactId]?.displayName ??
-                (rawIdentifier ?? 'Unknown contact')
-          : (rawIdentifier ?? 'Unknown contact');
-
-      if (matchedContactId != null) {
-        handleToContactId[handleId] = matchedContactId;
-      }
-
-      final key = _ParticipantKey(
-        service: service,
-        normalizedAddress: normalized.canonical ?? rawIdentifier,
-      );
-
-      final participantId = await _upsertParticipant(
-        workingDb: workingDb,
-        participantLookup: participantLookup,
-        key: key,
-        displayName: displayName,
-        contactId: matchedContactId,
-        isSystem: false,
-        participantsInserted: () {
-          participantsInserted++;
-        },
-      );
-
-      participantDisplayNames.putIfAbsent(participantId, () => displayName);
-
-      await workingDb
-          .into(workingDb.participantHandleLinks)
-          .insert(
-            ParticipantHandleLinksCompanion.insert(
-              participantId: participantId,
-              importHandleId: handleId,
+      // Only create participant if AddressBook match found
+      if (matchedContactId != null && !createdParticipants.contains(matchedContactId)) {
+        final contact = contactIndex.contactsById[matchedContactId];
+        if (contact != null) {
+          // Create participant using AddressBook Z_PK as ID
+          await workingDb.into(workingDb.workingParticipants).insert(
+            WorkingParticipantsCompanion.insert(
+              id: Value(matchedContactId), // Use AddressBook Z_PK
+              originalName: contact.displayName,
+              displayName: contact.displayName,
+              shortName: contact.displayName, // Could be enhanced later
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      linksInserted++;
-      handleToParticipant[handleId] = participantId;
+
+          createdParticipants.add(matchedContactId);
+          participantDisplayNames[matchedContactId] = contact.displayName;
+          participantsInserted++;
+        }
+      }
+
+      // Create handle_to_participant link if participant exists
+      if (matchedContactId != null && createdParticipants.contains(matchedContactId)) {
+        await workingDb.into(workingDb.handleToParticipant).insert(
+          HandleToParticipantCompanion.insert(
+            handleId: handle.id,
+            participantId: matchedContactId,
+            confidence: const Value(1.0), // AddressBook match = high confidence
+            source: const Value('addressbook'),
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+
+        handleToParticipant[handle.id] = matchedContactId;
+        linksInserted++;
+      }
     }
 
     return _ParticipantProjection(
       handleToParticipantId: handleToParticipant,
-      handleToContactId: handleToContactId,
+      handleToContactId: {}, // Not needed in new architecture
       participantDisplayNames: participantDisplayNames,
       participantCount: participantsInserted,
       handleLinkCount: linksInserted,
@@ -1538,6 +1583,16 @@ class _NormalizedIdentifier {
 
   final String? canonical;
   final Set<String> matchingKeys;
+}
+
+class _HandleProjection {
+  const _HandleProjection({
+    required this.importHandleToWorkingHandle,
+    required this.handleCount,
+  });
+
+  final Map<int, int> importHandleToWorkingHandle;
+  final int handleCount;
 }
 
 class _ParticipantProjection {
