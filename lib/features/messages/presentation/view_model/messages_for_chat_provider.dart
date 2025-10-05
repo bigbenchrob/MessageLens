@@ -99,9 +99,9 @@ Stream<List<ChatMessageListItem>> messagesForChat(
     return parsed?.toLocal();
   }
 
-  String resolveSenderName({
-    WorkingParticipant? participant,
+  String _getSenderName({
     required bool isFromMe,
+    required WorkingParticipant? participant,
   }) {
     if (isFromMe) {
       return 'You';
@@ -109,17 +109,26 @@ Stream<List<ChatMessageListItem>> messagesForChat(
     if (participant == null) {
       return 'Unknown sender';
     }
-    return participant.displayName ??
-        participant.normalizedAddress ??
-        'Unknown';
+    return participant.displayName;
   }
 
   final query =
       db.select(db.workingMessages).join([
+          // Join messages → handles
+          drift.leftOuterJoin(
+            db.workingHandles,
+            db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+          ),
+          // Join handles → handle_to_participant
+          drift.leftOuterJoin(
+            db.handleToParticipant,
+            db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+          ),
+          // Join handle_to_participant → participants
           drift.leftOuterJoin(
             db.workingParticipants,
             db.workingParticipants.id.equalsExp(
-              db.workingMessages.senderParticipantId,
+              db.handleToParticipant.participantId,
             ),
           ),
         ])
@@ -162,7 +171,7 @@ Stream<List<ChatMessageListItem>> messagesForChat(
           id: message.id,
           guid: message.guid,
           isFromMe: message.isFromMe,
-          senderName: resolveSenderName(
+          senderName: _getSenderName(
             participant: participant,
             isFromMe: message.isFromMe,
           ),

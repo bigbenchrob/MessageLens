@@ -183,11 +183,11 @@ class _ContactShortNameRow extends HookConsumerWidget {
         .map((identity) {
           final address = identity.normalizedAddress?.trim();
           if (address != null && address.isNotEmpty) {
-            final service = identity.service.trim();
-            if (service.toLowerCase() == 'unknown') {
+            final service = identity.service?.trim();
+            if (service == null || service.toLowerCase() == 'unknown') {
               return address;
             }
-            return '$address • ${identity.service}';
+            return '$address • $service';
           }
           return identity.displayName?.trim();
         })

@@ -64,10 +64,7 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
   }
 
   String resolveContactKey(WorkingParticipant participant) {
-    final contactRef = participant.contactRef?.trim();
-    if (contactRef != null && contactRef.isNotEmpty) {
-      return 'contact:$contactRef';
-    }
+    // Since contact_ref is removed, use participant.id directly
     return 'participant:${participant.id}';
   }
 
@@ -111,43 +108,39 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
 
     final lastMessageDate = parseUtc(lastSentUtc ?? chat.lastMessageAtUtc);
 
-    // Query all participants for this chat
-    final participantsQuery =
-        db.select(db.chatToParticipant).join([
-            drift.innerJoin(
-              db.workingParticipants,
-              db.workingParticipants.id.equalsExp(
-                db.chatToParticipant.participantId,
-              ),
-            ),
-          ])
-          ..where(db.chatToParticipant.chatId.equals(chat.id))
-          ..orderBy([
-            drift.OrderingTerm(expression: db.chatToParticipant.sortKey),
-          ]);
+    // Query participants for this chat:
+    // chats.handle_id → handle_to_participant → participants
+    final participantsQuery = db.select(db.workingParticipants).join([
+      // Join participants → handle_to_participant
+      drift.innerJoin(
+        db.handleToParticipant,
+        db.handleToParticipant.participantId.equalsExp(
+          db.workingParticipants.id,
+        ),
+      ),
+      // Join handle_to_participant → handles
+      drift.innerJoin(
+        db.workingHandles,
+        db.workingHandles.id.equalsExp(db.handleToParticipant.handleId),
+      ),
+    ])..where(db.workingHandles.id.equals(chat.handleId));
+
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];
     final seenNames = <String>{};
 
     for (final row in participantRows) {
       final participant = row.readTable(db.workingParticipants);
-      if (participant.isSystem) {
-        continue;
-      }
 
       final key = resolveContactKey(participant);
       final trimmedShortName = shortNames[key]?.trim();
-      final trimmedParticipantName = participant.displayName?.trim();
-      final trimmedHandle = participant.normalizedAddress?.trim();
+      final trimmedParticipantName = participant.displayName.trim();
 
       var resolvedName = trimmedShortName;
       if (resolvedName == null || resolvedName.isEmpty) {
         resolvedName = trimmedParticipantName;
       }
-      if (resolvedName == null || resolvedName.isEmpty) {
-        resolvedName = trimmedHandle;
-      }
-      if (resolvedName == null || resolvedName.isEmpty) {
+      if (resolvedName.isEmpty) {
         resolvedName = 'Unknown Contact';
       }
 

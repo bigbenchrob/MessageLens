@@ -19,7 +19,7 @@ class SettingsContactIdentity {
   final int identityId;
   final String? displayName;
   final String? normalizedAddress;
-  final String service;
+  final String? service; // Made nullable to handle participants without handles
 }
 
 class SettingsContactEntry {
@@ -74,30 +74,57 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
   final rows =
       await (db.select(db.workingParticipants)..orderBy([
             (tbl) => drift.OrderingTerm(expression: tbl.displayName),
-            (tbl) => drift.OrderingTerm(expression: tbl.normalizedAddress),
+            (tbl) => drift.OrderingTerm(expression: tbl.id),
           ]))
           .get();
 
   final groups = <String, List<SettingsContactIdentity>>{};
 
   for (final participant in rows) {
-    if (participant.isSystem) {
-      continue;
-    }
+    // Query handles for this participant through handle_to_participant
+    final handleLinks =
+        await (db.select(db.handleToParticipant).join([
+              drift.innerJoin(
+                db.workingHandles,
+                db.workingHandles.id.equalsExp(db.handleToParticipant.handleId),
+              ),
+            ])..where(
+              db.handleToParticipant.participantId.equals(participant.id),
+            ))
+            .get();
 
     // Always use participant ID as the key (matches overlay database format)
     final key = 'participant:${participant.id}';
 
-    final participantEntry = SettingsContactIdentity(
-      identityId: participant.id,
-      displayName: participant.displayName,
-      normalizedAddress: participant.normalizedAddress,
-      service: participant.service,
-    );
+    // Create identity entries for each handle associated with this participant
+    for (final linkRow in handleLinks) {
+      final handle = linkRow.readTable(db.workingHandles);
 
-    groups
-        .putIfAbsent(key, () => <SettingsContactIdentity>[])
-        .add(participantEntry);
+      final participantEntry = SettingsContactIdentity(
+        identityId: participant.id,
+        displayName: participant.displayName,
+        normalizedAddress: handle.handleId,
+        service: handle.service,
+      );
+
+      groups
+          .putIfAbsent(key, () => <SettingsContactIdentity>[])
+          .add(participantEntry);
+    }
+
+    // If participant has no handles, still create an entry
+    if (handleLinks.isEmpty) {
+      final participantEntry = SettingsContactIdentity(
+        identityId: participant.id,
+        displayName: participant.displayName,
+        normalizedAddress: null,
+        service: null,
+      );
+
+      groups
+          .putIfAbsent(key, () => <SettingsContactIdentity>[])
+          .add(participantEntry);
+    }
   }
 
   final entries = groups.entries.map((entry) {

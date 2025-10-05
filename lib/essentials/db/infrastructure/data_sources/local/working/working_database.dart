@@ -8,10 +8,10 @@ part 'working_database.g.dart';
     WorkingSchemaMigrations,
     ProjectionState,
     AppSettings,
+    WorkingHandles,
     WorkingParticipants,
-    ParticipantHandleLinks,
+    HandleToParticipant,
     WorkingChats,
-    ChatToParticipant,
     WorkingMessages,
     WorkingAttachments,
     WorkingReactions,
@@ -26,7 +26,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +52,9 @@ class WorkingDatabase extends _$WorkingDatabase {
       }
       if (from < 4) {
         await _removeChatNameColumns(m);
+      }
+      if (from < 5) {
+        await _migrateToHandlesArchitecture(m);
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -130,16 +133,162 @@ class WorkingDatabase extends _$WorkingDatabase {
     ''');
     await customStatement('DROP TABLE chats_old');
   }
+
+  /// Migrates from participant-centric to handle-centric architecture.
+  /// Transforms schema v4 to v5:
+  /// - Creates new handles table from existing participant data
+  /// - Refactors participants table (removes service/normalized_address, adds original_name/short_name)
+  ///   Participants.id now preserves AddressBook Z_PK for traceability
+  /// - Updates handle_to_participant structure (renamed from participant_handle_links)
+  /// - Removes chat_to_participant table (UI now joins through handles)
+  /// - Updates chats/messages/reactions to reference handles instead of participants
+  Future<void> _migrateToHandlesArchitecture(Migrator migrator) async {
+    // Step 1: Create new handles table
+    await migrator.createTable(workingHandles);
+
+    // Step 2: Extract handles from old participants table
+    // Each (service, normalized_address) becomes a handle
+    await customStatement('''
+      INSERT INTO handles (id, handle_id, service, is_valid, is_blacklisted)
+      SELECT 
+        id,
+        COALESCE(normalized_address, 'unknown_' || id),
+        service,
+        1,
+        0
+      FROM participants
+      WHERE normalized_address IS NOT NULL
+    ''');
+
+    // Step 3: Rename old tables
+    await customStatement(
+      'ALTER TABLE participants RENAME TO participants_old',
+    );
+    await customStatement(
+      'ALTER TABLE handle_to_participant RENAME TO handle_to_participant_old',
+    );
+    await customStatement('ALTER TABLE chats RENAME TO chats_old');
+    await customStatement('ALTER TABLE messages RENAME TO messages_old');
+    await customStatement('ALTER TABLE reactions RENAME TO reactions_old');
+
+    // Step 4: Create new participants table
+    await migrator.createTable(workingParticipants);
+
+    // Step 5: Deduplicate participants by display_name (merge service variations)
+    // Create one participant per unique display_name from old data
+    await customStatement('''
+      INSERT INTO participants (id, original_name, display_name, short_name, avatar_ref)
+      SELECT 
+        MIN(id) as id,
+        MIN(display_name) as original_name,
+        display_name,
+        display_name as short_name,
+        MIN(avatar_ref) as avatar_ref
+      FROM participants_old
+      GROUP BY COALESCE(display_name, 'Unknown_' || MIN(id))
+    ''');
+
+    // Step 6: Create new handle_to_participant table
+    await migrator.createTable(handleToParticipant);
+
+    // Step 7: Build handle→participant links
+    // Link each handle to the deduplicated participant
+    await customStatement('''
+      INSERT INTO handle_to_participant (handle_id, participant_id, confidence, source)
+      SELECT DISTINCT
+        old_p.id as handle_id,
+        (SELECT MIN(p.id) 
+         FROM participants p 
+         WHERE p.display_name = old_p.display_name) as participant_id,
+        1.0 as confidence,
+        'migration' as source
+      FROM participants_old old_p
+      WHERE old_p.normalized_address IS NOT NULL
+    ''');
+
+    // Step 8: Create new chats table
+    await migrator.createTable(workingChats);
+
+    // Step 9: Migrate chats data (use first handle for each old participant)
+    await customStatement('''
+      INSERT INTO chats (
+        id, guid, handle_id, service, is_group, last_message_at_utc,
+        last_sender_handle_id, last_message_preview, unread_count,
+        pinned, archived, muted_until_utc, favourite,
+        created_at_utc, updated_at_utc
+      )
+      SELECT 
+        c.id,
+        c.guid,
+        COALESCE(c.last_sender_participant_id, c.id) as handle_id,
+        c.service,
+        c.is_group,
+        c.last_message_at_utc,
+        c.last_sender_participant_id as last_sender_handle_id,
+        c.last_message_preview,
+        c.unread_count,
+        c.pinned,
+        c.archived,
+        c.muted_until_utc,
+        c.favourite,
+        c.created_at_utc,
+        c.updated_at_utc
+      FROM chats_old c
+    ''');
+
+    // Step 10: Create new messages table
+    await migrator.createTable(workingMessages);
+
+    // Step 11: Migrate messages data
+    await customStatement('''
+      INSERT INTO messages (
+        id, guid, chat_id, sender_handle_id, is_from_me,
+        sent_at_utc, delivered_at_utc, read_at_utc, status,
+        text, has_attachments, reply_to_guid, system_type,
+        reaction_carrier, balloon_bundle_id, reaction_summary_json,
+        is_starred, is_deleted_local, updated_at_utc
+      )
+      SELECT 
+        id, guid, chat_id, sender_participant_id as sender_handle_id,
+        is_from_me, sent_at_utc, delivered_at_utc, read_at_utc, status,
+        text, has_attachments, reply_to_guid, system_type,
+        reaction_carrier, balloon_bundle_id, reaction_summary_json,
+        is_starred, is_deleted_local, updated_at_utc
+      FROM messages_old
+    ''');
+
+    // Step 12: Create new reactions table
+    await migrator.createTable(workingReactions);
+
+    // Step 13: Migrate reactions data
+    await customStatement('''
+      INSERT INTO reactions (
+        id, message_guid, kind, reactor_handle_id, action, reacted_at_utc
+      )
+      SELECT 
+        id, message_guid, kind, reactor_participant_id as reactor_handle_id,
+        action, reacted_at_utc
+      FROM reactions_old
+    ''');
+
+    // Step 14: Drop old tables
+    await customStatement('DROP TABLE participants_old');
+    await customStatement('DROP TABLE handle_to_participant_old');
+    await customStatement('DROP TABLE chats_old');
+    await customStatement('DROP TABLE messages_old');
+    await customStatement('DROP TABLE reactions_old');
+  }
 }
 
 const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_chats_sort ON chats(pinned DESC, last_message_at_utc DESC)',
-  'CREATE INDEX IF NOT EXISTS idx_chat_to_participant_order ON chat_to_participant(chat_id, sort_key)',
   'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, sent_at_utc)',
-  'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_participant_id)',
+  'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to_guid)',
   'CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_guid)',
   'CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(message_guid)',
+  'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_handle ON handle_to_participant(handle_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_participant ON handle_to_participant(participant_id)',
 ];
 
 const List<String> _workingVirtualAndTriggerStatements = [
@@ -182,12 +331,13 @@ const List<String> _workingVirtualAndTriggerStatements = [
     c.unread_count,
     m.guid         AS last_message_guid,
     m.text         AS last_message_text,
-    m.sender_participant_id
+    m.sender_handle_id
   FROM chats c
   LEFT JOIN messages m
     ON m.chat_id = c.id
    AND m.sent_at_utc = c.last_message_at_utc;
   ''',
+
   '''
   CREATE VIEW IF NOT EXISTS v_message_expanded AS
   SELECT
@@ -199,9 +349,11 @@ const List<String> _workingVirtualAndTriggerStatements = [
     p.display_name AS sender_name,
     rc.love, rc.like, rc.dislike, rc.laugh, rc.emphasize, rc.question
   FROM messages m
-  LEFT JOIN participants p ON p.id = m.sender_participant_id
+  LEFT JOIN participant_handle_links phl ON phl.handle_id = m.sender_handle_id
+  LEFT JOIN participants p ON p.id = phl.participant_id
   LEFT JOIN reaction_counts rc ON rc.message_guid = m.guid;
   ''',
+
   // Reaction maintenance triggers
   '''
   CREATE TRIGGER IF NOT EXISTS trg_reactions_after_change
@@ -245,9 +397,9 @@ const List<String> _workingVirtualAndTriggerStatements = [
        SET last_message_at_utc = CASE
              WHEN last_message_at_utc IS NULL OR new.sent_at_utc > last_message_at_utc
              THEN new.sent_at_utc ELSE last_message_at_utc END,
-           last_sender_participant_id = CASE
+           last_sender_handle_id = CASE
              WHEN last_message_at_utc IS NULL OR new.sent_at_utc >= last_message_at_utc
-             THEN new.sender_participant_id ELSE last_sender_participant_id END,
+             THEN new.sender_handle_id ELSE last_sender_handle_id END,
            last_message_preview = CASE
              WHEN last_message_at_utc IS NULL OR new.sent_at_utc >= last_message_at_utc
              THEN substr(COALESCE(new.text,''), 1, 120) ELSE last_message_preview END
@@ -316,41 +468,65 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-class WorkingParticipants extends Table {
+class WorkingHandles extends Table {
   @override
-  String get tableName => 'participants';
+  String get tableName => 'handles';
 
-  IntColumn get id => integer().named('id').autoIncrement()();
-  TextColumn get normalizedAddress =>
-      text().named('normalized_address').nullable()();
+  IntColumn get id => integer().named('id')();
+  TextColumn get handleId => text().named('handle_id')();
   TextColumn get service => text()
       .named('service')
       .customConstraint(
         "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
       )();
-  TextColumn get displayName => text().named('display_name').nullable()();
-  TextColumn get contactRef => text().named('contact_ref').nullable()();
-  TextColumn get avatarRef => text().named('avatar_ref').nullable()();
-  BoolColumn get isSystem =>
-      boolean().named('is_system').withDefault(const Constant(false))();
+  BoolColumn get isValid =>
+      boolean().named('is_valid').withDefault(const Constant(true))();
+  BoolColumn get isBlacklisted =>
+      boolean().named('is_blacklisted').withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {service, normalizedAddress},
+    {handleId, service},
   ];
 }
 
-class ParticipantHandleLinks extends Table {
+class WorkingParticipants extends Table {
   @override
-  String get tableName => 'participant_handle_links';
+  String get tableName => 'participants';
 
+  IntColumn get id => integer().named('id')(); // Preserves AddressBook Z_PK
+  TextColumn get originalName => text().named('original_name')();
+  TextColumn get displayName => text().named('display_name')();
+  TextColumn get shortName => text().named('short_name')();
+  TextColumn get avatarRef => text().named('avatar_ref').nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class HandleToParticipant extends Table {
+  @override
+  String get tableName => 'handle_to_participant';
+
+  IntColumn get id => integer().named('id').autoIncrement()();
+  IntColumn get handleId => integer()
+      .named('handle_id')
+      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
   IntColumn get participantId => integer()
       .named('participant_id')
       .references(WorkingParticipants, #id, onDelete: KeyAction.cascade)();
-  IntColumn get importHandleId => integer().named('import_handle_id')();
+  RealColumn get confidence =>
+      real().named('confidence').withDefault(const Constant(1.0))();
+  TextColumn get source =>
+      text().named('source').withDefault(const Constant('addressbook'))();
 
   @override
-  Set<Column> get primaryKey => {participantId, importHandleId};
+  List<Set<Column>> get uniqueKeys => [
+    {handleId, participantId},
+  ];
 }
 
 class WorkingChats extends Table {
@@ -359,6 +535,9 @@ class WorkingChats extends Table {
 
   IntColumn get id => integer().named('id').autoIncrement()();
   TextColumn get guid => text().named('guid')();
+  IntColumn get handleId => integer()
+      .named('handle_id')
+      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
   TextColumn get service => text()
       .named('service')
       .customConstraint(
@@ -368,10 +547,10 @@ class WorkingChats extends Table {
       boolean().named('is_group').withDefault(const Constant(false))();
   TextColumn get lastMessageAtUtc =>
       text().named('last_message_at_utc').nullable()();
-  IntColumn get lastSenderParticipantId => integer()
-      .named('last_sender_participant_id')
+  IntColumn get lastSenderHandleId => integer()
+      .named('last_sender_handle_id')
       .nullable()
-      .references(WorkingParticipants, #id, onDelete: KeyAction.setNull)();
+      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
   TextColumn get lastMessagePreview =>
       text().named('last_message_preview').nullable()();
   IntColumn get unreadCount =>
@@ -392,28 +571,6 @@ class WorkingChats extends Table {
   ];
 }
 
-class ChatToParticipant extends Table {
-  @override
-  String get tableName => 'chat_to_participant';
-
-  IntColumn get chatId => integer()
-      .named('chat_id')
-      .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
-  IntColumn get participantId => integer()
-      .named('participant_id')
-      .references(WorkingParticipants, #id, onDelete: KeyAction.cascade)();
-  TextColumn get role => text()
-      .named('role')
-      .customConstraint(
-        "NOT NULL DEFAULT 'member' CHECK(role IN ('member','owner','unknown'))",
-      )();
-  IntColumn get sortKey =>
-      integer().named('sort_key').withDefault(const Constant(0))();
-
-  @override
-  Set<Column> get primaryKey => {chatId, participantId};
-}
-
 class WorkingMessages extends Table {
   @override
   String get tableName => 'messages';
@@ -423,10 +580,10 @@ class WorkingMessages extends Table {
   IntColumn get chatId => integer()
       .named('chat_id')
       .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
-  IntColumn get senderParticipantId => integer()
-      .named('sender_participant_id')
+  IntColumn get senderHandleId => integer()
+      .named('sender_handle_id')
       .nullable()
-      .references(WorkingParticipants, #id, onDelete: KeyAction.setNull)();
+      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
   BoolColumn get isFromMe =>
       boolean().named('is_from_me').withDefault(const Constant(false))();
   TextColumn get sentAtUtc => text().named('sent_at_utc').nullable()();
@@ -491,10 +648,10 @@ class WorkingReactions extends Table {
       .customConstraint(
         "NOT NULL CHECK(kind IN ('love','like','dislike','laugh','emphasize','question','unknown'))",
       )();
-  IntColumn get reactorParticipantId => integer()
-      .named('reactor_participant_id')
+  IntColumn get reactorHandleId => integer()
+      .named('reactor_handle_id')
       .nullable()
-      .references(WorkingParticipants, #id, onDelete: KeyAction.setNull)();
+      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
   TextColumn get action => text()
       .named('action')
       .customConstraint("NOT NULL CHECK(\"action\" IN ('add','remove'))")();

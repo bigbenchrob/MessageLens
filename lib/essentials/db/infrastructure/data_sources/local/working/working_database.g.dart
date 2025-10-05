@@ -836,37 +836,32 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
-class $WorkingParticipantsTable extends WorkingParticipants
-    with TableInfo<$WorkingParticipantsTable, WorkingParticipant> {
+class $WorkingHandlesTable extends WorkingHandles
+    with TableInfo<$WorkingHandlesTable, WorkingHandle> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $WorkingParticipantsTable(this.attachedDatabase, [this._alias]);
+  $WorkingHandlesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
-  static const VerificationMeta _normalizedAddressMeta = const VerificationMeta(
-    'normalizedAddress',
+  static const VerificationMeta _handleIdMeta = const VerificationMeta(
+    'handleId',
   );
   @override
-  late final GeneratedColumn<String> normalizedAddress =
-      GeneratedColumn<String>(
-        'normalized_address',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
+  late final GeneratedColumn<String> handleId = GeneratedColumn<String>(
+    'handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _serviceMeta = const VerificationMeta(
     'service',
   );
@@ -881,6 +876,352 @@ class $WorkingParticipantsTable extends WorkingParticipants
         'NOT NULL DEFAULT \'Unknown\' CHECK(service IN (\'iMessage\',\'iMessageLite\',\'SMS\',\'RCS\',\'Unknown\'))',
     defaultValue: const CustomExpression('\'Unknown\''),
   );
+  static const VerificationMeta _isValidMeta = const VerificationMeta(
+    'isValid',
+  );
+  @override
+  late final GeneratedColumn<bool> isValid = GeneratedColumn<bool>(
+    'is_valid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_valid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isBlacklistedMeta = const VerificationMeta(
+    'isBlacklisted',
+  );
+  @override
+  late final GeneratedColumn<bool> isBlacklisted = GeneratedColumn<bool>(
+    'is_blacklisted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_blacklisted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    handleId,
+    service,
+    isValid,
+    isBlacklisted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'handles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkingHandle> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('handle_id')) {
+      context.handle(
+        _handleIdMeta,
+        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_handleIdMeta);
+    }
+    if (data.containsKey('service')) {
+      context.handle(
+        _serviceMeta,
+        service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
+      );
+    }
+    if (data.containsKey('is_valid')) {
+      context.handle(
+        _isValidMeta,
+        isValid.isAcceptableOrUnknown(data['is_valid']!, _isValidMeta),
+      );
+    }
+    if (data.containsKey('is_blacklisted')) {
+      context.handle(
+        _isBlacklistedMeta,
+        isBlacklisted.isAcceptableOrUnknown(
+          data['is_blacklisted']!,
+          _isBlacklistedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {handleId, service},
+  ];
+  @override
+  WorkingHandle map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkingHandle(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      handleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}handle_id'],
+      )!,
+      service: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service'],
+      )!,
+      isValid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_valid'],
+      )!,
+      isBlacklisted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_blacklisted'],
+      )!,
+    );
+  }
+
+  @override
+  $WorkingHandlesTable createAlias(String alias) {
+    return $WorkingHandlesTable(attachedDatabase, alias);
+  }
+}
+
+class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
+  final int id;
+  final String handleId;
+  final String service;
+  final bool isValid;
+  final bool isBlacklisted;
+  const WorkingHandle({
+    required this.id,
+    required this.handleId,
+    required this.service,
+    required this.isValid,
+    required this.isBlacklisted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['handle_id'] = Variable<String>(handleId);
+    map['service'] = Variable<String>(service);
+    map['is_valid'] = Variable<bool>(isValid);
+    map['is_blacklisted'] = Variable<bool>(isBlacklisted);
+    return map;
+  }
+
+  WorkingHandlesCompanion toCompanion(bool nullToAbsent) {
+    return WorkingHandlesCompanion(
+      id: Value(id),
+      handleId: Value(handleId),
+      service: Value(service),
+      isValid: Value(isValid),
+      isBlacklisted: Value(isBlacklisted),
+    );
+  }
+
+  factory WorkingHandle.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkingHandle(
+      id: serializer.fromJson<int>(json['id']),
+      handleId: serializer.fromJson<String>(json['handleId']),
+      service: serializer.fromJson<String>(json['service']),
+      isValid: serializer.fromJson<bool>(json['isValid']),
+      isBlacklisted: serializer.fromJson<bool>(json['isBlacklisted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'handleId': serializer.toJson<String>(handleId),
+      'service': serializer.toJson<String>(service),
+      'isValid': serializer.toJson<bool>(isValid),
+      'isBlacklisted': serializer.toJson<bool>(isBlacklisted),
+    };
+  }
+
+  WorkingHandle copyWith({
+    int? id,
+    String? handleId,
+    String? service,
+    bool? isValid,
+    bool? isBlacklisted,
+  }) => WorkingHandle(
+    id: id ?? this.id,
+    handleId: handleId ?? this.handleId,
+    service: service ?? this.service,
+    isValid: isValid ?? this.isValid,
+    isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+  );
+  WorkingHandle copyWithCompanion(WorkingHandlesCompanion data) {
+    return WorkingHandle(
+      id: data.id.present ? data.id.value : this.id,
+      handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      service: data.service.present ? data.service.value : this.service,
+      isValid: data.isValid.present ? data.isValid.value : this.isValid,
+      isBlacklisted: data.isBlacklisted.present
+          ? data.isBlacklisted.value
+          : this.isBlacklisted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkingHandle(')
+          ..write('id: $id, ')
+          ..write('handleId: $handleId, ')
+          ..write('service: $service, ')
+          ..write('isValid: $isValid, ')
+          ..write('isBlacklisted: $isBlacklisted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, handleId, service, isValid, isBlacklisted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkingHandle &&
+          other.id == this.id &&
+          other.handleId == this.handleId &&
+          other.service == this.service &&
+          other.isValid == this.isValid &&
+          other.isBlacklisted == this.isBlacklisted);
+}
+
+class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
+  final Value<int> id;
+  final Value<String> handleId;
+  final Value<String> service;
+  final Value<bool> isValid;
+  final Value<bool> isBlacklisted;
+  const WorkingHandlesCompanion({
+    this.id = const Value.absent(),
+    this.handleId = const Value.absent(),
+    this.service = const Value.absent(),
+    this.isValid = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+  });
+  WorkingHandlesCompanion.insert({
+    this.id = const Value.absent(),
+    required String handleId,
+    this.service = const Value.absent(),
+    this.isValid = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+  }) : handleId = Value(handleId);
+  static Insertable<WorkingHandle> custom({
+    Expression<int>? id,
+    Expression<String>? handleId,
+    Expression<String>? service,
+    Expression<bool>? isValid,
+    Expression<bool>? isBlacklisted,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (handleId != null) 'handle_id': handleId,
+      if (service != null) 'service': service,
+      if (isValid != null) 'is_valid': isValid,
+      if (isBlacklisted != null) 'is_blacklisted': isBlacklisted,
+    });
+  }
+
+  WorkingHandlesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? handleId,
+    Value<String>? service,
+    Value<bool>? isValid,
+    Value<bool>? isBlacklisted,
+  }) {
+    return WorkingHandlesCompanion(
+      id: id ?? this.id,
+      handleId: handleId ?? this.handleId,
+      service: service ?? this.service,
+      isValid: isValid ?? this.isValid,
+      isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (handleId.present) {
+      map['handle_id'] = Variable<String>(handleId.value);
+    }
+    if (service.present) {
+      map['service'] = Variable<String>(service.value);
+    }
+    if (isValid.present) {
+      map['is_valid'] = Variable<bool>(isValid.value);
+    }
+    if (isBlacklisted.present) {
+      map['is_blacklisted'] = Variable<bool>(isBlacklisted.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkingHandlesCompanion(')
+          ..write('id: $id, ')
+          ..write('handleId: $handleId, ')
+          ..write('service: $service, ')
+          ..write('isValid: $isValid, ')
+          ..write('isBlacklisted: $isBlacklisted')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WorkingParticipantsTable extends WorkingParticipants
+    with TableInfo<$WorkingParticipantsTable, WorkingParticipant> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkingParticipantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originalNameMeta = const VerificationMeta(
+    'originalName',
+  );
+  @override
+  late final GeneratedColumn<String> originalName = GeneratedColumn<String>(
+    'original_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _displayNameMeta = const VerificationMeta(
     'displayName',
   );
@@ -888,20 +1229,20 @@ class $WorkingParticipantsTable extends WorkingParticipants
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
     'display_name',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
-  static const VerificationMeta _contactRefMeta = const VerificationMeta(
-    'contactRef',
+  static const VerificationMeta _shortNameMeta = const VerificationMeta(
+    'shortName',
   );
   @override
-  late final GeneratedColumn<String> contactRef = GeneratedColumn<String>(
-    'contact_ref',
+  late final GeneratedColumn<String> shortName = GeneratedColumn<String>(
+    'short_name',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _avatarRefMeta = const VerificationMeta(
     'avatarRef',
@@ -914,30 +1255,13 @@ class $WorkingParticipantsTable extends WorkingParticipants
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _isSystemMeta = const VerificationMeta(
-    'isSystem',
-  );
-  @override
-  late final GeneratedColumn<bool> isSystem = GeneratedColumn<bool>(
-    'is_system',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_system" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    normalizedAddress,
-    service,
+    originalName,
     displayName,
-    contactRef,
+    shortName,
     avatarRef,
-    isSystem,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -954,20 +1278,16 @@ class $WorkingParticipantsTable extends WorkingParticipants
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('normalized_address')) {
+    if (data.containsKey('original_name')) {
       context.handle(
-        _normalizedAddressMeta,
-        normalizedAddress.isAcceptableOrUnknown(
-          data['normalized_address']!,
-          _normalizedAddressMeta,
+        _originalNameMeta,
+        originalName.isAcceptableOrUnknown(
+          data['original_name']!,
+          _originalNameMeta,
         ),
       );
-    }
-    if (data.containsKey('service')) {
-      context.handle(
-        _serviceMeta,
-        service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
-      );
+    } else if (isInserting) {
+      context.missing(_originalNameMeta);
     }
     if (data.containsKey('display_name')) {
       context.handle(
@@ -977,23 +1297,21 @@ class $WorkingParticipantsTable extends WorkingParticipants
           _displayNameMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
     }
-    if (data.containsKey('contact_ref')) {
+    if (data.containsKey('short_name')) {
       context.handle(
-        _contactRefMeta,
-        contactRef.isAcceptableOrUnknown(data['contact_ref']!, _contactRefMeta),
+        _shortNameMeta,
+        shortName.isAcceptableOrUnknown(data['short_name']!, _shortNameMeta),
       );
+    } else if (isInserting) {
+      context.missing(_shortNameMeta);
     }
     if (data.containsKey('avatar_ref')) {
       context.handle(
         _avatarRefMeta,
         avatarRef.isAcceptableOrUnknown(data['avatar_ref']!, _avatarRefMeta),
-      );
-    }
-    if (data.containsKey('is_system')) {
-      context.handle(
-        _isSystemMeta,
-        isSystem.isAcceptableOrUnknown(data['is_system']!, _isSystemMeta),
       );
     }
     return context;
@@ -1002,10 +1320,6 @@ class $WorkingParticipantsTable extends WorkingParticipants
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {service, normalizedAddress},
-  ];
-  @override
   WorkingParticipant map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return WorkingParticipant(
@@ -1013,30 +1327,22 @@ class $WorkingParticipantsTable extends WorkingParticipants
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      normalizedAddress: attachedDatabase.typeMapping.read(
+      originalName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}normalized_address'],
-      ),
-      service: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}service'],
+        data['${effectivePrefix}original_name'],
       )!,
       displayName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}display_name'],
-      ),
-      contactRef: attachedDatabase.typeMapping.read(
+      )!,
+      shortName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}contact_ref'],
-      ),
+        data['${effectivePrefix}short_name'],
+      )!,
       avatarRef: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}avatar_ref'],
       ),
-      isSystem: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_system'],
-      )!,
     );
   }
 
@@ -1049,59 +1355,39 @@ class $WorkingParticipantsTable extends WorkingParticipants
 class WorkingParticipant extends DataClass
     implements Insertable<WorkingParticipant> {
   final int id;
-  final String? normalizedAddress;
-  final String service;
-  final String? displayName;
-  final String? contactRef;
+  final String originalName;
+  final String displayName;
+  final String shortName;
   final String? avatarRef;
-  final bool isSystem;
   const WorkingParticipant({
     required this.id,
-    this.normalizedAddress,
-    required this.service,
-    this.displayName,
-    this.contactRef,
+    required this.originalName,
+    required this.displayName,
+    required this.shortName,
     this.avatarRef,
-    required this.isSystem,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    if (!nullToAbsent || normalizedAddress != null) {
-      map['normalized_address'] = Variable<String>(normalizedAddress);
-    }
-    map['service'] = Variable<String>(service);
-    if (!nullToAbsent || displayName != null) {
-      map['display_name'] = Variable<String>(displayName);
-    }
-    if (!nullToAbsent || contactRef != null) {
-      map['contact_ref'] = Variable<String>(contactRef);
-    }
+    map['original_name'] = Variable<String>(originalName);
+    map['display_name'] = Variable<String>(displayName);
+    map['short_name'] = Variable<String>(shortName);
     if (!nullToAbsent || avatarRef != null) {
       map['avatar_ref'] = Variable<String>(avatarRef);
     }
-    map['is_system'] = Variable<bool>(isSystem);
     return map;
   }
 
   WorkingParticipantsCompanion toCompanion(bool nullToAbsent) {
     return WorkingParticipantsCompanion(
       id: Value(id),
-      normalizedAddress: normalizedAddress == null && nullToAbsent
-          ? const Value.absent()
-          : Value(normalizedAddress),
-      service: Value(service),
-      displayName: displayName == null && nullToAbsent
-          ? const Value.absent()
-          : Value(displayName),
-      contactRef: contactRef == null && nullToAbsent
-          ? const Value.absent()
-          : Value(contactRef),
+      originalName: Value(originalName),
+      displayName: Value(displayName),
+      shortName: Value(shortName),
       avatarRef: avatarRef == null && nullToAbsent
           ? const Value.absent()
           : Value(avatarRef),
-      isSystem: Value(isSystem),
     );
   }
 
@@ -1112,14 +1398,10 @@ class WorkingParticipant extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return WorkingParticipant(
       id: serializer.fromJson<int>(json['id']),
-      normalizedAddress: serializer.fromJson<String?>(
-        json['normalizedAddress'],
-      ),
-      service: serializer.fromJson<String>(json['service']),
-      displayName: serializer.fromJson<String?>(json['displayName']),
-      contactRef: serializer.fromJson<String?>(json['contactRef']),
+      originalName: serializer.fromJson<String>(json['originalName']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      shortName: serializer.fromJson<String>(json['shortName']),
       avatarRef: serializer.fromJson<String?>(json['avatarRef']),
-      isSystem: serializer.fromJson<bool>(json['isSystem']),
     );
   }
   @override
@@ -1127,49 +1409,37 @@ class WorkingParticipant extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'normalizedAddress': serializer.toJson<String?>(normalizedAddress),
-      'service': serializer.toJson<String>(service),
-      'displayName': serializer.toJson<String?>(displayName),
-      'contactRef': serializer.toJson<String?>(contactRef),
+      'originalName': serializer.toJson<String>(originalName),
+      'displayName': serializer.toJson<String>(displayName),
+      'shortName': serializer.toJson<String>(shortName),
       'avatarRef': serializer.toJson<String?>(avatarRef),
-      'isSystem': serializer.toJson<bool>(isSystem),
     };
   }
 
   WorkingParticipant copyWith({
     int? id,
-    Value<String?> normalizedAddress = const Value.absent(),
-    String? service,
-    Value<String?> displayName = const Value.absent(),
-    Value<String?> contactRef = const Value.absent(),
+    String? originalName,
+    String? displayName,
+    String? shortName,
     Value<String?> avatarRef = const Value.absent(),
-    bool? isSystem,
   }) => WorkingParticipant(
     id: id ?? this.id,
-    normalizedAddress: normalizedAddress.present
-        ? normalizedAddress.value
-        : this.normalizedAddress,
-    service: service ?? this.service,
-    displayName: displayName.present ? displayName.value : this.displayName,
-    contactRef: contactRef.present ? contactRef.value : this.contactRef,
+    originalName: originalName ?? this.originalName,
+    displayName: displayName ?? this.displayName,
+    shortName: shortName ?? this.shortName,
     avatarRef: avatarRef.present ? avatarRef.value : this.avatarRef,
-    isSystem: isSystem ?? this.isSystem,
   );
   WorkingParticipant copyWithCompanion(WorkingParticipantsCompanion data) {
     return WorkingParticipant(
       id: data.id.present ? data.id.value : this.id,
-      normalizedAddress: data.normalizedAddress.present
-          ? data.normalizedAddress.value
-          : this.normalizedAddress,
-      service: data.service.present ? data.service.value : this.service,
+      originalName: data.originalName.present
+          ? data.originalName.value
+          : this.originalName,
       displayName: data.displayName.present
           ? data.displayName.value
           : this.displayName,
-      contactRef: data.contactRef.present
-          ? data.contactRef.value
-          : this.contactRef,
+      shortName: data.shortName.present ? data.shortName.value : this.shortName,
       avatarRef: data.avatarRef.present ? data.avatarRef.value : this.avatarRef,
-      isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
     );
   }
 
@@ -1177,102 +1447,79 @@ class WorkingParticipant extends DataClass
   String toString() {
     return (StringBuffer('WorkingParticipant(')
           ..write('id: $id, ')
-          ..write('normalizedAddress: $normalizedAddress, ')
-          ..write('service: $service, ')
+          ..write('originalName: $originalName, ')
           ..write('displayName: $displayName, ')
-          ..write('contactRef: $contactRef, ')
-          ..write('avatarRef: $avatarRef, ')
-          ..write('isSystem: $isSystem')
+          ..write('shortName: $shortName, ')
+          ..write('avatarRef: $avatarRef')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    normalizedAddress,
-    service,
-    displayName,
-    contactRef,
-    avatarRef,
-    isSystem,
-  );
+  int get hashCode =>
+      Object.hash(id, originalName, displayName, shortName, avatarRef);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is WorkingParticipant &&
           other.id == this.id &&
-          other.normalizedAddress == this.normalizedAddress &&
-          other.service == this.service &&
+          other.originalName == this.originalName &&
           other.displayName == this.displayName &&
-          other.contactRef == this.contactRef &&
-          other.avatarRef == this.avatarRef &&
-          other.isSystem == this.isSystem);
+          other.shortName == this.shortName &&
+          other.avatarRef == this.avatarRef);
 }
 
 class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
   final Value<int> id;
-  final Value<String?> normalizedAddress;
-  final Value<String> service;
-  final Value<String?> displayName;
-  final Value<String?> contactRef;
+  final Value<String> originalName;
+  final Value<String> displayName;
+  final Value<String> shortName;
   final Value<String?> avatarRef;
-  final Value<bool> isSystem;
   const WorkingParticipantsCompanion({
     this.id = const Value.absent(),
-    this.normalizedAddress = const Value.absent(),
-    this.service = const Value.absent(),
+    this.originalName = const Value.absent(),
     this.displayName = const Value.absent(),
-    this.contactRef = const Value.absent(),
+    this.shortName = const Value.absent(),
     this.avatarRef = const Value.absent(),
-    this.isSystem = const Value.absent(),
   });
   WorkingParticipantsCompanion.insert({
     this.id = const Value.absent(),
-    this.normalizedAddress = const Value.absent(),
-    this.service = const Value.absent(),
-    this.displayName = const Value.absent(),
-    this.contactRef = const Value.absent(),
+    required String originalName,
+    required String displayName,
+    required String shortName,
     this.avatarRef = const Value.absent(),
-    this.isSystem = const Value.absent(),
-  });
+  }) : originalName = Value(originalName),
+       displayName = Value(displayName),
+       shortName = Value(shortName);
   static Insertable<WorkingParticipant> custom({
     Expression<int>? id,
-    Expression<String>? normalizedAddress,
-    Expression<String>? service,
+    Expression<String>? originalName,
     Expression<String>? displayName,
-    Expression<String>? contactRef,
+    Expression<String>? shortName,
     Expression<String>? avatarRef,
-    Expression<bool>? isSystem,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (normalizedAddress != null) 'normalized_address': normalizedAddress,
-      if (service != null) 'service': service,
+      if (originalName != null) 'original_name': originalName,
       if (displayName != null) 'display_name': displayName,
-      if (contactRef != null) 'contact_ref': contactRef,
+      if (shortName != null) 'short_name': shortName,
       if (avatarRef != null) 'avatar_ref': avatarRef,
-      if (isSystem != null) 'is_system': isSystem,
     });
   }
 
   WorkingParticipantsCompanion copyWith({
     Value<int>? id,
-    Value<String?>? normalizedAddress,
-    Value<String>? service,
-    Value<String?>? displayName,
-    Value<String?>? contactRef,
+    Value<String>? originalName,
+    Value<String>? displayName,
+    Value<String>? shortName,
     Value<String?>? avatarRef,
-    Value<bool>? isSystem,
   }) {
     return WorkingParticipantsCompanion(
       id: id ?? this.id,
-      normalizedAddress: normalizedAddress ?? this.normalizedAddress,
-      service: service ?? this.service,
+      originalName: originalName ?? this.originalName,
       displayName: displayName ?? this.displayName,
-      contactRef: contactRef ?? this.contactRef,
+      shortName: shortName ?? this.shortName,
       avatarRef: avatarRef ?? this.avatarRef,
-      isSystem: isSystem ?? this.isSystem,
     );
   }
 
@@ -1282,23 +1529,17 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (normalizedAddress.present) {
-      map['normalized_address'] = Variable<String>(normalizedAddress.value);
-    }
-    if (service.present) {
-      map['service'] = Variable<String>(service.value);
+    if (originalName.present) {
+      map['original_name'] = Variable<String>(originalName.value);
     }
     if (displayName.present) {
       map['display_name'] = Variable<String>(displayName.value);
     }
-    if (contactRef.present) {
-      map['contact_ref'] = Variable<String>(contactRef.value);
+    if (shortName.present) {
+      map['short_name'] = Variable<String>(shortName.value);
     }
     if (avatarRef.present) {
       map['avatar_ref'] = Variable<String>(avatarRef.value);
-    }
-    if (isSystem.present) {
-      map['is_system'] = Variable<bool>(isSystem.value);
     }
     return map;
   }
@@ -1307,23 +1548,48 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
   String toString() {
     return (StringBuffer('WorkingParticipantsCompanion(')
           ..write('id: $id, ')
-          ..write('normalizedAddress: $normalizedAddress, ')
-          ..write('service: $service, ')
+          ..write('originalName: $originalName, ')
           ..write('displayName: $displayName, ')
-          ..write('contactRef: $contactRef, ')
-          ..write('avatarRef: $avatarRef, ')
-          ..write('isSystem: $isSystem')
+          ..write('shortName: $shortName, ')
+          ..write('avatarRef: $avatarRef')
           ..write(')'))
         .toString();
   }
 }
 
-class $ParticipantHandleLinksTable extends ParticipantHandleLinks
-    with TableInfo<$ParticipantHandleLinksTable, ParticipantHandleLink> {
+class $HandleToParticipantTable extends HandleToParticipant
+    with TableInfo<$HandleToParticipantTable, HandleToParticipantData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ParticipantHandleLinksTable(this.attachedDatabase, [this._alias]);
+  $HandleToParticipantTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _handleIdMeta = const VerificationMeta(
+    'handleId',
+  );
+  @override
+  late final GeneratedColumn<int> handleId = GeneratedColumn<int>(
+    'handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles (id) ON DELETE CASCADE',
+    ),
+  );
   static const VerificationMeta _participantIdMeta = const VerificationMeta(
     'participantId',
   );
@@ -1338,31 +1604,59 @@ class $ParticipantHandleLinksTable extends ParticipantHandleLinks
       'REFERENCES participants (id) ON DELETE CASCADE',
     ),
   );
-  static const VerificationMeta _importHandleIdMeta = const VerificationMeta(
-    'importHandleId',
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
   );
   @override
-  late final GeneratedColumn<int> importHandleId = GeneratedColumn<int>(
-    'import_handle_id',
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
     aliasedName,
     false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('addressbook'),
   );
   @override
-  List<GeneratedColumn> get $columns => [participantId, importHandleId];
+  List<GeneratedColumn> get $columns => [
+    id,
+    handleId,
+    participantId,
+    confidence,
+    source,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'participant_handle_links';
+  static const String $name = 'handle_to_participant';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ParticipantHandleLink> instance, {
+    Insertable<HandleToParticipantData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('handle_id')) {
+      context.handle(
+        _handleIdMeta,
+        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_handleIdMeta);
+    }
     if (data.containsKey('participant_id')) {
       context.handle(
         _participantIdMeta,
@@ -1374,183 +1668,259 @@ class $ParticipantHandleLinksTable extends ParticipantHandleLinks
     } else if (isInserting) {
       context.missing(_participantIdMeta);
     }
-    if (data.containsKey('import_handle_id')) {
+    if (data.containsKey('confidence')) {
       context.handle(
-        _importHandleIdMeta,
-        importHandleId.isAcceptableOrUnknown(
-          data['import_handle_id']!,
-          _importHandleIdMeta,
-        ),
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
       );
-    } else if (isInserting) {
-      context.missing(_importHandleIdMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {participantId, importHandleId};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  ParticipantHandleLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {handleId, participantId},
+  ];
+  @override
+  HandleToParticipantData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ParticipantHandleLink(
+    return HandleToParticipantData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      handleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}handle_id'],
+      )!,
       participantId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}participant_id'],
       )!,
-      importHandleId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}import_handle_id'],
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
       )!,
     );
   }
 
   @override
-  $ParticipantHandleLinksTable createAlias(String alias) {
-    return $ParticipantHandleLinksTable(attachedDatabase, alias);
+  $HandleToParticipantTable createAlias(String alias) {
+    return $HandleToParticipantTable(attachedDatabase, alias);
   }
 }
 
-class ParticipantHandleLink extends DataClass
-    implements Insertable<ParticipantHandleLink> {
+class HandleToParticipantData extends DataClass
+    implements Insertable<HandleToParticipantData> {
+  final int id;
+  final int handleId;
   final int participantId;
-  final int importHandleId;
-  const ParticipantHandleLink({
+  final double confidence;
+  final String source;
+  const HandleToParticipantData({
+    required this.id,
+    required this.handleId,
     required this.participantId,
-    required this.importHandleId,
+    required this.confidence,
+    required this.source,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['handle_id'] = Variable<int>(handleId);
     map['participant_id'] = Variable<int>(participantId);
-    map['import_handle_id'] = Variable<int>(importHandleId);
+    map['confidence'] = Variable<double>(confidence);
+    map['source'] = Variable<String>(source);
     return map;
   }
 
-  ParticipantHandleLinksCompanion toCompanion(bool nullToAbsent) {
-    return ParticipantHandleLinksCompanion(
+  HandleToParticipantCompanion toCompanion(bool nullToAbsent) {
+    return HandleToParticipantCompanion(
+      id: Value(id),
+      handleId: Value(handleId),
       participantId: Value(participantId),
-      importHandleId: Value(importHandleId),
+      confidence: Value(confidence),
+      source: Value(source),
     );
   }
 
-  factory ParticipantHandleLink.fromJson(
+  factory HandleToParticipantData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ParticipantHandleLink(
+    return HandleToParticipantData(
+      id: serializer.fromJson<int>(json['id']),
+      handleId: serializer.fromJson<int>(json['handleId']),
       participantId: serializer.fromJson<int>(json['participantId']),
-      importHandleId: serializer.fromJson<int>(json['importHandleId']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      source: serializer.fromJson<String>(json['source']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'handleId': serializer.toJson<int>(handleId),
       'participantId': serializer.toJson<int>(participantId),
-      'importHandleId': serializer.toJson<int>(importHandleId),
+      'confidence': serializer.toJson<double>(confidence),
+      'source': serializer.toJson<String>(source),
     };
   }
 
-  ParticipantHandleLink copyWith({int? participantId, int? importHandleId}) =>
-      ParticipantHandleLink(
-        participantId: participantId ?? this.participantId,
-        importHandleId: importHandleId ?? this.importHandleId,
-      );
-  ParticipantHandleLink copyWithCompanion(
-    ParticipantHandleLinksCompanion data,
-  ) {
-    return ParticipantHandleLink(
+  HandleToParticipantData copyWith({
+    int? id,
+    int? handleId,
+    int? participantId,
+    double? confidence,
+    String? source,
+  }) => HandleToParticipantData(
+    id: id ?? this.id,
+    handleId: handleId ?? this.handleId,
+    participantId: participantId ?? this.participantId,
+    confidence: confidence ?? this.confidence,
+    source: source ?? this.source,
+  );
+  HandleToParticipantData copyWithCompanion(HandleToParticipantCompanion data) {
+    return HandleToParticipantData(
+      id: data.id.present ? data.id.value : this.id,
+      handleId: data.handleId.present ? data.handleId.value : this.handleId,
       participantId: data.participantId.present
           ? data.participantId.value
           : this.participantId,
-      importHandleId: data.importHandleId.present
-          ? data.importHandleId.value
-          : this.importHandleId,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      source: data.source.present ? data.source.value : this.source,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('ParticipantHandleLink(')
+    return (StringBuffer('HandleToParticipantData(')
+          ..write('id: $id, ')
+          ..write('handleId: $handleId, ')
           ..write('participantId: $participantId, ')
-          ..write('importHandleId: $importHandleId')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(participantId, importHandleId);
+  int get hashCode =>
+      Object.hash(id, handleId, participantId, confidence, source);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ParticipantHandleLink &&
+      (other is HandleToParticipantData &&
+          other.id == this.id &&
+          other.handleId == this.handleId &&
           other.participantId == this.participantId &&
-          other.importHandleId == this.importHandleId);
+          other.confidence == this.confidence &&
+          other.source == this.source);
 }
 
-class ParticipantHandleLinksCompanion
-    extends UpdateCompanion<ParticipantHandleLink> {
+class HandleToParticipantCompanion
+    extends UpdateCompanion<HandleToParticipantData> {
+  final Value<int> id;
+  final Value<int> handleId;
   final Value<int> participantId;
-  final Value<int> importHandleId;
-  final Value<int> rowid;
-  const ParticipantHandleLinksCompanion({
+  final Value<double> confidence;
+  final Value<String> source;
+  const HandleToParticipantCompanion({
+    this.id = const Value.absent(),
+    this.handleId = const Value.absent(),
     this.participantId = const Value.absent(),
-    this.importHandleId = const Value.absent(),
-    this.rowid = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.source = const Value.absent(),
   });
-  ParticipantHandleLinksCompanion.insert({
+  HandleToParticipantCompanion.insert({
+    this.id = const Value.absent(),
+    required int handleId,
     required int participantId,
-    required int importHandleId,
-    this.rowid = const Value.absent(),
-  }) : participantId = Value(participantId),
-       importHandleId = Value(importHandleId);
-  static Insertable<ParticipantHandleLink> custom({
+    this.confidence = const Value.absent(),
+    this.source = const Value.absent(),
+  }) : handleId = Value(handleId),
+       participantId = Value(participantId);
+  static Insertable<HandleToParticipantData> custom({
+    Expression<int>? id,
+    Expression<int>? handleId,
     Expression<int>? participantId,
-    Expression<int>? importHandleId,
-    Expression<int>? rowid,
+    Expression<double>? confidence,
+    Expression<String>? source,
   }) {
     return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (handleId != null) 'handle_id': handleId,
       if (participantId != null) 'participant_id': participantId,
-      if (importHandleId != null) 'import_handle_id': importHandleId,
-      if (rowid != null) 'rowid': rowid,
+      if (confidence != null) 'confidence': confidence,
+      if (source != null) 'source': source,
     });
   }
 
-  ParticipantHandleLinksCompanion copyWith({
+  HandleToParticipantCompanion copyWith({
+    Value<int>? id,
+    Value<int>? handleId,
     Value<int>? participantId,
-    Value<int>? importHandleId,
-    Value<int>? rowid,
+    Value<double>? confidence,
+    Value<String>? source,
   }) {
-    return ParticipantHandleLinksCompanion(
+    return HandleToParticipantCompanion(
+      id: id ?? this.id,
+      handleId: handleId ?? this.handleId,
       participantId: participantId ?? this.participantId,
-      importHandleId: importHandleId ?? this.importHandleId,
-      rowid: rowid ?? this.rowid,
+      confidence: confidence ?? this.confidence,
+      source: source ?? this.source,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (handleId.present) {
+      map['handle_id'] = Variable<int>(handleId.value);
+    }
     if (participantId.present) {
       map['participant_id'] = Variable<int>(participantId.value);
     }
-    if (importHandleId.present) {
-      map['import_handle_id'] = Variable<int>(importHandleId.value);
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('ParticipantHandleLinksCompanion(')
+    return (StringBuffer('HandleToParticipantCompanion(')
+          ..write('id: $id, ')
+          ..write('handleId: $handleId, ')
           ..write('participantId: $participantId, ')
-          ..write('importHandleId: $importHandleId, ')
-          ..write('rowid: $rowid')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source')
           ..write(')'))
         .toString();
   }
@@ -1583,6 +1953,20 @@ class $WorkingChatsTable extends WorkingChats
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _handleIdMeta = const VerificationMeta(
+    'handleId',
+  );
+  @override
+  late final GeneratedColumn<int> handleId = GeneratedColumn<int>(
+    'handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _serviceMeta = const VerificationMeta(
     'service',
@@ -1624,20 +2008,19 @@ class $WorkingChatsTable extends WorkingChats
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _lastSenderParticipantIdMeta =
-      const VerificationMeta('lastSenderParticipantId');
+  static const VerificationMeta _lastSenderHandleIdMeta =
+      const VerificationMeta('lastSenderHandleId');
   @override
-  late final GeneratedColumn<int> lastSenderParticipantId =
-      GeneratedColumn<int>(
-        'last_sender_participant_id',
-        aliasedName,
-        true,
-        type: DriftSqlType.int,
-        requiredDuringInsert: false,
-        defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES participants (id) ON DELETE SET NULL',
-        ),
-      );
+  late final GeneratedColumn<int> lastSenderHandleId = GeneratedColumn<int>(
+    'last_sender_handle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles (id) ON DELETE SET NULL',
+    ),
+  );
   static const VerificationMeta _lastMessagePreviewMeta =
       const VerificationMeta('lastMessagePreview');
   @override
@@ -1741,10 +2124,11 @@ class $WorkingChatsTable extends WorkingChats
   List<GeneratedColumn> get $columns => [
     id,
     guid,
+    handleId,
     service,
     isGroup,
     lastMessageAtUtc,
-    lastSenderParticipantId,
+    lastSenderHandleId,
     lastMessagePreview,
     unreadCount,
     pinned,
@@ -1777,6 +2161,14 @@ class $WorkingChatsTable extends WorkingChats
     } else if (isInserting) {
       context.missing(_guidMeta);
     }
+    if (data.containsKey('handle_id')) {
+      context.handle(
+        _handleIdMeta,
+        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_handleIdMeta);
+    }
     if (data.containsKey('service')) {
       context.handle(
         _serviceMeta,
@@ -1798,12 +2190,12 @@ class $WorkingChatsTable extends WorkingChats
         ),
       );
     }
-    if (data.containsKey('last_sender_participant_id')) {
+    if (data.containsKey('last_sender_handle_id')) {
       context.handle(
-        _lastSenderParticipantIdMeta,
-        lastSenderParticipantId.isAcceptableOrUnknown(
-          data['last_sender_participant_id']!,
-          _lastSenderParticipantIdMeta,
+        _lastSenderHandleIdMeta,
+        lastSenderHandleId.isAcceptableOrUnknown(
+          data['last_sender_handle_id']!,
+          _lastSenderHandleIdMeta,
         ),
       );
     }
@@ -1891,6 +2283,10 @@ class $WorkingChatsTable extends WorkingChats
         DriftSqlType.string,
         data['${effectivePrefix}guid'],
       )!,
+      handleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}handle_id'],
+      )!,
       service: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}service'],
@@ -1903,9 +2299,9 @@ class $WorkingChatsTable extends WorkingChats
         DriftSqlType.string,
         data['${effectivePrefix}last_message_at_utc'],
       ),
-      lastSenderParticipantId: attachedDatabase.typeMapping.read(
+      lastSenderHandleId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}last_sender_participant_id'],
+        data['${effectivePrefix}last_sender_handle_id'],
       ),
       lastMessagePreview: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1951,10 +2347,11 @@ class $WorkingChatsTable extends WorkingChats
 class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   final int id;
   final String guid;
+  final int handleId;
   final String service;
   final bool isGroup;
   final String? lastMessageAtUtc;
-  final int? lastSenderParticipantId;
+  final int? lastSenderHandleId;
   final String? lastMessagePreview;
   final int unreadCount;
   final bool pinned;
@@ -1966,10 +2363,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   const WorkingChat({
     required this.id,
     required this.guid,
+    required this.handleId,
     required this.service,
     required this.isGroup,
     this.lastMessageAtUtc,
-    this.lastSenderParticipantId,
+    this.lastSenderHandleId,
     this.lastMessagePreview,
     required this.unreadCount,
     required this.pinned,
@@ -1984,15 +2382,14 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['guid'] = Variable<String>(guid);
+    map['handle_id'] = Variable<int>(handleId);
     map['service'] = Variable<String>(service);
     map['is_group'] = Variable<bool>(isGroup);
     if (!nullToAbsent || lastMessageAtUtc != null) {
       map['last_message_at_utc'] = Variable<String>(lastMessageAtUtc);
     }
-    if (!nullToAbsent || lastSenderParticipantId != null) {
-      map['last_sender_participant_id'] = Variable<int>(
-        lastSenderParticipantId,
-      );
+    if (!nullToAbsent || lastSenderHandleId != null) {
+      map['last_sender_handle_id'] = Variable<int>(lastSenderHandleId);
     }
     if (!nullToAbsent || lastMessagePreview != null) {
       map['last_message_preview'] = Variable<String>(lastMessagePreview);
@@ -2017,14 +2414,15 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     return WorkingChatsCompanion(
       id: Value(id),
       guid: Value(guid),
+      handleId: Value(handleId),
       service: Value(service),
       isGroup: Value(isGroup),
       lastMessageAtUtc: lastMessageAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(lastMessageAtUtc),
-      lastSenderParticipantId: lastSenderParticipantId == null && nullToAbsent
+      lastSenderHandleId: lastSenderHandleId == null && nullToAbsent
           ? const Value.absent()
-          : Value(lastSenderParticipantId),
+          : Value(lastSenderHandleId),
       lastMessagePreview: lastMessagePreview == null && nullToAbsent
           ? const Value.absent()
           : Value(lastMessagePreview),
@@ -2052,12 +2450,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     return WorkingChat(
       id: serializer.fromJson<int>(json['id']),
       guid: serializer.fromJson<String>(json['guid']),
+      handleId: serializer.fromJson<int>(json['handleId']),
       service: serializer.fromJson<String>(json['service']),
       isGroup: serializer.fromJson<bool>(json['isGroup']),
       lastMessageAtUtc: serializer.fromJson<String?>(json['lastMessageAtUtc']),
-      lastSenderParticipantId: serializer.fromJson<int?>(
-        json['lastSenderParticipantId'],
-      ),
+      lastSenderHandleId: serializer.fromJson<int?>(json['lastSenderHandleId']),
       lastMessagePreview: serializer.fromJson<String?>(
         json['lastMessagePreview'],
       ),
@@ -2076,12 +2473,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'guid': serializer.toJson<String>(guid),
+      'handleId': serializer.toJson<int>(handleId),
       'service': serializer.toJson<String>(service),
       'isGroup': serializer.toJson<bool>(isGroup),
       'lastMessageAtUtc': serializer.toJson<String?>(lastMessageAtUtc),
-      'lastSenderParticipantId': serializer.toJson<int?>(
-        lastSenderParticipantId,
-      ),
+      'lastSenderHandleId': serializer.toJson<int?>(lastSenderHandleId),
       'lastMessagePreview': serializer.toJson<String?>(lastMessagePreview),
       'unreadCount': serializer.toJson<int>(unreadCount),
       'pinned': serializer.toJson<bool>(pinned),
@@ -2096,10 +2492,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   WorkingChat copyWith({
     int? id,
     String? guid,
+    int? handleId,
     String? service,
     bool? isGroup,
     Value<String?> lastMessageAtUtc = const Value.absent(),
-    Value<int?> lastSenderParticipantId = const Value.absent(),
+    Value<int?> lastSenderHandleId = const Value.absent(),
     Value<String?> lastMessagePreview = const Value.absent(),
     int? unreadCount,
     bool? pinned,
@@ -2111,14 +2508,15 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   }) => WorkingChat(
     id: id ?? this.id,
     guid: guid ?? this.guid,
+    handleId: handleId ?? this.handleId,
     service: service ?? this.service,
     isGroup: isGroup ?? this.isGroup,
     lastMessageAtUtc: lastMessageAtUtc.present
         ? lastMessageAtUtc.value
         : this.lastMessageAtUtc,
-    lastSenderParticipantId: lastSenderParticipantId.present
-        ? lastSenderParticipantId.value
-        : this.lastSenderParticipantId,
+    lastSenderHandleId: lastSenderHandleId.present
+        ? lastSenderHandleId.value
+        : this.lastSenderHandleId,
     lastMessagePreview: lastMessagePreview.present
         ? lastMessagePreview.value
         : this.lastMessagePreview,
@@ -2136,14 +2534,15 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     return WorkingChat(
       id: data.id.present ? data.id.value : this.id,
       guid: data.guid.present ? data.guid.value : this.guid,
+      handleId: data.handleId.present ? data.handleId.value : this.handleId,
       service: data.service.present ? data.service.value : this.service,
       isGroup: data.isGroup.present ? data.isGroup.value : this.isGroup,
       lastMessageAtUtc: data.lastMessageAtUtc.present
           ? data.lastMessageAtUtc.value
           : this.lastMessageAtUtc,
-      lastSenderParticipantId: data.lastSenderParticipantId.present
-          ? data.lastSenderParticipantId.value
-          : this.lastSenderParticipantId,
+      lastSenderHandleId: data.lastSenderHandleId.present
+          ? data.lastSenderHandleId.value
+          : this.lastSenderHandleId,
       lastMessagePreview: data.lastMessagePreview.present
           ? data.lastMessagePreview.value
           : this.lastMessagePreview,
@@ -2170,10 +2569,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     return (StringBuffer('WorkingChat(')
           ..write('id: $id, ')
           ..write('guid: $guid, ')
+          ..write('handleId: $handleId, ')
           ..write('service: $service, ')
           ..write('isGroup: $isGroup, ')
           ..write('lastMessageAtUtc: $lastMessageAtUtc, ')
-          ..write('lastSenderParticipantId: $lastSenderParticipantId, ')
+          ..write('lastSenderHandleId: $lastSenderHandleId, ')
           ..write('lastMessagePreview: $lastMessagePreview, ')
           ..write('unreadCount: $unreadCount, ')
           ..write('pinned: $pinned, ')
@@ -2190,10 +2590,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   int get hashCode => Object.hash(
     id,
     guid,
+    handleId,
     service,
     isGroup,
     lastMessageAtUtc,
-    lastSenderParticipantId,
+    lastSenderHandleId,
     lastMessagePreview,
     unreadCount,
     pinned,
@@ -2209,10 +2610,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
       (other is WorkingChat &&
           other.id == this.id &&
           other.guid == this.guid &&
+          other.handleId == this.handleId &&
           other.service == this.service &&
           other.isGroup == this.isGroup &&
           other.lastMessageAtUtc == this.lastMessageAtUtc &&
-          other.lastSenderParticipantId == this.lastSenderParticipantId &&
+          other.lastSenderHandleId == this.lastSenderHandleId &&
           other.lastMessagePreview == this.lastMessagePreview &&
           other.unreadCount == this.unreadCount &&
           other.pinned == this.pinned &&
@@ -2226,10 +2628,11 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
 class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
   final Value<int> id;
   final Value<String> guid;
+  final Value<int> handleId;
   final Value<String> service;
   final Value<bool> isGroup;
   final Value<String?> lastMessageAtUtc;
-  final Value<int?> lastSenderParticipantId;
+  final Value<int?> lastSenderHandleId;
   final Value<String?> lastMessagePreview;
   final Value<int> unreadCount;
   final Value<bool> pinned;
@@ -2241,10 +2644,11 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
   const WorkingChatsCompanion({
     this.id = const Value.absent(),
     this.guid = const Value.absent(),
+    this.handleId = const Value.absent(),
     this.service = const Value.absent(),
     this.isGroup = const Value.absent(),
     this.lastMessageAtUtc = const Value.absent(),
-    this.lastSenderParticipantId = const Value.absent(),
+    this.lastSenderHandleId = const Value.absent(),
     this.lastMessagePreview = const Value.absent(),
     this.unreadCount = const Value.absent(),
     this.pinned = const Value.absent(),
@@ -2257,10 +2661,11 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
   WorkingChatsCompanion.insert({
     this.id = const Value.absent(),
     required String guid,
+    required int handleId,
     this.service = const Value.absent(),
     this.isGroup = const Value.absent(),
     this.lastMessageAtUtc = const Value.absent(),
-    this.lastSenderParticipantId = const Value.absent(),
+    this.lastSenderHandleId = const Value.absent(),
     this.lastMessagePreview = const Value.absent(),
     this.unreadCount = const Value.absent(),
     this.pinned = const Value.absent(),
@@ -2269,14 +2674,16 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     this.favourite = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
-  }) : guid = Value(guid);
+  }) : guid = Value(guid),
+       handleId = Value(handleId);
   static Insertable<WorkingChat> custom({
     Expression<int>? id,
     Expression<String>? guid,
+    Expression<int>? handleId,
     Expression<String>? service,
     Expression<bool>? isGroup,
     Expression<String>? lastMessageAtUtc,
-    Expression<int>? lastSenderParticipantId,
+    Expression<int>? lastSenderHandleId,
     Expression<String>? lastMessagePreview,
     Expression<int>? unreadCount,
     Expression<bool>? pinned,
@@ -2289,11 +2696,12 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (guid != null) 'guid': guid,
+      if (handleId != null) 'handle_id': handleId,
       if (service != null) 'service': service,
       if (isGroup != null) 'is_group': isGroup,
       if (lastMessageAtUtc != null) 'last_message_at_utc': lastMessageAtUtc,
-      if (lastSenderParticipantId != null)
-        'last_sender_participant_id': lastSenderParticipantId,
+      if (lastSenderHandleId != null)
+        'last_sender_handle_id': lastSenderHandleId,
       if (lastMessagePreview != null)
         'last_message_preview': lastMessagePreview,
       if (unreadCount != null) 'unread_count': unreadCount,
@@ -2309,10 +2717,11 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
   WorkingChatsCompanion copyWith({
     Value<int>? id,
     Value<String>? guid,
+    Value<int>? handleId,
     Value<String>? service,
     Value<bool>? isGroup,
     Value<String?>? lastMessageAtUtc,
-    Value<int?>? lastSenderParticipantId,
+    Value<int?>? lastSenderHandleId,
     Value<String?>? lastMessagePreview,
     Value<int>? unreadCount,
     Value<bool>? pinned,
@@ -2325,11 +2734,11 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     return WorkingChatsCompanion(
       id: id ?? this.id,
       guid: guid ?? this.guid,
+      handleId: handleId ?? this.handleId,
       service: service ?? this.service,
       isGroup: isGroup ?? this.isGroup,
       lastMessageAtUtc: lastMessageAtUtc ?? this.lastMessageAtUtc,
-      lastSenderParticipantId:
-          lastSenderParticipantId ?? this.lastSenderParticipantId,
+      lastSenderHandleId: lastSenderHandleId ?? this.lastSenderHandleId,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       unreadCount: unreadCount ?? this.unreadCount,
       pinned: pinned ?? this.pinned,
@@ -2350,6 +2759,9 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     if (guid.present) {
       map['guid'] = Variable<String>(guid.value);
     }
+    if (handleId.present) {
+      map['handle_id'] = Variable<int>(handleId.value);
+    }
     if (service.present) {
       map['service'] = Variable<String>(service.value);
     }
@@ -2359,10 +2771,8 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     if (lastMessageAtUtc.present) {
       map['last_message_at_utc'] = Variable<String>(lastMessageAtUtc.value);
     }
-    if (lastSenderParticipantId.present) {
-      map['last_sender_participant_id'] = Variable<int>(
-        lastSenderParticipantId.value,
-      );
+    if (lastSenderHandleId.present) {
+      map['last_sender_handle_id'] = Variable<int>(lastSenderHandleId.value);
     }
     if (lastMessagePreview.present) {
       map['last_message_preview'] = Variable<String>(lastMessagePreview.value);
@@ -2396,10 +2806,11 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     return (StringBuffer('WorkingChatsCompanion(')
           ..write('id: $id, ')
           ..write('guid: $guid, ')
+          ..write('handleId: $handleId, ')
           ..write('service: $service, ')
           ..write('isGroup: $isGroup, ')
           ..write('lastMessageAtUtc: $lastMessageAtUtc, ')
-          ..write('lastSenderParticipantId: $lastSenderParticipantId, ')
+          ..write('lastSenderHandleId: $lastSenderHandleId, ')
           ..write('lastMessagePreview: $lastMessagePreview, ')
           ..write('unreadCount: $unreadCount, ')
           ..write('pinned: $pinned, ')
@@ -2408,328 +2819,6 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
           ..write('favourite: $favourite, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ChatToParticipantTable extends ChatToParticipant
-    with TableInfo<$ChatToParticipantTable, ChatToParticipantData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ChatToParticipantTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _chatIdMeta = const VerificationMeta('chatId');
-  @override
-  late final GeneratedColumn<int> chatId = GeneratedColumn<int>(
-    'chat_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES chats (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _participantIdMeta = const VerificationMeta(
-    'participantId',
-  );
-  @override
-  late final GeneratedColumn<int> participantId = GeneratedColumn<int>(
-    'participant_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES participants (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _roleMeta = const VerificationMeta('role');
-  @override
-  late final GeneratedColumn<String> role = GeneratedColumn<String>(
-    'role',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints:
-        'NOT NULL DEFAULT \'member\' CHECK(role IN (\'member\',\'owner\',\'unknown\'))',
-    defaultValue: const CustomExpression('\'member\''),
-  );
-  static const VerificationMeta _sortKeyMeta = const VerificationMeta(
-    'sortKey',
-  );
-  @override
-  late final GeneratedColumn<int> sortKey = GeneratedColumn<int>(
-    'sort_key',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [chatId, participantId, role, sortKey];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'chat_to_participant';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<ChatToParticipantData> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('chat_id')) {
-      context.handle(
-        _chatIdMeta,
-        chatId.isAcceptableOrUnknown(data['chat_id']!, _chatIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_chatIdMeta);
-    }
-    if (data.containsKey('participant_id')) {
-      context.handle(
-        _participantIdMeta,
-        participantId.isAcceptableOrUnknown(
-          data['participant_id']!,
-          _participantIdMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_participantIdMeta);
-    }
-    if (data.containsKey('role')) {
-      context.handle(
-        _roleMeta,
-        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
-      );
-    }
-    if (data.containsKey('sort_key')) {
-      context.handle(
-        _sortKeyMeta,
-        sortKey.isAcceptableOrUnknown(data['sort_key']!, _sortKeyMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {chatId, participantId};
-  @override
-  ChatToParticipantData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ChatToParticipantData(
-      chatId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}chat_id'],
-      )!,
-      participantId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}participant_id'],
-      )!,
-      role: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}role'],
-      )!,
-      sortKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}sort_key'],
-      )!,
-    );
-  }
-
-  @override
-  $ChatToParticipantTable createAlias(String alias) {
-    return $ChatToParticipantTable(attachedDatabase, alias);
-  }
-}
-
-class ChatToParticipantData extends DataClass
-    implements Insertable<ChatToParticipantData> {
-  final int chatId;
-  final int participantId;
-  final String role;
-  final int sortKey;
-  const ChatToParticipantData({
-    required this.chatId,
-    required this.participantId,
-    required this.role,
-    required this.sortKey,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['chat_id'] = Variable<int>(chatId);
-    map['participant_id'] = Variable<int>(participantId);
-    map['role'] = Variable<String>(role);
-    map['sort_key'] = Variable<int>(sortKey);
-    return map;
-  }
-
-  ChatToParticipantCompanion toCompanion(bool nullToAbsent) {
-    return ChatToParticipantCompanion(
-      chatId: Value(chatId),
-      participantId: Value(participantId),
-      role: Value(role),
-      sortKey: Value(sortKey),
-    );
-  }
-
-  factory ChatToParticipantData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ChatToParticipantData(
-      chatId: serializer.fromJson<int>(json['chatId']),
-      participantId: serializer.fromJson<int>(json['participantId']),
-      role: serializer.fromJson<String>(json['role']),
-      sortKey: serializer.fromJson<int>(json['sortKey']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'chatId': serializer.toJson<int>(chatId),
-      'participantId': serializer.toJson<int>(participantId),
-      'role': serializer.toJson<String>(role),
-      'sortKey': serializer.toJson<int>(sortKey),
-    };
-  }
-
-  ChatToParticipantData copyWith({
-    int? chatId,
-    int? participantId,
-    String? role,
-    int? sortKey,
-  }) => ChatToParticipantData(
-    chatId: chatId ?? this.chatId,
-    participantId: participantId ?? this.participantId,
-    role: role ?? this.role,
-    sortKey: sortKey ?? this.sortKey,
-  );
-  ChatToParticipantData copyWithCompanion(ChatToParticipantCompanion data) {
-    return ChatToParticipantData(
-      chatId: data.chatId.present ? data.chatId.value : this.chatId,
-      participantId: data.participantId.present
-          ? data.participantId.value
-          : this.participantId,
-      role: data.role.present ? data.role.value : this.role,
-      sortKey: data.sortKey.present ? data.sortKey.value : this.sortKey,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ChatToParticipantData(')
-          ..write('chatId: $chatId, ')
-          ..write('participantId: $participantId, ')
-          ..write('role: $role, ')
-          ..write('sortKey: $sortKey')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(chatId, participantId, role, sortKey);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ChatToParticipantData &&
-          other.chatId == this.chatId &&
-          other.participantId == this.participantId &&
-          other.role == this.role &&
-          other.sortKey == this.sortKey);
-}
-
-class ChatToParticipantCompanion
-    extends UpdateCompanion<ChatToParticipantData> {
-  final Value<int> chatId;
-  final Value<int> participantId;
-  final Value<String> role;
-  final Value<int> sortKey;
-  final Value<int> rowid;
-  const ChatToParticipantCompanion({
-    this.chatId = const Value.absent(),
-    this.participantId = const Value.absent(),
-    this.role = const Value.absent(),
-    this.sortKey = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ChatToParticipantCompanion.insert({
-    required int chatId,
-    required int participantId,
-    this.role = const Value.absent(),
-    this.sortKey = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : chatId = Value(chatId),
-       participantId = Value(participantId);
-  static Insertable<ChatToParticipantData> custom({
-    Expression<int>? chatId,
-    Expression<int>? participantId,
-    Expression<String>? role,
-    Expression<int>? sortKey,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (chatId != null) 'chat_id': chatId,
-      if (participantId != null) 'participant_id': participantId,
-      if (role != null) 'role': role,
-      if (sortKey != null) 'sort_key': sortKey,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ChatToParticipantCompanion copyWith({
-    Value<int>? chatId,
-    Value<int>? participantId,
-    Value<String>? role,
-    Value<int>? sortKey,
-    Value<int>? rowid,
-  }) {
-    return ChatToParticipantCompanion(
-      chatId: chatId ?? this.chatId,
-      participantId: participantId ?? this.participantId,
-      role: role ?? this.role,
-      sortKey: sortKey ?? this.sortKey,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (chatId.present) {
-      map['chat_id'] = Variable<int>(chatId.value);
-    }
-    if (participantId.present) {
-      map['participant_id'] = Variable<int>(participantId.value);
-    }
-    if (role.present) {
-      map['role'] = Variable<String>(role.value);
-    }
-    if (sortKey.present) {
-      map['sort_key'] = Variable<int>(sortKey.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ChatToParticipantCompanion(')
-          ..write('chatId: $chatId, ')
-          ..write('participantId: $participantId, ')
-          ..write('role: $role, ')
-          ..write('sortKey: $sortKey, ')
-          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2775,17 +2864,18 @@ class $WorkingMessagesTable extends WorkingMessages
       'REFERENCES chats (id) ON DELETE CASCADE',
     ),
   );
-  static const VerificationMeta _senderParticipantIdMeta =
-      const VerificationMeta('senderParticipantId');
+  static const VerificationMeta _senderHandleIdMeta = const VerificationMeta(
+    'senderHandleId',
+  );
   @override
-  late final GeneratedColumn<int> senderParticipantId = GeneratedColumn<int>(
-    'sender_participant_id',
+  late final GeneratedColumn<int> senderHandleId = GeneratedColumn<int>(
+    'sender_handle_id',
     aliasedName,
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES participants (id) ON DELETE SET NULL',
+      'REFERENCES handles (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _isFromMeMeta = const VerificationMeta(
@@ -2979,7 +3069,7 @@ class $WorkingMessagesTable extends WorkingMessages
     id,
     guid,
     chatId,
-    senderParticipantId,
+    senderHandleId,
     isFromMe,
     sentAtUtc,
     deliveredAtUtc,
@@ -3027,12 +3117,12 @@ class $WorkingMessagesTable extends WorkingMessages
     } else if (isInserting) {
       context.missing(_chatIdMeta);
     }
-    if (data.containsKey('sender_participant_id')) {
+    if (data.containsKey('sender_handle_id')) {
       context.handle(
-        _senderParticipantIdMeta,
-        senderParticipantId.isAcceptableOrUnknown(
-          data['sender_participant_id']!,
-          _senderParticipantIdMeta,
+        _senderHandleIdMeta,
+        senderHandleId.isAcceptableOrUnknown(
+          data['sender_handle_id']!,
+          _senderHandleIdMeta,
         ),
       );
     }
@@ -3175,9 +3265,9 @@ class $WorkingMessagesTable extends WorkingMessages
         DriftSqlType.int,
         data['${effectivePrefix}chat_id'],
       )!,
-      senderParticipantId: attachedDatabase.typeMapping.read(
+      senderHandleId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}sender_participant_id'],
+        data['${effectivePrefix}sender_handle_id'],
       ),
       isFromMe: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -3252,7 +3342,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
   final int id;
   final String guid;
   final int chatId;
-  final int? senderParticipantId;
+  final int? senderHandleId;
   final bool isFromMe;
   final String? sentAtUtc;
   final String? deliveredAtUtc;
@@ -3272,7 +3362,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     required this.id,
     required this.guid,
     required this.chatId,
-    this.senderParticipantId,
+    this.senderHandleId,
     required this.isFromMe,
     this.sentAtUtc,
     this.deliveredAtUtc,
@@ -3295,8 +3385,8 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     map['id'] = Variable<int>(id);
     map['guid'] = Variable<String>(guid);
     map['chat_id'] = Variable<int>(chatId);
-    if (!nullToAbsent || senderParticipantId != null) {
-      map['sender_participant_id'] = Variable<int>(senderParticipantId);
+    if (!nullToAbsent || senderHandleId != null) {
+      map['sender_handle_id'] = Variable<int>(senderHandleId);
     }
     map['is_from_me'] = Variable<bool>(isFromMe);
     if (!nullToAbsent || sentAtUtc != null) {
@@ -3339,9 +3429,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       id: Value(id),
       guid: Value(guid),
       chatId: Value(chatId),
-      senderParticipantId: senderParticipantId == null && nullToAbsent
+      senderHandleId: senderHandleId == null && nullToAbsent
           ? const Value.absent()
-          : Value(senderParticipantId),
+          : Value(senderHandleId),
       isFromMe: Value(isFromMe),
       sentAtUtc: sentAtUtc == null && nullToAbsent
           ? const Value.absent()
@@ -3387,9 +3477,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       id: serializer.fromJson<int>(json['id']),
       guid: serializer.fromJson<String>(json['guid']),
       chatId: serializer.fromJson<int>(json['chatId']),
-      senderParticipantId: serializer.fromJson<int?>(
-        json['senderParticipantId'],
-      ),
+      senderHandleId: serializer.fromJson<int?>(json['senderHandleId']),
       isFromMe: serializer.fromJson<bool>(json['isFromMe']),
       sentAtUtc: serializer.fromJson<String?>(json['sentAtUtc']),
       deliveredAtUtc: serializer.fromJson<String?>(json['deliveredAtUtc']),
@@ -3416,7 +3504,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       'id': serializer.toJson<int>(id),
       'guid': serializer.toJson<String>(guid),
       'chatId': serializer.toJson<int>(chatId),
-      'senderParticipantId': serializer.toJson<int?>(senderParticipantId),
+      'senderHandleId': serializer.toJson<int?>(senderHandleId),
       'isFromMe': serializer.toJson<bool>(isFromMe),
       'sentAtUtc': serializer.toJson<String?>(sentAtUtc),
       'deliveredAtUtc': serializer.toJson<String?>(deliveredAtUtc),
@@ -3439,7 +3527,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     int? id,
     String? guid,
     int? chatId,
-    Value<int?> senderParticipantId = const Value.absent(),
+    Value<int?> senderHandleId = const Value.absent(),
     bool? isFromMe,
     Value<String?> sentAtUtc = const Value.absent(),
     Value<String?> deliveredAtUtc = const Value.absent(),
@@ -3459,9 +3547,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     id: id ?? this.id,
     guid: guid ?? this.guid,
     chatId: chatId ?? this.chatId,
-    senderParticipantId: senderParticipantId.present
-        ? senderParticipantId.value
-        : this.senderParticipantId,
+    senderHandleId: senderHandleId.present
+        ? senderHandleId.value
+        : this.senderHandleId,
     isFromMe: isFromMe ?? this.isFromMe,
     sentAtUtc: sentAtUtc.present ? sentAtUtc.value : this.sentAtUtc,
     deliveredAtUtc: deliveredAtUtc.present
@@ -3489,9 +3577,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       id: data.id.present ? data.id.value : this.id,
       guid: data.guid.present ? data.guid.value : this.guid,
       chatId: data.chatId.present ? data.chatId.value : this.chatId,
-      senderParticipantId: data.senderParticipantId.present
-          ? data.senderParticipantId.value
-          : this.senderParticipantId,
+      senderHandleId: data.senderHandleId.present
+          ? data.senderHandleId.value
+          : this.senderHandleId,
       isFromMe: data.isFromMe.present ? data.isFromMe.value : this.isFromMe,
       sentAtUtc: data.sentAtUtc.present ? data.sentAtUtc.value : this.sentAtUtc,
       deliveredAtUtc: data.deliveredAtUtc.present
@@ -3536,7 +3624,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           ..write('id: $id, ')
           ..write('guid: $guid, ')
           ..write('chatId: $chatId, ')
-          ..write('senderParticipantId: $senderParticipantId, ')
+          ..write('senderHandleId: $senderHandleId, ')
           ..write('isFromMe: $isFromMe, ')
           ..write('sentAtUtc: $sentAtUtc, ')
           ..write('deliveredAtUtc: $deliveredAtUtc, ')
@@ -3561,7 +3649,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     id,
     guid,
     chatId,
-    senderParticipantId,
+    senderHandleId,
     isFromMe,
     sentAtUtc,
     deliveredAtUtc,
@@ -3585,7 +3673,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           other.id == this.id &&
           other.guid == this.guid &&
           other.chatId == this.chatId &&
-          other.senderParticipantId == this.senderParticipantId &&
+          other.senderHandleId == this.senderHandleId &&
           other.isFromMe == this.isFromMe &&
           other.sentAtUtc == this.sentAtUtc &&
           other.deliveredAtUtc == this.deliveredAtUtc &&
@@ -3607,7 +3695,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
   final Value<int> id;
   final Value<String> guid;
   final Value<int> chatId;
-  final Value<int?> senderParticipantId;
+  final Value<int?> senderHandleId;
   final Value<bool> isFromMe;
   final Value<String?> sentAtUtc;
   final Value<String?> deliveredAtUtc;
@@ -3627,7 +3715,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.id = const Value.absent(),
     this.guid = const Value.absent(),
     this.chatId = const Value.absent(),
-    this.senderParticipantId = const Value.absent(),
+    this.senderHandleId = const Value.absent(),
     this.isFromMe = const Value.absent(),
     this.sentAtUtc = const Value.absent(),
     this.deliveredAtUtc = const Value.absent(),
@@ -3648,7 +3736,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.id = const Value.absent(),
     required String guid,
     required int chatId,
-    this.senderParticipantId = const Value.absent(),
+    this.senderHandleId = const Value.absent(),
     this.isFromMe = const Value.absent(),
     this.sentAtUtc = const Value.absent(),
     this.deliveredAtUtc = const Value.absent(),
@@ -3670,7 +3758,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Expression<int>? id,
     Expression<String>? guid,
     Expression<int>? chatId,
-    Expression<int>? senderParticipantId,
+    Expression<int>? senderHandleId,
     Expression<bool>? isFromMe,
     Expression<String>? sentAtUtc,
     Expression<String>? deliveredAtUtc,
@@ -3691,8 +3779,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       if (id != null) 'id': id,
       if (guid != null) 'guid': guid,
       if (chatId != null) 'chat_id': chatId,
-      if (senderParticipantId != null)
-        'sender_participant_id': senderParticipantId,
+      if (senderHandleId != null) 'sender_handle_id': senderHandleId,
       if (isFromMe != null) 'is_from_me': isFromMe,
       if (sentAtUtc != null) 'sent_at_utc': sentAtUtc,
       if (deliveredAtUtc != null) 'delivered_at_utc': deliveredAtUtc,
@@ -3716,7 +3803,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Value<int>? id,
     Value<String>? guid,
     Value<int>? chatId,
-    Value<int?>? senderParticipantId,
+    Value<int?>? senderHandleId,
     Value<bool>? isFromMe,
     Value<String?>? sentAtUtc,
     Value<String?>? deliveredAtUtc,
@@ -3737,7 +3824,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       id: id ?? this.id,
       guid: guid ?? this.guid,
       chatId: chatId ?? this.chatId,
-      senderParticipantId: senderParticipantId ?? this.senderParticipantId,
+      senderHandleId: senderHandleId ?? this.senderHandleId,
       isFromMe: isFromMe ?? this.isFromMe,
       sentAtUtc: sentAtUtc ?? this.sentAtUtc,
       deliveredAtUtc: deliveredAtUtc ?? this.deliveredAtUtc,
@@ -3768,8 +3855,8 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     if (chatId.present) {
       map['chat_id'] = Variable<int>(chatId.value);
     }
-    if (senderParticipantId.present) {
-      map['sender_participant_id'] = Variable<int>(senderParticipantId.value);
+    if (senderHandleId.present) {
+      map['sender_handle_id'] = Variable<int>(senderHandleId.value);
     }
     if (isFromMe.present) {
       map['is_from_me'] = Variable<bool>(isFromMe.value);
@@ -3827,7 +3914,7 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
           ..write('id: $id, ')
           ..write('guid: $guid, ')
           ..write('chatId: $chatId, ')
-          ..write('senderParticipantId: $senderParticipantId, ')
+          ..write('senderHandleId: $senderHandleId, ')
           ..write('isFromMe: $isFromMe, ')
           ..write('sentAtUtc: $sentAtUtc, ')
           ..write('deliveredAtUtc: $deliveredAtUtc, ')
@@ -4563,17 +4650,18 @@ class $WorkingReactionsTable extends WorkingReactions
     $customConstraints:
         'NOT NULL CHECK(kind IN (\'love\',\'like\',\'dislike\',\'laugh\',\'emphasize\',\'question\',\'unknown\'))',
   );
-  static const VerificationMeta _reactorParticipantIdMeta =
-      const VerificationMeta('reactorParticipantId');
+  static const VerificationMeta _reactorHandleIdMeta = const VerificationMeta(
+    'reactorHandleId',
+  );
   @override
-  late final GeneratedColumn<int> reactorParticipantId = GeneratedColumn<int>(
-    'reactor_participant_id',
+  late final GeneratedColumn<int> reactorHandleId = GeneratedColumn<int>(
+    'reactor_handle_id',
     aliasedName,
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES participants (id) ON DELETE SET NULL',
+      'REFERENCES handles (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _actionMeta = const VerificationMeta('action');
@@ -4602,7 +4690,7 @@ class $WorkingReactionsTable extends WorkingReactions
     id,
     messageGuid,
     kind,
-    reactorParticipantId,
+    reactorHandleId,
     action,
     reactedAtUtc,
   ];
@@ -4640,12 +4728,12 @@ class $WorkingReactionsTable extends WorkingReactions
     } else if (isInserting) {
       context.missing(_kindMeta);
     }
-    if (data.containsKey('reactor_participant_id')) {
+    if (data.containsKey('reactor_handle_id')) {
       context.handle(
-        _reactorParticipantIdMeta,
-        reactorParticipantId.isAcceptableOrUnknown(
-          data['reactor_participant_id']!,
-          _reactorParticipantIdMeta,
+        _reactorHandleIdMeta,
+        reactorHandleId.isAcceptableOrUnknown(
+          data['reactor_handle_id']!,
+          _reactorHandleIdMeta,
         ),
       );
     }
@@ -4687,9 +4775,9 @@ class $WorkingReactionsTable extends WorkingReactions
         DriftSqlType.string,
         data['${effectivePrefix}kind'],
       )!,
-      reactorParticipantId: attachedDatabase.typeMapping.read(
+      reactorHandleId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}reactor_participant_id'],
+        data['${effectivePrefix}reactor_handle_id'],
       ),
       action: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -4712,14 +4800,14 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
   final int id;
   final String messageGuid;
   final String kind;
-  final int? reactorParticipantId;
+  final int? reactorHandleId;
   final String action;
   final String? reactedAtUtc;
   const WorkingReaction({
     required this.id,
     required this.messageGuid,
     required this.kind,
-    this.reactorParticipantId,
+    this.reactorHandleId,
     required this.action,
     this.reactedAtUtc,
   });
@@ -4729,8 +4817,8 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
     map['id'] = Variable<int>(id);
     map['message_guid'] = Variable<String>(messageGuid);
     map['kind'] = Variable<String>(kind);
-    if (!nullToAbsent || reactorParticipantId != null) {
-      map['reactor_participant_id'] = Variable<int>(reactorParticipantId);
+    if (!nullToAbsent || reactorHandleId != null) {
+      map['reactor_handle_id'] = Variable<int>(reactorHandleId);
     }
     map['action'] = Variable<String>(action);
     if (!nullToAbsent || reactedAtUtc != null) {
@@ -4744,9 +4832,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       id: Value(id),
       messageGuid: Value(messageGuid),
       kind: Value(kind),
-      reactorParticipantId: reactorParticipantId == null && nullToAbsent
+      reactorHandleId: reactorHandleId == null && nullToAbsent
           ? const Value.absent()
-          : Value(reactorParticipantId),
+          : Value(reactorHandleId),
       action: Value(action),
       reactedAtUtc: reactedAtUtc == null && nullToAbsent
           ? const Value.absent()
@@ -4763,9 +4851,7 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       id: serializer.fromJson<int>(json['id']),
       messageGuid: serializer.fromJson<String>(json['messageGuid']),
       kind: serializer.fromJson<String>(json['kind']),
-      reactorParticipantId: serializer.fromJson<int?>(
-        json['reactorParticipantId'],
-      ),
+      reactorHandleId: serializer.fromJson<int?>(json['reactorHandleId']),
       action: serializer.fromJson<String>(json['action']),
       reactedAtUtc: serializer.fromJson<String?>(json['reactedAtUtc']),
     );
@@ -4777,7 +4863,7 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       'id': serializer.toJson<int>(id),
       'messageGuid': serializer.toJson<String>(messageGuid),
       'kind': serializer.toJson<String>(kind),
-      'reactorParticipantId': serializer.toJson<int?>(reactorParticipantId),
+      'reactorHandleId': serializer.toJson<int?>(reactorHandleId),
       'action': serializer.toJson<String>(action),
       'reactedAtUtc': serializer.toJson<String?>(reactedAtUtc),
     };
@@ -4787,16 +4873,16 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
     int? id,
     String? messageGuid,
     String? kind,
-    Value<int?> reactorParticipantId = const Value.absent(),
+    Value<int?> reactorHandleId = const Value.absent(),
     String? action,
     Value<String?> reactedAtUtc = const Value.absent(),
   }) => WorkingReaction(
     id: id ?? this.id,
     messageGuid: messageGuid ?? this.messageGuid,
     kind: kind ?? this.kind,
-    reactorParticipantId: reactorParticipantId.present
-        ? reactorParticipantId.value
-        : this.reactorParticipantId,
+    reactorHandleId: reactorHandleId.present
+        ? reactorHandleId.value
+        : this.reactorHandleId,
     action: action ?? this.action,
     reactedAtUtc: reactedAtUtc.present ? reactedAtUtc.value : this.reactedAtUtc,
   );
@@ -4807,9 +4893,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
           ? data.messageGuid.value
           : this.messageGuid,
       kind: data.kind.present ? data.kind.value : this.kind,
-      reactorParticipantId: data.reactorParticipantId.present
-          ? data.reactorParticipantId.value
-          : this.reactorParticipantId,
+      reactorHandleId: data.reactorHandleId.present
+          ? data.reactorHandleId.value
+          : this.reactorHandleId,
       action: data.action.present ? data.action.value : this.action,
       reactedAtUtc: data.reactedAtUtc.present
           ? data.reactedAtUtc.value
@@ -4823,7 +4909,7 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
           ..write('id: $id, ')
           ..write('messageGuid: $messageGuid, ')
           ..write('kind: $kind, ')
-          ..write('reactorParticipantId: $reactorParticipantId, ')
+          ..write('reactorHandleId: $reactorHandleId, ')
           ..write('action: $action, ')
           ..write('reactedAtUtc: $reactedAtUtc')
           ..write(')'))
@@ -4831,14 +4917,8 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
   }
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    messageGuid,
-    kind,
-    reactorParticipantId,
-    action,
-    reactedAtUtc,
-  );
+  int get hashCode =>
+      Object.hash(id, messageGuid, kind, reactorHandleId, action, reactedAtUtc);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4846,7 +4926,7 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
           other.id == this.id &&
           other.messageGuid == this.messageGuid &&
           other.kind == this.kind &&
-          other.reactorParticipantId == this.reactorParticipantId &&
+          other.reactorHandleId == this.reactorHandleId &&
           other.action == this.action &&
           other.reactedAtUtc == this.reactedAtUtc);
 }
@@ -4855,14 +4935,14 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
   final Value<int> id;
   final Value<String> messageGuid;
   final Value<String> kind;
-  final Value<int?> reactorParticipantId;
+  final Value<int?> reactorHandleId;
   final Value<String> action;
   final Value<String?> reactedAtUtc;
   const WorkingReactionsCompanion({
     this.id = const Value.absent(),
     this.messageGuid = const Value.absent(),
     this.kind = const Value.absent(),
-    this.reactorParticipantId = const Value.absent(),
+    this.reactorHandleId = const Value.absent(),
     this.action = const Value.absent(),
     this.reactedAtUtc = const Value.absent(),
   });
@@ -4870,7 +4950,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     this.id = const Value.absent(),
     required String messageGuid,
     required String kind,
-    this.reactorParticipantId = const Value.absent(),
+    this.reactorHandleId = const Value.absent(),
     required String action,
     this.reactedAtUtc = const Value.absent(),
   }) : messageGuid = Value(messageGuid),
@@ -4880,7 +4960,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     Expression<int>? id,
     Expression<String>? messageGuid,
     Expression<String>? kind,
-    Expression<int>? reactorParticipantId,
+    Expression<int>? reactorHandleId,
     Expression<String>? action,
     Expression<String>? reactedAtUtc,
   }) {
@@ -4888,8 +4968,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
       if (id != null) 'id': id,
       if (messageGuid != null) 'message_guid': messageGuid,
       if (kind != null) 'kind': kind,
-      if (reactorParticipantId != null)
-        'reactor_participant_id': reactorParticipantId,
+      if (reactorHandleId != null) 'reactor_handle_id': reactorHandleId,
       if (action != null) 'action': action,
       if (reactedAtUtc != null) 'reacted_at_utc': reactedAtUtc,
     });
@@ -4899,7 +4978,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     Value<int>? id,
     Value<String>? messageGuid,
     Value<String>? kind,
-    Value<int?>? reactorParticipantId,
+    Value<int?>? reactorHandleId,
     Value<String>? action,
     Value<String?>? reactedAtUtc,
   }) {
@@ -4907,7 +4986,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
       id: id ?? this.id,
       messageGuid: messageGuid ?? this.messageGuid,
       kind: kind ?? this.kind,
-      reactorParticipantId: reactorParticipantId ?? this.reactorParticipantId,
+      reactorHandleId: reactorHandleId ?? this.reactorHandleId,
       action: action ?? this.action,
       reactedAtUtc: reactedAtUtc ?? this.reactedAtUtc,
     );
@@ -4925,8 +5004,8 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     if (kind.present) {
       map['kind'] = Variable<String>(kind.value);
     }
-    if (reactorParticipantId.present) {
-      map['reactor_participant_id'] = Variable<int>(reactorParticipantId.value);
+    if (reactorHandleId.present) {
+      map['reactor_handle_id'] = Variable<int>(reactorHandleId.value);
     }
     if (action.present) {
       map['action'] = Variable<String>(action.value);
@@ -4943,7 +5022,7 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
           ..write('id: $id, ')
           ..write('messageGuid: $messageGuid, ')
           ..write('kind: $kind, ')
-          ..write('reactorParticipantId: $reactorParticipantId, ')
+          ..write('reactorHandleId: $reactorHandleId, ')
           ..write('action: $action, ')
           ..write('reactedAtUtc: $reactedAtUtc')
           ..write(')'))
@@ -6851,13 +6930,12 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     this,
   );
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $WorkingHandlesTable workingHandles = $WorkingHandlesTable(this);
   late final $WorkingParticipantsTable workingParticipants =
       $WorkingParticipantsTable(this);
-  late final $ParticipantHandleLinksTable participantHandleLinks =
-      $ParticipantHandleLinksTable(this);
+  late final $HandleToParticipantTable handleToParticipant =
+      $HandleToParticipantTable(this);
   late final $WorkingChatsTable workingChats = $WorkingChatsTable(this);
-  late final $ChatToParticipantTable chatToParticipant =
-      $ChatToParticipantTable(this);
   late final $WorkingMessagesTable workingMessages = $WorkingMessagesTable(
     this,
   );
@@ -6884,10 +6962,10 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     workingSchemaMigrations,
     projectionState,
     appSettings,
+    workingHandles,
     workingParticipants,
-    participantHandleLinks,
+    handleToParticipant,
     workingChats,
-    chatToParticipant,
     workingMessages,
     workingAttachments,
     workingReactions,
@@ -6901,33 +6979,31 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'participants',
+        'handles',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [
-        TableUpdate('participant_handle_links', kind: UpdateKind.delete),
-      ],
+      result: [TableUpdate('handle_to_participant', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'participants',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('handle_to_participant', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'handles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chats', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'handles',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('chats', kind: UpdateKind.update)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'chats',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('chat_to_participant', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'participants',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('chat_to_participant', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -6938,14 +7014,14 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'participants',
+        'handles',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('messages', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'participants',
+        'handles',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('reactions', kind: UpdateKind.update)],
@@ -7469,111 +7545,53 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
-typedef $$WorkingParticipantsTableCreateCompanionBuilder =
-    WorkingParticipantsCompanion Function({
+typedef $$WorkingHandlesTableCreateCompanionBuilder =
+    WorkingHandlesCompanion Function({
       Value<int> id,
-      Value<String?> normalizedAddress,
+      required String handleId,
       Value<String> service,
-      Value<String?> displayName,
-      Value<String?> contactRef,
-      Value<String?> avatarRef,
-      Value<bool> isSystem,
+      Value<bool> isValid,
+      Value<bool> isBlacklisted,
     });
-typedef $$WorkingParticipantsTableUpdateCompanionBuilder =
-    WorkingParticipantsCompanion Function({
+typedef $$WorkingHandlesTableUpdateCompanionBuilder =
+    WorkingHandlesCompanion Function({
       Value<int> id,
-      Value<String?> normalizedAddress,
+      Value<String> handleId,
       Value<String> service,
-      Value<String?> displayName,
-      Value<String?> contactRef,
-      Value<String?> avatarRef,
-      Value<bool> isSystem,
+      Value<bool> isValid,
+      Value<bool> isBlacklisted,
     });
 
-final class $$WorkingParticipantsTableReferences
+final class $$WorkingHandlesTableReferences
     extends
-        BaseReferences<
-          _$WorkingDatabase,
-          $WorkingParticipantsTable,
-          WorkingParticipant
-        > {
-  $$WorkingParticipantsTableReferences(
+        BaseReferences<_$WorkingDatabase, $WorkingHandlesTable, WorkingHandle> {
+  $$WorkingHandlesTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
   static MultiTypedResultKey<
-    $ParticipantHandleLinksTable,
-    List<ParticipantHandleLink>
+    $HandleToParticipantTable,
+    List<HandleToParticipantData>
   >
-  _participantHandleLinksRefsTable(_$WorkingDatabase db) =>
+  _handleToParticipantRefsTable(_$WorkingDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.participantHandleLinks,
+        db.handleToParticipant,
         aliasName: $_aliasNameGenerator(
-          db.workingParticipants.id,
-          db.participantHandleLinks.participantId,
+          db.workingHandles.id,
+          db.handleToParticipant.handleId,
         ),
       );
 
-  $$ParticipantHandleLinksTableProcessedTableManager
-  get participantHandleLinksRefs {
-    final manager = $$ParticipantHandleLinksTableTableManager(
+  $$HandleToParticipantTableProcessedTableManager get handleToParticipantRefs {
+    final manager = $$HandleToParticipantTableTableManager(
       $_db,
-      $_db.participantHandleLinks,
-    ).filter((f) => f.participantId.id.sqlEquals($_itemColumn<int>('id')!));
+      $_db.handleToParticipant,
+    ).filter((f) => f.handleId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _participantHandleLinksRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$WorkingChatsTable, List<WorkingChat>>
-  _workingChatsRefsTable(_$WorkingDatabase db) => MultiTypedResultKey.fromTable(
-    db.workingChats,
-    aliasName: $_aliasNameGenerator(
-      db.workingParticipants.id,
-      db.workingChats.lastSenderParticipantId,
-    ),
-  );
-
-  $$WorkingChatsTableProcessedTableManager get workingChatsRefs {
-    final manager = $$WorkingChatsTableTableManager($_db, $_db.workingChats)
-        .filter(
-          (f) =>
-              f.lastSenderParticipantId.id.sqlEquals($_itemColumn<int>('id')!),
-        );
-
-    final cache = $_typedResult.readTableOrNull(_workingChatsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<
-    $ChatToParticipantTable,
-    List<ChatToParticipantData>
-  >
-  _chatToParticipantRefsTable(_$WorkingDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.chatToParticipant,
-        aliasName: $_aliasNameGenerator(
-          db.workingParticipants.id,
-          db.chatToParticipant.participantId,
-        ),
-      );
-
-  $$ChatToParticipantTableProcessedTableManager get chatToParticipantRefs {
-    final manager = $$ChatToParticipantTableTableManager(
-      $_db,
-      $_db.chatToParticipant,
-    ).filter((f) => f.participantId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _chatToParticipantRefsTable($_db),
+      _handleToParticipantRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -7585,16 +7603,16 @@ final class $$WorkingParticipantsTableReferences
       MultiTypedResultKey.fromTable(
         db.workingMessages,
         aliasName: $_aliasNameGenerator(
-          db.workingParticipants.id,
-          db.workingMessages.senderParticipantId,
+          db.workingHandles.id,
+          db.workingMessages.senderHandleId,
         ),
       );
 
   $$WorkingMessagesTableProcessedTableManager get workingMessagesRefs {
-    final manager =
-        $$WorkingMessagesTableTableManager($_db, $_db.workingMessages).filter(
-          (f) => f.senderParticipantId.id.sqlEquals($_itemColumn<int>('id')!),
-        );
+    final manager = $$WorkingMessagesTableTableManager(
+      $_db,
+      $_db.workingMessages,
+    ).filter((f) => f.senderHandleId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
       _workingMessagesRefsTable($_db),
@@ -7609,16 +7627,16 @@ final class $$WorkingParticipantsTableReferences
       MultiTypedResultKey.fromTable(
         db.workingReactions,
         aliasName: $_aliasNameGenerator(
-          db.workingParticipants.id,
-          db.workingReactions.reactorParticipantId,
+          db.workingHandles.id,
+          db.workingReactions.reactorHandleId,
         ),
       );
 
   $$WorkingReactionsTableProcessedTableManager get workingReactionsRefs {
-    final manager =
-        $$WorkingReactionsTableTableManager($_db, $_db.workingReactions).filter(
-          (f) => f.reactorParticipantId.id.sqlEquals($_itemColumn<int>('id')!),
-        );
+    final manager = $$WorkingReactionsTableTableManager(
+      $_db,
+      $_db.workingReactions,
+    ).filter((f) => f.reactorHandleId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
       _workingReactionsRefsTable($_db),
@@ -7629,9 +7647,9 @@ final class $$WorkingParticipantsTableReferences
   }
 }
 
-class $$WorkingParticipantsTableFilterComposer
-    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
-  $$WorkingParticipantsTableFilterComposer({
+class $$WorkingHandlesTableFilterComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7643,8 +7661,8 @@ class $$WorkingParticipantsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
+  ColumnFilters<String> get handleId => $composableBuilder(
+    column: $table.handleId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7653,93 +7671,32 @@ class $$WorkingParticipantsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get displayName => $composableBuilder(
-    column: $table.displayName,
+  ColumnFilters<bool> get isValid => $composableBuilder(
+    column: $table.isValid,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get contactRef => $composableBuilder(
-    column: $table.contactRef,
+  ColumnFilters<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get avatarRef => $composableBuilder(
-    column: $table.avatarRef,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isSystem => $composableBuilder(
-    column: $table.isSystem,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> participantHandleLinksRefs(
-    Expression<bool> Function($$ParticipantHandleLinksTableFilterComposer f) f,
+  Expression<bool> handleToParticipantRefs(
+    Expression<bool> Function($$HandleToParticipantTableFilterComposer f) f,
   ) {
-    final $$ParticipantHandleLinksTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.participantHandleLinks,
-          getReferencedColumn: (t) => t.participantId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$ParticipantHandleLinksTableFilterComposer(
-                $db: $db,
-                $table: $db.participantHandleLinks,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-
-  Expression<bool> workingChatsRefs(
-    Expression<bool> Function($$WorkingChatsTableFilterComposer f) f,
-  ) {
-    final $$WorkingChatsTableFilterComposer composer = $composerBuilder(
+    final $$HandleToParticipantTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.workingChats,
-      getReferencedColumn: (t) => t.lastSenderParticipantId,
+      referencedTable: $db.handleToParticipant,
+      getReferencedColumn: (t) => t.handleId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingChatsTableFilterComposer(
+          }) => $$HandleToParticipantTableFilterComposer(
             $db: $db,
-            $table: $db.workingChats,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> chatToParticipantRefs(
-    Expression<bool> Function($$ChatToParticipantTableFilterComposer f) f,
-  ) {
-    final $$ChatToParticipantTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chatToParticipant,
-      getReferencedColumn: (t) => t.participantId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ChatToParticipantTableFilterComposer(
-            $db: $db,
-            $table: $db.chatToParticipant,
+            $table: $db.handleToParticipant,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7756,7 +7713,7 @@ class $$WorkingParticipantsTableFilterComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.workingMessages,
-      getReferencedColumn: (t) => t.senderParticipantId,
+      getReferencedColumn: (t) => t.senderHandleId,
       builder:
           (
             joinBuilder, {
@@ -7781,7 +7738,7 @@ class $$WorkingParticipantsTableFilterComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.workingReactions,
-      getReferencedColumn: (t) => t.reactorParticipantId,
+      getReferencedColumn: (t) => t.reactorHandleId,
       builder:
           (
             joinBuilder, {
@@ -7800,9 +7757,9 @@ class $$WorkingParticipantsTableFilterComposer
   }
 }
 
-class $$WorkingParticipantsTableOrderingComposer
-    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
-  $$WorkingParticipantsTableOrderingComposer({
+class $$WorkingHandlesTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7814,8 +7771,8 @@ class $$WorkingParticipantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
+  ColumnOrderings<String> get handleId => $composableBuilder(
+    column: $table.handleId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7824,30 +7781,20 @@ class $$WorkingParticipantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get displayName => $composableBuilder(
-    column: $table.displayName,
+  ColumnOrderings<bool> get isValid => $composableBuilder(
+    column: $table.isValid,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get contactRef => $composableBuilder(
-    column: $table.contactRef,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get avatarRef => $composableBuilder(
-    column: $table.avatarRef,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isSystem => $composableBuilder(
-    column: $table.isSystem,
+  ColumnOrderings<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$WorkingParticipantsTableAnnotationComposer
-    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
-  $$WorkingParticipantsTableAnnotationComposer({
+class $$WorkingHandlesTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7857,98 +7804,37 @@ class $$WorkingParticipantsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get handleId =>
+      $composableBuilder(column: $table.handleId, builder: (column) => column);
 
   GeneratedColumn<String> get service =>
       $composableBuilder(column: $table.service, builder: (column) => column);
 
-  GeneratedColumn<String> get displayName => $composableBuilder(
-    column: $table.displayName,
+  GeneratedColumn<bool> get isValid =>
+      $composableBuilder(column: $table.isValid, builder: (column) => column);
+
+  GeneratedColumn<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get contactRef => $composableBuilder(
-    column: $table.contactRef,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get avatarRef =>
-      $composableBuilder(column: $table.avatarRef, builder: (column) => column);
-
-  GeneratedColumn<bool> get isSystem =>
-      $composableBuilder(column: $table.isSystem, builder: (column) => column);
-
-  Expression<T> participantHandleLinksRefs<T extends Object>(
-    Expression<T> Function($$ParticipantHandleLinksTableAnnotationComposer a) f,
+  Expression<T> handleToParticipantRefs<T extends Object>(
+    Expression<T> Function($$HandleToParticipantTableAnnotationComposer a) f,
   ) {
-    final $$ParticipantHandleLinksTableAnnotationComposer composer =
+    final $$HandleToParticipantTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.participantHandleLinks,
-          getReferencedColumn: (t) => t.participantId,
+          referencedTable: $db.handleToParticipant,
+          getReferencedColumn: (t) => t.handleId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ParticipantHandleLinksTableAnnotationComposer(
+              }) => $$HandleToParticipantTableAnnotationComposer(
                 $db: $db,
-                $table: $db.participantHandleLinks,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-
-  Expression<T> workingChatsRefs<T extends Object>(
-    Expression<T> Function($$WorkingChatsTableAnnotationComposer a) f,
-  ) {
-    final $$WorkingChatsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.workingChats,
-      getReferencedColumn: (t) => t.lastSenderParticipantId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingChatsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.workingChats,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> chatToParticipantRefs<T extends Object>(
-    Expression<T> Function($$ChatToParticipantTableAnnotationComposer a) f,
-  ) {
-    final $$ChatToParticipantTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.chatToParticipant,
-          getReferencedColumn: (t) => t.participantId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$ChatToParticipantTableAnnotationComposer(
-                $db: $db,
-                $table: $db.chatToParticipant,
+                $table: $db.handleToParticipant,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -7965,7 +7851,7 @@ class $$WorkingParticipantsTableAnnotationComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.workingMessages,
-      getReferencedColumn: (t) => t.senderParticipantId,
+      getReferencedColumn: (t) => t.senderHandleId,
       builder:
           (
             joinBuilder, {
@@ -7990,7 +7876,7 @@ class $$WorkingParticipantsTableAnnotationComposer
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.workingReactions,
-      getReferencedColumn: (t) => t.reactorParticipantId,
+      getReferencedColumn: (t) => t.reactorHandleId,
       builder:
           (
             joinBuilder, {
@@ -8009,6 +7895,387 @@ class $$WorkingParticipantsTableAnnotationComposer
   }
 }
 
+class $$WorkingHandlesTableTableManager
+    extends
+        RootTableManager<
+          _$WorkingDatabase,
+          $WorkingHandlesTable,
+          WorkingHandle,
+          $$WorkingHandlesTableFilterComposer,
+          $$WorkingHandlesTableOrderingComposer,
+          $$WorkingHandlesTableAnnotationComposer,
+          $$WorkingHandlesTableCreateCompanionBuilder,
+          $$WorkingHandlesTableUpdateCompanionBuilder,
+          (WorkingHandle, $$WorkingHandlesTableReferences),
+          WorkingHandle,
+          PrefetchHooks Function({
+            bool handleToParticipantRefs,
+            bool workingMessagesRefs,
+            bool workingReactionsRefs,
+          })
+        > {
+  $$WorkingHandlesTableTableManager(
+    _$WorkingDatabase db,
+    $WorkingHandlesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkingHandlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkingHandlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkingHandlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> handleId = const Value.absent(),
+                Value<String> service = const Value.absent(),
+                Value<bool> isValid = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+              }) => WorkingHandlesCompanion(
+                id: id,
+                handleId: handleId,
+                service: service,
+                isValid: isValid,
+                isBlacklisted: isBlacklisted,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String handleId,
+                Value<String> service = const Value.absent(),
+                Value<bool> isValid = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+              }) => WorkingHandlesCompanion.insert(
+                id: id,
+                handleId: handleId,
+                service: service,
+                isValid: isValid,
+                isBlacklisted: isBlacklisted,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WorkingHandlesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                handleToParticipantRefs = false,
+                workingMessagesRefs = false,
+                workingReactionsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (handleToParticipantRefs) db.handleToParticipant,
+                    if (workingMessagesRefs) db.workingMessages,
+                    if (workingReactionsRefs) db.workingReactions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (handleToParticipantRefs)
+                        await $_getPrefetchedData<
+                          WorkingHandle,
+                          $WorkingHandlesTable,
+                          HandleToParticipantData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingHandlesTableReferences
+                              ._handleToParticipantRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingHandlesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).handleToParticipantRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.handleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (workingMessagesRefs)
+                        await $_getPrefetchedData<
+                          WorkingHandle,
+                          $WorkingHandlesTable,
+                          WorkingMessage
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingHandlesTableReferences
+                              ._workingMessagesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingHandlesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).workingMessagesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.senderHandleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (workingReactionsRefs)
+                        await $_getPrefetchedData<
+                          WorkingHandle,
+                          $WorkingHandlesTable,
+                          WorkingReaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingHandlesTableReferences
+                              ._workingReactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingHandlesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).workingReactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.reactorHandleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$WorkingHandlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $WorkingHandlesTable,
+      WorkingHandle,
+      $$WorkingHandlesTableFilterComposer,
+      $$WorkingHandlesTableOrderingComposer,
+      $$WorkingHandlesTableAnnotationComposer,
+      $$WorkingHandlesTableCreateCompanionBuilder,
+      $$WorkingHandlesTableUpdateCompanionBuilder,
+      (WorkingHandle, $$WorkingHandlesTableReferences),
+      WorkingHandle,
+      PrefetchHooks Function({
+        bool handleToParticipantRefs,
+        bool workingMessagesRefs,
+        bool workingReactionsRefs,
+      })
+    >;
+typedef $$WorkingParticipantsTableCreateCompanionBuilder =
+    WorkingParticipantsCompanion Function({
+      Value<int> id,
+      required String originalName,
+      required String displayName,
+      required String shortName,
+      Value<String?> avatarRef,
+    });
+typedef $$WorkingParticipantsTableUpdateCompanionBuilder =
+    WorkingParticipantsCompanion Function({
+      Value<int> id,
+      Value<String> originalName,
+      Value<String> displayName,
+      Value<String> shortName,
+      Value<String?> avatarRef,
+    });
+
+final class $$WorkingParticipantsTableReferences
+    extends
+        BaseReferences<
+          _$WorkingDatabase,
+          $WorkingParticipantsTable,
+          WorkingParticipant
+        > {
+  $$WorkingParticipantsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $HandleToParticipantTable,
+    List<HandleToParticipantData>
+  >
+  _handleToParticipantRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.handleToParticipant,
+        aliasName: $_aliasNameGenerator(
+          db.workingParticipants.id,
+          db.handleToParticipant.participantId,
+        ),
+      );
+
+  $$HandleToParticipantTableProcessedTableManager get handleToParticipantRefs {
+    final manager = $$HandleToParticipantTableTableManager(
+      $_db,
+      $_db.handleToParticipant,
+    ).filter((f) => f.participantId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _handleToParticipantRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$WorkingParticipantsTableFilterComposer
+    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
+  $$WorkingParticipantsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalName => $composableBuilder(
+    column: $table.originalName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortName => $composableBuilder(
+    column: $table.shortName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarRef => $composableBuilder(
+    column: $table.avatarRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> handleToParticipantRefs(
+    Expression<bool> Function($$HandleToParticipantTableFilterComposer f) f,
+  ) {
+    final $$HandleToParticipantTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.handleToParticipant,
+      getReferencedColumn: (t) => t.participantId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HandleToParticipantTableFilterComposer(
+            $db: $db,
+            $table: $db.handleToParticipant,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$WorkingParticipantsTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
+  $$WorkingParticipantsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalName => $composableBuilder(
+    column: $table.originalName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shortName => $composableBuilder(
+    column: $table.shortName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarRef => $composableBuilder(
+    column: $table.avatarRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkingParticipantsTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $WorkingParticipantsTable> {
+  $$WorkingParticipantsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get originalName => $composableBuilder(
+    column: $table.originalName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get shortName =>
+      $composableBuilder(column: $table.shortName, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarRef =>
+      $composableBuilder(column: $table.avatarRef, builder: (column) => column);
+
+  Expression<T> handleToParticipantRefs<T extends Object>(
+    Expression<T> Function($$HandleToParticipantTableAnnotationComposer a) f,
+  ) {
+    final $$HandleToParticipantTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.handleToParticipant,
+          getReferencedColumn: (t) => t.participantId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$HandleToParticipantTableAnnotationComposer(
+                $db: $db,
+                $table: $db.handleToParticipant,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
 class $$WorkingParticipantsTableTableManager
     extends
         RootTableManager<
@@ -8022,13 +8289,7 @@ class $$WorkingParticipantsTableTableManager
           $$WorkingParticipantsTableUpdateCompanionBuilder,
           (WorkingParticipant, $$WorkingParticipantsTableReferences),
           WorkingParticipant,
-          PrefetchHooks Function({
-            bool participantHandleLinksRefs,
-            bool workingChatsRefs,
-            bool chatToParticipantRefs,
-            bool workingMessagesRefs,
-            bool workingReactionsRefs,
-          })
+          PrefetchHooks Function({bool handleToParticipantRefs})
         > {
   $$WorkingParticipantsTableTableManager(
     _$WorkingDatabase db,
@@ -8052,38 +8313,30 @@ class $$WorkingParticipantsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String?> normalizedAddress = const Value.absent(),
-                Value<String> service = const Value.absent(),
-                Value<String?> displayName = const Value.absent(),
-                Value<String?> contactRef = const Value.absent(),
+                Value<String> originalName = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> shortName = const Value.absent(),
                 Value<String?> avatarRef = const Value.absent(),
-                Value<bool> isSystem = const Value.absent(),
               }) => WorkingParticipantsCompanion(
                 id: id,
-                normalizedAddress: normalizedAddress,
-                service: service,
+                originalName: originalName,
                 displayName: displayName,
-                contactRef: contactRef,
+                shortName: shortName,
                 avatarRef: avatarRef,
-                isSystem: isSystem,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String?> normalizedAddress = const Value.absent(),
-                Value<String> service = const Value.absent(),
-                Value<String?> displayName = const Value.absent(),
-                Value<String?> contactRef = const Value.absent(),
+                required String originalName,
+                required String displayName,
+                required String shortName,
                 Value<String?> avatarRef = const Value.absent(),
-                Value<bool> isSystem = const Value.absent(),
               }) => WorkingParticipantsCompanion.insert(
                 id: id,
-                normalizedAddress: normalizedAddress,
-                service: service,
+                originalName: originalName,
                 displayName: displayName,
-                contactRef: contactRef,
+                shortName: shortName,
                 avatarRef: avatarRef,
-                isSystem: isSystem,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8093,135 +8346,40 @@ class $$WorkingParticipantsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({
-                participantHandleLinksRefs = false,
-                workingChatsRefs = false,
-                chatToParticipantRefs = false,
-                workingMessagesRefs = false,
-                workingReactionsRefs = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (participantHandleLinksRefs) db.participantHandleLinks,
-                    if (workingChatsRefs) db.workingChats,
-                    if (chatToParticipantRefs) db.chatToParticipant,
-                    if (workingMessagesRefs) db.workingMessages,
-                    if (workingReactionsRefs) db.workingReactions,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (participantHandleLinksRefs)
-                        await $_getPrefetchedData<
-                          WorkingParticipant,
-                          $WorkingParticipantsTable,
-                          ParticipantHandleLink
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingParticipantsTableReferences
-                              ._participantHandleLinksRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingParticipantsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).participantHandleLinksRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.participantId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (workingChatsRefs)
-                        await $_getPrefetchedData<
-                          WorkingParticipant,
-                          $WorkingParticipantsTable,
-                          WorkingChat
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingParticipantsTableReferences
-                              ._workingChatsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingParticipantsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).workingChatsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.lastSenderParticipantId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (chatToParticipantRefs)
-                        await $_getPrefetchedData<
-                          WorkingParticipant,
-                          $WorkingParticipantsTable,
-                          ChatToParticipantData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingParticipantsTableReferences
-                              ._chatToParticipantRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingParticipantsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).chatToParticipantRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.participantId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (workingMessagesRefs)
-                        await $_getPrefetchedData<
-                          WorkingParticipant,
-                          $WorkingParticipantsTable,
-                          WorkingMessage
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingParticipantsTableReferences
-                              ._workingMessagesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingParticipantsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).workingMessagesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.senderParticipantId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (workingReactionsRefs)
-                        await $_getPrefetchedData<
-                          WorkingParticipant,
-                          $WorkingParticipantsTable,
-                          WorkingReaction
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingParticipantsTableReferences
-                              ._workingReactionsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingParticipantsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).workingReactionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.reactorParticipantId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
+          prefetchHooksCallback: ({handleToParticipantRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (handleToParticipantRefs) db.handleToParticipant,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (handleToParticipantRefs)
+                    await $_getPrefetchedData<
+                      WorkingParticipant,
+                      $WorkingParticipantsTable,
+                      HandleToParticipantData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$WorkingParticipantsTableReferences
+                          ._handleToParticipantRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$WorkingParticipantsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).handleToParticipantRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.participantId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
               },
+            );
+          },
         ),
       );
 }
@@ -8238,44 +8396,64 @@ typedef $$WorkingParticipantsTableProcessedTableManager =
       $$WorkingParticipantsTableUpdateCompanionBuilder,
       (WorkingParticipant, $$WorkingParticipantsTableReferences),
       WorkingParticipant,
-      PrefetchHooks Function({
-        bool participantHandleLinksRefs,
-        bool workingChatsRefs,
-        bool chatToParticipantRefs,
-        bool workingMessagesRefs,
-        bool workingReactionsRefs,
-      })
+      PrefetchHooks Function({bool handleToParticipantRefs})
     >;
-typedef $$ParticipantHandleLinksTableCreateCompanionBuilder =
-    ParticipantHandleLinksCompanion Function({
+typedef $$HandleToParticipantTableCreateCompanionBuilder =
+    HandleToParticipantCompanion Function({
+      Value<int> id,
+      required int handleId,
       required int participantId,
-      required int importHandleId,
-      Value<int> rowid,
+      Value<double> confidence,
+      Value<String> source,
     });
-typedef $$ParticipantHandleLinksTableUpdateCompanionBuilder =
-    ParticipantHandleLinksCompanion Function({
+typedef $$HandleToParticipantTableUpdateCompanionBuilder =
+    HandleToParticipantCompanion Function({
+      Value<int> id,
+      Value<int> handleId,
       Value<int> participantId,
-      Value<int> importHandleId,
-      Value<int> rowid,
+      Value<double> confidence,
+      Value<String> source,
     });
 
-final class $$ParticipantHandleLinksTableReferences
+final class $$HandleToParticipantTableReferences
     extends
         BaseReferences<
           _$WorkingDatabase,
-          $ParticipantHandleLinksTable,
-          ParticipantHandleLink
+          $HandleToParticipantTable,
+          HandleToParticipantData
         > {
-  $$ParticipantHandleLinksTableReferences(
+  $$HandleToParticipantTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
+  static $WorkingHandlesTable _handleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(
+          db.handleToParticipant.handleId,
+          db.workingHandles.id,
+        ),
+      );
+
+  $$WorkingHandlesTableProcessedTableManager get handleId {
+    final $_column = $_itemColumn<int>('handle_id')!;
+
+    final manager = $$WorkingHandlesTableTableManager(
+      $_db,
+      $_db.workingHandles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_handleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
   static $WorkingParticipantsTable _participantIdTable(_$WorkingDatabase db) =>
       db.workingParticipants.createAlias(
         $_aliasNameGenerator(
-          db.participantHandleLinks.participantId,
+          db.handleToParticipant.participantId,
           db.workingParticipants.id,
         ),
       );
@@ -8295,19 +8473,52 @@ final class $$ParticipantHandleLinksTableReferences
   }
 }
 
-class $$ParticipantHandleLinksTableFilterComposer
-    extends Composer<_$WorkingDatabase, $ParticipantHandleLinksTable> {
-  $$ParticipantHandleLinksTableFilterComposer({
+class $$HandleToParticipantTableFilterComposer
+    extends Composer<_$WorkingDatabase, $HandleToParticipantTable> {
+  $$HandleToParticipantTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get importHandleId => $composableBuilder(
-    column: $table.importHandleId,
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkingHandlesTableFilterComposer get handleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableFilterComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$WorkingParticipantsTableFilterComposer get participantId {
     final $$WorkingParticipantsTableFilterComposer composer = $composerBuilder(
@@ -8333,19 +8544,52 @@ class $$ParticipantHandleLinksTableFilterComposer
   }
 }
 
-class $$ParticipantHandleLinksTableOrderingComposer
-    extends Composer<_$WorkingDatabase, $ParticipantHandleLinksTable> {
-  $$ParticipantHandleLinksTableOrderingComposer({
+class $$HandleToParticipantTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $HandleToParticipantTable> {
+  $$HandleToParticipantTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get importHandleId => $composableBuilder(
-    column: $table.importHandleId,
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkingHandlesTableOrderingComposer get handleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$WorkingParticipantsTableOrderingComposer get participantId {
     final $$WorkingParticipantsTableOrderingComposer composer =
@@ -8372,19 +8616,48 @@ class $$ParticipantHandleLinksTableOrderingComposer
   }
 }
 
-class $$ParticipantHandleLinksTableAnnotationComposer
-    extends Composer<_$WorkingDatabase, $ParticipantHandleLinksTable> {
-  $$ParticipantHandleLinksTableAnnotationComposer({
+class $$HandleToParticipantTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $HandleToParticipantTable> {
+  $$HandleToParticipantTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get importHandleId => $composableBuilder(
-    column: $table.importHandleId,
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  $$WorkingHandlesTableAnnotationComposer get handleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$WorkingParticipantsTableAnnotationComposer get participantId {
     final $$WorkingParticipantsTableAnnotationComposer composer =
@@ -8411,72 +8684,77 @@ class $$ParticipantHandleLinksTableAnnotationComposer
   }
 }
 
-class $$ParticipantHandleLinksTableTableManager
+class $$HandleToParticipantTableTableManager
     extends
         RootTableManager<
           _$WorkingDatabase,
-          $ParticipantHandleLinksTable,
-          ParticipantHandleLink,
-          $$ParticipantHandleLinksTableFilterComposer,
-          $$ParticipantHandleLinksTableOrderingComposer,
-          $$ParticipantHandleLinksTableAnnotationComposer,
-          $$ParticipantHandleLinksTableCreateCompanionBuilder,
-          $$ParticipantHandleLinksTableUpdateCompanionBuilder,
-          (ParticipantHandleLink, $$ParticipantHandleLinksTableReferences),
-          ParticipantHandleLink,
-          PrefetchHooks Function({bool participantId})
+          $HandleToParticipantTable,
+          HandleToParticipantData,
+          $$HandleToParticipantTableFilterComposer,
+          $$HandleToParticipantTableOrderingComposer,
+          $$HandleToParticipantTableAnnotationComposer,
+          $$HandleToParticipantTableCreateCompanionBuilder,
+          $$HandleToParticipantTableUpdateCompanionBuilder,
+          (HandleToParticipantData, $$HandleToParticipantTableReferences),
+          HandleToParticipantData,
+          PrefetchHooks Function({bool handleId, bool participantId})
         > {
-  $$ParticipantHandleLinksTableTableManager(
+  $$HandleToParticipantTableTableManager(
     _$WorkingDatabase db,
-    $ParticipantHandleLinksTable table,
+    $HandleToParticipantTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ParticipantHandleLinksTableFilterComposer(
-                $db: db,
-                $table: table,
-              ),
+              $$HandleToParticipantTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ParticipantHandleLinksTableOrderingComposer(
+              $$HandleToParticipantTableOrderingComposer(
                 $db: db,
                 $table: table,
               ),
           createComputedFieldComposer: () =>
-              $$ParticipantHandleLinksTableAnnotationComposer(
+              $$HandleToParticipantTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
           updateCompanionCallback:
               ({
+                Value<int> id = const Value.absent(),
+                Value<int> handleId = const Value.absent(),
                 Value<int> participantId = const Value.absent(),
-                Value<int> importHandleId = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ParticipantHandleLinksCompanion(
+                Value<double> confidence = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => HandleToParticipantCompanion(
+                id: id,
+                handleId: handleId,
                 participantId: participantId,
-                importHandleId: importHandleId,
-                rowid: rowid,
+                confidence: confidence,
+                source: source,
               ),
           createCompanionCallback:
               ({
+                Value<int> id = const Value.absent(),
+                required int handleId,
                 required int participantId,
-                required int importHandleId,
-                Value<int> rowid = const Value.absent(),
-              }) => ParticipantHandleLinksCompanion.insert(
+                Value<double> confidence = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => HandleToParticipantCompanion.insert(
+                id: id,
+                handleId: handleId,
                 participantId: participantId,
-                importHandleId: importHandleId,
-                rowid: rowid,
+                confidence: confidence,
+                source: source,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ParticipantHandleLinksTableReferences(db, table, e),
+                  $$HandleToParticipantTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({participantId = false}) {
+          prefetchHooksCallback: ({handleId = false, participantId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -8496,16 +8774,31 @@ class $$ParticipantHandleLinksTableTableManager
                       dynamic
                     >
                   >(state) {
+                    if (handleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.handleId,
+                                referencedTable:
+                                    $$HandleToParticipantTableReferences
+                                        ._handleIdTable(db),
+                                referencedColumn:
+                                    $$HandleToParticipantTableReferences
+                                        ._handleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
                     if (participantId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
                                 currentColumn: table.participantId,
                                 referencedTable:
-                                    $$ParticipantHandleLinksTableReferences
+                                    $$HandleToParticipantTableReferences
                                         ._participantIdTable(db),
                                 referencedColumn:
-                                    $$ParticipantHandleLinksTableReferences
+                                    $$HandleToParticipantTableReferences
                                         ._participantIdTable(db)
                                         .id,
                               )
@@ -8523,28 +8816,29 @@ class $$ParticipantHandleLinksTableTableManager
       );
 }
 
-typedef $$ParticipantHandleLinksTableProcessedTableManager =
+typedef $$HandleToParticipantTableProcessedTableManager =
     ProcessedTableManager<
       _$WorkingDatabase,
-      $ParticipantHandleLinksTable,
-      ParticipantHandleLink,
-      $$ParticipantHandleLinksTableFilterComposer,
-      $$ParticipantHandleLinksTableOrderingComposer,
-      $$ParticipantHandleLinksTableAnnotationComposer,
-      $$ParticipantHandleLinksTableCreateCompanionBuilder,
-      $$ParticipantHandleLinksTableUpdateCompanionBuilder,
-      (ParticipantHandleLink, $$ParticipantHandleLinksTableReferences),
-      ParticipantHandleLink,
-      PrefetchHooks Function({bool participantId})
+      $HandleToParticipantTable,
+      HandleToParticipantData,
+      $$HandleToParticipantTableFilterComposer,
+      $$HandleToParticipantTableOrderingComposer,
+      $$HandleToParticipantTableAnnotationComposer,
+      $$HandleToParticipantTableCreateCompanionBuilder,
+      $$HandleToParticipantTableUpdateCompanionBuilder,
+      (HandleToParticipantData, $$HandleToParticipantTableReferences),
+      HandleToParticipantData,
+      PrefetchHooks Function({bool handleId, bool participantId})
     >;
 typedef $$WorkingChatsTableCreateCompanionBuilder =
     WorkingChatsCompanion Function({
       Value<int> id,
       required String guid,
+      required int handleId,
       Value<String> service,
       Value<bool> isGroup,
       Value<String?> lastMessageAtUtc,
-      Value<int?> lastSenderParticipantId,
+      Value<int?> lastSenderHandleId,
       Value<String?> lastMessagePreview,
       Value<int> unreadCount,
       Value<bool> pinned,
@@ -8558,10 +8852,11 @@ typedef $$WorkingChatsTableUpdateCompanionBuilder =
     WorkingChatsCompanion Function({
       Value<int> id,
       Value<String> guid,
+      Value<int> handleId,
       Value<String> service,
       Value<bool> isGroup,
       Value<String?> lastMessageAtUtc,
-      Value<int?> lastSenderParticipantId,
+      Value<int?> lastSenderHandleId,
       Value<String?> lastMessagePreview,
       Value<int> unreadCount,
       Value<bool> pinned,
@@ -8576,55 +8871,44 @@ final class $$WorkingChatsTableReferences
     extends BaseReferences<_$WorkingDatabase, $WorkingChatsTable, WorkingChat> {
   $$WorkingChatsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $WorkingParticipantsTable _lastSenderParticipantIdTable(
-    _$WorkingDatabase db,
-  ) => db.workingParticipants.createAlias(
-    $_aliasNameGenerator(
-      db.workingChats.lastSenderParticipantId,
-      db.workingParticipants.id,
-    ),
-  );
+  static $WorkingHandlesTable _handleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(db.workingChats.handleId, db.workingHandles.id),
+      );
 
-  $$WorkingParticipantsTableProcessedTableManager? get lastSenderParticipantId {
-    final $_column = $_itemColumn<int>('last_sender_participant_id');
-    if ($_column == null) return null;
-    final manager = $$WorkingParticipantsTableTableManager(
+  $$WorkingHandlesTableProcessedTableManager get handleId {
+    final $_column = $_itemColumn<int>('handle_id')!;
+
+    final manager = $$WorkingHandlesTableTableManager(
       $_db,
-      $_db.workingParticipants,
+      $_db.workingHandles,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(
-      _lastSenderParticipantIdTable($_db),
-    );
+    final item = $_typedResult.readTableOrNull(_handleIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
 
-  static MultiTypedResultKey<
-    $ChatToParticipantTable,
-    List<ChatToParticipantData>
-  >
-  _chatToParticipantRefsTable(_$WorkingDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.chatToParticipant,
-        aliasName: $_aliasNameGenerator(
-          db.workingChats.id,
-          db.chatToParticipant.chatId,
+  static $WorkingHandlesTable _lastSenderHandleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(
+          db.workingChats.lastSenderHandleId,
+          db.workingHandles.id,
         ),
       );
 
-  $$ChatToParticipantTableProcessedTableManager get chatToParticipantRefs {
-    final manager = $$ChatToParticipantTableTableManager(
+  $$WorkingHandlesTableProcessedTableManager? get lastSenderHandleId {
+    final $_column = $_itemColumn<int>('last_sender_handle_id');
+    if ($_column == null) return null;
+    final manager = $$WorkingHandlesTableTableManager(
       $_db,
-      $_db.chatToParticipant,
-    ).filter((f) => f.chatId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _chatToParticipantRefsTable($_db),
-    );
+      $_db.workingHandles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lastSenderHandleIdTable($_db));
+    if (item == null) return manager;
     return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
+      manager.$state.copyWith(prefetchedData: [item]),
     );
   }
 
@@ -8745,20 +9029,20 @@ class $$WorkingChatsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingParticipantsTableFilterComposer get lastSenderParticipantId {
-    final $$WorkingParticipantsTableFilterComposer composer = $composerBuilder(
+  $$WorkingHandlesTableFilterComposer get handleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.lastSenderParticipantId,
-      referencedTable: $db.workingParticipants,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingParticipantsTableFilterComposer(
+          }) => $$WorkingHandlesTableFilterComposer(
             $db: $db,
-            $table: $db.workingParticipants,
+            $table: $db.workingHandles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -8768,29 +9052,27 @@ class $$WorkingChatsTableFilterComposer
     return composer;
   }
 
-  Expression<bool> chatToParticipantRefs(
-    Expression<bool> Function($$ChatToParticipantTableFilterComposer f) f,
-  ) {
-    final $$ChatToParticipantTableFilterComposer composer = $composerBuilder(
+  $$WorkingHandlesTableFilterComposer get lastSenderHandleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.chatToParticipant,
-      getReferencedColumn: (t) => t.chatId,
+      getCurrentColumn: (t) => t.lastSenderHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$ChatToParticipantTableFilterComposer(
+          }) => $$WorkingHandlesTableFilterComposer(
             $db: $db,
-            $table: $db.chatToParticipant,
+            $table: $db.workingHandles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
           ),
     );
-    return f(composer);
+    return composer;
   }
 
   Expression<bool> workingMessagesRefs(
@@ -8918,27 +9200,49 @@ class $$WorkingChatsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingParticipantsTableOrderingComposer get lastSenderParticipantId {
-    final $$WorkingParticipantsTableOrderingComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.lastSenderParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableOrderingComposer get handleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableOrderingComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingHandlesTableOrderingComposer get lastSenderHandleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lastSenderHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
     return composer;
   }
 }
@@ -9003,54 +9307,50 @@ class $$WorkingChatsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  $$WorkingParticipantsTableAnnotationComposer get lastSenderParticipantId {
-    final $$WorkingParticipantsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.lastSenderParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableAnnotationComposer get handleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.handleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return composer;
   }
 
-  Expression<T> chatToParticipantRefs<T extends Object>(
-    Expression<T> Function($$ChatToParticipantTableAnnotationComposer a) f,
-  ) {
-    final $$ChatToParticipantTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.chatToParticipant,
-          getReferencedColumn: (t) => t.chatId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableAnnotationComposer get lastSenderHandleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lastSenderHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ChatToParticipantTableAnnotationComposer(
-                $db: $db,
-                $table: $db.chatToParticipant,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
+          ),
+    );
+    return composer;
   }
 
   Expression<T> workingMessagesRefs<T extends Object>(
@@ -9118,8 +9418,8 @@ class $$WorkingChatsTableTableManager
           (WorkingChat, $$WorkingChatsTableReferences),
           WorkingChat,
           PrefetchHooks Function({
-            bool lastSenderParticipantId,
-            bool chatToParticipantRefs,
+            bool handleId,
+            bool lastSenderHandleId,
             bool workingMessagesRefs,
             bool readStateRefs,
           })
@@ -9141,10 +9441,11 @@ class $$WorkingChatsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> guid = const Value.absent(),
+                Value<int> handleId = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<bool> isGroup = const Value.absent(),
                 Value<String?> lastMessageAtUtc = const Value.absent(),
-                Value<int?> lastSenderParticipantId = const Value.absent(),
+                Value<int?> lastSenderHandleId = const Value.absent(),
                 Value<String?> lastMessagePreview = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
@@ -9156,10 +9457,11 @@ class $$WorkingChatsTableTableManager
               }) => WorkingChatsCompanion(
                 id: id,
                 guid: guid,
+                handleId: handleId,
                 service: service,
                 isGroup: isGroup,
                 lastMessageAtUtc: lastMessageAtUtc,
-                lastSenderParticipantId: lastSenderParticipantId,
+                lastSenderHandleId: lastSenderHandleId,
                 lastMessagePreview: lastMessagePreview,
                 unreadCount: unreadCount,
                 pinned: pinned,
@@ -9173,10 +9475,11 @@ class $$WorkingChatsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String guid,
+                required int handleId,
                 Value<String> service = const Value.absent(),
                 Value<bool> isGroup = const Value.absent(),
                 Value<String?> lastMessageAtUtc = const Value.absent(),
-                Value<int?> lastSenderParticipantId = const Value.absent(),
+                Value<int?> lastSenderHandleId = const Value.absent(),
                 Value<String?> lastMessagePreview = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
@@ -9188,10 +9491,11 @@ class $$WorkingChatsTableTableManager
               }) => WorkingChatsCompanion.insert(
                 id: id,
                 guid: guid,
+                handleId: handleId,
                 service: service,
                 isGroup: isGroup,
                 lastMessageAtUtc: lastMessageAtUtc,
-                lastSenderParticipantId: lastSenderParticipantId,
+                lastSenderHandleId: lastSenderHandleId,
                 lastMessagePreview: lastMessagePreview,
                 unreadCount: unreadCount,
                 pinned: pinned,
@@ -9211,15 +9515,14 @@ class $$WorkingChatsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
-                lastSenderParticipantId = false,
-                chatToParticipantRefs = false,
+                handleId = false,
+                lastSenderHandleId = false,
                 workingMessagesRefs = false,
                 readStateRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (chatToParticipantRefs) db.chatToParticipant,
                     if (workingMessagesRefs) db.workingMessages,
                     if (readStateRefs) db.readState,
                   ],
@@ -9239,18 +9542,32 @@ class $$WorkingChatsTableTableManager
                           dynamic
                         >
                       >(state) {
-                        if (lastSenderParticipantId) {
+                        if (handleId) {
                           state =
                               state.withJoin(
                                     currentTable: table,
-                                    currentColumn:
-                                        table.lastSenderParticipantId,
+                                    currentColumn: table.handleId,
                                     referencedTable:
                                         $$WorkingChatsTableReferences
-                                            ._lastSenderParticipantIdTable(db),
+                                            ._handleIdTable(db),
                                     referencedColumn:
                                         $$WorkingChatsTableReferences
-                                            ._lastSenderParticipantIdTable(db)
+                                            ._handleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (lastSenderHandleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lastSenderHandleId,
+                                    referencedTable:
+                                        $$WorkingChatsTableReferences
+                                            ._lastSenderHandleIdTable(db),
+                                    referencedColumn:
+                                        $$WorkingChatsTableReferences
+                                            ._lastSenderHandleIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -9260,27 +9577,6 @@ class $$WorkingChatsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (chatToParticipantRefs)
-                        await $_getPrefetchedData<
-                          WorkingChat,
-                          $WorkingChatsTable,
-                          ChatToParticipantData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$WorkingChatsTableReferences
-                              ._chatToParticipantRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$WorkingChatsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).chatToParticipantRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.chatId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (workingMessagesRefs)
                         await $_getPrefetchedData<
                           WorkingChat,
@@ -9344,429 +9640,18 @@ typedef $$WorkingChatsTableProcessedTableManager =
       (WorkingChat, $$WorkingChatsTableReferences),
       WorkingChat,
       PrefetchHooks Function({
-        bool lastSenderParticipantId,
-        bool chatToParticipantRefs,
+        bool handleId,
+        bool lastSenderHandleId,
         bool workingMessagesRefs,
         bool readStateRefs,
       })
-    >;
-typedef $$ChatToParticipantTableCreateCompanionBuilder =
-    ChatToParticipantCompanion Function({
-      required int chatId,
-      required int participantId,
-      Value<String> role,
-      Value<int> sortKey,
-      Value<int> rowid,
-    });
-typedef $$ChatToParticipantTableUpdateCompanionBuilder =
-    ChatToParticipantCompanion Function({
-      Value<int> chatId,
-      Value<int> participantId,
-      Value<String> role,
-      Value<int> sortKey,
-      Value<int> rowid,
-    });
-
-final class $$ChatToParticipantTableReferences
-    extends
-        BaseReferences<
-          _$WorkingDatabase,
-          $ChatToParticipantTable,
-          ChatToParticipantData
-        > {
-  $$ChatToParticipantTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $WorkingChatsTable _chatIdTable(_$WorkingDatabase db) =>
-      db.workingChats.createAlias(
-        $_aliasNameGenerator(db.chatToParticipant.chatId, db.workingChats.id),
-      );
-
-  $$WorkingChatsTableProcessedTableManager get chatId {
-    final $_column = $_itemColumn<int>('chat_id')!;
-
-    final manager = $$WorkingChatsTableTableManager(
-      $_db,
-      $_db.workingChats,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_chatIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $WorkingParticipantsTable _participantIdTable(_$WorkingDatabase db) =>
-      db.workingParticipants.createAlias(
-        $_aliasNameGenerator(
-          db.chatToParticipant.participantId,
-          db.workingParticipants.id,
-        ),
-      );
-
-  $$WorkingParticipantsTableProcessedTableManager get participantId {
-    final $_column = $_itemColumn<int>('participant_id')!;
-
-    final manager = $$WorkingParticipantsTableTableManager(
-      $_db,
-      $_db.workingParticipants,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_participantIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$ChatToParticipantTableFilterComposer
-    extends Composer<_$WorkingDatabase, $ChatToParticipantTable> {
-  $$ChatToParticipantTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get sortKey => $composableBuilder(
-    column: $table.sortKey,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$WorkingChatsTableFilterComposer get chatId {
-    final $$WorkingChatsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.chatId,
-      referencedTable: $db.workingChats,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingChatsTableFilterComposer(
-            $db: $db,
-            $table: $db.workingChats,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$WorkingParticipantsTableFilterComposer get participantId {
-    final $$WorkingParticipantsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.participantId,
-      referencedTable: $db.workingParticipants,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingParticipantsTableFilterComposer(
-            $db: $db,
-            $table: $db.workingParticipants,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ChatToParticipantTableOrderingComposer
-    extends Composer<_$WorkingDatabase, $ChatToParticipantTable> {
-  $$ChatToParticipantTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get sortKey => $composableBuilder(
-    column: $table.sortKey,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$WorkingChatsTableOrderingComposer get chatId {
-    final $$WorkingChatsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.chatId,
-      referencedTable: $db.workingChats,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingChatsTableOrderingComposer(
-            $db: $db,
-            $table: $db.workingChats,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$WorkingParticipantsTableOrderingComposer get participantId {
-    final $$WorkingParticipantsTableOrderingComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.participantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableOrderingComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return composer;
-  }
-}
-
-class $$ChatToParticipantTableAnnotationComposer
-    extends Composer<_$WorkingDatabase, $ChatToParticipantTable> {
-  $$ChatToParticipantTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get role =>
-      $composableBuilder(column: $table.role, builder: (column) => column);
-
-  GeneratedColumn<int> get sortKey =>
-      $composableBuilder(column: $table.sortKey, builder: (column) => column);
-
-  $$WorkingChatsTableAnnotationComposer get chatId {
-    final $$WorkingChatsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.chatId,
-      referencedTable: $db.workingChats,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingChatsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.workingChats,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$WorkingParticipantsTableAnnotationComposer get participantId {
-    final $$WorkingParticipantsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.participantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return composer;
-  }
-}
-
-class $$ChatToParticipantTableTableManager
-    extends
-        RootTableManager<
-          _$WorkingDatabase,
-          $ChatToParticipantTable,
-          ChatToParticipantData,
-          $$ChatToParticipantTableFilterComposer,
-          $$ChatToParticipantTableOrderingComposer,
-          $$ChatToParticipantTableAnnotationComposer,
-          $$ChatToParticipantTableCreateCompanionBuilder,
-          $$ChatToParticipantTableUpdateCompanionBuilder,
-          (ChatToParticipantData, $$ChatToParticipantTableReferences),
-          ChatToParticipantData,
-          PrefetchHooks Function({bool chatId, bool participantId})
-        > {
-  $$ChatToParticipantTableTableManager(
-    _$WorkingDatabase db,
-    $ChatToParticipantTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ChatToParticipantTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ChatToParticipantTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ChatToParticipantTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> chatId = const Value.absent(),
-                Value<int> participantId = const Value.absent(),
-                Value<String> role = const Value.absent(),
-                Value<int> sortKey = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatToParticipantCompanion(
-                chatId: chatId,
-                participantId: participantId,
-                role: role,
-                sortKey: sortKey,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required int chatId,
-                required int participantId,
-                Value<String> role = const Value.absent(),
-                Value<int> sortKey = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatToParticipantCompanion.insert(
-                chatId: chatId,
-                participantId: participantId,
-                role: role,
-                sortKey: sortKey,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$ChatToParticipantTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({chatId = false, participantId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (chatId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.chatId,
-                                referencedTable:
-                                    $$ChatToParticipantTableReferences
-                                        ._chatIdTable(db),
-                                referencedColumn:
-                                    $$ChatToParticipantTableReferences
-                                        ._chatIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-                    if (participantId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.participantId,
-                                referencedTable:
-                                    $$ChatToParticipantTableReferences
-                                        ._participantIdTable(db),
-                                referencedColumn:
-                                    $$ChatToParticipantTableReferences
-                                        ._participantIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$ChatToParticipantTableProcessedTableManager =
-    ProcessedTableManager<
-      _$WorkingDatabase,
-      $ChatToParticipantTable,
-      ChatToParticipantData,
-      $$ChatToParticipantTableFilterComposer,
-      $$ChatToParticipantTableOrderingComposer,
-      $$ChatToParticipantTableAnnotationComposer,
-      $$ChatToParticipantTableCreateCompanionBuilder,
-      $$ChatToParticipantTableUpdateCompanionBuilder,
-      (ChatToParticipantData, $$ChatToParticipantTableReferences),
-      ChatToParticipantData,
-      PrefetchHooks Function({bool chatId, bool participantId})
     >;
 typedef $$WorkingMessagesTableCreateCompanionBuilder =
     WorkingMessagesCompanion Function({
       Value<int> id,
       required String guid,
       required int chatId,
-      Value<int?> senderParticipantId,
+      Value<int?> senderHandleId,
       Value<bool> isFromMe,
       Value<String?> sentAtUtc,
       Value<String?> deliveredAtUtc,
@@ -9788,7 +9673,7 @@ typedef $$WorkingMessagesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> guid,
       Value<int> chatId,
-      Value<int?> senderParticipantId,
+      Value<int?> senderHandleId,
       Value<bool> isFromMe,
       Value<String?> sentAtUtc,
       Value<String?> deliveredAtUtc,
@@ -9838,23 +9723,22 @@ final class $$WorkingMessagesTableReferences
     );
   }
 
-  static $WorkingParticipantsTable _senderParticipantIdTable(
-    _$WorkingDatabase db,
-  ) => db.workingParticipants.createAlias(
-    $_aliasNameGenerator(
-      db.workingMessages.senderParticipantId,
-      db.workingParticipants.id,
-    ),
-  );
+  static $WorkingHandlesTable _senderHandleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(
+          db.workingMessages.senderHandleId,
+          db.workingHandles.id,
+        ),
+      );
 
-  $$WorkingParticipantsTableProcessedTableManager? get senderParticipantId {
-    final $_column = $_itemColumn<int>('sender_participant_id');
+  $$WorkingHandlesTableProcessedTableManager? get senderHandleId {
+    final $_column = $_itemColumn<int>('sender_handle_id');
     if ($_column == null) return null;
-    final manager = $$WorkingParticipantsTableTableManager(
+    final manager = $$WorkingHandlesTableTableManager(
       $_db,
-      $_db.workingParticipants,
+      $_db.workingHandles,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_senderParticipantIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_senderHandleIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -9979,20 +9863,20 @@ class $$WorkingMessagesTableFilterComposer
     return composer;
   }
 
-  $$WorkingParticipantsTableFilterComposer get senderParticipantId {
-    final $$WorkingParticipantsTableFilterComposer composer = $composerBuilder(
+  $$WorkingHandlesTableFilterComposer get senderHandleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.senderParticipantId,
-      referencedTable: $db.workingParticipants,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.workingHandles,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingParticipantsTableFilterComposer(
+          }) => $$WorkingHandlesTableFilterComposer(
             $db: $db,
-            $table: $db.workingParticipants,
+            $table: $db.workingHandles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10120,27 +10004,26 @@ class $$WorkingMessagesTableOrderingComposer
     return composer;
   }
 
-  $$WorkingParticipantsTableOrderingComposer get senderParticipantId {
-    final $$WorkingParticipantsTableOrderingComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.senderParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableOrderingComposer get senderHandleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableOrderingComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return composer;
   }
 }
@@ -10248,27 +10131,26 @@ class $$WorkingMessagesTableAnnotationComposer
     return composer;
   }
 
-  $$WorkingParticipantsTableAnnotationComposer get senderParticipantId {
-    final $$WorkingParticipantsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.senderParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableAnnotationComposer get senderHandleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return composer;
   }
 }
@@ -10286,7 +10168,7 @@ class $$WorkingMessagesTableTableManager
           $$WorkingMessagesTableUpdateCompanionBuilder,
           (WorkingMessage, $$WorkingMessagesTableReferences),
           WorkingMessage,
-          PrefetchHooks Function({bool chatId, bool senderParticipantId})
+          PrefetchHooks Function({bool chatId, bool senderHandleId})
         > {
   $$WorkingMessagesTableTableManager(
     _$WorkingDatabase db,
@@ -10306,7 +10188,7 @@ class $$WorkingMessagesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> guid = const Value.absent(),
                 Value<int> chatId = const Value.absent(),
-                Value<int?> senderParticipantId = const Value.absent(),
+                Value<int?> senderHandleId = const Value.absent(),
                 Value<bool> isFromMe = const Value.absent(),
                 Value<String?> sentAtUtc = const Value.absent(),
                 Value<String?> deliveredAtUtc = const Value.absent(),
@@ -10326,7 +10208,7 @@ class $$WorkingMessagesTableTableManager
                 id: id,
                 guid: guid,
                 chatId: chatId,
-                senderParticipantId: senderParticipantId,
+                senderHandleId: senderHandleId,
                 isFromMe: isFromMe,
                 sentAtUtc: sentAtUtc,
                 deliveredAtUtc: deliveredAtUtc,
@@ -10348,7 +10230,7 @@ class $$WorkingMessagesTableTableManager
                 Value<int> id = const Value.absent(),
                 required String guid,
                 required int chatId,
-                Value<int?> senderParticipantId = const Value.absent(),
+                Value<int?> senderHandleId = const Value.absent(),
                 Value<bool> isFromMe = const Value.absent(),
                 Value<String?> sentAtUtc = const Value.absent(),
                 Value<String?> deliveredAtUtc = const Value.absent(),
@@ -10368,7 +10250,7 @@ class $$WorkingMessagesTableTableManager
                 id: id,
                 guid: guid,
                 chatId: chatId,
-                senderParticipantId: senderParticipantId,
+                senderHandleId: senderHandleId,
                 isFromMe: isFromMe,
                 sentAtUtc: sentAtUtc,
                 deliveredAtUtc: deliveredAtUtc,
@@ -10393,65 +10275,64 @@ class $$WorkingMessagesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback:
-              ({chatId = false, senderParticipantId = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (chatId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.chatId,
-                                    referencedTable:
-                                        $$WorkingMessagesTableReferences
-                                            ._chatIdTable(db),
-                                    referencedColumn:
-                                        $$WorkingMessagesTableReferences
-                                            ._chatIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-                        if (senderParticipantId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.senderParticipantId,
-                                    referencedTable:
-                                        $$WorkingMessagesTableReferences
-                                            ._senderParticipantIdTable(db),
-                                    referencedColumn:
-                                        $$WorkingMessagesTableReferences
-                                            ._senderParticipantIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
+          prefetchHooksCallback: ({chatId = false, senderHandleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (chatId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chatId,
+                                referencedTable:
+                                    $$WorkingMessagesTableReferences
+                                        ._chatIdTable(db),
+                                referencedColumn:
+                                    $$WorkingMessagesTableReferences
+                                        ._chatIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (senderHandleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.senderHandleId,
+                                referencedTable:
+                                    $$WorkingMessagesTableReferences
+                                        ._senderHandleIdTable(db),
+                                referencedColumn:
+                                    $$WorkingMessagesTableReferences
+                                        ._senderHandleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
 
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [];
+                    return state;
                   },
-                );
+              getPrefetchedDataCallback: (items) async {
+                return [];
               },
+            );
+          },
         ),
       );
 }
@@ -10468,7 +10349,7 @@ typedef $$WorkingMessagesTableProcessedTableManager =
       $$WorkingMessagesTableUpdateCompanionBuilder,
       (WorkingMessage, $$WorkingMessagesTableReferences),
       WorkingMessage,
-      PrefetchHooks Function({bool chatId, bool senderParticipantId})
+      PrefetchHooks Function({bool chatId, bool senderHandleId})
     >;
 typedef $$WorkingAttachmentsTableCreateCompanionBuilder =
     WorkingAttachmentsCompanion Function({
@@ -10804,7 +10685,7 @@ typedef $$WorkingReactionsTableCreateCompanionBuilder =
       Value<int> id,
       required String messageGuid,
       required String kind,
-      Value<int?> reactorParticipantId,
+      Value<int?> reactorHandleId,
       required String action,
       Value<String?> reactedAtUtc,
     });
@@ -10813,7 +10694,7 @@ typedef $$WorkingReactionsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> messageGuid,
       Value<String> kind,
-      Value<int?> reactorParticipantId,
+      Value<int?> reactorHandleId,
       Value<String> action,
       Value<String?> reactedAtUtc,
     });
@@ -10831,25 +10712,22 @@ final class $$WorkingReactionsTableReferences
     super.$_typedResult,
   );
 
-  static $WorkingParticipantsTable _reactorParticipantIdTable(
-    _$WorkingDatabase db,
-  ) => db.workingParticipants.createAlias(
-    $_aliasNameGenerator(
-      db.workingReactions.reactorParticipantId,
-      db.workingParticipants.id,
-    ),
-  );
+  static $WorkingHandlesTable _reactorHandleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(
+          db.workingReactions.reactorHandleId,
+          db.workingHandles.id,
+        ),
+      );
 
-  $$WorkingParticipantsTableProcessedTableManager? get reactorParticipantId {
-    final $_column = $_itemColumn<int>('reactor_participant_id');
+  $$WorkingHandlesTableProcessedTableManager? get reactorHandleId {
+    final $_column = $_itemColumn<int>('reactor_handle_id');
     if ($_column == null) return null;
-    final manager = $$WorkingParticipantsTableTableManager(
+    final manager = $$WorkingHandlesTableTableManager(
       $_db,
-      $_db.workingParticipants,
+      $_db.workingHandles,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(
-      _reactorParticipantIdTable($_db),
-    );
+    final item = $_typedResult.readTableOrNull(_reactorHandleIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -10891,20 +10769,20 @@ class $$WorkingReactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingParticipantsTableFilterComposer get reactorParticipantId {
-    final $$WorkingParticipantsTableFilterComposer composer = $composerBuilder(
+  $$WorkingHandlesTableFilterComposer get reactorHandleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.reactorParticipantId,
-      referencedTable: $db.workingParticipants,
+      getCurrentColumn: (t) => t.reactorHandleId,
+      referencedTable: $db.workingHandles,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingParticipantsTableFilterComposer(
+          }) => $$WorkingHandlesTableFilterComposer(
             $db: $db,
-            $table: $db.workingParticipants,
+            $table: $db.workingHandles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10949,27 +10827,26 @@ class $$WorkingReactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingParticipantsTableOrderingComposer get reactorParticipantId {
-    final $$WorkingParticipantsTableOrderingComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.reactorParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableOrderingComposer get reactorHandleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reactorHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableOrderingComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return composer;
   }
 }
@@ -11002,27 +10879,26 @@ class $$WorkingReactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  $$WorkingParticipantsTableAnnotationComposer get reactorParticipantId {
-    final $$WorkingParticipantsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.reactorParticipantId,
-          referencedTable: $db.workingParticipants,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+  $$WorkingHandlesTableAnnotationComposer get reactorHandleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reactorHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$WorkingParticipantsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.workingParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return composer;
   }
 }
@@ -11040,7 +10916,7 @@ class $$WorkingReactionsTableTableManager
           $$WorkingReactionsTableUpdateCompanionBuilder,
           (WorkingReaction, $$WorkingReactionsTableReferences),
           WorkingReaction,
-          PrefetchHooks Function({bool reactorParticipantId})
+          PrefetchHooks Function({bool reactorHandleId})
         > {
   $$WorkingReactionsTableTableManager(
     _$WorkingDatabase db,
@@ -11060,14 +10936,14 @@ class $$WorkingReactionsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> messageGuid = const Value.absent(),
                 Value<String> kind = const Value.absent(),
-                Value<int?> reactorParticipantId = const Value.absent(),
+                Value<int?> reactorHandleId = const Value.absent(),
                 Value<String> action = const Value.absent(),
                 Value<String?> reactedAtUtc = const Value.absent(),
               }) => WorkingReactionsCompanion(
                 id: id,
                 messageGuid: messageGuid,
                 kind: kind,
-                reactorParticipantId: reactorParticipantId,
+                reactorHandleId: reactorHandleId,
                 action: action,
                 reactedAtUtc: reactedAtUtc,
               ),
@@ -11076,14 +10952,14 @@ class $$WorkingReactionsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String messageGuid,
                 required String kind,
-                Value<int?> reactorParticipantId = const Value.absent(),
+                Value<int?> reactorHandleId = const Value.absent(),
                 required String action,
                 Value<String?> reactedAtUtc = const Value.absent(),
               }) => WorkingReactionsCompanion.insert(
                 id: id,
                 messageGuid: messageGuid,
                 kind: kind,
-                reactorParticipantId: reactorParticipantId,
+                reactorHandleId: reactorHandleId,
                 action: action,
                 reactedAtUtc: reactedAtUtc,
               ),
@@ -11095,7 +10971,7 @@ class $$WorkingReactionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({reactorParticipantId = false}) {
+          prefetchHooksCallback: ({reactorHandleId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -11115,17 +10991,17 @@ class $$WorkingReactionsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (reactorParticipantId) {
+                    if (reactorHandleId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.reactorParticipantId,
+                                currentColumn: table.reactorHandleId,
                                 referencedTable:
                                     $$WorkingReactionsTableReferences
-                                        ._reactorParticipantIdTable(db),
+                                        ._reactorHandleIdTable(db),
                                 referencedColumn:
                                     $$WorkingReactionsTableReferences
-                                        ._reactorParticipantIdTable(db)
+                                        ._reactorHandleIdTable(db)
                                         .id,
                               )
                               as T;
@@ -11154,7 +11030,7 @@ typedef $$WorkingReactionsTableProcessedTableManager =
       $$WorkingReactionsTableUpdateCompanionBuilder,
       (WorkingReaction, $$WorkingReactionsTableReferences),
       WorkingReaction,
-      PrefetchHooks Function({bool reactorParticipantId})
+      PrefetchHooks Function({bool reactorHandleId})
     >;
 typedef $$ReactionCountsTableCreateCompanionBuilder =
     ReactionCountsCompanion Function({
@@ -12348,17 +12224,14 @@ class $WorkingDatabaseManager {
       $$ProjectionStateTableTableManager(_db, _db.projectionState);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$WorkingHandlesTableTableManager get workingHandles =>
+      $$WorkingHandlesTableTableManager(_db, _db.workingHandles);
   $$WorkingParticipantsTableTableManager get workingParticipants =>
       $$WorkingParticipantsTableTableManager(_db, _db.workingParticipants);
-  $$ParticipantHandleLinksTableTableManager get participantHandleLinks =>
-      $$ParticipantHandleLinksTableTableManager(
-        _db,
-        _db.participantHandleLinks,
-      );
+  $$HandleToParticipantTableTableManager get handleToParticipant =>
+      $$HandleToParticipantTableTableManager(_db, _db.handleToParticipant);
   $$WorkingChatsTableTableManager get workingChats =>
       $$WorkingChatsTableTableManager(_db, _db.workingChats);
-  $$ChatToParticipantTableTableManager get chatToParticipant =>
-      $$ChatToParticipantTableTableManager(_db, _db.chatToParticipant);
   $$WorkingMessagesTableTableManager get workingMessages =>
       $$WorkingMessagesTableTableManager(_db, _db.workingMessages);
   $$WorkingAttachmentsTableTableManager get workingAttachments =>

@@ -35,6 +35,19 @@ This file serves as the master index for all critical documentation that AI agen
 - Naming conventions and file organization patterns
 - Infrastructure/Application/Domain layer separation
 
+### 3.5. Participant-Handle Architecture ⚠️ CRITICAL FOR PARTICIPANTS/HANDLES/IMPORT
+
+📁 **`09-participant-handle-architecture.md`**
+
+- **ESSENTIAL FOR ALL PARTICIPANT/HANDLE WORK** - Core design specification
+- The Manifesto: "A participant is a person, not a phone number"
+- Participants (people) vs Handles (communication endpoints) vs Services (chat properties)
+- HandleToParticipant join table architecture (confidence & source tracking)
+- Import process: AddressBook Z_PK preservation, macos_import.db staging
+- Phase 1-5 import pipeline: Core data → Contact matching → Projection → Spam filtering
+- ChatToParticipant table DELETED (UI joins through handles directly)
+- **IGNORE THIS = BROKEN IMPORTS** - Wrong architecture = duplicate participants
+
 ### 4. Database Schema Reference ⚠️ CRITICAL FOR DATABASE WORK
 
 📁 **`10-database-schema-reference.md`**
@@ -167,6 +180,7 @@ _AGENT_CONTEXT/
 ├── 05-riverpod-provider-patterns.md       # ⚠️ MANDATORY - Provider code generation rules
 ├── 06-flutter-dart-agent-rules.md         # Extended Flutter/Dart agent rules
 ├── 08-rust-message-extractor.md           # ⚠️ CRITICAL - Rust binary for message text extraction
+├── 09-participant-handle-architecture.md  # ⚠️ CRITICAL - Participant/Handle design & import architecture
 ├── 09-rust-url-preview-parser.md          # LinkPresentation quick reference (naming retained)
 ├── 10-database-schema-reference.md        # ⚠️ CRITICAL - Database schema & query patterns
 ├── 11-data-import-migration-strategy.md   # ⚠️ CRITICAL - Import/migration architecture
@@ -182,10 +196,11 @@ _AGENT_CONTEXT/
 4. **FOR ARCHITECTURE QUESTIONS** - Reference `02-architecture-overview.md`
 5. **FOR UI/NAVIGATION WORK** - Read `03-navigation-overview.md` to understand explicit event fields
 6. **FOR DATABASE WORK** - Read `10-database-schema-reference.md` before writing queries
-7. **FOR PROVIDERS** - Follow `05-riverpod-provider-patterns.md` for code generation patterns
-8. **FOR MESSAGE IMPORTS** - Read `08-rust-message-extractor.md` for text extraction
-9. **FOR URL PREVIEWS** - Read `09-rust-url-preview-parser.md` (quick reference) and `12-native-link-preview-implementation.md`
-10. **FOR IMPORT/MIGRATION WORK** - Read `11-data-import-migration-strategy.md` for complete system architecture
-11. When in doubt, ask for clarification rather than guessing
+7. **FOR PARTICIPANTS/HANDLES** - Read `09-participant-handle-architecture.md` for design principles
+8. **FOR PROVIDERS** - Follow `05-riverpod-provider-patterns.md` for code generation patterns
+9. **FOR MESSAGE IMPORTS** - Read `08-rust-message-extractor.md` for text extraction
+10. **FOR URL PREVIEWS** - Read `09-rust-url-preview-parser.md` (quick reference) and `12-native-link-preview-implementation.md`
+11. **FOR IMPORT/MIGRATION WORK** - Read `11-data-import-migration-strategy.md` for complete system architecture
+12. When in doubt, ask for clarification rather than guessing
 
 **Remember**: Following these guidelines prevents the most common agent mistakes and ensures code quality.
