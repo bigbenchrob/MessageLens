@@ -47,15 +47,15 @@ class NativeLinkPreviewService {
 
       // Decode base64 image data if present
       Uint8List? imageData;
-      if (result['imageData'] is String) {
-        final base64String = result['imageData'] as String;
-        imageData = base64Decode(base64String);
+      final imageDataRaw = result['imageData'];
+      if (imageDataRaw is String) {
+        imageData = base64Decode(imageDataRaw);
       }
 
       Uint8List? iconData;
-      if (result['iconData'] is String) {
-        final base64String = result['iconData'] as String;
-        iconData = base64Decode(base64String);
+      final iconDataRaw = result['iconData'];
+      if (iconDataRaw is String) {
+        iconData = base64Decode(iconDataRaw);
       }
 
       return NativeLinkMetadata(

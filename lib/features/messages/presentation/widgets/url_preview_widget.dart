@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:remember_this_text/essentials/services/native_link_preview_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../essentials/services/native_link_preview_service.dart';
 
 /// Rich URL preview widget for displaying link metadata in messages.
 /// Shows image, title, and site name with a clean, tappable design.
@@ -96,7 +97,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: MacosColors.controlBackgroundColor,
-            border: Border.all(color: MacosColors.separatorColor, width: 1),
+            border: Border.all(color: MacosColors.separatorColor),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -163,22 +164,22 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: MacosColors.controlBackgroundColor,
-        border: Border.all(color: MacosColors.separatorColor, width: 1),
+        border: Border.all(color: MacosColors.separatorColor),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 14,
             height: 14,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Flexible(
             child: Text(
               'Loading preview...',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: MacosColors.systemGrayColor,
               ),
@@ -201,7 +202,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
           constraints: BoxConstraints(maxWidth: widget.maxWidth),
           decoration: BoxDecoration(
             color: MacosColors.controlBackgroundColor,
-            border: Border.all(color: MacosColors.separatorColor, width: 1),
+            border: Border.all(color: MacosColors.separatorColor),
             borderRadius: BorderRadius.circular(8),
           ),
           clipBehavior: Clip.antiAlias,
@@ -300,8 +301,8 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
     }
   }
 }

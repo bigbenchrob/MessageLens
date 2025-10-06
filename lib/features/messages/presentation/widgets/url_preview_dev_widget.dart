@@ -17,7 +17,7 @@ class UrlPreviewDevWidget extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: MacosColors.controlBackgroundColor,
-        border: Border.all(color: MacosColors.separatorColor, width: 1),
+        border: Border.all(color: MacosColors.separatorColor),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

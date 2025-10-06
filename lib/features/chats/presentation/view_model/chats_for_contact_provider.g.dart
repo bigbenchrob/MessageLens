@@ -6,7 +6,7 @@ part of 'chats_for_contact_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatsForContactHash() => r'9d484acb1e82498e556209f1da00469123bf403c';
+String _$chatsForContactHash() => r'022906effdc116b6795774be36deffa8cc5d5b32';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -197,7 +197,7 @@ class _ChatsForContactProviderElement
   int get participantId => (origin as ChatsForContactProvider).participantId;
 }
 
-String _$participantInfoHash() => r'73f50529ce0e4f2f3987a3cfa5ecc02205e1c584';
+String _$participantInfoHash() => r'a26c550773e5df2cfb1d7198b4fa5b843c7ca19a';
 
 /// Provider that gets participant info for display purposes
 ///

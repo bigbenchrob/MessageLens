@@ -196,7 +196,7 @@ class _MessageBubble extends StatelessWidget {
                 ? CrossAxisAlignment.end
                 : CrossAxisAlignment.start,
             children: [
-              UrlPreviewWidget(url: urls.first, maxWidth: 400),
+              UrlPreviewWidget(url: urls.first),
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 8, right: 8, bottom: 16),
@@ -624,7 +624,7 @@ class _UrlPreviewAttachment extends StatelessWidget {
           );
         }(),
         // Native Apple preview
-        UrlPreviewWidget(url: url, maxWidth: 400),
+        UrlPreviewWidget(url: url),
       ],
     );
   }

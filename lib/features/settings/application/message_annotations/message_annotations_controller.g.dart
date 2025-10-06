@@ -346,7 +346,7 @@ class _MessagesDueForReminderProviderElement
 }
 
 String _$messageAnnotationsHash() =>
-    r'd5e7d076b52fb9c999801b36c267b76c96313e6a';
+    r'7723ce1756c9b376a80086ba5a1e356d0d9b85c9';
 
 abstract class _$MessageAnnotations
     extends BuildlessAutoDisposeAsyncNotifier<MessageAnnotation?> {

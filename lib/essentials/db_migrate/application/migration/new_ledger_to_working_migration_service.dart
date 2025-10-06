@@ -214,25 +214,29 @@ class NewLedgerToWorkingMigrationService {
       final service = (row['service'] as String?) ?? 'Unknown';
       final rawIdentifier = row['raw_identifier'] as String?;
       final normalizedIdentifier = row['normalized_identifier'] as String?;
+      final country = row['country'] as String?;
+      final lastSeenUtc = row['last_seen_utc'] as String?;
+      final isIgnored = (row['is_ignored'] as int?) == 1;
+      final sourceBatchId = row['batch_id'] as int?;
 
       if (handleId == null || rawIdentifier == null) {
         continue;
       }
-
-      // Use normalized identifier if available, otherwise raw identifier
-      final handleIdentifier = normalizedIdentifier?.isNotEmpty == true
-          ? normalizedIdentifier!
-          : rawIdentifier;
 
       await workingDb
           .into(workingDb.workingHandles)
           .insert(
             WorkingHandlesCompanion.insert(
               id: Value(handleId), // Preserve chat.db ROWID
-              handleId: handleIdentifier,
+              handleId: rawIdentifier,
+              normalizedIdentifier: Value(normalizedIdentifier),
               service: Value(service),
-              isValid: const Value(true),
-              isBlacklisted: const Value(false),
+              isIgnored: Value(isIgnored),
+              isValid: Value(!isIgnored),
+              isBlacklisted: Value(isIgnored),
+              country: Value(country),
+              lastSeenUtc: Value(lastSeenUtc),
+              batchId: Value(sourceBatchId),
             ),
             mode: InsertMode.insertOrReplace,
           );
@@ -262,39 +266,62 @@ class NewLedgerToWorkingMigrationService {
       final service = row['service'] as String?;
       final guid = row['guid'] as String?;
       final isGroup = (row['is_group'] as int?) == 1;
+      final createdAtUtc = row['created_at_utc'] as String?;
+      final updatedAtUtc = row['updated_at_utc'] as String?;
+      final chatIsExplicitlyIgnored = (row['is_ignored'] as int?) == 1;
 
       if (chatId == null || guid == null) {
         continue;
       }
 
-      // Find the primary handle for this chat from chat_to_handle
+      // Find chat participant handles (may be multiple)
       final participantRows = await importDb.query(
         'chat_to_handle',
         where: 'chat_id = ?',
         whereArgs: [chatId],
-        limit: 1, // Use first participant as primary handle
+        orderBy: 'handle_id ASC',
       );
 
-      int? primaryHandleId;
-      if (participantRows.isNotEmpty) {
-        primaryHandleId = participantRows.first['handle_id'] as int?;
-      }
-
-      // Skip if no participants or primary handle doesn't exist in working DB
-      if (primaryHandleId == null) {
+      if (participantRows.isEmpty) {
         continue;
       }
 
-      final handleIdValue = primaryHandleId;
+      final validParticipants = <_ChatHandleLink>[];
 
-      final handleExists = await (workingDb.select(
-        workingDb.workingHandles,
-      )..where((h) => h.id.equals(handleIdValue))).get();
+      for (final participantRow in participantRows) {
+        final candidateHandleId = participantRow['handle_id'] as int?;
+        if (candidateHandleId == null) {
+          continue;
+        }
 
-      if (handleExists.isEmpty) {
-        // Skip this chat if the primary handle doesn't exist (was filtered as spam)
+        final handleExists = await (workingDb.select(
+          workingDb.workingHandles,
+        )..where((h) => h.id.equals(candidateHandleId))).getSingleOrNull();
+
+        if (handleExists == null) {
+          continue;
+        }
+
+        validParticipants.add(
+          _ChatHandleLink(
+            handleId: candidateHandleId,
+            role: (participantRow['role'] as String?) ?? 'member',
+            addedAtUtc: participantRow['added_at_utc'] as String?,
+            isIgnored: handleExists.isIgnored,
+          ),
+        );
+      }
+
+      if (validParticipants.isEmpty) {
+        // No valid handles were associated with this chat for the current batch
         continue;
       }
+
+      final hasActiveParticipants = validParticipants.any(
+        (participant) => !participant.isIgnored,
+      );
+      final effectiveChatIgnored =
+          chatIsExplicitlyIgnored || !hasActiveParticipants;
 
       await workingDb
           .into(workingDb.workingChats)
@@ -304,20 +331,27 @@ class NewLedgerToWorkingMigrationService {
               service: Value(service ?? 'Unknown'),
               guid: guid,
               isGroup: Value(isGroup),
+              createdAtUtc: Value(createdAtUtc),
+              updatedAtUtc: Value(updatedAtUtc),
+              isIgnored: Value(effectiveChatIgnored),
             ),
             mode: InsertMode.insertOrReplace,
           );
 
-      // Create chat_to_handle relationship for the primary handle
-      await workingDb
-          .into(workingDb.chatToHandle)
-          .insert(
-            ChatToHandleCompanion.insert(
-              chatId: chatId,
-              handleId: primaryHandleId,
-            ),
-            mode: InsertMode.insertOrIgnore,
-          );
+      for (final participant in validParticipants) {
+        await workingDb
+            .into(workingDb.chatToHandle)
+            .insert(
+              ChatToHandleCompanion.insert(
+                chatId: chatId,
+                handleId: participant.handleId,
+                role: Value(participant.role),
+                addedAtUtc: Value(participant.addedAtUtc),
+                isIgnored: Value(participant.isIgnored || effectiveChatIgnored),
+              ),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
 
       chatCount++;
     }
@@ -344,9 +378,20 @@ class NewLedgerToWorkingMigrationService {
       final chatId = row['chat_id'] as int?;
       final senderHandleId = row['sender_handle_id'] as int?; // FK to handles
       final guid = row['guid'] as String?;
-      final textContent = row['text_content'] as String?;
-      final sentAtUtc = row['sent_at_utc'] as String?;
+      final textContent = row['text'] as String?;
+      final sentAtUtc = row['date_utc'] as String?;
+      final deliveredAtUtc = row['date_delivered_utc'] as String?;
+      final readAtUtc = row['date_read_utc'] as String?;
       final isFromMe = (row['is_from_me'] as int?) == 1;
+      final itemType = row['item_type'] as String?;
+      final isSystemMessage = (row['is_system_message'] as int?) == 1;
+      final errorCode = row['error_code'] as int?;
+      final associatedMessageGuid = row['associated_message_guid'] as String?;
+      final threadOriginatorGuid = row['thread_originator_guid'] as String?;
+      final payloadJson = row['payload_json'] as String?;
+      final batchIdValue = row['batch_id'] as int?;
+      final balloonBundleId = row['balloon_bundle_id'] as String?;
+      final reactionCarrier = itemType == 'reaction-carrier';
 
       if (messageId == null || chatId == null || guid == null) {
         continue;
@@ -386,7 +431,18 @@ class NewLedgerToWorkingMigrationService {
               guid: guid,
               textContent: Value(textContent),
               sentAtUtc: Value(sentAtUtc),
+              deliveredAtUtc: Value(deliveredAtUtc),
+              readAtUtc: Value(readAtUtc),
               isFromMe: Value(isFromMe),
+              itemType: Value(itemType),
+              isSystemMessage: Value(isSystemMessage),
+              errorCode: Value(errorCode),
+              associatedMessageGuid: Value(associatedMessageGuid),
+              threadOriginatorGuid: Value(threadOriginatorGuid),
+              payloadJson: Value(payloadJson),
+              batchId: Value(batchIdValue),
+              reactionCarrier: Value(reactionCarrier),
+              balloonBundleId: Value(balloonBundleId),
             ),
             mode: InsertMode.insertOrReplace,
           );
@@ -416,6 +472,10 @@ class NewLedgerToWorkingMigrationService {
       final firstName = row['given_name'] as String?;
       final lastName = row['family_name'] as String?;
       final organization = row['organization'] as String?;
+      final isOrganization = (row['is_organization'] as int?) == 1;
+      final createdAtUtc = row['created_at_utc'] as String?;
+      final updatedAtUtc = row['updated_at_utc'] as String?;
+      final sourceRecordId = row['source_record_id'] as int?;
 
       if (contactId == null) {
         continue;
@@ -434,6 +494,10 @@ class NewLedgerToWorkingMigrationService {
         firstName: firstName,
         lastName: lastName,
         organization: organization,
+        isOrganization: isOrganization,
+        createdAtUtc: createdAtUtc,
+        updatedAtUtc: updatedAtUtc,
+        sourceRecordId: sourceRecordId,
       );
 
       contactsById[contactId] = contact;
@@ -441,7 +505,7 @@ class NewLedgerToWorkingMigrationService {
       // Load phone numbers for this contact
       final phoneRows = await importDb.query(
         'contact_phone_email',
-        where: 'OWNER_Z_PK = ? AND kind = ?',
+        where: 'contact_id = ? AND kind = ?',
         whereArgs: [contactId, 'phone'],
       );
 
@@ -458,7 +522,7 @@ class NewLedgerToWorkingMigrationService {
       // Load email addresses for this contact
       final emailRows = await importDb.query(
         'contact_phone_email',
-        where: 'OWNER_Z_PK = ? AND kind = ?',
+        where: 'contact_id = ? AND kind = ?',
         whereArgs: [contactId, 'email'],
       );
 
@@ -491,7 +555,9 @@ class NewLedgerToWorkingMigrationService {
 
     for (final handle in handles) {
       // Try to match handle to AddressBook contact
-      final normalizedHandle = _normalizeHandle(handle.handleId);
+      final normalizedHandle = (handle.normalizedIdentifier?.isNotEmpty == true)
+          ? handle.normalizedIdentifier
+          : _normalizeHandle(handle.handleId);
       final matchedContactId = normalizedHandle != null
           ? contactIndex.normalizedToContactId[normalizedHandle]
           : null;
@@ -509,6 +575,13 @@ class NewLedgerToWorkingMigrationService {
                 originalName: contact.displayName,
                 displayName: contact.displayName,
                 shortName: _buildShortName(contact),
+                givenName: Value(contact.firstName),
+                familyName: Value(contact.lastName),
+                organization: Value(contact.organization),
+                isOrganization: Value(contact.isOrganization),
+                createdAtUtc: Value(contact.createdAtUtc),
+                updatedAtUtc: Value(contact.updatedAtUtc),
+                sourceRecordId: Value(contact.sourceRecordId),
               ),
               mode: InsertMode.insertOrIgnore,
             );
@@ -571,6 +644,7 @@ class NewLedgerToWorkingMigrationService {
             const WorkingHandlesCompanion(
               isBlacklisted: Value(true),
               isValid: Value(false),
+              isIgnored: Value(true),
             ),
           );
 
@@ -732,12 +806,34 @@ class _Contact {
     this.firstName,
     this.lastName,
     this.organization,
+    this.isOrganization = false,
+    this.createdAtUtc,
+    this.updatedAtUtc,
+    this.sourceRecordId,
   });
   final int id; // AddressBook Z_PK
   final String displayName;
   final String? firstName;
   final String? lastName;
   final String? organization;
+  final bool isOrganization;
+  final String? createdAtUtc;
+  final String? updatedAtUtc;
+  final int? sourceRecordId;
+}
+
+class _ChatHandleLink {
+  const _ChatHandleLink({
+    required this.handleId,
+    required this.role,
+    required this.addedAtUtc,
+    required this.isIgnored,
+  });
+
+  final int handleId;
+  final String role;
+  final String? addedAtUtc;
+  final bool isIgnored;
 }
 
 class _DbMigrationResultBuilder {

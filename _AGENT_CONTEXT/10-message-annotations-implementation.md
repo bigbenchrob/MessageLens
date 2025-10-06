@@ -42,7 +42,7 @@ Implemented 15+ helper methods:
 
 #### Archiving
 
-- `setMessageArchived(messageId, archived)` - Archive/unarchive
+- `setMessageArchived(messageId: ..., archived: ...)` - Archive/unarchive
 
 #### Tagging
 

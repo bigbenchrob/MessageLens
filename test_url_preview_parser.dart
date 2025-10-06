@@ -11,9 +11,14 @@ Future<void> main() async {
   await RustLib.init();
   print('✅ Rust library initialized\n');
 
+  final homeDirectory = Platform.environment['HOME'];
+  if (homeDirectory == null) {
+    print('❌ HOME environment variable is not set.');
+    exit(1);
+  }
+
   final testPath =
-      Platform.environment['HOME']! +
-      '/Library/Messages/Attachments/65/05/244F25B3-A34F-4662-B50E-3F830D71EFDF/138C22EC-A807-4889-B966-D8FDBF8C3311.pluginPayloadAttachment';
+      '$homeDirectory/Library/Messages/Attachments/65/05/244F25B3-A34F-4662-B50E-3F830D71EFDF/138C22EC-A807-4889-B966-D8FDBF8C3311.pluginPayloadAttachment';
 
   print('📄 Test file: $testPath');
   final file = File(testPath);

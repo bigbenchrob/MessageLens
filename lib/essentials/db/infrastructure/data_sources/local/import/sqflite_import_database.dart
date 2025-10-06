@@ -884,7 +884,9 @@ class SqfliteImportDatabase {
 
   /// Get chats that only have spam handles as participants
   Future<List<int>> getChatsWithOnlySpamHandles(List<int> spamHandleIds) async {
-    if (spamHandleIds.isEmpty) return <int>[];
+    if (spamHandleIds.isEmpty) {
+      return <int>[];
+    }
 
     final db = await database;
     final placeholders = List<String>.filled(
@@ -907,12 +909,17 @@ class SqfliteImportDatabase {
       [...spamHandleIds, ...spamHandleIds],
     );
 
-    return result.map((row) => row['chat_id'] as int).toList();
+    return result
+        .map((row) => row['chat_id'] as int?)
+        .whereType<int>()
+        .toList();
   }
 
   /// Flag all messages in specified chats as ignored
   Future<void> flagMessagesInChatsAsIgnored(List<int> chatIds) async {
-    if (chatIds.isEmpty) return;
+    if (chatIds.isEmpty) {
+      return;
+    }
 
     final db = await database;
     final placeholders = List<String>.filled(chatIds.length, '?').join(', ');

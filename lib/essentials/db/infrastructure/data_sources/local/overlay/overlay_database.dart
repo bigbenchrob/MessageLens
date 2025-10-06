@@ -150,7 +150,10 @@ class OverlayDatabase extends _$OverlayDatabase {
   }
 
   /// Set archived status for a message
-  Future<void> setMessageArchived(int messageId, bool archived) async {
+  Future<void> setMessageArchived({
+    required int messageId,
+    required bool archived,
+  }) async {
     final now = DateTime.now().toUtc().toIso8601String();
 
     await into(messageAnnotations).insertOnConflictUpdate(
@@ -169,7 +172,7 @@ class OverlayDatabase extends _$OverlayDatabase {
     final now = DateTime.now().toUtc().toIso8601String();
 
     // Parse existing tags
-    List<String> currentTags = [];
+    var currentTags = <String>[];
     if (existing?.tags != null) {
       // Parse JSON array: '["tag1","tag2"]'
       final tagsStr = existing!.tags!
@@ -220,7 +223,7 @@ class OverlayDatabase extends _$OverlayDatabase {
       return;
     }
 
-    List<String> currentTags = tagsStr.split(',').map((t) => t.trim()).toList();
+    final currentTags = tagsStr.split(',').map((tag) => tag.trim()).toList();
 
     // Remove specified tags
     currentTags.removeWhere((tag) => tagsToRemove.contains(tag));

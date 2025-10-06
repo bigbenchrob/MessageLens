@@ -99,7 +99,7 @@ Stream<List<ChatMessageListItem>> messagesForChat(
     return parsed?.toLocal();
   }
 
-  String _getSenderName({
+  String senderNameForMessage({
     required bool isFromMe,
     required WorkingParticipant? participant,
   }) {
@@ -171,7 +171,7 @@ Stream<List<ChatMessageListItem>> messagesForChat(
           id: message.id,
           guid: message.guid,
           isFromMe: message.isFromMe,
-          senderName: _getSenderName(
+          senderName: senderNameForMessage(
             participant: participant,
             isFromMe: message.isFromMe,
           ),

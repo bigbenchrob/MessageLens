@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:remember_this_text/features/messages/presentation/pages/url_preview_test_page.dart';
+import 'url_preview_test_page.dart';
 
 /// Simple runner to test URL preview functionality in isolation.
 /// Run this with: flutter run -t lib/features/messages/presentation/pages/url_preview_test_runner.dart

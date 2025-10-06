@@ -39,29 +39,33 @@ void main() {
 
       // First toggle - should star the message
       await notifier.toggleStar();
-      var annotation = await container.read(
+      final afterFirstToggle = await container.read(
         messageAnnotationsProvider(1).future,
       );
-      expect(annotation?.isStarred, isTrue);
+      expect(afterFirstToggle?.isStarred, isTrue);
 
       // Second toggle - should unstar
       await notifier.toggleStar();
-      annotation = await container.read(messageAnnotationsProvider(1).future);
-      expect(annotation?.isStarred, isFalse);
+      final afterSecondToggle = await container.read(
+        messageAnnotationsProvider(1).future,
+      );
+      expect(afterSecondToggle?.isStarred, isFalse);
     });
 
     test('setArchived updates archived status', () async {
       final notifier = container.read(messageAnnotationsProvider(2).notifier);
 
-      await notifier.setArchived(true);
-      var annotation = await container.read(
+      await notifier.setArchived(archived: true);
+      final afterSetArchived = await container.read(
         messageAnnotationsProvider(2).future,
       );
-      expect(annotation?.isArchived, isTrue);
+      expect(afterSetArchived?.isArchived, isTrue);
 
-      await notifier.setArchived(false);
-      annotation = await container.read(messageAnnotationsProvider(2).future);
-      expect(annotation?.isArchived, isFalse);
+      await notifier.setArchived(archived: false);
+      final afterClearArchived = await container.read(
+        messageAnnotationsProvider(2).future,
+      );
+      expect(afterClearArchived?.isArchived, isFalse);
     });
 
     test('addTags and removeTags manage tags correctly', () async {
@@ -69,18 +73,20 @@ void main() {
 
       // Add tags
       await notifier.addTags(['receipt', 'important']);
-      var annotation = await container.read(
+      final afterInitialAdd = await container.read(
         messageAnnotationsProvider(3).future,
       );
-      expect(annotation?.tags, contains('receipt'));
-      expect(annotation?.tags, contains('important'));
+      expect(afterInitialAdd?.tags, contains('receipt'));
+      expect(afterInitialAdd?.tags, contains('important'));
 
       // Add more tags (no duplicates)
       await notifier.addTags(['important', 'work']);
-      annotation = await container.read(messageAnnotationsProvider(3).future);
-      expect(annotation?.tags, contains('work'));
+      final afterSecondAdd = await container.read(
+        messageAnnotationsProvider(3).future,
+      );
+      expect(afterSecondAdd?.tags, contains('work'));
       // Should only have one 'important'
-      expect('important'.allMatches(annotation!.tags!).length, equals(1));
+      expect('important'.allMatches(afterSecondAdd!.tags!).length, equals(1));
 
       // Remove tags - need to refresh provider
       await notifier.removeTags(['receipt']);
@@ -96,22 +102,24 @@ void main() {
       final notifier = container.read(messageAnnotationsProvider(4).notifier);
 
       await notifier.setNotes('This is important info');
-      var annotation = await container.read(
+      final afterSetNotes = await container.read(
         messageAnnotationsProvider(4).future,
       );
-      expect(annotation?.userNotes, equals('This is important info'));
+      expect(afterSetNotes?.userNotes, equals('This is important info'));
 
       // Clear notes
       await notifier.setNotes(null);
-      annotation = await container.read(messageAnnotationsProvider(4).future);
-      expect(annotation?.userNotes, isNull);
+      final afterClearNotes = await container.read(
+        messageAnnotationsProvider(4).future,
+      );
+      expect(afterClearNotes?.userNotes, isNull);
     });
 
     test('setPriority validates and sets priority', () async {
       final notifier = container.read(messageAnnotationsProvider(5).notifier);
 
       await notifier.setPriority(5);
-      var annotation = await container.read(
+      final annotation = await container.read(
         messageAnnotationsProvider(5).future,
       );
       expect(annotation?.priority, equals(5));
@@ -144,15 +152,17 @@ void main() {
       await notifier.addTags(['test']);
       await notifier.setNotes('Test note');
 
-      var annotation = await container.read(
+      final beforeDelete = await container.read(
         messageAnnotationsProvider(7).future,
       );
-      expect(annotation, isNotNull);
+      expect(beforeDelete, isNotNull);
 
       // Delete
       await notifier.deleteAnnotation();
-      annotation = await container.read(messageAnnotationsProvider(7).future);
-      expect(annotation, isNull);
+      final afterDelete = await container.read(
+        messageAnnotationsProvider(7).future,
+      );
+      expect(afterDelete, isNull);
     });
   });
 
@@ -258,9 +268,9 @@ void main() {
     });
 
     test('can create annotation with all fields', () async {
-      final messageId = 999;
+      const messageId = 999;
       await testDb.toggleMessageStar(messageId);
-      await testDb.setMessageArchived(messageId, true);
+      await testDb.setMessageArchived(messageId: messageId, archived: true);
       await testDb.addMessageTags(messageId, ['test', 'migration']);
       await testDb.setMessageNotes(messageId, 'Migration test note');
       await testDb.setMessagePriority(messageId, 4);

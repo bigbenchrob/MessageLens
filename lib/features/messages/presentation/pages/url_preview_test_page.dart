@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:remember_this_text/features/messages/presentation/widgets/url_preview_dev_widget.dart';
-import 'package:remember_this_text/features/messages/presentation/widgets/url_preview_widget.dart';
+import '../widgets/url_preview_dev_widget.dart';
+import '../widgets/url_preview_widget.dart';
 
 /// Test page to experiment with URL preview metadata fetching.
 /// Shows comprehensive metadata for various URL types.
@@ -190,9 +190,9 @@ class _UrlPreviewTestPageState extends State<UrlPreviewTestPage> {
 
                   // Preview list
                   if (_testUrls.isEmpty)
-                    Center(
+                    const Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(40),
+                        padding: EdgeInsets.all(40),
                         child: Text(
                           'No URLs added yet.\nAdd a URL above to see its metadata.',
                           textAlign: TextAlign.center,

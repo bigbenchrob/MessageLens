@@ -862,6 +862,17 @@ class $WorkingHandlesTable extends WorkingHandles
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _normalizedIdentifierMeta =
+      const VerificationMeta('normalizedIdentifier');
+  @override
+  late final GeneratedColumn<String> normalizedIdentifier =
+      GeneratedColumn<String>(
+        'normalized_identifier',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _serviceMeta = const VerificationMeta(
     'service',
   );
@@ -875,6 +886,21 @@ class $WorkingHandlesTable extends WorkingHandles
     $customConstraints:
         'NOT NULL DEFAULT \'Unknown\' CHECK(service IN (\'iMessage\',\'iMessageLite\',\'SMS\',\'RCS\',\'Unknown\'))',
     defaultValue: const CustomExpression('\'Unknown\''),
+  );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
   static const VerificationMeta _isValidMeta = const VerificationMeta(
     'isValid',
@@ -906,13 +932,51 @@ class $WorkingHandlesTable extends WorkingHandles
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSeenUtcMeta = const VerificationMeta(
+    'lastSeenUtc',
+  );
+  @override
+  late final GeneratedColumn<String> lastSeenUtc = GeneratedColumn<String>(
+    'last_seen_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     handleId,
+    normalizedIdentifier,
     service,
+    isIgnored,
     isValid,
     isBlacklisted,
+    country,
+    lastSeenUtc,
+    batchId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -937,10 +1001,25 @@ class $WorkingHandlesTable extends WorkingHandles
     } else if (isInserting) {
       context.missing(_handleIdMeta);
     }
+    if (data.containsKey('normalized_identifier')) {
+      context.handle(
+        _normalizedIdentifierMeta,
+        normalizedIdentifier.isAcceptableOrUnknown(
+          data['normalized_identifier']!,
+          _normalizedIdentifierMeta,
+        ),
+      );
+    }
     if (data.containsKey('service')) {
       context.handle(
         _serviceMeta,
         service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
+      );
+    }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
       );
     }
     if (data.containsKey('is_valid')) {
@@ -958,6 +1037,27 @@ class $WorkingHandlesTable extends WorkingHandles
         ),
       );
     }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('last_seen_utc')) {
+      context.handle(
+        _lastSeenUtcMeta,
+        lastSeenUtc.isAcceptableOrUnknown(
+          data['last_seen_utc']!,
+          _lastSeenUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    }
     return context;
   }
 
@@ -966,6 +1066,7 @@ class $WorkingHandlesTable extends WorkingHandles
   @override
   List<Set<GeneratedColumn>> get uniqueKeys => [
     {handleId, service},
+    {service, normalizedIdentifier},
   ];
   @override
   WorkingHandle map(Map<String, dynamic> data, {String? tablePrefix}) {
@@ -979,9 +1080,17 @@ class $WorkingHandlesTable extends WorkingHandles
         DriftSqlType.string,
         data['${effectivePrefix}handle_id'],
       )!,
+      normalizedIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_identifier'],
+      ),
       service: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}service'],
+      )!,
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
       )!,
       isValid: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -991,6 +1100,18 @@ class $WorkingHandlesTable extends WorkingHandles
         DriftSqlType.bool,
         data['${effectivePrefix}is_blacklisted'],
       )!,
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      lastSeenUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_seen_utc'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      ),
     );
   }
 
@@ -1003,24 +1124,47 @@ class $WorkingHandlesTable extends WorkingHandles
 class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   final int id;
   final String handleId;
+  final String? normalizedIdentifier;
   final String service;
+  final bool isIgnored;
   final bool isValid;
   final bool isBlacklisted;
+  final String? country;
+  final String? lastSeenUtc;
+  final int? batchId;
   const WorkingHandle({
     required this.id,
     required this.handleId,
+    this.normalizedIdentifier,
     required this.service,
+    required this.isIgnored,
     required this.isValid,
     required this.isBlacklisted,
+    this.country,
+    this.lastSeenUtc,
+    this.batchId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['handle_id'] = Variable<String>(handleId);
+    if (!nullToAbsent || normalizedIdentifier != null) {
+      map['normalized_identifier'] = Variable<String>(normalizedIdentifier);
+    }
     map['service'] = Variable<String>(service);
+    map['is_ignored'] = Variable<bool>(isIgnored);
     map['is_valid'] = Variable<bool>(isValid);
     map['is_blacklisted'] = Variable<bool>(isBlacklisted);
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || lastSeenUtc != null) {
+      map['last_seen_utc'] = Variable<String>(lastSeenUtc);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
+    }
     return map;
   }
 
@@ -1028,9 +1172,22 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return WorkingHandlesCompanion(
       id: Value(id),
       handleId: Value(handleId),
+      normalizedIdentifier: normalizedIdentifier == null && nullToAbsent
+          ? const Value.absent()
+          : Value(normalizedIdentifier),
       service: Value(service),
+      isIgnored: Value(isIgnored),
       isValid: Value(isValid),
       isBlacklisted: Value(isBlacklisted),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      lastSeenUtc: lastSeenUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenUtc),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
     );
   }
 
@@ -1042,9 +1199,16 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return WorkingHandle(
       id: serializer.fromJson<int>(json['id']),
       handleId: serializer.fromJson<String>(json['handleId']),
+      normalizedIdentifier: serializer.fromJson<String?>(
+        json['normalizedIdentifier'],
+      ),
       service: serializer.fromJson<String>(json['service']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
       isValid: serializer.fromJson<bool>(json['isValid']),
       isBlacklisted: serializer.fromJson<bool>(json['isBlacklisted']),
+      country: serializer.fromJson<String?>(json['country']),
+      lastSeenUtc: serializer.fromJson<String?>(json['lastSeenUtc']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
     );
   }
   @override
@@ -1053,34 +1217,60 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'handleId': serializer.toJson<String>(handleId),
+      'normalizedIdentifier': serializer.toJson<String?>(normalizedIdentifier),
       'service': serializer.toJson<String>(service),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
       'isValid': serializer.toJson<bool>(isValid),
       'isBlacklisted': serializer.toJson<bool>(isBlacklisted),
+      'country': serializer.toJson<String?>(country),
+      'lastSeenUtc': serializer.toJson<String?>(lastSeenUtc),
+      'batchId': serializer.toJson<int?>(batchId),
     };
   }
 
   WorkingHandle copyWith({
     int? id,
     String? handleId,
+    Value<String?> normalizedIdentifier = const Value.absent(),
     String? service,
+    bool? isIgnored,
     bool? isValid,
     bool? isBlacklisted,
+    Value<String?> country = const Value.absent(),
+    Value<String?> lastSeenUtc = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
   }) => WorkingHandle(
     id: id ?? this.id,
     handleId: handleId ?? this.handleId,
+    normalizedIdentifier: normalizedIdentifier.present
+        ? normalizedIdentifier.value
+        : this.normalizedIdentifier,
     service: service ?? this.service,
+    isIgnored: isIgnored ?? this.isIgnored,
     isValid: isValid ?? this.isValid,
     isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+    country: country.present ? country.value : this.country,
+    lastSeenUtc: lastSeenUtc.present ? lastSeenUtc.value : this.lastSeenUtc,
+    batchId: batchId.present ? batchId.value : this.batchId,
   );
   WorkingHandle copyWithCompanion(WorkingHandlesCompanion data) {
     return WorkingHandle(
       id: data.id.present ? data.id.value : this.id,
       handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      normalizedIdentifier: data.normalizedIdentifier.present
+          ? data.normalizedIdentifier.value
+          : this.normalizedIdentifier,
       service: data.service.present ? data.service.value : this.service,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
       isValid: data.isValid.present ? data.isValid.value : this.isValid,
       isBlacklisted: data.isBlacklisted.present
           ? data.isBlacklisted.value
           : this.isBlacklisted,
+      country: data.country.present ? data.country.value : this.country,
+      lastSeenUtc: data.lastSeenUtc.present
+          ? data.lastSeenUtc.value
+          : this.lastSeenUtc,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
 
@@ -1089,76 +1279,132 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return (StringBuffer('WorkingHandle(')
           ..write('id: $id, ')
           ..write('handleId: $handleId, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('service: $service, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('isValid: $isValid, ')
-          ..write('isBlacklisted: $isBlacklisted')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('country: $country, ')
+          ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, handleId, service, isValid, isBlacklisted);
+  int get hashCode => Object.hash(
+    id,
+    handleId,
+    normalizedIdentifier,
+    service,
+    isIgnored,
+    isValid,
+    isBlacklisted,
+    country,
+    lastSeenUtc,
+    batchId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is WorkingHandle &&
           other.id == this.id &&
           other.handleId == this.handleId &&
+          other.normalizedIdentifier == this.normalizedIdentifier &&
           other.service == this.service &&
+          other.isIgnored == this.isIgnored &&
           other.isValid == this.isValid &&
-          other.isBlacklisted == this.isBlacklisted);
+          other.isBlacklisted == this.isBlacklisted &&
+          other.country == this.country &&
+          other.lastSeenUtc == this.lastSeenUtc &&
+          other.batchId == this.batchId);
 }
 
 class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   final Value<int> id;
   final Value<String> handleId;
+  final Value<String?> normalizedIdentifier;
   final Value<String> service;
+  final Value<bool> isIgnored;
   final Value<bool> isValid;
   final Value<bool> isBlacklisted;
+  final Value<String?> country;
+  final Value<String?> lastSeenUtc;
+  final Value<int?> batchId;
   const WorkingHandlesCompanion({
     this.id = const Value.absent(),
     this.handleId = const Value.absent(),
+    this.normalizedIdentifier = const Value.absent(),
     this.service = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     this.isValid = const Value.absent(),
     this.isBlacklisted = const Value.absent(),
+    this.country = const Value.absent(),
+    this.lastSeenUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
   });
   WorkingHandlesCompanion.insert({
     this.id = const Value.absent(),
     required String handleId,
+    this.normalizedIdentifier = const Value.absent(),
     this.service = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     this.isValid = const Value.absent(),
     this.isBlacklisted = const Value.absent(),
+    this.country = const Value.absent(),
+    this.lastSeenUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
   }) : handleId = Value(handleId);
   static Insertable<WorkingHandle> custom({
     Expression<int>? id,
     Expression<String>? handleId,
+    Expression<String>? normalizedIdentifier,
     Expression<String>? service,
+    Expression<bool>? isIgnored,
     Expression<bool>? isValid,
     Expression<bool>? isBlacklisted,
+    Expression<String>? country,
+    Expression<String>? lastSeenUtc,
+    Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (handleId != null) 'handle_id': handleId,
+      if (normalizedIdentifier != null)
+        'normalized_identifier': normalizedIdentifier,
       if (service != null) 'service': service,
+      if (isIgnored != null) 'is_ignored': isIgnored,
       if (isValid != null) 'is_valid': isValid,
       if (isBlacklisted != null) 'is_blacklisted': isBlacklisted,
+      if (country != null) 'country': country,
+      if (lastSeenUtc != null) 'last_seen_utc': lastSeenUtc,
+      if (batchId != null) 'batch_id': batchId,
     });
   }
 
   WorkingHandlesCompanion copyWith({
     Value<int>? id,
     Value<String>? handleId,
+    Value<String?>? normalizedIdentifier,
     Value<String>? service,
+    Value<bool>? isIgnored,
     Value<bool>? isValid,
     Value<bool>? isBlacklisted,
+    Value<String?>? country,
+    Value<String?>? lastSeenUtc,
+    Value<int?>? batchId,
   }) {
     return WorkingHandlesCompanion(
       id: id ?? this.id,
       handleId: handleId ?? this.handleId,
+      normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
       service: service ?? this.service,
+      isIgnored: isIgnored ?? this.isIgnored,
       isValid: isValid ?? this.isValid,
       isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+      country: country ?? this.country,
+      lastSeenUtc: lastSeenUtc ?? this.lastSeenUtc,
+      batchId: batchId ?? this.batchId,
     );
   }
 
@@ -1171,14 +1417,31 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     if (handleId.present) {
       map['handle_id'] = Variable<String>(handleId.value);
     }
+    if (normalizedIdentifier.present) {
+      map['normalized_identifier'] = Variable<String>(
+        normalizedIdentifier.value,
+      );
+    }
     if (service.present) {
       map['service'] = Variable<String>(service.value);
+    }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
     }
     if (isValid.present) {
       map['is_valid'] = Variable<bool>(isValid.value);
     }
     if (isBlacklisted.present) {
       map['is_blacklisted'] = Variable<bool>(isBlacklisted.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (lastSeenUtc.present) {
+      map['last_seen_utc'] = Variable<String>(lastSeenUtc.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
     }
     return map;
   }
@@ -1188,9 +1451,14 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     return (StringBuffer('WorkingHandlesCompanion(')
           ..write('id: $id, ')
           ..write('handleId: $handleId, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('service: $service, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('isValid: $isValid, ')
-          ..write('isBlacklisted: $isBlacklisted')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('country: $country, ')
+          ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
@@ -1255,6 +1523,87 @@ class $WorkingParticipantsTable extends WorkingParticipants
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _givenNameMeta = const VerificationMeta(
+    'givenName',
+  );
+  @override
+  late final GeneratedColumn<String> givenName = GeneratedColumn<String>(
+    'given_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _familyNameMeta = const VerificationMeta(
+    'familyName',
+  );
+  @override
+  late final GeneratedColumn<String> familyName = GeneratedColumn<String>(
+    'family_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _organizationMeta = const VerificationMeta(
+    'organization',
+  );
+  @override
+  late final GeneratedColumn<String> organization = GeneratedColumn<String>(
+    'organization',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isOrganizationMeta = const VerificationMeta(
+    'isOrganization',
+  );
+  @override
+  late final GeneratedColumn<bool> isOrganization = GeneratedColumn<bool>(
+    'is_organization',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_organization" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceRecordIdMeta = const VerificationMeta(
+    'sourceRecordId',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRecordId = GeneratedColumn<int>(
+    'source_record_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1262,6 +1611,13 @@ class $WorkingParticipantsTable extends WorkingParticipants
     displayName,
     shortName,
     avatarRef,
+    givenName,
+    familyName,
+    organization,
+    isOrganization,
+    createdAtUtc,
+    updatedAtUtc,
+    sourceRecordId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1314,6 +1670,63 @@ class $WorkingParticipantsTable extends WorkingParticipants
         avatarRef.isAcceptableOrUnknown(data['avatar_ref']!, _avatarRefMeta),
       );
     }
+    if (data.containsKey('given_name')) {
+      context.handle(
+        _givenNameMeta,
+        givenName.isAcceptableOrUnknown(data['given_name']!, _givenNameMeta),
+      );
+    }
+    if (data.containsKey('family_name')) {
+      context.handle(
+        _familyNameMeta,
+        familyName.isAcceptableOrUnknown(data['family_name']!, _familyNameMeta),
+      );
+    }
+    if (data.containsKey('organization')) {
+      context.handle(
+        _organizationMeta,
+        organization.isAcceptableOrUnknown(
+          data['organization']!,
+          _organizationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_organization')) {
+      context.handle(
+        _isOrganizationMeta,
+        isOrganization.isAcceptableOrUnknown(
+          data['is_organization']!,
+          _isOrganizationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_record_id')) {
+      context.handle(
+        _sourceRecordIdMeta,
+        sourceRecordId.isAcceptableOrUnknown(
+          data['source_record_id']!,
+          _sourceRecordIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1343,6 +1756,34 @@ class $WorkingParticipantsTable extends WorkingParticipants
         DriftSqlType.string,
         data['${effectivePrefix}avatar_ref'],
       ),
+      givenName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}given_name'],
+      ),
+      familyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_name'],
+      ),
+      organization: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}organization'],
+      ),
+      isOrganization: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_organization'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      ),
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      ),
+      sourceRecordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_record_id'],
+      ),
     );
   }
 
@@ -1359,12 +1800,26 @@ class WorkingParticipant extends DataClass
   final String displayName;
   final String shortName;
   final String? avatarRef;
+  final String? givenName;
+  final String? familyName;
+  final String? organization;
+  final bool isOrganization;
+  final String? createdAtUtc;
+  final String? updatedAtUtc;
+  final int? sourceRecordId;
   const WorkingParticipant({
     required this.id,
     required this.originalName,
     required this.displayName,
     required this.shortName,
     this.avatarRef,
+    this.givenName,
+    this.familyName,
+    this.organization,
+    required this.isOrganization,
+    this.createdAtUtc,
+    this.updatedAtUtc,
+    this.sourceRecordId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1375,6 +1830,25 @@ class WorkingParticipant extends DataClass
     map['short_name'] = Variable<String>(shortName);
     if (!nullToAbsent || avatarRef != null) {
       map['avatar_ref'] = Variable<String>(avatarRef);
+    }
+    if (!nullToAbsent || givenName != null) {
+      map['given_name'] = Variable<String>(givenName);
+    }
+    if (!nullToAbsent || familyName != null) {
+      map['family_name'] = Variable<String>(familyName);
+    }
+    if (!nullToAbsent || organization != null) {
+      map['organization'] = Variable<String>(organization);
+    }
+    map['is_organization'] = Variable<bool>(isOrganization);
+    if (!nullToAbsent || createdAtUtc != null) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc);
+    }
+    if (!nullToAbsent || updatedAtUtc != null) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    }
+    if (!nullToAbsent || sourceRecordId != null) {
+      map['source_record_id'] = Variable<int>(sourceRecordId);
     }
     return map;
   }
@@ -1388,6 +1862,25 @@ class WorkingParticipant extends DataClass
       avatarRef: avatarRef == null && nullToAbsent
           ? const Value.absent()
           : Value(avatarRef),
+      givenName: givenName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(givenName),
+      familyName: familyName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(familyName),
+      organization: organization == null && nullToAbsent
+          ? const Value.absent()
+          : Value(organization),
+      isOrganization: Value(isOrganization),
+      createdAtUtc: createdAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAtUtc),
+      updatedAtUtc: updatedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAtUtc),
+      sourceRecordId: sourceRecordId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceRecordId),
     );
   }
 
@@ -1402,6 +1895,13 @@ class WorkingParticipant extends DataClass
       displayName: serializer.fromJson<String>(json['displayName']),
       shortName: serializer.fromJson<String>(json['shortName']),
       avatarRef: serializer.fromJson<String?>(json['avatarRef']),
+      givenName: serializer.fromJson<String?>(json['givenName']),
+      familyName: serializer.fromJson<String?>(json['familyName']),
+      organization: serializer.fromJson<String?>(json['organization']),
+      isOrganization: serializer.fromJson<bool>(json['isOrganization']),
+      createdAtUtc: serializer.fromJson<String?>(json['createdAtUtc']),
+      updatedAtUtc: serializer.fromJson<String?>(json['updatedAtUtc']),
+      sourceRecordId: serializer.fromJson<int?>(json['sourceRecordId']),
     );
   }
   @override
@@ -1413,6 +1913,13 @@ class WorkingParticipant extends DataClass
       'displayName': serializer.toJson<String>(displayName),
       'shortName': serializer.toJson<String>(shortName),
       'avatarRef': serializer.toJson<String?>(avatarRef),
+      'givenName': serializer.toJson<String?>(givenName),
+      'familyName': serializer.toJson<String?>(familyName),
+      'organization': serializer.toJson<String?>(organization),
+      'isOrganization': serializer.toJson<bool>(isOrganization),
+      'createdAtUtc': serializer.toJson<String?>(createdAtUtc),
+      'updatedAtUtc': serializer.toJson<String?>(updatedAtUtc),
+      'sourceRecordId': serializer.toJson<int?>(sourceRecordId),
     };
   }
 
@@ -1422,12 +1929,28 @@ class WorkingParticipant extends DataClass
     String? displayName,
     String? shortName,
     Value<String?> avatarRef = const Value.absent(),
+    Value<String?> givenName = const Value.absent(),
+    Value<String?> familyName = const Value.absent(),
+    Value<String?> organization = const Value.absent(),
+    bool? isOrganization,
+    Value<String?> createdAtUtc = const Value.absent(),
+    Value<String?> updatedAtUtc = const Value.absent(),
+    Value<int?> sourceRecordId = const Value.absent(),
   }) => WorkingParticipant(
     id: id ?? this.id,
     originalName: originalName ?? this.originalName,
     displayName: displayName ?? this.displayName,
     shortName: shortName ?? this.shortName,
     avatarRef: avatarRef.present ? avatarRef.value : this.avatarRef,
+    givenName: givenName.present ? givenName.value : this.givenName,
+    familyName: familyName.present ? familyName.value : this.familyName,
+    organization: organization.present ? organization.value : this.organization,
+    isOrganization: isOrganization ?? this.isOrganization,
+    createdAtUtc: createdAtUtc.present ? createdAtUtc.value : this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc.present ? updatedAtUtc.value : this.updatedAtUtc,
+    sourceRecordId: sourceRecordId.present
+        ? sourceRecordId.value
+        : this.sourceRecordId,
   );
   WorkingParticipant copyWithCompanion(WorkingParticipantsCompanion data) {
     return WorkingParticipant(
@@ -1440,6 +1963,25 @@ class WorkingParticipant extends DataClass
           : this.displayName,
       shortName: data.shortName.present ? data.shortName.value : this.shortName,
       avatarRef: data.avatarRef.present ? data.avatarRef.value : this.avatarRef,
+      givenName: data.givenName.present ? data.givenName.value : this.givenName,
+      familyName: data.familyName.present
+          ? data.familyName.value
+          : this.familyName,
+      organization: data.organization.present
+          ? data.organization.value
+          : this.organization,
+      isOrganization: data.isOrganization.present
+          ? data.isOrganization.value
+          : this.isOrganization,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+      sourceRecordId: data.sourceRecordId.present
+          ? data.sourceRecordId.value
+          : this.sourceRecordId,
     );
   }
 
@@ -1450,14 +1992,33 @@ class WorkingParticipant extends DataClass
           ..write('originalName: $originalName, ')
           ..write('displayName: $displayName, ')
           ..write('shortName: $shortName, ')
-          ..write('avatarRef: $avatarRef')
+          ..write('avatarRef: $avatarRef, ')
+          ..write('givenName: $givenName, ')
+          ..write('familyName: $familyName, ')
+          ..write('organization: $organization, ')
+          ..write('isOrganization: $isOrganization, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('sourceRecordId: $sourceRecordId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, originalName, displayName, shortName, avatarRef);
+  int get hashCode => Object.hash(
+    id,
+    originalName,
+    displayName,
+    shortName,
+    avatarRef,
+    givenName,
+    familyName,
+    organization,
+    isOrganization,
+    createdAtUtc,
+    updatedAtUtc,
+    sourceRecordId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1466,7 +2027,14 @@ class WorkingParticipant extends DataClass
           other.originalName == this.originalName &&
           other.displayName == this.displayName &&
           other.shortName == this.shortName &&
-          other.avatarRef == this.avatarRef);
+          other.avatarRef == this.avatarRef &&
+          other.givenName == this.givenName &&
+          other.familyName == this.familyName &&
+          other.organization == this.organization &&
+          other.isOrganization == this.isOrganization &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.updatedAtUtc == this.updatedAtUtc &&
+          other.sourceRecordId == this.sourceRecordId);
 }
 
 class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
@@ -1475,12 +2043,26 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
   final Value<String> displayName;
   final Value<String> shortName;
   final Value<String?> avatarRef;
+  final Value<String?> givenName;
+  final Value<String?> familyName;
+  final Value<String?> organization;
+  final Value<bool> isOrganization;
+  final Value<String?> createdAtUtc;
+  final Value<String?> updatedAtUtc;
+  final Value<int?> sourceRecordId;
   const WorkingParticipantsCompanion({
     this.id = const Value.absent(),
     this.originalName = const Value.absent(),
     this.displayName = const Value.absent(),
     this.shortName = const Value.absent(),
     this.avatarRef = const Value.absent(),
+    this.givenName = const Value.absent(),
+    this.familyName = const Value.absent(),
+    this.organization = const Value.absent(),
+    this.isOrganization = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+    this.sourceRecordId = const Value.absent(),
   });
   WorkingParticipantsCompanion.insert({
     this.id = const Value.absent(),
@@ -1488,6 +2070,13 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
     required String displayName,
     required String shortName,
     this.avatarRef = const Value.absent(),
+    this.givenName = const Value.absent(),
+    this.familyName = const Value.absent(),
+    this.organization = const Value.absent(),
+    this.isOrganization = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+    this.sourceRecordId = const Value.absent(),
   }) : originalName = Value(originalName),
        displayName = Value(displayName),
        shortName = Value(shortName);
@@ -1497,6 +2086,13 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
     Expression<String>? displayName,
     Expression<String>? shortName,
     Expression<String>? avatarRef,
+    Expression<String>? givenName,
+    Expression<String>? familyName,
+    Expression<String>? organization,
+    Expression<bool>? isOrganization,
+    Expression<String>? createdAtUtc,
+    Expression<String>? updatedAtUtc,
+    Expression<int>? sourceRecordId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1504,6 +2100,13 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
       if (displayName != null) 'display_name': displayName,
       if (shortName != null) 'short_name': shortName,
       if (avatarRef != null) 'avatar_ref': avatarRef,
+      if (givenName != null) 'given_name': givenName,
+      if (familyName != null) 'family_name': familyName,
+      if (organization != null) 'organization': organization,
+      if (isOrganization != null) 'is_organization': isOrganization,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+      if (sourceRecordId != null) 'source_record_id': sourceRecordId,
     });
   }
 
@@ -1513,6 +2116,13 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
     Value<String>? displayName,
     Value<String>? shortName,
     Value<String?>? avatarRef,
+    Value<String?>? givenName,
+    Value<String?>? familyName,
+    Value<String?>? organization,
+    Value<bool>? isOrganization,
+    Value<String?>? createdAtUtc,
+    Value<String?>? updatedAtUtc,
+    Value<int?>? sourceRecordId,
   }) {
     return WorkingParticipantsCompanion(
       id: id ?? this.id,
@@ -1520,6 +2130,13 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
       displayName: displayName ?? this.displayName,
       shortName: shortName ?? this.shortName,
       avatarRef: avatarRef ?? this.avatarRef,
+      givenName: givenName ?? this.givenName,
+      familyName: familyName ?? this.familyName,
+      organization: organization ?? this.organization,
+      isOrganization: isOrganization ?? this.isOrganization,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      sourceRecordId: sourceRecordId ?? this.sourceRecordId,
     );
   }
 
@@ -1541,6 +2158,27 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
     if (avatarRef.present) {
       map['avatar_ref'] = Variable<String>(avatarRef.value);
     }
+    if (givenName.present) {
+      map['given_name'] = Variable<String>(givenName.value);
+    }
+    if (familyName.present) {
+      map['family_name'] = Variable<String>(familyName.value);
+    }
+    if (organization.present) {
+      map['organization'] = Variable<String>(organization.value);
+    }
+    if (isOrganization.present) {
+      map['is_organization'] = Variable<bool>(isOrganization.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    if (sourceRecordId.present) {
+      map['source_record_id'] = Variable<int>(sourceRecordId.value);
+    }
     return map;
   }
 
@@ -1551,7 +2189,14 @@ class WorkingParticipantsCompanion extends UpdateCompanion<WorkingParticipant> {
           ..write('originalName: $originalName, ')
           ..write('displayName: $displayName, ')
           ..write('shortName: $shortName, ')
-          ..write('avatarRef: $avatarRef')
+          ..write('avatarRef: $avatarRef, ')
+          ..write('givenName: $givenName, ')
+          ..write('familyName: $familyName, ')
+          ..write('organization: $organization, ')
+          ..write('isOrganization: $isOrganization, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('sourceRecordId: $sourceRecordId')
           ..write(')'))
         .toString();
   }
@@ -2106,6 +2751,21 @@ class $WorkingChatsTable extends WorkingChats
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2122,6 +2782,7 @@ class $WorkingChatsTable extends WorkingChats
     favourite,
     createdAtUtc,
     updatedAtUtc,
+    isIgnored,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2239,6 +2900,12 @@ class $WorkingChatsTable extends WorkingChats
         ),
       );
     }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
+      );
+    }
     return context;
   }
 
@@ -2308,6 +2975,10 @@ class $WorkingChatsTable extends WorkingChats
         DriftSqlType.string,
         data['${effectivePrefix}updated_at_utc'],
       ),
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
     );
   }
 
@@ -2332,6 +3003,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
   final bool favourite;
   final String? createdAtUtc;
   final String? updatedAtUtc;
+  final bool isIgnored;
   const WorkingChat({
     required this.id,
     required this.guid,
@@ -2347,6 +3019,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     required this.favourite,
     this.createdAtUtc,
     this.updatedAtUtc,
+    required this.isIgnored,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2377,6 +3050,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     if (!nullToAbsent || updatedAtUtc != null) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     }
+    map['is_ignored'] = Variable<bool>(isIgnored);
     return map;
   }
 
@@ -2408,6 +3082,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
       updatedAtUtc: updatedAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(updatedAtUtc),
+      isIgnored: Value(isIgnored),
     );
   }
 
@@ -2433,6 +3108,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
       favourite: serializer.fromJson<bool>(json['favourite']),
       createdAtUtc: serializer.fromJson<String?>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String?>(json['updatedAtUtc']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
     );
   }
   @override
@@ -2453,6 +3129,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
       'favourite': serializer.toJson<bool>(favourite),
       'createdAtUtc': serializer.toJson<String?>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String?>(updatedAtUtc),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
     };
   }
 
@@ -2471,6 +3148,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     bool? favourite,
     Value<String?> createdAtUtc = const Value.absent(),
     Value<String?> updatedAtUtc = const Value.absent(),
+    bool? isIgnored,
   }) => WorkingChat(
     id: id ?? this.id,
     guid: guid ?? this.guid,
@@ -2494,6 +3172,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     favourite: favourite ?? this.favourite,
     createdAtUtc: createdAtUtc.present ? createdAtUtc.value : this.createdAtUtc,
     updatedAtUtc: updatedAtUtc.present ? updatedAtUtc.value : this.updatedAtUtc,
+    isIgnored: isIgnored ?? this.isIgnored,
   );
   WorkingChat copyWithCompanion(WorkingChatsCompanion data) {
     return WorkingChat(
@@ -2525,6 +3204,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
       updatedAtUtc: data.updatedAtUtc.present
           ? data.updatedAtUtc.value
           : this.updatedAtUtc,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
     );
   }
 
@@ -2544,7 +3224,8 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
           ..write('mutedUntilUtc: $mutedUntilUtc, ')
           ..write('favourite: $favourite, ')
           ..write('createdAtUtc: $createdAtUtc, ')
-          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('isIgnored: $isIgnored')
           ..write(')'))
         .toString();
   }
@@ -2565,6 +3246,7 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
     favourite,
     createdAtUtc,
     updatedAtUtc,
+    isIgnored,
   );
   @override
   bool operator ==(Object other) =>
@@ -2583,7 +3265,8 @@ class WorkingChat extends DataClass implements Insertable<WorkingChat> {
           other.mutedUntilUtc == this.mutedUntilUtc &&
           other.favourite == this.favourite &&
           other.createdAtUtc == this.createdAtUtc &&
-          other.updatedAtUtc == this.updatedAtUtc);
+          other.updatedAtUtc == this.updatedAtUtc &&
+          other.isIgnored == this.isIgnored);
 }
 
 class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
@@ -2601,6 +3284,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
   final Value<bool> favourite;
   final Value<String?> createdAtUtc;
   final Value<String?> updatedAtUtc;
+  final Value<bool> isIgnored;
   const WorkingChatsCompanion({
     this.id = const Value.absent(),
     this.guid = const Value.absent(),
@@ -2616,6 +3300,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     this.favourite = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
   });
   WorkingChatsCompanion.insert({
     this.id = const Value.absent(),
@@ -2632,6 +3317,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     this.favourite = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
   }) : guid = Value(guid);
   static Insertable<WorkingChat> custom({
     Expression<int>? id,
@@ -2648,6 +3334,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     Expression<bool>? favourite,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
+    Expression<bool>? isIgnored,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2666,6 +3353,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
       if (favourite != null) 'favourite': favourite,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+      if (isIgnored != null) 'is_ignored': isIgnored,
     });
   }
 
@@ -2684,6 +3372,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     Value<bool>? favourite,
     Value<String?>? createdAtUtc,
     Value<String?>? updatedAtUtc,
+    Value<bool>? isIgnored,
   }) {
     return WorkingChatsCompanion(
       id: id ?? this.id,
@@ -2700,6 +3389,7 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
       favourite: favourite ?? this.favourite,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      isIgnored: isIgnored ?? this.isIgnored,
     );
   }
 
@@ -2748,6 +3438,9 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
     if (updatedAtUtc.present) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
     }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
+    }
     return map;
   }
 
@@ -2767,7 +3460,8 @@ class WorkingChatsCompanion extends UpdateCompanion<WorkingChat> {
           ..write('mutedUntilUtc: $mutedUntilUtc, ')
           ..write('favourite: $favourite, ')
           ..write('createdAtUtc: $createdAtUtc, ')
-          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('isIgnored: $isIgnored')
           ..write(')'))
         .toString();
   }
@@ -2818,8 +3512,51 @@ class $ChatToHandleTable extends ChatToHandle
       'REFERENCES handles (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
   @override
-  List<GeneratedColumn> get $columns => [id, chatId, handleId];
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('member'),
+  );
+  static const VerificationMeta _addedAtUtcMeta = const VerificationMeta(
+    'addedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> addedAtUtc = GeneratedColumn<String>(
+    'added_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    chatId,
+    handleId,
+    role,
+    addedAtUtc,
+    isIgnored,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2851,6 +3588,27 @@ class $ChatToHandleTable extends ChatToHandle
     } else if (isInserting) {
       context.missing(_handleIdMeta);
     }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
+    if (data.containsKey('added_at_utc')) {
+      context.handle(
+        _addedAtUtcMeta,
+        addedAtUtc.isAcceptableOrUnknown(
+          data['added_at_utc']!,
+          _addedAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
+      );
+    }
     return context;
   }
 
@@ -2876,6 +3634,18 @@ class $ChatToHandleTable extends ChatToHandle
         DriftSqlType.int,
         data['${effectivePrefix}handle_id'],
       )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      addedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}added_at_utc'],
+      ),
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
     );
   }
 
@@ -2890,10 +3660,16 @@ class ChatToHandleData extends DataClass
   final int id;
   final int chatId;
   final int handleId;
+  final String role;
+  final String? addedAtUtc;
+  final bool isIgnored;
   const ChatToHandleData({
     required this.id,
     required this.chatId,
     required this.handleId,
+    required this.role,
+    this.addedAtUtc,
+    required this.isIgnored,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2901,6 +3677,11 @@ class ChatToHandleData extends DataClass
     map['id'] = Variable<int>(id);
     map['chat_id'] = Variable<int>(chatId);
     map['handle_id'] = Variable<int>(handleId);
+    map['role'] = Variable<String>(role);
+    if (!nullToAbsent || addedAtUtc != null) {
+      map['added_at_utc'] = Variable<String>(addedAtUtc);
+    }
+    map['is_ignored'] = Variable<bool>(isIgnored);
     return map;
   }
 
@@ -2909,6 +3690,11 @@ class ChatToHandleData extends DataClass
       id: Value(id),
       chatId: Value(chatId),
       handleId: Value(handleId),
+      role: Value(role),
+      addedAtUtc: addedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(addedAtUtc),
+      isIgnored: Value(isIgnored),
     );
   }
 
@@ -2921,6 +3707,9 @@ class ChatToHandleData extends DataClass
       id: serializer.fromJson<int>(json['id']),
       chatId: serializer.fromJson<int>(json['chatId']),
       handleId: serializer.fromJson<int>(json['handleId']),
+      role: serializer.fromJson<String>(json['role']),
+      addedAtUtc: serializer.fromJson<String?>(json['addedAtUtc']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
     );
   }
   @override
@@ -2930,20 +3719,37 @@ class ChatToHandleData extends DataClass
       'id': serializer.toJson<int>(id),
       'chatId': serializer.toJson<int>(chatId),
       'handleId': serializer.toJson<int>(handleId),
+      'role': serializer.toJson<String>(role),
+      'addedAtUtc': serializer.toJson<String?>(addedAtUtc),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
     };
   }
 
-  ChatToHandleData copyWith({int? id, int? chatId, int? handleId}) =>
-      ChatToHandleData(
-        id: id ?? this.id,
-        chatId: chatId ?? this.chatId,
-        handleId: handleId ?? this.handleId,
-      );
+  ChatToHandleData copyWith({
+    int? id,
+    int? chatId,
+    int? handleId,
+    String? role,
+    Value<String?> addedAtUtc = const Value.absent(),
+    bool? isIgnored,
+  }) => ChatToHandleData(
+    id: id ?? this.id,
+    chatId: chatId ?? this.chatId,
+    handleId: handleId ?? this.handleId,
+    role: role ?? this.role,
+    addedAtUtc: addedAtUtc.present ? addedAtUtc.value : this.addedAtUtc,
+    isIgnored: isIgnored ?? this.isIgnored,
+  );
   ChatToHandleData copyWithCompanion(ChatToHandleCompanion data) {
     return ChatToHandleData(
       id: data.id.present ? data.id.value : this.id,
       chatId: data.chatId.present ? data.chatId.value : this.chatId,
       handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      role: data.role.present ? data.role.value : this.role,
+      addedAtUtc: data.addedAtUtc.present
+          ? data.addedAtUtc.value
+          : this.addedAtUtc,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
     );
   }
 
@@ -2952,46 +3758,68 @@ class ChatToHandleData extends DataClass
     return (StringBuffer('ChatToHandleData(')
           ..write('id: $id, ')
           ..write('chatId: $chatId, ')
-          ..write('handleId: $handleId')
+          ..write('handleId: $handleId, ')
+          ..write('role: $role, ')
+          ..write('addedAtUtc: $addedAtUtc, ')
+          ..write('isIgnored: $isIgnored')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, chatId, handleId);
+  int get hashCode =>
+      Object.hash(id, chatId, handleId, role, addedAtUtc, isIgnored);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ChatToHandleData &&
           other.id == this.id &&
           other.chatId == this.chatId &&
-          other.handleId == this.handleId);
+          other.handleId == this.handleId &&
+          other.role == this.role &&
+          other.addedAtUtc == this.addedAtUtc &&
+          other.isIgnored == this.isIgnored);
 }
 
 class ChatToHandleCompanion extends UpdateCompanion<ChatToHandleData> {
   final Value<int> id;
   final Value<int> chatId;
   final Value<int> handleId;
+  final Value<String> role;
+  final Value<String?> addedAtUtc;
+  final Value<bool> isIgnored;
   const ChatToHandleCompanion({
     this.id = const Value.absent(),
     this.chatId = const Value.absent(),
     this.handleId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.addedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
   });
   ChatToHandleCompanion.insert({
     this.id = const Value.absent(),
     required int chatId,
     required int handleId,
+    this.role = const Value.absent(),
+    this.addedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
   }) : chatId = Value(chatId),
        handleId = Value(handleId);
   static Insertable<ChatToHandleData> custom({
     Expression<int>? id,
     Expression<int>? chatId,
     Expression<int>? handleId,
+    Expression<String>? role,
+    Expression<String>? addedAtUtc,
+    Expression<bool>? isIgnored,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (chatId != null) 'chat_id': chatId,
       if (handleId != null) 'handle_id': handleId,
+      if (role != null) 'role': role,
+      if (addedAtUtc != null) 'added_at_utc': addedAtUtc,
+      if (isIgnored != null) 'is_ignored': isIgnored,
     });
   }
 
@@ -2999,11 +3827,17 @@ class ChatToHandleCompanion extends UpdateCompanion<ChatToHandleData> {
     Value<int>? id,
     Value<int>? chatId,
     Value<int>? handleId,
+    Value<String>? role,
+    Value<String?>? addedAtUtc,
+    Value<bool>? isIgnored,
   }) {
     return ChatToHandleCompanion(
       id: id ?? this.id,
       chatId: chatId ?? this.chatId,
       handleId: handleId ?? this.handleId,
+      role: role ?? this.role,
+      addedAtUtc: addedAtUtc ?? this.addedAtUtc,
+      isIgnored: isIgnored ?? this.isIgnored,
     );
   }
 
@@ -3019,6 +3853,15 @@ class ChatToHandleCompanion extends UpdateCompanion<ChatToHandleData> {
     if (handleId.present) {
       map['handle_id'] = Variable<int>(handleId.value);
     }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (addedAtUtc.present) {
+      map['added_at_utc'] = Variable<String>(addedAtUtc.value);
+    }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
+    }
     return map;
   }
 
@@ -3027,7 +3870,10 @@ class ChatToHandleCompanion extends UpdateCompanion<ChatToHandleData> {
     return (StringBuffer('ChatToHandleCompanion(')
           ..write('id: $id, ')
           ..write('chatId: $chatId, ')
-          ..write('handleId: $handleId')
+          ..write('handleId: $handleId, ')
+          ..write('role: $role, ')
+          ..write('addedAtUtc: $addedAtUtc, ')
+          ..write('isIgnored: $isIgnored')
           ..write(')'))
         .toString();
   }
@@ -3158,6 +4004,45 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _itemTypeMeta = const VerificationMeta(
+    'itemType',
+  );
+  @override
+  late final GeneratedColumn<String> itemType = GeneratedColumn<String>(
+    'item_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK(item_type IN (\'text\',\'attachment-only\',\'sticker\',\'reaction-carrier\',\'system\',\'unknown\') OR item_type IS NULL)',
+  );
+  static const VerificationMeta _isSystemMessageMeta = const VerificationMeta(
+    'isSystemMessage',
+  );
+  @override
+  late final GeneratedColumn<bool> isSystemMessage = GeneratedColumn<bool>(
+    'is_system_message',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system_message" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<int> errorCode = GeneratedColumn<int>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _hasAttachmentsMeta = const VerificationMeta(
     'hasAttachments',
   );
@@ -3184,6 +4069,28 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _associatedMessageGuidMeta =
+      const VerificationMeta('associatedMessageGuid');
+  @override
+  late final GeneratedColumn<String> associatedMessageGuid =
+      GeneratedColumn<String>(
+        'associated_message_guid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _threadOriginatorGuidMeta =
+      const VerificationMeta('threadOriginatorGuid');
+  @override
+  late final GeneratedColumn<String> threadOriginatorGuid =
+      GeneratedColumn<String>(
+        'thread_originator_guid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _systemTypeMeta = const VerificationMeta(
     'systemType',
   );
@@ -3216,6 +4123,17 @@ class $WorkingMessagesTable extends WorkingMessages
   @override
   late final GeneratedColumn<String> balloonBundleId = GeneratedColumn<String>(
     'balloon_bundle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -3273,6 +4191,17 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3285,15 +4214,22 @@ class $WorkingMessagesTable extends WorkingMessages
     readAtUtc,
     status,
     textContent,
+    itemType,
+    isSystemMessage,
+    errorCode,
     hasAttachments,
     replyToGuid,
+    associatedMessageGuid,
+    threadOriginatorGuid,
     systemType,
     reactionCarrier,
     balloonBundleId,
+    payloadJson,
     reactionSummaryJson,
     isStarred,
     isDeletedLocal,
     updatedAtUtc,
+    batchId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3374,6 +4310,27 @@ class $WorkingMessagesTable extends WorkingMessages
         textContent.isAcceptableOrUnknown(data['text']!, _textContentMeta),
       );
     }
+    if (data.containsKey('item_type')) {
+      context.handle(
+        _itemTypeMeta,
+        itemType.isAcceptableOrUnknown(data['item_type']!, _itemTypeMeta),
+      );
+    }
+    if (data.containsKey('is_system_message')) {
+      context.handle(
+        _isSystemMessageMeta,
+        isSystemMessage.isAcceptableOrUnknown(
+          data['is_system_message']!,
+          _isSystemMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
     if (data.containsKey('has_attachments')) {
       context.handle(
         _hasAttachmentsMeta,
@@ -3389,6 +4346,24 @@ class $WorkingMessagesTable extends WorkingMessages
         replyToGuid.isAcceptableOrUnknown(
           data['reply_to_guid']!,
           _replyToGuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('associated_message_guid')) {
+      context.handle(
+        _associatedMessageGuidMeta,
+        associatedMessageGuid.isAcceptableOrUnknown(
+          data['associated_message_guid']!,
+          _associatedMessageGuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('thread_originator_guid')) {
+      context.handle(
+        _threadOriginatorGuidMeta,
+        threadOriginatorGuid.isAcceptableOrUnknown(
+          data['thread_originator_guid']!,
+          _threadOriginatorGuidMeta,
         ),
       );
     }
@@ -3413,6 +4388,15 @@ class $WorkingMessagesTable extends WorkingMessages
         balloonBundleId.isAcceptableOrUnknown(
           data['balloon_bundle_id']!,
           _balloonBundleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
         ),
       );
     }
@@ -3447,6 +4431,12 @@ class $WorkingMessagesTable extends WorkingMessages
           data['updated_at_utc']!,
           _updatedAtUtcMeta,
         ),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
       );
     }
     return context;
@@ -3502,6 +4492,18 @@ class $WorkingMessagesTable extends WorkingMessages
         DriftSqlType.string,
         data['${effectivePrefix}text'],
       ),
+      itemType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_type'],
+      ),
+      isSystemMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system_message'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}error_code'],
+      ),
       hasAttachments: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}has_attachments'],
@@ -3509,6 +4511,14 @@ class $WorkingMessagesTable extends WorkingMessages
       replyToGuid: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}reply_to_guid'],
+      ),
+      associatedMessageGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}associated_message_guid'],
+      ),
+      threadOriginatorGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thread_originator_guid'],
       ),
       systemType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3521,6 +4531,10 @@ class $WorkingMessagesTable extends WorkingMessages
       balloonBundleId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}balloon_bundle_id'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
       ),
       reactionSummaryJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3537,6 +4551,10 @@ class $WorkingMessagesTable extends WorkingMessages
       updatedAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}updated_at_utc'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
       ),
     );
   }
@@ -3558,15 +4576,22 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
   final String? readAtUtc;
   final String status;
   final String? textContent;
+  final String? itemType;
+  final bool isSystemMessage;
+  final int? errorCode;
   final bool hasAttachments;
   final String? replyToGuid;
+  final String? associatedMessageGuid;
+  final String? threadOriginatorGuid;
   final String? systemType;
   final bool reactionCarrier;
   final String? balloonBundleId;
+  final String? payloadJson;
   final String? reactionSummaryJson;
   final bool isStarred;
   final bool isDeletedLocal;
   final String? updatedAtUtc;
+  final int? batchId;
   const WorkingMessage({
     required this.id,
     required this.guid,
@@ -3578,15 +4603,22 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     this.readAtUtc,
     required this.status,
     this.textContent,
+    this.itemType,
+    required this.isSystemMessage,
+    this.errorCode,
     required this.hasAttachments,
     this.replyToGuid,
+    this.associatedMessageGuid,
+    this.threadOriginatorGuid,
     this.systemType,
     required this.reactionCarrier,
     this.balloonBundleId,
+    this.payloadJson,
     this.reactionSummaryJson,
     required this.isStarred,
     required this.isDeletedLocal,
     this.updatedAtUtc,
+    this.batchId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3611,9 +4643,22 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     if (!nullToAbsent || textContent != null) {
       map['text'] = Variable<String>(textContent);
     }
+    if (!nullToAbsent || itemType != null) {
+      map['item_type'] = Variable<String>(itemType);
+    }
+    map['is_system_message'] = Variable<bool>(isSystemMessage);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<int>(errorCode);
+    }
     map['has_attachments'] = Variable<bool>(hasAttachments);
     if (!nullToAbsent || replyToGuid != null) {
       map['reply_to_guid'] = Variable<String>(replyToGuid);
+    }
+    if (!nullToAbsent || associatedMessageGuid != null) {
+      map['associated_message_guid'] = Variable<String>(associatedMessageGuid);
+    }
+    if (!nullToAbsent || threadOriginatorGuid != null) {
+      map['thread_originator_guid'] = Variable<String>(threadOriginatorGuid);
     }
     if (!nullToAbsent || systemType != null) {
       map['system_type'] = Variable<String>(systemType);
@@ -3622,6 +4667,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     if (!nullToAbsent || balloonBundleId != null) {
       map['balloon_bundle_id'] = Variable<String>(balloonBundleId);
     }
+    if (!nullToAbsent || payloadJson != null) {
+      map['payload_json'] = Variable<String>(payloadJson);
+    }
     if (!nullToAbsent || reactionSummaryJson != null) {
       map['reaction_summary_json'] = Variable<String>(reactionSummaryJson);
     }
@@ -3629,6 +4677,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     map['is_deleted_local'] = Variable<bool>(isDeletedLocal);
     if (!nullToAbsent || updatedAtUtc != null) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
     }
     return map;
   }
@@ -3655,10 +4706,23 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       textContent: textContent == null && nullToAbsent
           ? const Value.absent()
           : Value(textContent),
+      itemType: itemType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(itemType),
+      isSystemMessage: Value(isSystemMessage),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
       hasAttachments: Value(hasAttachments),
       replyToGuid: replyToGuid == null && nullToAbsent
           ? const Value.absent()
           : Value(replyToGuid),
+      associatedMessageGuid: associatedMessageGuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(associatedMessageGuid),
+      threadOriginatorGuid: threadOriginatorGuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(threadOriginatorGuid),
       systemType: systemType == null && nullToAbsent
           ? const Value.absent()
           : Value(systemType),
@@ -3666,6 +4730,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       balloonBundleId: balloonBundleId == null && nullToAbsent
           ? const Value.absent()
           : Value(balloonBundleId),
+      payloadJson: payloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payloadJson),
       reactionSummaryJson: reactionSummaryJson == null && nullToAbsent
           ? const Value.absent()
           : Value(reactionSummaryJson),
@@ -3674,6 +4741,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       updatedAtUtc: updatedAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(updatedAtUtc),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
     );
   }
 
@@ -3693,17 +4763,28 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       readAtUtc: serializer.fromJson<String?>(json['readAtUtc']),
       status: serializer.fromJson<String>(json['status']),
       textContent: serializer.fromJson<String?>(json['textContent']),
+      itemType: serializer.fromJson<String?>(json['itemType']),
+      isSystemMessage: serializer.fromJson<bool>(json['isSystemMessage']),
+      errorCode: serializer.fromJson<int?>(json['errorCode']),
       hasAttachments: serializer.fromJson<bool>(json['hasAttachments']),
       replyToGuid: serializer.fromJson<String?>(json['replyToGuid']),
+      associatedMessageGuid: serializer.fromJson<String?>(
+        json['associatedMessageGuid'],
+      ),
+      threadOriginatorGuid: serializer.fromJson<String?>(
+        json['threadOriginatorGuid'],
+      ),
       systemType: serializer.fromJson<String?>(json['systemType']),
       reactionCarrier: serializer.fromJson<bool>(json['reactionCarrier']),
       balloonBundleId: serializer.fromJson<String?>(json['balloonBundleId']),
+      payloadJson: serializer.fromJson<String?>(json['payloadJson']),
       reactionSummaryJson: serializer.fromJson<String?>(
         json['reactionSummaryJson'],
       ),
       isStarred: serializer.fromJson<bool>(json['isStarred']),
       isDeletedLocal: serializer.fromJson<bool>(json['isDeletedLocal']),
       updatedAtUtc: serializer.fromJson<String?>(json['updatedAtUtc']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
     );
   }
   @override
@@ -3720,15 +4801,24 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       'readAtUtc': serializer.toJson<String?>(readAtUtc),
       'status': serializer.toJson<String>(status),
       'textContent': serializer.toJson<String?>(textContent),
+      'itemType': serializer.toJson<String?>(itemType),
+      'isSystemMessage': serializer.toJson<bool>(isSystemMessage),
+      'errorCode': serializer.toJson<int?>(errorCode),
       'hasAttachments': serializer.toJson<bool>(hasAttachments),
       'replyToGuid': serializer.toJson<String?>(replyToGuid),
+      'associatedMessageGuid': serializer.toJson<String?>(
+        associatedMessageGuid,
+      ),
+      'threadOriginatorGuid': serializer.toJson<String?>(threadOriginatorGuid),
       'systemType': serializer.toJson<String?>(systemType),
       'reactionCarrier': serializer.toJson<bool>(reactionCarrier),
       'balloonBundleId': serializer.toJson<String?>(balloonBundleId),
+      'payloadJson': serializer.toJson<String?>(payloadJson),
       'reactionSummaryJson': serializer.toJson<String?>(reactionSummaryJson),
       'isStarred': serializer.toJson<bool>(isStarred),
       'isDeletedLocal': serializer.toJson<bool>(isDeletedLocal),
       'updatedAtUtc': serializer.toJson<String?>(updatedAtUtc),
+      'batchId': serializer.toJson<int?>(batchId),
     };
   }
 
@@ -3743,15 +4833,22 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     Value<String?> readAtUtc = const Value.absent(),
     String? status,
     Value<String?> textContent = const Value.absent(),
+    Value<String?> itemType = const Value.absent(),
+    bool? isSystemMessage,
+    Value<int?> errorCode = const Value.absent(),
     bool? hasAttachments,
     Value<String?> replyToGuid = const Value.absent(),
+    Value<String?> associatedMessageGuid = const Value.absent(),
+    Value<String?> threadOriginatorGuid = const Value.absent(),
     Value<String?> systemType = const Value.absent(),
     bool? reactionCarrier,
     Value<String?> balloonBundleId = const Value.absent(),
+    Value<String?> payloadJson = const Value.absent(),
     Value<String?> reactionSummaryJson = const Value.absent(),
     bool? isStarred,
     bool? isDeletedLocal,
     Value<String?> updatedAtUtc = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
   }) => WorkingMessage(
     id: id ?? this.id,
     guid: guid ?? this.guid,
@@ -3767,19 +4864,30 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     readAtUtc: readAtUtc.present ? readAtUtc.value : this.readAtUtc,
     status: status ?? this.status,
     textContent: textContent.present ? textContent.value : this.textContent,
+    itemType: itemType.present ? itemType.value : this.itemType,
+    isSystemMessage: isSystemMessage ?? this.isSystemMessage,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
     hasAttachments: hasAttachments ?? this.hasAttachments,
     replyToGuid: replyToGuid.present ? replyToGuid.value : this.replyToGuid,
+    associatedMessageGuid: associatedMessageGuid.present
+        ? associatedMessageGuid.value
+        : this.associatedMessageGuid,
+    threadOriginatorGuid: threadOriginatorGuid.present
+        ? threadOriginatorGuid.value
+        : this.threadOriginatorGuid,
     systemType: systemType.present ? systemType.value : this.systemType,
     reactionCarrier: reactionCarrier ?? this.reactionCarrier,
     balloonBundleId: balloonBundleId.present
         ? balloonBundleId.value
         : this.balloonBundleId,
+    payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
     reactionSummaryJson: reactionSummaryJson.present
         ? reactionSummaryJson.value
         : this.reactionSummaryJson,
     isStarred: isStarred ?? this.isStarred,
     isDeletedLocal: isDeletedLocal ?? this.isDeletedLocal,
     updatedAtUtc: updatedAtUtc.present ? updatedAtUtc.value : this.updatedAtUtc,
+    batchId: batchId.present ? batchId.value : this.batchId,
   );
   WorkingMessage copyWithCompanion(WorkingMessagesCompanion data) {
     return WorkingMessage(
@@ -3799,12 +4907,23 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       textContent: data.textContent.present
           ? data.textContent.value
           : this.textContent,
+      itemType: data.itemType.present ? data.itemType.value : this.itemType,
+      isSystemMessage: data.isSystemMessage.present
+          ? data.isSystemMessage.value
+          : this.isSystemMessage,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
       hasAttachments: data.hasAttachments.present
           ? data.hasAttachments.value
           : this.hasAttachments,
       replyToGuid: data.replyToGuid.present
           ? data.replyToGuid.value
           : this.replyToGuid,
+      associatedMessageGuid: data.associatedMessageGuid.present
+          ? data.associatedMessageGuid.value
+          : this.associatedMessageGuid,
+      threadOriginatorGuid: data.threadOriginatorGuid.present
+          ? data.threadOriginatorGuid.value
+          : this.threadOriginatorGuid,
       systemType: data.systemType.present
           ? data.systemType.value
           : this.systemType,
@@ -3814,6 +4933,9 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       balloonBundleId: data.balloonBundleId.present
           ? data.balloonBundleId.value
           : this.balloonBundleId,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
       reactionSummaryJson: data.reactionSummaryJson.present
           ? data.reactionSummaryJson.value
           : this.reactionSummaryJson,
@@ -3824,6 +4946,7 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       updatedAtUtc: data.updatedAtUtc.present
           ? data.updatedAtUtc.value
           : this.updatedAtUtc,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
 
@@ -3840,21 +4963,28 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           ..write('readAtUtc: $readAtUtc, ')
           ..write('status: $status, ')
           ..write('textContent: $textContent, ')
+          ..write('itemType: $itemType, ')
+          ..write('isSystemMessage: $isSystemMessage, ')
+          ..write('errorCode: $errorCode, ')
           ..write('hasAttachments: $hasAttachments, ')
           ..write('replyToGuid: $replyToGuid, ')
+          ..write('associatedMessageGuid: $associatedMessageGuid, ')
+          ..write('threadOriginatorGuid: $threadOriginatorGuid, ')
           ..write('systemType: $systemType, ')
           ..write('reactionCarrier: $reactionCarrier, ')
           ..write('balloonBundleId: $balloonBundleId, ')
+          ..write('payloadJson: $payloadJson, ')
           ..write('reactionSummaryJson: $reactionSummaryJson, ')
           ..write('isStarred: $isStarred, ')
           ..write('isDeletedLocal: $isDeletedLocal, ')
-          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     guid,
     chatId,
@@ -3865,16 +4995,23 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     readAtUtc,
     status,
     textContent,
+    itemType,
+    isSystemMessage,
+    errorCode,
     hasAttachments,
     replyToGuid,
+    associatedMessageGuid,
+    threadOriginatorGuid,
     systemType,
     reactionCarrier,
     balloonBundleId,
+    payloadJson,
     reactionSummaryJson,
     isStarred,
     isDeletedLocal,
     updatedAtUtc,
-  );
+    batchId,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3889,15 +5026,22 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           other.readAtUtc == this.readAtUtc &&
           other.status == this.status &&
           other.textContent == this.textContent &&
+          other.itemType == this.itemType &&
+          other.isSystemMessage == this.isSystemMessage &&
+          other.errorCode == this.errorCode &&
           other.hasAttachments == this.hasAttachments &&
           other.replyToGuid == this.replyToGuid &&
+          other.associatedMessageGuid == this.associatedMessageGuid &&
+          other.threadOriginatorGuid == this.threadOriginatorGuid &&
           other.systemType == this.systemType &&
           other.reactionCarrier == this.reactionCarrier &&
           other.balloonBundleId == this.balloonBundleId &&
+          other.payloadJson == this.payloadJson &&
           other.reactionSummaryJson == this.reactionSummaryJson &&
           other.isStarred == this.isStarred &&
           other.isDeletedLocal == this.isDeletedLocal &&
-          other.updatedAtUtc == this.updatedAtUtc);
+          other.updatedAtUtc == this.updatedAtUtc &&
+          other.batchId == this.batchId);
 }
 
 class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
@@ -3911,15 +5055,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
   final Value<String?> readAtUtc;
   final Value<String> status;
   final Value<String?> textContent;
+  final Value<String?> itemType;
+  final Value<bool> isSystemMessage;
+  final Value<int?> errorCode;
   final Value<bool> hasAttachments;
   final Value<String?> replyToGuid;
+  final Value<String?> associatedMessageGuid;
+  final Value<String?> threadOriginatorGuid;
   final Value<String?> systemType;
   final Value<bool> reactionCarrier;
   final Value<String?> balloonBundleId;
+  final Value<String?> payloadJson;
   final Value<String?> reactionSummaryJson;
   final Value<bool> isStarred;
   final Value<bool> isDeletedLocal;
   final Value<String?> updatedAtUtc;
+  final Value<int?> batchId;
   const WorkingMessagesCompanion({
     this.id = const Value.absent(),
     this.guid = const Value.absent(),
@@ -3931,15 +5082,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.readAtUtc = const Value.absent(),
     this.status = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.itemType = const Value.absent(),
+    this.isSystemMessage = const Value.absent(),
+    this.errorCode = const Value.absent(),
     this.hasAttachments = const Value.absent(),
     this.replyToGuid = const Value.absent(),
+    this.associatedMessageGuid = const Value.absent(),
+    this.threadOriginatorGuid = const Value.absent(),
     this.systemType = const Value.absent(),
     this.reactionCarrier = const Value.absent(),
     this.balloonBundleId = const Value.absent(),
+    this.payloadJson = const Value.absent(),
     this.reactionSummaryJson = const Value.absent(),
     this.isStarred = const Value.absent(),
     this.isDeletedLocal = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
   });
   WorkingMessagesCompanion.insert({
     this.id = const Value.absent(),
@@ -3952,15 +5110,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.readAtUtc = const Value.absent(),
     this.status = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.itemType = const Value.absent(),
+    this.isSystemMessage = const Value.absent(),
+    this.errorCode = const Value.absent(),
     this.hasAttachments = const Value.absent(),
     this.replyToGuid = const Value.absent(),
+    this.associatedMessageGuid = const Value.absent(),
+    this.threadOriginatorGuid = const Value.absent(),
     this.systemType = const Value.absent(),
     this.reactionCarrier = const Value.absent(),
     this.balloonBundleId = const Value.absent(),
+    this.payloadJson = const Value.absent(),
     this.reactionSummaryJson = const Value.absent(),
     this.isStarred = const Value.absent(),
     this.isDeletedLocal = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
   }) : guid = Value(guid),
        chatId = Value(chatId);
   static Insertable<WorkingMessage> custom({
@@ -3974,15 +5139,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Expression<String>? readAtUtc,
     Expression<String>? status,
     Expression<String>? textContent,
+    Expression<String>? itemType,
+    Expression<bool>? isSystemMessage,
+    Expression<int>? errorCode,
     Expression<bool>? hasAttachments,
     Expression<String>? replyToGuid,
+    Expression<String>? associatedMessageGuid,
+    Expression<String>? threadOriginatorGuid,
     Expression<String>? systemType,
     Expression<bool>? reactionCarrier,
     Expression<String>? balloonBundleId,
+    Expression<String>? payloadJson,
     Expression<String>? reactionSummaryJson,
     Expression<bool>? isStarred,
     Expression<bool>? isDeletedLocal,
     Expression<String>? updatedAtUtc,
+    Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3995,16 +5167,25 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       if (readAtUtc != null) 'read_at_utc': readAtUtc,
       if (status != null) 'status': status,
       if (textContent != null) 'text': textContent,
+      if (itemType != null) 'item_type': itemType,
+      if (isSystemMessage != null) 'is_system_message': isSystemMessage,
+      if (errorCode != null) 'error_code': errorCode,
       if (hasAttachments != null) 'has_attachments': hasAttachments,
       if (replyToGuid != null) 'reply_to_guid': replyToGuid,
+      if (associatedMessageGuid != null)
+        'associated_message_guid': associatedMessageGuid,
+      if (threadOriginatorGuid != null)
+        'thread_originator_guid': threadOriginatorGuid,
       if (systemType != null) 'system_type': systemType,
       if (reactionCarrier != null) 'reaction_carrier': reactionCarrier,
       if (balloonBundleId != null) 'balloon_bundle_id': balloonBundleId,
+      if (payloadJson != null) 'payload_json': payloadJson,
       if (reactionSummaryJson != null)
         'reaction_summary_json': reactionSummaryJson,
       if (isStarred != null) 'is_starred': isStarred,
       if (isDeletedLocal != null) 'is_deleted_local': isDeletedLocal,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+      if (batchId != null) 'batch_id': batchId,
     });
   }
 
@@ -4019,15 +5200,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Value<String?>? readAtUtc,
     Value<String>? status,
     Value<String?>? textContent,
+    Value<String?>? itemType,
+    Value<bool>? isSystemMessage,
+    Value<int?>? errorCode,
     Value<bool>? hasAttachments,
     Value<String?>? replyToGuid,
+    Value<String?>? associatedMessageGuid,
+    Value<String?>? threadOriginatorGuid,
     Value<String?>? systemType,
     Value<bool>? reactionCarrier,
     Value<String?>? balloonBundleId,
+    Value<String?>? payloadJson,
     Value<String?>? reactionSummaryJson,
     Value<bool>? isStarred,
     Value<bool>? isDeletedLocal,
     Value<String?>? updatedAtUtc,
+    Value<int?>? batchId,
   }) {
     return WorkingMessagesCompanion(
       id: id ?? this.id,
@@ -4040,15 +5228,23 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       readAtUtc: readAtUtc ?? this.readAtUtc,
       status: status ?? this.status,
       textContent: textContent ?? this.textContent,
+      itemType: itemType ?? this.itemType,
+      isSystemMessage: isSystemMessage ?? this.isSystemMessage,
+      errorCode: errorCode ?? this.errorCode,
       hasAttachments: hasAttachments ?? this.hasAttachments,
       replyToGuid: replyToGuid ?? this.replyToGuid,
+      associatedMessageGuid:
+          associatedMessageGuid ?? this.associatedMessageGuid,
+      threadOriginatorGuid: threadOriginatorGuid ?? this.threadOriginatorGuid,
       systemType: systemType ?? this.systemType,
       reactionCarrier: reactionCarrier ?? this.reactionCarrier,
       balloonBundleId: balloonBundleId ?? this.balloonBundleId,
+      payloadJson: payloadJson ?? this.payloadJson,
       reactionSummaryJson: reactionSummaryJson ?? this.reactionSummaryJson,
       isStarred: isStarred ?? this.isStarred,
       isDeletedLocal: isDeletedLocal ?? this.isDeletedLocal,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      batchId: batchId ?? this.batchId,
     );
   }
 
@@ -4085,11 +5281,30 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     if (textContent.present) {
       map['text'] = Variable<String>(textContent.value);
     }
+    if (itemType.present) {
+      map['item_type'] = Variable<String>(itemType.value);
+    }
+    if (isSystemMessage.present) {
+      map['is_system_message'] = Variable<bool>(isSystemMessage.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<int>(errorCode.value);
+    }
     if (hasAttachments.present) {
       map['has_attachments'] = Variable<bool>(hasAttachments.value);
     }
     if (replyToGuid.present) {
       map['reply_to_guid'] = Variable<String>(replyToGuid.value);
+    }
+    if (associatedMessageGuid.present) {
+      map['associated_message_guid'] = Variable<String>(
+        associatedMessageGuid.value,
+      );
+    }
+    if (threadOriginatorGuid.present) {
+      map['thread_originator_guid'] = Variable<String>(
+        threadOriginatorGuid.value,
+      );
     }
     if (systemType.present) {
       map['system_type'] = Variable<String>(systemType.value);
@@ -4099,6 +5314,9 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     }
     if (balloonBundleId.present) {
       map['balloon_bundle_id'] = Variable<String>(balloonBundleId.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
     }
     if (reactionSummaryJson.present) {
       map['reaction_summary_json'] = Variable<String>(
@@ -4113,6 +5331,9 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     }
     if (updatedAtUtc.present) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
     }
     return map;
   }
@@ -4130,15 +5351,22 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
           ..write('readAtUtc: $readAtUtc, ')
           ..write('status: $status, ')
           ..write('textContent: $textContent, ')
+          ..write('itemType: $itemType, ')
+          ..write('isSystemMessage: $isSystemMessage, ')
+          ..write('errorCode: $errorCode, ')
           ..write('hasAttachments: $hasAttachments, ')
           ..write('replyToGuid: $replyToGuid, ')
+          ..write('associatedMessageGuid: $associatedMessageGuid, ')
+          ..write('threadOriginatorGuid: $threadOriginatorGuid, ')
           ..write('systemType: $systemType, ')
           ..write('reactionCarrier: $reactionCarrier, ')
           ..write('balloonBundleId: $balloonBundleId, ')
+          ..write('payloadJson: $payloadJson, ')
           ..write('reactionSummaryJson: $reactionSummaryJson, ')
           ..write('isStarred: $isStarred, ')
           ..write('isDeletedLocal: $isDeletedLocal, ')
-          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
@@ -4274,6 +5502,43 @@ class $WorkingAttachmentsTable extends WorkingAttachments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isOutgoingMeta = const VerificationMeta(
+    'isOutgoing',
+  );
+  @override
+  late final GeneratedColumn<bool> isOutgoing = GeneratedColumn<bool>(
+    'is_outgoing',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_outgoing" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sha256HexMeta = const VerificationMeta(
+    'sha256Hex',
+  );
+  @override
+  late final GeneratedColumn<String> sha256Hex = GeneratedColumn<String>(
+    'sha256_hex',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4287,6 +5552,9 @@ class $WorkingAttachmentsTable extends WorkingAttachments
     isSticker,
     thumbPath,
     createdAtUtc,
+    isOutgoing,
+    sha256Hex,
+    batchId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4377,6 +5645,24 @@ class $WorkingAttachmentsTable extends WorkingAttachments
         ),
       );
     }
+    if (data.containsKey('is_outgoing')) {
+      context.handle(
+        _isOutgoingMeta,
+        isOutgoing.isAcceptableOrUnknown(data['is_outgoing']!, _isOutgoingMeta),
+      );
+    }
+    if (data.containsKey('sha256_hex')) {
+      context.handle(
+        _sha256HexMeta,
+        sha256Hex.isAcceptableOrUnknown(data['sha256_hex']!, _sha256HexMeta),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    }
     return context;
   }
 
@@ -4430,6 +5716,18 @@ class $WorkingAttachmentsTable extends WorkingAttachments
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
       ),
+      isOutgoing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_outgoing'],
+      )!,
+      sha256Hex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256_hex'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      ),
     );
   }
 
@@ -4452,6 +5750,9 @@ class WorkingAttachment extends DataClass
   final bool isSticker;
   final String? thumbPath;
   final String? createdAtUtc;
+  final bool isOutgoing;
+  final String? sha256Hex;
+  final int? batchId;
   const WorkingAttachment({
     required this.id,
     required this.messageGuid,
@@ -4464,6 +5765,9 @@ class WorkingAttachment extends DataClass
     required this.isSticker,
     this.thumbPath,
     this.createdAtUtc,
+    required this.isOutgoing,
+    this.sha256Hex,
+    this.batchId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4495,6 +5799,13 @@ class WorkingAttachment extends DataClass
     if (!nullToAbsent || createdAtUtc != null) {
       map['created_at_utc'] = Variable<String>(createdAtUtc);
     }
+    map['is_outgoing'] = Variable<bool>(isOutgoing);
+    if (!nullToAbsent || sha256Hex != null) {
+      map['sha256_hex'] = Variable<String>(sha256Hex);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
+    }
     return map;
   }
 
@@ -4525,6 +5836,13 @@ class WorkingAttachment extends DataClass
       createdAtUtc: createdAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAtUtc),
+      isOutgoing: Value(isOutgoing),
+      sha256Hex: sha256Hex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sha256Hex),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
     );
   }
 
@@ -4545,6 +5863,9 @@ class WorkingAttachment extends DataClass
       isSticker: serializer.fromJson<bool>(json['isSticker']),
       thumbPath: serializer.fromJson<String?>(json['thumbPath']),
       createdAtUtc: serializer.fromJson<String?>(json['createdAtUtc']),
+      isOutgoing: serializer.fromJson<bool>(json['isOutgoing']),
+      sha256Hex: serializer.fromJson<String?>(json['sha256Hex']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
     );
   }
   @override
@@ -4562,6 +5883,9 @@ class WorkingAttachment extends DataClass
       'isSticker': serializer.toJson<bool>(isSticker),
       'thumbPath': serializer.toJson<String?>(thumbPath),
       'createdAtUtc': serializer.toJson<String?>(createdAtUtc),
+      'isOutgoing': serializer.toJson<bool>(isOutgoing),
+      'sha256Hex': serializer.toJson<String?>(sha256Hex),
+      'batchId': serializer.toJson<int?>(batchId),
     };
   }
 
@@ -4577,6 +5901,9 @@ class WorkingAttachment extends DataClass
     bool? isSticker,
     Value<String?> thumbPath = const Value.absent(),
     Value<String?> createdAtUtc = const Value.absent(),
+    bool? isOutgoing,
+    Value<String?> sha256Hex = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
   }) => WorkingAttachment(
     id: id ?? this.id,
     messageGuid: messageGuid ?? this.messageGuid,
@@ -4591,6 +5918,9 @@ class WorkingAttachment extends DataClass
     isSticker: isSticker ?? this.isSticker,
     thumbPath: thumbPath.present ? thumbPath.value : this.thumbPath,
     createdAtUtc: createdAtUtc.present ? createdAtUtc.value : this.createdAtUtc,
+    isOutgoing: isOutgoing ?? this.isOutgoing,
+    sha256Hex: sha256Hex.present ? sha256Hex.value : this.sha256Hex,
+    batchId: batchId.present ? batchId.value : this.batchId,
   );
   WorkingAttachment copyWithCompanion(WorkingAttachmentsCompanion data) {
     return WorkingAttachment(
@@ -4613,6 +5943,11 @@ class WorkingAttachment extends DataClass
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
+      isOutgoing: data.isOutgoing.present
+          ? data.isOutgoing.value
+          : this.isOutgoing,
+      sha256Hex: data.sha256Hex.present ? data.sha256Hex.value : this.sha256Hex,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
 
@@ -4629,7 +5964,10 @@ class WorkingAttachment extends DataClass
           ..write('sizeBytes: $sizeBytes, ')
           ..write('isSticker: $isSticker, ')
           ..write('thumbPath: $thumbPath, ')
-          ..write('createdAtUtc: $createdAtUtc')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('isOutgoing: $isOutgoing, ')
+          ..write('sha256Hex: $sha256Hex, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
@@ -4647,6 +5985,9 @@ class WorkingAttachment extends DataClass
     isSticker,
     thumbPath,
     createdAtUtc,
+    isOutgoing,
+    sha256Hex,
+    batchId,
   );
   @override
   bool operator ==(Object other) =>
@@ -4662,7 +6003,10 @@ class WorkingAttachment extends DataClass
           other.sizeBytes == this.sizeBytes &&
           other.isSticker == this.isSticker &&
           other.thumbPath == this.thumbPath &&
-          other.createdAtUtc == this.createdAtUtc);
+          other.createdAtUtc == this.createdAtUtc &&
+          other.isOutgoing == this.isOutgoing &&
+          other.sha256Hex == this.sha256Hex &&
+          other.batchId == this.batchId);
 }
 
 class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
@@ -4677,6 +6021,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
   final Value<bool> isSticker;
   final Value<String?> thumbPath;
   final Value<String?> createdAtUtc;
+  final Value<bool> isOutgoing;
+  final Value<String?> sha256Hex;
+  final Value<int?> batchId;
   const WorkingAttachmentsCompanion({
     this.id = const Value.absent(),
     this.messageGuid = const Value.absent(),
@@ -4689,6 +6036,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
     this.isSticker = const Value.absent(),
     this.thumbPath = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
+    this.isOutgoing = const Value.absent(),
+    this.sha256Hex = const Value.absent(),
+    this.batchId = const Value.absent(),
   });
   WorkingAttachmentsCompanion.insert({
     this.id = const Value.absent(),
@@ -4702,6 +6052,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
     this.isSticker = const Value.absent(),
     this.thumbPath = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
+    this.isOutgoing = const Value.absent(),
+    this.sha256Hex = const Value.absent(),
+    this.batchId = const Value.absent(),
   }) : messageGuid = Value(messageGuid);
   static Insertable<WorkingAttachment> custom({
     Expression<int>? id,
@@ -4715,6 +6068,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
     Expression<bool>? isSticker,
     Expression<String>? thumbPath,
     Expression<String>? createdAtUtc,
+    Expression<bool>? isOutgoing,
+    Expression<String>? sha256Hex,
+    Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4729,6 +6085,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
       if (isSticker != null) 'is_sticker': isSticker,
       if (thumbPath != null) 'thumb_path': thumbPath,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (isOutgoing != null) 'is_outgoing': isOutgoing,
+      if (sha256Hex != null) 'sha256_hex': sha256Hex,
+      if (batchId != null) 'batch_id': batchId,
     });
   }
 
@@ -4744,6 +6103,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
     Value<bool>? isSticker,
     Value<String?>? thumbPath,
     Value<String?>? createdAtUtc,
+    Value<bool>? isOutgoing,
+    Value<String?>? sha256Hex,
+    Value<int?>? batchId,
   }) {
     return WorkingAttachmentsCompanion(
       id: id ?? this.id,
@@ -4757,6 +6119,9 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
       isSticker: isSticker ?? this.isSticker,
       thumbPath: thumbPath ?? this.thumbPath,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      isOutgoing: isOutgoing ?? this.isOutgoing,
+      sha256Hex: sha256Hex ?? this.sha256Hex,
+      batchId: batchId ?? this.batchId,
     );
   }
 
@@ -4796,6 +6161,15 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
+    if (isOutgoing.present) {
+      map['is_outgoing'] = Variable<bool>(isOutgoing.value);
+    }
+    if (sha256Hex.present) {
+      map['sha256_hex'] = Variable<String>(sha256Hex.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
+    }
     return map;
   }
 
@@ -4812,7 +6186,10 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
           ..write('sizeBytes: $sizeBytes, ')
           ..write('isSticker: $isSticker, ')
           ..write('thumbPath: $thumbPath, ')
-          ..write('createdAtUtc: $createdAtUtc')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('isOutgoing: $isOutgoing, ')
+          ..write('sha256Hex: $sha256Hex, ')
+          ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
@@ -4894,6 +6271,44 @@ class $WorkingReactionsTable extends WorkingReactions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _carrierMessageIdMeta = const VerificationMeta(
+    'carrierMessageId',
+  );
+  @override
+  late final GeneratedColumn<int> carrierMessageId = GeneratedColumn<int>(
+    'carrier_message_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES messages (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _targetMessageGuidMeta = const VerificationMeta(
+    'targetMessageGuid',
+  );
+  @override
+  late final GeneratedColumn<String> targetMessageGuid =
+      GeneratedColumn<String>(
+        'target_message_guid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _parseConfidenceMeta = const VerificationMeta(
+    'parseConfidence',
+  );
+  @override
+  late final GeneratedColumn<double> parseConfidence = GeneratedColumn<double>(
+    'parse_confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4902,6 +6317,9 @@ class $WorkingReactionsTable extends WorkingReactions
     reactorHandleId,
     action,
     reactedAtUtc,
+    carrierMessageId,
+    targetMessageGuid,
+    parseConfidence,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4963,6 +6381,33 @@ class $WorkingReactionsTable extends WorkingReactions
         ),
       );
     }
+    if (data.containsKey('carrier_message_id')) {
+      context.handle(
+        _carrierMessageIdMeta,
+        carrierMessageId.isAcceptableOrUnknown(
+          data['carrier_message_id']!,
+          _carrierMessageIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_message_guid')) {
+      context.handle(
+        _targetMessageGuidMeta,
+        targetMessageGuid.isAcceptableOrUnknown(
+          data['target_message_guid']!,
+          _targetMessageGuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('parse_confidence')) {
+      context.handle(
+        _parseConfidenceMeta,
+        parseConfidence.isAcceptableOrUnknown(
+          data['parse_confidence']!,
+          _parseConfidenceMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4996,6 +6441,18 @@ class $WorkingReactionsTable extends WorkingReactions
         DriftSqlType.string,
         data['${effectivePrefix}reacted_at_utc'],
       ),
+      carrierMessageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}carrier_message_id'],
+      ),
+      targetMessageGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_message_guid'],
+      ),
+      parseConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}parse_confidence'],
+      )!,
     );
   }
 
@@ -5012,6 +6469,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
   final int? reactorHandleId;
   final String action;
   final String? reactedAtUtc;
+  final int? carrierMessageId;
+  final String? targetMessageGuid;
+  final double parseConfidence;
   const WorkingReaction({
     required this.id,
     required this.messageGuid,
@@ -5019,6 +6479,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
     this.reactorHandleId,
     required this.action,
     this.reactedAtUtc,
+    this.carrierMessageId,
+    this.targetMessageGuid,
+    required this.parseConfidence,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5033,6 +6496,13 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
     if (!nullToAbsent || reactedAtUtc != null) {
       map['reacted_at_utc'] = Variable<String>(reactedAtUtc);
     }
+    if (!nullToAbsent || carrierMessageId != null) {
+      map['carrier_message_id'] = Variable<int>(carrierMessageId);
+    }
+    if (!nullToAbsent || targetMessageGuid != null) {
+      map['target_message_guid'] = Variable<String>(targetMessageGuid);
+    }
+    map['parse_confidence'] = Variable<double>(parseConfidence);
     return map;
   }
 
@@ -5048,6 +6518,13 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       reactedAtUtc: reactedAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(reactedAtUtc),
+      carrierMessageId: carrierMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(carrierMessageId),
+      targetMessageGuid: targetMessageGuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetMessageGuid),
+      parseConfidence: Value(parseConfidence),
     );
   }
 
@@ -5063,6 +6540,11 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       reactorHandleId: serializer.fromJson<int?>(json['reactorHandleId']),
       action: serializer.fromJson<String>(json['action']),
       reactedAtUtc: serializer.fromJson<String?>(json['reactedAtUtc']),
+      carrierMessageId: serializer.fromJson<int?>(json['carrierMessageId']),
+      targetMessageGuid: serializer.fromJson<String?>(
+        json['targetMessageGuid'],
+      ),
+      parseConfidence: serializer.fromJson<double>(json['parseConfidence']),
     );
   }
   @override
@@ -5075,6 +6557,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       'reactorHandleId': serializer.toJson<int?>(reactorHandleId),
       'action': serializer.toJson<String>(action),
       'reactedAtUtc': serializer.toJson<String?>(reactedAtUtc),
+      'carrierMessageId': serializer.toJson<int?>(carrierMessageId),
+      'targetMessageGuid': serializer.toJson<String?>(targetMessageGuid),
+      'parseConfidence': serializer.toJson<double>(parseConfidence),
     };
   }
 
@@ -5085,6 +6570,9 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
     Value<int?> reactorHandleId = const Value.absent(),
     String? action,
     Value<String?> reactedAtUtc = const Value.absent(),
+    Value<int?> carrierMessageId = const Value.absent(),
+    Value<String?> targetMessageGuid = const Value.absent(),
+    double? parseConfidence,
   }) => WorkingReaction(
     id: id ?? this.id,
     messageGuid: messageGuid ?? this.messageGuid,
@@ -5094,6 +6582,13 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
         : this.reactorHandleId,
     action: action ?? this.action,
     reactedAtUtc: reactedAtUtc.present ? reactedAtUtc.value : this.reactedAtUtc,
+    carrierMessageId: carrierMessageId.present
+        ? carrierMessageId.value
+        : this.carrierMessageId,
+    targetMessageGuid: targetMessageGuid.present
+        ? targetMessageGuid.value
+        : this.targetMessageGuid,
+    parseConfidence: parseConfidence ?? this.parseConfidence,
   );
   WorkingReaction copyWithCompanion(WorkingReactionsCompanion data) {
     return WorkingReaction(
@@ -5109,6 +6604,15 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
       reactedAtUtc: data.reactedAtUtc.present
           ? data.reactedAtUtc.value
           : this.reactedAtUtc,
+      carrierMessageId: data.carrierMessageId.present
+          ? data.carrierMessageId.value
+          : this.carrierMessageId,
+      targetMessageGuid: data.targetMessageGuid.present
+          ? data.targetMessageGuid.value
+          : this.targetMessageGuid,
+      parseConfidence: data.parseConfidence.present
+          ? data.parseConfidence.value
+          : this.parseConfidence,
     );
   }
 
@@ -5120,14 +6624,26 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
           ..write('kind: $kind, ')
           ..write('reactorHandleId: $reactorHandleId, ')
           ..write('action: $action, ')
-          ..write('reactedAtUtc: $reactedAtUtc')
+          ..write('reactedAtUtc: $reactedAtUtc, ')
+          ..write('carrierMessageId: $carrierMessageId, ')
+          ..write('targetMessageGuid: $targetMessageGuid, ')
+          ..write('parseConfidence: $parseConfidence')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, messageGuid, kind, reactorHandleId, action, reactedAtUtc);
+  int get hashCode => Object.hash(
+    id,
+    messageGuid,
+    kind,
+    reactorHandleId,
+    action,
+    reactedAtUtc,
+    carrierMessageId,
+    targetMessageGuid,
+    parseConfidence,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5137,7 +6653,10 @@ class WorkingReaction extends DataClass implements Insertable<WorkingReaction> {
           other.kind == this.kind &&
           other.reactorHandleId == this.reactorHandleId &&
           other.action == this.action &&
-          other.reactedAtUtc == this.reactedAtUtc);
+          other.reactedAtUtc == this.reactedAtUtc &&
+          other.carrierMessageId == this.carrierMessageId &&
+          other.targetMessageGuid == this.targetMessageGuid &&
+          other.parseConfidence == this.parseConfidence);
 }
 
 class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
@@ -5147,6 +6666,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
   final Value<int?> reactorHandleId;
   final Value<String> action;
   final Value<String?> reactedAtUtc;
+  final Value<int?> carrierMessageId;
+  final Value<String?> targetMessageGuid;
+  final Value<double> parseConfidence;
   const WorkingReactionsCompanion({
     this.id = const Value.absent(),
     this.messageGuid = const Value.absent(),
@@ -5154,6 +6676,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     this.reactorHandleId = const Value.absent(),
     this.action = const Value.absent(),
     this.reactedAtUtc = const Value.absent(),
+    this.carrierMessageId = const Value.absent(),
+    this.targetMessageGuid = const Value.absent(),
+    this.parseConfidence = const Value.absent(),
   });
   WorkingReactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -5162,6 +6687,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     this.reactorHandleId = const Value.absent(),
     required String action,
     this.reactedAtUtc = const Value.absent(),
+    this.carrierMessageId = const Value.absent(),
+    this.targetMessageGuid = const Value.absent(),
+    this.parseConfidence = const Value.absent(),
   }) : messageGuid = Value(messageGuid),
        kind = Value(kind),
        action = Value(action);
@@ -5172,6 +6700,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     Expression<int>? reactorHandleId,
     Expression<String>? action,
     Expression<String>? reactedAtUtc,
+    Expression<int>? carrierMessageId,
+    Expression<String>? targetMessageGuid,
+    Expression<double>? parseConfidence,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5180,6 +6711,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
       if (reactorHandleId != null) 'reactor_handle_id': reactorHandleId,
       if (action != null) 'action': action,
       if (reactedAtUtc != null) 'reacted_at_utc': reactedAtUtc,
+      if (carrierMessageId != null) 'carrier_message_id': carrierMessageId,
+      if (targetMessageGuid != null) 'target_message_guid': targetMessageGuid,
+      if (parseConfidence != null) 'parse_confidence': parseConfidence,
     });
   }
 
@@ -5190,6 +6724,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     Value<int?>? reactorHandleId,
     Value<String>? action,
     Value<String?>? reactedAtUtc,
+    Value<int?>? carrierMessageId,
+    Value<String?>? targetMessageGuid,
+    Value<double>? parseConfidence,
   }) {
     return WorkingReactionsCompanion(
       id: id ?? this.id,
@@ -5198,6 +6735,9 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
       reactorHandleId: reactorHandleId ?? this.reactorHandleId,
       action: action ?? this.action,
       reactedAtUtc: reactedAtUtc ?? this.reactedAtUtc,
+      carrierMessageId: carrierMessageId ?? this.carrierMessageId,
+      targetMessageGuid: targetMessageGuid ?? this.targetMessageGuid,
+      parseConfidence: parseConfidence ?? this.parseConfidence,
     );
   }
 
@@ -5222,6 +6762,15 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
     if (reactedAtUtc.present) {
       map['reacted_at_utc'] = Variable<String>(reactedAtUtc.value);
     }
+    if (carrierMessageId.present) {
+      map['carrier_message_id'] = Variable<int>(carrierMessageId.value);
+    }
+    if (targetMessageGuid.present) {
+      map['target_message_guid'] = Variable<String>(targetMessageGuid.value);
+    }
+    if (parseConfidence.present) {
+      map['parse_confidence'] = Variable<double>(parseConfidence.value);
+    }
     return map;
   }
 
@@ -5233,7 +6782,10 @@ class WorkingReactionsCompanion extends UpdateCompanion<WorkingReaction> {
           ..write('kind: $kind, ')
           ..write('reactorHandleId: $reactorHandleId, ')
           ..write('action: $action, ')
-          ..write('reactedAtUtc: $reactedAtUtc')
+          ..write('reactedAtUtc: $reactedAtUtc, ')
+          ..write('carrierMessageId: $carrierMessageId, ')
+          ..write('targetMessageGuid: $targetMessageGuid, ')
+          ..write('parseConfidence: $parseConfidence')
           ..write(')'))
         .toString();
   }
@@ -7246,6 +8798,13 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reactions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'chats',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -7767,17 +9326,27 @@ typedef $$WorkingHandlesTableCreateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
       required String handleId,
+      Value<String?> normalizedIdentifier,
       Value<String> service,
+      Value<bool> isIgnored,
       Value<bool> isValid,
       Value<bool> isBlacklisted,
+      Value<String?> country,
+      Value<String?> lastSeenUtc,
+      Value<int?> batchId,
     });
 typedef $$WorkingHandlesTableUpdateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
       Value<String> handleId,
+      Value<String?> normalizedIdentifier,
       Value<String> service,
+      Value<bool> isIgnored,
       Value<bool> isValid,
       Value<bool> isBlacklisted,
+      Value<String?> country,
+      Value<String?> lastSeenUtc,
+      Value<int?> batchId,
     });
 
 final class $$WorkingHandlesTableReferences
@@ -7926,8 +9495,18 @@ class $$WorkingHandlesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get service => $composableBuilder(
     column: $table.service,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7938,6 +9517,21 @@ class $$WorkingHandlesTableFilterComposer
 
   ColumnFilters<bool> get isBlacklisted => $composableBuilder(
     column: $table.isBlacklisted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8086,8 +9680,18 @@ class $$WorkingHandlesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get service => $composableBuilder(
     column: $table.service,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -8098,6 +9702,21 @@ class $$WorkingHandlesTableOrderingComposer
 
   ColumnOrderings<bool> get isBlacklisted => $composableBuilder(
     column: $table.isBlacklisted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -8117,8 +9736,16 @@ class $$WorkingHandlesTableAnnotationComposer
   GeneratedColumn<String> get handleId =>
       $composableBuilder(column: $table.handleId, builder: (column) => column);
 
+  GeneratedColumn<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get service =>
       $composableBuilder(column: $table.service, builder: (column) => column);
+
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
   GeneratedColumn<bool> get isValid =>
       $composableBuilder(column: $table.isValid, builder: (column) => column);
@@ -8127,6 +9754,17 @@ class $$WorkingHandlesTableAnnotationComposer
     column: $table.isBlacklisted,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
 
   Expression<T> handleToParticipantRefs<T extends Object>(
     Expression<T> Function($$HandleToParticipantTableAnnotationComposer a) f,
@@ -8293,29 +9931,49 @@ class $$WorkingHandlesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> handleId = const Value.absent(),
+                Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 Value<bool> isValid = const Value.absent(),
                 Value<bool> isBlacklisted = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> lastSeenUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingHandlesCompanion(
                 id: id,
                 handleId: handleId,
+                normalizedIdentifier: normalizedIdentifier,
                 service: service,
+                isIgnored: isIgnored,
                 isValid: isValid,
                 isBlacklisted: isBlacklisted,
+                country: country,
+                lastSeenUtc: lastSeenUtc,
+                batchId: batchId,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String handleId,
+                Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 Value<bool> isValid = const Value.absent(),
                 Value<bool> isBlacklisted = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> lastSeenUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingHandlesCompanion.insert(
                 id: id,
                 handleId: handleId,
+                normalizedIdentifier: normalizedIdentifier,
                 service: service,
+                isIgnored: isIgnored,
                 isValid: isValid,
                 isBlacklisted: isBlacklisted,
+                country: country,
+                lastSeenUtc: lastSeenUtc,
+                batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8485,6 +10143,13 @@ typedef $$WorkingParticipantsTableCreateCompanionBuilder =
       required String displayName,
       required String shortName,
       Value<String?> avatarRef,
+      Value<String?> givenName,
+      Value<String?> familyName,
+      Value<String?> organization,
+      Value<bool> isOrganization,
+      Value<String?> createdAtUtc,
+      Value<String?> updatedAtUtc,
+      Value<int?> sourceRecordId,
     });
 typedef $$WorkingParticipantsTableUpdateCompanionBuilder =
     WorkingParticipantsCompanion Function({
@@ -8493,6 +10158,13 @@ typedef $$WorkingParticipantsTableUpdateCompanionBuilder =
       Value<String> displayName,
       Value<String> shortName,
       Value<String?> avatarRef,
+      Value<String?> givenName,
+      Value<String?> familyName,
+      Value<String?> organization,
+      Value<bool> isOrganization,
+      Value<String?> createdAtUtc,
+      Value<String?> updatedAtUtc,
+      Value<int?> sourceRecordId,
     });
 
 final class $$WorkingParticipantsTableReferences
@@ -8570,6 +10242,41 @@ class $$WorkingParticipantsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get givenName => $composableBuilder(
+    column: $table.givenName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get familyName => $composableBuilder(
+    column: $table.familyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get organization => $composableBuilder(
+    column: $table.organization,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOrganization => $composableBuilder(
+    column: $table.isOrganization,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRecordId => $composableBuilder(
+    column: $table.sourceRecordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> handleToParticipantRefs(
     Expression<bool> Function($$HandleToParticipantTableFilterComposer f) f,
   ) {
@@ -8629,6 +10336,41 @@ class $$WorkingParticipantsTableOrderingComposer
     column: $table.avatarRef,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get givenName => $composableBuilder(
+    column: $table.givenName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get familyName => $composableBuilder(
+    column: $table.familyName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get organization => $composableBuilder(
+    column: $table.organization,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOrganization => $composableBuilder(
+    column: $table.isOrganization,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRecordId => $composableBuilder(
+    column: $table.sourceRecordId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkingParticipantsTableAnnotationComposer
@@ -8658,6 +10400,39 @@ class $$WorkingParticipantsTableAnnotationComposer
 
   GeneratedColumn<String> get avatarRef =>
       $composableBuilder(column: $table.avatarRef, builder: (column) => column);
+
+  GeneratedColumn<String> get givenName =>
+      $composableBuilder(column: $table.givenName, builder: (column) => column);
+
+  GeneratedColumn<String> get familyName => $composableBuilder(
+    column: $table.familyName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get organization => $composableBuilder(
+    column: $table.organization,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isOrganization => $composableBuilder(
+    column: $table.isOrganization,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourceRecordId => $composableBuilder(
+    column: $table.sourceRecordId,
+    builder: (column) => column,
+  );
 
   Expression<T> handleToParticipantRefs<T extends Object>(
     Expression<T> Function($$HandleToParticipantTableAnnotationComposer a) f,
@@ -8727,12 +10502,26 @@ class $$WorkingParticipantsTableTableManager
                 Value<String> displayName = const Value.absent(),
                 Value<String> shortName = const Value.absent(),
                 Value<String?> avatarRef = const Value.absent(),
+                Value<String?> givenName = const Value.absent(),
+                Value<String?> familyName = const Value.absent(),
+                Value<String?> organization = const Value.absent(),
+                Value<bool> isOrganization = const Value.absent(),
+                Value<String?> createdAtUtc = const Value.absent(),
+                Value<String?> updatedAtUtc = const Value.absent(),
+                Value<int?> sourceRecordId = const Value.absent(),
               }) => WorkingParticipantsCompanion(
                 id: id,
                 originalName: originalName,
                 displayName: displayName,
                 shortName: shortName,
                 avatarRef: avatarRef,
+                givenName: givenName,
+                familyName: familyName,
+                organization: organization,
+                isOrganization: isOrganization,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+                sourceRecordId: sourceRecordId,
               ),
           createCompanionCallback:
               ({
@@ -8741,12 +10530,26 @@ class $$WorkingParticipantsTableTableManager
                 required String displayName,
                 required String shortName,
                 Value<String?> avatarRef = const Value.absent(),
+                Value<String?> givenName = const Value.absent(),
+                Value<String?> familyName = const Value.absent(),
+                Value<String?> organization = const Value.absent(),
+                Value<bool> isOrganization = const Value.absent(),
+                Value<String?> createdAtUtc = const Value.absent(),
+                Value<String?> updatedAtUtc = const Value.absent(),
+                Value<int?> sourceRecordId = const Value.absent(),
               }) => WorkingParticipantsCompanion.insert(
                 id: id,
                 originalName: originalName,
                 displayName: displayName,
                 shortName: shortName,
                 avatarRef: avatarRef,
+                givenName: givenName,
+                familyName: familyName,
+                organization: organization,
+                isOrganization: isOrganization,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+                sourceRecordId: sourceRecordId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -9256,6 +11059,7 @@ typedef $$WorkingChatsTableCreateCompanionBuilder =
       Value<bool> favourite,
       Value<String?> createdAtUtc,
       Value<String?> updatedAtUtc,
+      Value<bool> isIgnored,
     });
 typedef $$WorkingChatsTableUpdateCompanionBuilder =
     WorkingChatsCompanion Function({
@@ -9273,6 +11077,7 @@ typedef $$WorkingChatsTableUpdateCompanionBuilder =
       Value<bool> favourite,
       Value<String?> createdAtUtc,
       Value<String?> updatedAtUtc,
+      Value<bool> isIgnored,
     });
 
 final class $$WorkingChatsTableReferences
@@ -9433,6 +11238,11 @@ class $$WorkingChatsTableFilterComposer
 
   ColumnFilters<String> get updatedAtUtc => $composableBuilder(
     column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9609,6 +11419,11 @@ class $$WorkingChatsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WorkingHandlesTableOrderingComposer get lastSenderHandleId {
     final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -9692,6 +11507,9 @@ class $$WorkingChatsTableAnnotationComposer
     column: $table.updatedAtUtc,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
   $$WorkingHandlesTableAnnotationComposer get lastSenderHandleId {
     final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
@@ -9841,6 +11659,7 @@ class $$WorkingChatsTableTableManager
                 Value<bool> favourite = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
               }) => WorkingChatsCompanion(
                 id: id,
                 guid: guid,
@@ -9856,6 +11675,7 @@ class $$WorkingChatsTableTableManager
                 favourite: favourite,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
+                isIgnored: isIgnored,
               ),
           createCompanionCallback:
               ({
@@ -9873,6 +11693,7 @@ class $$WorkingChatsTableTableManager
                 Value<bool> favourite = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
               }) => WorkingChatsCompanion.insert(
                 id: id,
                 guid: guid,
@@ -9888,6 +11709,7 @@ class $$WorkingChatsTableTableManager
                 favourite: favourite,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
+                isIgnored: isIgnored,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -10042,12 +11864,18 @@ typedef $$ChatToHandleTableCreateCompanionBuilder =
       Value<int> id,
       required int chatId,
       required int handleId,
+      Value<String> role,
+      Value<String?> addedAtUtc,
+      Value<bool> isIgnored,
     });
 typedef $$ChatToHandleTableUpdateCompanionBuilder =
     ChatToHandleCompanion Function({
       Value<int> id,
       Value<int> chatId,
       Value<int> handleId,
+      Value<String> role,
+      Value<String?> addedAtUtc,
+      Value<bool> isIgnored,
     });
 
 final class $$ChatToHandleTableReferences
@@ -10112,6 +11940,21 @@ class $$ChatToHandleTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get addedAtUtc => $composableBuilder(
+    column: $table.addedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$WorkingChatsTableFilterComposer get chatId {
     final $$WorkingChatsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -10173,6 +12016,21 @@ class $$ChatToHandleTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get addedAtUtc => $composableBuilder(
+    column: $table.addedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WorkingChatsTableOrderingComposer get chatId {
     final $$WorkingChatsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -10231,6 +12089,17 @@ class $$ChatToHandleTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get addedAtUtc => $composableBuilder(
+    column: $table.addedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
   $$WorkingChatsTableAnnotationComposer get chatId {
     final $$WorkingChatsTableAnnotationComposer composer = $composerBuilder(
@@ -10312,20 +12181,32 @@ class $$ChatToHandleTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<int> chatId = const Value.absent(),
                 Value<int> handleId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String?> addedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
               }) => ChatToHandleCompanion(
                 id: id,
                 chatId: chatId,
                 handleId: handleId,
+                role: role,
+                addedAtUtc: addedAtUtc,
+                isIgnored: isIgnored,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required int chatId,
                 required int handleId,
+                Value<String> role = const Value.absent(),
+                Value<String?> addedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
               }) => ChatToHandleCompanion.insert(
                 id: id,
                 chatId: chatId,
                 handleId: handleId,
+                role: role,
+                addedAtUtc: addedAtUtc,
+                isIgnored: isIgnored,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -10419,15 +12300,22 @@ typedef $$WorkingMessagesTableCreateCompanionBuilder =
       Value<String?> readAtUtc,
       Value<String> status,
       Value<String?> textContent,
+      Value<String?> itemType,
+      Value<bool> isSystemMessage,
+      Value<int?> errorCode,
       Value<bool> hasAttachments,
       Value<String?> replyToGuid,
+      Value<String?> associatedMessageGuid,
+      Value<String?> threadOriginatorGuid,
       Value<String?> systemType,
       Value<bool> reactionCarrier,
       Value<String?> balloonBundleId,
+      Value<String?> payloadJson,
       Value<String?> reactionSummaryJson,
       Value<bool> isStarred,
       Value<bool> isDeletedLocal,
       Value<String?> updatedAtUtc,
+      Value<int?> batchId,
     });
 typedef $$WorkingMessagesTableUpdateCompanionBuilder =
     WorkingMessagesCompanion Function({
@@ -10441,15 +12329,22 @@ typedef $$WorkingMessagesTableUpdateCompanionBuilder =
       Value<String?> readAtUtc,
       Value<String> status,
       Value<String?> textContent,
+      Value<String?> itemType,
+      Value<bool> isSystemMessage,
+      Value<int?> errorCode,
       Value<bool> hasAttachments,
       Value<String?> replyToGuid,
+      Value<String?> associatedMessageGuid,
+      Value<String?> threadOriginatorGuid,
       Value<String?> systemType,
       Value<bool> reactionCarrier,
       Value<String?> balloonBundleId,
+      Value<String?> payloadJson,
       Value<String?> reactionSummaryJson,
       Value<bool> isStarred,
       Value<bool> isDeletedLocal,
       Value<String?> updatedAtUtc,
+      Value<int?> batchId,
     });
 
 final class $$WorkingMessagesTableReferences
@@ -10505,6 +12400,30 @@ final class $$WorkingMessagesTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$WorkingReactionsTable, List<WorkingReaction>>
+  _workingReactionsRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.workingReactions,
+        aliasName: $_aliasNameGenerator(
+          db.workingMessages.id,
+          db.workingReactions.carrierMessageId,
+        ),
+      );
+
+  $$WorkingReactionsTableProcessedTableManager get workingReactionsRefs {
+    final manager = $$WorkingReactionsTableTableManager(
+      $_db,
+      $_db.workingReactions,
+    ).filter((f) => f.carrierMessageId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _workingReactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$WorkingMessagesTableFilterComposer
@@ -10556,6 +12475,21 @@ class $$WorkingMessagesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get itemType => $composableBuilder(
+    column: $table.itemType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get hasAttachments => $composableBuilder(
     column: $table.hasAttachments,
     builder: (column) => ColumnFilters(column),
@@ -10563,6 +12497,16 @@ class $$WorkingMessagesTableFilterComposer
 
   ColumnFilters<String> get replyToGuid => $composableBuilder(
     column: $table.replyToGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10578,6 +12522,11 @@ class $$WorkingMessagesTableFilterComposer
 
   ColumnFilters<String> get balloonBundleId => $composableBuilder(
     column: $table.balloonBundleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10598,6 +12547,11 @@ class $$WorkingMessagesTableFilterComposer
 
   ColumnFilters<String> get updatedAtUtc => $composableBuilder(
     column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10645,6 +12599,31 @@ class $$WorkingMessagesTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> workingReactionsRefs(
+    Expression<bool> Function($$WorkingReactionsTableFilterComposer f) f,
+  ) {
+    final $$WorkingReactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.workingReactions,
+      getReferencedColumn: (t) => t.carrierMessageId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingReactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.workingReactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -10697,6 +12676,21 @@ class $$WorkingMessagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get itemType => $composableBuilder(
+    column: $table.itemType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get hasAttachments => $composableBuilder(
     column: $table.hasAttachments,
     builder: (column) => ColumnOrderings(column),
@@ -10704,6 +12698,16 @@ class $$WorkingMessagesTableOrderingComposer
 
   ColumnOrderings<String> get replyToGuid => $composableBuilder(
     column: $table.replyToGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10719,6 +12723,11 @@ class $$WorkingMessagesTableOrderingComposer
 
   ColumnOrderings<String> get balloonBundleId => $composableBuilder(
     column: $table.balloonBundleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10739,6 +12748,11 @@ class $$WorkingMessagesTableOrderingComposer
 
   ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
     column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10826,6 +12840,17 @@ class $$WorkingMessagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get itemType =>
+      $composableBuilder(column: $table.itemType, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
   GeneratedColumn<bool> get hasAttachments => $composableBuilder(
     column: $table.hasAttachments,
     builder: (column) => column,
@@ -10833,6 +12858,16 @@ class $$WorkingMessagesTableAnnotationComposer
 
   GeneratedColumn<String> get replyToGuid => $composableBuilder(
     column: $table.replyToGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
     builder: (column) => column,
   );
 
@@ -10848,6 +12883,11 @@ class $$WorkingMessagesTableAnnotationComposer
 
   GeneratedColumn<String> get balloonBundleId => $composableBuilder(
     column: $table.balloonBundleId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
     builder: (column) => column,
   );
 
@@ -10868,6 +12908,9 @@ class $$WorkingMessagesTableAnnotationComposer
     column: $table.updatedAtUtc,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
 
   $$WorkingChatsTableAnnotationComposer get chatId {
     final $$WorkingChatsTableAnnotationComposer composer = $composerBuilder(
@@ -10914,6 +12957,31 @@ class $$WorkingMessagesTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> workingReactionsRefs<T extends Object>(
+    Expression<T> Function($$WorkingReactionsTableAnnotationComposer a) f,
+  ) {
+    final $$WorkingReactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.workingReactions,
+      getReferencedColumn: (t) => t.carrierMessageId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingReactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingReactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$WorkingMessagesTableTableManager
@@ -10929,7 +12997,11 @@ class $$WorkingMessagesTableTableManager
           $$WorkingMessagesTableUpdateCompanionBuilder,
           (WorkingMessage, $$WorkingMessagesTableReferences),
           WorkingMessage,
-          PrefetchHooks Function({bool chatId, bool senderHandleId})
+          PrefetchHooks Function({
+            bool chatId,
+            bool senderHandleId,
+            bool workingReactionsRefs,
+          })
         > {
   $$WorkingMessagesTableTableManager(
     _$WorkingDatabase db,
@@ -10956,15 +13028,22 @@ class $$WorkingMessagesTableTableManager
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<String?> itemType = const Value.absent(),
+                Value<bool> isSystemMessage = const Value.absent(),
+                Value<int?> errorCode = const Value.absent(),
                 Value<bool> hasAttachments = const Value.absent(),
                 Value<String?> replyToGuid = const Value.absent(),
+                Value<String?> associatedMessageGuid = const Value.absent(),
+                Value<String?> threadOriginatorGuid = const Value.absent(),
                 Value<String?> systemType = const Value.absent(),
                 Value<bool> reactionCarrier = const Value.absent(),
                 Value<String?> balloonBundleId = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
                 Value<String?> reactionSummaryJson = const Value.absent(),
                 Value<bool> isStarred = const Value.absent(),
                 Value<bool> isDeletedLocal = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingMessagesCompanion(
                 id: id,
                 guid: guid,
@@ -10976,15 +13055,22 @@ class $$WorkingMessagesTableTableManager
                 readAtUtc: readAtUtc,
                 status: status,
                 textContent: textContent,
+                itemType: itemType,
+                isSystemMessage: isSystemMessage,
+                errorCode: errorCode,
                 hasAttachments: hasAttachments,
                 replyToGuid: replyToGuid,
+                associatedMessageGuid: associatedMessageGuid,
+                threadOriginatorGuid: threadOriginatorGuid,
                 systemType: systemType,
                 reactionCarrier: reactionCarrier,
                 balloonBundleId: balloonBundleId,
+                payloadJson: payloadJson,
                 reactionSummaryJson: reactionSummaryJson,
                 isStarred: isStarred,
                 isDeletedLocal: isDeletedLocal,
                 updatedAtUtc: updatedAtUtc,
+                batchId: batchId,
               ),
           createCompanionCallback:
               ({
@@ -10998,15 +13084,22 @@ class $$WorkingMessagesTableTableManager
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<String?> itemType = const Value.absent(),
+                Value<bool> isSystemMessage = const Value.absent(),
+                Value<int?> errorCode = const Value.absent(),
                 Value<bool> hasAttachments = const Value.absent(),
                 Value<String?> replyToGuid = const Value.absent(),
+                Value<String?> associatedMessageGuid = const Value.absent(),
+                Value<String?> threadOriginatorGuid = const Value.absent(),
                 Value<String?> systemType = const Value.absent(),
                 Value<bool> reactionCarrier = const Value.absent(),
                 Value<String?> balloonBundleId = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
                 Value<String?> reactionSummaryJson = const Value.absent(),
                 Value<bool> isStarred = const Value.absent(),
                 Value<bool> isDeletedLocal = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingMessagesCompanion.insert(
                 id: id,
                 guid: guid,
@@ -11018,15 +13111,22 @@ class $$WorkingMessagesTableTableManager
                 readAtUtc: readAtUtc,
                 status: status,
                 textContent: textContent,
+                itemType: itemType,
+                isSystemMessage: isSystemMessage,
+                errorCode: errorCode,
                 hasAttachments: hasAttachments,
                 replyToGuid: replyToGuid,
+                associatedMessageGuid: associatedMessageGuid,
+                threadOriginatorGuid: threadOriginatorGuid,
                 systemType: systemType,
                 reactionCarrier: reactionCarrier,
                 balloonBundleId: balloonBundleId,
+                payloadJson: payloadJson,
                 reactionSummaryJson: reactionSummaryJson,
                 isStarred: isStarred,
                 isDeletedLocal: isDeletedLocal,
                 updatedAtUtc: updatedAtUtc,
+                batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -11036,64 +13136,93 @@ class $$WorkingMessagesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({chatId = false, senderHandleId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (chatId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.chatId,
-                                referencedTable:
-                                    $$WorkingMessagesTableReferences
-                                        ._chatIdTable(db),
-                                referencedColumn:
-                                    $$WorkingMessagesTableReferences
-                                        ._chatIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-                    if (senderHandleId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.senderHandleId,
-                                referencedTable:
-                                    $$WorkingMessagesTableReferences
-                                        ._senderHandleIdTable(db),
-                                referencedColumn:
-                                    $$WorkingMessagesTableReferences
-                                        ._senderHandleIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                chatId = false,
+                senderHandleId = false,
+                workingReactionsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (workingReactionsRefs) db.workingReactions,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (chatId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.chatId,
+                                    referencedTable:
+                                        $$WorkingMessagesTableReferences
+                                            ._chatIdTable(db),
+                                    referencedColumn:
+                                        $$WorkingMessagesTableReferences
+                                            ._chatIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (senderHandleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.senderHandleId,
+                                    referencedTable:
+                                        $$WorkingMessagesTableReferences
+                                            ._senderHandleIdTable(db),
+                                    referencedColumn:
+                                        $$WorkingMessagesTableReferences
+                                            ._senderHandleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (workingReactionsRefs)
+                        await $_getPrefetchedData<
+                          WorkingMessage,
+                          $WorkingMessagesTable,
+                          WorkingReaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingMessagesTableReferences
+                              ._workingReactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingMessagesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).workingReactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.carrierMessageId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -11110,7 +13239,11 @@ typedef $$WorkingMessagesTableProcessedTableManager =
       $$WorkingMessagesTableUpdateCompanionBuilder,
       (WorkingMessage, $$WorkingMessagesTableReferences),
       WorkingMessage,
-      PrefetchHooks Function({bool chatId, bool senderHandleId})
+      PrefetchHooks Function({
+        bool chatId,
+        bool senderHandleId,
+        bool workingReactionsRefs,
+      })
     >;
 typedef $$WorkingAttachmentsTableCreateCompanionBuilder =
     WorkingAttachmentsCompanion Function({
@@ -11125,6 +13258,9 @@ typedef $$WorkingAttachmentsTableCreateCompanionBuilder =
       Value<bool> isSticker,
       Value<String?> thumbPath,
       Value<String?> createdAtUtc,
+      Value<bool> isOutgoing,
+      Value<String?> sha256Hex,
+      Value<int?> batchId,
     });
 typedef $$WorkingAttachmentsTableUpdateCompanionBuilder =
     WorkingAttachmentsCompanion Function({
@@ -11139,6 +13275,9 @@ typedef $$WorkingAttachmentsTableUpdateCompanionBuilder =
       Value<bool> isSticker,
       Value<String?> thumbPath,
       Value<String?> createdAtUtc,
+      Value<bool> isOutgoing,
+      Value<String?> sha256Hex,
+      Value<int?> batchId,
     });
 
 class $$WorkingAttachmentsTableFilterComposer
@@ -11202,6 +13341,21 @@ class $$WorkingAttachmentsTableFilterComposer
 
   ColumnFilters<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256Hex => $composableBuilder(
+    column: $table.sha256Hex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -11269,6 +13423,21 @@ class $$WorkingAttachmentsTableOrderingComposer
     column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256Hex => $composableBuilder(
+    column: $table.sha256Hex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkingAttachmentsTableAnnotationComposer
@@ -11320,6 +13489,17 @@ class $$WorkingAttachmentsTableAnnotationComposer
     column: $table.createdAtUtc,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sha256Hex =>
+      $composableBuilder(column: $table.sha256Hex, builder: (column) => column);
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
 }
 
 class $$WorkingAttachmentsTableTableManager
@@ -11373,6 +13553,9 @@ class $$WorkingAttachmentsTableTableManager
                 Value<bool> isSticker = const Value.absent(),
                 Value<String?> thumbPath = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
+                Value<bool> isOutgoing = const Value.absent(),
+                Value<String?> sha256Hex = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingAttachmentsCompanion(
                 id: id,
                 messageGuid: messageGuid,
@@ -11385,6 +13568,9 @@ class $$WorkingAttachmentsTableTableManager
                 isSticker: isSticker,
                 thumbPath: thumbPath,
                 createdAtUtc: createdAtUtc,
+                isOutgoing: isOutgoing,
+                sha256Hex: sha256Hex,
+                batchId: batchId,
               ),
           createCompanionCallback:
               ({
@@ -11399,6 +13585,9 @@ class $$WorkingAttachmentsTableTableManager
                 Value<bool> isSticker = const Value.absent(),
                 Value<String?> thumbPath = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
+                Value<bool> isOutgoing = const Value.absent(),
+                Value<String?> sha256Hex = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
               }) => WorkingAttachmentsCompanion.insert(
                 id: id,
                 messageGuid: messageGuid,
@@ -11411,6 +13600,9 @@ class $$WorkingAttachmentsTableTableManager
                 isSticker: isSticker,
                 thumbPath: thumbPath,
                 createdAtUtc: createdAtUtc,
+                isOutgoing: isOutgoing,
+                sha256Hex: sha256Hex,
+                batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -11449,6 +13641,9 @@ typedef $$WorkingReactionsTableCreateCompanionBuilder =
       Value<int?> reactorHandleId,
       required String action,
       Value<String?> reactedAtUtc,
+      Value<int?> carrierMessageId,
+      Value<String?> targetMessageGuid,
+      Value<double> parseConfidence,
     });
 typedef $$WorkingReactionsTableUpdateCompanionBuilder =
     WorkingReactionsCompanion Function({
@@ -11458,6 +13653,9 @@ typedef $$WorkingReactionsTableUpdateCompanionBuilder =
       Value<int?> reactorHandleId,
       Value<String> action,
       Value<String?> reactedAtUtc,
+      Value<int?> carrierMessageId,
+      Value<String?> targetMessageGuid,
+      Value<double> parseConfidence,
     });
 
 final class $$WorkingReactionsTableReferences
@@ -11489,6 +13687,28 @@ final class $$WorkingReactionsTableReferences
       $_db.workingHandles,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_reactorHandleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $WorkingMessagesTable _carrierMessageIdTable(_$WorkingDatabase db) =>
+      db.workingMessages.createAlias(
+        $_aliasNameGenerator(
+          db.workingReactions.carrierMessageId,
+          db.workingMessages.id,
+        ),
+      );
+
+  $$WorkingMessagesTableProcessedTableManager? get carrierMessageId {
+    final $_column = $_itemColumn<int>('carrier_message_id');
+    if ($_column == null) return null;
+    final manager = $$WorkingMessagesTableTableManager(
+      $_db,
+      $_db.workingMessages,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_carrierMessageIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -11530,6 +13750,16 @@ class $$WorkingReactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get targetMessageGuid => $composableBuilder(
+    column: $table.targetMessageGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get parseConfidence => $composableBuilder(
+    column: $table.parseConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$WorkingHandlesTableFilterComposer get reactorHandleId {
     final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -11544,6 +13774,29 @@ class $$WorkingReactionsTableFilterComposer
           }) => $$WorkingHandlesTableFilterComposer(
             $db: $db,
             $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingMessagesTableFilterComposer get carrierMessageId {
+    final $$WorkingMessagesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.carrierMessageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableFilterComposer(
+            $db: $db,
+            $table: $db.workingMessages,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11588,6 +13841,16 @@ class $$WorkingReactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get targetMessageGuid => $composableBuilder(
+    column: $table.targetMessageGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get parseConfidence => $composableBuilder(
+    column: $table.parseConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WorkingHandlesTableOrderingComposer get reactorHandleId {
     final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11602,6 +13865,29 @@ class $$WorkingReactionsTableOrderingComposer
           }) => $$WorkingHandlesTableOrderingComposer(
             $db: $db,
             $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingMessagesTableOrderingComposer get carrierMessageId {
+    final $$WorkingMessagesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.carrierMessageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingMessages,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11640,6 +13926,16 @@ class $$WorkingReactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get targetMessageGuid => $composableBuilder(
+    column: $table.targetMessageGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get parseConfidence => $composableBuilder(
+    column: $table.parseConfidence,
+    builder: (column) => column,
+  );
+
   $$WorkingHandlesTableAnnotationComposer get reactorHandleId {
     final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -11654,6 +13950,29 @@ class $$WorkingReactionsTableAnnotationComposer
           }) => $$WorkingHandlesTableAnnotationComposer(
             $db: $db,
             $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingMessagesTableAnnotationComposer get carrierMessageId {
+    final $$WorkingMessagesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.carrierMessageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingMessages,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11677,7 +13996,7 @@ class $$WorkingReactionsTableTableManager
           $$WorkingReactionsTableUpdateCompanionBuilder,
           (WorkingReaction, $$WorkingReactionsTableReferences),
           WorkingReaction,
-          PrefetchHooks Function({bool reactorHandleId})
+          PrefetchHooks Function({bool reactorHandleId, bool carrierMessageId})
         > {
   $$WorkingReactionsTableTableManager(
     _$WorkingDatabase db,
@@ -11700,6 +14019,9 @@ class $$WorkingReactionsTableTableManager
                 Value<int?> reactorHandleId = const Value.absent(),
                 Value<String> action = const Value.absent(),
                 Value<String?> reactedAtUtc = const Value.absent(),
+                Value<int?> carrierMessageId = const Value.absent(),
+                Value<String?> targetMessageGuid = const Value.absent(),
+                Value<double> parseConfidence = const Value.absent(),
               }) => WorkingReactionsCompanion(
                 id: id,
                 messageGuid: messageGuid,
@@ -11707,6 +14029,9 @@ class $$WorkingReactionsTableTableManager
                 reactorHandleId: reactorHandleId,
                 action: action,
                 reactedAtUtc: reactedAtUtc,
+                carrierMessageId: carrierMessageId,
+                targetMessageGuid: targetMessageGuid,
+                parseConfidence: parseConfidence,
               ),
           createCompanionCallback:
               ({
@@ -11716,6 +14041,9 @@ class $$WorkingReactionsTableTableManager
                 Value<int?> reactorHandleId = const Value.absent(),
                 required String action,
                 Value<String?> reactedAtUtc = const Value.absent(),
+                Value<int?> carrierMessageId = const Value.absent(),
+                Value<String?> targetMessageGuid = const Value.absent(),
+                Value<double> parseConfidence = const Value.absent(),
               }) => WorkingReactionsCompanion.insert(
                 id: id,
                 messageGuid: messageGuid,
@@ -11723,6 +14051,9 @@ class $$WorkingReactionsTableTableManager
                 reactorHandleId: reactorHandleId,
                 action: action,
                 reactedAtUtc: reactedAtUtc,
+                carrierMessageId: carrierMessageId,
+                targetMessageGuid: targetMessageGuid,
+                parseConfidence: parseConfidence,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -11732,49 +14063,65 @@ class $$WorkingReactionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({reactorHandleId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (reactorHandleId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.reactorHandleId,
-                                referencedTable:
-                                    $$WorkingReactionsTableReferences
-                                        ._reactorHandleIdTable(db),
-                                referencedColumn:
-                                    $$WorkingReactionsTableReferences
-                                        ._reactorHandleIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({reactorHandleId = false, carrierMessageId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (reactorHandleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.reactorHandleId,
+                                    referencedTable:
+                                        $$WorkingReactionsTableReferences
+                                            ._reactorHandleIdTable(db),
+                                    referencedColumn:
+                                        $$WorkingReactionsTableReferences
+                                            ._reactorHandleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (carrierMessageId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.carrierMessageId,
+                                    referencedTable:
+                                        $$WorkingReactionsTableReferences
+                                            ._carrierMessageIdTable(db),
+                                    referencedColumn:
+                                        $$WorkingReactionsTableReferences
+                                            ._carrierMessageIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -11791,7 +14138,7 @@ typedef $$WorkingReactionsTableProcessedTableManager =
       $$WorkingReactionsTableUpdateCompanionBuilder,
       (WorkingReaction, $$WorkingReactionsTableReferences),
       WorkingReaction,
-      PrefetchHooks Function({bool reactorHandleId})
+      PrefetchHooks Function({bool reactorHandleId, bool carrierMessageId})
     >;
 typedef $$ReactionCountsTableCreateCompanionBuilder =
     ReactionCountsCompanion Function({

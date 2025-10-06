@@ -23,9 +23,12 @@ class MessageAnnotations extends _$MessageAnnotations {
   }
 
   /// Set archived status
-  Future<void> setArchived(bool archived) async {
+  Future<void> setArchived({required bool archived}) async {
     final overlayDb = await ref.watch(overlayDatabaseProvider.future);
-    await overlayDb.setMessageArchived(messageId, archived);
+    await overlayDb.setMessageArchived(
+      messageId: messageId,
+      archived: archived,
+    );
     await _refresh();
   }
 

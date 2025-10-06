@@ -27,7 +27,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +56,12 @@ class WorkingDatabase extends _$WorkingDatabase {
       }
       if (from < 5) {
         await _migrateToHandlesArchitecture(m);
+      }
+      if (from < 6) {
+        await _alignWithLedgerSchema(m);
+      }
+      if (from < 7) {
+        await _addIgnoredFlags(m);
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -279,6 +285,172 @@ class WorkingDatabase extends _$WorkingDatabase {
     await customStatement('DROP TABLE messages_old');
     await customStatement('DROP TABLE reactions_old');
   }
+
+  Future<void> _alignWithLedgerSchema(Migrator migrator) async {
+    // Handles metadata
+    await migrator.addColumn(
+      workingHandles,
+      workingHandles.normalizedIdentifier as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingHandles,
+      workingHandles.isIgnored as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingHandles,
+      workingHandles.country as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingHandles,
+      workingHandles.lastSeenUtc as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingHandles,
+      workingHandles.batchId as GeneratedColumn,
+    );
+
+    // Participant metadata
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.givenName as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.familyName as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.organization as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.isOrganization as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.createdAtUtc as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.updatedAtUtc as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingParticipants,
+      workingParticipants.sourceRecordId as GeneratedColumn,
+    );
+
+    // Chat membership metadata
+    await migrator.addColumn(
+      chatToHandle,
+      chatToHandle.role as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      chatToHandle,
+      chatToHandle.addedAtUtc as GeneratedColumn,
+    );
+
+    // Message provenance
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.itemType as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.isSystemMessage as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.errorCode as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.associatedMessageGuid as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.threadOriginatorGuid as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.payloadJson as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingMessages,
+      workingMessages.batchId as GeneratedColumn,
+    );
+
+    // Attachment provenance
+    await migrator.addColumn(
+      workingAttachments,
+      workingAttachments.isOutgoing as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingAttachments,
+      workingAttachments.sha256Hex as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingAttachments,
+      workingAttachments.batchId as GeneratedColumn,
+    );
+
+    // Reaction provenance
+    await migrator.addColumn(
+      workingReactions,
+      workingReactions.carrierMessageId as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingReactions,
+      workingReactions.targetMessageGuid as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      workingReactions,
+      workingReactions.parseConfidence as GeneratedColumn,
+    );
+
+    // Backfill sensible defaults for migrated rows
+    await customStatement(
+      'UPDATE handles SET normalized_identifier = COALESCE(normalized_identifier, handle_id)',
+    );
+    await customStatement(
+      'UPDATE handles SET is_ignored = 0 WHERE is_ignored IS NULL',
+    );
+    await customStatement(
+      "UPDATE chat_to_handle SET role = COALESCE(role, 'member')",
+    );
+    await customStatement(
+      'UPDATE attachments SET is_outgoing = COALESCE(is_outgoing, 0)',
+    );
+
+    // Refresh dependent view with updated join structure
+    await customStatement('DROP VIEW IF EXISTS v_message_expanded');
+  }
+
+  Future<void> _addIgnoredFlags(Migrator migrator) async {
+    await migrator.addColumn(
+      workingChats,
+      workingChats.isIgnored as GeneratedColumn,
+    );
+    await migrator.addColumn(
+      chatToHandle,
+      chatToHandle.isIgnored as GeneratedColumn,
+    );
+
+    await customStatement('''
+      UPDATE chat_to_handle
+         SET is_ignored = 1
+       WHERE handle_id IN (
+         SELECT id FROM handles WHERE is_ignored = 1
+       )
+    ''');
+
+    await customStatement('''
+      UPDATE chats
+         SET is_ignored = 1
+       WHERE id IN (
+         SELECT DISTINCT chat_id FROM chat_to_handle WHERE is_ignored = 1
+       )
+    ''');
+  }
 }
 
 const List<String> _workingIndexStatements = [
@@ -286,10 +458,18 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, sent_at_utc)',
   'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to_guid)',
+  'CREATE INDEX IF NOT EXISTS idx_messages_associated ON messages(associated_message_guid)',
+  'CREATE INDEX IF NOT EXISTS idx_messages_batch ON messages(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_guid)',
-  'CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(message_guid)',
+  'CREATE INDEX IF NOT EXISTS idx_attachments_batch ON attachments(batch_id)',
+  'CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(target_message_guid)',
+  'CREATE INDEX IF NOT EXISTS idx_reactions_carrier ON reactions(carrier_message_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_handle ON handle_to_participant(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_participant ON handle_to_participant(participant_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_normalized ON handles(normalized_identifier)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_blacklist ON handles(is_blacklisted, service)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles(batch_id)',
+  'CREATE INDEX IF NOT EXISTS idx_chat_to_handle_handle ON chat_to_handle(handle_id)',
 ];
 
 const List<String> _workingVirtualAndTriggerStatements = [
@@ -346,12 +526,18 @@ const List<String> _workingVirtualAndTriggerStatements = [
     m.chat_id,
     m.sent_at_utc,
     m.text,
+    m.item_type,
     m.is_from_me,
+    m.sender_handle_id,
+    h.handle_id AS sender_handle,
+    h.normalized_identifier AS sender_handle_normalized,
+    p.id AS sender_participant_id,
     p.display_name AS sender_name,
     rc.love, rc.like, rc.dislike, rc.laugh, rc.emphasize, rc.question
   FROM messages m
-  LEFT JOIN participant_handle_links phl ON phl.handle_id = m.sender_handle_id
-  LEFT JOIN participants p ON p.id = phl.participant_id
+  LEFT JOIN handles h ON h.id = m.sender_handle_id
+  LEFT JOIN handle_to_participant htp ON htp.handle_id = m.sender_handle_id
+  LEFT JOIN participants p ON p.id = htp.participant_id
   LEFT JOIN reaction_counts rc ON rc.message_guid = m.guid;
   ''',
 
@@ -475,15 +661,22 @@ class WorkingHandles extends Table {
 
   IntColumn get id => integer().named('id')();
   TextColumn get handleId => text().named('handle_id')();
+  TextColumn get normalizedIdentifier =>
+      text().named('normalized_identifier').nullable()();
   TextColumn get service => text()
       .named('service')
       .customConstraint(
         "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
       )();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
   BoolColumn get isValid =>
       boolean().named('is_valid').withDefault(const Constant(true))();
   BoolColumn get isBlacklisted =>
       boolean().named('is_blacklisted').withDefault(const Constant(false))();
+  TextColumn get country => text().named('country').nullable()();
+  TextColumn get lastSeenUtc => text().named('last_seen_utc').nullable()();
+  IntColumn get batchId => integer().named('batch_id').nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -491,6 +684,7 @@ class WorkingHandles extends Table {
   @override
   List<Set<Column>> get uniqueKeys => [
     {handleId, service},
+    {service, normalizedIdentifier},
   ];
 }
 
@@ -503,6 +697,15 @@ class WorkingParticipants extends Table {
   TextColumn get displayName => text().named('display_name')();
   TextColumn get shortName => text().named('short_name')();
   TextColumn get avatarRef => text().named('avatar_ref').nullable()();
+  TextColumn get givenName => text().named('given_name').nullable()();
+  TextColumn get familyName => text().named('family_name').nullable()();
+  TextColumn get organization => text().named('organization').nullable()();
+  BoolColumn get isOrganization =>
+      boolean().named('is_organization').withDefault(const Constant(false))();
+  TextColumn get createdAtUtc => text().named('created_at_utc').nullable()();
+  TextColumn get updatedAtUtc => text().named('updated_at_utc').nullable()();
+  IntColumn get sourceRecordId =>
+      integer().named('source_record_id').nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -541,6 +744,11 @@ class ChatToHandle extends Table {
   IntColumn get handleId => integer()
       .named('handle_id')
       .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+  TextColumn get role =>
+      text().named('role').withDefault(const Constant('member'))();
+  TextColumn get addedAtUtc => text().named('added_at_utc').nullable()();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
@@ -580,6 +788,8 @@ class WorkingChats extends Table {
       boolean().named('favourite').withDefault(const Constant(false))();
   TextColumn get createdAtUtc => text().named('created_at_utc').nullable()();
   TextColumn get updatedAtUtc => text().named('updated_at_utc').nullable()();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
@@ -612,14 +822,28 @@ class WorkingMessages extends Table {
         "NOT NULL DEFAULT 'unknown' CHECK(status IN ('unknown','sent','delivered','read','failed'))",
       )();
   TextColumn get textContent => text().named('text').nullable()();
+  TextColumn get itemType => text()
+      .named('item_type')
+      .nullable()
+      .customConstraint(
+        "CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown') OR item_type IS NULL)",
+      )();
+  BoolColumn get isSystemMessage =>
+      boolean().named('is_system_message').withDefault(const Constant(false))();
+  IntColumn get errorCode => integer().named('error_code').nullable()();
   BoolColumn get hasAttachments =>
       boolean().named('has_attachments').withDefault(const Constant(false))();
   TextColumn get replyToGuid => text().named('reply_to_guid').nullable()();
+  TextColumn get associatedMessageGuid =>
+      text().named('associated_message_guid').nullable()();
+  TextColumn get threadOriginatorGuid =>
+      text().named('thread_originator_guid').nullable()();
   TextColumn get systemType => text().named('system_type').nullable()();
   BoolColumn get reactionCarrier =>
       boolean().named('reaction_carrier').withDefault(const Constant(false))();
   TextColumn get balloonBundleId =>
       text().named('balloon_bundle_id').nullable()();
+  TextColumn get payloadJson => text().named('payload_json').nullable()();
   TextColumn get reactionSummaryJson =>
       text().named('reaction_summary_json').nullable()();
   BoolColumn get isStarred =>
@@ -627,6 +851,7 @@ class WorkingMessages extends Table {
   BoolColumn get isDeletedLocal =>
       boolean().named('is_deleted_local').withDefault(const Constant(false))();
   TextColumn get updatedAtUtc => text().named('updated_at_utc').nullable()();
+  IntColumn get batchId => integer().named('batch_id').nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [
@@ -651,6 +876,10 @@ class WorkingAttachments extends Table {
       boolean().named('is_sticker').withDefault(const Constant(false))();
   TextColumn get thumbPath => text().named('thumb_path').nullable()();
   TextColumn get createdAtUtc => text().named('created_at_utc').nullable()();
+  BoolColumn get isOutgoing =>
+      boolean().named('is_outgoing').withDefault(const Constant(false))();
+  TextColumn get sha256Hex => text().named('sha256_hex').nullable()();
+  IntColumn get batchId => integer().named('batch_id').nullable()();
 }
 
 class WorkingReactions extends Table {
@@ -672,6 +901,14 @@ class WorkingReactions extends Table {
       .named('action')
       .customConstraint("NOT NULL CHECK(\"action\" IN ('add','remove'))")();
   TextColumn get reactedAtUtc => text().named('reacted_at_utc').nullable()();
+  IntColumn get carrierMessageId => integer()
+      .named('carrier_message_id')
+      .nullable()
+      .references(WorkingMessages, #id, onDelete: KeyAction.cascade)();
+  TextColumn get targetMessageGuid =>
+      text().named('target_message_guid').nullable()();
+  RealColumn get parseConfidence =>
+      real().named('parse_confidence').withDefault(const Constant(1.0))();
 }
 
 class ReactionCounts extends Table {

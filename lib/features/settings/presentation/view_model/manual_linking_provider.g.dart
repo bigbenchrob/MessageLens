@@ -6,7 +6,7 @@ part of 'manual_linking_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unlinkedHandlesHash() => r'6cf5b1c6d5e7cc802802ce1ac0b7ba4de92fd216';
+String _$unlinkedHandlesHash() => r'4bd721a66035eaa3096069b5f18a5fd01a9f8da8';
 
 /// Provider that finds handles not linked to any participant
 ///
@@ -48,7 +48,7 @@ final availableParticipantsProvider =
 // ignore: unused_element
 typedef AvailableParticipantsRef =
     AutoDisposeFutureProviderRef<List<AvailableParticipant>>;
-String _$manualLinkingHash() => r'319e37beb64e2ee5d2671e6b85b6c9ab7703ce2f';
+String _$manualLinkingHash() => r'e79fd52ae764dae5d9331bac1a1f8cd60430052b';
 
 /// Provider for manual linking operations
 ///

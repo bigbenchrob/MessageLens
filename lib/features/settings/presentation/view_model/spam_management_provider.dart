@@ -71,7 +71,7 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   final results = uniqueHandles.values.map((handle) {
     return SpamHandleInfo(
       id: handle.id,
-      handleId: handle.handleId,
+      handleId: handle.normalizedIdentifier ?? handle.handleId,
       service: handle.service,
       isBlacklisted: handle.isBlacklisted,
       isValid: handle.isValid,
@@ -108,6 +108,7 @@ class SpamManagement extends _$SpamManagement {
       const WorkingHandlesCompanion(
         isBlacklisted: Value(true),
         isValid: Value(false),
+        isIgnored: Value(true),
       ),
     );
 
@@ -125,6 +126,7 @@ class SpamManagement extends _$SpamManagement {
       const WorkingHandlesCompanion(
         isBlacklisted: Value(false),
         isValid: Value(true),
+        isIgnored: Value(false),
       ),
     );
 

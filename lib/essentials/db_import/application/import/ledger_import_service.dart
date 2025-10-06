@@ -1301,7 +1301,9 @@ FROM attachment
       final rawIdentifier = handle['raw_identifier'] as String?;
       final normalizedIdentifier = handle['normalized_identifier'] as String?;
 
-      if (id == null) continue;
+      if (id == null) {
+        continue;
+      }
 
       if (_isSpamIdentifier(normalizedIdentifier, rawIdentifier)) {
         spamHandleIds.add(id);
@@ -1318,7 +1320,9 @@ FROM attachment
     List<int> spamHandleIds,
     ImportDebugSettingsState debugSettings,
   ) async {
-    if (spamHandleIds.isEmpty) return <int>[];
+    if (spamHandleIds.isEmpty) {
+      return <int>[];
+    }
 
     // Find chats that only have spam handles as participants
     final spamChatIds = await ledgerDb.getChatsWithOnlySpamHandles(
@@ -1338,7 +1342,9 @@ FROM attachment
     List<int> spamChatIds,
     ImportDebugSettingsState debugSettings,
   ) async {
-    if (spamChatIds.isEmpty) return;
+    if (spamChatIds.isEmpty) {
+      return;
+    }
 
     await ledgerDb.flagMessagesInChatsAsIgnored(spamChatIds);
   }
