@@ -268,12 +268,17 @@ class LedgerImportService {
         emit: emit,
       );
 
+      emit(DbImportStage.completed, 0.95, 'Applying spam filters...');
+
+      // Apply ignore flags to spam handles, chats, and messages
+      await _applySpamIgnoreFlags(ledgerDb: ledgerDb, emit: emit);
+
       emit(DbImportStage.completed, 1.0, 'Import completed successfully');
 
       await ledgerDb.updateImportBatch(
         id: batchId,
         finishedAtUtc: DateTime.now().toUtc().toIso8601String(),
-        notes: 'Completed import run',
+        notes: 'Completed import run with spam filtering',
       );
 
       return resultBuilder.build(success: true);
@@ -351,7 +356,6 @@ class LedgerImportService {
     );
 
     var processed = 0;
-    var skippedSpam = 0;
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
       final rawIdentifier = (row['id'] as String?)?.trim();
@@ -363,19 +367,14 @@ class LedgerImportService {
           DateConverter.toIntSafe(row['last_use']);
       final lastSeenUtc = DateConverter.appleToIsoString(lastSeen);
 
-      // Skip spam short codes (4-9 digit numbers)
-      if (_isSpamShortCode(normalizedAddress, rawIdentifier)) {
-        skippedSpam++;
-        processed++;
-        continue;
-      }
-
+      // Import ALL handles - no spam filtering during import
+      // Spam detection will be handled post-import with ignore flags
       await ledgerDb.insertHandle(
         id: sourceRowId,
         sourceRowid: sourceRowId,
         service: service ?? 'Unknown',
         rawIdentifier: rawIdentifier ?? 'unknown',
-        normalizedAddress: normalizedAddress,
+        normalizedIdentifier: normalizedAddress,
         country: country,
         lastSeenUtc: lastSeenUtc,
         batchId: batchId,
@@ -383,14 +382,10 @@ class LedgerImportService {
 
       processed++;
       if (processed % 200 == 0 || processed == rows.length) {
-        final imported = processed - skippedSpam;
-        final message = skippedSpam > 0
-            ? 'Imported $imported/${rows.length} handles (skipped $skippedSpam spam)'
-            : 'Imported $processed/${rows.length} new handles';
         emit(
           DbImportStage.importingHandles,
           0.12,
-          message,
+          'Imported $processed/${rows.length} handles',
           stageProgress: rows.isEmpty ? 1 : processed / rows.length,
           stageCurrent: processed,
           stageTotal: rows.length,
@@ -503,9 +498,12 @@ class LedgerImportService {
       'Importing chat participants',
       stageProgress: 0,
     );
+
+    // Import ALL chat-handle relationships since we now import all handles
     final rows = await messagesDb.query('chat_handle_join');
     var processed = 0;
     var inserted = 0;
+
     for (final row in rows) {
       final chatId = row['chat_id'] as int?;
       final handleId = row['handle_id'] as int?;
@@ -513,6 +511,7 @@ class LedgerImportService {
         processed++;
         continue;
       }
+
       final alreadyLinked = await ledgerDb.chatParticipantExists(
         chatId: chatId,
         handleId: handleId,
@@ -531,8 +530,16 @@ class LedgerImportService {
         }
         continue;
       }
-      await ledgerDb.insertChatParticipant(chatId: chatId, handleId: handleId);
-      inserted++;
+
+      // All handles and chats exist now, so this should always succeed
+      final insertResult = await ledgerDb.insertChatParticipant(
+        chatId: chatId,
+        handleId: handleId,
+      );
+      if (insertResult > 0) {
+        inserted++;
+      }
+
       if (processed % 500 == 0 || processed == rows.length) {
         emit(
           DbImportStage.importingParticipants,
@@ -1189,24 +1196,6 @@ FROM attachment
     return normalized;
   }
 
-  /// Returns true if identifier appears to be a short-code spam number (4-9 digits)
-  /// These are typically one-off spam/automated messages that shouldn't clutter the database
-  bool _isSpamShortCode(String? normalizedAddress, String? rawIdentifier) {
-    if (normalizedAddress == null || normalizedAddress.isEmpty) {
-      return false;
-    }
-
-    // If it has @ symbol, it's an email - not spam
-    if (rawIdentifier?.contains('@') ?? false) {
-      return false;
-    }
-
-    // Check if it's purely numeric and between 4-9 digits (spam short codes)
-    // 10+ digits are legitimate phone numbers (allow them)
-    final digitsOnly = normalizedAddress.replaceAll(RegExp(r'[^0-9]'), '');
-    return digitsOnly.length >= 4 && digitsOnly.length <= 9;
-  }
-
   bool? _nullableBool(int? value) {
     if (value == null) {
       return null;
@@ -1260,6 +1249,132 @@ FROM attachment
       return 'attachment-only';
     }
     return 'text';
+  }
+
+  /// Apply ignore flags to spam handles, chats, and messages post-import
+  Future<void> _applySpamIgnoreFlags({
+    required SqfliteImportDatabase ledgerDb,
+    required void Function(
+      DbImportStage,
+      double,
+      String, {
+      double? stageProgress,
+      int? stageCurrent,
+      int? stageTotal,
+    })
+    emit,
+  }) async {
+    final debugSettings = ref.watch(importDebugSettingsProvider);
+
+    // Step 1: Flag spam handles
+    emit(DbImportStage.completed, 0.96, 'Flagging spam handles...');
+    final spamHandleIds = await _flagSpamHandles(ledgerDb, debugSettings);
+
+    // Step 2: Flag chats associated with spam handles
+    emit(DbImportStage.completed, 0.97, 'Flagging spam chats...');
+    final spamChatIds = await _flagSpamChats(
+      ledgerDb,
+      spamHandleIds,
+      debugSettings,
+    );
+
+    // Step 3: Flag messages in spam chats
+    emit(DbImportStage.completed, 0.98, 'Flagging spam messages...');
+    await _flagSpamMessages(ledgerDb, spamChatIds, debugSettings);
+
+    debugSettings.logProgress(
+      '$_importLogContext: Applied ignore flags - ${spamHandleIds.length} handles, ${spamChatIds.length} chats flagged as spam',
+    );
+  }
+
+  /// Flag handles that appear to be spam (short codes, suspicious identifiers)
+  Future<List<int>> _flagSpamHandles(
+    SqfliteImportDatabase ledgerDb,
+    ImportDebugSettingsState debugSettings,
+  ) async {
+    // Get all handles and check for spam patterns
+    final handles = await ledgerDb.getAllHandles();
+    final spamHandleIds = <int>[];
+
+    for (final handle in handles) {
+      final id = handle['id'] as int?;
+      final rawIdentifier = handle['raw_identifier'] as String?;
+      final normalizedIdentifier = handle['normalized_identifier'] as String?;
+
+      if (id == null) continue;
+
+      if (_isSpamIdentifier(normalizedIdentifier, rawIdentifier)) {
+        spamHandleIds.add(id);
+        await ledgerDb.flagHandleAsIgnored(id);
+      }
+    }
+
+    return spamHandleIds;
+  }
+
+  /// Flag chats that only involve spam handles
+  Future<List<int>> _flagSpamChats(
+    SqfliteImportDatabase ledgerDb,
+    List<int> spamHandleIds,
+    ImportDebugSettingsState debugSettings,
+  ) async {
+    if (spamHandleIds.isEmpty) return <int>[];
+
+    // Find chats that only have spam handles as participants
+    final spamChatIds = await ledgerDb.getChatsWithOnlySpamHandles(
+      spamHandleIds,
+    );
+
+    for (final chatId in spamChatIds) {
+      await ledgerDb.flagChatAsIgnored(chatId);
+    }
+
+    return spamChatIds;
+  }
+
+  /// Flag messages in spam chats
+  Future<void> _flagSpamMessages(
+    SqfliteImportDatabase ledgerDb,
+    List<int> spamChatIds,
+    ImportDebugSettingsState debugSettings,
+  ) async {
+    if (spamChatIds.isEmpty) return;
+
+    await ledgerDb.flagMessagesInChatsAsIgnored(spamChatIds);
+  }
+
+  /// Check if an identifier appears to be spam
+  bool _isSpamIdentifier(String? normalizedIdentifier, String? rawIdentifier) {
+    if (normalizedIdentifier == null || normalizedIdentifier.isEmpty) {
+      return false;
+    }
+
+    // If it has @ symbol, it's an email - not spam
+    if (rawIdentifier?.contains('@') ?? false) {
+      return false;
+    }
+
+    // Check for suspicious patterns:
+    // 1. Short numeric codes (4-9 digits) - typical spam short codes
+    // 2. Single words without numbers (like "claiee")
+    final digitsOnly = normalizedIdentifier.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Spam pattern 1: Short codes (4-9 digit numbers)
+    if (digitsOnly.length >= 4 &&
+        digitsOnly.length <= 9 &&
+        digitsOnly == normalizedIdentifier) {
+      return true;
+    }
+
+    // Spam pattern 2: Single word identifiers (no @ symbol, no digits, short length)
+    if (digitsOnly.isEmpty &&
+        !normalizedIdentifier.contains('@') &&
+        normalizedIdentifier.length <= 8 &&
+        normalizedIdentifier.isNotEmpty) {
+      return true;
+    }
+
+    return false;
   }
 }
 

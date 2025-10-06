@@ -1,30 +1,30 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'contact_short_name_candidates_provider.dart';
+part of 'workbench_query_service_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactShortNameCandidatesHash() =>
-    r'53c9c671f991b8cdd5b9323d21d4c0414be34729';
+String _$workbenchQueryServiceHash() =>
+    r'8eb158f4f412c80e340b8edc8ca9963d772c7ebc';
 
-/// See also [contactShortNameCandidates].
-@ProviderFor(contactShortNameCandidates)
-final contactShortNameCandidatesProvider =
-    AutoDisposeFutureProvider<List<SettingsContactEntry>>.internal(
-      contactShortNameCandidates,
-      name: r'contactShortNameCandidatesProvider',
+/// See also [workbenchQueryService].
+@ProviderFor(workbenchQueryService)
+final workbenchQueryServiceProvider =
+    AutoDisposeFutureProvider<WorkbenchQueryService>.internal(
+      workbenchQueryService,
+      name: r'workbenchQueryServiceProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$contactShortNameCandidatesHash,
+          : _$workbenchQueryServiceHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef ContactShortNameCandidatesRef =
-    AutoDisposeFutureProviderRef<List<SettingsContactEntry>>;
+typedef WorkbenchQueryServiceRef =
+    AutoDisposeFutureProviderRef<WorkbenchQueryService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

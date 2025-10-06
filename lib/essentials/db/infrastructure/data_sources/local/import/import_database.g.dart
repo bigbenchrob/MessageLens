@@ -18,8 +18,7 @@ class $ImportSchemaMigrationsTable extends ImportSchemaMigrations
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'PRIMARY KEY NOT NULL',
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _appliedAtUtcMeta = const VerificationMeta(
     'appliedAtUtc',
@@ -51,6 +50,8 @@ class $ImportSchemaMigrationsTable extends ImportSchemaMigrations
         _versionMeta,
         version.isAcceptableOrUnknown(data['version']!, _versionMeta),
       );
+    } else if (isInserting) {
+      context.missing(_versionMeta);
     }
     if (data.containsKey('applied_at_utc')) {
       context.handle(
@@ -67,7 +68,7 @@ class $ImportSchemaMigrationsTable extends ImportSchemaMigrations
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {version};
+  Set<GeneratedColumn> get $primaryKey => const {};
   @override
   ImportSchemaMigration map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -170,31 +171,39 @@ class ImportSchemaMigrationsCompanion
     extends UpdateCompanion<ImportSchemaMigration> {
   final Value<int> version;
   final Value<String> appliedAtUtc;
+  final Value<int> rowid;
   const ImportSchemaMigrationsCompanion({
     this.version = const Value.absent(),
     this.appliedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   ImportSchemaMigrationsCompanion.insert({
-    this.version = const Value.absent(),
+    required int version,
     required String appliedAtUtc,
-  }) : appliedAtUtc = Value(appliedAtUtc);
+    this.rowid = const Value.absent(),
+  }) : version = Value(version),
+       appliedAtUtc = Value(appliedAtUtc);
   static Insertable<ImportSchemaMigration> custom({
     Expression<int>? version,
     Expression<String>? appliedAtUtc,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (version != null) 'version': version,
       if (appliedAtUtc != null) 'applied_at_utc': appliedAtUtc,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   ImportSchemaMigrationsCompanion copyWith({
     Value<int>? version,
     Value<String>? appliedAtUtc,
+    Value<int>? rowid,
   }) {
     return ImportSchemaMigrationsCompanion(
       version: version ?? this.version,
       appliedAtUtc: appliedAtUtc ?? this.appliedAtUtc,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -207,6 +216,9 @@ class ImportSchemaMigrationsCompanion
     if (appliedAtUtc.present) {
       map['applied_at_utc'] = Variable<String>(appliedAtUtc.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -214,7 +226,8 @@ class ImportSchemaMigrationsCompanion
   String toString() {
     return (StringBuffer('ImportSchemaMigrationsCompanion(')
           ..write('version: $version, ')
-          ..write('appliedAtUtc: $appliedAtUtc')
+          ..write('appliedAtUtc: $appliedAtUtc, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1532,27 +1545,12 @@ class $ImportContactsTable extends ImportContacts
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ImportContactsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  static const VerificationMeta _zPkMeta = const VerificationMeta('zPk');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
+  late final GeneratedColumn<int> zPk = GeneratedColumn<int>(
+    'Z_PK',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _sourceRecordIdMeta = const VerificationMeta(
-    'sourceRecordId',
-  );
-  @override
-  late final GeneratedColumn<int> sourceRecordId = GeneratedColumn<int>(
-    'source_record_id',
-    aliasedName,
-    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
@@ -1653,8 +1651,7 @@ class $ImportContactsTable extends ImportContacts
   );
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    sourceRecordId,
+    zPk,
     displayName,
     givenName,
     familyName,
@@ -1676,16 +1673,10 @@ class $ImportContactsTable extends ImportContacts
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('source_record_id')) {
+    if (data.containsKey('Z_PK')) {
       context.handle(
-        _sourceRecordIdMeta,
-        sourceRecordId.isAcceptableOrUnknown(
-          data['source_record_id']!,
-          _sourceRecordIdMeta,
-        ),
+        _zPkMeta,
+        zPk.isAcceptableOrUnknown(data['Z_PK']!, _zPkMeta),
       );
     }
     if (data.containsKey('display_name')) {
@@ -1757,19 +1748,15 @@ class $ImportContactsTable extends ImportContacts
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {zPk};
   @override
   ImportContact map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ImportContact(
-      id: attachedDatabase.typeMapping.read(
+      zPk: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}id'],
+        data['${effectivePrefix}Z_PK'],
       )!,
-      sourceRecordId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}source_record_id'],
-      ),
       displayName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}display_name'],
@@ -1812,8 +1799,7 @@ class $ImportContactsTable extends ImportContacts
 }
 
 class ImportContact extends DataClass implements Insertable<ImportContact> {
-  final int id;
-  final int? sourceRecordId;
+  final int zPk;
   final String? displayName;
   final String? givenName;
   final String? familyName;
@@ -1823,8 +1809,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   final String? updatedAtUtc;
   final int batchId;
   const ImportContact({
-    required this.id,
-    this.sourceRecordId,
+    required this.zPk,
     this.displayName,
     this.givenName,
     this.familyName,
@@ -1837,10 +1822,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    if (!nullToAbsent || sourceRecordId != null) {
-      map['source_record_id'] = Variable<int>(sourceRecordId);
-    }
+    map['Z_PK'] = Variable<int>(zPk);
     if (!nullToAbsent || displayName != null) {
       map['display_name'] = Variable<String>(displayName);
     }
@@ -1866,10 +1848,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
 
   ImportContactsCompanion toCompanion(bool nullToAbsent) {
     return ImportContactsCompanion(
-      id: Value(id),
-      sourceRecordId: sourceRecordId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(sourceRecordId),
+      zPk: Value(zPk),
       displayName: displayName == null && nullToAbsent
           ? const Value.absent()
           : Value(displayName),
@@ -1899,8 +1878,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ImportContact(
-      id: serializer.fromJson<int>(json['id']),
-      sourceRecordId: serializer.fromJson<int?>(json['sourceRecordId']),
+      zPk: serializer.fromJson<int>(json['zPk']),
       displayName: serializer.fromJson<String?>(json['displayName']),
       givenName: serializer.fromJson<String?>(json['givenName']),
       familyName: serializer.fromJson<String?>(json['familyName']),
@@ -1915,8 +1893,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'sourceRecordId': serializer.toJson<int?>(sourceRecordId),
+      'zPk': serializer.toJson<int>(zPk),
       'displayName': serializer.toJson<String?>(displayName),
       'givenName': serializer.toJson<String?>(givenName),
       'familyName': serializer.toJson<String?>(familyName),
@@ -1929,8 +1906,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   }
 
   ImportContact copyWith({
-    int? id,
-    Value<int?> sourceRecordId = const Value.absent(),
+    int? zPk,
     Value<String?> displayName = const Value.absent(),
     Value<String?> givenName = const Value.absent(),
     Value<String?> familyName = const Value.absent(),
@@ -1940,10 +1916,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
     Value<String?> updatedAtUtc = const Value.absent(),
     int? batchId,
   }) => ImportContact(
-    id: id ?? this.id,
-    sourceRecordId: sourceRecordId.present
-        ? sourceRecordId.value
-        : this.sourceRecordId,
+    zPk: zPk ?? this.zPk,
     displayName: displayName.present ? displayName.value : this.displayName,
     givenName: givenName.present ? givenName.value : this.givenName,
     familyName: familyName.present ? familyName.value : this.familyName,
@@ -1955,10 +1928,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   );
   ImportContact copyWithCompanion(ImportContactsCompanion data) {
     return ImportContact(
-      id: data.id.present ? data.id.value : this.id,
-      sourceRecordId: data.sourceRecordId.present
-          ? data.sourceRecordId.value
-          : this.sourceRecordId,
+      zPk: data.zPk.present ? data.zPk.value : this.zPk,
       displayName: data.displayName.present
           ? data.displayName.value
           : this.displayName,
@@ -1985,8 +1955,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   @override
   String toString() {
     return (StringBuffer('ImportContact(')
-          ..write('id: $id, ')
-          ..write('sourceRecordId: $sourceRecordId, ')
+          ..write('zPk: $zPk, ')
           ..write('displayName: $displayName, ')
           ..write('givenName: $givenName, ')
           ..write('familyName: $familyName, ')
@@ -2001,8 +1970,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
 
   @override
   int get hashCode => Object.hash(
-    id,
-    sourceRecordId,
+    zPk,
     displayName,
     givenName,
     familyName,
@@ -2016,8 +1984,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ImportContact &&
-          other.id == this.id &&
-          other.sourceRecordId == this.sourceRecordId &&
+          other.zPk == this.zPk &&
           other.displayName == this.displayName &&
           other.givenName == this.givenName &&
           other.familyName == this.familyName &&
@@ -2029,8 +1996,7 @@ class ImportContact extends DataClass implements Insertable<ImportContact> {
 }
 
 class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
-  final Value<int> id;
-  final Value<int?> sourceRecordId;
+  final Value<int> zPk;
   final Value<String?> displayName;
   final Value<String?> givenName;
   final Value<String?> familyName;
@@ -2040,8 +2006,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
   final Value<String?> updatedAtUtc;
   final Value<int> batchId;
   const ImportContactsCompanion({
-    this.id = const Value.absent(),
-    this.sourceRecordId = const Value.absent(),
+    this.zPk = const Value.absent(),
     this.displayName = const Value.absent(),
     this.givenName = const Value.absent(),
     this.familyName = const Value.absent(),
@@ -2052,8 +2017,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
     this.batchId = const Value.absent(),
   });
   ImportContactsCompanion.insert({
-    this.id = const Value.absent(),
-    this.sourceRecordId = const Value.absent(),
+    this.zPk = const Value.absent(),
     this.displayName = const Value.absent(),
     this.givenName = const Value.absent(),
     this.familyName = const Value.absent(),
@@ -2064,8 +2028,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
     required int batchId,
   }) : batchId = Value(batchId);
   static Insertable<ImportContact> custom({
-    Expression<int>? id,
-    Expression<int>? sourceRecordId,
+    Expression<int>? zPk,
     Expression<String>? displayName,
     Expression<String>? givenName,
     Expression<String>? familyName,
@@ -2076,8 +2039,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
     Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (sourceRecordId != null) 'source_record_id': sourceRecordId,
+      if (zPk != null) 'Z_PK': zPk,
       if (displayName != null) 'display_name': displayName,
       if (givenName != null) 'given_name': givenName,
       if (familyName != null) 'family_name': familyName,
@@ -2090,8 +2052,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
   }
 
   ImportContactsCompanion copyWith({
-    Value<int>? id,
-    Value<int?>? sourceRecordId,
+    Value<int>? zPk,
     Value<String?>? displayName,
     Value<String?>? givenName,
     Value<String?>? familyName,
@@ -2102,8 +2063,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
     Value<int>? batchId,
   }) {
     return ImportContactsCompanion(
-      id: id ?? this.id,
-      sourceRecordId: sourceRecordId ?? this.sourceRecordId,
+      zPk: zPk ?? this.zPk,
       displayName: displayName ?? this.displayName,
       givenName: givenName ?? this.givenName,
       familyName: familyName ?? this.familyName,
@@ -2118,11 +2078,8 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (sourceRecordId.present) {
-      map['source_record_id'] = Variable<int>(sourceRecordId.value);
+    if (zPk.present) {
+      map['Z_PK'] = Variable<int>(zPk.value);
     }
     if (displayName.present) {
       map['display_name'] = Variable<String>(displayName.value);
@@ -2154,8 +2111,7 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
   @override
   String toString() {
     return (StringBuffer('ImportContactsCompanion(')
-          ..write('id: $id, ')
-          ..write('sourceRecordId: $sourceRecordId, ')
+          ..write('zPk: $zPk, ')
           ..write('displayName: $displayName, ')
           ..write('givenName: $givenName, ')
           ..write('familyName: $familyName, ')
@@ -2169,12 +2125,12 @@ class ImportContactsCompanion extends UpdateCompanion<ImportContact> {
   }
 }
 
-class $ImportContactChannelsTable extends ImportContactChannels
-    with TableInfo<$ImportContactChannelsTable, ImportContactChannel> {
+class $ImportContactPhoneEmailTable extends ImportContactPhoneEmail
+    with TableInfo<$ImportContactPhoneEmailTable, ImportContactPhoneEmailData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ImportContactChannelsTable(this.attachedDatabase, [this._alias]);
+  $ImportContactPhoneEmailTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2188,18 +2144,18 @@ class $ImportContactChannelsTable extends ImportContactChannels
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _contactIdMeta = const VerificationMeta(
-    'contactId',
+  static const VerificationMeta _ownerZPkMeta = const VerificationMeta(
+    'ownerZPk',
   );
   @override
-  late final GeneratedColumn<int> contactId = GeneratedColumn<int>(
-    'contact_id',
+  late final GeneratedColumn<int> ownerZPk = GeneratedColumn<int>(
+    'OWNER_Z_PK',
     aliasedName,
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES contacts (id) ON DELETE CASCADE',
+      'REFERENCES contacts (Z_PK) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _kindMeta = const VerificationMeta('kind');
@@ -2231,15 +2187,15 @@ class $ImportContactChannelsTable extends ImportContactChannels
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, contactId, kind, value, label];
+  List<GeneratedColumn> get $columns => [id, ownerZPk, kind, value, label];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'contact_channels';
+  static const String $name = 'contact_phone_email';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ImportContactChannel> instance, {
+    Insertable<ImportContactPhoneEmailData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2247,13 +2203,13 @@ class $ImportContactChannelsTable extends ImportContactChannels
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('contact_id')) {
+    if (data.containsKey('OWNER_Z_PK')) {
       context.handle(
-        _contactIdMeta,
-        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
+        _ownerZPkMeta,
+        ownerZPk.isAcceptableOrUnknown(data['OWNER_Z_PK']!, _ownerZPkMeta),
       );
     } else if (isInserting) {
-      context.missing(_contactIdMeta);
+      context.missing(_ownerZPkMeta);
     }
     if (data.containsKey('kind')) {
       context.handle(
@@ -2287,16 +2243,19 @@ class $ImportContactChannelsTable extends ImportContactChannels
     {kind, value},
   ];
   @override
-  ImportContactChannel map(Map<String, dynamic> data, {String? tablePrefix}) {
+  ImportContactPhoneEmailData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ImportContactChannel(
+    return ImportContactPhoneEmailData(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      contactId: attachedDatabase.typeMapping.read(
+      ownerZPk: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}contact_id'],
+        data['${effectivePrefix}OWNER_Z_PK'],
       )!,
       kind: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -2314,21 +2273,21 @@ class $ImportContactChannelsTable extends ImportContactChannels
   }
 
   @override
-  $ImportContactChannelsTable createAlias(String alias) {
-    return $ImportContactChannelsTable(attachedDatabase, alias);
+  $ImportContactPhoneEmailTable createAlias(String alias) {
+    return $ImportContactPhoneEmailTable(attachedDatabase, alias);
   }
 }
 
-class ImportContactChannel extends DataClass
-    implements Insertable<ImportContactChannel> {
+class ImportContactPhoneEmailData extends DataClass
+    implements Insertable<ImportContactPhoneEmailData> {
   final int id;
-  final int contactId;
+  final int ownerZPk;
   final String kind;
   final String value;
   final String? label;
-  const ImportContactChannel({
+  const ImportContactPhoneEmailData({
     required this.id,
-    required this.contactId,
+    required this.ownerZPk,
     required this.kind,
     required this.value,
     this.label,
@@ -2337,7 +2296,7 @@ class ImportContactChannel extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['contact_id'] = Variable<int>(contactId);
+    map['OWNER_Z_PK'] = Variable<int>(ownerZPk);
     map['kind'] = Variable<String>(kind);
     map['value'] = Variable<String>(value);
     if (!nullToAbsent || label != null) {
@@ -2346,10 +2305,10 @@ class ImportContactChannel extends DataClass
     return map;
   }
 
-  ImportContactChannelsCompanion toCompanion(bool nullToAbsent) {
-    return ImportContactChannelsCompanion(
+  ImportContactPhoneEmailCompanion toCompanion(bool nullToAbsent) {
+    return ImportContactPhoneEmailCompanion(
       id: Value(id),
-      contactId: Value(contactId),
+      ownerZPk: Value(ownerZPk),
       kind: Value(kind),
       value: Value(value),
       label: label == null && nullToAbsent
@@ -2358,14 +2317,14 @@ class ImportContactChannel extends DataClass
     );
   }
 
-  factory ImportContactChannel.fromJson(
+  factory ImportContactPhoneEmailData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ImportContactChannel(
+    return ImportContactPhoneEmailData(
       id: serializer.fromJson<int>(json['id']),
-      contactId: serializer.fromJson<int>(json['contactId']),
+      ownerZPk: serializer.fromJson<int>(json['ownerZPk']),
       kind: serializer.fromJson<String>(json['kind']),
       value: serializer.fromJson<String>(json['value']),
       label: serializer.fromJson<String?>(json['label']),
@@ -2376,30 +2335,32 @@ class ImportContactChannel extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'contactId': serializer.toJson<int>(contactId),
+      'ownerZPk': serializer.toJson<int>(ownerZPk),
       'kind': serializer.toJson<String>(kind),
       'value': serializer.toJson<String>(value),
       'label': serializer.toJson<String?>(label),
     };
   }
 
-  ImportContactChannel copyWith({
+  ImportContactPhoneEmailData copyWith({
     int? id,
-    int? contactId,
+    int? ownerZPk,
     String? kind,
     String? value,
     Value<String?> label = const Value.absent(),
-  }) => ImportContactChannel(
+  }) => ImportContactPhoneEmailData(
     id: id ?? this.id,
-    contactId: contactId ?? this.contactId,
+    ownerZPk: ownerZPk ?? this.ownerZPk,
     kind: kind ?? this.kind,
     value: value ?? this.value,
     label: label.present ? label.value : this.label,
   );
-  ImportContactChannel copyWithCompanion(ImportContactChannelsCompanion data) {
-    return ImportContactChannel(
+  ImportContactPhoneEmailData copyWithCompanion(
+    ImportContactPhoneEmailCompanion data,
+  ) {
+    return ImportContactPhoneEmailData(
       id: data.id.present ? data.id.value : this.id,
-      contactId: data.contactId.present ? data.contactId.value : this.contactId,
+      ownerZPk: data.ownerZPk.present ? data.ownerZPk.value : this.ownerZPk,
       kind: data.kind.present ? data.kind.value : this.kind,
       value: data.value.present ? data.value.value : this.value,
       label: data.label.present ? data.label.value : this.label,
@@ -2408,9 +2369,9 @@ class ImportContactChannel extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ImportContactChannel(')
+    return (StringBuffer('ImportContactPhoneEmailData(')
           ..write('id: $id, ')
-          ..write('contactId: $contactId, ')
+          ..write('ownerZPk: $ownerZPk, ')
           ..write('kind: $kind, ')
           ..write('value: $value, ')
           ..write('label: $label')
@@ -2419,67 +2380,67 @@ class ImportContactChannel extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(id, contactId, kind, value, label);
+  int get hashCode => Object.hash(id, ownerZPk, kind, value, label);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ImportContactChannel &&
+      (other is ImportContactPhoneEmailData &&
           other.id == this.id &&
-          other.contactId == this.contactId &&
+          other.ownerZPk == this.ownerZPk &&
           other.kind == this.kind &&
           other.value == this.value &&
           other.label == this.label);
 }
 
-class ImportContactChannelsCompanion
-    extends UpdateCompanion<ImportContactChannel> {
+class ImportContactPhoneEmailCompanion
+    extends UpdateCompanion<ImportContactPhoneEmailData> {
   final Value<int> id;
-  final Value<int> contactId;
+  final Value<int> ownerZPk;
   final Value<String> kind;
   final Value<String> value;
   final Value<String?> label;
-  const ImportContactChannelsCompanion({
+  const ImportContactPhoneEmailCompanion({
     this.id = const Value.absent(),
-    this.contactId = const Value.absent(),
+    this.ownerZPk = const Value.absent(),
     this.kind = const Value.absent(),
     this.value = const Value.absent(),
     this.label = const Value.absent(),
   });
-  ImportContactChannelsCompanion.insert({
+  ImportContactPhoneEmailCompanion.insert({
     this.id = const Value.absent(),
-    required int contactId,
+    required int ownerZPk,
     required String kind,
     required String value,
     this.label = const Value.absent(),
-  }) : contactId = Value(contactId),
+  }) : ownerZPk = Value(ownerZPk),
        kind = Value(kind),
        value = Value(value);
-  static Insertable<ImportContactChannel> custom({
+  static Insertable<ImportContactPhoneEmailData> custom({
     Expression<int>? id,
-    Expression<int>? contactId,
+    Expression<int>? ownerZPk,
     Expression<String>? kind,
     Expression<String>? value,
     Expression<String>? label,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (contactId != null) 'contact_id': contactId,
+      if (ownerZPk != null) 'OWNER_Z_PK': ownerZPk,
       if (kind != null) 'kind': kind,
       if (value != null) 'value': value,
       if (label != null) 'label': label,
     });
   }
 
-  ImportContactChannelsCompanion copyWith({
+  ImportContactPhoneEmailCompanion copyWith({
     Value<int>? id,
-    Value<int>? contactId,
+    Value<int>? ownerZPk,
     Value<String>? kind,
     Value<String>? value,
     Value<String?>? label,
   }) {
-    return ImportContactChannelsCompanion(
+    return ImportContactPhoneEmailCompanion(
       id: id ?? this.id,
-      contactId: contactId ?? this.contactId,
+      ownerZPk: ownerZPk ?? this.ownerZPk,
       kind: kind ?? this.kind,
       value: value ?? this.value,
       label: label ?? this.label,
@@ -2492,8 +2453,8 @@ class ImportContactChannelsCompanion
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (contactId.present) {
-      map['contact_id'] = Variable<int>(contactId.value);
+    if (ownerZPk.present) {
+      map['OWNER_Z_PK'] = Variable<int>(ownerZPk.value);
     }
     if (kind.present) {
       map['kind'] = Variable<String>(kind.value);
@@ -2509,9 +2470,9 @@ class ImportContactChannelsCompanion
 
   @override
   String toString() {
-    return (StringBuffer('ImportContactChannelsCompanion(')
+    return (StringBuffer('ImportContactPhoneEmailCompanion(')
           ..write('id: $id, ')
-          ..write('contactId: $contactId, ')
+          ..write('ownerZPk: $ownerZPk, ')
           ..write('kind: $kind, ')
           ..write('value: $value, ')
           ..write('label: $label')
@@ -2574,13 +2535,12 @@ class $ImportHandlesTable extends ImportHandles
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _normalizedAddressMeta = const VerificationMeta(
-    'normalizedAddress',
-  );
+  static const VerificationMeta _normalizedIdentifierMeta =
+      const VerificationMeta('normalizedIdentifier');
   @override
-  late final GeneratedColumn<String> normalizedAddress =
+  late final GeneratedColumn<String> normalizedIdentifier =
       GeneratedColumn<String>(
-        'normalized_address',
+        'normalized_identifier',
         aliasedName,
         true,
         type: DriftSqlType.string,
@@ -2608,6 +2568,21 @@ class $ImportHandlesTable extends ImportHandles
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _batchIdMeta = const VerificationMeta(
     'batchId',
   );
@@ -2628,9 +2603,10 @@ class $ImportHandlesTable extends ImportHandles
     sourceRowid,
     service,
     rawIdentifier,
-    normalizedAddress,
+    normalizedIdentifier,
     country,
     lastSeenUtc,
+    isIgnored,
     batchId,
   ];
   @override
@@ -2676,12 +2652,12 @@ class $ImportHandlesTable extends ImportHandles
     } else if (isInserting) {
       context.missing(_rawIdentifierMeta);
     }
-    if (data.containsKey('normalized_address')) {
+    if (data.containsKey('normalized_identifier')) {
       context.handle(
-        _normalizedAddressMeta,
-        normalizedAddress.isAcceptableOrUnknown(
-          data['normalized_address']!,
-          _normalizedAddressMeta,
+        _normalizedIdentifierMeta,
+        normalizedIdentifier.isAcceptableOrUnknown(
+          data['normalized_identifier']!,
+          _normalizedIdentifierMeta,
         ),
       );
     }
@@ -2698,6 +2674,12 @@ class $ImportHandlesTable extends ImportHandles
           data['last_seen_utc']!,
           _lastSeenUtcMeta,
         ),
+      );
+    }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
       );
     }
     if (data.containsKey('batch_id')) {
@@ -2737,9 +2719,9 @@ class $ImportHandlesTable extends ImportHandles
         DriftSqlType.string,
         data['${effectivePrefix}raw_identifier'],
       )!,
-      normalizedAddress: attachedDatabase.typeMapping.read(
+      normalizedIdentifier: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}normalized_address'],
+        data['${effectivePrefix}normalized_identifier'],
       ),
       country: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -2749,6 +2731,10 @@ class $ImportHandlesTable extends ImportHandles
         DriftSqlType.string,
         data['${effectivePrefix}last_seen_utc'],
       ),
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
       batchId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}batch_id'],
@@ -2767,18 +2753,20 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
   final int? sourceRowid;
   final String service;
   final String rawIdentifier;
-  final String? normalizedAddress;
+  final String? normalizedIdentifier;
   final String? country;
   final String? lastSeenUtc;
+  final bool isIgnored;
   final int batchId;
   const ImportHandle({
     required this.id,
     this.sourceRowid,
     required this.service,
     required this.rawIdentifier,
-    this.normalizedAddress,
+    this.normalizedIdentifier,
     this.country,
     this.lastSeenUtc,
+    required this.isIgnored,
     required this.batchId,
   });
   @override
@@ -2790,8 +2778,8 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
     }
     map['service'] = Variable<String>(service);
     map['raw_identifier'] = Variable<String>(rawIdentifier);
-    if (!nullToAbsent || normalizedAddress != null) {
-      map['normalized_address'] = Variable<String>(normalizedAddress);
+    if (!nullToAbsent || normalizedIdentifier != null) {
+      map['normalized_identifier'] = Variable<String>(normalizedIdentifier);
     }
     if (!nullToAbsent || country != null) {
       map['country'] = Variable<String>(country);
@@ -2799,6 +2787,7 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
     if (!nullToAbsent || lastSeenUtc != null) {
       map['last_seen_utc'] = Variable<String>(lastSeenUtc);
     }
+    map['is_ignored'] = Variable<bool>(isIgnored);
     map['batch_id'] = Variable<int>(batchId);
     return map;
   }
@@ -2811,15 +2800,16 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
           : Value(sourceRowid),
       service: Value(service),
       rawIdentifier: Value(rawIdentifier),
-      normalizedAddress: normalizedAddress == null && nullToAbsent
+      normalizedIdentifier: normalizedIdentifier == null && nullToAbsent
           ? const Value.absent()
-          : Value(normalizedAddress),
+          : Value(normalizedIdentifier),
       country: country == null && nullToAbsent
           ? const Value.absent()
           : Value(country),
       lastSeenUtc: lastSeenUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSeenUtc),
+      isIgnored: Value(isIgnored),
       batchId: Value(batchId),
     );
   }
@@ -2834,11 +2824,12 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
       sourceRowid: serializer.fromJson<int?>(json['sourceRowid']),
       service: serializer.fromJson<String>(json['service']),
       rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
-      normalizedAddress: serializer.fromJson<String?>(
-        json['normalizedAddress'],
+      normalizedIdentifier: serializer.fromJson<String?>(
+        json['normalizedIdentifier'],
       ),
       country: serializer.fromJson<String?>(json['country']),
       lastSeenUtc: serializer.fromJson<String?>(json['lastSeenUtc']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
       batchId: serializer.fromJson<int>(json['batchId']),
     );
   }
@@ -2850,9 +2841,10 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
       'sourceRowid': serializer.toJson<int?>(sourceRowid),
       'service': serializer.toJson<String>(service),
       'rawIdentifier': serializer.toJson<String>(rawIdentifier),
-      'normalizedAddress': serializer.toJson<String?>(normalizedAddress),
+      'normalizedIdentifier': serializer.toJson<String?>(normalizedIdentifier),
       'country': serializer.toJson<String?>(country),
       'lastSeenUtc': serializer.toJson<String?>(lastSeenUtc),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
       'batchId': serializer.toJson<int>(batchId),
     };
   }
@@ -2862,20 +2854,22 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
     Value<int?> sourceRowid = const Value.absent(),
     String? service,
     String? rawIdentifier,
-    Value<String?> normalizedAddress = const Value.absent(),
+    Value<String?> normalizedIdentifier = const Value.absent(),
     Value<String?> country = const Value.absent(),
     Value<String?> lastSeenUtc = const Value.absent(),
+    bool? isIgnored,
     int? batchId,
   }) => ImportHandle(
     id: id ?? this.id,
     sourceRowid: sourceRowid.present ? sourceRowid.value : this.sourceRowid,
     service: service ?? this.service,
     rawIdentifier: rawIdentifier ?? this.rawIdentifier,
-    normalizedAddress: normalizedAddress.present
-        ? normalizedAddress.value
-        : this.normalizedAddress,
+    normalizedIdentifier: normalizedIdentifier.present
+        ? normalizedIdentifier.value
+        : this.normalizedIdentifier,
     country: country.present ? country.value : this.country,
     lastSeenUtc: lastSeenUtc.present ? lastSeenUtc.value : this.lastSeenUtc,
+    isIgnored: isIgnored ?? this.isIgnored,
     batchId: batchId ?? this.batchId,
   );
   ImportHandle copyWithCompanion(ImportHandlesCompanion data) {
@@ -2888,13 +2882,14 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
       rawIdentifier: data.rawIdentifier.present
           ? data.rawIdentifier.value
           : this.rawIdentifier,
-      normalizedAddress: data.normalizedAddress.present
-          ? data.normalizedAddress.value
-          : this.normalizedAddress,
+      normalizedIdentifier: data.normalizedIdentifier.present
+          ? data.normalizedIdentifier.value
+          : this.normalizedIdentifier,
       country: data.country.present ? data.country.value : this.country,
       lastSeenUtc: data.lastSeenUtc.present
           ? data.lastSeenUtc.value
           : this.lastSeenUtc,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
       batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
@@ -2906,9 +2901,10 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
           ..write('sourceRowid: $sourceRowid, ')
           ..write('service: $service, ')
           ..write('rawIdentifier: $rawIdentifier, ')
-          ..write('normalizedAddress: $normalizedAddress, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('country: $country, ')
           ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
@@ -2920,9 +2916,10 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
     sourceRowid,
     service,
     rawIdentifier,
-    normalizedAddress,
+    normalizedIdentifier,
     country,
     lastSeenUtc,
+    isIgnored,
     batchId,
   );
   @override
@@ -2933,9 +2930,10 @@ class ImportHandle extends DataClass implements Insertable<ImportHandle> {
           other.sourceRowid == this.sourceRowid &&
           other.service == this.service &&
           other.rawIdentifier == this.rawIdentifier &&
-          other.normalizedAddress == this.normalizedAddress &&
+          other.normalizedIdentifier == this.normalizedIdentifier &&
           other.country == this.country &&
           other.lastSeenUtc == this.lastSeenUtc &&
+          other.isIgnored == this.isIgnored &&
           other.batchId == this.batchId);
 }
 
@@ -2944,18 +2942,20 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
   final Value<int?> sourceRowid;
   final Value<String> service;
   final Value<String> rawIdentifier;
-  final Value<String?> normalizedAddress;
+  final Value<String?> normalizedIdentifier;
   final Value<String?> country;
   final Value<String?> lastSeenUtc;
+  final Value<bool> isIgnored;
   final Value<int> batchId;
   const ImportHandlesCompanion({
     this.id = const Value.absent(),
     this.sourceRowid = const Value.absent(),
     this.service = const Value.absent(),
     this.rawIdentifier = const Value.absent(),
-    this.normalizedAddress = const Value.absent(),
+    this.normalizedIdentifier = const Value.absent(),
     this.country = const Value.absent(),
     this.lastSeenUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     this.batchId = const Value.absent(),
   });
   ImportHandlesCompanion.insert({
@@ -2963,9 +2963,10 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
     this.sourceRowid = const Value.absent(),
     required String service,
     required String rawIdentifier,
-    this.normalizedAddress = const Value.absent(),
+    this.normalizedIdentifier = const Value.absent(),
     this.country = const Value.absent(),
     this.lastSeenUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     required int batchId,
   }) : service = Value(service),
        rawIdentifier = Value(rawIdentifier),
@@ -2975,9 +2976,10 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
     Expression<int>? sourceRowid,
     Expression<String>? service,
     Expression<String>? rawIdentifier,
-    Expression<String>? normalizedAddress,
+    Expression<String>? normalizedIdentifier,
     Expression<String>? country,
     Expression<String>? lastSeenUtc,
+    Expression<bool>? isIgnored,
     Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
@@ -2985,9 +2987,11 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
       if (sourceRowid != null) 'source_rowid': sourceRowid,
       if (service != null) 'service': service,
       if (rawIdentifier != null) 'raw_identifier': rawIdentifier,
-      if (normalizedAddress != null) 'normalized_address': normalizedAddress,
+      if (normalizedIdentifier != null)
+        'normalized_identifier': normalizedIdentifier,
       if (country != null) 'country': country,
       if (lastSeenUtc != null) 'last_seen_utc': lastSeenUtc,
+      if (isIgnored != null) 'is_ignored': isIgnored,
       if (batchId != null) 'batch_id': batchId,
     });
   }
@@ -2997,9 +3001,10 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
     Value<int?>? sourceRowid,
     Value<String>? service,
     Value<String>? rawIdentifier,
-    Value<String?>? normalizedAddress,
+    Value<String?>? normalizedIdentifier,
     Value<String?>? country,
     Value<String?>? lastSeenUtc,
+    Value<bool>? isIgnored,
     Value<int>? batchId,
   }) {
     return ImportHandlesCompanion(
@@ -3007,9 +3012,10 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
       sourceRowid: sourceRowid ?? this.sourceRowid,
       service: service ?? this.service,
       rawIdentifier: rawIdentifier ?? this.rawIdentifier,
-      normalizedAddress: normalizedAddress ?? this.normalizedAddress,
+      normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
       country: country ?? this.country,
       lastSeenUtc: lastSeenUtc ?? this.lastSeenUtc,
+      isIgnored: isIgnored ?? this.isIgnored,
       batchId: batchId ?? this.batchId,
     );
   }
@@ -3029,14 +3035,19 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
     if (rawIdentifier.present) {
       map['raw_identifier'] = Variable<String>(rawIdentifier.value);
     }
-    if (normalizedAddress.present) {
-      map['normalized_address'] = Variable<String>(normalizedAddress.value);
+    if (normalizedIdentifier.present) {
+      map['normalized_identifier'] = Variable<String>(
+        normalizedIdentifier.value,
+      );
     }
     if (country.present) {
       map['country'] = Variable<String>(country.value);
     }
     if (lastSeenUtc.present) {
       map['last_seen_utc'] = Variable<String>(lastSeenUtc.value);
+    }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
     }
     if (batchId.present) {
       map['batch_id'] = Variable<int>(batchId.value);
@@ -3051,9 +3062,10 @@ class ImportHandlesCompanion extends UpdateCompanion<ImportHandle> {
           ..write('sourceRowid: $sourceRowid, ')
           ..write('service: $service, ')
           ..write('rawIdentifier: $rawIdentifier, ')
-          ..write('normalizedAddress: $normalizedAddress, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('country: $country, ')
           ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
@@ -3160,6 +3172,21 @@ class $ImportChatsTable extends ImportChats
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _batchIdMeta = const VerificationMeta(
     'batchId',
   );
@@ -3184,6 +3211,7 @@ class $ImportChatsTable extends ImportChats
     isGroup,
     createdAtUtc,
     updatedAtUtc,
+    isIgnored,
     batchId,
   ];
   @override
@@ -3257,6 +3285,12 @@ class $ImportChatsTable extends ImportChats
         ),
       );
     }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
+      );
+    }
     if (data.containsKey('batch_id')) {
       context.handle(
         _batchIdMeta,
@@ -3310,6 +3344,10 @@ class $ImportChatsTable extends ImportChats
         DriftSqlType.string,
         data['${effectivePrefix}updated_at_utc'],
       ),
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
       batchId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}batch_id'],
@@ -3332,6 +3370,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
   final bool isGroup;
   final String? createdAtUtc;
   final String? updatedAtUtc;
+  final bool isIgnored;
   final int batchId;
   const ImportChat({
     required this.id,
@@ -3342,6 +3381,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
     required this.isGroup,
     this.createdAtUtc,
     this.updatedAtUtc,
+    required this.isIgnored,
     required this.batchId,
   });
   @override
@@ -3365,6 +3405,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
     if (!nullToAbsent || updatedAtUtc != null) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     }
+    map['is_ignored'] = Variable<bool>(isIgnored);
     map['batch_id'] = Variable<int>(batchId);
     return map;
   }
@@ -3389,6 +3430,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
       updatedAtUtc: updatedAtUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(updatedAtUtc),
+      isIgnored: Value(isIgnored),
       batchId: Value(batchId),
     );
   }
@@ -3407,6 +3449,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
       isGroup: serializer.fromJson<bool>(json['isGroup']),
       createdAtUtc: serializer.fromJson<String?>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String?>(json['updatedAtUtc']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
       batchId: serializer.fromJson<int>(json['batchId']),
     );
   }
@@ -3422,6 +3465,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
       'isGroup': serializer.toJson<bool>(isGroup),
       'createdAtUtc': serializer.toJson<String?>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String?>(updatedAtUtc),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
       'batchId': serializer.toJson<int>(batchId),
     };
   }
@@ -3435,6 +3479,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
     bool? isGroup,
     Value<String?> createdAtUtc = const Value.absent(),
     Value<String?> updatedAtUtc = const Value.absent(),
+    bool? isIgnored,
     int? batchId,
   }) => ImportChat(
     id: id ?? this.id,
@@ -3445,6 +3490,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
     isGroup: isGroup ?? this.isGroup,
     createdAtUtc: createdAtUtc.present ? createdAtUtc.value : this.createdAtUtc,
     updatedAtUtc: updatedAtUtc.present ? updatedAtUtc.value : this.updatedAtUtc,
+    isIgnored: isIgnored ?? this.isIgnored,
     batchId: batchId ?? this.batchId,
   );
   ImportChat copyWithCompanion(ImportChatsCompanion data) {
@@ -3465,6 +3511,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
       updatedAtUtc: data.updatedAtUtc.present
           ? data.updatedAtUtc.value
           : this.updatedAtUtc,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
       batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
@@ -3480,6 +3527,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
           ..write('isGroup: $isGroup, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
@@ -3495,6 +3543,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
     isGroup,
     createdAtUtc,
     updatedAtUtc,
+    isIgnored,
     batchId,
   );
   @override
@@ -3509,6 +3558,7 @@ class ImportChat extends DataClass implements Insertable<ImportChat> {
           other.isGroup == this.isGroup &&
           other.createdAtUtc == this.createdAtUtc &&
           other.updatedAtUtc == this.updatedAtUtc &&
+          other.isIgnored == this.isIgnored &&
           other.batchId == this.batchId);
 }
 
@@ -3521,6 +3571,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
   final Value<bool> isGroup;
   final Value<String?> createdAtUtc;
   final Value<String?> updatedAtUtc;
+  final Value<bool> isIgnored;
   final Value<int> batchId;
   const ImportChatsCompanion({
     this.id = const Value.absent(),
@@ -3531,6 +3582,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
     this.isGroup = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     this.batchId = const Value.absent(),
   });
   ImportChatsCompanion.insert({
@@ -3542,6 +3594,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
     this.isGroup = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     required int batchId,
   }) : guid = Value(guid),
        batchId = Value(batchId);
@@ -3554,6 +3607,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
     Expression<bool>? isGroup,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
+    Expression<bool>? isIgnored,
     Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
@@ -3565,6 +3619,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
       if (isGroup != null) 'is_group': isGroup,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+      if (isIgnored != null) 'is_ignored': isIgnored,
       if (batchId != null) 'batch_id': batchId,
     });
   }
@@ -3578,6 +3633,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
     Value<bool>? isGroup,
     Value<String?>? createdAtUtc,
     Value<String?>? updatedAtUtc,
+    Value<bool>? isIgnored,
     Value<int>? batchId,
   }) {
     return ImportChatsCompanion(
@@ -3589,6 +3645,7 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
       isGroup: isGroup ?? this.isGroup,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      isIgnored: isIgnored ?? this.isIgnored,
       batchId: batchId ?? this.batchId,
     );
   }
@@ -3620,6 +3677,9 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
     if (updatedAtUtc.present) {
       map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
     }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
+    }
     if (batchId.present) {
       map['batch_id'] = Variable<int>(batchId.value);
     }
@@ -3637,18 +3697,19 @@ class ImportChatsCompanion extends UpdateCompanion<ImportChat> {
           ..write('isGroup: $isGroup, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
 }
 
-class $ImportChatParticipantsTable extends ImportChatParticipants
-    with TableInfo<$ImportChatParticipantsTable, ImportChatParticipant> {
+class $ImportChatToHandleTable extends ImportChatToHandle
+    with TableInfo<$ImportChatToHandleTable, ImportChatToHandleData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ImportChatParticipantsTable(this.attachedDatabase, [this._alias]);
+  $ImportChatToHandleTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _chatIdMeta = const VerificationMeta('chatId');
   @override
   late final GeneratedColumn<int> chatId = GeneratedColumn<int>(
@@ -3703,10 +3764,10 @@ class $ImportChatParticipantsTable extends ImportChatParticipants
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'chat_participants';
+  static const String $name = 'chat_to_handle';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ImportChatParticipant> instance, {
+    Insertable<ImportChatToHandleData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3748,9 +3809,9 @@ class $ImportChatParticipantsTable extends ImportChatParticipants
   @override
   Set<GeneratedColumn> get $primaryKey => {chatId, handleId};
   @override
-  ImportChatParticipant map(Map<String, dynamic> data, {String? tablePrefix}) {
+  ImportChatToHandleData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ImportChatParticipant(
+    return ImportChatToHandleData(
       chatId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}chat_id'],
@@ -3771,18 +3832,18 @@ class $ImportChatParticipantsTable extends ImportChatParticipants
   }
 
   @override
-  $ImportChatParticipantsTable createAlias(String alias) {
-    return $ImportChatParticipantsTable(attachedDatabase, alias);
+  $ImportChatToHandleTable createAlias(String alias) {
+    return $ImportChatToHandleTable(attachedDatabase, alias);
   }
 }
 
-class ImportChatParticipant extends DataClass
-    implements Insertable<ImportChatParticipant> {
+class ImportChatToHandleData extends DataClass
+    implements Insertable<ImportChatToHandleData> {
   final int chatId;
   final int handleId;
   final String? role;
   final String? addedAtUtc;
-  const ImportChatParticipant({
+  const ImportChatToHandleData({
     required this.chatId,
     required this.handleId,
     this.role,
@@ -3802,8 +3863,8 @@ class ImportChatParticipant extends DataClass
     return map;
   }
 
-  ImportChatParticipantsCompanion toCompanion(bool nullToAbsent) {
-    return ImportChatParticipantsCompanion(
+  ImportChatToHandleCompanion toCompanion(bool nullToAbsent) {
+    return ImportChatToHandleCompanion(
       chatId: Value(chatId),
       handleId: Value(handleId),
       role: role == null && nullToAbsent ? const Value.absent() : Value(role),
@@ -3813,12 +3874,12 @@ class ImportChatParticipant extends DataClass
     );
   }
 
-  factory ImportChatParticipant.fromJson(
+  factory ImportChatToHandleData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ImportChatParticipant(
+    return ImportChatToHandleData(
       chatId: serializer.fromJson<int>(json['chatId']),
       handleId: serializer.fromJson<int>(json['handleId']),
       role: serializer.fromJson<String?>(json['role']),
@@ -3836,21 +3897,19 @@ class ImportChatParticipant extends DataClass
     };
   }
 
-  ImportChatParticipant copyWith({
+  ImportChatToHandleData copyWith({
     int? chatId,
     int? handleId,
     Value<String?> role = const Value.absent(),
     Value<String?> addedAtUtc = const Value.absent(),
-  }) => ImportChatParticipant(
+  }) => ImportChatToHandleData(
     chatId: chatId ?? this.chatId,
     handleId: handleId ?? this.handleId,
     role: role.present ? role.value : this.role,
     addedAtUtc: addedAtUtc.present ? addedAtUtc.value : this.addedAtUtc,
   );
-  ImportChatParticipant copyWithCompanion(
-    ImportChatParticipantsCompanion data,
-  ) {
-    return ImportChatParticipant(
+  ImportChatToHandleData copyWithCompanion(ImportChatToHandleCompanion data) {
+    return ImportChatToHandleData(
       chatId: data.chatId.present ? data.chatId.value : this.chatId,
       handleId: data.handleId.present ? data.handleId.value : this.handleId,
       role: data.role.present ? data.role.value : this.role,
@@ -3862,7 +3921,7 @@ class ImportChatParticipant extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ImportChatParticipant(')
+    return (StringBuffer('ImportChatToHandleData(')
           ..write('chatId: $chatId, ')
           ..write('handleId: $handleId, ')
           ..write('role: $role, ')
@@ -3876,28 +3935,28 @@ class ImportChatParticipant extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ImportChatParticipant &&
+      (other is ImportChatToHandleData &&
           other.chatId == this.chatId &&
           other.handleId == this.handleId &&
           other.role == this.role &&
           other.addedAtUtc == this.addedAtUtc);
 }
 
-class ImportChatParticipantsCompanion
-    extends UpdateCompanion<ImportChatParticipant> {
+class ImportChatToHandleCompanion
+    extends UpdateCompanion<ImportChatToHandleData> {
   final Value<int> chatId;
   final Value<int> handleId;
   final Value<String?> role;
   final Value<String?> addedAtUtc;
   final Value<int> rowid;
-  const ImportChatParticipantsCompanion({
+  const ImportChatToHandleCompanion({
     this.chatId = const Value.absent(),
     this.handleId = const Value.absent(),
     this.role = const Value.absent(),
     this.addedAtUtc = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  ImportChatParticipantsCompanion.insert({
+  ImportChatToHandleCompanion.insert({
     required int chatId,
     required int handleId,
     this.role = const Value.absent(),
@@ -3905,7 +3964,7 @@ class ImportChatParticipantsCompanion
     this.rowid = const Value.absent(),
   }) : chatId = Value(chatId),
        handleId = Value(handleId);
-  static Insertable<ImportChatParticipant> custom({
+  static Insertable<ImportChatToHandleData> custom({
     Expression<int>? chatId,
     Expression<int>? handleId,
     Expression<String>? role,
@@ -3921,14 +3980,14 @@ class ImportChatParticipantsCompanion
     });
   }
 
-  ImportChatParticipantsCompanion copyWith({
+  ImportChatToHandleCompanion copyWith({
     Value<int>? chatId,
     Value<int>? handleId,
     Value<String?>? role,
     Value<String?>? addedAtUtc,
     Value<int>? rowid,
   }) {
-    return ImportChatParticipantsCompanion(
+    return ImportChatToHandleCompanion(
       chatId: chatId ?? this.chatId,
       handleId: handleId ?? this.handleId,
       role: role ?? this.role,
@@ -3960,7 +4019,7 @@ class ImportChatParticipantsCompanion
 
   @override
   String toString() {
-    return (StringBuffer('ImportChatParticipantsCompanion(')
+    return (StringBuffer('ImportChatToHandleCompanion(')
           ..write('chatId: $chatId, ')
           ..write('handleId: $handleId, ')
           ..write('role: $role, ')
@@ -4213,6 +4272,21 @@ class $ImportMessagesTable extends ImportMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _batchIdMeta = const VerificationMeta(
     'batchId',
   );
@@ -4249,6 +4323,7 @@ class $ImportMessagesTable extends ImportMessages
     associatedMessageGuid,
     balloonBundleId,
     payloadJson,
+    isIgnored,
     batchId,
   ];
   @override
@@ -4414,6 +4489,12 @@ class $ImportMessagesTable extends ImportMessages
         ),
       );
     }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
+      );
+    }
     if (data.containsKey('batch_id')) {
       context.handle(
         _batchIdMeta,
@@ -4515,6 +4596,10 @@ class $ImportMessagesTable extends ImportMessages
         DriftSqlType.string,
         data['${effectivePrefix}payload_json'],
       ),
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
       batchId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}batch_id'],
@@ -4549,6 +4634,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
   final String? associatedMessageGuid;
   final String? balloonBundleId;
   final String? payloadJson;
+  final bool isIgnored;
   final int batchId;
   const ImportMessage({
     required this.id,
@@ -4571,6 +4657,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
     this.associatedMessageGuid,
     this.balloonBundleId,
     this.payloadJson,
+    required this.isIgnored,
     required this.batchId,
   });
   @override
@@ -4626,6 +4713,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
     if (!nullToAbsent || payloadJson != null) {
       map['payload_json'] = Variable<String>(payloadJson);
     }
+    map['is_ignored'] = Variable<bool>(isIgnored);
     map['batch_id'] = Variable<int>(batchId);
     return map;
   }
@@ -4682,6 +4770,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
       payloadJson: payloadJson == null && nullToAbsent
           ? const Value.absent()
           : Value(payloadJson),
+      isIgnored: Value(isIgnored),
       batchId: Value(batchId),
     );
   }
@@ -4718,6 +4807,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
       ),
       balloonBundleId: serializer.fromJson<String?>(json['balloonBundleId']),
       payloadJson: serializer.fromJson<String?>(json['payloadJson']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
       batchId: serializer.fromJson<int>(json['batchId']),
     );
   }
@@ -4747,6 +4837,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
       ),
       'balloonBundleId': serializer.toJson<String?>(balloonBundleId),
       'payloadJson': serializer.toJson<String?>(payloadJson),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
       'batchId': serializer.toJson<int>(batchId),
     };
   }
@@ -4772,6 +4863,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
     Value<String?> associatedMessageGuid = const Value.absent(),
     Value<String?> balloonBundleId = const Value.absent(),
     Value<String?> payloadJson = const Value.absent(),
+    bool? isIgnored,
     int? batchId,
   }) => ImportMessage(
     id: id ?? this.id,
@@ -4806,6 +4898,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
         ? balloonBundleId.value
         : this.balloonBundleId,
     payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
+    isIgnored: isIgnored ?? this.isIgnored,
     batchId: batchId ?? this.batchId,
   );
   ImportMessage copyWithCompanion(ImportMessagesCompanion data) {
@@ -4852,6 +4945,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
       payloadJson: data.payloadJson.present
           ? data.payloadJson.value
           : this.payloadJson,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
       batchId: data.batchId.present ? data.batchId.value : this.batchId,
     );
   }
@@ -4879,6 +4973,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
           ..write('associatedMessageGuid: $associatedMessageGuid, ')
           ..write('balloonBundleId: $balloonBundleId, ')
           ..write('payloadJson: $payloadJson, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
@@ -4906,6 +5001,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
     associatedMessageGuid,
     balloonBundleId,
     payloadJson,
+    isIgnored,
     batchId,
   ]);
   @override
@@ -4935,6 +5031,7 @@ class ImportMessage extends DataClass implements Insertable<ImportMessage> {
           other.associatedMessageGuid == this.associatedMessageGuid &&
           other.balloonBundleId == this.balloonBundleId &&
           other.payloadJson == this.payloadJson &&
+          other.isIgnored == this.isIgnored &&
           other.batchId == this.batchId);
 }
 
@@ -4959,6 +5056,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
   final Value<String?> associatedMessageGuid;
   final Value<String?> balloonBundleId;
   final Value<String?> payloadJson;
+  final Value<bool> isIgnored;
   final Value<int> batchId;
   const ImportMessagesCompanion({
     this.id = const Value.absent(),
@@ -4981,6 +5079,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
     this.associatedMessageGuid = const Value.absent(),
     this.balloonBundleId = const Value.absent(),
     this.payloadJson = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     this.batchId = const Value.absent(),
   });
   ImportMessagesCompanion.insert({
@@ -5004,6 +5103,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
     this.associatedMessageGuid = const Value.absent(),
     this.balloonBundleId = const Value.absent(),
     this.payloadJson = const Value.absent(),
+    this.isIgnored = const Value.absent(),
     required int batchId,
   }) : guid = Value(guid),
        chatId = Value(chatId),
@@ -5029,6 +5129,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
     Expression<String>? associatedMessageGuid,
     Expression<String>? balloonBundleId,
     Expression<String>? payloadJson,
+    Expression<bool>? isIgnored,
     Expression<int>? batchId,
   }) {
     return RawValuesInsertable({
@@ -5055,6 +5156,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
         'associated_message_guid': associatedMessageGuid,
       if (balloonBundleId != null) 'balloon_bundle_id': balloonBundleId,
       if (payloadJson != null) 'payload_json': payloadJson,
+      if (isIgnored != null) 'is_ignored': isIgnored,
       if (batchId != null) 'batch_id': batchId,
     });
   }
@@ -5080,6 +5182,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
     Value<String?>? associatedMessageGuid,
     Value<String?>? balloonBundleId,
     Value<String?>? payloadJson,
+    Value<bool>? isIgnored,
     Value<int>? batchId,
   }) {
     return ImportMessagesCompanion(
@@ -5104,6 +5207,7 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
           associatedMessageGuid ?? this.associatedMessageGuid,
       balloonBundleId: balloonBundleId ?? this.balloonBundleId,
       payloadJson: payloadJson ?? this.payloadJson,
+      isIgnored: isIgnored ?? this.isIgnored,
       batchId: batchId ?? this.batchId,
     );
   }
@@ -5177,6 +5281,9 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
     if (payloadJson.present) {
       map['payload_json'] = Variable<String>(payloadJson.value);
     }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
+    }
     if (batchId.present) {
       map['batch_id'] = Variable<int>(batchId.value);
     }
@@ -5206,22 +5313,19 @@ class ImportMessagesCompanion extends UpdateCompanion<ImportMessage> {
           ..write('associatedMessageGuid: $associatedMessageGuid, ')
           ..write('balloonBundleId: $balloonBundleId, ')
           ..write('payloadJson: $payloadJson, ')
+          ..write('isIgnored: $isIgnored, ')
           ..write('batchId: $batchId')
           ..write(')'))
         .toString();
   }
 }
 
-class $ImportChatMessageJoinSourceTable extends ImportChatMessageJoinSource
-    with
-        TableInfo<
-          $ImportChatMessageJoinSourceTable,
-          ImportChatMessageJoinSourceData
-        > {
+class $ImportChatToMessageTable extends ImportChatToMessage
+    with TableInfo<$ImportChatToMessageTable, ImportChatToMessageData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ImportChatMessageJoinSourceTable(this.attachedDatabase, [this._alias]);
+  $ImportChatToMessageTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _chatIdMeta = const VerificationMeta('chatId');
   @override
   late final GeneratedColumn<int> chatId = GeneratedColumn<int>(
@@ -5265,10 +5369,10 @@ class $ImportChatMessageJoinSourceTable extends ImportChatMessageJoinSource
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'chat_message_join_source';
+  static const String $name = 'chat_to_message';
   @override
   VerificationContext validateIntegrity(
-    Insertable<ImportChatMessageJoinSourceData> instance, {
+    Insertable<ImportChatToMessageData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -5304,12 +5408,12 @@ class $ImportChatMessageJoinSourceTable extends ImportChatMessageJoinSource
   @override
   Set<GeneratedColumn> get $primaryKey => {chatId, messageId};
   @override
-  ImportChatMessageJoinSourceData map(
+  ImportChatToMessageData map(
     Map<String, dynamic> data, {
     String? tablePrefix,
   }) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ImportChatMessageJoinSourceData(
+    return ImportChatToMessageData(
       chatId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}chat_id'],
@@ -5326,17 +5430,17 @@ class $ImportChatMessageJoinSourceTable extends ImportChatMessageJoinSource
   }
 
   @override
-  $ImportChatMessageJoinSourceTable createAlias(String alias) {
-    return $ImportChatMessageJoinSourceTable(attachedDatabase, alias);
+  $ImportChatToMessageTable createAlias(String alias) {
+    return $ImportChatToMessageTable(attachedDatabase, alias);
   }
 }
 
-class ImportChatMessageJoinSourceData extends DataClass
-    implements Insertable<ImportChatMessageJoinSourceData> {
+class ImportChatToMessageData extends DataClass
+    implements Insertable<ImportChatToMessageData> {
   final int chatId;
   final int messageId;
   final int? sourceRowid;
-  const ImportChatMessageJoinSourceData({
+  const ImportChatToMessageData({
     required this.chatId,
     required this.messageId,
     this.sourceRowid,
@@ -5352,8 +5456,8 @@ class ImportChatMessageJoinSourceData extends DataClass
     return map;
   }
 
-  ImportChatMessageJoinSourceCompanion toCompanion(bool nullToAbsent) {
-    return ImportChatMessageJoinSourceCompanion(
+  ImportChatToMessageCompanion toCompanion(bool nullToAbsent) {
+    return ImportChatToMessageCompanion(
       chatId: Value(chatId),
       messageId: Value(messageId),
       sourceRowid: sourceRowid == null && nullToAbsent
@@ -5362,12 +5466,12 @@ class ImportChatMessageJoinSourceData extends DataClass
     );
   }
 
-  factory ImportChatMessageJoinSourceData.fromJson(
+  factory ImportChatToMessageData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ImportChatMessageJoinSourceData(
+    return ImportChatToMessageData(
       chatId: serializer.fromJson<int>(json['chatId']),
       messageId: serializer.fromJson<int>(json['messageId']),
       sourceRowid: serializer.fromJson<int?>(json['sourceRowid']),
@@ -5383,19 +5487,17 @@ class ImportChatMessageJoinSourceData extends DataClass
     };
   }
 
-  ImportChatMessageJoinSourceData copyWith({
+  ImportChatToMessageData copyWith({
     int? chatId,
     int? messageId,
     Value<int?> sourceRowid = const Value.absent(),
-  }) => ImportChatMessageJoinSourceData(
+  }) => ImportChatToMessageData(
     chatId: chatId ?? this.chatId,
     messageId: messageId ?? this.messageId,
     sourceRowid: sourceRowid.present ? sourceRowid.value : this.sourceRowid,
   );
-  ImportChatMessageJoinSourceData copyWithCompanion(
-    ImportChatMessageJoinSourceCompanion data,
-  ) {
-    return ImportChatMessageJoinSourceData(
+  ImportChatToMessageData copyWithCompanion(ImportChatToMessageCompanion data) {
+    return ImportChatToMessageData(
       chatId: data.chatId.present ? data.chatId.value : this.chatId,
       messageId: data.messageId.present ? data.messageId.value : this.messageId,
       sourceRowid: data.sourceRowid.present
@@ -5406,7 +5508,7 @@ class ImportChatMessageJoinSourceData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('ImportChatMessageJoinSourceData(')
+    return (StringBuffer('ImportChatToMessageData(')
           ..write('chatId: $chatId, ')
           ..write('messageId: $messageId, ')
           ..write('sourceRowid: $sourceRowid')
@@ -5419,32 +5521,32 @@ class ImportChatMessageJoinSourceData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ImportChatMessageJoinSourceData &&
+      (other is ImportChatToMessageData &&
           other.chatId == this.chatId &&
           other.messageId == this.messageId &&
           other.sourceRowid == this.sourceRowid);
 }
 
-class ImportChatMessageJoinSourceCompanion
-    extends UpdateCompanion<ImportChatMessageJoinSourceData> {
+class ImportChatToMessageCompanion
+    extends UpdateCompanion<ImportChatToMessageData> {
   final Value<int> chatId;
   final Value<int> messageId;
   final Value<int?> sourceRowid;
   final Value<int> rowid;
-  const ImportChatMessageJoinSourceCompanion({
+  const ImportChatToMessageCompanion({
     this.chatId = const Value.absent(),
     this.messageId = const Value.absent(),
     this.sourceRowid = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  ImportChatMessageJoinSourceCompanion.insert({
+  ImportChatToMessageCompanion.insert({
     required int chatId,
     required int messageId,
     this.sourceRowid = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : chatId = Value(chatId),
        messageId = Value(messageId);
-  static Insertable<ImportChatMessageJoinSourceData> custom({
+  static Insertable<ImportChatToMessageData> custom({
     Expression<int>? chatId,
     Expression<int>? messageId,
     Expression<int>? sourceRowid,
@@ -5458,13 +5560,13 @@ class ImportChatMessageJoinSourceCompanion
     });
   }
 
-  ImportChatMessageJoinSourceCompanion copyWith({
+  ImportChatToMessageCompanion copyWith({
     Value<int>? chatId,
     Value<int>? messageId,
     Value<int?>? sourceRowid,
     Value<int>? rowid,
   }) {
-    return ImportChatMessageJoinSourceCompanion(
+    return ImportChatToMessageCompanion(
       chatId: chatId ?? this.chatId,
       messageId: messageId ?? this.messageId,
       sourceRowid: sourceRowid ?? this.sourceRowid,
@@ -5492,7 +5594,7 @@ class ImportChatMessageJoinSourceCompanion
 
   @override
   String toString() {
-    return (StringBuffer('ImportChatMessageJoinSourceCompanion(')
+    return (StringBuffer('ImportChatToMessageCompanion(')
           ..write('chatId: $chatId, ')
           ..write('messageId: $messageId, ')
           ..write('sourceRowid: $sourceRowid, ')
@@ -7447,6 +7549,340 @@ class ImportMessageLinksCompanion extends UpdateCompanion<ImportMessageLink> {
   }
 }
 
+class $ImportContactToChatHandleTable extends ImportContactToChatHandle
+    with
+        TableInfo<
+          $ImportContactToChatHandleTable,
+          ImportContactToChatHandleData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ImportContactToChatHandleTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contactZPkMeta = const VerificationMeta(
+    'contactZPk',
+  );
+  @override
+  late final GeneratedColumn<int> contactZPk = GeneratedColumn<int>(
+    'contact_Z_PK',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES contacts (Z_PK) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _chatHandleIdMeta = const VerificationMeta(
+    'chatHandleId',
+  );
+  @override
+  late final GeneratedColumn<int> chatHandleId = GeneratedColumn<int>(
+    'chat_handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES import_batches (id) ON DELETE RESTRICT',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, contactZPk, chatHandleId, batchId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'contact_to_chat_handle';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ImportContactToChatHandleData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('contact_Z_PK')) {
+      context.handle(
+        _contactZPkMeta,
+        contactZPk.isAcceptableOrUnknown(
+          data['contact_Z_PK']!,
+          _contactZPkMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contactZPkMeta);
+    }
+    if (data.containsKey('chat_handle_id')) {
+      context.handle(
+        _chatHandleIdMeta,
+        chatHandleId.isAcceptableOrUnknown(
+          data['chat_handle_id']!,
+          _chatHandleIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chatHandleIdMeta);
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_batchIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {contactZPk, chatHandleId},
+  ];
+  @override
+  ImportContactToChatHandleData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ImportContactToChatHandleData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      contactZPk: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}contact_Z_PK'],
+      )!,
+      chatHandleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chat_handle_id'],
+      )!,
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ImportContactToChatHandleTable createAlias(String alias) {
+    return $ImportContactToChatHandleTable(attachedDatabase, alias);
+  }
+}
+
+class ImportContactToChatHandleData extends DataClass
+    implements Insertable<ImportContactToChatHandleData> {
+  final int id;
+  final int contactZPk;
+  final int chatHandleId;
+  final int batchId;
+  const ImportContactToChatHandleData({
+    required this.id,
+    required this.contactZPk,
+    required this.chatHandleId,
+    required this.batchId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['contact_Z_PK'] = Variable<int>(contactZPk);
+    map['chat_handle_id'] = Variable<int>(chatHandleId);
+    map['batch_id'] = Variable<int>(batchId);
+    return map;
+  }
+
+  ImportContactToChatHandleCompanion toCompanion(bool nullToAbsent) {
+    return ImportContactToChatHandleCompanion(
+      id: Value(id),
+      contactZPk: Value(contactZPk),
+      chatHandleId: Value(chatHandleId),
+      batchId: Value(batchId),
+    );
+  }
+
+  factory ImportContactToChatHandleData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ImportContactToChatHandleData(
+      id: serializer.fromJson<int>(json['id']),
+      contactZPk: serializer.fromJson<int>(json['contactZPk']),
+      chatHandleId: serializer.fromJson<int>(json['chatHandleId']),
+      batchId: serializer.fromJson<int>(json['batchId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'contactZPk': serializer.toJson<int>(contactZPk),
+      'chatHandleId': serializer.toJson<int>(chatHandleId),
+      'batchId': serializer.toJson<int>(batchId),
+    };
+  }
+
+  ImportContactToChatHandleData copyWith({
+    int? id,
+    int? contactZPk,
+    int? chatHandleId,
+    int? batchId,
+  }) => ImportContactToChatHandleData(
+    id: id ?? this.id,
+    contactZPk: contactZPk ?? this.contactZPk,
+    chatHandleId: chatHandleId ?? this.chatHandleId,
+    batchId: batchId ?? this.batchId,
+  );
+  ImportContactToChatHandleData copyWithCompanion(
+    ImportContactToChatHandleCompanion data,
+  ) {
+    return ImportContactToChatHandleData(
+      id: data.id.present ? data.id.value : this.id,
+      contactZPk: data.contactZPk.present
+          ? data.contactZPk.value
+          : this.contactZPk,
+      chatHandleId: data.chatHandleId.present
+          ? data.chatHandleId.value
+          : this.chatHandleId,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImportContactToChatHandleData(')
+          ..write('id: $id, ')
+          ..write('contactZPk: $contactZPk, ')
+          ..write('chatHandleId: $chatHandleId, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, contactZPk, chatHandleId, batchId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ImportContactToChatHandleData &&
+          other.id == this.id &&
+          other.contactZPk == this.contactZPk &&
+          other.chatHandleId == this.chatHandleId &&
+          other.batchId == this.batchId);
+}
+
+class ImportContactToChatHandleCompanion
+    extends UpdateCompanion<ImportContactToChatHandleData> {
+  final Value<int> id;
+  final Value<int> contactZPk;
+  final Value<int> chatHandleId;
+  final Value<int> batchId;
+  const ImportContactToChatHandleCompanion({
+    this.id = const Value.absent(),
+    this.contactZPk = const Value.absent(),
+    this.chatHandleId = const Value.absent(),
+    this.batchId = const Value.absent(),
+  });
+  ImportContactToChatHandleCompanion.insert({
+    this.id = const Value.absent(),
+    required int contactZPk,
+    required int chatHandleId,
+    required int batchId,
+  }) : contactZPk = Value(contactZPk),
+       chatHandleId = Value(chatHandleId),
+       batchId = Value(batchId);
+  static Insertable<ImportContactToChatHandleData> custom({
+    Expression<int>? id,
+    Expression<int>? contactZPk,
+    Expression<int>? chatHandleId,
+    Expression<int>? batchId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contactZPk != null) 'contact_Z_PK': contactZPk,
+      if (chatHandleId != null) 'chat_handle_id': chatHandleId,
+      if (batchId != null) 'batch_id': batchId,
+    });
+  }
+
+  ImportContactToChatHandleCompanion copyWith({
+    Value<int>? id,
+    Value<int>? contactZPk,
+    Value<int>? chatHandleId,
+    Value<int>? batchId,
+  }) {
+    return ImportContactToChatHandleCompanion(
+      id: id ?? this.id,
+      contactZPk: contactZPk ?? this.contactZPk,
+      chatHandleId: chatHandleId ?? this.chatHandleId,
+      batchId: batchId ?? this.batchId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (contactZPk.present) {
+      map['contact_Z_PK'] = Variable<int>(contactZPk.value);
+    }
+    if (chatHandleId.present) {
+      map['chat_handle_id'] = Variable<int>(chatHandleId.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImportContactToChatHandleCompanion(')
+          ..write('id: $id, ')
+          ..write('contactZPk: $contactZPk, ')
+          ..write('chatHandleId: $chatHandleId, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ImportDatabase extends GeneratedDatabase {
   _$ImportDatabase(QueryExecutor e) : super(e);
   $ImportDatabaseManager get managers => $ImportDatabaseManager(this);
@@ -7457,15 +7893,15 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
       $ImportSourceFilesTable(this);
   late final $ImportLogsTable importLogs = $ImportLogsTable(this);
   late final $ImportContactsTable importContacts = $ImportContactsTable(this);
-  late final $ImportContactChannelsTable importContactChannels =
-      $ImportContactChannelsTable(this);
+  late final $ImportContactPhoneEmailTable importContactPhoneEmail =
+      $ImportContactPhoneEmailTable(this);
   late final $ImportHandlesTable importHandles = $ImportHandlesTable(this);
   late final $ImportChatsTable importChats = $ImportChatsTable(this);
-  late final $ImportChatParticipantsTable importChatParticipants =
-      $ImportChatParticipantsTable(this);
+  late final $ImportChatToHandleTable importChatToHandle =
+      $ImportChatToHandleTable(this);
   late final $ImportMessagesTable importMessages = $ImportMessagesTable(this);
-  late final $ImportChatMessageJoinSourceTable importChatMessageJoinSource =
-      $ImportChatMessageJoinSourceTable(this);
+  late final $ImportChatToMessageTable importChatToMessage =
+      $ImportChatToMessageTable(this);
   late final $ImportAttachmentsTable importAttachments =
       $ImportAttachmentsTable(this);
   late final $ImportMessageAttachmentsTable importMessageAttachments =
@@ -7475,6 +7911,8 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
   );
   late final $ImportMessageLinksTable importMessageLinks =
       $ImportMessageLinksTable(this);
+  late final $ImportContactToChatHandleTable importContactToChatHandle =
+      $ImportContactToChatHandleTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7485,16 +7923,17 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
     importSourceFiles,
     importLogs,
     importContacts,
-    importContactChannels,
+    importContactPhoneEmail,
     importHandles,
     importChats,
-    importChatParticipants,
+    importChatToHandle,
     importMessages,
-    importChatMessageJoinSource,
+    importChatToMessage,
     importAttachments,
     importMessageAttachments,
     importReactions,
     importMessageLinks,
+    importContactToChatHandle,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -7517,21 +7956,21 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
         'contacts',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('contact_channels', kind: UpdateKind.delete)],
+      result: [TableUpdate('contact_phone_email', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'chats',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('chat_participants', kind: UpdateKind.delete)],
+      result: [TableUpdate('chat_to_handle', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'handles',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('chat_participants', kind: UpdateKind.delete)],
+      result: [TableUpdate('chat_to_handle', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -7552,18 +7991,14 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
         'chats',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [
-        TableUpdate('chat_message_join_source', kind: UpdateKind.delete),
-      ],
+      result: [TableUpdate('chat_to_message', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'messages',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [
-        TableUpdate('chat_message_join_source', kind: UpdateKind.delete),
-      ],
+      result: [TableUpdate('chat_to_message', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -7600,18 +8035,34 @@ abstract class _$ImportDatabase extends GeneratedDatabase {
       ),
       result: [TableUpdate('message_links', kind: UpdateKind.delete)],
     ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'contacts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('contact_to_chat_handle', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'handles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('contact_to_chat_handle', kind: UpdateKind.delete)],
+    ),
   ]);
 }
 
 typedef $$ImportSchemaMigrationsTableCreateCompanionBuilder =
     ImportSchemaMigrationsCompanion Function({
-      Value<int> version,
+      required int version,
       required String appliedAtUtc,
+      Value<int> rowid,
     });
 typedef $$ImportSchemaMigrationsTableUpdateCompanionBuilder =
     ImportSchemaMigrationsCompanion Function({
       Value<int> version,
       Value<String> appliedAtUtc,
+      Value<int> rowid,
     });
 
 class $$ImportSchemaMigrationsTableFilterComposer
@@ -7720,17 +8171,21 @@ class $$ImportSchemaMigrationsTableTableManager
               ({
                 Value<int> version = const Value.absent(),
                 Value<String> appliedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => ImportSchemaMigrationsCompanion(
                 version: version,
                 appliedAtUtc: appliedAtUtc,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> version = const Value.absent(),
+                required int version,
                 required String appliedAtUtc,
+                Value<int> rowid = const Value.absent(),
               }) => ImportSchemaMigrationsCompanion.insert(
                 version: version,
                 appliedAtUtc: appliedAtUtc,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -7937,6 +8392,34 @@ final class $$ImportBatchesTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _importAttachmentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ImportContactToChatHandleTable,
+    List<ImportContactToChatHandleData>
+  >
+  _importContactToChatHandleRefsTable(_$ImportDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.importContactToChatHandle,
+        aliasName: $_aliasNameGenerator(
+          db.importBatches.id,
+          db.importContactToChatHandle.batchId,
+        ),
+      );
+
+  $$ImportContactToChatHandleTableProcessedTableManager
+  get importContactToChatHandleRefs {
+    final manager = $$ImportContactToChatHandleTableTableManager(
+      $_db,
+      $_db.importContactToChatHandle,
+    ).filter((f) => f.batchId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _importContactToChatHandleRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -8160,6 +8643,33 @@ class $$ImportBatchesTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> importContactToChatHandleRefs(
+    Expression<bool> Function($$ImportContactToChatHandleTableFilterComposer f)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.batchId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableFilterComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -8425,6 +8935,33 @@ class $$ImportBatchesTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> importContactToChatHandleRefs<T extends Object>(
+    Expression<T> Function($$ImportContactToChatHandleTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.batchId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableAnnotationComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ImportBatchesTableTableManager
@@ -8448,6 +8985,7 @@ class $$ImportBatchesTableTableManager
             bool importChatsRefs,
             bool importMessagesRefs,
             bool importAttachmentsRefs,
+            bool importContactToChatHandleRefs,
           })
         > {
   $$ImportBatchesTableTableManager(
@@ -8516,6 +9054,7 @@ class $$ImportBatchesTableTableManager
                 importChatsRefs = false,
                 importMessagesRefs = false,
                 importAttachmentsRefs = false,
+                importContactToChatHandleRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8527,6 +9066,8 @@ class $$ImportBatchesTableTableManager
                     if (importChatsRefs) db.importChats,
                     if (importMessagesRefs) db.importMessages,
                     if (importAttachmentsRefs) db.importAttachments,
+                    if (importContactToChatHandleRefs)
+                      db.importContactToChatHandle,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -8678,6 +9219,27 @@ class $$ImportBatchesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (importContactToChatHandleRefs)
+                        await $_getPrefetchedData<
+                          ImportBatche,
+                          $ImportBatchesTable,
+                          ImportContactToChatHandleData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ImportBatchesTableReferences
+                              ._importContactToChatHandleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ImportBatchesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).importContactToChatHandleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.batchId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8706,6 +9268,7 @@ typedef $$ImportBatchesTableProcessedTableManager =
         bool importChatsRefs,
         bool importMessagesRefs,
         bool importAttachmentsRefs,
+        bool importContactToChatHandleRefs,
       })
     >;
 typedef $$ImportSourceFilesTableCreateCompanionBuilder =
@@ -9392,8 +9955,7 @@ typedef $$ImportLogsTableProcessedTableManager =
     >;
 typedef $$ImportContactsTableCreateCompanionBuilder =
     ImportContactsCompanion Function({
-      Value<int> id,
-      Value<int?> sourceRecordId,
+      Value<int> zPk,
       Value<String?> displayName,
       Value<String?> givenName,
       Value<String?> familyName,
@@ -9405,8 +9967,7 @@ typedef $$ImportContactsTableCreateCompanionBuilder =
     });
 typedef $$ImportContactsTableUpdateCompanionBuilder =
     ImportContactsCompanion Function({
-      Value<int> id,
-      Value<int?> sourceRecordId,
+      Value<int> zPk,
       Value<String?> displayName,
       Value<String?> givenName,
       Value<String?> familyName,
@@ -9446,27 +10007,55 @@ final class $$ImportContactsTableReferences
   }
 
   static MultiTypedResultKey<
-    $ImportContactChannelsTable,
-    List<ImportContactChannel>
+    $ImportContactPhoneEmailTable,
+    List<ImportContactPhoneEmailData>
   >
-  _importContactChannelsRefsTable(_$ImportDatabase db) =>
+  _importContactPhoneEmailRefsTable(_$ImportDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.importContactChannels,
+        db.importContactPhoneEmail,
         aliasName: $_aliasNameGenerator(
-          db.importContacts.id,
-          db.importContactChannels.contactId,
+          db.importContacts.zPk,
+          db.importContactPhoneEmail.ownerZPk,
         ),
       );
 
-  $$ImportContactChannelsTableProcessedTableManager
-  get importContactChannelsRefs {
-    final manager = $$ImportContactChannelsTableTableManager(
+  $$ImportContactPhoneEmailTableProcessedTableManager
+  get importContactPhoneEmailRefs {
+    final manager = $$ImportContactPhoneEmailTableTableManager(
       $_db,
-      $_db.importContactChannels,
-    ).filter((f) => f.contactId.id.sqlEquals($_itemColumn<int>('id')!));
+      $_db.importContactPhoneEmail,
+    ).filter((f) => f.ownerZPk.zPk.sqlEquals($_itemColumn<int>('Z_PK')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _importContactChannelsRefsTable($_db),
+      _importContactPhoneEmailRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ImportContactToChatHandleTable,
+    List<ImportContactToChatHandleData>
+  >
+  _importContactToChatHandleRefsTable(_$ImportDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.importContactToChatHandle,
+        aliasName: $_aliasNameGenerator(
+          db.importContacts.zPk,
+          db.importContactToChatHandle.contactZPk,
+        ),
+      );
+
+  $$ImportContactToChatHandleTableProcessedTableManager
+  get importContactToChatHandleRefs {
+    final manager = $$ImportContactToChatHandleTableTableManager(
+      $_db,
+      $_db.importContactToChatHandle,
+    ).filter((f) => f.contactZPk.zPk.sqlEquals($_itemColumn<int>('Z_PK')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _importContactToChatHandleRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -9483,13 +10072,8 @@ class $$ImportContactsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get sourceRecordId => $composableBuilder(
-    column: $table.sourceRecordId,
+  ColumnFilters<int> get zPk => $composableBuilder(
+    column: $table.zPk,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9551,23 +10135,50 @@ class $$ImportContactsTableFilterComposer
     return composer;
   }
 
-  Expression<bool> importContactChannelsRefs(
-    Expression<bool> Function($$ImportContactChannelsTableFilterComposer f) f,
+  Expression<bool> importContactPhoneEmailRefs(
+    Expression<bool> Function($$ImportContactPhoneEmailTableFilterComposer f) f,
   ) {
-    final $$ImportContactChannelsTableFilterComposer composer =
+    final $$ImportContactPhoneEmailTableFilterComposer composer =
         $composerBuilder(
           composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importContactChannels,
-          getReferencedColumn: (t) => t.contactId,
+          getCurrentColumn: (t) => t.zPk,
+          referencedTable: $db.importContactPhoneEmail,
+          getReferencedColumn: (t) => t.ownerZPk,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportContactChannelsTableFilterComposer(
+              }) => $$ImportContactPhoneEmailTableFilterComposer(
                 $db: $db,
-                $table: $db.importContactChannels,
+                $table: $db.importContactPhoneEmail,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> importContactToChatHandleRefs(
+    Expression<bool> Function($$ImportContactToChatHandleTableFilterComposer f)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.zPk,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.contactZPk,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableFilterComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -9587,13 +10198,8 @@ class $$ImportContactsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get sourceRecordId => $composableBuilder(
-    column: $table.sourceRecordId,
+  ColumnOrderings<int> get zPk => $composableBuilder(
+    column: $table.zPk,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -9665,13 +10271,8 @@ class $$ImportContactsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get sourceRecordId => $composableBuilder(
-    column: $table.sourceRecordId,
-    builder: (column) => column,
-  );
+  GeneratedColumn<int> get zPk =>
+      $composableBuilder(column: $table.zPk, builder: (column) => column);
 
   GeneratedColumn<String> get displayName => $composableBuilder(
     column: $table.displayName,
@@ -9729,23 +10330,51 @@ class $$ImportContactsTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> importContactChannelsRefs<T extends Object>(
-    Expression<T> Function($$ImportContactChannelsTableAnnotationComposer a) f,
+  Expression<T> importContactPhoneEmailRefs<T extends Object>(
+    Expression<T> Function($$ImportContactPhoneEmailTableAnnotationComposer a)
+    f,
   ) {
-    final $$ImportContactChannelsTableAnnotationComposer composer =
+    final $$ImportContactPhoneEmailTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importContactChannels,
-          getReferencedColumn: (t) => t.contactId,
+          getCurrentColumn: (t) => t.zPk,
+          referencedTable: $db.importContactPhoneEmail,
+          getReferencedColumn: (t) => t.ownerZPk,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportContactChannelsTableAnnotationComposer(
+              }) => $$ImportContactPhoneEmailTableAnnotationComposer(
                 $db: $db,
-                $table: $db.importContactChannels,
+                $table: $db.importContactPhoneEmail,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> importContactToChatHandleRefs<T extends Object>(
+    Expression<T> Function($$ImportContactToChatHandleTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.zPk,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.contactZPk,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableAnnotationComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -9769,7 +10398,11 @@ class $$ImportContactsTableTableManager
           $$ImportContactsTableUpdateCompanionBuilder,
           (ImportContact, $$ImportContactsTableReferences),
           ImportContact,
-          PrefetchHooks Function({bool batchId, bool importContactChannelsRefs})
+          PrefetchHooks Function({
+            bool batchId,
+            bool importContactPhoneEmailRefs,
+            bool importContactToChatHandleRefs,
+          })
         > {
   $$ImportContactsTableTableManager(
     _$ImportDatabase db,
@@ -9786,8 +10419,7 @@ class $$ImportContactsTableTableManager
               $$ImportContactsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int?> sourceRecordId = const Value.absent(),
+                Value<int> zPk = const Value.absent(),
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> givenName = const Value.absent(),
                 Value<String?> familyName = const Value.absent(),
@@ -9797,8 +10429,7 @@ class $$ImportContactsTableTableManager
                 Value<String?> updatedAtUtc = const Value.absent(),
                 Value<int> batchId = const Value.absent(),
               }) => ImportContactsCompanion(
-                id: id,
-                sourceRecordId: sourceRecordId,
+                zPk: zPk,
                 displayName: displayName,
                 givenName: givenName,
                 familyName: familyName,
@@ -9810,8 +10441,7 @@ class $$ImportContactsTableTableManager
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int?> sourceRecordId = const Value.absent(),
+                Value<int> zPk = const Value.absent(),
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> givenName = const Value.absent(),
                 Value<String?> familyName = const Value.absent(),
@@ -9821,8 +10451,7 @@ class $$ImportContactsTableTableManager
                 Value<String?> updatedAtUtc = const Value.absent(),
                 required int batchId,
               }) => ImportContactsCompanion.insert(
-                id: id,
-                sourceRecordId: sourceRecordId,
+                zPk: zPk,
                 displayName: displayName,
                 givenName: givenName,
                 familyName: familyName,
@@ -9841,11 +10470,17 @@ class $$ImportContactsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({batchId = false, importContactChannelsRefs = false}) {
+              ({
+                batchId = false,
+                importContactPhoneEmailRefs = false,
+                importContactToChatHandleRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (importContactChannelsRefs) db.importContactChannels,
+                    if (importContactPhoneEmailRefs) db.importContactPhoneEmail,
+                    if (importContactToChatHandleRefs)
+                      db.importContactToChatHandle,
                   ],
                   addJoins:
                       <
@@ -9883,24 +10518,45 @@ class $$ImportContactsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (importContactChannelsRefs)
+                      if (importContactPhoneEmailRefs)
                         await $_getPrefetchedData<
                           ImportContact,
                           $ImportContactsTable,
-                          ImportContactChannel
+                          ImportContactPhoneEmailData
                         >(
                           currentTable: table,
                           referencedTable: $$ImportContactsTableReferences
-                              ._importContactChannelsRefsTable(db),
+                              ._importContactPhoneEmailRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$ImportContactsTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).importContactChannelsRefs,
+                              ).importContactPhoneEmailRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
-                                (e) => e.contactId == item.id,
+                                (e) => e.ownerZPk == item.zPk,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (importContactToChatHandleRefs)
+                        await $_getPrefetchedData<
+                          ImportContact,
+                          $ImportContactsTable,
+                          ImportContactToChatHandleData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ImportContactsTableReferences
+                              ._importContactToChatHandleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ImportContactsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).importContactToChatHandleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.contactZPk == item.zPk,
                               ),
                           typedResults: items,
                         ),
@@ -9924,54 +10580,58 @@ typedef $$ImportContactsTableProcessedTableManager =
       $$ImportContactsTableUpdateCompanionBuilder,
       (ImportContact, $$ImportContactsTableReferences),
       ImportContact,
-      PrefetchHooks Function({bool batchId, bool importContactChannelsRefs})
+      PrefetchHooks Function({
+        bool batchId,
+        bool importContactPhoneEmailRefs,
+        bool importContactToChatHandleRefs,
+      })
     >;
-typedef $$ImportContactChannelsTableCreateCompanionBuilder =
-    ImportContactChannelsCompanion Function({
+typedef $$ImportContactPhoneEmailTableCreateCompanionBuilder =
+    ImportContactPhoneEmailCompanion Function({
       Value<int> id,
-      required int contactId,
+      required int ownerZPk,
       required String kind,
       required String value,
       Value<String?> label,
     });
-typedef $$ImportContactChannelsTableUpdateCompanionBuilder =
-    ImportContactChannelsCompanion Function({
+typedef $$ImportContactPhoneEmailTableUpdateCompanionBuilder =
+    ImportContactPhoneEmailCompanion Function({
       Value<int> id,
-      Value<int> contactId,
+      Value<int> ownerZPk,
       Value<String> kind,
       Value<String> value,
       Value<String?> label,
     });
 
-final class $$ImportContactChannelsTableReferences
+final class $$ImportContactPhoneEmailTableReferences
     extends
         BaseReferences<
           _$ImportDatabase,
-          $ImportContactChannelsTable,
-          ImportContactChannel
+          $ImportContactPhoneEmailTable,
+          ImportContactPhoneEmailData
         > {
-  $$ImportContactChannelsTableReferences(
+  $$ImportContactPhoneEmailTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
-  static $ImportContactsTable _contactIdTable(_$ImportDatabase db) =>
+  static $ImportContactsTable _ownerZPkTable(_$ImportDatabase db) =>
       db.importContacts.createAlias(
         $_aliasNameGenerator(
-          db.importContactChannels.contactId,
-          db.importContacts.id,
+          db.importContactPhoneEmail.ownerZPk,
+          db.importContacts.zPk,
         ),
       );
 
-  $$ImportContactsTableProcessedTableManager get contactId {
-    final $_column = $_itemColumn<int>('contact_id')!;
+  $$ImportContactsTableProcessedTableManager get ownerZPk {
+    final $_column = $_itemColumn<int>('OWNER_Z_PK')!;
 
     final manager = $$ImportContactsTableTableManager(
       $_db,
       $_db.importContacts,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_contactIdTable($_db));
+    ).filter((f) => f.zPk.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerZPkTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -9979,9 +10639,9 @@ final class $$ImportContactChannelsTableReferences
   }
 }
 
-class $$ImportContactChannelsTableFilterComposer
-    extends Composer<_$ImportDatabase, $ImportContactChannelsTable> {
-  $$ImportContactChannelsTableFilterComposer({
+class $$ImportContactPhoneEmailTableFilterComposer
+    extends Composer<_$ImportDatabase, $ImportContactPhoneEmailTable> {
+  $$ImportContactPhoneEmailTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10008,12 +10668,12 @@ class $$ImportContactChannelsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$ImportContactsTableFilterComposer get contactId {
+  $$ImportContactsTableFilterComposer get ownerZPk {
     final $$ImportContactsTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.contactId,
+      getCurrentColumn: (t) => t.ownerZPk,
       referencedTable: $db.importContacts,
-      getReferencedColumn: (t) => t.id,
+      getReferencedColumn: (t) => t.zPk,
       builder:
           (
             joinBuilder, {
@@ -10032,9 +10692,9 @@ class $$ImportContactChannelsTableFilterComposer
   }
 }
 
-class $$ImportContactChannelsTableOrderingComposer
-    extends Composer<_$ImportDatabase, $ImportContactChannelsTable> {
-  $$ImportContactChannelsTableOrderingComposer({
+class $$ImportContactPhoneEmailTableOrderingComposer
+    extends Composer<_$ImportDatabase, $ImportContactPhoneEmailTable> {
+  $$ImportContactPhoneEmailTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10061,12 +10721,12 @@ class $$ImportContactChannelsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$ImportContactsTableOrderingComposer get contactId {
+  $$ImportContactsTableOrderingComposer get ownerZPk {
     final $$ImportContactsTableOrderingComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.contactId,
+      getCurrentColumn: (t) => t.ownerZPk,
       referencedTable: $db.importContacts,
-      getReferencedColumn: (t) => t.id,
+      getReferencedColumn: (t) => t.zPk,
       builder:
           (
             joinBuilder, {
@@ -10085,9 +10745,9 @@ class $$ImportContactChannelsTableOrderingComposer
   }
 }
 
-class $$ImportContactChannelsTableAnnotationComposer
-    extends Composer<_$ImportDatabase, $ImportContactChannelsTable> {
-  $$ImportContactChannelsTableAnnotationComposer({
+class $$ImportContactPhoneEmailTableAnnotationComposer
+    extends Composer<_$ImportDatabase, $ImportContactPhoneEmailTable> {
+  $$ImportContactPhoneEmailTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10106,12 +10766,12 @@ class $$ImportContactChannelsTableAnnotationComposer
   GeneratedColumn<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => column);
 
-  $$ImportContactsTableAnnotationComposer get contactId {
+  $$ImportContactsTableAnnotationComposer get ownerZPk {
     final $$ImportContactsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.contactId,
+      getCurrentColumn: (t) => t.ownerZPk,
       referencedTable: $db.importContacts,
-      getReferencedColumn: (t) => t.id,
+      getReferencedColumn: (t) => t.zPk,
       builder:
           (
             joinBuilder, {
@@ -10130,53 +10790,56 @@ class $$ImportContactChannelsTableAnnotationComposer
   }
 }
 
-class $$ImportContactChannelsTableTableManager
+class $$ImportContactPhoneEmailTableTableManager
     extends
         RootTableManager<
           _$ImportDatabase,
-          $ImportContactChannelsTable,
-          ImportContactChannel,
-          $$ImportContactChannelsTableFilterComposer,
-          $$ImportContactChannelsTableOrderingComposer,
-          $$ImportContactChannelsTableAnnotationComposer,
-          $$ImportContactChannelsTableCreateCompanionBuilder,
-          $$ImportContactChannelsTableUpdateCompanionBuilder,
-          (ImportContactChannel, $$ImportContactChannelsTableReferences),
-          ImportContactChannel,
-          PrefetchHooks Function({bool contactId})
+          $ImportContactPhoneEmailTable,
+          ImportContactPhoneEmailData,
+          $$ImportContactPhoneEmailTableFilterComposer,
+          $$ImportContactPhoneEmailTableOrderingComposer,
+          $$ImportContactPhoneEmailTableAnnotationComposer,
+          $$ImportContactPhoneEmailTableCreateCompanionBuilder,
+          $$ImportContactPhoneEmailTableUpdateCompanionBuilder,
+          (
+            ImportContactPhoneEmailData,
+            $$ImportContactPhoneEmailTableReferences,
+          ),
+          ImportContactPhoneEmailData,
+          PrefetchHooks Function({bool ownerZPk})
         > {
-  $$ImportContactChannelsTableTableManager(
+  $$ImportContactPhoneEmailTableTableManager(
     _$ImportDatabase db,
-    $ImportContactChannelsTable table,
+    $ImportContactPhoneEmailTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ImportContactChannelsTableFilterComposer(
+              $$ImportContactPhoneEmailTableFilterComposer(
                 $db: db,
                 $table: table,
               ),
           createOrderingComposer: () =>
-              $$ImportContactChannelsTableOrderingComposer(
+              $$ImportContactPhoneEmailTableOrderingComposer(
                 $db: db,
                 $table: table,
               ),
           createComputedFieldComposer: () =>
-              $$ImportContactChannelsTableAnnotationComposer(
+              $$ImportContactPhoneEmailTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<int> contactId = const Value.absent(),
+                Value<int> ownerZPk = const Value.absent(),
                 Value<String> kind = const Value.absent(),
                 Value<String> value = const Value.absent(),
                 Value<String?> label = const Value.absent(),
-              }) => ImportContactChannelsCompanion(
+              }) => ImportContactPhoneEmailCompanion(
                 id: id,
-                contactId: contactId,
+                ownerZPk: ownerZPk,
                 kind: kind,
                 value: value,
                 label: label,
@@ -10184,13 +10847,13 @@ class $$ImportContactChannelsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required int contactId,
+                required int ownerZPk,
                 required String kind,
                 required String value,
                 Value<String?> label = const Value.absent(),
-              }) => ImportContactChannelsCompanion.insert(
+              }) => ImportContactPhoneEmailCompanion.insert(
                 id: id,
-                contactId: contactId,
+                ownerZPk: ownerZPk,
                 kind: kind,
                 value: value,
                 label: label,
@@ -10199,11 +10862,11 @@ class $$ImportContactChannelsTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ImportContactChannelsTableReferences(db, table, e),
+                  $$ImportContactPhoneEmailTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({contactId = false}) {
+          prefetchHooksCallback: ({ownerZPk = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -10223,18 +10886,18 @@ class $$ImportContactChannelsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (contactId) {
+                    if (ownerZPk) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.contactId,
+                                currentColumn: table.ownerZPk,
                                 referencedTable:
-                                    $$ImportContactChannelsTableReferences
-                                        ._contactIdTable(db),
+                                    $$ImportContactPhoneEmailTableReferences
+                                        ._ownerZPkTable(db),
                                 referencedColumn:
-                                    $$ImportContactChannelsTableReferences
-                                        ._contactIdTable(db)
-                                        .id,
+                                    $$ImportContactPhoneEmailTableReferences
+                                        ._ownerZPkTable(db)
+                                        .zPk,
                               )
                               as T;
                     }
@@ -10250,19 +10913,19 @@ class $$ImportContactChannelsTableTableManager
       );
 }
 
-typedef $$ImportContactChannelsTableProcessedTableManager =
+typedef $$ImportContactPhoneEmailTableProcessedTableManager =
     ProcessedTableManager<
       _$ImportDatabase,
-      $ImportContactChannelsTable,
-      ImportContactChannel,
-      $$ImportContactChannelsTableFilterComposer,
-      $$ImportContactChannelsTableOrderingComposer,
-      $$ImportContactChannelsTableAnnotationComposer,
-      $$ImportContactChannelsTableCreateCompanionBuilder,
-      $$ImportContactChannelsTableUpdateCompanionBuilder,
-      (ImportContactChannel, $$ImportContactChannelsTableReferences),
-      ImportContactChannel,
-      PrefetchHooks Function({bool contactId})
+      $ImportContactPhoneEmailTable,
+      ImportContactPhoneEmailData,
+      $$ImportContactPhoneEmailTableFilterComposer,
+      $$ImportContactPhoneEmailTableOrderingComposer,
+      $$ImportContactPhoneEmailTableAnnotationComposer,
+      $$ImportContactPhoneEmailTableCreateCompanionBuilder,
+      $$ImportContactPhoneEmailTableUpdateCompanionBuilder,
+      (ImportContactPhoneEmailData, $$ImportContactPhoneEmailTableReferences),
+      ImportContactPhoneEmailData,
+      PrefetchHooks Function({bool ownerZPk})
     >;
 typedef $$ImportHandlesTableCreateCompanionBuilder =
     ImportHandlesCompanion Function({
@@ -10270,9 +10933,10 @@ typedef $$ImportHandlesTableCreateCompanionBuilder =
       Value<int?> sourceRowid,
       required String service,
       required String rawIdentifier,
-      Value<String?> normalizedAddress,
+      Value<String?> normalizedIdentifier,
       Value<String?> country,
       Value<String?> lastSeenUtc,
+      Value<bool> isIgnored,
       required int batchId,
     });
 typedef $$ImportHandlesTableUpdateCompanionBuilder =
@@ -10281,9 +10945,10 @@ typedef $$ImportHandlesTableUpdateCompanionBuilder =
       Value<int?> sourceRowid,
       Value<String> service,
       Value<String> rawIdentifier,
-      Value<String?> normalizedAddress,
+      Value<String?> normalizedIdentifier,
       Value<String?> country,
       Value<String?> lastSeenUtc,
+      Value<bool> isIgnored,
       Value<int> batchId,
     });
 
@@ -10316,27 +10981,26 @@ final class $$ImportHandlesTableReferences
   }
 
   static MultiTypedResultKey<
-    $ImportChatParticipantsTable,
-    List<ImportChatParticipant>
+    $ImportChatToHandleTable,
+    List<ImportChatToHandleData>
   >
-  _importChatParticipantsRefsTable(_$ImportDatabase db) =>
+  _importChatToHandleRefsTable(_$ImportDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.importChatParticipants,
+        db.importChatToHandle,
         aliasName: $_aliasNameGenerator(
           db.importHandles.id,
-          db.importChatParticipants.handleId,
+          db.importChatToHandle.handleId,
         ),
       );
 
-  $$ImportChatParticipantsTableProcessedTableManager
-  get importChatParticipantsRefs {
-    final manager = $$ImportChatParticipantsTableTableManager(
+  $$ImportChatToHandleTableProcessedTableManager get importChatToHandleRefs {
+    final manager = $$ImportChatToHandleTableTableManager(
       $_db,
-      $_db.importChatParticipants,
+      $_db.importChatToHandle,
     ).filter((f) => f.handleId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _importChatParticipantsRefsTable($_db),
+      _importChatToHandleRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -10388,6 +11052,34 @@ final class $$ImportHandlesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $ImportContactToChatHandleTable,
+    List<ImportContactToChatHandleData>
+  >
+  _importContactToChatHandleRefsTable(_$ImportDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.importContactToChatHandle,
+        aliasName: $_aliasNameGenerator(
+          db.importHandles.id,
+          db.importContactToChatHandle.chatHandleId,
+        ),
+      );
+
+  $$ImportContactToChatHandleTableProcessedTableManager
+  get importContactToChatHandleRefs {
+    final manager = $$ImportContactToChatHandleTableTableManager(
+      $_db,
+      $_db.importContactToChatHandle,
+    ).filter((f) => f.chatHandleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _importContactToChatHandleRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ImportHandlesTableFilterComposer
@@ -10419,8 +11111,8 @@ class $$ImportHandlesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
+  ColumnFilters<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10431,6 +11123,11 @@ class $$ImportHandlesTableFilterComposer
 
   ColumnFilters<String> get lastSeenUtc => $composableBuilder(
     column: $table.lastSeenUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10457,29 +11154,28 @@ class $$ImportHandlesTableFilterComposer
     return composer;
   }
 
-  Expression<bool> importChatParticipantsRefs(
-    Expression<bool> Function($$ImportChatParticipantsTableFilterComposer f) f,
+  Expression<bool> importChatToHandleRefs(
+    Expression<bool> Function($$ImportChatToHandleTableFilterComposer f) f,
   ) {
-    final $$ImportChatParticipantsTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatParticipants,
-          getReferencedColumn: (t) => t.handleId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+    final $$ImportChatToHandleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.importChatToHandle,
+      getReferencedColumn: (t) => t.handleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportChatToHandleTableFilterComposer(
+            $db: $db,
+            $table: $db.importChatToHandle,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatParticipantsTableFilterComposer(
-                $db: $db,
-                $table: $db.importChatParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return f(composer);
   }
 
@@ -10532,6 +11228,33 @@ class $$ImportHandlesTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> importContactToChatHandleRefs(
+    Expression<bool> Function($$ImportContactToChatHandleTableFilterComposer f)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.chatHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableFilterComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ImportHandlesTableOrderingComposer
@@ -10563,8 +11286,8 @@ class $$ImportHandlesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
+  ColumnOrderings<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10575,6 +11298,11 @@ class $$ImportHandlesTableOrderingComposer
 
   ColumnOrderings<String> get lastSeenUtc => $composableBuilder(
     column: $table.lastSeenUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10627,8 +11355,8 @@ class $$ImportHandlesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get normalizedAddress => $composableBuilder(
-    column: $table.normalizedAddress,
+  GeneratedColumn<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
     builder: (column) => column,
   );
 
@@ -10639,6 +11367,9 @@ class $$ImportHandlesTableAnnotationComposer
     column: $table.lastSeenUtc,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
   $$ImportBatchesTableAnnotationComposer get batchId {
     final $$ImportBatchesTableAnnotationComposer composer = $composerBuilder(
@@ -10663,23 +11394,23 @@ class $$ImportHandlesTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> importChatParticipantsRefs<T extends Object>(
-    Expression<T> Function($$ImportChatParticipantsTableAnnotationComposer a) f,
+  Expression<T> importChatToHandleRefs<T extends Object>(
+    Expression<T> Function($$ImportChatToHandleTableAnnotationComposer a) f,
   ) {
-    final $$ImportChatParticipantsTableAnnotationComposer composer =
+    final $$ImportChatToHandleTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatParticipants,
+          referencedTable: $db.importChatToHandle,
           getReferencedColumn: (t) => t.handleId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatParticipantsTableAnnotationComposer(
+              }) => $$ImportChatToHandleTableAnnotationComposer(
                 $db: $db,
-                $table: $db.importChatParticipants,
+                $table: $db.importChatToHandle,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -10738,6 +11469,33 @@ class $$ImportHandlesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> importContactToChatHandleRefs<T extends Object>(
+    Expression<T> Function($$ImportContactToChatHandleTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ImportContactToChatHandleTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.importContactToChatHandle,
+          getReferencedColumn: (t) => t.chatHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ImportContactToChatHandleTableAnnotationComposer(
+                $db: $db,
+                $table: $db.importContactToChatHandle,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ImportHandlesTableTableManager
@@ -10755,9 +11513,10 @@ class $$ImportHandlesTableTableManager
           ImportHandle,
           PrefetchHooks Function({
             bool batchId,
-            bool importChatParticipantsRefs,
+            bool importChatToHandleRefs,
             bool importMessagesRefs,
             bool importReactionsRefs,
+            bool importContactToChatHandleRefs,
           })
         > {
   $$ImportHandlesTableTableManager(
@@ -10779,18 +11538,20 @@ class $$ImportHandlesTableTableManager
                 Value<int?> sourceRowid = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<String> rawIdentifier = const Value.absent(),
-                Value<String?> normalizedAddress = const Value.absent(),
+                Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 Value<int> batchId = const Value.absent(),
               }) => ImportHandlesCompanion(
                 id: id,
                 sourceRowid: sourceRowid,
                 service: service,
                 rawIdentifier: rawIdentifier,
-                normalizedAddress: normalizedAddress,
+                normalizedIdentifier: normalizedIdentifier,
                 country: country,
                 lastSeenUtc: lastSeenUtc,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           createCompanionCallback:
@@ -10799,18 +11560,20 @@ class $$ImportHandlesTableTableManager
                 Value<int?> sourceRowid = const Value.absent(),
                 required String service,
                 required String rawIdentifier,
-                Value<String?> normalizedAddress = const Value.absent(),
+                Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 required int batchId,
               }) => ImportHandlesCompanion.insert(
                 id: id,
                 sourceRowid: sourceRowid,
                 service: service,
                 rawIdentifier: rawIdentifier,
-                normalizedAddress: normalizedAddress,
+                normalizedIdentifier: normalizedIdentifier,
                 country: country,
                 lastSeenUtc: lastSeenUtc,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
@@ -10824,16 +11587,19 @@ class $$ImportHandlesTableTableManager
           prefetchHooksCallback:
               ({
                 batchId = false,
-                importChatParticipantsRefs = false,
+                importChatToHandleRefs = false,
                 importMessagesRefs = false,
                 importReactionsRefs = false,
+                importContactToChatHandleRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (importChatParticipantsRefs) db.importChatParticipants,
+                    if (importChatToHandleRefs) db.importChatToHandle,
                     if (importMessagesRefs) db.importMessages,
                     if (importReactionsRefs) db.importReactions,
+                    if (importContactToChatHandleRefs)
+                      db.importContactToChatHandle,
                   ],
                   addJoins:
                       <
@@ -10871,21 +11637,21 @@ class $$ImportHandlesTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (importChatParticipantsRefs)
+                      if (importChatToHandleRefs)
                         await $_getPrefetchedData<
                           ImportHandle,
                           $ImportHandlesTable,
-                          ImportChatParticipant
+                          ImportChatToHandleData
                         >(
                           currentTable: table,
                           referencedTable: $$ImportHandlesTableReferences
-                              ._importChatParticipantsRefsTable(db),
+                              ._importChatToHandleRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$ImportHandlesTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).importChatParticipantsRefs,
+                              ).importChatToHandleRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.handleId == item.id,
@@ -10934,6 +11700,27 @@ class $$ImportHandlesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (importContactToChatHandleRefs)
+                        await $_getPrefetchedData<
+                          ImportHandle,
+                          $ImportHandlesTable,
+                          ImportContactToChatHandleData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ImportHandlesTableReferences
+                              ._importContactToChatHandleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ImportHandlesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).importContactToChatHandleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chatHandleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -10956,9 +11743,10 @@ typedef $$ImportHandlesTableProcessedTableManager =
       ImportHandle,
       PrefetchHooks Function({
         bool batchId,
-        bool importChatParticipantsRefs,
+        bool importChatToHandleRefs,
         bool importMessagesRefs,
         bool importReactionsRefs,
+        bool importContactToChatHandleRefs,
       })
     >;
 typedef $$ImportChatsTableCreateCompanionBuilder =
@@ -10971,6 +11759,7 @@ typedef $$ImportChatsTableCreateCompanionBuilder =
       Value<bool> isGroup,
       Value<String?> createdAtUtc,
       Value<String?> updatedAtUtc,
+      Value<bool> isIgnored,
       required int batchId,
     });
 typedef $$ImportChatsTableUpdateCompanionBuilder =
@@ -10983,6 +11772,7 @@ typedef $$ImportChatsTableUpdateCompanionBuilder =
       Value<bool> isGroup,
       Value<String?> createdAtUtc,
       Value<String?> updatedAtUtc,
+      Value<bool> isIgnored,
       Value<int> batchId,
     });
 
@@ -11010,27 +11800,26 @@ final class $$ImportChatsTableReferences
   }
 
   static MultiTypedResultKey<
-    $ImportChatParticipantsTable,
-    List<ImportChatParticipant>
+    $ImportChatToHandleTable,
+    List<ImportChatToHandleData>
   >
-  _importChatParticipantsRefsTable(_$ImportDatabase db) =>
+  _importChatToHandleRefsTable(_$ImportDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.importChatParticipants,
+        db.importChatToHandle,
         aliasName: $_aliasNameGenerator(
           db.importChats.id,
-          db.importChatParticipants.chatId,
+          db.importChatToHandle.chatId,
         ),
       );
 
-  $$ImportChatParticipantsTableProcessedTableManager
-  get importChatParticipantsRefs {
-    final manager = $$ImportChatParticipantsTableTableManager(
+  $$ImportChatToHandleTableProcessedTableManager get importChatToHandleRefs {
+    final manager = $$ImportChatToHandleTableTableManager(
       $_db,
-      $_db.importChatParticipants,
+      $_db.importChatToHandle,
     ).filter((f) => f.chatId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _importChatParticipantsRefsTable($_db),
+      _importChatToHandleRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -11060,27 +11849,26 @@ final class $$ImportChatsTableReferences
   }
 
   static MultiTypedResultKey<
-    $ImportChatMessageJoinSourceTable,
-    List<ImportChatMessageJoinSourceData>
+    $ImportChatToMessageTable,
+    List<ImportChatToMessageData>
   >
-  _importChatMessageJoinSourceRefsTable(_$ImportDatabase db) =>
+  _importChatToMessageRefsTable(_$ImportDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.importChatMessageJoinSource,
+        db.importChatToMessage,
         aliasName: $_aliasNameGenerator(
           db.importChats.id,
-          db.importChatMessageJoinSource.chatId,
+          db.importChatToMessage.chatId,
         ),
       );
 
-  $$ImportChatMessageJoinSourceTableProcessedTableManager
-  get importChatMessageJoinSourceRefs {
-    final manager = $$ImportChatMessageJoinSourceTableTableManager(
+  $$ImportChatToMessageTableProcessedTableManager get importChatToMessageRefs {
+    final manager = $$ImportChatToMessageTableTableManager(
       $_db,
-      $_db.importChatMessageJoinSource,
+      $_db.importChatToMessage,
     ).filter((f) => f.chatId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _importChatMessageJoinSourceRefsTable($_db),
+      _importChatToMessageRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -11137,6 +11925,11 @@ class $$ImportChatsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ImportBatchesTableFilterComposer get batchId {
     final $$ImportBatchesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -11160,29 +11953,28 @@ class $$ImportChatsTableFilterComposer
     return composer;
   }
 
-  Expression<bool> importChatParticipantsRefs(
-    Expression<bool> Function($$ImportChatParticipantsTableFilterComposer f) f,
+  Expression<bool> importChatToHandleRefs(
+    Expression<bool> Function($$ImportChatToHandleTableFilterComposer f) f,
   ) {
-    final $$ImportChatParticipantsTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatParticipants,
-          getReferencedColumn: (t) => t.chatId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+    final $$ImportChatToHandleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.importChatToHandle,
+      getReferencedColumn: (t) => t.chatId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportChatToHandleTableFilterComposer(
+            $db: $db,
+            $table: $db.importChatToHandle,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatParticipantsTableFilterComposer(
-                $db: $db,
-                $table: $db.importChatParticipants,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return f(composer);
   }
 
@@ -11211,32 +12003,28 @@ class $$ImportChatsTableFilterComposer
     return f(composer);
   }
 
-  Expression<bool> importChatMessageJoinSourceRefs(
-    Expression<bool> Function(
-      $$ImportChatMessageJoinSourceTableFilterComposer f,
-    )
-    f,
+  Expression<bool> importChatToMessageRefs(
+    Expression<bool> Function($$ImportChatToMessageTableFilterComposer f) f,
   ) {
-    final $$ImportChatMessageJoinSourceTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatMessageJoinSource,
-          getReferencedColumn: (t) => t.chatId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+    final $$ImportChatToMessageTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.importChatToMessage,
+      getReferencedColumn: (t) => t.chatId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportChatToMessageTableFilterComposer(
+            $db: $db,
+            $table: $db.importChatToMessage,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatMessageJoinSourceTableFilterComposer(
-                $db: $db,
-                $table: $db.importChatMessageJoinSource,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return f(composer);
   }
 }
@@ -11287,6 +12075,11 @@ class $$ImportChatsTableOrderingComposer
 
   ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
     column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -11355,6 +12148,9 @@ class $$ImportChatsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
+
   $$ImportBatchesTableAnnotationComposer get batchId {
     final $$ImportBatchesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -11378,23 +12174,23 @@ class $$ImportChatsTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> importChatParticipantsRefs<T extends Object>(
-    Expression<T> Function($$ImportChatParticipantsTableAnnotationComposer a) f,
+  Expression<T> importChatToHandleRefs<T extends Object>(
+    Expression<T> Function($$ImportChatToHandleTableAnnotationComposer a) f,
   ) {
-    final $$ImportChatParticipantsTableAnnotationComposer composer =
+    final $$ImportChatToHandleTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatParticipants,
+          referencedTable: $db.importChatToHandle,
           getReferencedColumn: (t) => t.chatId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatParticipantsTableAnnotationComposer(
+              }) => $$ImportChatToHandleTableAnnotationComposer(
                 $db: $db,
-                $table: $db.importChatParticipants,
+                $table: $db.importChatToHandle,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -11429,26 +12225,23 @@ class $$ImportChatsTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> importChatMessageJoinSourceRefs<T extends Object>(
-    Expression<T> Function(
-      $$ImportChatMessageJoinSourceTableAnnotationComposer a,
-    )
-    f,
+  Expression<T> importChatToMessageRefs<T extends Object>(
+    Expression<T> Function($$ImportChatToMessageTableAnnotationComposer a) f,
   ) {
-    final $$ImportChatMessageJoinSourceTableAnnotationComposer composer =
+    final $$ImportChatToMessageTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatMessageJoinSource,
+          referencedTable: $db.importChatToMessage,
           getReferencedColumn: (t) => t.chatId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatMessageJoinSourceTableAnnotationComposer(
+              }) => $$ImportChatToMessageTableAnnotationComposer(
                 $db: $db,
-                $table: $db.importChatMessageJoinSource,
+                $table: $db.importChatToMessage,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -11474,9 +12267,9 @@ class $$ImportChatsTableTableManager
           ImportChat,
           PrefetchHooks Function({
             bool batchId,
-            bool importChatParticipantsRefs,
+            bool importChatToHandleRefs,
             bool importMessagesRefs,
-            bool importChatMessageJoinSourceRefs,
+            bool importChatToMessageRefs,
           })
         > {
   $$ImportChatsTableTableManager(_$ImportDatabase db, $ImportChatsTable table)
@@ -11500,6 +12293,7 @@ class $$ImportChatsTableTableManager
                 Value<bool> isGroup = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 Value<int> batchId = const Value.absent(),
               }) => ImportChatsCompanion(
                 id: id,
@@ -11510,6 +12304,7 @@ class $$ImportChatsTableTableManager
                 isGroup: isGroup,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           createCompanionCallback:
@@ -11522,6 +12317,7 @@ class $$ImportChatsTableTableManager
                 Value<bool> isGroup = const Value.absent(),
                 Value<String?> createdAtUtc = const Value.absent(),
                 Value<String?> updatedAtUtc = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 required int batchId,
               }) => ImportChatsCompanion.insert(
                 id: id,
@@ -11532,6 +12328,7 @@ class $$ImportChatsTableTableManager
                 isGroup: isGroup,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
@@ -11545,17 +12342,16 @@ class $$ImportChatsTableTableManager
           prefetchHooksCallback:
               ({
                 batchId = false,
-                importChatParticipantsRefs = false,
+                importChatToHandleRefs = false,
                 importMessagesRefs = false,
-                importChatMessageJoinSourceRefs = false,
+                importChatToMessageRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (importChatParticipantsRefs) db.importChatParticipants,
+                    if (importChatToHandleRefs) db.importChatToHandle,
                     if (importMessagesRefs) db.importMessages,
-                    if (importChatMessageJoinSourceRefs)
-                      db.importChatMessageJoinSource,
+                    if (importChatToMessageRefs) db.importChatToMessage,
                   ],
                   addJoins:
                       <
@@ -11593,21 +12389,21 @@ class $$ImportChatsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (importChatParticipantsRefs)
+                      if (importChatToHandleRefs)
                         await $_getPrefetchedData<
                           ImportChat,
                           $ImportChatsTable,
-                          ImportChatParticipant
+                          ImportChatToHandleData
                         >(
                           currentTable: table,
                           referencedTable: $$ImportChatsTableReferences
-                              ._importChatParticipantsRefsTable(db),
+                              ._importChatToHandleRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$ImportChatsTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).importChatParticipantsRefs,
+                              ).importChatToHandleRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.chatId == item.id,
@@ -11635,21 +12431,21 @@ class $$ImportChatsTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (importChatMessageJoinSourceRefs)
+                      if (importChatToMessageRefs)
                         await $_getPrefetchedData<
                           ImportChat,
                           $ImportChatsTable,
-                          ImportChatMessageJoinSourceData
+                          ImportChatToMessageData
                         >(
                           currentTable: table,
                           referencedTable: $$ImportChatsTableReferences
-                              ._importChatMessageJoinSourceRefsTable(db),
+                              ._importChatToMessageRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$ImportChatsTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).importChatMessageJoinSourceRefs,
+                              ).importChatToMessageRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.chatId == item.id,
@@ -11678,21 +12474,21 @@ typedef $$ImportChatsTableProcessedTableManager =
       ImportChat,
       PrefetchHooks Function({
         bool batchId,
-        bool importChatParticipantsRefs,
+        bool importChatToHandleRefs,
         bool importMessagesRefs,
-        bool importChatMessageJoinSourceRefs,
+        bool importChatToMessageRefs,
       })
     >;
-typedef $$ImportChatParticipantsTableCreateCompanionBuilder =
-    ImportChatParticipantsCompanion Function({
+typedef $$ImportChatToHandleTableCreateCompanionBuilder =
+    ImportChatToHandleCompanion Function({
       required int chatId,
       required int handleId,
       Value<String?> role,
       Value<String?> addedAtUtc,
       Value<int> rowid,
     });
-typedef $$ImportChatParticipantsTableUpdateCompanionBuilder =
-    ImportChatParticipantsCompanion Function({
+typedef $$ImportChatToHandleTableUpdateCompanionBuilder =
+    ImportChatToHandleCompanion Function({
       Value<int> chatId,
       Value<int> handleId,
       Value<String?> role,
@@ -11700,14 +12496,14 @@ typedef $$ImportChatParticipantsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$ImportChatParticipantsTableReferences
+final class $$ImportChatToHandleTableReferences
     extends
         BaseReferences<
           _$ImportDatabase,
-          $ImportChatParticipantsTable,
-          ImportChatParticipant
+          $ImportChatToHandleTable,
+          ImportChatToHandleData
         > {
-  $$ImportChatParticipantsTableReferences(
+  $$ImportChatToHandleTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
@@ -11715,10 +12511,7 @@ final class $$ImportChatParticipantsTableReferences
 
   static $ImportChatsTable _chatIdTable(_$ImportDatabase db) =>
       db.importChats.createAlias(
-        $_aliasNameGenerator(
-          db.importChatParticipants.chatId,
-          db.importChats.id,
-        ),
+        $_aliasNameGenerator(db.importChatToHandle.chatId, db.importChats.id),
       );
 
   $$ImportChatsTableProcessedTableManager get chatId {
@@ -11738,7 +12531,7 @@ final class $$ImportChatParticipantsTableReferences
   static $ImportHandlesTable _handleIdTable(_$ImportDatabase db) =>
       db.importHandles.createAlias(
         $_aliasNameGenerator(
-          db.importChatParticipants.handleId,
+          db.importChatToHandle.handleId,
           db.importHandles.id,
         ),
       );
@@ -11758,9 +12551,9 @@ final class $$ImportChatParticipantsTableReferences
   }
 }
 
-class $$ImportChatParticipantsTableFilterComposer
-    extends Composer<_$ImportDatabase, $ImportChatParticipantsTable> {
-  $$ImportChatParticipantsTableFilterComposer({
+class $$ImportChatToHandleTableFilterComposer
+    extends Composer<_$ImportDatabase, $ImportChatToHandleTable> {
+  $$ImportChatToHandleTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -11824,9 +12617,9 @@ class $$ImportChatParticipantsTableFilterComposer
   }
 }
 
-class $$ImportChatParticipantsTableOrderingComposer
-    extends Composer<_$ImportDatabase, $ImportChatParticipantsTable> {
-  $$ImportChatParticipantsTableOrderingComposer({
+class $$ImportChatToHandleTableOrderingComposer
+    extends Composer<_$ImportDatabase, $ImportChatToHandleTable> {
+  $$ImportChatToHandleTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -11890,9 +12683,9 @@ class $$ImportChatParticipantsTableOrderingComposer
   }
 }
 
-class $$ImportChatParticipantsTableAnnotationComposer
-    extends Composer<_$ImportDatabase, $ImportChatParticipantsTable> {
-  $$ImportChatParticipantsTableAnnotationComposer({
+class $$ImportChatToHandleTableAnnotationComposer
+    extends Composer<_$ImportDatabase, $ImportChatToHandleTable> {
+  $$ImportChatToHandleTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -11954,40 +12747,34 @@ class $$ImportChatParticipantsTableAnnotationComposer
   }
 }
 
-class $$ImportChatParticipantsTableTableManager
+class $$ImportChatToHandleTableTableManager
     extends
         RootTableManager<
           _$ImportDatabase,
-          $ImportChatParticipantsTable,
-          ImportChatParticipant,
-          $$ImportChatParticipantsTableFilterComposer,
-          $$ImportChatParticipantsTableOrderingComposer,
-          $$ImportChatParticipantsTableAnnotationComposer,
-          $$ImportChatParticipantsTableCreateCompanionBuilder,
-          $$ImportChatParticipantsTableUpdateCompanionBuilder,
-          (ImportChatParticipant, $$ImportChatParticipantsTableReferences),
-          ImportChatParticipant,
+          $ImportChatToHandleTable,
+          ImportChatToHandleData,
+          $$ImportChatToHandleTableFilterComposer,
+          $$ImportChatToHandleTableOrderingComposer,
+          $$ImportChatToHandleTableAnnotationComposer,
+          $$ImportChatToHandleTableCreateCompanionBuilder,
+          $$ImportChatToHandleTableUpdateCompanionBuilder,
+          (ImportChatToHandleData, $$ImportChatToHandleTableReferences),
+          ImportChatToHandleData,
           PrefetchHooks Function({bool chatId, bool handleId})
         > {
-  $$ImportChatParticipantsTableTableManager(
+  $$ImportChatToHandleTableTableManager(
     _$ImportDatabase db,
-    $ImportChatParticipantsTable table,
+    $ImportChatToHandleTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ImportChatParticipantsTableFilterComposer(
-                $db: db,
-                $table: table,
-              ),
+              $$ImportChatToHandleTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ImportChatParticipantsTableOrderingComposer(
-                $db: db,
-                $table: table,
-              ),
+              $$ImportChatToHandleTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ImportChatParticipantsTableAnnotationComposer(
+              $$ImportChatToHandleTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
@@ -11998,7 +12785,7 @@ class $$ImportChatParticipantsTableTableManager
                 Value<String?> role = const Value.absent(),
                 Value<String?> addedAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ImportChatParticipantsCompanion(
+              }) => ImportChatToHandleCompanion(
                 chatId: chatId,
                 handleId: handleId,
                 role: role,
@@ -12012,7 +12799,7 @@ class $$ImportChatParticipantsTableTableManager
                 Value<String?> role = const Value.absent(),
                 Value<String?> addedAtUtc = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ImportChatParticipantsCompanion.insert(
+              }) => ImportChatToHandleCompanion.insert(
                 chatId: chatId,
                 handleId: handleId,
                 role: role,
@@ -12023,7 +12810,7 @@ class $$ImportChatParticipantsTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ImportChatParticipantsTableReferences(db, table, e),
+                  $$ImportChatToHandleTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -12053,10 +12840,10 @@ class $$ImportChatParticipantsTableTableManager
                                 currentTable: table,
                                 currentColumn: table.chatId,
                                 referencedTable:
-                                    $$ImportChatParticipantsTableReferences
+                                    $$ImportChatToHandleTableReferences
                                         ._chatIdTable(db),
                                 referencedColumn:
-                                    $$ImportChatParticipantsTableReferences
+                                    $$ImportChatToHandleTableReferences
                                         ._chatIdTable(db)
                                         .id,
                               )
@@ -12068,10 +12855,10 @@ class $$ImportChatParticipantsTableTableManager
                                 currentTable: table,
                                 currentColumn: table.handleId,
                                 referencedTable:
-                                    $$ImportChatParticipantsTableReferences
+                                    $$ImportChatToHandleTableReferences
                                         ._handleIdTable(db),
                                 referencedColumn:
-                                    $$ImportChatParticipantsTableReferences
+                                    $$ImportChatToHandleTableReferences
                                         ._handleIdTable(db)
                                         .id,
                               )
@@ -12089,18 +12876,18 @@ class $$ImportChatParticipantsTableTableManager
       );
 }
 
-typedef $$ImportChatParticipantsTableProcessedTableManager =
+typedef $$ImportChatToHandleTableProcessedTableManager =
     ProcessedTableManager<
       _$ImportDatabase,
-      $ImportChatParticipantsTable,
-      ImportChatParticipant,
-      $$ImportChatParticipantsTableFilterComposer,
-      $$ImportChatParticipantsTableOrderingComposer,
-      $$ImportChatParticipantsTableAnnotationComposer,
-      $$ImportChatParticipantsTableCreateCompanionBuilder,
-      $$ImportChatParticipantsTableUpdateCompanionBuilder,
-      (ImportChatParticipant, $$ImportChatParticipantsTableReferences),
-      ImportChatParticipant,
+      $ImportChatToHandleTable,
+      ImportChatToHandleData,
+      $$ImportChatToHandleTableFilterComposer,
+      $$ImportChatToHandleTableOrderingComposer,
+      $$ImportChatToHandleTableAnnotationComposer,
+      $$ImportChatToHandleTableCreateCompanionBuilder,
+      $$ImportChatToHandleTableUpdateCompanionBuilder,
+      (ImportChatToHandleData, $$ImportChatToHandleTableReferences),
+      ImportChatToHandleData,
       PrefetchHooks Function({bool chatId, bool handleId})
     >;
 typedef $$ImportMessagesTableCreateCompanionBuilder =
@@ -12125,6 +12912,7 @@ typedef $$ImportMessagesTableCreateCompanionBuilder =
       Value<String?> associatedMessageGuid,
       Value<String?> balloonBundleId,
       Value<String?> payloadJson,
+      Value<bool> isIgnored,
       required int batchId,
     });
 typedef $$ImportMessagesTableUpdateCompanionBuilder =
@@ -12149,6 +12937,7 @@ typedef $$ImportMessagesTableUpdateCompanionBuilder =
       Value<String?> associatedMessageGuid,
       Value<String?> balloonBundleId,
       Value<String?> payloadJson,
+      Value<bool> isIgnored,
       Value<int> batchId,
     });
 
@@ -12222,27 +13011,26 @@ final class $$ImportMessagesTableReferences
   }
 
   static MultiTypedResultKey<
-    $ImportChatMessageJoinSourceTable,
-    List<ImportChatMessageJoinSourceData>
+    $ImportChatToMessageTable,
+    List<ImportChatToMessageData>
   >
-  _importChatMessageJoinSourceRefsTable(_$ImportDatabase db) =>
+  _importChatToMessageRefsTable(_$ImportDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.importChatMessageJoinSource,
+        db.importChatToMessage,
         aliasName: $_aliasNameGenerator(
           db.importMessages.id,
-          db.importChatMessageJoinSource.messageId,
+          db.importChatToMessage.messageId,
         ),
       );
 
-  $$ImportChatMessageJoinSourceTableProcessedTableManager
-  get importChatMessageJoinSourceRefs {
-    final manager = $$ImportChatMessageJoinSourceTableTableManager(
+  $$ImportChatToMessageTableProcessedTableManager get importChatToMessageRefs {
+    final manager = $$ImportChatToMessageTableTableManager(
       $_db,
-      $_db.importChatMessageJoinSource,
+      $_db.importChatToMessage,
     ).filter((f) => f.messageId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _importChatMessageJoinSourceRefsTable($_db),
+      _importChatToMessageRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -12425,6 +13213,11 @@ class $$ImportMessagesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ImportChatsTableFilterComposer get chatId {
     final $$ImportChatsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -12494,32 +13287,28 @@ class $$ImportMessagesTableFilterComposer
     return composer;
   }
 
-  Expression<bool> importChatMessageJoinSourceRefs(
-    Expression<bool> Function(
-      $$ImportChatMessageJoinSourceTableFilterComposer f,
-    )
-    f,
+  Expression<bool> importChatToMessageRefs(
+    Expression<bool> Function($$ImportChatToMessageTableFilterComposer f) f,
   ) {
-    final $$ImportChatMessageJoinSourceTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatMessageJoinSource,
-          getReferencedColumn: (t) => t.messageId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
+    final $$ImportChatToMessageTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.importChatToMessage,
+      getReferencedColumn: (t) => t.messageId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportChatToMessageTableFilterComposer(
+            $db: $db,
+            $table: $db.importChatToMessage,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatMessageJoinSourceTableFilterComposer(
-                $db: $db,
-                $table: $db.importChatMessageJoinSource,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
+          ),
+    );
     return f(composer);
   }
 
@@ -12700,6 +13489,11 @@ class $$ImportMessagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ImportChatsTableOrderingComposer get chatId {
     final $$ImportChatsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -12853,6 +13647,9 @@ class $$ImportMessagesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
+
   $$ImportChatsTableAnnotationComposer get chatId {
     final $$ImportChatsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -12922,26 +13719,23 @@ class $$ImportMessagesTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> importChatMessageJoinSourceRefs<T extends Object>(
-    Expression<T> Function(
-      $$ImportChatMessageJoinSourceTableAnnotationComposer a,
-    )
-    f,
+  Expression<T> importChatToMessageRefs<T extends Object>(
+    Expression<T> Function($$ImportChatToMessageTableAnnotationComposer a) f,
   ) {
-    final $$ImportChatMessageJoinSourceTableAnnotationComposer composer =
+    final $$ImportChatToMessageTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.importChatMessageJoinSource,
+          referencedTable: $db.importChatToMessage,
           getReferencedColumn: (t) => t.messageId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$ImportChatMessageJoinSourceTableAnnotationComposer(
+              }) => $$ImportChatToMessageTableAnnotationComposer(
                 $db: $db,
-                $table: $db.importChatMessageJoinSource,
+                $table: $db.importChatToMessage,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -13047,7 +13841,7 @@ class $$ImportMessagesTableTableManager
             bool chatId,
             bool senderHandleId,
             bool batchId,
-            bool importChatMessageJoinSourceRefs,
+            bool importChatToMessageRefs,
             bool importMessageAttachmentsRefs,
             bool importReactionsRefs,
             bool importMessageLinksRefs,
@@ -13088,6 +13882,7 @@ class $$ImportMessagesTableTableManager
                 Value<String?> associatedMessageGuid = const Value.absent(),
                 Value<String?> balloonBundleId = const Value.absent(),
                 Value<String?> payloadJson = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 Value<int> batchId = const Value.absent(),
               }) => ImportMessagesCompanion(
                 id: id,
@@ -13110,6 +13905,7 @@ class $$ImportMessagesTableTableManager
                 associatedMessageGuid: associatedMessageGuid,
                 balloonBundleId: balloonBundleId,
                 payloadJson: payloadJson,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           createCompanionCallback:
@@ -13134,6 +13930,7 @@ class $$ImportMessagesTableTableManager
                 Value<String?> associatedMessageGuid = const Value.absent(),
                 Value<String?> balloonBundleId = const Value.absent(),
                 Value<String?> payloadJson = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
                 required int batchId,
               }) => ImportMessagesCompanion.insert(
                 id: id,
@@ -13156,6 +13953,7 @@ class $$ImportMessagesTableTableManager
                 associatedMessageGuid: associatedMessageGuid,
                 balloonBundleId: balloonBundleId,
                 payloadJson: payloadJson,
+                isIgnored: isIgnored,
                 batchId: batchId,
               ),
           withReferenceMapper: (p0) => p0
@@ -13171,7 +13969,7 @@ class $$ImportMessagesTableTableManager
                 chatId = false,
                 senderHandleId = false,
                 batchId = false,
-                importChatMessageJoinSourceRefs = false,
+                importChatToMessageRefs = false,
                 importMessageAttachmentsRefs = false,
                 importReactionsRefs = false,
                 importMessageLinksRefs = false,
@@ -13179,8 +13977,7 @@ class $$ImportMessagesTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (importChatMessageJoinSourceRefs)
-                      db.importChatMessageJoinSource,
+                    if (importChatToMessageRefs) db.importChatToMessage,
                     if (importMessageAttachmentsRefs)
                       db.importMessageAttachments,
                     if (importReactionsRefs) db.importReactions,
@@ -13252,21 +14049,21 @@ class $$ImportMessagesTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (importChatMessageJoinSourceRefs)
+                      if (importChatToMessageRefs)
                         await $_getPrefetchedData<
                           ImportMessage,
                           $ImportMessagesTable,
-                          ImportChatMessageJoinSourceData
+                          ImportChatToMessageData
                         >(
                           currentTable: table,
                           referencedTable: $$ImportMessagesTableReferences
-                              ._importChatMessageJoinSourceRefsTable(db),
+                              ._importChatToMessageRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$ImportMessagesTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).importChatMessageJoinSourceRefs,
+                              ).importChatToMessageRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.messageId == item.id,
@@ -13360,35 +14157,35 @@ typedef $$ImportMessagesTableProcessedTableManager =
         bool chatId,
         bool senderHandleId,
         bool batchId,
-        bool importChatMessageJoinSourceRefs,
+        bool importChatToMessageRefs,
         bool importMessageAttachmentsRefs,
         bool importReactionsRefs,
         bool importMessageLinksRefs,
       })
     >;
-typedef $$ImportChatMessageJoinSourceTableCreateCompanionBuilder =
-    ImportChatMessageJoinSourceCompanion Function({
+typedef $$ImportChatToMessageTableCreateCompanionBuilder =
+    ImportChatToMessageCompanion Function({
       required int chatId,
       required int messageId,
       Value<int?> sourceRowid,
       Value<int> rowid,
     });
-typedef $$ImportChatMessageJoinSourceTableUpdateCompanionBuilder =
-    ImportChatMessageJoinSourceCompanion Function({
+typedef $$ImportChatToMessageTableUpdateCompanionBuilder =
+    ImportChatToMessageCompanion Function({
       Value<int> chatId,
       Value<int> messageId,
       Value<int?> sourceRowid,
       Value<int> rowid,
     });
 
-final class $$ImportChatMessageJoinSourceTableReferences
+final class $$ImportChatToMessageTableReferences
     extends
         BaseReferences<
           _$ImportDatabase,
-          $ImportChatMessageJoinSourceTable,
-          ImportChatMessageJoinSourceData
+          $ImportChatToMessageTable,
+          ImportChatToMessageData
         > {
-  $$ImportChatMessageJoinSourceTableReferences(
+  $$ImportChatToMessageTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
@@ -13396,10 +14193,7 @@ final class $$ImportChatMessageJoinSourceTableReferences
 
   static $ImportChatsTable _chatIdTable(_$ImportDatabase db) =>
       db.importChats.createAlias(
-        $_aliasNameGenerator(
-          db.importChatMessageJoinSource.chatId,
-          db.importChats.id,
-        ),
+        $_aliasNameGenerator(db.importChatToMessage.chatId, db.importChats.id),
       );
 
   $$ImportChatsTableProcessedTableManager get chatId {
@@ -13419,7 +14213,7 @@ final class $$ImportChatMessageJoinSourceTableReferences
   static $ImportMessagesTable _messageIdTable(_$ImportDatabase db) =>
       db.importMessages.createAlias(
         $_aliasNameGenerator(
-          db.importChatMessageJoinSource.messageId,
+          db.importChatToMessage.messageId,
           db.importMessages.id,
         ),
       );
@@ -13439,9 +14233,9 @@ final class $$ImportChatMessageJoinSourceTableReferences
   }
 }
 
-class $$ImportChatMessageJoinSourceTableFilterComposer
-    extends Composer<_$ImportDatabase, $ImportChatMessageJoinSourceTable> {
-  $$ImportChatMessageJoinSourceTableFilterComposer({
+class $$ImportChatToMessageTableFilterComposer
+    extends Composer<_$ImportDatabase, $ImportChatToMessageTable> {
+  $$ImportChatToMessageTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -13500,9 +14294,9 @@ class $$ImportChatMessageJoinSourceTableFilterComposer
   }
 }
 
-class $$ImportChatMessageJoinSourceTableOrderingComposer
-    extends Composer<_$ImportDatabase, $ImportChatMessageJoinSourceTable> {
-  $$ImportChatMessageJoinSourceTableOrderingComposer({
+class $$ImportChatToMessageTableOrderingComposer
+    extends Composer<_$ImportDatabase, $ImportChatToMessageTable> {
+  $$ImportChatToMessageTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -13561,9 +14355,9 @@ class $$ImportChatMessageJoinSourceTableOrderingComposer
   }
 }
 
-class $$ImportChatMessageJoinSourceTableAnnotationComposer
-    extends Composer<_$ImportDatabase, $ImportChatMessageJoinSourceTable> {
-  $$ImportChatMessageJoinSourceTableAnnotationComposer({
+class $$ImportChatToMessageTableAnnotationComposer
+    extends Composer<_$ImportDatabase, $ImportChatToMessageTable> {
+  $$ImportChatToMessageTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -13622,43 +14416,37 @@ class $$ImportChatMessageJoinSourceTableAnnotationComposer
   }
 }
 
-class $$ImportChatMessageJoinSourceTableTableManager
+class $$ImportChatToMessageTableTableManager
     extends
         RootTableManager<
           _$ImportDatabase,
-          $ImportChatMessageJoinSourceTable,
-          ImportChatMessageJoinSourceData,
-          $$ImportChatMessageJoinSourceTableFilterComposer,
-          $$ImportChatMessageJoinSourceTableOrderingComposer,
-          $$ImportChatMessageJoinSourceTableAnnotationComposer,
-          $$ImportChatMessageJoinSourceTableCreateCompanionBuilder,
-          $$ImportChatMessageJoinSourceTableUpdateCompanionBuilder,
-          (
-            ImportChatMessageJoinSourceData,
-            $$ImportChatMessageJoinSourceTableReferences,
-          ),
-          ImportChatMessageJoinSourceData,
+          $ImportChatToMessageTable,
+          ImportChatToMessageData,
+          $$ImportChatToMessageTableFilterComposer,
+          $$ImportChatToMessageTableOrderingComposer,
+          $$ImportChatToMessageTableAnnotationComposer,
+          $$ImportChatToMessageTableCreateCompanionBuilder,
+          $$ImportChatToMessageTableUpdateCompanionBuilder,
+          (ImportChatToMessageData, $$ImportChatToMessageTableReferences),
+          ImportChatToMessageData,
           PrefetchHooks Function({bool chatId, bool messageId})
         > {
-  $$ImportChatMessageJoinSourceTableTableManager(
+  $$ImportChatToMessageTableTableManager(
     _$ImportDatabase db,
-    $ImportChatMessageJoinSourceTable table,
+    $ImportChatToMessageTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ImportChatMessageJoinSourceTableFilterComposer(
-                $db: db,
-                $table: table,
-              ),
+              $$ImportChatToMessageTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ImportChatMessageJoinSourceTableOrderingComposer(
+              $$ImportChatToMessageTableOrderingComposer(
                 $db: db,
                 $table: table,
               ),
           createComputedFieldComposer: () =>
-              $$ImportChatMessageJoinSourceTableAnnotationComposer(
+              $$ImportChatToMessageTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
@@ -13668,7 +14456,7 @@ class $$ImportChatMessageJoinSourceTableTableManager
                 Value<int> messageId = const Value.absent(),
                 Value<int?> sourceRowid = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ImportChatMessageJoinSourceCompanion(
+              }) => ImportChatToMessageCompanion(
                 chatId: chatId,
                 messageId: messageId,
                 sourceRowid: sourceRowid,
@@ -13680,7 +14468,7 @@ class $$ImportChatMessageJoinSourceTableTableManager
                 required int messageId,
                 Value<int?> sourceRowid = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => ImportChatMessageJoinSourceCompanion.insert(
+              }) => ImportChatToMessageCompanion.insert(
                 chatId: chatId,
                 messageId: messageId,
                 sourceRowid: sourceRowid,
@@ -13690,7 +14478,7 @@ class $$ImportChatMessageJoinSourceTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$ImportChatMessageJoinSourceTableReferences(db, table, e),
+                  $$ImportChatToMessageTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -13720,10 +14508,10 @@ class $$ImportChatMessageJoinSourceTableTableManager
                                 currentTable: table,
                                 currentColumn: table.chatId,
                                 referencedTable:
-                                    $$ImportChatMessageJoinSourceTableReferences
+                                    $$ImportChatToMessageTableReferences
                                         ._chatIdTable(db),
                                 referencedColumn:
-                                    $$ImportChatMessageJoinSourceTableReferences
+                                    $$ImportChatToMessageTableReferences
                                         ._chatIdTable(db)
                                         .id,
                               )
@@ -13735,10 +14523,10 @@ class $$ImportChatMessageJoinSourceTableTableManager
                                 currentTable: table,
                                 currentColumn: table.messageId,
                                 referencedTable:
-                                    $$ImportChatMessageJoinSourceTableReferences
+                                    $$ImportChatToMessageTableReferences
                                         ._messageIdTable(db),
                                 referencedColumn:
-                                    $$ImportChatMessageJoinSourceTableReferences
+                                    $$ImportChatToMessageTableReferences
                                         ._messageIdTable(db)
                                         .id,
                               )
@@ -13756,21 +14544,18 @@ class $$ImportChatMessageJoinSourceTableTableManager
       );
 }
 
-typedef $$ImportChatMessageJoinSourceTableProcessedTableManager =
+typedef $$ImportChatToMessageTableProcessedTableManager =
     ProcessedTableManager<
       _$ImportDatabase,
-      $ImportChatMessageJoinSourceTable,
-      ImportChatMessageJoinSourceData,
-      $$ImportChatMessageJoinSourceTableFilterComposer,
-      $$ImportChatMessageJoinSourceTableOrderingComposer,
-      $$ImportChatMessageJoinSourceTableAnnotationComposer,
-      $$ImportChatMessageJoinSourceTableCreateCompanionBuilder,
-      $$ImportChatMessageJoinSourceTableUpdateCompanionBuilder,
-      (
-        ImportChatMessageJoinSourceData,
-        $$ImportChatMessageJoinSourceTableReferences,
-      ),
-      ImportChatMessageJoinSourceData,
+      $ImportChatToMessageTable,
+      ImportChatToMessageData,
+      $$ImportChatToMessageTableFilterComposer,
+      $$ImportChatToMessageTableOrderingComposer,
+      $$ImportChatToMessageTableAnnotationComposer,
+      $$ImportChatToMessageTableCreateCompanionBuilder,
+      $$ImportChatToMessageTableUpdateCompanionBuilder,
+      (ImportChatToMessageData, $$ImportChatToMessageTableReferences),
+      ImportChatToMessageData,
       PrefetchHooks Function({bool chatId, bool messageId})
     >;
 typedef $$ImportAttachmentsTableCreateCompanionBuilder =
@@ -15595,6 +16380,522 @@ typedef $$ImportMessageLinksTableProcessedTableManager =
       ImportMessageLink,
       PrefetchHooks Function({bool messageId})
     >;
+typedef $$ImportContactToChatHandleTableCreateCompanionBuilder =
+    ImportContactToChatHandleCompanion Function({
+      Value<int> id,
+      required int contactZPk,
+      required int chatHandleId,
+      required int batchId,
+    });
+typedef $$ImportContactToChatHandleTableUpdateCompanionBuilder =
+    ImportContactToChatHandleCompanion Function({
+      Value<int> id,
+      Value<int> contactZPk,
+      Value<int> chatHandleId,
+      Value<int> batchId,
+    });
+
+final class $$ImportContactToChatHandleTableReferences
+    extends
+        BaseReferences<
+          _$ImportDatabase,
+          $ImportContactToChatHandleTable,
+          ImportContactToChatHandleData
+        > {
+  $$ImportContactToChatHandleTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ImportContactsTable _contactZPkTable(_$ImportDatabase db) =>
+      db.importContacts.createAlias(
+        $_aliasNameGenerator(
+          db.importContactToChatHandle.contactZPk,
+          db.importContacts.zPk,
+        ),
+      );
+
+  $$ImportContactsTableProcessedTableManager get contactZPk {
+    final $_column = $_itemColumn<int>('contact_Z_PK')!;
+
+    final manager = $$ImportContactsTableTableManager(
+      $_db,
+      $_db.importContacts,
+    ).filter((f) => f.zPk.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_contactZPkTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ImportHandlesTable _chatHandleIdTable(_$ImportDatabase db) =>
+      db.importHandles.createAlias(
+        $_aliasNameGenerator(
+          db.importContactToChatHandle.chatHandleId,
+          db.importHandles.id,
+        ),
+      );
+
+  $$ImportHandlesTableProcessedTableManager get chatHandleId {
+    final $_column = $_itemColumn<int>('chat_handle_id')!;
+
+    final manager = $$ImportHandlesTableTableManager(
+      $_db,
+      $_db.importHandles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chatHandleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ImportBatchesTable _batchIdTable(_$ImportDatabase db) =>
+      db.importBatches.createAlias(
+        $_aliasNameGenerator(
+          db.importContactToChatHandle.batchId,
+          db.importBatches.id,
+        ),
+      );
+
+  $$ImportBatchesTableProcessedTableManager get batchId {
+    final $_column = $_itemColumn<int>('batch_id')!;
+
+    final manager = $$ImportBatchesTableTableManager(
+      $_db,
+      $_db.importBatches,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_batchIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ImportContactToChatHandleTableFilterComposer
+    extends Composer<_$ImportDatabase, $ImportContactToChatHandleTable> {
+  $$ImportContactToChatHandleTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ImportContactsTableFilterComposer get contactZPk {
+    final $$ImportContactsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactZPk,
+      referencedTable: $db.importContacts,
+      getReferencedColumn: (t) => t.zPk,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportContactsTableFilterComposer(
+            $db: $db,
+            $table: $db.importContacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportHandlesTableFilterComposer get chatHandleId {
+    final $$ImportHandlesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatHandleId,
+      referencedTable: $db.importHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportHandlesTableFilterComposer(
+            $db: $db,
+            $table: $db.importHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportBatchesTableFilterComposer get batchId {
+    final $$ImportBatchesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.batchId,
+      referencedTable: $db.importBatches,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportBatchesTableFilterComposer(
+            $db: $db,
+            $table: $db.importBatches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ImportContactToChatHandleTableOrderingComposer
+    extends Composer<_$ImportDatabase, $ImportContactToChatHandleTable> {
+  $$ImportContactToChatHandleTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ImportContactsTableOrderingComposer get contactZPk {
+    final $$ImportContactsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactZPk,
+      referencedTable: $db.importContacts,
+      getReferencedColumn: (t) => t.zPk,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportContactsTableOrderingComposer(
+            $db: $db,
+            $table: $db.importContacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportHandlesTableOrderingComposer get chatHandleId {
+    final $$ImportHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatHandleId,
+      referencedTable: $db.importHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.importHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportBatchesTableOrderingComposer get batchId {
+    final $$ImportBatchesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.batchId,
+      referencedTable: $db.importBatches,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportBatchesTableOrderingComposer(
+            $db: $db,
+            $table: $db.importBatches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ImportContactToChatHandleTableAnnotationComposer
+    extends Composer<_$ImportDatabase, $ImportContactToChatHandleTable> {
+  $$ImportContactToChatHandleTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  $$ImportContactsTableAnnotationComposer get contactZPk {
+    final $$ImportContactsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contactZPk,
+      referencedTable: $db.importContacts,
+      getReferencedColumn: (t) => t.zPk,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportContactsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.importContacts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportHandlesTableAnnotationComposer get chatHandleId {
+    final $$ImportHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatHandleId,
+      referencedTable: $db.importHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.importHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ImportBatchesTableAnnotationComposer get batchId {
+    final $$ImportBatchesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.batchId,
+      referencedTable: $db.importBatches,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ImportBatchesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.importBatches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ImportContactToChatHandleTableTableManager
+    extends
+        RootTableManager<
+          _$ImportDatabase,
+          $ImportContactToChatHandleTable,
+          ImportContactToChatHandleData,
+          $$ImportContactToChatHandleTableFilterComposer,
+          $$ImportContactToChatHandleTableOrderingComposer,
+          $$ImportContactToChatHandleTableAnnotationComposer,
+          $$ImportContactToChatHandleTableCreateCompanionBuilder,
+          $$ImportContactToChatHandleTableUpdateCompanionBuilder,
+          (
+            ImportContactToChatHandleData,
+            $$ImportContactToChatHandleTableReferences,
+          ),
+          ImportContactToChatHandleData,
+          PrefetchHooks Function({
+            bool contactZPk,
+            bool chatHandleId,
+            bool batchId,
+          })
+        > {
+  $$ImportContactToChatHandleTableTableManager(
+    _$ImportDatabase db,
+    $ImportContactToChatHandleTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ImportContactToChatHandleTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ImportContactToChatHandleTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ImportContactToChatHandleTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> contactZPk = const Value.absent(),
+                Value<int> chatHandleId = const Value.absent(),
+                Value<int> batchId = const Value.absent(),
+              }) => ImportContactToChatHandleCompanion(
+                id: id,
+                contactZPk: contactZPk,
+                chatHandleId: chatHandleId,
+                batchId: batchId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int contactZPk,
+                required int chatHandleId,
+                required int batchId,
+              }) => ImportContactToChatHandleCompanion.insert(
+                id: id,
+                contactZPk: contactZPk,
+                chatHandleId: chatHandleId,
+                batchId: batchId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ImportContactToChatHandleTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({contactZPk = false, chatHandleId = false, batchId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (contactZPk) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.contactZPk,
+                                    referencedTable:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._contactZPkTable(db),
+                                    referencedColumn:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._contactZPkTable(db)
+                                            .zPk,
+                                  )
+                                  as T;
+                        }
+                        if (chatHandleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.chatHandleId,
+                                    referencedTable:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._chatHandleIdTable(db),
+                                    referencedColumn:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._chatHandleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (batchId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.batchId,
+                                    referencedTable:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._batchIdTable(db),
+                                    referencedColumn:
+                                        $$ImportContactToChatHandleTableReferences
+                                            ._batchIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ImportContactToChatHandleTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ImportDatabase,
+      $ImportContactToChatHandleTable,
+      ImportContactToChatHandleData,
+      $$ImportContactToChatHandleTableFilterComposer,
+      $$ImportContactToChatHandleTableOrderingComposer,
+      $$ImportContactToChatHandleTableAnnotationComposer,
+      $$ImportContactToChatHandleTableCreateCompanionBuilder,
+      $$ImportContactToChatHandleTableUpdateCompanionBuilder,
+      (
+        ImportContactToChatHandleData,
+        $$ImportContactToChatHandleTableReferences,
+      ),
+      ImportContactToChatHandleData,
+      PrefetchHooks Function({bool contactZPk, bool chatHandleId, bool batchId})
+    >;
 
 class $ImportDatabaseManager {
   final _$ImportDatabase _db;
@@ -15612,25 +16913,21 @@ class $ImportDatabaseManager {
       $$ImportLogsTableTableManager(_db, _db.importLogs);
   $$ImportContactsTableTableManager get importContacts =>
       $$ImportContactsTableTableManager(_db, _db.importContacts);
-  $$ImportContactChannelsTableTableManager get importContactChannels =>
-      $$ImportContactChannelsTableTableManager(_db, _db.importContactChannels);
+  $$ImportContactPhoneEmailTableTableManager get importContactPhoneEmail =>
+      $$ImportContactPhoneEmailTableTableManager(
+        _db,
+        _db.importContactPhoneEmail,
+      );
   $$ImportHandlesTableTableManager get importHandles =>
       $$ImportHandlesTableTableManager(_db, _db.importHandles);
   $$ImportChatsTableTableManager get importChats =>
       $$ImportChatsTableTableManager(_db, _db.importChats);
-  $$ImportChatParticipantsTableTableManager get importChatParticipants =>
-      $$ImportChatParticipantsTableTableManager(
-        _db,
-        _db.importChatParticipants,
-      );
+  $$ImportChatToHandleTableTableManager get importChatToHandle =>
+      $$ImportChatToHandleTableTableManager(_db, _db.importChatToHandle);
   $$ImportMessagesTableTableManager get importMessages =>
       $$ImportMessagesTableTableManager(_db, _db.importMessages);
-  $$ImportChatMessageJoinSourceTableTableManager
-  get importChatMessageJoinSource =>
-      $$ImportChatMessageJoinSourceTableTableManager(
-        _db,
-        _db.importChatMessageJoinSource,
-      );
+  $$ImportChatToMessageTableTableManager get importChatToMessage =>
+      $$ImportChatToMessageTableTableManager(_db, _db.importChatToMessage);
   $$ImportAttachmentsTableTableManager get importAttachments =>
       $$ImportAttachmentsTableTableManager(_db, _db.importAttachments);
   $$ImportMessageAttachmentsTableTableManager get importMessageAttachments =>
@@ -15642,4 +16939,9 @@ class $ImportDatabaseManager {
       $$ImportReactionsTableTableManager(_db, _db.importReactions);
   $$ImportMessageLinksTableTableManager get importMessageLinks =>
       $$ImportMessageLinksTableTableManager(_db, _db.importMessageLinks);
+  $$ImportContactToChatHandleTableTableManager get importContactToChatHandle =>
+      $$ImportContactToChatHandleTableTableManager(
+        _db,
+        _db.importContactToChatHandle,
+      );
 }

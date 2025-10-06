@@ -123,7 +123,7 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
         db.workingHandles,
         db.workingHandles.id.equalsExp(db.handleToParticipant.handleId),
       ),
-    ])..where(db.workingHandles.id.equals(chat.handleId));
+    ])..where(db.chatToHandle.chatId.equals(chat.id));
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];

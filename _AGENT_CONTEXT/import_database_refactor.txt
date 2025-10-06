@@ -1,0 +1,53 @@
+Let me first ask you about this:
+
+Create handles instead
+Create participants WITHOUT service/normalized_address
+Create handle_to_participant links
+
+It is imperative that no handles be "created". All we do is map existing chat handles (from chat.db) to AddressBook contacts. Here is what I propose ("contact in the import db always refers to an AddressBook contact and its id in that database". This is true also for the new tables I propose adding to macos_import.db). I'm going to use the example of my daughter, Claire Merriman Campbell
+
+(1) ZABCDRECORD:  She appears as Z_PK = 17 (this id is used as this record's primary key in the phone number and email tables)
+
+The ZABCDRECORD entry contains a few fields that are useful to us:
+
+Z_PK: 17
+ZFIRSTNAME: "Claire"
+ZLASTNAME:  "Merriman Campbell"
+ZNICKNAME: "Claire"
+ZORGANIZATION: NULL
+
+-- that is all we care about for ZABCDRECORD
+
+(2) ZABCDPHONENUMBER  all we care about is:
+
+ZOWNER = 17
+ZFULLNUMBER = +17789908506	 
+
+(3) ZABCDEMAILADDRESS  all we care about is:
+ZOWNER = 17
+ZADDRESSNORMALIZED = clairemc@gmail.com
+
+Rough plan:
+
+macos_import.db should have, to handle data from AddressBook db, three tables: contacts, contact_emails and contact_phones Their columns should be the few I've defined above and should keep the original stupid AddressBook db field names to avoid confusion (thus ZOWNER and ZFULLNUMBER for contactk_phones).
+
+ There should also be a join table to join AddressBook contact ids (Z_PK) to chat.db handle ids, which we can name contact_to_chat_handle. This should have the fields participant_id (contacts Z_PK), chat_handle_id
+ 
+ And a "participants" table to store the contacts we are going to keep for the working_db because they relate to a chat.db chat handle
+
+Fill each of these by querying the corresponding table in AddressBook for only those fields I've specified above for Claire and fill the corresponding macos_import.db table: contacts, contact_emails, and contact_phone. 
+
+Now we have the raw data imported.
+
+Now proceed to fill the contact_to_chat_handle table. Go through each handle record (this should later be renamed "chat_handles" to reduce confusion):
+
+1. Look for a match in contact_phones. If a record has a match in the ZFULLNUMBER field , get the Z_PK and add the corresponding record to the participants table using the information in the  contacts table entry. Add an entry to contact_to_chat_handle (contact_id: Z_PK for the contact, handle_id: chat_handles id)
+
+2. Do the same for the emails (actually this could be done in one step with the phone numbers, depending on how the sql query can be structured.)
+
+THAT'S IT. In migration, migrate:
+
+ macos_import.contacts to working.db participants
+contact_to_chat_handle in import.db to working_db chat_to_participant
+
+We can ignore the macos_import.db tables: contacts, contact_emails, and contact_phones

@@ -13,6 +13,7 @@ import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/features/messages_spec.dart';
 import '../../domain/entities/features/settings_spec.dart';
+import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
 import '../view_model/panel_widget_providers.dart';
@@ -306,6 +307,26 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                 ref
                     .read(panelsViewStateProvider.notifier)
                     .show(panel: WindowPanel.right, spec: spec);
+              },
+              showLabel: false,
+            ),
+            ToolBarIconButton(
+              label: 'Workbench',
+              icon: const MacosIcon(CupertinoIcons.hammer),
+              onPressed: () {
+                const spec = ViewSpec.workbench(WorkbenchSpec.panel());
+
+                ref
+                    .read(navigationLoggerProvider.notifier)
+                    .logToolbarClick(
+                      buttonLabel: 'Workbench',
+                      targetPanel: WindowPanel.center,
+                      viewSpec: spec,
+                    );
+
+                ref
+                    .read(panelsViewStateProvider.notifier)
+                    .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
             ),

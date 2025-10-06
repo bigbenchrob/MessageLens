@@ -17,7 +17,7 @@ class SqfliteImportDatabase {
        _databaseName = databaseName,
        _debugSettings = debugSettings;
 
-  static const int _schemaVersion = 4;
+  static const int _schemaVersion = 5;
 
   final String _databaseDirectory;
   final String _databaseName;
@@ -390,7 +390,7 @@ class SqfliteImportDatabase {
       'label': label,
     });
     return db.insert(
-      'contact_channels',
+      'contact_phone_email',
       data,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -401,7 +401,7 @@ class SqfliteImportDatabase {
     int? sourceRowid,
     required String service,
     required String rawIdentifier,
-    String? normalizedAddress,
+    String? normalizedIdentifier,
     String? country,
     String? lastSeenUtc,
     required int batchId,
@@ -431,7 +431,7 @@ class SqfliteImportDatabase {
       'source_rowid': sourceRowid,
       'service': service,
       'raw_identifier': rawIdentifier,
-      'normalized_address': normalizedAddress,
+      'normalized_identifier': normalizedIdentifier,
       'country': country,
       'last_seen_utc': lastSeenUtc,
       'batch_id': batchId,
@@ -497,6 +497,8 @@ class SqfliteImportDatabase {
     String? addedAtUtc,
   }) async {
     final db = await database;
+
+    // No validation needed - all chats and handles are imported before relationships
     final data = _cleanMap(<String, Object?>{
       'chat_id': chatId,
       'handle_id': handleId,
@@ -504,7 +506,7 @@ class SqfliteImportDatabase {
       'added_at_utc': addedAtUtc,
     });
     return db.insert(
-      'chat_participants',
+      'chat_to_handle',
       data,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -549,25 +551,8 @@ class SqfliteImportDatabase {
       throw Exception('Cannot insert message: chat $chatId does not exist');
     }
 
-    // Validate sender handle if provided
-    if (senderHandleId != null && senderHandleId != 0) {
-      final handleExists = await db.query(
-        'handles',
-        where: 'id = ?',
-        whereArgs: [senderHandleId],
-      );
-
-      if (handleExists.isEmpty) {
-        _debugSettings.logDatabase(
-          'SqfliteImportDatabase.insertMessage: ERROR - handle $senderHandleId does not exist!',
-        );
-        throw Exception(
-          'Cannot insert message: handle $senderHandleId does not exist',
-        );
-      }
-    }
-
     // Handle sender_handle_id = 0 (treat as NULL)
+    // All handles are now imported, so no need to validate existence
     final actualSenderHandleId = (senderHandleId == 0) ? null : senderHandleId;
 
     _debugSettings.logDatabase(
@@ -623,7 +608,7 @@ class SqfliteImportDatabase {
       'source_rowid': sourceRowid,
     });
     return db.insert(
-      'chat_message_join_source',
+      'chat_to_message',
       data,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -779,12 +764,12 @@ class SqfliteImportDatabase {
       'source_files',
       'import_logs',
       'contacts',
-      'contact_channels',
+      'contact_phone_email',
       'handles',
       'chats',
-      'chat_participants',
+      'chat_to_handle',
       'messages',
-      'chat_message_join_source',
+      'chat_to_message',
       'attachments',
       'message_attachments',
       'reactions',
@@ -827,12 +812,12 @@ class SqfliteImportDatabase {
         'reactions',
         'message_attachments',
         'attachments',
-        'chat_message_join_source',
+        'chat_to_message',
         'messages',
-        'chat_participants',
+        'chat_to_handle',
         'chats',
         'handles',
-        'contact_channels',
+        'contact_phone_email',
         'contacts',
         'import_logs',
         'source_files',
@@ -861,6 +846,84 @@ class SqfliteImportDatabase {
     return result.isNotEmpty;
   }
 
+  Future<bool> rowExists({
+    required String table,
+    required String where,
+    required List<Object?> whereArgs,
+  }) {
+    return _rowExists(table: table, where: where, whereArgs: whereArgs);
+  }
+
+  /// Get all handles for spam filtering
+  Future<List<Map<String, Object?>>> getAllHandles() async {
+    final db = await database;
+    return db.query('handles');
+  }
+
+  /// Flag a handle as ignored/spam
+  Future<void> flagHandleAsIgnored(int handleId) async {
+    final db = await database;
+    await db.update(
+      'handles',
+      {'is_ignored': 1},
+      where: 'id = ?',
+      whereArgs: [handleId],
+    );
+  }
+
+  /// Flag a chat as ignored/spam
+  Future<void> flagChatAsIgnored(int chatId) async {
+    final db = await database;
+    await db.update(
+      'chats',
+      {'is_ignored': 1},
+      where: 'id = ?',
+      whereArgs: [chatId],
+    );
+  }
+
+  /// Get chats that only have spam handles as participants
+  Future<List<int>> getChatsWithOnlySpamHandles(List<int> spamHandleIds) async {
+    if (spamHandleIds.isEmpty) return <int>[];
+
+    final db = await database;
+    final placeholders = List<String>.filled(
+      spamHandleIds.length,
+      '?',
+    ).join(', ');
+
+    // Find chats where ALL participants are spam handles
+    final result = await db.rawQuery(
+      '''
+      SELECT c.id as chat_id
+      FROM chats c
+      WHERE c.id IN (
+        SELECT chat_id FROM chat_to_handle WHERE handle_id IN ($placeholders)
+      )
+      AND c.id NOT IN (
+        SELECT chat_id FROM chat_to_handle WHERE handle_id NOT IN ($placeholders)
+      )
+    ''',
+      [...spamHandleIds, ...spamHandleIds],
+    );
+
+    return result.map((row) => row['chat_id'] as int).toList();
+  }
+
+  /// Flag all messages in specified chats as ignored
+  Future<void> flagMessagesInChatsAsIgnored(List<int> chatIds) async {
+    if (chatIds.isEmpty) return;
+
+    final db = await database;
+    final placeholders = List<String>.filled(chatIds.length, '?').join(', ');
+
+    await db.rawUpdate('''
+      UPDATE messages 
+      SET is_ignored = 1 
+      WHERE chat_id IN ($placeholders)
+    ''', chatIds);
+  }
+
   Future<bool> contactExists(int id) {
     return _rowExists(
       table: 'contacts',
@@ -874,7 +937,7 @@ class SqfliteImportDatabase {
     required String value,
   }) {
     return _rowExists(
-      table: 'contact_channels',
+      table: 'contact_phone_email',
       where: 'kind = ? AND value = ?',
       whereArgs: <Object>[kind, value],
     );
@@ -885,7 +948,7 @@ class SqfliteImportDatabase {
     required int handleId,
   }) {
     return _rowExists(
-      table: 'chat_participants',
+      table: 'chat_to_handle',
       where: 'chat_id = ? AND handle_id = ?',
       whereArgs: <Object>[chatId, handleId],
     );
@@ -936,12 +999,12 @@ class SqfliteImportDatabase {
     'CREATE TABLE IF NOT EXISTS source_files (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE, path TEXT NOT NULL, sha256_hex TEXT, size_bytes INTEGER, mtime_utc TEXT, UNIQUE(path, sha256_hex))',
     "CREATE TABLE IF NOT EXISTS import_logs (id INTEGER PRIMARY KEY, batch_id INTEGER REFERENCES import_batches(id) ON DELETE SET NULL, at_utc TEXT NOT NULL, level TEXT NOT NULL CHECK(level IN ('debug','info','warn','error')), message TEXT NOT NULL, context_json TEXT)",
     'CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, source_record_id INTEGER, display_name TEXT, given_name TEXT, family_name TEXT, organization TEXT, is_organization INTEGER NOT NULL DEFAULT 0 CHECK(is_organization IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
-    "CREATE TABLE IF NOT EXISTS contact_channels (id INTEGER PRIMARY KEY, contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('email','phone')), value TEXT NOT NULL, label TEXT, UNIQUE(kind, value))",
-    "CREATE TABLE IF NOT EXISTS handles (id INTEGER PRIMARY KEY, source_rowid INTEGER, service TEXT NOT NULL, raw_identifier TEXT NOT NULL, normalized_address TEXT, country TEXT, last_seen_utc TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(service, raw_identifier))",
-    "CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, service TEXT, display_name TEXT, is_group INTEGER NOT NULL DEFAULT 0 CHECK(is_group IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
-    "CREATE TABLE IF NOT EXISTS chat_participants (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, role TEXT CHECK(role IN ('member','owner','unknown')) DEFAULT 'member', added_at_utc TEXT, PRIMARY KEY (chat_id, handle_id))",
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, sender_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, service TEXT, is_from_me INTEGER NOT NULL CHECK(is_from_me IN (0,1)), date_utc TEXT, date_read_utc TEXT, date_delivered_utc TEXT, subject TEXT, text TEXT, attributed_body_blob BLOB, item_type TEXT CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown')), error_code INTEGER, is_system_message INTEGER NOT NULL DEFAULT 0 CHECK(is_system_message IN (0,1)), thread_originator_guid TEXT, associated_message_guid TEXT, balloon_bundle_id TEXT, payload_json TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
-    'CREATE TABLE IF NOT EXISTS chat_message_join_source (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (chat_id, message_id))',
+    "CREATE TABLE IF NOT EXISTS contact_phone_email (id INTEGER PRIMARY KEY, contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('email','phone')), value TEXT NOT NULL, label TEXT, UNIQUE(kind, value))",
+    "CREATE TABLE IF NOT EXISTS handles (id INTEGER PRIMARY KEY, source_rowid INTEGER, service TEXT NOT NULL, raw_identifier TEXT NOT NULL, normalized_identifier TEXT, country TEXT, last_seen_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(service, raw_identifier))",
+    "CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, service TEXT, display_name TEXT, is_group INTEGER NOT NULL DEFAULT 0 CHECK(is_group IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
+    "CREATE TABLE IF NOT EXISTS chat_to_handle (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, role TEXT CHECK(role IN ('member','owner','unknown')) DEFAULT 'member', added_at_utc TEXT, PRIMARY KEY (chat_id, handle_id))",
+    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, sender_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, service TEXT, is_from_me INTEGER NOT NULL CHECK(is_from_me IN (0,1)), date_utc TEXT, date_read_utc TEXT, date_delivered_utc TEXT, subject TEXT, text TEXT, attributed_body_blob BLOB, item_type TEXT CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown')), error_code INTEGER, is_system_message INTEGER NOT NULL DEFAULT 0 CHECK(is_system_message IN (0,1)), thread_originator_guid TEXT, associated_message_guid TEXT, balloon_bundle_id TEXT, payload_json TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
+    'CREATE TABLE IF NOT EXISTS chat_to_message (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (chat_id, message_id))',
     'CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT, transfer_name TEXT, uti TEXT, mime_type TEXT, total_bytes INTEGER, is_sticker INTEGER NOT NULL DEFAULT 0 CHECK(is_sticker IN (0,1)), is_outgoing INTEGER CHECK(is_outgoing IN (0,1)), created_at_utc TEXT, local_path TEXT, sha256_hex TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
     'CREATE TABLE IF NOT EXISTS message_attachments (message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, attachment_id INTEGER NOT NULL REFERENCES attachments(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (message_id, attachment_id))',
     "CREATE TABLE IF NOT EXISTS reactions (id INTEGER PRIMARY KEY, carrier_message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, target_message_guid TEXT NOT NULL, action TEXT NOT NULL CHECK(action IN ('add','remove')), kind TEXT NOT NULL CHECK(kind IN ('love','like','dislike','laugh','emphasize','question','unknown')), reactor_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, reacted_at_utc TEXT, parse_confidence REAL CHECK(parse_confidence >= 0.0 AND parse_confidence <= 1.0) DEFAULT 1.0)",
@@ -949,9 +1012,13 @@ class SqfliteImportDatabase {
   ];
 
   static const List<String> _indexStatements = <String>[
-    'CREATE INDEX IF NOT EXISTS idx_handles_norm ON handles(normalized_address)',
-    'CREATE INDEX IF NOT EXISTS idx_participants_handle ON chat_participants(handle_id)',
+    'CREATE INDEX IF NOT EXISTS idx_handles_norm ON handles(normalized_identifier)',
+    'CREATE INDEX IF NOT EXISTS idx_handles_ignore ON handles(is_ignored)',
+    'CREATE INDEX IF NOT EXISTS idx_participants_handle ON chat_to_handle(handle_id)',
+    'CREATE INDEX IF NOT EXISTS idx_chats_ignore ON chats(is_ignored)',
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_date ON messages(chat_id, date_utc)',
+    'CREATE INDEX IF NOT EXISTS idx_messages_chat_active_date ON messages(chat_id, date_utc) WHERE is_ignored = 0',
+    'CREATE INDEX IF NOT EXISTS idx_messages_ignore ON messages(is_ignored)',
     'CREATE INDEX IF NOT EXISTS idx_messages_assoc ON messages(associated_message_guid)',
     'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_handle_id)',
     'CREATE INDEX IF NOT EXISTS idx_attach_created ON attachments(created_at_utc)',
@@ -960,7 +1027,7 @@ class SqfliteImportDatabase {
   ];
 
   static const String _expandedMessagesViewStatement =
-      'CREATE VIEW IF NOT EXISTS v_messages_expanded AS SELECT m.id AS message_id, m.guid AS message_guid, m.chat_id, c.guid AS chat_guid, m.date_utc, m.is_from_me, m.text, m.item_type, m.associated_message_guid, h.id AS sender_handle_id, h.normalized_address AS sender_address FROM messages m JOIN chats c ON c.id = m.chat_id LEFT JOIN handles h ON h.id = m.sender_handle_id';
+      'CREATE VIEW IF NOT EXISTS v_messages_expanded AS SELECT m.id AS message_id, m.guid AS message_guid, m.chat_id, c.guid AS chat_guid, m.date_utc, m.is_from_me, m.text, m.item_type, m.associated_message_guid, h.id AS sender_handle_id, h.normalized_identifier AS sender_address FROM messages m JOIN chats c ON c.id = m.chat_id LEFT JOIN handles h ON h.id = m.sender_handle_id';
 
   /// Safety method to ensure schema exists (in case database initialization failed during app startup)
   Future<void> _ensureSchemaExists(Database db) async {

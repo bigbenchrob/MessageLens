@@ -11,6 +11,7 @@ part 'working_database.g.dart';
     WorkingHandles,
     WorkingParticipants,
     HandleToParticipant,
+    ChatToHandle,
     WorkingChats,
     WorkingMessages,
     WorkingAttachments,
@@ -529,15 +530,30 @@ class HandleToParticipant extends Table {
   ];
 }
 
+class ChatToHandle extends Table {
+  @override
+  String get tableName => 'chat_to_handle';
+
+  IntColumn get id => integer().named('id').autoIncrement()();
+  IntColumn get chatId => integer()
+      .named('chat_id')
+      .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
+  IntColumn get handleId => integer()
+      .named('handle_id')
+      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {chatId, handleId},
+  ];
+}
+
 class WorkingChats extends Table {
   @override
   String get tableName => 'chats';
 
   IntColumn get id => integer().named('id').autoIncrement()();
   TextColumn get guid => text().named('guid')();
-  IntColumn get handleId => integer()
-      .named('handle_id')
-      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
   TextColumn get service => text()
       .named('service')
       .customConstraint(

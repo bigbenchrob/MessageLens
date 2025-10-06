@@ -10,16 +10,17 @@ part 'import_database.g.dart';
     ImportSourceFiles,
     ImportLogs,
     ImportContacts,
-    ImportContactChannels,
+    ImportContactPhoneEmail,
     ImportHandles,
     ImportChats,
-    ImportChatParticipants,
+    ImportChatToHandle,
     ImportMessages,
-    ImportChatMessageJoinSource,
+    ImportChatToMessage,
     ImportAttachments,
     ImportMessageAttachments,
     ImportReactions,
     ImportMessageLinks,
+    ImportContactToChatHandle,
   ],
 )
 class ImportDatabase extends _$ImportDatabase {
@@ -72,8 +73,8 @@ LEFT JOIN handles h    ON h.id = m.sender_handle_id;
 ''';
 
 const List<String> _indexStatements = [
-  'CREATE INDEX IF NOT EXISTS idx_handles_norm ON handles(normalized_address)',
-  'CREATE INDEX IF NOT EXISTS idx_participants_handle ON chat_participants(handle_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_norm ON handles(normalized_identifier)',
+  'CREATE INDEX IF NOT EXISTS idx_participants_handle ON chat_to_handle(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_messages_chat_date ON messages(chat_id, date_utc)',
   'CREATE INDEX IF NOT EXISTS idx_messages_assoc ON messages(associated_message_guid)',
   'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_handle_id)',
@@ -86,8 +87,7 @@ class ImportSchemaMigrations extends Table {
   @override
   String get tableName => 'schema_migrations';
 
-  IntColumn get version =>
-      integer().named('version').customConstraint('PRIMARY KEY NOT NULL')();
+  IntColumn get version => integer().named('version')();
   TextColumn get appliedAtUtc => text().named('applied_at_utc')();
 }
 
@@ -147,9 +147,7 @@ class ImportContacts extends Table {
   @override
   String get tableName => 'contacts';
 
-  IntColumn get id => integer().named('id').autoIncrement()();
-  IntColumn get sourceRecordId =>
-      integer().named('source_record_id').nullable()();
+  IntColumn get zPk => integer().named('Z_PK')();
   TextColumn get displayName => text().named('display_name').nullable()();
   TextColumn get givenName => text().named('given_name').nullable()();
   TextColumn get familyName => text().named('family_name').nullable()();
@@ -161,16 +159,19 @@ class ImportContacts extends Table {
   IntColumn get batchId => integer()
       .named('batch_id')
       .references(ImportBatches, #id, onDelete: KeyAction.restrict)();
+
+  @override
+  Set<Column> get primaryKey => {zPk};
 }
 
-class ImportContactChannels extends Table {
+class ImportContactPhoneEmail extends Table {
   @override
-  String get tableName => 'contact_channels';
+  String get tableName => 'contact_phone_email';
 
   IntColumn get id => integer().named('id').autoIncrement()();
-  IntColumn get contactId => integer()
-      .named('contact_id')
-      .references(ImportContacts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get ownerZPk => integer()
+      .named('OWNER_Z_PK')
+      .references(ImportContacts, #zPk, onDelete: KeyAction.cascade)();
   TextColumn get kind => text()
       .named('kind')
       .customConstraint("NOT NULL CHECK(kind IN ('email','phone'))")();
@@ -195,10 +196,12 @@ class ImportHandles extends Table {
         "NOT NULL CHECK(service IN ('iMessage','SMS','Unknown'))",
       )();
   TextColumn get rawIdentifier => text().named('raw_identifier')();
-  TextColumn get normalizedAddress =>
-      text().named('normalized_address').nullable()();
+  TextColumn get normalizedIdentifier =>
+      text().named('normalized_identifier').nullable()();
   TextColumn get country => text().named('country').nullable()();
   TextColumn get lastSeenUtc => text().named('last_seen_utc').nullable()();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
   IntColumn get batchId => integer()
       .named('batch_id')
       .references(ImportBatches, #id, onDelete: KeyAction.restrict)();
@@ -227,6 +230,8 @@ class ImportChats extends Table {
       boolean().named('is_group').withDefault(const Constant(false))();
   TextColumn get createdAtUtc => text().named('created_at_utc').nullable()();
   TextColumn get updatedAtUtc => text().named('updated_at_utc').nullable()();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
   IntColumn get batchId => integer()
       .named('batch_id')
       .references(ImportBatches, #id, onDelete: KeyAction.restrict)();
@@ -237,9 +242,9 @@ class ImportChats extends Table {
   ];
 }
 
-class ImportChatParticipants extends Table {
+class ImportChatToHandle extends Table {
   @override
-  String get tableName => 'chat_participants';
+  String get tableName => 'chat_to_handle';
 
   IntColumn get chatId => integer()
       .named('chat_id')
@@ -305,6 +310,8 @@ class ImportMessages extends Table {
   TextColumn get balloonBundleId =>
       text().named('balloon_bundle_id').nullable()();
   TextColumn get payloadJson => text().named('payload_json').nullable()();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
   IntColumn get batchId => integer()
       .named('batch_id')
       .references(ImportBatches, #id, onDelete: KeyAction.restrict)();
@@ -315,9 +322,9 @@ class ImportMessages extends Table {
   ];
 }
 
-class ImportChatMessageJoinSource extends Table {
+class ImportChatToMessage extends Table {
   @override
-  String get tableName => 'chat_message_join_source';
+  String get tableName => 'chat_to_message';
 
   IntColumn get chatId => integer()
       .named('chat_id')
@@ -409,4 +416,25 @@ class ImportMessageLinks extends Table {
   TextColumn get url => text().named('url')();
   IntColumn get start => integer().named('start').nullable()();
   IntColumn get end => integer().named('end').nullable()();
+}
+
+class ImportContactToChatHandle extends Table {
+  @override
+  String get tableName => 'contact_to_chat_handle';
+
+  IntColumn get id => integer().named('id').autoIncrement()();
+  IntColumn get contactZPk => integer()
+      .named('contact_Z_PK')
+      .references(ImportContacts, #zPk, onDelete: KeyAction.cascade)();
+  IntColumn get chatHandleId => integer()
+      .named('chat_handle_id')
+      .references(ImportHandles, #id, onDelete: KeyAction.cascade)();
+  IntColumn get batchId => integer()
+      .named('batch_id')
+      .references(ImportBatches, #id, onDelete: KeyAction.restrict)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {contactZPk, chatHandleId},
+  ];
 }

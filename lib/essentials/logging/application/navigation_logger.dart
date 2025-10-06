@@ -7,6 +7,7 @@ import '../../navigation/domain/entities/features/contacts_spec.dart';
 import '../../navigation/domain/entities/features/import_spec.dart';
 import '../../navigation/domain/entities/features/messages_spec.dart';
 import '../../navigation/domain/entities/features/settings_spec.dart';
+import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
 import '../../navigation/domain/navigation_constants.dart';
 import 'message_logger.dart';
@@ -88,6 +89,10 @@ class NavigationLogEntry {
         'spec': settingsSpec.when(
           contactShortNames: () => {'variant': 'contactShortNames'},
         ),
+      },
+      workbench: (workbenchSpec) => {
+        'type': 'workbench',
+        'spec': workbenchSpec.when(panel: () => {'variant': 'panel'}),
       },
     );
   }
