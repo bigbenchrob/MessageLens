@@ -507,81 +507,76 @@ class NewLedgerToWorkingMigrationService {
     );
 
     final contactsById = <int, _Contact>{};
-    final normalizedToContactId = <String, int>{};
+    final handleToContactId = <int, int>{};
 
     for (final row in contactRows) {
-      final contactId = row['id'] as int?; // AddressBook Z_PK
-      final firstName = row['given_name'] as String?;
-      final lastName = row['family_name'] as String?;
-      final organization = row['organization'] as String?;
-      final isOrganization = (row['is_organization'] as int?) == 1;
-      final createdAtUtc = row['created_at_utc'] as String?;
-      final updatedAtUtc = row['updated_at_utc'] as String?;
-      final sourceRecordId = row['source_record_id'] as int?;
-
+      final contactId = row['Z_PK'] as int?;
       if (contactId == null) {
         continue;
       }
 
-      // Build display name from available fields
-      final displayName = _buildDisplayName(
-        firstName: firstName,
-        lastName: lastName,
-        organization: organization,
-      );
+      final firstName = row['first_name'] as String?;
+      final lastName = row['last_name'] as String?;
+      final organization = row['organization'] as String?;
+      final displayName = row['display_name'] as String?;
+      final shortName = row['short_name'] as String?;
+      final createdAtUtc = row['created_at_utc'] as String?;
+      final isIgnored = (row['is_ignored'] as int?) == 1;
+      final updatedAtUtc = row['updated_at_utc'] as String?;
+      final sourceRecordId = row['source_record_id'] as int?;
+
+      final normalizedFirst = firstName?.trim();
+      final normalizedLast = lastName?.trim();
+      final normalizedOrg = organization?.trim();
+      final normalizedDisplayName = displayName?.trim();
+      final inferredOrganization =
+          (normalizedOrg?.isNotEmpty == true) &&
+          (normalizedFirst == null || normalizedFirst.isEmpty) &&
+          (normalizedLast == null || normalizedLast.isEmpty);
 
       final contact = _Contact(
         id: contactId,
-        displayName: displayName,
-        firstName: firstName,
-        lastName: lastName,
-        organization: organization,
-        isOrganization: isOrganization,
+        displayName: (normalizedDisplayName?.isNotEmpty == true)
+            ? normalizedDisplayName!
+            : 'Unknown Contact',
+        shortName: shortName?.trim(),
+        firstName: normalizedFirst,
+        lastName: normalizedLast,
+        organization: normalizedOrg,
+        isOrganization: inferredOrganization,
         createdAtUtc: createdAtUtc,
         updatedAtUtc: updatedAtUtc,
         sourceRecordId: sourceRecordId,
+        isIgnored: isIgnored,
       );
 
       contactsById[contactId] = contact;
+    }
 
-      // Load phone numbers for this contact
-      final phoneRows = await importDb.query(
-        'contact_phone_email',
-        where: 'contact_id = ? AND kind = ?',
-        whereArgs: [contactId, 'phone'],
-      );
+    final linkRows = await importDb.query(
+      'contact_to_chat_handle',
+      columns: ['contact_Z_PK', 'chat_handle_id'],
+      where: 'batch_id = ?',
+      whereArgs: [batchId],
+    );
 
-      for (final phoneRow in phoneRows) {
-        final phoneNumber = phoneRow['value'] as String?;
-        if (phoneNumber?.isNotEmpty == true) {
-          final normalized = _normalizePhoneNumber(phoneNumber!);
-          if (normalized != null) {
-            normalizedToContactId[normalized] = contactId;
-          }
-        }
+    for (final row in linkRows) {
+      final contactZpk = row['contact_Z_PK'] as int?;
+      final handleId = row['chat_handle_id'] as int?;
+      if (contactZpk == null || handleId == null) {
+        continue;
       }
 
-      // Load email addresses for this contact
-      final emailRows = await importDb.query(
-        'contact_phone_email',
-        where: 'contact_id = ? AND kind = ?',
-        whereArgs: [contactId, 'email'],
-      );
-
-      for (final emailRow in emailRows) {
-        final email = emailRow['value'] as String?;
-        if (email?.isNotEmpty == true) {
-          final normalized = _normalizeEmail(email!);
-          if (normalized != null) {
-            normalizedToContactId[normalized] = contactId;
-          }
-        }
+      if (!contactsById.containsKey(contactZpk)) {
+        continue;
       }
+
+      handleToContactId.putIfAbsent(handleId, () => contactZpk);
     }
 
     return _ContactIndex(
       contactsById: contactsById,
-      normalizedToContactId: normalizedToContactId,
+      handleToContactId: handleToContactId,
     );
   }
 
@@ -597,17 +592,24 @@ class NewLedgerToWorkingMigrationService {
 
     for (final handle in handles) {
       // Try to match handle to AddressBook contact
-      final normalizedHandle = (handle.normalizedIdentifier?.isNotEmpty == true)
-          ? handle.normalizedIdentifier
+      final normalizedIdentifier = handle.normalizedIdentifier?.trim();
+      final rawNormalized = (normalizedIdentifier?.isNotEmpty == true)
+          ? normalizedIdentifier
           : _normalizeHandle(handle.handleId);
-      final matchedContactId = normalizedHandle != null
-          ? contactIndex.normalizedToContactId[normalizedHandle]
-          : null;
+      final lookupKey = rawNormalized?.toLowerCase();
+      final fallbackRawKey = handle.handleId.trim().toLowerCase();
+      final matchedContactId = lookupKey != null
+          ? contactIndex.normalizedToContactId[lookupKey] ??
+                contactIndex.normalizedToContactId[fallbackRawKey]
+          : contactIndex.normalizedToContactId[fallbackRawKey];
 
       // Create participant if matched and not already created
       if (matchedContactId != null &&
           !createdParticipants.contains(matchedContactId)) {
-        final contact = contactIndex.contactsById[matchedContactId]!;
+        final contact = contactIndex.contactsById[matchedContactId];
+        if (contact == null || contact.isIgnored) {
+          continue;
+        }
 
         await workingDb
             .into(workingDb.workingParticipants)
@@ -716,31 +718,12 @@ class NewLedgerToWorkingMigrationService {
 
   // Helper methods for normalization and validation
 
-  String _buildDisplayName({
-    String? firstName,
-    String? lastName,
-    String? organization,
-  }) {
-    final parts = <String>[];
-    if (firstName?.isNotEmpty == true) {
-      parts.add(firstName!);
-    }
-    if (lastName?.isNotEmpty == true) {
-      parts.add(lastName!);
-    }
-
-    if (parts.isNotEmpty) {
-      return parts.join(' ');
-    }
-
-    if (organization?.isNotEmpty == true) {
-      return organization!;
-    }
-
-    return 'Unknown Contact';
-  }
-
   String _buildShortName(_Contact contact) {
+    final stored = contact.shortName?.trim();
+    if (stored?.isNotEmpty == true) {
+      return stored!;
+    }
+
     if (contact.firstName?.isNotEmpty == true) {
       return contact.firstName!;
     }
@@ -753,16 +736,24 @@ class NewLedgerToWorkingMigrationService {
   }
 
   String? _normalizePhoneNumber(String phoneNumber) {
-    // Remove all non-digits
-    final digits = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
-
-    // Must have at least 7 digits to be valid
-    if (digits.length < 7) {
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digitsOnly.isEmpty) {
       return null;
     }
 
-    // Return normalized format
-    return '+$digits';
+    var normalized = digitsOnly.startsWith('+')
+        ? digitsOnly.substring(1)
+        : digitsOnly;
+
+    if (normalized.length < 7) {
+      return null;
+    }
+
+    if (normalized.length == 11 && normalized.startsWith('1')) {
+      normalized = normalized.substring(1);
+    }
+
+    return normalized;
   }
 
   String? _normalizeEmail(String email) {
@@ -835,16 +826,17 @@ class _SpamFilterResult {
 class _ContactIndex {
   const _ContactIndex({
     required this.contactsById,
-    required this.normalizedToContactId,
+    required this.handleToContactId,
   });
   final Map<int, _Contact> contactsById;
-  final Map<String, int> normalizedToContactId;
+  final Map<int, int> handleToContactId;
 }
 
 class _Contact {
   const _Contact({
     required this.id,
     required this.displayName,
+    this.shortName,
     this.firstName,
     this.lastName,
     this.organization,
@@ -852,9 +844,11 @@ class _Contact {
     this.createdAtUtc,
     this.updatedAtUtc,
     this.sourceRecordId,
+    this.isIgnored = false,
   });
   final int id; // AddressBook Z_PK
   final String displayName;
+  final String? shortName;
   final String? firstName;
   final String? lastName;
   final String? organization;
@@ -862,6 +856,7 @@ class _Contact {
   final String? createdAtUtc;
   final String? updatedAtUtc;
   final int? sourceRecordId;
+  final bool isIgnored;
 }
 
 class _ChatHandleLink {

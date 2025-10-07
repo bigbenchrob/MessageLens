@@ -261,6 +261,11 @@ class LedgerImportService {
         addressBookDb: addressBookDb,
         emit: emit,
       );
+      await _linkContactsToHandles(
+        ledgerDb: ledgerDb,
+        batchId: batchId,
+        emit: emit,
+      );
       resultBuilder.contactChannelsImported = await _importContactChannels(
         ledgerDb: ledgerDb,
         batchId: batchId,
@@ -1028,10 +1033,24 @@ FROM attachment
         processed++;
         continue;
       }
-      final first = row['ZFIRSTNAME'] as String?;
-      final last = row['ZLASTNAME'] as String?;
-      final company = row['ZORGANIZATION'] as String?;
-      final isCompany = (row['ZISCOMPANY'] as int? ?? 0) == 1;
+      var first = (row['ZFIRSTNAME'] as String?)?.trim();
+      if (first?.isEmpty == true) {
+        first = null;
+      }
+      var last = (row['ZLASTNAME'] as String?)?.trim();
+      if (last?.isEmpty == true) {
+        last = null;
+      }
+      var company = (row['ZORGANIZATION'] as String?)?.trim();
+      if (company?.isEmpty == true) {
+        company = null;
+      }
+
+      final displayName = _buildContactDisplayName(
+        firstName: first,
+        lastName: last,
+        organization: company,
+      );
 
       processed++;
       final alreadyImported = await ledgerDb.contactExists(recordId);
@@ -1050,15 +1069,12 @@ FROM attachment
       }
 
       await ledgerDb.insertContact(
-        id: recordId,
-        sourceRecordId: recordId,
-        displayName: _buildDisplayName(first, last, company, isCompany),
-        givenName: first,
-        familyName: last,
+        zPk: recordId,
+        firstName: first,
+        lastName: last,
         organization: company,
-        isOrganization: isCompany,
+        displayName: displayName,
         createdAtUtc: DateConverter.appleToIsoString(row['ZCREATIONDATE']),
-        updatedAtUtc: DateConverter.appleToIsoString(row['ZMODIFICATIONDATE']),
         batchId: batchId,
       );
       inserted++;
@@ -1074,6 +1090,102 @@ FROM attachment
       }
     }
     return inserted;
+  }
+
+  Future<void> _linkContactsToHandles({
+    required SqfliteImportDatabase ledgerDb,
+    required int batchId,
+    required void Function(
+      DbImportStage,
+      double,
+      String, {
+      double? stageProgress,
+      int? stageCurrent,
+      int? stageTotal,
+    })
+    emit,
+  }) async {
+    emit(
+      DbImportStage.importingAddressBook,
+      0.84,
+      'Linking contacts to handles',
+    );
+
+    await ledgerDb.clearContactHandleLinksForBatch(batchId: batchId);
+
+    final handles = await ledgerDb.handlesForBatch(batchId);
+    final channels = await ledgerDb.contactChannelsForBatch(batchId);
+
+    final normalizedHandleMap = <String, int>{};
+    for (final handle in handles) {
+      final handleId = handle['id'] as int?;
+      if (handleId == null) {
+        continue;
+      }
+      final raw = handle['raw_identifier'] as String?;
+      final normalized = handle['normalized_identifier'] as String?;
+      final normalizedKey = (normalized?.isNotEmpty == true)
+          ? normalized!.trim().toLowerCase()
+          : _normalizeIdentifier(raw)?.toLowerCase();
+      if (normalizedKey != null && normalizedKey.isNotEmpty) {
+        normalizedHandleMap[normalizedKey] = handleId;
+      }
+      if (raw != null && raw.isNotEmpty) {
+        final rawKey = raw.trim().toLowerCase();
+        normalizedHandleMap.putIfAbsent(rawKey, () => handleId);
+      }
+    }
+
+    var linksCreated = 0;
+    var channelsProcessed = 0;
+    for (final channel in channels) {
+      final contactZpk = channel['contact_Z_PK'] as int?;
+      final kind = channel['kind'] as String?;
+      final value = channel['value'] as String?;
+      if (contactZpk == null || value == null || value.isEmpty) {
+        continue;
+      }
+
+      channelsProcessed++;
+
+      final normalizedKey = kind == 'phone'
+          ? _normalizeIdentifier(value)?.toLowerCase()
+          : value.trim().toLowerCase();
+      final rawKey = value.trim().toLowerCase();
+
+      String? resolvedKey;
+      if (normalizedKey != null && normalizedKey.isNotEmpty) {
+        resolvedKey = normalizedKey;
+      } else if (rawKey.isNotEmpty) {
+        resolvedKey = rawKey;
+      }
+
+      if (resolvedKey == null || resolvedKey.isEmpty) {
+        continue;
+      }
+
+      final handleId =
+          normalizedHandleMap[resolvedKey] ?? normalizedHandleMap[rawKey];
+      if (handleId == null) {
+        continue;
+      }
+
+      await ledgerDb.insertContactHandleLink(
+        contactZpk: contactZpk,
+        handleId: handleId,
+        batchId: batchId,
+      );
+      linksCreated++;
+    }
+
+    await ledgerDb.updateContactIgnoreFlags(batchId: batchId);
+
+    emit(
+      DbImportStage.importingAddressBook,
+      0.9,
+      'Linked $linksCreated pairs from $channelsProcessed channels',
+      stageProgress: 1,
+    );
   }
 
   Future<int> _importContactChannels({
@@ -1116,7 +1228,7 @@ FROM attachment
         continue;
       }
       await ledgerDb.insertContactChannel(
-        contactId: recordId,
+        zOwner: recordId,
         kind: 'email',
         value: normalizedValue,
         label: row['ZLABEL'] as String?,
@@ -1130,11 +1242,11 @@ FROM attachment
       if (recordId == null) {
         continue;
       }
-      final value = (row['ZFULLNUMBER'] as String?)?.trim();
-      if (value == null || value.isEmpty) {
+      final rawValue = (row['ZFULLNUMBER'] as String?)?.trim();
+      if (rawValue == null || rawValue.isEmpty) {
         continue;
       }
-      final normalizedValue = _normalizeIdentifier(value) ?? value;
+      final normalizedValue = _normalizeIdentifier(rawValue) ?? rawValue;
       final alreadyImported = await ledgerDb.contactChannelExists(
         kind: 'phone',
         value: normalizedValue,
@@ -1143,7 +1255,7 @@ FROM attachment
         continue;
       }
       await ledgerDb.insertContactChannel(
-        contactId: recordId,
+        zOwner: recordId,
         kind: 'phone',
         value: normalizedValue,
         label: row['ZLABEL'] as String?,
@@ -1196,6 +1308,34 @@ FROM attachment
     return normalized;
   }
 
+  String _buildContactDisplayName({
+    String? firstName,
+    String? lastName,
+    String? organization,
+  }) {
+    final trimmedFirst = firstName?.trim();
+    final trimmedLast = lastName?.trim();
+    final trimmedOrganization = organization?.trim();
+
+    final hasFirst = trimmedFirst?.isNotEmpty == true;
+    final hasLast = trimmedLast?.isNotEmpty == true;
+    final hasOrganization = trimmedOrganization?.isNotEmpty == true;
+
+    if (hasFirst && hasLast) {
+      return '$trimmedFirst $trimmedLast';
+    }
+    if (hasFirst) {
+      return trimmedFirst!;
+    }
+    if (hasLast) {
+      return trimmedLast!;
+    }
+    if (hasOrganization) {
+      return trimmedOrganization!;
+    }
+    return 'Unknown Contact';
+  }
+
   bool? _nullableBool(int? value) {
     if (value == null) {
       return null;
@@ -1218,21 +1358,6 @@ FROM attachment
       }
     }
     return null;
-  }
-
-  String? _buildDisplayName(
-    String? first,
-    String? last,
-    String? company,
-    bool isCompany,
-  ) {
-    if (isCompany) {
-      return company ?? 'Unknown';
-    }
-    if (first != null && last != null) {
-      return '$first $last'.trim();
-    }
-    return first ?? last ?? company ?? 'Unknown';
   }
 
   String _inferItemType(Map<String, Object?> row) {

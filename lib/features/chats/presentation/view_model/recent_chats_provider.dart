@@ -174,12 +174,12 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
       } else {
         final normalizedIdentifier = handle.normalizedIdentifier?.trim();
         final rawIdentifier = handle.handleId.trim();
-        resolvedName = (normalizedIdentifier != null &&
-                normalizedIdentifier.isNotEmpty)
+        resolvedName =
+            (normalizedIdentifier != null && normalizedIdentifier.isNotEmpty)
             ? normalizedIdentifier
             : rawIdentifier.isNotEmpty
-                ? rawIdentifier
-                : 'Unknown Contact';
+            ? rawIdentifier
+            : 'Unknown Contact';
       }
 
       final normalized = resolvedName.toLowerCase();

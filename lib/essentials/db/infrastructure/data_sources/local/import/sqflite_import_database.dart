@@ -17,7 +17,7 @@ class SqfliteImportDatabase {
        _databaseName = databaseName,
        _debugSettings = debugSettings;
 
-  static const int _schemaVersion = 5;
+  static const int _schemaVersion = 7;
 
   final String _databaseDirectory;
   final String _databaseName;
@@ -133,7 +133,34 @@ class SqfliteImportDatabase {
       return;
     }
 
-    // Placeholder for future migrations. For now we recreate indexes/views to ensure consistency.
+    // Apply migrations based on version
+    if (oldVersion < 6) {
+      _debugSettings.logDatabase(
+        'SqfliteImportDatabase._onUpgrade: applying migration to v6 (add contact_to_chat_handle table)',
+      );
+      await db.execute(
+        'CREATE TABLE IF NOT EXISTS contact_to_chat_handle (id INTEGER PRIMARY KEY, contact_Z_PK INTEGER NOT NULL REFERENCES contacts(Z_PK) ON DELETE CASCADE, chat_handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(contact_Z_PK, chat_handle_id))',
+      );
+    }
+    if (oldVersion < 7) {
+      _debugSettings.logDatabase(
+        'SqfliteImportDatabase._onUpgrade: applying migration to v7 (extend contacts with display_name, short_name, is_ignored)',
+      );
+      await db.execute(
+        'CREATE TABLE IF NOT EXISTS contacts_new (id INTEGER PRIMARY KEY, Z_PK INTEGER NOT NULL UNIQUE, first_name TEXT, last_name TEXT, organization TEXT, display_name TEXT NOT NULL, short_name TEXT, created_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
+      );
+      await db.execute(
+        'INSERT INTO contacts_new (id, Z_PK, first_name, last_name, organization, display_name, short_name, created_at_utc, is_ignored, batch_id) '
+        'SELECT id, Z_PK, first_name, last_name, organization, '
+        "COALESCE(TRIM(COALESCE(first_name, '') || CASE WHEN first_name IS NOT NULL AND last_name IS NOT NULL THEN ' ' ELSE '' END || COALESCE(last_name, '')), organization, 'Unknown Contact') AS display_name, "
+        'NULL AS short_name, created_at_utc, 0 AS is_ignored, batch_id '
+        'FROM contacts',
+      );
+      await db.execute('DROP TABLE contacts');
+      await db.execute('ALTER TABLE contacts_new RENAME TO contacts');
+    }
+
+    // Recreate indexes/views to ensure consistency
     final batch = db.batch();
     _indexStatements.forEach(batch.execute);
     batch.execute(_expandedMessagesViewStatement);
@@ -190,7 +217,6 @@ class SqfliteImportDatabase {
 
     // Safety check: ensure schema exists (in case database initialization failed)
     await _ensureSchemaExists(db);
-
     _debugSettings.logDatabase(
       'SqfliteImportDatabase.insertImportBatch: creating batch with startedAtUtc=$startedAtUtc',
     );
@@ -357,27 +383,27 @@ class SqfliteImportDatabase {
 
   Future<int> insertContact({
     int? id,
-    int? sourceRecordId,
-    String? displayName,
-    String? givenName,
-    String? familyName,
+    required int zPk,
+    String? firstName,
+    String? lastName,
     String? organization,
-    bool isOrganization = false,
+    required String displayName,
+    String? shortName,
+    bool isIgnored = false,
     String? createdAtUtc,
-    String? updatedAtUtc,
     required int batchId,
   }) async {
     final db = await database;
     final data = _cleanMap(<String, Object?>{
       'id': id,
-      'source_record_id': sourceRecordId,
-      'display_name': displayName,
-      'given_name': givenName,
-      'family_name': familyName,
+      'Z_PK': zPk,
+      'first_name': firstName,
+      'last_name': lastName,
       'organization': organization,
-      'is_organization': _boolToInt(isOrganization),
+      'display_name': displayName,
+      'short_name': shortName,
       'created_at_utc': createdAtUtc,
-      'updated_at_utc': updatedAtUtc,
+      'is_ignored': _boolToInt(isIgnored),
       'batch_id': batchId,
     });
     return db.insert(
@@ -387,9 +413,86 @@ class SqfliteImportDatabase {
     );
   }
 
+  Future<int> insertContactHandleLink({
+    int? id,
+    required int contactZpk,
+    required int handleId,
+    required int batchId,
+  }) async {
+    final db = await database;
+    final data = _cleanMap(<String, Object?>{
+      'id': id,
+      'contact_Z_PK': contactZpk,
+      'chat_handle_id': handleId,
+      'batch_id': batchId,
+    });
+    return db.insert(
+      'contact_to_chat_handle',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, Object?>>> handlesForBatch(int batchId) async {
+    final db = await database;
+    return db.query(
+      'handles',
+      where: 'batch_id = ?',
+      whereArgs: <Object>[batchId],
+    );
+  }
+
+  Future<List<Map<String, Object?>>> contactChannelsForBatch(
+    int batchId,
+  ) async {
+    final db = await database;
+    return db.rawQuery(
+      '''
+SELECT c.Z_PK AS contact_Z_PK, cpe.kind, cpe.value
+FROM contact_phone_email cpe
+JOIN contacts c ON c.Z_PK = cpe.ZOWNER
+WHERE c.batch_id = ?
+''',
+      <Object>[batchId],
+    );
+  }
+
+  Future<void> clearContactHandleLinksForBatch({required int batchId}) async {
+    final db = await database;
+    await db.delete(
+      'contact_to_chat_handle',
+      where: 'contact_Z_PK IN (SELECT Z_PK FROM contacts WHERE batch_id = ?)',
+      whereArgs: <Object>[batchId],
+    );
+  }
+
+  Future<void> updateContactIgnoreFlags({required int batchId}) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.update(
+        'contacts',
+        <String, Object?>{'is_ignored': 0},
+        where: 'batch_id = ?',
+        whereArgs: <Object>[batchId],
+      );
+      await txn.rawUpdate(
+        '''
+UPDATE contacts
+SET is_ignored = 1
+WHERE batch_id = ?
+AND Z_PK NOT IN (
+  SELECT DISTINCT contact_Z_PK FROM contact_to_chat_handle
+  WHERE batch_id = ?
+)
+''',
+        <Object>[batchId, batchId],
+      );
+    });
+  }
+
   Future<int> insertContactChannel({
     int? id,
-    required int contactId,
+    required int zOwner,
     required String kind,
     required String value,
     String? label,
@@ -397,7 +500,7 @@ class SqfliteImportDatabase {
     final db = await database;
     final data = _cleanMap(<String, Object?>{
       'id': id,
-      'contact_id': contactId,
+      'ZOWNER': zOwner,
       'kind': kind,
       'value': value,
       'label': label,
@@ -778,6 +881,7 @@ class SqfliteImportDatabase {
       'import_logs',
       'contacts',
       'contact_phone_email',
+      'contact_to_chat_handle',
       'handles',
       'chats',
       'chat_to_handle',
@@ -829,6 +933,7 @@ class SqfliteImportDatabase {
         'messages',
         'chat_to_handle',
         'chats',
+        'contact_to_chat_handle',
         'handles',
         'contact_phone_email',
         'contacts',
@@ -944,11 +1049,11 @@ class SqfliteImportDatabase {
     ''', chatIds);
   }
 
-  Future<bool> contactExists(int id) {
+  Future<bool> contactExists(int zPk) {
     return _rowExists(
       table: 'contacts',
-      where: 'id = ?',
-      whereArgs: <Object>[id],
+      where: 'Z_PK = ?',
+      whereArgs: <Object>[zPk],
     );
   }
 
@@ -1018,8 +1123,8 @@ class SqfliteImportDatabase {
     'CREATE TABLE IF NOT EXISTS import_batches (id INTEGER PRIMARY KEY, started_at_utc TEXT NOT NULL, finished_at_utc TEXT, source_chat_db TEXT, source_addressbook TEXT, host_info_json TEXT, notes TEXT)',
     'CREATE TABLE IF NOT EXISTS source_files (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE, path TEXT NOT NULL, sha256_hex TEXT, size_bytes INTEGER, mtime_utc TEXT, UNIQUE(path, sha256_hex))',
     "CREATE TABLE IF NOT EXISTS import_logs (id INTEGER PRIMARY KEY, batch_id INTEGER REFERENCES import_batches(id) ON DELETE SET NULL, at_utc TEXT NOT NULL, level TEXT NOT NULL CHECK(level IN ('debug','info','warn','error')), message TEXT NOT NULL, context_json TEXT)",
-    'CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, source_record_id INTEGER, display_name TEXT, given_name TEXT, family_name TEXT, organization TEXT, is_organization INTEGER NOT NULL DEFAULT 0 CHECK(is_organization IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
-    "CREATE TABLE IF NOT EXISTS contact_phone_email (id INTEGER PRIMARY KEY, contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('email','phone')), value TEXT NOT NULL, label TEXT, UNIQUE(kind, value))",
+    'CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, Z_PK INTEGER NOT NULL UNIQUE, first_name TEXT, last_name TEXT, organization TEXT, display_name TEXT NOT NULL, short_name TEXT, created_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
+    "CREATE TABLE IF NOT EXISTS contact_phone_email (id INTEGER PRIMARY KEY, ZOWNER INTEGER NOT NULL REFERENCES contacts(Z_PK) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('email','phone')), value TEXT NOT NULL, label TEXT, UNIQUE(kind, value))",
     "CREATE TABLE IF NOT EXISTS handles (id INTEGER PRIMARY KEY, source_rowid INTEGER, service TEXT NOT NULL, raw_identifier TEXT NOT NULL, normalized_identifier TEXT, country TEXT, last_seen_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(service, raw_identifier))",
     "CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, service TEXT, display_name TEXT, is_group INTEGER NOT NULL DEFAULT 0 CHECK(is_group IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
     "CREATE TABLE IF NOT EXISTS chat_to_handle (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, role TEXT CHECK(role IN ('member','owner','unknown')) DEFAULT 'member', added_at_utc TEXT, PRIMARY KEY (chat_id, handle_id))",
@@ -1029,6 +1134,7 @@ class SqfliteImportDatabase {
     'CREATE TABLE IF NOT EXISTS message_attachments (message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, attachment_id INTEGER NOT NULL REFERENCES attachments(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (message_id, attachment_id))',
     "CREATE TABLE IF NOT EXISTS reactions (id INTEGER PRIMARY KEY, carrier_message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, target_message_guid TEXT NOT NULL, action TEXT NOT NULL CHECK(action IN ('add','remove')), kind TEXT NOT NULL CHECK(kind IN ('love','like','dislike','laugh','emphasize','question','unknown')), reactor_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, reacted_at_utc TEXT, parse_confidence REAL CHECK(parse_confidence >= 0.0 AND parse_confidence <= 1.0) DEFAULT 1.0)",
     'CREATE TABLE IF NOT EXISTS message_links (id INTEGER PRIMARY KEY, message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, url TEXT NOT NULL, start INTEGER, end INTEGER)',
+    'CREATE TABLE IF NOT EXISTS contact_to_chat_handle (id INTEGER PRIMARY KEY, contact_Z_PK INTEGER NOT NULL REFERENCES contacts(Z_PK) ON DELETE CASCADE, chat_handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(contact_Z_PK, chat_handle_id))',
   ];
 
   static const List<String> _indexStatements = <String>[
