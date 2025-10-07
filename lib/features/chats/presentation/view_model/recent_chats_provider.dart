@@ -110,44 +110,87 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
 
     // Query participants for this chat:
     // chats.handle_id → handle_to_participant → participants
-    final participantsQuery = db.select(db.workingParticipants).join([
-      // Join participants → handle_to_participant
-      drift.innerJoin(
-        db.handleToParticipant,
-        db.handleToParticipant.participantId.equalsExp(
-          db.workingParticipants.id,
-        ),
-      ),
-      // Join handle_to_participant → handles
+    final participantsQuery = db.select(db.chatToHandle).join([
+      // Join chat_to_handle → handles
       drift.innerJoin(
         db.workingHandles,
-        db.workingHandles.id.equalsExp(db.handleToParticipant.handleId),
+        db.workingHandles.id.equalsExp(db.chatToHandle.handleId),
+      ),
+      // Left join handles → handle_to_participant (some handles may be unmatched)
+      drift.leftOuterJoin(
+        db.handleToParticipant,
+        db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+      ),
+      // Left join participants for resolved contacts (optional)
+      drift.leftOuterJoin(
+        db.workingParticipants,
+        db.workingParticipants.id.equalsExp(
+          db.handleToParticipant.participantId,
+        ),
       ),
     ])..where(db.chatToHandle.chatId.equals(chat.id));
+
+    String resolveParticipantName(WorkingParticipant participant) {
+      final key = resolveContactKey(participant);
+      final trimmedShortName = shortNames[key]?.trim();
+      if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
+        return trimmedShortName;
+      }
+
+      final candidates = <String?>[
+        participant.displayName,
+        participant.originalName,
+        () {
+          final given = participant.givenName?.trim();
+          final family = participant.familyName?.trim();
+          if (given?.isNotEmpty == true && family?.isNotEmpty == true) {
+            return '$given $family';
+          }
+          return given?.isNotEmpty == true ? given : family;
+        }(),
+        participant.organization,
+      ];
+
+      for (final candidate in candidates) {
+        if (candidate != null && candidate.trim().isNotEmpty) {
+          return candidate.trim();
+        }
+      }
+
+      return 'Unknown Contact';
+    }
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];
     final seenNames = <String>{};
 
     for (final row in participantRows) {
-      final participant = row.readTable(db.workingParticipants);
+      final handle = row.readTable(db.workingHandles);
+      final participant = row.readTableOrNull(db.workingParticipants);
 
-      final key = resolveContactKey(participant);
-      final trimmedShortName = shortNames[key]?.trim();
-      final trimmedParticipantName = participant.displayName.trim();
-
-      var resolvedName = trimmedShortName;
-      if (resolvedName == null || resolvedName.isEmpty) {
-        resolvedName = trimmedParticipantName;
-      }
-      if (resolvedName.isEmpty) {
-        resolvedName = 'Unknown Contact';
+      String resolvedName;
+      if (participant != null) {
+        resolvedName = resolveParticipantName(participant);
+      } else {
+        final normalizedIdentifier = handle.normalizedIdentifier?.trim();
+        final rawIdentifier = handle.handleId.trim();
+        resolvedName = (normalizedIdentifier != null &&
+                normalizedIdentifier.isNotEmpty)
+            ? normalizedIdentifier
+            : rawIdentifier.isNotEmpty
+                ? rawIdentifier
+                : 'Unknown Contact';
       }
 
       final normalized = resolvedName.toLowerCase();
-      if (seenNames.add(normalized)) {
-        participantNames.add(resolvedName);
+      final isSelfAlias = normalized == 'me';
+      if (!isSelfAlias || chat.isGroup) {
+        if (!seenNames.add(normalized)) {
+          continue;
+        }
       }
+
+      participantNames.add(resolvedName);
     }
 
     if (participantNames.isEmpty) {

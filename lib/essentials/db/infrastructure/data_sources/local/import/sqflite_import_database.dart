@@ -25,16 +25,29 @@ class SqfliteImportDatabase {
 
   Database? _database;
 
+  String get _dbPath => p.join(_databaseDirectory, _databaseName);
+
   Future<Database> get database async {
+    final dbPath = _dbPath;
+
     if (_database != null) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase.database: returning existing instance for $_databaseName',
-      );
-      return _database!;
+      final fileExists = File(dbPath).existsSync();
+      if (!fileExists) {
+        _debugSettings.logDatabase(
+          'SqfliteImportDatabase.database: detected missing database file at $dbPath, reopening',
+        );
+        await _database!.close();
+        _database = null;
+      } else {
+        _debugSettings.logDatabase(
+          'SqfliteImportDatabase.database: returning existing instance for $_databaseName',
+        );
+        return _database!;
+      }
     }
 
     _debugSettings.logDatabase(
-      'SqfliteImportDatabase.database: opening database $_databaseName',
+      'SqfliteImportDatabase.database: opening database $_databaseName at $dbPath',
     );
     _database = await _openDatabase();
     return _database!;
@@ -49,7 +62,7 @@ class SqfliteImportDatabase {
       await directory.create(recursive: true);
     }
 
-    final dbPath = p.join(_databaseDirectory, _databaseName);
+    final dbPath = _dbPath;
 
     return openDatabase(
       dbPath,

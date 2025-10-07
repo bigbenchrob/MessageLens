@@ -111,15 +111,40 @@ class NewLedgerToWorkingMigrationService {
       );
       resultBuilder.chatsProjected = chatResult.chatCount;
 
+      const messageStageStart = 0.40;
+      const messageStageEnd = 0.58;
       emit(
         DbMigrationStage.migratingMessages,
-        0.40,
+        messageStageStart,
         'Phase 1: Importing messages with handle references',
       );
       final messageResult = await _importMessages(
         importDb: importDb,
         workingDb: workingDb,
         batchId: batchId,
+        onProgress: (int processed, int total) {
+          var progress = messageStageStart;
+          String statusMessage;
+          if (total > 0) {
+            final ratio = processed / total;
+            final increment = (messageStageEnd - messageStageStart) * ratio;
+            progress = messageStageStart + increment;
+            if (progress > messageStageEnd) {
+              progress = messageStageEnd;
+            }
+            if (progress < messageStageStart) {
+              progress = messageStageStart;
+            }
+            statusMessage =
+                'Phase 1: Importing messages with handle references ($processed of $total)';
+          } else {
+            progress = messageStageEnd;
+            statusMessage =
+                'Phase 1: Importing messages with handle references (no messages to import)';
+          }
+
+          emit(DbMigrationStage.migratingMessages, progress, statusMessage);
+        },
       );
       resultBuilder.messagesProjected = messageResult.messageCount;
 
@@ -364,6 +389,7 @@ class NewLedgerToWorkingMigrationService {
     required Database importDb,
     required WorkingDatabase workingDb,
     required int batchId,
+    void Function(int processed, int total)? onProgress,
   }) async {
     final rows = await importDb.query(
       'messages',
@@ -372,6 +398,13 @@ class NewLedgerToWorkingMigrationService {
     );
 
     var messageCount = 0;
+    final totalMessages = rows.length;
+    onProgress?.call(0, totalMessages);
+
+    final reportInterval = totalMessages < 200
+        ? 1
+        : (totalMessages / 50).ceil();
+    var nextProgressReport = reportInterval;
 
     for (final row in rows) {
       final messageId = row['id'] as int?;
@@ -448,6 +481,15 @@ class NewLedgerToWorkingMigrationService {
           );
 
       messageCount++;
+
+      if (onProgress != null && totalMessages > 0) {
+        final shouldReport =
+            messageCount >= nextProgressReport || messageCount == totalMessages;
+        if (shouldReport) {
+          onProgress(messageCount, totalMessages);
+          nextProgressReport += reportInterval;
+        }
+      }
     }
 
     return _MessageImportResult(messageCount: messageCount);
