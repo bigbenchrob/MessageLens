@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$ledgerToWorkingMigrationServiceHash() =>
-    r'3ea72b97988fd1b8e237753102cd2af1342c4a55';
+    r'97256f55f01ae226558bfae24b269cef11a56e17';
 
 /// Provides the direct ledger-to-working database migration orchestrator.
 ///
@@ -17,7 +17,7 @@ String _$ledgerToWorkingMigrationServiceHash() =>
 /// Copied from [ledgerToWorkingMigrationService].
 @ProviderFor(ledgerToWorkingMigrationService)
 final ledgerToWorkingMigrationServiceProvider =
-    AutoDisposeProvider<NewestLedgerToWorkingMigrationService>.internal(
+    AutoDisposeProvider<LedgerToWorkingMigrationService>.internal(
       ledgerToWorkingMigrationService,
       name: r'ledgerToWorkingMigrationServiceProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -30,6 +30,6 @@ final ledgerToWorkingMigrationServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LedgerToWorkingMigrationServiceRef =
-    AutoDisposeProviderRef<NewestLedgerToWorkingMigrationService>;
+    AutoDisposeProviderRef<LedgerToWorkingMigrationService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

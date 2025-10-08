@@ -1,0 +1,22 @@
+This architectural pattern is designed to replace a monolithic
+ block of procedural code (e.g. LedgerToWorkingMigrationService)
+  to make it easier to identify errors such as missing foreign keys.
+
+  The shape of the solution
+	1.	Orchestrator (top level)
+
+	•	Prepares environment (truncate working DB, turn on PRAGMAs, etc.).
+	•	Builds a dependency graph from the migrators and executes a topological sort so tables copy in a safe FK order.
+	•	Runs each migrator in three phases: validatePrereqs() → copy() → postValidate().
+	•	Supports dryRun (validate only), retry of a failed table, and resumability.
+	•	Centralized logging and metrics.
+
+	2.	Table migrators (one per table)
+
+	•	Each implements a small interface and declares its dependencies.
+	•	Encapsulates its own SQL (source/target table names, column list).
+	•	Performs precise, self-contained validation with actionable errors.
+
+	3.	Shared utilities
+
+	•	Truncation helper, FK enforcement toggles, idempotency helpers, progress logging, and a consistent error type.

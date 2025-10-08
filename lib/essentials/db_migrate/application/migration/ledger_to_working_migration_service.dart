@@ -17,12 +17,25 @@ typedef DbMigrationProgressCallback =
 /// copying rows directly from the import ledger. No re-indexing or
 /// recomputation is performed – this service simply mirrors the ledger into the
 /// projection schema.
-class NewestLedgerToWorkingMigrationService {
-  NewestLedgerToWorkingMigrationService({required this.ref});
+///
+/// Migration stages:
+/// 1. Preparing ledger batch
+/// 2. Clearing working projection
+
+/// 7. Copying chat memberships
+/// 8. Preparing message metadata
+/// 9. Copying messages
+/// 10. Updating chat summaries
+/// 11. Copying attachments
+/// 12. Copying reactions
+/// 13. Updating reaction counts
+/// 14. Writing projection state
+class LedgerToWorkingMigrationService {
+  LedgerToWorkingMigrationService({required this.ref});
 
   final Ref ref;
 
-  static const String _logContext = 'NewestLedgerToWorkingMigrationService';
+  static const String _logContext = 'LedgerToWorkingMigrationService';
   static const int _batchChunkSize = 250;
 
   Future<void> clearWorkingProjection() async {
@@ -53,11 +66,7 @@ class NewestLedgerToWorkingMigrationService {
     }
 
     try {
-      emit(
-        DbMigrationStage.preparingSources,
-        0.02,
-        'Locating latest ledger batch',
-      );
+      emit(DbMigrationStage.preparingSources, 0.02, 'Preparing ledger batch');
       final batchId = await _fetchLatestBatchId(importDb);
       if (batchId == null) {
         const message = 'Ledger contains no batches to project';
@@ -68,7 +77,7 @@ class NewestLedgerToWorkingMigrationService {
       emit(
         DbMigrationStage.clearingWorking,
         0.08,
-        'Clearing working projections',
+        'Clearing working projection',
       );
       await _clearWorkingDatabase(workingDb);
 
@@ -107,13 +116,15 @@ class NewestLedgerToWorkingMigrationService {
       stats.chatsProjected = chatSummary.copied;
 
       emit(DbMigrationStage.migratingChats, 0.46, 'Copying chat memberships');
-      await _copyChatMemberships(
+      final chatMembershipSummary = await _copyChatMemberships(
         importDb: importDb,
         workingDb: workingDb,
         batchId: batchId,
         chatIgnored: chatSummary.isIgnoredById,
         handleIgnored: handleSummary.isIgnoredById,
+        debugSettings: debugSettings,
       );
+      warnings.addAll(chatMembershipSummary.warnings);
 
       emit(
         DbMigrationStage.migratingMessages,
@@ -451,13 +462,17 @@ class NewestLedgerToWorkingMigrationService {
     return _ChatCopySummary(copied: copied, isIgnoredById: isIgnoredById);
   }
 
-  Future<void> _copyChatMemberships({
+  Future<_ChatMembershipCopySummary> _copyChatMemberships({
     required Database importDb,
     required WorkingDatabase workingDb,
     required int batchId,
     required Map<int, bool> chatIgnored,
     required Map<int, bool> handleIgnored,
+    required ImportDebugSettingsState debugSettings,
   }) async {
+    final projectedChatIds = await _loadProjectedChatIds(workingDb);
+    final projectedHandleIds = await _loadProjectedHandleIds(workingDb);
+
     final rows = await importDb.rawQuery(
       'SELECT cth.chat_id AS chat_id, '
       'cth.handle_id AS handle_id, '
@@ -470,10 +485,36 @@ class NewestLedgerToWorkingMigrationService {
     );
 
     final entries = <ChatToHandleCompanion>[];
+    final warnings = <String>[];
+    final missingChatIds = <int>{};
+    final missingHandleIds = <int>{};
+    var copied = 0;
     for (final row in rows) {
       final chatId = row['chat_id'] as int?;
       final handleId = row['handle_id'] as int?;
       if (chatId == null || handleId == null) {
+        continue;
+      }
+
+      final chatKnown = projectedChatIds.contains(chatId);
+      final handleKnown = projectedHandleIds.contains(handleId);
+      if (!chatKnown) {
+        if (missingChatIds.add(chatId)) {
+          final warning =
+              'Skipping chat_to_handle link for chat $chatId (chat not projected)';
+          warnings.add(warning);
+          debugSettings.logProgress('$_logContext: $warning');
+        }
+        continue;
+      }
+
+      if (!handleKnown) {
+        if (missingHandleIds.add(handleId)) {
+          final warning =
+              'Skipping chat_to_handle link for handle $handleId (handle not projected)';
+          warnings.add(warning);
+          debugSettings.logProgress('$_logContext: $warning');
+        }
         continue;
       }
 
@@ -492,10 +533,11 @@ class NewestLedgerToWorkingMigrationService {
           isIgnored: Value(linkIgnored),
         ),
       );
+      copied += 1;
     }
 
     if (entries.isEmpty) {
-      return;
+      return _ChatMembershipCopySummary(copied: copied, warnings: warnings);
     }
 
     await workingDb.batch((batch) {
@@ -507,6 +549,8 @@ class NewestLedgerToWorkingMigrationService {
         );
       }
     });
+
+    return _ChatMembershipCopySummary(copied: copied, warnings: warnings);
   }
 
   Future<Set<int>> _loadMessagesWithAttachments({
@@ -530,6 +574,30 @@ class NewestLedgerToWorkingMigrationService {
       messageIds.add(messageId);
     }
     return messageIds;
+  }
+
+  Future<Set<int>> _loadProjectedChatIds(WorkingDatabase workingDb) async {
+    final rows = await workingDb.customSelect('SELECT id FROM chats').get();
+    final ids = <int>{};
+    for (final row in rows) {
+      final id = row.data['id'] as int?;
+      if (id != null) {
+        ids.add(id);
+      }
+    }
+    return ids;
+  }
+
+  Future<Set<int>> _loadProjectedHandleIds(WorkingDatabase workingDb) async {
+    final rows = await workingDb.customSelect('SELECT id FROM handles').get();
+    final ids = <int>{};
+    for (final row in rows) {
+      final id = row.data['id'] as int?;
+      if (id != null) {
+        ids.add(id);
+      }
+    }
+    return ids;
   }
 
   Future<_MessageCopySummary> _copyMessages({
@@ -1016,6 +1084,16 @@ class _ParticipantCopySummary {
 
   final int copied;
   final Set<int> participantIds;
+}
+
+class _ChatMembershipCopySummary {
+  const _ChatMembershipCopySummary({
+    required this.copied,
+    required this.warnings,
+  });
+
+  final int copied;
+  final List<String> warnings;
 }
 
 class _HandleLinkCopySummary {

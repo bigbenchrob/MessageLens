@@ -730,6 +730,22 @@ AND Z_PK NOT IN (
     );
   }
 
+  Future<void> updateMessageText({
+    required int messageId,
+    required String text,
+  }) async {
+    final db = await database;
+    _debugSettings.logDatabase(
+      'SqfliteImportDatabase.updateMessageText: updating message $messageId with extracted text',
+    );
+    await db.update(
+      'messages',
+      _cleanMap(<String, Object?>{'text': text}),
+      where: 'id = ?',
+      whereArgs: <Object>[messageId],
+    );
+  }
+
   Future<int> insertAttachment({
     int? id,
     int? sourceRowid,
