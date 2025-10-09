@@ -20,3 +20,35 @@ This architectural pattern is designed to replace a monolithic
 	3.	Shared utilities
 
 	•	Truncation helper, FK enforcement toggles, idempotency helpers, progress logging, and a consistent error type.
+
+
+DDD Folder layout (lib/essentials/db_migrate)
+
+features/migration/
+  domain/
+    failures/
+      migration_failure.dart            // domain-level failure (no SQLite/Drift types)
+    i_migrators/
+      table_migrator.dart               // pure interface: name, dependsOn, validate/copy/postValidate
+    policies/
+      migration_order_policy.dart       // (optional) topological-sort policy, pure
+    value_objects/
+      migrator_name.dart                // (optional) strong-typed names
+  application/
+    orchestrator/
+      migration_orchestrator.dart       // uses domain ports, coordinates phases & ordering
+    usecases/
+      run_full_migration.dart           // app-level entrypoint (dryRun, resume, etc.)
+    dtos/
+      migration_report.dart             // counts, durations, errors; no DB types
+    services/
+      base_table_migrator.dart          // abstract *base* with helpers BUT no DB deps
+      migration_io.dart                 // an interface (port) for “import/working” access (see below)
+  infrastructure/
+    sqlite/
+      migration_context_sqlite.dart     // implements application.migration_io using Drift/sqflite
+      sqlite_helpers.dart               // ATTACH, PRAGMAs, chunking, etc.
+      migrators/
+        handles_sqlite_migrator.dart    // implements domain TableMigrator using MigrationIO
+        chats_sqlite_migrator.dart
+        chat_to_handle_sqlite_migrator.dart

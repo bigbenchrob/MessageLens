@@ -193,6 +193,14 @@ class SqfliteImportDatabase {
     }
   }
 
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? args,
+  ]) async {
+    final db = await database;
+    return db.rawQuery(sql, args);
+  }
+
   Future<int?> insertSchemaMigration({
     required int version,
     required String appliedAtUtc,
