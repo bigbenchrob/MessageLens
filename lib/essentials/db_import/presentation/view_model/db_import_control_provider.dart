@@ -391,10 +391,9 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     );
 
     try {
-      final migrationService = ref.read(
-        ledgerToWorkingMigrationServiceProvider,
-      );
-      await migrationService.clearWorkingProjection();
+      await ref
+          .read(handlesMigrationServiceProvider)
+          .clearWorkingProjection();
       ref.invalidate(driftWorkingDatabaseProvider);
 
       state = state.copyWith(

@@ -257,10 +257,9 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
     );
 
     try {
-      final migrationService = ref.read(
-        ledgerToWorkingMigrationServiceProvider,
-      );
-      final result = await migrationService.runMigration();
+      final result = await ref
+          .read(handlesMigrationServiceProvider)
+          .run();
 
       state = state.copyWith(lastMigrationResult: result, clearError: true);
 

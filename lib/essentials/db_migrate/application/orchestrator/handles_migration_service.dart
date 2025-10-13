@@ -37,18 +37,46 @@ class HandlesMigrationService {
   static const ChatToHandleMigrator _chatToHandleMigrator =
       ChatToHandleMigrator();
   static const ParticipantsMigrator _participantsMigrator =
-    ParticipantsMigrator();
+      ParticipantsMigrator();
   static const HandleToParticipantMigrator _handleToParticipantMigrator =
-    HandleToParticipantMigrator();
+      HandleToParticipantMigrator();
   static const MessagesMigrator _messagesMigrator = MessagesMigrator();
-  static const AttachmentsMigrator _attachmentsMigrator =
-    AttachmentsMigrator();
+  static const AttachmentsMigrator _attachmentsMigrator = AttachmentsMigrator();
   static const ReactionsMigrator _reactionsMigrator = ReactionsMigrator();
   static const ReactionCountsMigrator _reactionCountsMigrator =
-    ReactionCountsMigrator();
+      ReactionCountsMigrator();
   static const MessageReadMarksMigrator _messageReadMarksMigrator =
-    MessageReadMarksMigrator();
+      MessageReadMarksMigrator();
   static const ReadStateMigrator _readStateMigrator = ReadStateMigrator();
+
+  Future<void> clearWorkingProjection() async {
+    final workingDatabase = await ref.watch(
+      driftWorkingDatabaseProvider.future,
+    );
+
+    const tables = <String>[
+      'reaction_counts',
+      'reactions',
+      'attachments',
+      'messages',
+      'message_read_marks',
+      'read_state',
+      'chat_to_handle',
+      'handle_to_participant',
+      'participants',
+      'chats',
+      'handles',
+      'projection_state',
+      'supabase_sync_state',
+      'supabase_sync_logs',
+    ];
+
+    await workingDatabase.transaction(() async {
+      for (final table in tables) {
+        await workingDatabase.customStatement('DELETE FROM $table');
+      }
+    });
+  }
 
   Future<DbMigrationResult> run({
     void Function(DbMigrationProgress progress)? onProgress,
@@ -73,7 +101,7 @@ class HandlesMigrationService {
       _chatsMigrator,
       _chatToHandleMigrator,
       _participantsMigrator,
-  _handleToParticipantMigrator,
+      _handleToParticipantMigrator,
       _messagesMigrator,
       _attachmentsMigrator,
       _reactionsMigrator,
@@ -177,10 +205,7 @@ class HandlesMigrationService {
         context.workingDb,
         'handles',
       );
-      final chatsCount = await _chatsMigrator.count(
-        context.workingDb,
-        'chats',
-      );
+      final chatsCount = await _chatsMigrator.count(context.workingDb, 'chats');
       final chatMembershipCount = await _chatToHandleMigrator.count(
         context.workingDb,
         'chat_to_handle',
