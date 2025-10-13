@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -46,21 +44,20 @@ class ChatToHandleMigrator extends BaseTableMigrator {
     }
 
     await _withAttachedImport(ctx, () async {
-      final missingChats = await ctx.workingDb
-          .customSelect('''
+      final missingChats = await ctx.workingDb.customSelect('''
         SELECT DISTINCT cth.chat_id AS chat_id
         FROM $_attachAlias.chat_to_handle cth
         LEFT JOIN chats c ON c.id = cth.chat_id
         WHERE c.id IS NULL
-      ''')
-          .get();
+      ''').get();
 
       if (missingChats.isNotEmpty) {
-        final ids = missingChats
-            .map((row) => _coerceToNullableInt(row.data['chat_id']))
-            .whereType<int>()
-            .toList()
-          ..sort();
+        final ids =
+            missingChats
+                .map((row) => _coerceToNullableInt(row.data['chat_id']))
+                .whereType<int>()
+                .toList()
+              ..sort();
         final preview = ids.take(5).join(', ');
         final suffix = ids.length > 5 ? '…' : '';
         ctx.log(
@@ -68,21 +65,22 @@ class ChatToHandleMigrator extends BaseTableMigrator {
         );
       }
 
-      final missingHandles = await ctx.workingDb
-          .customSelect('''
+      final missingHandles = await ctx.workingDb.customSelect('''
         SELECT DISTINCT cth.handle_id AS handle_id
         FROM $_attachAlias.chat_to_handle cth
-        LEFT JOIN handles h ON h.id = cth.handle_id
-        WHERE h.id IS NULL
-      ''')
-          .get();
+        LEFT JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.handle_id
+        LEFT JOIN handles h ON h.id = map.canonical_handle_id
+        WHERE map.canonical_handle_id IS NULL OR h.id IS NULL
+      ''').get();
 
       if (missingHandles.isNotEmpty) {
-        final ids = missingHandles
-            .map((row) => _coerceToNullableInt(row.data['handle_id']))
-            .whereType<int>()
-            .toList()
-          ..sort();
+        final ids =
+            missingHandles
+                .map((row) => _coerceToNullableInt(row.data['handle_id']))
+                .whereType<int>()
+                .toList()
+              ..sort();
         final preview = ids.take(5).join(', ');
         final suffix = ids.length > 5 ? '…' : '';
         ctx.log(
@@ -100,7 +98,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
         )
         SELECT
           cth.chat_id,
-          cth.handle_id,
+          map.canonical_handle_id,
           COALESCE(cth.role, 'member') AS role,
           cth.added_at_utc,
           CASE
@@ -108,12 +106,14 @@ class ChatToHandleMigrator extends BaseTableMigrator {
             ELSE 0
           END AS is_ignored
         FROM $_attachAlias.chat_to_handle cth
+        JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
-        JOIN handles h ON h.id = cth.handle_id;
+        JOIN handles h ON h.id = map.canonical_handle_id;
       ''');
 
       final insertedRows = await ctx.workingDb
-          .customSelect("SELECT changes() AS c")
+          .customSelect('SELECT changes() AS c')
           .get();
       final inserted = _extractCount(insertedRows, 'c');
       ctx.log('[chat_to_handle] inserted $inserted rows');
@@ -126,8 +126,10 @@ class ChatToHandleMigrator extends BaseTableMigrator {
       final rows = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.chat_to_handle cth
+        JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
-        JOIN handles h ON h.id = cth.handle_id
+        JOIN handles h ON h.id = map.canonical_handle_id
       ''').get();
       return _extractCount(rows, 'c');
     });
@@ -143,7 +145,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countImportLinks(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c FROM chat_to_handle',
     );
@@ -157,7 +159,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

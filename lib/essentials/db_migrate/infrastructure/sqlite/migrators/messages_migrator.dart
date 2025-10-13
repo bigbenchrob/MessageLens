@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -20,7 +18,9 @@ class MessagesMigrator extends BaseTableMigrator {
     ctx.log('[messages] joinable import count = $joinableMessages');
 
     if (joinableMessages == 0) {
-      ctx.log('[messages] no messages with matching chats found; skipping copy');
+      ctx.log(
+        '[messages] no messages with matching chats found; skipping copy',
+      );
       return;
     }
 
@@ -47,19 +47,22 @@ class MessagesMigrator extends BaseTableMigrator {
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
-      final missingHandles = await ctx.workingDb
-          .customSelect('''
+      final missingHandles = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.messages m
         WHERE m.sender_handle_id IS NOT NULL
           AND NOT EXISTS (
-            SELECT 1 FROM handles h WHERE h.id = m.sender_handle_id
+            SELECT 1
+            FROM handle_canonical_map map
+            JOIN handles h ON h.id = map.canonical_handle_id
+            WHERE map.source_handle_id = m.sender_handle_id
           );
-      ''')
-          .get();
+      ''').get();
       final missingHandlesCount = _extractCount(missingHandles, 'c');
       if (missingHandlesCount > 0) {
-        ctx.log('[messages] $missingHandlesCount messages reference missing handles; sender_handle_id will be null');
+        ctx.log(
+          '[messages] $missingHandlesCount messages reference missing handles; sender_handle_id will be null',
+        );
       }
 
       await ctx.workingDb.customStatement('''
@@ -96,8 +99,8 @@ class MessagesMigrator extends BaseTableMigrator {
           m.guid,
           m.chat_id,
           CASE
-            WHEN h.id IS NULL THEN NULL
-            ELSE m.sender_handle_id
+            WHEN map.canonical_handle_id IS NULL THEN NULL
+            ELSE map.canonical_handle_id
           END AS sender_handle_id,
           m.is_from_me,
           m.date_utc,
@@ -128,7 +131,9 @@ class MessagesMigrator extends BaseTableMigrator {
           m.batch_id
         FROM $_attachAlias.messages m
         JOIN chats c ON c.id = m.chat_id
-        LEFT JOIN handles h ON h.id = m.sender_handle_id
+        LEFT JOIN handle_canonical_map map
+          ON map.source_handle_id = m.sender_handle_id
+        LEFT JOIN handles h ON h.id = map.canonical_handle_id
         WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0;
       ''');
 
@@ -237,12 +242,12 @@ class MessagesMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countJoinableMessages(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
       'FROM messages m '
       'JOIN chats c ON c.id = m.chat_id '
-      "WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0",
+      'WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0',
     );
     if (rows.isEmpty) {
       return 0;
@@ -254,7 +259,7 @@ class MessagesMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

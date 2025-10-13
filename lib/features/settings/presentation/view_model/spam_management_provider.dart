@@ -8,7 +8,7 @@ import '../../../../essentials/db/infrastructure/data_sources/local/working/work
 
 part 'spam_management_provider.g.dart';
 
-enum SpamFilterStatus { all, blacklisted, valid }
+enum SpamFilterStatus { all, blacklisted, visible }
 
 class SpamHandleInfo {
   const SpamHandleInfo({
@@ -16,7 +16,7 @@ class SpamHandleInfo {
     required this.handleId,
     required this.service,
     required this.isBlacklisted,
-    required this.isValid,
+    required this.isVisible,
     required this.chatCount,
   });
 
@@ -24,7 +24,7 @@ class SpamHandleInfo {
   final String handleId;
   final String service;
   final bool isBlacklisted;
-  final bool isValid;
+  final bool isVisible;
   final int chatCount;
 }
 
@@ -71,10 +71,10 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   final results = uniqueHandles.values.map((handle) {
     return SpamHandleInfo(
       id: handle.id,
-      handleId: handle.normalizedIdentifier ?? handle.handleId,
+      handleId: handle.normalizedIdentifier ?? handle.rawIdentifier,
       service: handle.service,
       isBlacklisted: handle.isBlacklisted,
-      isValid: handle.isValid,
+      isVisible: handle.isVisible,
       chatCount: handleChatCounts[handle.id] ?? 0,
     );
   }).toList();
@@ -107,8 +107,7 @@ class SpamManagement extends _$SpamManagement {
     )..where((h) => h.id.equals(handleId))).write(
       const WorkingHandlesCompanion(
         isBlacklisted: Value(true),
-        isValid: Value(false),
-        isIgnored: Value(true),
+        isVisible: Value(false),
       ),
     );
 
@@ -125,8 +124,7 @@ class SpamManagement extends _$SpamManagement {
     )..where((h) => h.id.equals(handleId))).write(
       const WorkingHandlesCompanion(
         isBlacklisted: Value(false),
-        isValid: Value(true),
-        isIgnored: Value(false),
+        isVisible: Value(true),
       ),
     );
 
@@ -151,12 +149,17 @@ class SpamManagement extends _$SpamManagement {
             .getSingle()
             .then((row) => row.read(db.workingHandles.id.count()) ?? 0);
 
-    final validHandles = totalHandles - blacklistedHandles;
+    final visibleHandles =
+        await (db.selectOnly(db.workingHandles)
+              ..addColumns([db.workingHandles.id.count()])
+              ..where(db.workingHandles.isVisible.equals(true)))
+            .getSingle()
+            .then((row) => row.read(db.workingHandles.id.count()) ?? 0);
 
     return SpamStats(
       totalHandles: totalHandles,
       blacklistedHandles: blacklistedHandles,
-      validHandles: validHandles,
+      visibleHandles: visibleHandles,
     );
   }
 }
@@ -165,12 +168,12 @@ class SpamStats {
   const SpamStats({
     required this.totalHandles,
     required this.blacklistedHandles,
-    required this.validHandles,
+    required this.visibleHandles,
   });
 
   final int totalHandles;
   final int blacklistedHandles;
-  final int validHandles;
+  final int visibleHandles;
 
   double get blacklistPercentage =>
       totalHandles > 0 ? (blacklistedHandles / totalHandles) * 100 : 0.0;

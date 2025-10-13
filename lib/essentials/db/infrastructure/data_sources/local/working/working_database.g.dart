@@ -851,12 +851,12 @@ class $WorkingHandlesTable extends WorkingHandles
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _handleIdMeta = const VerificationMeta(
-    'handleId',
+  static const VerificationMeta _rawIdentifierMeta = const VerificationMeta(
+    'rawIdentifier',
   );
   @override
-  late final GeneratedColumn<String> handleId = GeneratedColumn<String>(
-    'handle_id',
+  late final GeneratedColumn<String> rawIdentifier = GeneratedColumn<String>(
+    'raw_identifier',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -902,18 +902,18 @@ class $WorkingHandlesTable extends WorkingHandles
     ),
     defaultValue: const Constant(false),
   );
-  static const VerificationMeta _isValidMeta = const VerificationMeta(
-    'isValid',
+  static const VerificationMeta _isVisibleMeta = const VerificationMeta(
+    'isVisible',
   );
   @override
-  late final GeneratedColumn<bool> isValid = GeneratedColumn<bool>(
-    'is_valid',
+  late final GeneratedColumn<bool> isVisible = GeneratedColumn<bool>(
+    'is_visible',
     aliasedName,
     false,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_valid" IN (0, 1))',
+      'CHECK ("is_visible" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
   );
@@ -968,11 +968,11 @@ class $WorkingHandlesTable extends WorkingHandles
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    handleId,
+    rawIdentifier,
     normalizedIdentifier,
     service,
     isIgnored,
-    isValid,
+    isVisible,
     isBlacklisted,
     country,
     lastSeenUtc,
@@ -993,13 +993,16 @@ class $WorkingHandlesTable extends WorkingHandles
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('handle_id')) {
+    if (data.containsKey('raw_identifier')) {
       context.handle(
-        _handleIdMeta,
-        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+        _rawIdentifierMeta,
+        rawIdentifier.isAcceptableOrUnknown(
+          data['raw_identifier']!,
+          _rawIdentifierMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_handleIdMeta);
+      context.missing(_rawIdentifierMeta);
     }
     if (data.containsKey('normalized_identifier')) {
       context.handle(
@@ -1022,10 +1025,10 @@ class $WorkingHandlesTable extends WorkingHandles
         isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
       );
     }
-    if (data.containsKey('is_valid')) {
+    if (data.containsKey('is_visible')) {
       context.handle(
-        _isValidMeta,
-        isValid.isAcceptableOrUnknown(data['is_valid']!, _isValidMeta),
+        _isVisibleMeta,
+        isVisible.isAcceptableOrUnknown(data['is_visible']!, _isVisibleMeta),
       );
     }
     if (data.containsKey('is_blacklisted')) {
@@ -1065,7 +1068,7 @@ class $WorkingHandlesTable extends WorkingHandles
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   List<Set<GeneratedColumn>> get uniqueKeys => [
-    {handleId, service},
+    {rawIdentifier, service},
     {service, normalizedIdentifier},
   ];
   @override
@@ -1076,9 +1079,9 @@ class $WorkingHandlesTable extends WorkingHandles
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      handleId: attachedDatabase.typeMapping.read(
+      rawIdentifier: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}handle_id'],
+        data['${effectivePrefix}raw_identifier'],
       )!,
       normalizedIdentifier: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1092,9 +1095,9 @@ class $WorkingHandlesTable extends WorkingHandles
         DriftSqlType.bool,
         data['${effectivePrefix}is_ignored'],
       )!,
-      isValid: attachedDatabase.typeMapping.read(
+      isVisible: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
-        data['${effectivePrefix}is_valid'],
+        data['${effectivePrefix}is_visible'],
       )!,
       isBlacklisted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -1123,22 +1126,22 @@ class $WorkingHandlesTable extends WorkingHandles
 
 class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   final int id;
-  final String handleId;
+  final String rawIdentifier;
   final String? normalizedIdentifier;
   final String service;
   final bool isIgnored;
-  final bool isValid;
+  final bool isVisible;
   final bool isBlacklisted;
   final String? country;
   final String? lastSeenUtc;
   final int? batchId;
   const WorkingHandle({
     required this.id,
-    required this.handleId,
+    required this.rawIdentifier,
     this.normalizedIdentifier,
     required this.service,
     required this.isIgnored,
-    required this.isValid,
+    required this.isVisible,
     required this.isBlacklisted,
     this.country,
     this.lastSeenUtc,
@@ -1148,13 +1151,13 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['handle_id'] = Variable<String>(handleId);
+    map['raw_identifier'] = Variable<String>(rawIdentifier);
     if (!nullToAbsent || normalizedIdentifier != null) {
       map['normalized_identifier'] = Variable<String>(normalizedIdentifier);
     }
     map['service'] = Variable<String>(service);
     map['is_ignored'] = Variable<bool>(isIgnored);
-    map['is_valid'] = Variable<bool>(isValid);
+    map['is_visible'] = Variable<bool>(isVisible);
     map['is_blacklisted'] = Variable<bool>(isBlacklisted);
     if (!nullToAbsent || country != null) {
       map['country'] = Variable<String>(country);
@@ -1171,13 +1174,13 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   WorkingHandlesCompanion toCompanion(bool nullToAbsent) {
     return WorkingHandlesCompanion(
       id: Value(id),
-      handleId: Value(handleId),
+      rawIdentifier: Value(rawIdentifier),
       normalizedIdentifier: normalizedIdentifier == null && nullToAbsent
           ? const Value.absent()
           : Value(normalizedIdentifier),
       service: Value(service),
       isIgnored: Value(isIgnored),
-      isValid: Value(isValid),
+      isVisible: Value(isVisible),
       isBlacklisted: Value(isBlacklisted),
       country: country == null && nullToAbsent
           ? const Value.absent()
@@ -1198,13 +1201,13 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return WorkingHandle(
       id: serializer.fromJson<int>(json['id']),
-      handleId: serializer.fromJson<String>(json['handleId']),
+      rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
       normalizedIdentifier: serializer.fromJson<String?>(
         json['normalizedIdentifier'],
       ),
       service: serializer.fromJson<String>(json['service']),
       isIgnored: serializer.fromJson<bool>(json['isIgnored']),
-      isValid: serializer.fromJson<bool>(json['isValid']),
+      isVisible: serializer.fromJson<bool>(json['isVisible']),
       isBlacklisted: serializer.fromJson<bool>(json['isBlacklisted']),
       country: serializer.fromJson<String?>(json['country']),
       lastSeenUtc: serializer.fromJson<String?>(json['lastSeenUtc']),
@@ -1216,11 +1219,11 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'handleId': serializer.toJson<String>(handleId),
+      'rawIdentifier': serializer.toJson<String>(rawIdentifier),
       'normalizedIdentifier': serializer.toJson<String?>(normalizedIdentifier),
       'service': serializer.toJson<String>(service),
       'isIgnored': serializer.toJson<bool>(isIgnored),
-      'isValid': serializer.toJson<bool>(isValid),
+      'isVisible': serializer.toJson<bool>(isVisible),
       'isBlacklisted': serializer.toJson<bool>(isBlacklisted),
       'country': serializer.toJson<String?>(country),
       'lastSeenUtc': serializer.toJson<String?>(lastSeenUtc),
@@ -1230,24 +1233,24 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
 
   WorkingHandle copyWith({
     int? id,
-    String? handleId,
+    String? rawIdentifier,
     Value<String?> normalizedIdentifier = const Value.absent(),
     String? service,
     bool? isIgnored,
-    bool? isValid,
+    bool? isVisible,
     bool? isBlacklisted,
     Value<String?> country = const Value.absent(),
     Value<String?> lastSeenUtc = const Value.absent(),
     Value<int?> batchId = const Value.absent(),
   }) => WorkingHandle(
     id: id ?? this.id,
-    handleId: handleId ?? this.handleId,
+    rawIdentifier: rawIdentifier ?? this.rawIdentifier,
     normalizedIdentifier: normalizedIdentifier.present
         ? normalizedIdentifier.value
         : this.normalizedIdentifier,
     service: service ?? this.service,
     isIgnored: isIgnored ?? this.isIgnored,
-    isValid: isValid ?? this.isValid,
+    isVisible: isVisible ?? this.isVisible,
     isBlacklisted: isBlacklisted ?? this.isBlacklisted,
     country: country.present ? country.value : this.country,
     lastSeenUtc: lastSeenUtc.present ? lastSeenUtc.value : this.lastSeenUtc,
@@ -1256,13 +1259,15 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   WorkingHandle copyWithCompanion(WorkingHandlesCompanion data) {
     return WorkingHandle(
       id: data.id.present ? data.id.value : this.id,
-      handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      rawIdentifier: data.rawIdentifier.present
+          ? data.rawIdentifier.value
+          : this.rawIdentifier,
       normalizedIdentifier: data.normalizedIdentifier.present
           ? data.normalizedIdentifier.value
           : this.normalizedIdentifier,
       service: data.service.present ? data.service.value : this.service,
       isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
-      isValid: data.isValid.present ? data.isValid.value : this.isValid,
+      isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
       isBlacklisted: data.isBlacklisted.present
           ? data.isBlacklisted.value
           : this.isBlacklisted,
@@ -1278,11 +1283,11 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   String toString() {
     return (StringBuffer('WorkingHandle(')
           ..write('id: $id, ')
-          ..write('handleId: $handleId, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
           ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('service: $service, ')
           ..write('isIgnored: $isIgnored, ')
-          ..write('isValid: $isValid, ')
+          ..write('isVisible: $isVisible, ')
           ..write('isBlacklisted: $isBlacklisted, ')
           ..write('country: $country, ')
           ..write('lastSeenUtc: $lastSeenUtc, ')
@@ -1294,11 +1299,11 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   @override
   int get hashCode => Object.hash(
     id,
-    handleId,
+    rawIdentifier,
     normalizedIdentifier,
     service,
     isIgnored,
-    isValid,
+    isVisible,
     isBlacklisted,
     country,
     lastSeenUtc,
@@ -1309,11 +1314,11 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
       identical(this, other) ||
       (other is WorkingHandle &&
           other.id == this.id &&
-          other.handleId == this.handleId &&
+          other.rawIdentifier == this.rawIdentifier &&
           other.normalizedIdentifier == this.normalizedIdentifier &&
           other.service == this.service &&
           other.isIgnored == this.isIgnored &&
-          other.isValid == this.isValid &&
+          other.isVisible == this.isVisible &&
           other.isBlacklisted == this.isBlacklisted &&
           other.country == this.country &&
           other.lastSeenUtc == this.lastSeenUtc &&
@@ -1322,22 +1327,22 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
 
 class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   final Value<int> id;
-  final Value<String> handleId;
+  final Value<String> rawIdentifier;
   final Value<String?> normalizedIdentifier;
   final Value<String> service;
   final Value<bool> isIgnored;
-  final Value<bool> isValid;
+  final Value<bool> isVisible;
   final Value<bool> isBlacklisted;
   final Value<String?> country;
   final Value<String?> lastSeenUtc;
   final Value<int?> batchId;
   const WorkingHandlesCompanion({
     this.id = const Value.absent(),
-    this.handleId = const Value.absent(),
+    this.rawIdentifier = const Value.absent(),
     this.normalizedIdentifier = const Value.absent(),
     this.service = const Value.absent(),
     this.isIgnored = const Value.absent(),
-    this.isValid = const Value.absent(),
+    this.isVisible = const Value.absent(),
     this.isBlacklisted = const Value.absent(),
     this.country = const Value.absent(),
     this.lastSeenUtc = const Value.absent(),
@@ -1345,23 +1350,23 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   });
   WorkingHandlesCompanion.insert({
     this.id = const Value.absent(),
-    required String handleId,
+    required String rawIdentifier,
     this.normalizedIdentifier = const Value.absent(),
     this.service = const Value.absent(),
     this.isIgnored = const Value.absent(),
-    this.isValid = const Value.absent(),
+    this.isVisible = const Value.absent(),
     this.isBlacklisted = const Value.absent(),
     this.country = const Value.absent(),
     this.lastSeenUtc = const Value.absent(),
     this.batchId = const Value.absent(),
-  }) : handleId = Value(handleId);
+  }) : rawIdentifier = Value(rawIdentifier);
   static Insertable<WorkingHandle> custom({
     Expression<int>? id,
-    Expression<String>? handleId,
+    Expression<String>? rawIdentifier,
     Expression<String>? normalizedIdentifier,
     Expression<String>? service,
     Expression<bool>? isIgnored,
-    Expression<bool>? isValid,
+    Expression<bool>? isVisible,
     Expression<bool>? isBlacklisted,
     Expression<String>? country,
     Expression<String>? lastSeenUtc,
@@ -1369,12 +1374,12 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (handleId != null) 'handle_id': handleId,
+      if (rawIdentifier != null) 'raw_identifier': rawIdentifier,
       if (normalizedIdentifier != null)
         'normalized_identifier': normalizedIdentifier,
       if (service != null) 'service': service,
       if (isIgnored != null) 'is_ignored': isIgnored,
-      if (isValid != null) 'is_valid': isValid,
+      if (isVisible != null) 'is_visible': isVisible,
       if (isBlacklisted != null) 'is_blacklisted': isBlacklisted,
       if (country != null) 'country': country,
       if (lastSeenUtc != null) 'last_seen_utc': lastSeenUtc,
@@ -1384,11 +1389,11 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
 
   WorkingHandlesCompanion copyWith({
     Value<int>? id,
-    Value<String>? handleId,
+    Value<String>? rawIdentifier,
     Value<String?>? normalizedIdentifier,
     Value<String>? service,
     Value<bool>? isIgnored,
-    Value<bool>? isValid,
+    Value<bool>? isVisible,
     Value<bool>? isBlacklisted,
     Value<String?>? country,
     Value<String?>? lastSeenUtc,
@@ -1396,11 +1401,11 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   }) {
     return WorkingHandlesCompanion(
       id: id ?? this.id,
-      handleId: handleId ?? this.handleId,
+      rawIdentifier: rawIdentifier ?? this.rawIdentifier,
       normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
       service: service ?? this.service,
       isIgnored: isIgnored ?? this.isIgnored,
-      isValid: isValid ?? this.isValid,
+      isVisible: isVisible ?? this.isVisible,
       isBlacklisted: isBlacklisted ?? this.isBlacklisted,
       country: country ?? this.country,
       lastSeenUtc: lastSeenUtc ?? this.lastSeenUtc,
@@ -1414,8 +1419,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (handleId.present) {
-      map['handle_id'] = Variable<String>(handleId.value);
+    if (rawIdentifier.present) {
+      map['raw_identifier'] = Variable<String>(rawIdentifier.value);
     }
     if (normalizedIdentifier.present) {
       map['normalized_identifier'] = Variable<String>(
@@ -1428,8 +1433,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     if (isIgnored.present) {
       map['is_ignored'] = Variable<bool>(isIgnored.value);
     }
-    if (isValid.present) {
-      map['is_valid'] = Variable<bool>(isValid.value);
+    if (isVisible.present) {
+      map['is_visible'] = Variable<bool>(isVisible.value);
     }
     if (isBlacklisted.present) {
       map['is_blacklisted'] = Variable<bool>(isBlacklisted.value);
@@ -1450,11 +1455,11 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   String toString() {
     return (StringBuffer('WorkingHandlesCompanion(')
           ..write('id: $id, ')
-          ..write('handleId: $handleId, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
           ..write('normalizedIdentifier: $normalizedIdentifier, ')
           ..write('service: $service, ')
           ..write('isIgnored: $isIgnored, ')
-          ..write('isValid: $isValid, ')
+          ..write('isVisible: $isVisible, ')
           ..write('isBlacklisted: $isBlacklisted, ')
           ..write('country: $country, ')
           ..write('lastSeenUtc: $lastSeenUtc, ')
@@ -9325,11 +9330,11 @@ typedef $$AppSettingsTableProcessedTableManager =
 typedef $$WorkingHandlesTableCreateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
-      required String handleId,
+      required String rawIdentifier,
       Value<String?> normalizedIdentifier,
       Value<String> service,
       Value<bool> isIgnored,
-      Value<bool> isValid,
+      Value<bool> isVisible,
       Value<bool> isBlacklisted,
       Value<String?> country,
       Value<String?> lastSeenUtc,
@@ -9338,11 +9343,11 @@ typedef $$WorkingHandlesTableCreateCompanionBuilder =
 typedef $$WorkingHandlesTableUpdateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
-      Value<String> handleId,
+      Value<String> rawIdentifier,
       Value<String?> normalizedIdentifier,
       Value<String> service,
       Value<bool> isIgnored,
-      Value<bool> isValid,
+      Value<bool> isVisible,
       Value<bool> isBlacklisted,
       Value<String?> country,
       Value<String?> lastSeenUtc,
@@ -9490,8 +9495,8 @@ class $$WorkingHandlesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get handleId => $composableBuilder(
-    column: $table.handleId,
+  ColumnFilters<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9510,8 +9515,8 @@ class $$WorkingHandlesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isValid => $composableBuilder(
-    column: $table.isValid,
+  ColumnFilters<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9675,8 +9680,8 @@ class $$WorkingHandlesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get handleId => $composableBuilder(
-    column: $table.handleId,
+  ColumnOrderings<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -9695,8 +9700,8 @@ class $$WorkingHandlesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isValid => $composableBuilder(
-    column: $table.isValid,
+  ColumnOrderings<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -9733,8 +9738,10 @@ class $$WorkingHandlesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get handleId =>
-      $composableBuilder(column: $table.handleId, builder: (column) => column);
+  GeneratedColumn<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get normalizedIdentifier => $composableBuilder(
     column: $table.normalizedIdentifier,
@@ -9747,8 +9754,8 @@ class $$WorkingHandlesTableAnnotationComposer
   GeneratedColumn<bool> get isIgnored =>
       $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
-  GeneratedColumn<bool> get isValid =>
-      $composableBuilder(column: $table.isValid, builder: (column) => column);
+  GeneratedColumn<bool> get isVisible =>
+      $composableBuilder(column: $table.isVisible, builder: (column) => column);
 
   GeneratedColumn<bool> get isBlacklisted => $composableBuilder(
     column: $table.isBlacklisted,
@@ -9930,22 +9937,22 @@ class $$WorkingHandlesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> handleId = const Value.absent(),
+                Value<String> rawIdentifier = const Value.absent(),
                 Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<bool> isIgnored = const Value.absent(),
-                Value<bool> isValid = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
                 Value<bool> isBlacklisted = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
                 Value<int?> batchId = const Value.absent(),
               }) => WorkingHandlesCompanion(
                 id: id,
-                handleId: handleId,
+                rawIdentifier: rawIdentifier,
                 normalizedIdentifier: normalizedIdentifier,
                 service: service,
                 isIgnored: isIgnored,
-                isValid: isValid,
+                isVisible: isVisible,
                 isBlacklisted: isBlacklisted,
                 country: country,
                 lastSeenUtc: lastSeenUtc,
@@ -9954,22 +9961,22 @@ class $$WorkingHandlesTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String handleId,
+                required String rawIdentifier,
                 Value<String?> normalizedIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<bool> isIgnored = const Value.absent(),
-                Value<bool> isValid = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
                 Value<bool> isBlacklisted = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
                 Value<int?> batchId = const Value.absent(),
               }) => WorkingHandlesCompanion.insert(
                 id: id,
-                handleId: handleId,
+                rawIdentifier: rawIdentifier,
                 normalizedIdentifier: normalizedIdentifier,
                 service: service,
                 isIgnored: isIgnored,
-                isValid: isValid,
+                isVisible: isVisible,
                 isBlacklisted: isBlacklisted,
                 country: country,
                 lastSeenUtc: lastSeenUtc,

@@ -5,17 +5,28 @@ import 'package:sqflite/sqflite.dart';
 import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../domain/failures/migration_exception.dart';
+import '../../domain/i_migrators.dart/table_migrator.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 
 /// A small base that gives you handy helpers.
-abstract class BaseTableMigrator {
+abstract class BaseTableMigrator implements TableMigrator {
   const BaseTableMigrator();
 
-  String get name;
-  List<String> get dependsOn;
+  /// Default display label derived from [name]. Override when needed.
+  String get displayName => _humanizeName(name);
 
+  /// Tables that should be truncated before this migrator executes.
+  ///
+  /// By default this is just `[name]`, but complex migrators can override.
+  List<String> get targetTables => <String>[name];
+
+  @override
   Future<void> validatePrereqs(MigrationContext ctx);
+
+  @override
   Future<void> copy(MigrationContext ctx);
+
+  @override
   Future<void> postValidate(MigrationContext ctx);
 
   Future<int> count(Object database, String table) async {
@@ -73,4 +84,15 @@ abstract class BaseTableMigrator {
       throw MigrationException(code: errorCode, message: message);
     }
   }
+}
+
+String _humanizeName(String raw) {
+  if (raw.isEmpty) {
+    return raw;
+  }
+  return raw
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join(' ');
 }

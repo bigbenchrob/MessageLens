@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -19,7 +17,9 @@ class ParticipantsMigrator extends BaseTableMigrator {
     final importCount = await _countImportContacts(ctx);
     ctx.log('[participants] import count = $importCount');
     if (importCount == 0) {
-      ctx.log('[participants] no non-ignored contacts found in import database');
+      ctx.log(
+        '[participants] no non-ignored contacts found in import database',
+      );
       return;
     }
 
@@ -111,7 +111,7 @@ class ParticipantsMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countImportContacts(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c FROM contacts WHERE is_ignored = 0 AND Z_PK IS NOT NULL',
     );
@@ -125,7 +125,7 @@ class ParticipantsMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -20,7 +18,9 @@ class ReactionsMigrator extends BaseTableMigrator {
     ctx.log('[reactions] joinable import count = $joinable');
 
     if (joinable == 0) {
-      ctx.log('[reactions] no reactions with projected carriers; skipping copy');
+      ctx.log(
+        '[reactions] no reactions with projected carriers; skipping copy',
+      );
       return;
     }
 
@@ -47,19 +47,22 @@ class ReactionsMigrator extends BaseTableMigrator {
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
-      final missingHandlesRows = await ctx.workingDb
-          .customSelect('''
+      final missingHandlesRows = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.reactions r
         WHERE r.reactor_handle_id IS NOT NULL
           AND NOT EXISTS (
-            SELECT 1 FROM handles h WHERE h.id = r.reactor_handle_id
+            SELECT 1
+            FROM handle_canonical_map map
+            JOIN handles h ON h.id = map.canonical_handle_id
+            WHERE map.source_handle_id = r.reactor_handle_id
           );
-      ''')
-          .get();
+      ''').get();
       final missingHandleCount = _extractCount(missingHandlesRows, 'c');
       if (missingHandleCount > 0) {
-        ctx.log('[reactions] $missingHandleCount reaction(s) reference missing handles; reactor_handle_id will be null');
+        ctx.log(
+          '[reactions] $missingHandleCount reaction(s) reference missing handles; reactor_handle_id will be null',
+        );
       }
 
       await ctx.workingDb.customStatement('''
@@ -79,8 +82,8 @@ class ReactionsMigrator extends BaseTableMigrator {
           wm.guid AS message_guid,
           r.kind,
           CASE
-            WHEN rh.id IS NULL THEN NULL
-            ELSE r.reactor_handle_id
+            WHEN map.canonical_handle_id IS NULL THEN NULL
+            ELSE map.canonical_handle_id
           END AS reactor_handle_id,
           r.action,
           r.reacted_at_utc,
@@ -90,7 +93,9 @@ class ReactionsMigrator extends BaseTableMigrator {
         FROM $_attachAlias.reactions r
         JOIN $_attachAlias.messages carrier ON carrier.id = r.carrier_message_id
         JOIN messages wm ON wm.id = carrier.id
-        LEFT JOIN handles rh ON rh.id = r.reactor_handle_id
+        LEFT JOIN handle_canonical_map map
+          ON map.source_handle_id = r.reactor_handle_id
+        LEFT JOIN handles rh ON rh.id = map.canonical_handle_id
         WHERE wm.guid IS NOT NULL AND LENGTH(TRIM(wm.guid)) > 0;
       ''');
 
@@ -126,12 +131,12 @@ class ReactionsMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countJoinableReactions(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
       'FROM reactions r '
       'JOIN messages carrier ON carrier.id = r.carrier_message_id '
-      "WHERE carrier.guid IS NOT NULL AND LENGTH(TRIM(carrier.guid)) > 0",
+      'WHERE carrier.guid IS NOT NULL AND LENGTH(TRIM(carrier.guid)) > 0',
     );
     if (rows.isEmpty) {
       return 0;
@@ -143,7 +148,7 @@ class ReactionsMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

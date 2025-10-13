@@ -173,7 +173,7 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
         resolvedName = resolveParticipantName(participant);
       } else {
         final normalizedIdentifier = handle.normalizedIdentifier?.trim();
-        final rawIdentifier = handle.handleId.trim();
+        final rawIdentifier = handle.rawIdentifier.trim();
         resolvedName =
             (normalizedIdentifier != null && normalizedIdentifier.isNotEmpty)
             ? normalizedIdentifier

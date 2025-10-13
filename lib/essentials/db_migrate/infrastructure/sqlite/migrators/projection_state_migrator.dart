@@ -42,13 +42,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
       '(id, last_import_batch_id, last_projected_at_utc, '
       'last_projected_message_id, last_projected_attachment_id) '
       'VALUES (?, ?, ?, ?, ?)',
-      <Object?>[
-        1,
-        batchId,
-        timestamp,
-        lastMessageId,
-        lastAttachmentId,
-      ],
+      <Object?>[1, batchId, timestamp, lastMessageId, lastAttachmentId],
     );
 
     ctx.log(
@@ -58,10 +52,12 @@ class ProjectionStateMigrator extends BaseTableMigrator {
 
   @override
   Future<void> postValidate(MigrationContext ctx) async {
-    final rows = await ctx.workingDb.customSelect(
-      'SELECT last_import_batch_id, last_projected_message_id, last_projected_attachment_id '
-      'FROM projection_state WHERE id = 1',
-    ).get();
+    final rows = await ctx.workingDb
+        .customSelect(
+          'SELECT last_import_batch_id, last_projected_message_id, last_projected_attachment_id '
+          'FROM projection_state WHERE id = 1',
+        )
+        .get();
 
     await expectTrueOrThrow(
       rows.length == 1,

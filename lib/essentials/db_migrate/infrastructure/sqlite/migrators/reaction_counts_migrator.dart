@@ -75,15 +75,13 @@ class ReactionCountsMigrator extends BaseTableMigrator {
 
   @override
   Future<void> postValidate(MigrationContext ctx) async {
-    final distinctSources = await ctx.workingDb
-        .customSelect('''
+    final distinctSources = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c FROM (
         SELECT DISTINCT message_guid
         FROM reactions
         WHERE message_guid IS NOT NULL AND LENGTH(TRIM(message_guid)) > 0
       ) src;
-    ''')
-        .get();
+    ''').get();
     final sourceCount = _extractCount(distinctSources, 'c');
     final tallies = await count(ctx.workingDb, 'reaction_counts');
     ctx.log('[reaction_counts] expected=$sourceCount projected=$tallies');

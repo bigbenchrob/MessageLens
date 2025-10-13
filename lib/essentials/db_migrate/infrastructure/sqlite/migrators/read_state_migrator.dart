@@ -40,16 +40,14 @@ class ReadStateMigrator extends BaseTableMigrator {
 
   @override
   Future<void> postValidate(MigrationContext ctx) async {
-    final expectedRows = await ctx.workingDb
-        .customSelect('''
+    final expectedRows = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c FROM (
         SELECT chat_id
         FROM messages
         WHERE read_at_utc IS NOT NULL AND LENGTH(TRIM(read_at_utc)) > 0
         GROUP BY chat_id
       ) grouped;
-    ''')
-        .get();
+    ''').get();
     final expected = _extractCount(expectedRows, 'c');
     final projected = await count(ctx.workingDb, 'read_state');
     ctx.log('[read_state] expected=$expected projected=$projected');

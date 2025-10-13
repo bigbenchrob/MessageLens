@@ -1,5 +1,8 @@
 import '../../domain/i_migrators.dart/table_migrator.dart';
+import '../../domain/states/table_migration_progress.dart';
+import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
+import '../services/base_table_migrator.dart';
 
 class MigrationOrchestrator {
   final List<TableMigrator> _migrators;
@@ -35,53 +38,154 @@ class MigrationOrchestrator {
     return order;
   }
 
-  Future<void> run(MigrationContext ctx) async {
-    ctx.log('Preparing working DB…');
-    await _prepareWorking(ctx);
-
+  Future<void> run(
+    MigrationContext ctx, {
+    TableMigrationProgressCallback? onTableProgress,
+  }) async {
     final ordered = _sorted();
+
+    ctx.log('Preparing working DB…');
+    await _prepareWorking(ctx, ordered);
+
     ctx.log('Execution order: ${ordered.map((m) => m.name).join(" → ")}');
 
-    for (final m in ordered) {
+    for (final migrator in ordered) {
       final stamp = DateTime.now().toIso8601String();
-      ctx.log('=== [$stamp] ${m.name} :: validatePrereqs ===');
-      await m.validatePrereqs(ctx);
+      ctx.log('=== [$stamp] ${migrator.name} :: validatePrereqs ===');
+      await _runPhase(
+        ctx: ctx,
+        migrator: migrator,
+        phase: TableMigrationPhase.validatePrereqs,
+        action: () => migrator.validatePrereqs(ctx),
+        onTableProgress: onTableProgress,
+      );
 
       if (!ctx.dryRun) {
-        ctx.log('=== ${m.name} :: copy ===');
-        await m.copy(ctx);
+        ctx.log('=== ${migrator.name} :: copy ===');
+        await _runPhase(
+          ctx: ctx,
+          migrator: migrator,
+          phase: TableMigrationPhase.copy,
+          action: () => migrator.copy(ctx),
+          onTableProgress: onTableProgress,
+        );
       } else {
-        ctx.log('=== ${m.name} :: copy (skipped, dryRun) ===');
+        ctx.log('=== ${migrator.name} :: copy (skipped, dryRun) ===');
       }
 
-      ctx.log('=== ${m.name} :: postValidate ===');
-      await m.postValidate(ctx);
+      ctx.log('=== ${migrator.name} :: postValidate ===');
+      await _runPhase(
+        ctx: ctx,
+        migrator: migrator,
+        phase: TableMigrationPhase.postValidate,
+        action: () => migrator.postValidate(ctx),
+        onTableProgress: onTableProgress,
+      );
     }
 
     ctx.log('Migration complete.');
   }
 
-  Future<void> _prepareWorking(MigrationContext ctx) async {
+  Future<void> _prepareWorking(
+    MigrationContext ctx,
+    List<TableMigrator> ordered,
+  ) async {
     if (ctx.dryRun) {
       ctx.log('Dry-run: skipping truncate.');
       return;
     }
 
-    // Enforce FK, make it predictable.
     await ctx.workingDb.customStatement('PRAGMA foreign_keys = ON');
 
-    // Truncate in reverse dependency order to avoid FK errors.
-    // You can compute reverse of _sorted() names and DELETE in that order.
-    // Example for brevity:
-    final tables = [
-      'chat_to_handle',
-      'messages',
-      'attachments',
-      'chats',
-      'handles',
-    ];
-    for (final t in tables) {
-      ctx.workingDb.customSelect('DELETE FROM $t');
+    final tables = <String>{};
+    for (final migrator in ordered) {
+      if (migrator is BaseTableMigrator) {
+        tables.addAll(migrator.targetTables);
+      } else {
+        tables.add(migrator.name);
+      }
+    }
+
+    final truncateOrder = tables.toList().reversed;
+    for (final table in truncateOrder) {
+      ctx.log('Clearing working table `$table`…');
+      await ctx.workingDb.customStatement('DELETE FROM $table');
     }
   }
+
+  Future<void> _runPhase({
+    required MigrationContext ctx,
+    required TableMigrator migrator,
+    required TableMigrationPhase phase,
+    required Future<void> Function() action,
+    TableMigrationProgressCallback? onTableProgress,
+  }) async {
+    final displayName = _displayNameFor(migrator);
+    final stage = _stageForPhase(phase);
+
+    onTableProgress?.call(
+      TableMigrationProgressEvent(
+        tableName: migrator.name,
+        displayName: displayName,
+        phase: phase,
+        status: TableMigrationStatus.started,
+        stage: stage,
+      ),
+    );
+
+    try {
+      await action();
+      onTableProgress?.call(
+        TableMigrationProgressEvent(
+          tableName: migrator.name,
+          displayName: displayName,
+          phase: phase,
+          status: TableMigrationStatus.succeeded,
+          stage: stage,
+        ),
+      );
+    } catch (error) {
+      ctx.log('[${migrator.name}] phase $phase failed: $error');
+      onTableProgress?.call(
+        TableMigrationProgressEvent(
+          tableName: migrator.name,
+          displayName: displayName,
+          phase: phase,
+          status: TableMigrationStatus.failed,
+          message: error.toString(),
+          stage: stage,
+        ),
+      );
+      rethrow;
+    }
+  }
+}
+
+DbMigrationStage _stageForPhase(TableMigrationPhase phase) {
+  switch (phase) {
+    case TableMigrationPhase.validatePrereqs:
+      return DbMigrationStage.migratingIdentities;
+    case TableMigrationPhase.copy:
+      return DbMigrationStage.migratingIdentities;
+    case TableMigrationPhase.postValidate:
+      return DbMigrationStage.migratingIdentities;
+  }
+}
+
+String _displayNameFor(TableMigrator migrator) {
+  if (migrator is BaseTableMigrator) {
+    return migrator.displayName;
+  }
+  return _humanizeName(migrator.name);
+}
+
+String _humanizeName(String raw) {
+  if (raw.isEmpty) {
+    return raw;
+  }
+  return raw
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join(' ');
 }

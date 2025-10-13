@@ -68,7 +68,7 @@ void main() {
         .insert(
           WorkingHandlesCompanion.insert(
             id: const drift.Value(101),
-            handleId: 'claire@example.com',
+            rawIdentifier: 'claire@example.com',
             normalizedIdentifier: const drift.Value('claire@example.com'),
             service: const drift.Value('iMessage'),
           ),
@@ -78,7 +78,7 @@ void main() {
         .insert(
           WorkingHandlesCompanion.insert(
             id: const drift.Value(102),
-            handleId: '555-0100',
+            rawIdentifier: '555-0100',
             normalizedIdentifier: const drift.Value('555-0100'),
             service: const drift.Value('SMS'),
           ),
@@ -88,7 +88,7 @@ void main() {
         .insert(
           WorkingHandlesCompanion.insert(
             id: const drift.Value(104),
-            handleId: '555-0300',
+            rawIdentifier: '555-0300',
             normalizedIdentifier: const drift.Value('555-0300'),
             service: const drift.Value('SMS'),
           ),
@@ -170,7 +170,7 @@ void main() {
         .insert(
           WorkingHandlesCompanion.insert(
             id: const drift.Value(110),
-            handleId: '555-0400',
+            rawIdentifier: '555-0400',
             normalizedIdentifier: const drift.Value('555-0400'),
             service: const drift.Value('SMS'),
           ),
@@ -180,7 +180,7 @@ void main() {
         .insert(
           WorkingHandlesCompanion.insert(
             id: const drift.Value(111),
-            handleId: 'beta@example.com',
+            rawIdentifier: 'beta@example.com',
             normalizedIdentifier: const drift.Value('beta@example.com'),
             service: const drift.Value('iMessage'),
           ),
@@ -231,7 +231,7 @@ void main() {
           .insert(
             WorkingHandlesCompanion.insert(
               id: const drift.Value(120),
-              handleId: '+12024742228',
+              rawIdentifier: '+12024742228',
               normalizedIdentifier: const drift.Value('+12024742228'),
               service: const drift.Value('iMessage'),
             ),

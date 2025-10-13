@@ -1,0 +1,283 @@
+In a table migrator like HandlesMigrator, the validatePrereqs function is supposed to pick up errors before the migrator runs. So far it is just ensuring that the import database contains records for import. Can the logic be more fine grained than that? I know that my previous import service was plagued with missing foreign keys. I know that the dependsOn logic will avoid the most common cause of that error -- a table dependency not loaded in the right order. But what if there is a broken FK constraint at the record level in the import database? Can the handles table importer query the import database (which is attached) for just these kinds of existing violations?
+
+Short answer: yes—validatePrereqs() can (and should) do precise, record-level sanity checks against the import DB before any copy happens. You don’t have to rely only on row counts or the orchestrator’s dependency order. You can catch:
+	•	orphan FKs (anti-joins),
+	•	duplicate PKs / unique key collisions,
+	•	NOT NULL / domain violations,
+	•	bad enums / value ranges,
+	•	length/format issues (optional).
+
+Below are practical patterns you can drop into your migrators. I’ll show HandlesMigrator first (parent), then a join/child example to contrast where FK checks typically live.
+
+1) HandlesMigrator: fine-grained prereq checks (import DB)
+
+Even though handles is a parent table, you can still preflight things that would blow up the copy:
+	•	PK/unique collisions (e.g., duplicate handle_id or same (service, address)),
+	•	NULLs in required columns,
+	•	malformed addresses (optional),
+	•	global FK sweep on the import DB (if your import schema declares FKs).
+
+class HandlesMigrator extends BaseTableMigrator {
+  @override String get name => 'handles';
+  @override List<String> get dependsOn => const [];
+
+  @override
+  Future<void> validatePrereqs(MigrationContext ctx) async {
+    // 0) Ensure FK enforcement and run a cheap integrity sweep (optional).
+    await ctx.importDb.execute('PRAGMA foreign_keys = ON');
+    final integrity = await ctx.importDb
+        .rawQuery('PRAGMA integrity_check')
+        .then((r) => r.first.values.first as String);
+    if (integrity != 'ok') {
+      throw MigrationException(
+        code: 'IMPORT_INTEGRITY_CHECK_FAILED',
+        message: 'PRAGMA integrity_check = $integrity',
+        table: 'handles',
+      );
+    }
+
+    // 1) Duplicate primary keys? (only relevant if your import table isn’t strictly constrained)
+    final dupPk = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*) FROM (
+        SELECT handle_id
+        FROM handles
+        GROUP BY handle_id
+        HAVING COUNT(*) > 1
+      )
+    ''');
+    if (dupPk > 0) {
+      final sample = await ctx.importDb.rawQuery('''
+        SELECT handle_id, COUNT(*) AS n
+        FROM handles
+        GROUP BY handle_id
+        HAVING n > 1
+        ORDER BY n DESC
+        LIMIT 10
+      ''');
+      throw MigrationException(
+        code: 'DUPLICATE_PRIMARY_KEY',
+        message: 'handles has $dupPk duplicate primary key(s).',
+        table: 'handles',
+        details: {'examples': sample},
+      );
+    }
+
+    // 2) Required columns (NOT NULLs you rely on downstream)
+    final nullAddr = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*) FROM handles WHERE address IS NULL OR address = ''
+    ''');
+    if (nullAddr > 0) {
+      throw MigrationException(
+        code: 'REQUIRED_COLUMN_NULL',
+        message: 'handles.address has $nullAddr NULL/empty values.',
+        table: 'handles',
+      );
+    }
+
+    // 3) Optional: unique natural key (service + address)
+    final dupNatural = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*) FROM (
+        SELECT service, address
+        FROM handles
+        GROUP BY service, address
+        HAVING COUNT(*) > 1
+      )
+    ''');
+    if (dupNatural > 0) {
+      final sample = await ctx.importDb.rawQuery('''
+        SELECT service, address, COUNT(*) AS n
+        FROM handles
+        GROUP BY service, address
+        HAVING n > 1
+        ORDER BY n DESC
+        LIMIT 10
+      ''');
+      throw MigrationException(
+        code: 'DUPLICATE_NATURAL_KEY',
+        message: 'Duplicate (service,address) pairs detected in handles.',
+        table: 'handles',
+        details: {'examples': sample},
+      );
+    }
+
+    // 4) Optional: format/domain checks (regex, whitelist of services, etc.)
+    final badService = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*)
+      FROM handles
+      WHERE service NOT IN ('iMessage','SMS')  -- adjust to your domain
+    ''');
+    if (badService > 0) {
+      throw MigrationException(
+        code: 'BAD_ENUM_VALUE',
+        message: '$badService rows in handles have an unknown service value.',
+        table: 'handles',
+      );
+    }
+  }
+
+  @override
+  Future<void> copy(MigrationContext ctx) async {
+    if (ctx.dryRun) return;
+    await ctx.workingDb.transaction((txn) async {
+      await txn.execute('PRAGMA foreign_keys = ON');
+      // If you ATTACH import as "import", select from import.handles
+      await txn.execute('''
+        INSERT INTO handles (handle_id, address, service /*, ... */)
+        SELECT handle_id, address, service /*, ... */
+        FROM import.handles
+        ON CONFLICT(handle_id) DO UPDATE SET
+          address = excluded.address,
+          service = excluded.service
+          /* ... */;
+      ''');
+    });
+  }
+
+  @override
+  Future<void> postValidate(MigrationContext ctx) async {
+    // Count parity (optional), or differential spot check.
+    final src = await _singleInt(ctx.importDb, 'SELECT COUNT(*) FROM handles');
+    final dst = await _singleInt(ctx.workingDb, 'SELECT COUNT(*) FROM handles');
+    if (dst < src) {
+      throw MigrationException(
+        code: 'ROW_COUNT_MISMATCH',
+        message: 'working.handles ($dst) < import.handles ($src)',
+        table: 'handles',
+      );
+    }
+  }
+
+  Future<int> _singleInt(Database db, String sql) async {
+    final r = await db.rawQuery(sql);
+    return (r.first.values.first as num).toInt();
+    }
+}
+
+If your import schema actually defines FK constraints, you can also run:
+
+PRAGMA foreign_keys = ON;
+PRAGMA foreign_key_check;          -- global
+PRAGMA foreign_key_check(handles); -- per table
+
+This returns rows describing violations (table, rowid, parent, fkid). It’s a powerful global preflight you can run once in the orchestrator before any per-table migrators.
+
+2) Child / join migrator: detect orphaned FKs in import
+
+For FK problems, it’s usually the child migrator that should check that its references exist in the import DB. Example: chat_handle (join) should verify its handle_id and chat_id are present.
+
+class ChatHandleJoinMigrator extends BaseTableMigrator {
+  @override String get name => 'chat_handle';
+  @override List<String> get dependsOn => const ['chats','handles'];
+
+  @override
+  Future<void> validatePrereqs(MigrationContext ctx) async {
+    // Orphan handles in IMPORT:
+    final missingHandles = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*) FROM chat_handle ch
+      LEFT JOIN handles h ON h.handle_id = ch.handle_id
+      WHERE h.handle_id IS NULL
+    ''');
+    if (missingHandles > 0) {
+      final sample = await ctx.importDb.rawQuery('''
+        SELECT ch.handle_id, COUNT(*) n
+        FROM chat_handle ch
+        LEFT JOIN handles h ON h.handle_id = ch.handle_id
+        WHERE h.handle_id IS NULL
+        GROUP BY ch.handle_id
+        ORDER BY n DESC
+        LIMIT 10
+      ''');
+      throw MigrationException(
+        code: 'IMPORT_ORPHAN_FK_HANDLE',
+        message: 'chat_handle has $missingHandles rows referencing missing handles in IMPORT.',
+        table: 'chat_handle',
+        details: {'examples': sample},
+      );
+    }
+
+    // Orphan chats in IMPORT:
+    final missingChats = await _singleInt(ctx.importDb, '''
+      SELECT COUNT(*) FROM chat_handle ch
+      LEFT JOIN chats c ON c.chat_id = ch.chat_id
+      WHERE c.chat_id IS NULL
+    ''');
+    if (missingChats > 0) {
+      throw MigrationException(
+        code: 'IMPORT_ORPHAN_FK_CHAT',
+        message: 'chat_handle has $missingChats rows referencing missing chats in IMPORT.',
+        table: 'chat_handle',
+      );
+    }
+  }
+
+  @override
+  Future<void> copy(MigrationContext ctx) async {
+    if (ctx.dryRun) return;
+    await ctx.workingDb.transaction((txn) async {
+      await txn.execute('PRAGMA foreign_keys = ON');
+      await txn.execute('''
+        INSERT INTO chat_handle (chat_id, handle_id)
+        SELECT chat_id, handle_id
+        FROM import.chat_handle
+        ON CONFLICT(chat_id, handle_id) DO NOTHING;
+      ''');
+    });
+  }
+
+  @override
+  Future<void> postValidate(MigrationContext ctx) async {
+    // Verify no orphans *in working* after copy (belt & suspenders).
+    final fkBreaks = await _singleInt(ctx.workingDb, '''
+      SELECT COUNT(*) FROM chat_handle ch
+      LEFT JOIN chats c ON c.chat_id = ch.chat_id
+      LEFT JOIN handles h ON h.handle_id = ch.handle_id
+      WHERE c.chat_id IS NULL OR h.handle_id IS NULL
+    ''');
+    if (fkBreaks > 0) {
+      throw MigrationException(
+        code: 'WORKING_ORPHAN_FK',
+        message: 'chat_handle has $fkBreaks orphan rows in WORKING after copy.',
+        table: 'chat_handle',
+      );
+    }
+  }
+
+  Future<int> _singleInt(Database db, String sql) async {
+    final r = await db.rawQuery(sql);
+    return (r.first.values.first as num).toInt();
+  }
+}
+
+3) Optional: global preflight stage (fast fail)
+
+Add a preflight in the orchestrator that runs once on the attached import DB:
+
+PRAGMA foreign_keys = ON;
+PRAGMA integrity_check;        -- must be "ok"
+PRAGMA foreign_key_check;      -- empty set = no FK violations
+
+If your import schema doesn’t declare FKs, keep your anti-join checks in the child migrators (as above).
+
+⸻
+
+4) Tips
+	•	Attach once: ATTACH DATABASE '/path/to/import.db' AS import; and read from import.* in all migrators for speed and atomicity.
+	•	Sample offenders: when a count > 0, include a small LIMIT 10 sample in details—it makes debugging easy.
+	•	Indexes: orphan checks can be heavy; ensure FK columns are indexed in the import DB.
+	•	Idempotency: keep INSERT ... ON CONFLICT so re-runs are safe after a fix.
+
+⸻
+
+Bottom line: Yes—make validatePrereqs() do real checks against the import DB. Use anti-joins and (if available) PRAGMA foreign_key_check to detect FK breaks before copying. Parent migrators check their own data hygiene; child migrators check that their references exist. This catches the exact class of problems you described, early, with precise error messages.
+
+
+
+
+
+
+
+
+
+
+
+

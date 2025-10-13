@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -20,7 +18,9 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
     ctx.log('[handle_to_participant] import joinable links = $importLinks');
 
     if (importLinks == 0) {
-      ctx.log('[handle_to_participant] nothing to link – skipping prerequisites');
+      ctx.log(
+        '[handle_to_participant] nothing to link – skipping prerequisites',
+      );
       return;
     }
 
@@ -47,22 +47,21 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
-      final missingParticipants = await ctx.workingDb
-          .customSelect('''
+      final missingParticipants = await ctx.workingDb.customSelect('''
         SELECT DISTINCT cth.contact_Z_PK AS participant_id
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
         LEFT JOIN participants p ON p.id = c.Z_PK
         WHERE p.id IS NULL
-      ''')
-          .get();
+      ''').get();
       if (missingParticipants.isNotEmpty) {
-        final ids = missingParticipants
-            .map((row) => _coerceToNullableInt(row.data['participant_id']))
-            .whereType<int>()
-            .toList()
-          ..sort();
+        final ids =
+            missingParticipants
+                .map((row) => _coerceToNullableInt(row.data['participant_id']))
+                .whereType<int>()
+                .toList()
+              ..sort();
         final preview = ids.take(5).join(', ');
         final suffix = ids.length > 5 ? '…' : '';
         ctx.log(
@@ -70,22 +69,23 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         );
       }
 
-      final missingHandles = await ctx.workingDb
-          .customSelect('''
+      final missingHandles = await ctx.workingDb.customSelect('''
         SELECT DISTINCT cth.chat_handle_id AS handle_id
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        LEFT JOIN handles wh ON wh.id = cth.chat_handle_id
-        WHERE wh.id IS NULL
-      ''')
-          .get();
+        LEFT JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.chat_handle_id
+        LEFT JOIN handles wh ON wh.id = map.canonical_handle_id
+        WHERE map.canonical_handle_id IS NULL OR wh.id IS NULL
+      ''').get();
       if (missingHandles.isNotEmpty) {
-        final ids = missingHandles
-            .map((row) => _coerceToNullableInt(row.data['handle_id']))
-            .whereType<int>()
-            .toList()
-          ..sort();
+        final ids =
+            missingHandles
+                .map((row) => _coerceToNullableInt(row.data['handle_id']))
+                .whereType<int>()
+                .toList()
+              ..sort();
         final preview = ids.take(5).join(', ');
         final suffix = ids.length > 5 ? '…' : '';
         ctx.log(
@@ -101,14 +101,16 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
           source
         )
         SELECT
-          cth.chat_handle_id,
+          map.canonical_handle_id,
           c.Z_PK,
           1.0 AS confidence,
           'addressbook' AS source
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        JOIN handles wh ON wh.id = cth.chat_handle_id
+        JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.chat_handle_id
+        JOIN handles wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK;
       ''');
 
@@ -129,7 +131,9 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        JOIN handles wh ON wh.id = cth.chat_handle_id
+        JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.chat_handle_id
+        JOIN handles wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK
       ''').get();
       return _extractCount(rows, 'c');
@@ -155,7 +159,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countJoinableImportLinks(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
       'FROM contact_to_chat_handle cth '
@@ -173,7 +177,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

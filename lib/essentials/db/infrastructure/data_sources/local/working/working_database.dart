@@ -27,7 +27,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +56,9 @@ class WorkingDatabase extends _$WorkingDatabase {
       }
       if (from < 7) {
         await _addIgnoredFlags(m);
+      }
+      if (from < 8) {
+        await _renameHandleVisibilityFlag();
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -217,7 +220,7 @@ class WorkingDatabase extends _$WorkingDatabase {
 
     // Backfill sensible defaults for migrated rows
     await customStatement(
-      'UPDATE handles SET normalized_identifier = COALESCE(normalized_identifier, handle_id)',
+      'UPDATE handles SET normalized_identifier = COALESCE(normalized_identifier, raw_identifier)',
     );
     await customStatement(
       'UPDATE handles SET is_ignored = 0 WHERE is_ignored IS NULL',
@@ -258,6 +261,28 @@ class WorkingDatabase extends _$WorkingDatabase {
          SELECT DISTINCT chat_id FROM chat_to_handle WHERE is_ignored = 1
        )
     ''');
+  }
+
+  Future<void> _renameHandleVisibilityFlag() async {
+    final columns = await customSelect("PRAGMA table_info('handles')").get();
+    var hasIsVisible = false;
+    var hasIsValid = false;
+
+    for (final row in columns) {
+      final name = row.data['name'] as String?;
+      if (name == 'is_visible') {
+        hasIsVisible = true;
+      }
+      if (name == 'is_valid') {
+        hasIsValid = true;
+      }
+    }
+
+    if (hasIsValid && !hasIsVisible) {
+      await customStatement(
+        'ALTER TABLE handles RENAME COLUMN is_valid TO is_visible',
+      );
+    }
   }
 }
 
@@ -336,8 +361,8 @@ const List<String> _workingVirtualAndTriggerStatements = [
     m.text,
     m.item_type,
     m.is_from_me,
-    m.sender_handle_id,
-    h.handle_id AS sender_handle,
+  m.sender_handle_id,
+  h.raw_identifier AS sender_handle,
     h.normalized_identifier AS sender_handle_normalized,
     p.id AS sender_participant_id,
     p.display_name AS sender_name,
@@ -468,7 +493,7 @@ class WorkingHandles extends Table {
   String get tableName => 'handles';
 
   IntColumn get id => integer().named('id')();
-  TextColumn get handleId => text().named('handle_id')();
+  TextColumn get rawIdentifier => text().named('raw_identifier')();
   TextColumn get normalizedIdentifier =>
       text().named('normalized_identifier').nullable()();
   TextColumn get service => text()
@@ -478,8 +503,8 @@ class WorkingHandles extends Table {
       )();
   BoolColumn get isIgnored =>
       boolean().named('is_ignored').withDefault(const Constant(false))();
-  BoolColumn get isValid =>
-      boolean().named('is_valid').withDefault(const Constant(true))();
+  BoolColumn get isVisible =>
+      boolean().named('is_visible').withDefault(const Constant(true))();
   BoolColumn get isBlacklisted =>
       boolean().named('is_blacklisted').withDefault(const Constant(false))();
   TextColumn get country => text().named('country').nullable()();
@@ -491,7 +516,7 @@ class WorkingHandles extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {handleId, service},
+    {rawIdentifier, service},
     {service, normalizedIdentifier},
   ];
 }

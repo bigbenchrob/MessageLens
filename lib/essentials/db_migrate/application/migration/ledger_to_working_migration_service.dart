@@ -79,6 +79,7 @@ class LedgerToWorkingMigrationService {
         0.08,
         'Clearing working projection',
       );
+      final handleOverrides = await _loadHandleOverrides(workingDb);
       await _clearWorkingDatabase(workingDb);
 
       emit(DbMigrationStage.migratingIdentities, 0.18, 'Copying handles');
@@ -86,6 +87,7 @@ class LedgerToWorkingMigrationService {
         importDb: importDb,
         workingDb: workingDb,
         batchId: batchId,
+        handleOverrides: handleOverrides,
       );
       stats.identitiesProjected = handleSummary.copied;
 
@@ -114,6 +116,7 @@ class LedgerToWorkingMigrationService {
         batchId: batchId,
       );
       stats.chatsProjected = chatSummary.copied;
+      warnings.addAll(chatSummary.warnings);
 
       emit(DbMigrationStage.migratingChats, 0.46, 'Copying chat memberships');
       final chatMembershipSummary = await _copyChatMemberships(
@@ -125,6 +128,8 @@ class LedgerToWorkingMigrationService {
         debugSettings: debugSettings,
       );
       warnings.addAll(chatMembershipSummary.warnings);
+
+      final projectedChatIds = await _loadProjectedChatIds(workingDb);
 
       emit(
         DbMigrationStage.migratingMessages,
@@ -143,6 +148,7 @@ class LedgerToWorkingMigrationService {
         batchId: batchId,
         messagesWithAttachments: messagesWithAttachments,
         handleExists: handleSummary.isIgnoredById.keys.toSet(),
+        chatExists: projectedChatIds,
       );
       stats.messagesProjected = messageSummary.copied;
       warnings.addAll(messageSummary.warnings);
@@ -214,6 +220,48 @@ class LedgerToWorkingMigrationService {
     return rows.first['id'] as int?;
   }
 
+  Future<_HandleOverrideSnapshot> _loadHandleOverrides(
+    WorkingDatabase workingDb,
+  ) async {
+    final rows = await workingDb
+        .customSelect(
+          'SELECT id, raw_identifier, service, is_visible, is_blacklisted FROM handles',
+        )
+        .get();
+    if (rows.isEmpty) {
+      return const _HandleOverrideSnapshot.empty();
+    }
+
+    final byId = <int, _HandleOverrides>{};
+    final byKey = <String, _HandleOverrides>{};
+
+    for (final row in rows) {
+      final id = row.readNullable<int>('id');
+      final rawIdentifier = row.readNullable<String>('raw_identifier');
+      if (id == null || rawIdentifier == null || rawIdentifier.isEmpty) {
+        continue;
+      }
+
+      final serviceRaw = row.readNullable<String>('service');
+      final isVisible = row.readNullable<bool>('is_visible');
+      final isBlacklisted = row.readNullable<bool>('is_blacklisted');
+
+      final overrides = _HandleOverrides(
+        isVisible: isVisible ?? true,
+        isBlacklisted: isBlacklisted ?? false,
+      );
+      byId[id] = overrides;
+
+      final key = _handleIdentifierKey(
+        rawIdentifier: rawIdentifier,
+        service: serviceRaw,
+      );
+      byKey[key] = overrides;
+    }
+
+    return _HandleOverrideSnapshot(byId: byId, byKey: byKey);
+  }
+
   Future<void> _clearWorkingDatabase(WorkingDatabase workingDb) async {
     await workingDb.transaction(() async {
       await workingDb.customStatement('DELETE FROM reaction_counts');
@@ -237,6 +285,7 @@ class LedgerToWorkingMigrationService {
     required Database importDb,
     required WorkingDatabase workingDb,
     required int batchId,
+    required _HandleOverrideSnapshot handleOverrides,
   }) async {
     final rows = await importDb.query(
       'handles',
@@ -256,11 +305,19 @@ class LedgerToWorkingMigrationService {
         }
 
         final normalizedIdentifier = row['normalized_identifier'] as String?;
-        final service = (row['service'] as String?) ?? 'Unknown';
+        final resolvedService = (row['service'] as String?) ?? 'Unknown';
         final isIgnored = (row['is_ignored'] as int?) == 1;
         final country = row['country'] as String?;
         final lastSeenUtc = row['last_seen_utc'] as String?;
         final batchValue = row['batch_id'] as int?;
+
+        final overrides = handleOverrides.lookup(
+          id: id,
+          rawIdentifier: rawIdentifier,
+          service: resolvedService,
+        );
+        final resolvedVisible = overrides?.isVisible ?? !isIgnored;
+        final resolvedBlacklisted = overrides?.isBlacklisted ?? false;
 
         isIgnoredById[id] = isIgnored;
         copied += 1;
@@ -269,12 +326,12 @@ class LedgerToWorkingMigrationService {
           workingDb.workingHandles,
           WorkingHandlesCompanion.insert(
             id: Value(id),
-            handleId: rawIdentifier,
+            rawIdentifier: rawIdentifier,
             normalizedIdentifier: Value(normalizedIdentifier),
-            service: Value(service),
+            service: Value(resolvedService),
             isIgnored: Value(isIgnored),
-            isValid: Value(!isIgnored),
-            isBlacklisted: Value(isIgnored),
+            isVisible: Value(resolvedVisible),
+            isBlacklisted: Value(resolvedBlacklisted),
             country: Value(country),
             lastSeenUtc: Value(lastSeenUtc),
             batchId: Value(batchValue),
@@ -424,14 +481,25 @@ class LedgerToWorkingMigrationService {
     );
 
     final isIgnoredById = <int, bool>{};
+    final warnings = <String>[];
     var copied = 0;
 
     await workingDb.batch((batch) {
       for (final row in rows) {
         final chatId = row['id'] as int?;
-        final guid = row['guid'] as String?;
-        if (chatId == null || guid == null || guid.isEmpty) {
+        if (chatId == null) {
           continue;
+        }
+
+        final rawGuid = row['guid'] as String?;
+        final guidTrimmed = rawGuid?.trim();
+        final resolvedGuid = (guidTrimmed == null || guidTrimmed.isEmpty)
+            ? 'legacy-chat-$chatId'
+            : guidTrimmed;
+        if (guidTrimmed == null || guidTrimmed.isEmpty) {
+          warnings.add(
+            'Chat $chatId missing guid; generated fallback $resolvedGuid',
+          );
         }
 
         final service = row['service'] as String?;
@@ -447,7 +515,7 @@ class LedgerToWorkingMigrationService {
           workingDb.workingChats,
           WorkingChatsCompanion.insert(
             id: Value(chatId),
-            guid: guid,
+            guid: resolvedGuid,
             service: Value(service ?? 'Unknown'),
             isGroup: Value(isGroup),
             createdAtUtc: Value(createdAtUtc),
@@ -459,7 +527,11 @@ class LedgerToWorkingMigrationService {
       }
     });
 
-    return _ChatCopySummary(copied: copied, isIgnoredById: isIgnoredById);
+    return _ChatCopySummary(
+      copied: copied,
+      isIgnoredById: isIgnoredById,
+      warnings: warnings,
+    );
   }
 
   Future<_ChatMembershipCopySummary> _copyChatMemberships({
@@ -606,6 +678,7 @@ class LedgerToWorkingMigrationService {
     required int batchId,
     required Set<int> messagesWithAttachments,
     required Set<int> handleExists,
+    required Set<int> chatExists,
   }) async {
     final rows = await importDb.query(
       'messages',
@@ -626,6 +699,11 @@ class LedgerToWorkingMigrationService {
       final chatId = row['chat_id'] as int?;
       final guid = row['guid'] as String?;
       if (messageId == null || chatId == null || guid == null || guid.isEmpty) {
+        continue;
+      }
+
+      if (!chatExists.contains(chatId)) {
+        warnings.add('Skipping message $messageId for missing chat $chatId');
         continue;
       }
 
@@ -1076,6 +1154,39 @@ class _HandleCopySummary {
   final Map<int, bool> isIgnoredById;
 }
 
+class _HandleOverrideSnapshot {
+  const _HandleOverrideSnapshot({required this.byId, required this.byKey});
+
+  const _HandleOverrideSnapshot.empty()
+    : byId = const <int, _HandleOverrides>{},
+      byKey = const <String, _HandleOverrides>{};
+
+  final Map<int, _HandleOverrides> byId;
+  final Map<String, _HandleOverrides> byKey;
+
+  _HandleOverrides? lookup({
+    required int id,
+    required String rawIdentifier,
+    required String? service,
+  }) {
+    return byId[id] ??
+        byKey[_handleIdentifierKey(
+          rawIdentifier: rawIdentifier,
+          service: service,
+        )];
+  }
+}
+
+class _HandleOverrides {
+  const _HandleOverrides({
+    required this.isVisible,
+    required this.isBlacklisted,
+  });
+
+  final bool isVisible;
+  final bool isBlacklisted;
+}
+
 class _ParticipantCopySummary {
   const _ParticipantCopySummary({
     required this.copied,
@@ -1104,10 +1215,15 @@ class _HandleLinkCopySummary {
 }
 
 class _ChatCopySummary {
-  const _ChatCopySummary({required this.copied, required this.isIgnoredById});
+  const _ChatCopySummary({
+    required this.copied,
+    required this.isIgnoredById,
+    required this.warnings,
+  });
 
   final int copied;
   final Map<int, bool> isIgnoredById;
+  final List<String> warnings;
 }
 
 class _MessageCopySummary {
@@ -1129,6 +1245,17 @@ class _ReactionCopySummary {
 
   final int copied;
   final Map<String, _ReactionTally> tallies;
+}
+
+String _handleIdentifierKey({
+  required String rawIdentifier,
+  required String? service,
+}) {
+  final trimmedService = service?.trim();
+  final servicePart = trimmedService == null || trimmedService.isEmpty
+      ? 'unknown'
+      : trimmedService;
+  return '$servicePart::$rawIdentifier';
 }
 
 class _ChatSummary {

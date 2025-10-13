@@ -103,7 +103,7 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
       final participantEntry = SettingsContactIdentity(
         identityId: participant.id,
         displayName: participant.displayName,
-        normalizedAddress: handle.normalizedIdentifier ?? handle.handleId,
+        normalizedAddress: handle.normalizedIdentifier ?? handle.rawIdentifier,
         service: handle.service,
       );
 

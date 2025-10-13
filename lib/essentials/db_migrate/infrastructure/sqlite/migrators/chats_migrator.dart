@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -32,7 +30,7 @@ class ChatsMigrator extends BaseTableMigrator {
       return;
     }
 
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final importPath = importSqlite.path.replaceAll("'", "''");
 
     await ctx.workingDb.customStatement(
@@ -79,10 +77,10 @@ class ChatsMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countImportRowsWithGuid(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c FROM chats '
-      "WHERE guid IS NOT NULL AND LENGTH(TRIM(guid)) > 0",
+      'WHERE guid IS NOT NULL AND LENGTH(TRIM(guid)) > 0',
     );
     final value = rows.isEmpty ? null : rows.first['c'];
     if (value == null) {

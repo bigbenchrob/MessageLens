@@ -1,5 +1,3 @@
-import 'package:sqflite/sqflite.dart' show Database;
-
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -40,17 +38,17 @@ class AttachmentsMigrator extends BaseTableMigrator {
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
-      final missingMessages = await ctx.workingDb
-          .customSelect('''
+      final missingMessages = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.message_attachments ma
         LEFT JOIN messages wm ON wm.id = ma.message_id
         WHERE wm.id IS NULL
-      ''')
-          .get();
+      ''').get();
       final missingMessagesCount = _extractCount(missingMessages, 'c');
       if (missingMessagesCount > 0) {
-        ctx.log('[attachments] skipping $missingMessagesCount attachment link(s); message not projected');
+        ctx.log(
+          '[attachments] skipping $missingMessagesCount attachment link(s); message not projected',
+        );
       }
 
       await ctx.workingDb.customStatement('''
@@ -125,13 +123,13 @@ class AttachmentsMigrator extends BaseTableMigrator {
   }
 
   Future<int> _countJoinableAttachments(MigrationContext ctx) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
       'FROM message_attachments ma '
       'JOIN attachments a ON a.id = ma.attachment_id '
       'JOIN messages m ON m.id = ma.message_id '
-      "WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0",
+      'WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0',
     );
     if (rows.isEmpty) {
       return 0;
@@ -143,7 +141,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final Database importSqlite = await ctx.importDb.database;
+    final importSqlite = await ctx.importDb.database;
     final escapedPath = importSqlite.path.replaceAll("'", "''");
     await ctx.workingDb.customStatement(
       "ATTACH DATABASE '$escapedPath' AS $_attachAlias",

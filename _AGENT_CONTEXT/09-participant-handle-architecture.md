@@ -51,21 +51,28 @@ CREATE TABLE participants (
 
 ```sql
 CREATE TABLE handles (
-  id INTEGER PRIMARY KEY,        -- Matches chat.db handle.ROWID
+  id INTEGER PRIMARY KEY,             -- Matches chat.db handle.ROWID
 
   -- Handle identity
-  handle_id TEXT NOT NULL,       -- "+19991234567", "danny@circocable.ca"
-  service TEXT NOT NULL,         -- SMS, iMessage, RCS, etc.
+  raw_identifier TEXT NOT NULL,       -- "+19991234567", "danny@circocable.ca"
+  normalized_identifier TEXT,         -- Canonical form for comparisons
+  service TEXT NOT NULL,              -- SMS, iMessage, RCS, etc.
 
-  -- Classification
-  is_valid INTEGER DEFAULT 1,    -- Well-formed phone/email?
-  is_blacklisted INTEGER DEFAULT 0,  -- Spam/auth code filter
+  -- Classification flags
+  is_ignored INTEGER DEFAULT 0,       -- Ledger-sourced suppression flag
+  is_visible INTEGER DEFAULT 1,       -- UI toggle (defaults to !is_ignored)
+  is_blacklisted INTEGER DEFAULT 0,   -- User-managed spam block
 
-  UNIQUE(handle_id, service)
+  UNIQUE(raw_identifier, service)
 );
 ```
 
 **Purpose**: Represents communication endpoints from chat.db. Exists independently of whether we know the person.
+
+**Flag semantics**:
+- `is_ignored`: Imported directly from the ledger projection and never mutated by UI flows. If the source marks a handle as ignored, the working projection keeps that truth.
+- `is_visible`: Driven by the UI. Defaults to the inverse of `is_ignored`, but user actions may toggle visibility without touching the ledger flag.
+- `is_blacklisted`: Represents an explicit user spam decision. Blacklisted handles hide from UI surfaces and stay blacklisted across import resets because the migration service reapplies stored user decisions after clearing the working tables.
 
 ### 3. HandleToParticipant (The Bridge)
 

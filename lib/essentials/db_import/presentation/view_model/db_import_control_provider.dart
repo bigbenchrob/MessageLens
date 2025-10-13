@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db_migrate/domain/entities/db_migration_result.dart';
 import '../../../db_migrate/domain/states/db_migration_progress.dart';
+import '../../../db_migrate/domain/states/table_migration_progress.dart';
 import '../../../db_migrate/domain/value_objects/db_migration_stage.dart';
 import '../../../db_migrate/feature_level_providers.dart';
 import '../../domain/entities/db_import_result.dart';
@@ -13,6 +14,13 @@ import '../../domain/value_objects/db_import_stage.dart';
 import '../../feature_level_providers.dart';
 
 part 'db_import_control_provider.g.dart';
+
+const List<DbMigrationStage> _handlesMigrationStages = <DbMigrationStage>[
+  DbMigrationStage.preparingSources,
+  DbMigrationStage.clearingWorking,
+  DbMigrationStage.migratingIdentities,
+  DbMigrationStage.completed,
+];
 
 enum DbImportMode { import, migration }
 
@@ -79,6 +87,153 @@ class UiStageProgress {
   }
 }
 
+class UiTableMigrationPhaseStatus {
+  const UiTableMigrationPhaseStatus({
+    required this.phase,
+    required this.status,
+    required this.updatedAt,
+    this.startedAt,
+    this.completedAt,
+    this.message,
+  });
+
+  final TableMigrationPhase phase;
+  final TableMigrationStatus status;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final String? message;
+
+  UiTableMigrationPhaseStatus copyWith({
+    TableMigrationStatus? status,
+    DateTime? updatedAt,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    bool clearCompletedAt = false,
+    String? message,
+  }) {
+    return UiTableMigrationPhaseStatus(
+      phase: phase,
+      status: status ?? this.status,
+      updatedAt: updatedAt ?? this.updatedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
+      message: message ?? this.message,
+    );
+  }
+
+  Duration? get duration {
+    if (startedAt == null || completedAt == null) {
+      return null;
+    }
+    return completedAt!.difference(startedAt!);
+  }
+}
+
+class UiTableMigrationProgress {
+  const UiTableMigrationProgress({
+    required this.tableName,
+    required this.displayName,
+    required this.sortIndex,
+    required this.phases,
+  });
+
+  final String tableName;
+  final String displayName;
+  final int sortIndex;
+  final Map<TableMigrationPhase, UiTableMigrationPhaseStatus> phases;
+
+  UiTableMigrationProgress copyWith({
+    Map<TableMigrationPhase, UiTableMigrationPhaseStatus>? phases,
+  }) {
+    return UiTableMigrationProgress(
+      tableName: tableName,
+      displayName: displayName,
+      sortIndex: sortIndex,
+      phases: phases ?? this.phases,
+    );
+  }
+
+  TableMigrationStatus get overallStatus {
+    if (phases.values.any(
+      (status) => status.status == TableMigrationStatus.failed,
+    )) {
+      return TableMigrationStatus.failed;
+    }
+    if (phases.length == TableMigrationPhase.values.length &&
+        phases.values.every(
+          (status) => status.status == TableMigrationStatus.succeeded,
+        )) {
+      return TableMigrationStatus.succeeded;
+    }
+    return TableMigrationStatus.started;
+  }
+
+  bool get isComplete => overallStatus == TableMigrationStatus.succeeded;
+
+  UiTableMigrationPhaseStatus? statusForPhase(TableMigrationPhase phase) {
+    return phases[phase];
+  }
+
+  UiTableMigrationPhaseStatus? get latestStatus {
+    if (phases.isEmpty) {
+      return null;
+    }
+    return phases.values.reduce(
+      (current, next) =>
+          current.updatedAt.isAfter(next.updatedAt) ? current : next,
+    );
+  }
+
+  String? get failureMessage {
+    for (final phase in phases.values) {
+      if (phase.status == TableMigrationStatus.failed &&
+          phase.message != null &&
+          phase.message!.isNotEmpty) {
+        return phase.message;
+      }
+    }
+    return null;
+  }
+
+  DateTime? get startedAt {
+    DateTime? earliest;
+    for (final phase in phases.values) {
+      final started = phase.startedAt;
+      if (started == null) {
+        continue;
+      }
+      if (earliest == null || started.isBefore(earliest)) {
+        earliest = started;
+      }
+    }
+    return earliest;
+  }
+
+  DateTime? get completedAt {
+    DateTime? latest;
+    for (final phase in phases.values) {
+      final completed = phase.completedAt;
+      if (completed == null) {
+        return null;
+      }
+      if (latest == null || completed.isAfter(latest)) {
+        latest = completed;
+      }
+    }
+    return latest;
+  }
+
+  Duration? get duration {
+    final start = startedAt;
+    final end = completedAt;
+    if (start == null || end == null) {
+      return null;
+    }
+    return end.difference(start);
+  }
+}
+
 class DbImportControlState {
   const DbImportControlState({
     this.selectedMode = DbImportMode.import,
@@ -86,6 +241,7 @@ class DbImportControlState {
     this.statusMessage,
     this.progress,
     this.stages = const <UiStageProgress>[],
+    this.tableProgress = const <UiTableMigrationProgress>[],
     this.currentStage,
     this.viewMode = DbImportViewMode.progress,
     this.showingDebugPanel = false,
@@ -98,6 +254,7 @@ class DbImportControlState {
   final String? statusMessage;
   final double? progress;
   final List<UiStageProgress> stages;
+  final List<UiTableMigrationProgress> tableProgress;
   final String? currentStage;
   final DbImportViewMode viewMode;
   final bool showingDebugPanel;
@@ -112,6 +269,8 @@ class DbImportControlState {
     double? progress,
     bool clearProgress = false,
     List<UiStageProgress>? stages,
+    List<UiTableMigrationProgress>? tableProgress,
+    bool clearTableProgress = false,
     String? currentStage,
     bool clearCurrentStage = false,
     DbImportViewMode? viewMode,
@@ -129,6 +288,9 @@ class DbImportControlState {
           : statusMessage ?? this.statusMessage,
       progress: clearProgress ? null : progress ?? this.progress,
       stages: stages ?? this.stages,
+      tableProgress: clearTableProgress
+          ? const <UiTableMigrationProgress>[]
+          : tableProgress ?? this.tableProgress,
       currentStage: clearCurrentStage
           ? null
           : currentStage ?? this.currentStage,
@@ -188,6 +350,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       clearProgress: true,
       clearCurrentStage: true,
       clearImportResult: true,
+      clearTableProgress: true,
       viewMode: DbImportViewMode.progress,
     );
 
@@ -200,6 +363,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         statusMessage: 'Import database cleared.',
         clearProgress: true,
         clearCurrentStage: true,
+        clearTableProgress: true,
       );
     } catch (error) {
       final message = _mapDatabaseError(
@@ -222,6 +386,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       clearProgress: true,
       clearCurrentStage: true,
       clearMigrationResult: true,
+      clearTableProgress: true,
       viewMode: DbImportViewMode.progress,
     );
 
@@ -237,6 +402,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         statusMessage: 'Working database cleared.',
         clearProgress: true,
         clearCurrentStage: true,
+        clearTableProgress: true,
       );
     } catch (error) {
       final message = _mapDatabaseError(
@@ -255,6 +421,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       statusMessage: 'Starting import...',
       progress: 0.0,
       stages: stages,
+      tableProgress: const <UiTableMigrationProgress>[],
       showingDebugPanel: false,
       clearImportResult: true,
     );
@@ -291,24 +458,29 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
   }
 
   Future<void> startMigration() async {
-    final stages = _migrationStageTemplate();
+    final stages = _migrationStageTemplate(stageOrder: _handlesMigrationStages);
 
     state = state.copyWith(
       isProcessing: true,
       statusMessage: 'Starting migration...',
       progress: 0.0,
       stages: stages,
+      tableProgress: const <UiTableMigrationProgress>[],
       showingDebugPanel: false,
       clearMigrationResult: true,
     );
 
     try {
-      final service = ref.read(ledgerToWorkingMigrationServiceProvider);
-      final result = await service.runMigration(
-        onProgress: (progress) {
-          _handleMigrationProgress(progress);
-        },
-      );
+      final result = await ref
+          .read(handlesMigrationServiceProvider)
+          .run(
+            onProgress: (DbMigrationProgress progress) {
+              _handleMigrationProgress(progress);
+            },
+            onTableProgress: (TableMigrationProgressEvent event) {
+              _handleTableMigrationProgress(event);
+            },
+          );
 
       final updatedStages = result.success
           ? _markAllStagesComplete(state.stages)
@@ -464,6 +636,65 @@ that prevent migration access. Restarting the app is the best solution.''';
     );
   }
 
+  void _handleTableMigrationProgress(TableMigrationProgressEvent event) {
+    final now = DateTime.now();
+    final entries = List<UiTableMigrationProgress>.of(state.tableProgress);
+    final index = entries.indexWhere(
+      (progress) => progress.tableName == event.tableName,
+    );
+
+    UiTableMigrationPhaseStatus buildStatus(
+      UiTableMigrationPhaseStatus? existing,
+    ) {
+      final startedAt = existing?.startedAt ?? now;
+      switch (event.status) {
+        case TableMigrationStatus.started:
+          return UiTableMigrationPhaseStatus(
+            phase: event.phase,
+            status: event.status,
+            updatedAt: now,
+            startedAt: existing?.startedAt ?? now,
+            message: event.message,
+          );
+        case TableMigrationStatus.succeeded:
+        case TableMigrationStatus.failed:
+          final message = event.message ?? existing?.message;
+          return UiTableMigrationPhaseStatus(
+            phase: event.phase,
+            status: event.status,
+            updatedAt: now,
+            startedAt: existing?.startedAt ?? startedAt,
+            completedAt: now,
+            message: message,
+          );
+      }
+    }
+
+    if (index == -1) {
+      final status = buildStatus(null);
+      entries.add(
+        UiTableMigrationProgress(
+          tableName: event.tableName,
+          displayName: event.displayName,
+          sortIndex: entries.length,
+          phases: <TableMigrationPhase, UiTableMigrationPhaseStatus>{
+            event.phase: status,
+          },
+        ),
+      );
+    } else {
+      final current = entries[index];
+      final phases = Map<TableMigrationPhase, UiTableMigrationPhaseStatus>.from(
+        current.phases,
+      );
+      final status = buildStatus(phases[event.phase]);
+      phases[event.phase] = status;
+      entries[index] = current.copyWith(phases: phases);
+    }
+
+    state = state.copyWith(tableProgress: _sortTableProgress(entries));
+  }
+
   List<UiStageProgress> _importStageTemplate() {
     const stages = DbImportStage.values;
     return List<UiStageProgress>.generate(stages.length, (index) {
@@ -477,8 +708,12 @@ that prevent migration access. Restarting the app is the best solution.''';
     });
   }
 
-  List<UiStageProgress> _migrationStageTemplate() {
-    const stages = DbMigrationStage.values;
+  List<UiStageProgress> _migrationStageTemplate({
+    Iterable<DbMigrationStage>? stageOrder,
+  }) {
+    final stages = stageOrder == null
+        ? DbMigrationStage.values
+        : List<DbMigrationStage>.from(stageOrder);
     return List<UiStageProgress>.generate(stages.length, (index) {
       final stage = stages[index];
       return UiStageProgress(
@@ -488,6 +723,14 @@ that prevent migration access. Restarting the app is the best solution.''';
         isActive: index == 0,
       );
     });
+  }
+
+  List<UiTableMigrationProgress> _sortTableProgress(
+    List<UiTableMigrationProgress> progress,
+  ) {
+    final sorted = List<UiTableMigrationProgress>.of(progress)
+      ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    return sorted;
   }
 
   List<UiStageProgress> _updateStageProgress({

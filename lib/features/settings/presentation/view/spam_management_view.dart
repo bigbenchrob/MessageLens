@@ -50,7 +50,7 @@ class SpamManagementView extends ConsumerWidget {
  * ORIGINAL IMPLEMENTATION TEMPORARILY DISABLED
  * 
  * The spam management UI will include:
- * - MacosSegmentedControl for filtering (All/Blacklisted/Valid)
+ * - MacosSegmentedControl for filtering (All/Blacklisted/Visible)
  * - List of handles with service badges and status indicators
  * - Block/unblock buttons with shield icons  
  * - Chat count statistics per handle

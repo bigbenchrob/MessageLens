@@ -12,13 +12,11 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
 
   @override
   Future<void> validatePrereqs(MigrationContext ctx) async {
-    final messagesWithReadAt = await ctx.workingDb
-        .customSelect('''
+    final messagesWithReadAt = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c
       FROM messages
       WHERE read_at_utc IS NOT NULL AND LENGTH(TRIM(read_at_utc)) > 0;
-    ''')
-        .get();
+    ''').get();
     final candidates = _extractCount(messagesWithReadAt, 'c');
     ctx.log('[message_read_marks] messages with read_at_utc=$candidates');
   }
@@ -46,13 +44,11 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
 
   @override
   Future<void> postValidate(MigrationContext ctx) async {
-    final expectedRows = await ctx.workingDb
-        .customSelect('''
+    final expectedRows = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c
       FROM messages
       WHERE read_at_utc IS NOT NULL AND LENGTH(TRIM(read_at_utc)) > 0;
-    ''')
-        .get();
+    ''').get();
     final expected = _extractCount(expectedRows, 'c');
     final projected = await count(ctx.workingDb, 'message_read_marks');
     ctx.log('[message_read_marks] expected=$expected projected=$projected');

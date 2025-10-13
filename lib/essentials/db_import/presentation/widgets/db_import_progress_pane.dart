@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../db_migrate/domain/states/table_migration_progress.dart';
 import '../view_model/db_import_control_provider.dart';
 
 class DbImportProgressPane extends StatelessWidget {
@@ -101,15 +102,21 @@ class DbImportProgressPane extends StatelessWidget {
                       style: const TextStyle(color: Color(0xFF999999)),
                     ),
                   )
-                : ListView.separated(
-                    itemCount: state.stages.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final stage = state.stages[index];
-                      final duration = stageDurations[stage.name];
-                      return _buildStageItem(stage, duration: duration);
-                    },
+                : ListView(
+                    children: [
+                      ...List<Widget>.generate(state.stages.length, (index) {
+                        final stage = state.stages[index];
+                        final duration = stageDurations[stage.name];
+                        return Padding(
+                          padding: EdgeInsets.only(top: index == 0 ? 0 : 8),
+                          child: _buildStageItem(stage, duration: duration),
+                        );
+                      }),
+                      if (state.tableProgress.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _TableProgressSection(tables: state.tableProgress),
+                      ],
+                    ],
                   ),
           ),
         ],
@@ -229,17 +236,279 @@ class DbImportProgressPane extends StatelessWidget {
       (accumulator, stage) => accumulator + stage.duration!,
     );
   }
+}
 
-  String _formatDurationShort(Duration duration) {
-    if (duration.inMilliseconds < 1000) {
-      return '${duration.inMilliseconds}ms';
+String _formatDurationShort(Duration duration) {
+  if (duration.inMilliseconds < 1000) {
+    return '${duration.inMilliseconds}ms';
+  }
+  if (duration.inSeconds < 60) {
+    final seconds = duration.inMilliseconds / 1000.0;
+    return '${seconds.toStringAsFixed(seconds < 10 ? 2 : 1)}s';
+  }
+  final minutes = duration.inMinutes;
+  final remainingSeconds = duration.inSeconds - minutes * 60;
+  return '${minutes}m ${remainingSeconds}s';
+}
+
+class _TableProgressSection extends StatelessWidget {
+  const _TableProgressSection({required this.tables});
+
+  final List<UiTableMigrationProgress> tables;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tables.isEmpty) {
+      return const SizedBox.shrink();
     }
-    if (duration.inSeconds < 60) {
-      final seconds = duration.inMilliseconds / 1000.0;
-      return '${seconds.toStringAsFixed(seconds < 10 ? 2 : 1)}s';
-    }
-    final minutes = duration.inMinutes;
-    final remainingSeconds = duration.inSeconds - minutes * 60;
-    return '${minutes}m ${remainingSeconds}s';
+
+    final sorted = List<UiTableMigrationProgress>.of(tables)
+      ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Table progress',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        for (var index = 0; index < sorted.length; index++) ...[
+          _TableProgressCard(progress: sorted[index]),
+          if (index != sorted.length - 1) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
+class _TableProgressCard extends StatelessWidget {
+  const _TableProgressCard({required this.progress});
+
+  final UiTableMigrationProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _colorsForOverallStatus(progress.overallStatus);
+    final summary = _overallStatusSummary(progress);
+    final failureMessage = progress.failureMessage;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _statusIcon(progress.overallStatus),
+                size: 16,
+                color: colors.accent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  progress.displayName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.accent,
+                  ),
+                ),
+              ),
+              Text(
+                summary,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colors.accent,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Column(
+            children: [
+              for (final phase in TableMigrationPhase.values) ...[
+                _TablePhaseRow(
+                  phase: phase,
+                  status: progress.statusForPhase(phase),
+                ),
+                if (phase != TableMigrationPhase.values.last)
+                  const SizedBox(height: 6),
+              ],
+            ],
+          ),
+          if (failureMessage != null && failureMessage.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              failureMessage,
+              style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TablePhaseRow extends StatelessWidget {
+  const _TablePhaseRow({required this.phase, required this.status});
+
+  final TableMigrationPhase phase;
+  final UiTableMigrationPhaseStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status?.status);
+    final icon = _statusIcon(status?.status);
+    final statusLabel = _phaseStatusLabel(status);
+    final message = status?.status == TableMigrationStatus.failed
+        ? status?.message
+        : null;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _phaseLabel(phase),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF424242),
+                ),
+              ),
+              Text(statusLabel, style: TextStyle(fontSize: 11, color: color)),
+              if (message != null && message.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFC62828),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TableProgressColors {
+  const _TableProgressColors({
+    required this.background,
+    required this.border,
+    required this.accent,
+  });
+
+  final Color background;
+  final Color border;
+  final Color accent;
+}
+
+_TableProgressColors _colorsForOverallStatus(TableMigrationStatus status) {
+  switch (status) {
+    case TableMigrationStatus.succeeded:
+      return _TableProgressColors(
+        background: const Color(0xFFE8F5E9),
+        border: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+        accent: const Color(0xFF2E7D32),
+      );
+    case TableMigrationStatus.failed:
+      return _TableProgressColors(
+        background: const Color(0xFFFFEBEE),
+        border: const Color(0xFFC62828).withValues(alpha: 0.4),
+        accent: const Color(0xFFC62828),
+      );
+    case TableMigrationStatus.started:
+      return _TableProgressColors(
+        background: const Color(0xFFE3F2FD),
+        border: const Color(0xFF1565C0).withValues(alpha: 0.4),
+        accent: const Color(0xFF1565C0),
+      );
+  }
+}
+
+String _overallStatusSummary(UiTableMigrationProgress progress) {
+  switch (progress.overallStatus) {
+    case TableMigrationStatus.started:
+      return 'In progress';
+    case TableMigrationStatus.succeeded:
+      final duration = progress.duration;
+      if (duration != null) {
+        return 'Completed · ${_formatDurationShort(duration)}';
+      }
+      return 'Completed';
+    case TableMigrationStatus.failed:
+      return 'Failed';
+  }
+}
+
+String _phaseLabel(TableMigrationPhase phase) {
+  switch (phase) {
+    case TableMigrationPhase.validatePrereqs:
+      return 'Validate prerequisites';
+    case TableMigrationPhase.copy:
+      return 'Copy data';
+    case TableMigrationPhase.postValidate:
+      return 'Post-validate results';
+  }
+}
+
+String _phaseStatusLabel(UiTableMigrationPhaseStatus? status) {
+  if (status == null) {
+    return 'Pending';
+  }
+  switch (status.status) {
+    case TableMigrationStatus.started:
+      return 'In progress';
+    case TableMigrationStatus.succeeded:
+      final duration = status.duration;
+      if (duration != null) {
+        return 'Completed · ${_formatDurationShort(duration)}';
+      }
+      return 'Completed';
+    case TableMigrationStatus.failed:
+      return 'Failed';
+  }
+}
+
+Color _statusColor(TableMigrationStatus? status) {
+  switch (status) {
+    case TableMigrationStatus.succeeded:
+      return const Color(0xFF2E7D32);
+    case TableMigrationStatus.failed:
+      return const Color(0xFFC62828);
+    case TableMigrationStatus.started:
+      return const Color(0xFF1565C0);
+    case null:
+      return const Color(0xFF9E9E9E);
+  }
+}
+
+IconData _statusIcon(TableMigrationStatus? status) {
+  switch (status) {
+    case TableMigrationStatus.succeeded:
+      return Icons.check_circle;
+    case TableMigrationStatus.failed:
+      return Icons.error;
+    case TableMigrationStatus.started:
+      return Icons.radio_button_checked;
+    case null:
+      return Icons.radio_button_unchecked;
   }
 }
