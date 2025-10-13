@@ -24,7 +24,9 @@ class MigrationOrchestrator {
       order.add(byName[n]!);
       for (final nxt in graph[n] ?? const <String>[]) {
         indeg[nxt] = (indeg[nxt] ?? 0) - 1;
-        if (indeg[nxt] == 0) q.add(nxt);
+        if (indeg[nxt] == 0) {
+          q.add(nxt);
+        }
       }
     }
     if (order.length != _migrators.length) {

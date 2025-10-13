@@ -1,0 +1,27 @@
+import '../../../application/services/base_table_migrator.dart';
+import '../migration_context_sqlite.dart';
+
+class SupabaseSyncStateMigrator extends BaseTableMigrator {
+  const SupabaseSyncStateMigrator();
+
+  @override
+  String get name => 'supabase_sync_state';
+
+  @override
+  List<String> get dependsOn => const [];
+
+  @override
+  Future<void> validatePrereqs(MigrationContext ctx) async {
+    throw UnimplementedError('SupabaseSyncStateMigrator.validatePrereqs');
+  }
+
+  @override
+  Future<void> copy(MigrationContext ctx) async {
+    throw UnimplementedError('SupabaseSyncStateMigrator.copy');
+  }
+
+  @override
+  Future<void> postValidate(MigrationContext ctx) async {
+    throw UnimplementedError('SupabaseSyncStateMigrator.postValidate');
+  }
+}

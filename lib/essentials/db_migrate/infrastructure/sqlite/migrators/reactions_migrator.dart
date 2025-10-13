@@ -1,0 +1,185 @@
+import 'package:sqflite/sqflite.dart' show Database;
+
+import '../../../application/services/base_table_migrator.dart';
+import '../migration_context_sqlite.dart';
+
+class ReactionsMigrator extends BaseTableMigrator {
+  const ReactionsMigrator();
+
+  static const _attachAlias = 'import_reactions';
+
+  @override
+  String get name => 'reactions';
+
+  @override
+  List<String> get dependsOn => const ['messages', 'handles'];
+
+  @override
+  Future<void> validatePrereqs(MigrationContext ctx) async {
+    final joinable = await _countJoinableReactions(ctx);
+    ctx.log('[reactions] joinable import count = $joinable');
+
+    if (joinable == 0) {
+      ctx.log('[reactions] no reactions with projected carriers; skipping copy');
+      return;
+    }
+
+    final projectedMessages = await count(ctx.workingDb, 'messages');
+    await expectTrueOrThrow(
+      projectedMessages > 0,
+      'REACTIONS_REQUIRES_MESSAGES',
+      'reactions: import has $joinable rows but working database has no messages',
+    );
+
+    final projectedHandles = await count(ctx.workingDb, 'handles');
+    await expectTrueOrThrow(
+      projectedHandles > 0,
+      'REACTIONS_REQUIRES_HANDLES',
+      'reactions: import has $joinable rows but working database has no handles',
+    );
+  }
+
+  @override
+  Future<void> copy(MigrationContext ctx) async {
+    if (ctx.dryRun) {
+      ctx.log('[reactions] dry run – skipping copy');
+      return;
+    }
+
+    final inserted = await _withAttachedImport(ctx, () async {
+      final missingHandlesRows = await ctx.workingDb
+          .customSelect('''
+        SELECT COUNT(*) AS c
+        FROM $_attachAlias.reactions r
+        WHERE r.reactor_handle_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM handles h WHERE h.id = r.reactor_handle_id
+          );
+      ''')
+          .get();
+      final missingHandleCount = _extractCount(missingHandlesRows, 'c');
+      if (missingHandleCount > 0) {
+        ctx.log('[reactions] $missingHandleCount reaction(s) reference missing handles; reactor_handle_id will be null');
+      }
+
+      await ctx.workingDb.customStatement('''
+        INSERT OR REPLACE INTO reactions (
+          id,
+          message_guid,
+          kind,
+          reactor_handle_id,
+          action,
+          reacted_at_utc,
+          carrier_message_id,
+          target_message_guid,
+          parse_confidence
+        )
+        SELECT
+          r.id,
+          wm.guid AS message_guid,
+          r.kind,
+          CASE
+            WHEN rh.id IS NULL THEN NULL
+            ELSE r.reactor_handle_id
+          END AS reactor_handle_id,
+          r.action,
+          r.reacted_at_utc,
+          r.carrier_message_id,
+          r.target_message_guid,
+          COALESCE(r.parse_confidence, 1.0)
+        FROM $_attachAlias.reactions r
+        JOIN $_attachAlias.messages carrier ON carrier.id = r.carrier_message_id
+        JOIN messages wm ON wm.id = carrier.id
+        LEFT JOIN handles rh ON rh.id = r.reactor_handle_id
+        WHERE wm.guid IS NOT NULL AND LENGTH(TRIM(wm.guid)) > 0;
+      ''');
+
+      final rows = await ctx.workingDb
+          .customSelect('SELECT changes() AS c')
+          .get();
+      return _extractCount(rows, 'c');
+    });
+
+    ctx.log('[reactions] inserted $inserted rows');
+  }
+
+  @override
+  Future<void> postValidate(MigrationContext ctx) async {
+    final expected = await _countJoinableReactions(ctx);
+    final projected = await count(ctx.workingDb, 'reactions');
+    ctx.log('[reactions] expected=$expected projected=$projected');
+
+    if (expected == 0) {
+      await expectTrueOrThrow(
+        projected == 0,
+        'REACTIONS_UNEXPECTED_ROWS',
+        'reactions: working has $projected rows but import had none',
+      );
+      return;
+    }
+
+    await expectTrueOrThrow(
+      projected == expected,
+      'REACTIONS_ROW_MISMATCH',
+      'reactions: working has $projected rows but expected $expected',
+    );
+  }
+
+  Future<int> _countJoinableReactions(MigrationContext ctx) async {
+    final Database importSqlite = await ctx.importDb.database;
+    final rows = await importSqlite.rawQuery(
+      'SELECT COUNT(*) AS c '
+      'FROM reactions r '
+      'JOIN messages carrier ON carrier.id = r.carrier_message_id '
+      "WHERE carrier.guid IS NOT NULL AND LENGTH(TRIM(carrier.guid)) > 0",
+    );
+    if (rows.isEmpty) {
+      return 0;
+    }
+    return _coerceToInt(rows.first['c']);
+  }
+
+  Future<T> _withAttachedImport<T>(
+    MigrationContext ctx,
+    Future<T> Function() run,
+  ) async {
+    final Database importSqlite = await ctx.importDb.database;
+    final escapedPath = importSqlite.path.replaceAll("'", "''");
+    await ctx.workingDb.customStatement(
+      "ATTACH DATABASE '$escapedPath' AS $_attachAlias",
+    );
+    try {
+      return await run();
+    } finally {
+      await ctx.workingDb.customStatement('DETACH DATABASE $_attachAlias');
+    }
+  }
+
+  int _extractCount(List<dynamic> rows, String key) {
+    if (rows.isEmpty) {
+      return 0;
+    }
+    final first = rows.first;
+    if (first is Map<String, Object?>) {
+      return _coerceToInt(first[key]);
+    }
+    final data = (first as dynamic).data as Map<String, Object?>;
+    return _coerceToInt(data[key]);
+  }
+
+  int _coerceToInt(Object? value) {
+    if (value == null) {
+      return 0;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is BigInt) {
+      return value.toInt();
+    }
+    return int.parse(value.toString());
+  }
+}
