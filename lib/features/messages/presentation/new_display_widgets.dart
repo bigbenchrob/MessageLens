@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+// ignore: avoid_classes_with_only_static_members
 /// ---- Design tokens & helpers ------------------------------------------------
 
 class MsgTheme {
@@ -177,20 +178,13 @@ class ImageMessageTile extends StatelessWidget {
         sentAt: sentAt,
         messageId: messageId,
       ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: MsgTheme.mediaRadius,
-          border: Border.all(color: MsgTheme.outline),
-        ),
-        child: ClipRRect(
-          borderRadius: MsgTheme.mediaRadius,
-          child: _IntrinsicSizedMedia(
-            child: Image.file(
-              file,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.medium,
-            ),
+      child: ClipRRect(
+        borderRadius: MsgTheme.mediaRadius,
+        child: _IntrinsicSizedMedia(
+          child: Image.file(
+            file,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.medium,
           ),
         ),
       ),
