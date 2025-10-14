@@ -391,9 +391,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     );
 
     try {
-      await ref
-          .read(handlesMigrationServiceProvider)
-          .clearWorkingProjection();
+      await ref.read(handlesMigrationServiceProvider).clearWorkingProjection();
       ref.invalidate(driftWorkingDatabaseProvider);
 
       state = state.copyWith(

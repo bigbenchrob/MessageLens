@@ -1,4 +1,1 @@
-abstract class MessageExtractorPort {
-  Future<Map<int, String>> extractAllMessageTexts({int? limit, String? dbPath});
-  Future<bool> isAvailable();
-}
+export '../../../db_importers/domain/ports/message_extractor_port.dart';

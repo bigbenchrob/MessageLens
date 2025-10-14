@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../../../application/services/base_table_migrator.dart';
 import '../../../../db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
 class HandlesMigrator extends BaseTableMigrator {

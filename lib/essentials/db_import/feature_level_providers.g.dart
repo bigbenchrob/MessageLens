@@ -50,5 +50,27 @@ final ledgerImportServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LedgerImportServiceRef = AutoDisposeProviderRef<LedgerImportService>;
+String _$orchestratedLedgerImportServiceHash() =>
+    r'6aca1303b778d17d459a830947e8049a53a715d9';
+
+/// Experimental orchestrated ledger import service backed by table importers.
+///
+/// Copied from [orchestratedLedgerImportService].
+@ProviderFor(orchestratedLedgerImportService)
+final orchestratedLedgerImportServiceProvider =
+    AutoDisposeProvider<OrchestratedLedgerImportService>.internal(
+      orchestratedLedgerImportService,
+      name: r'orchestratedLedgerImportServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$orchestratedLedgerImportServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef OrchestratedLedgerImportServiceRef =
+    AutoDisposeProviderRef<OrchestratedLedgerImportService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

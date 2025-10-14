@@ -257,9 +257,7 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
     );
 
     try {
-      final result = await ref
-          .read(handlesMigrationServiceProvider)
-          .run();
+      final result = await ref.read(handlesMigrationServiceProvider).run();
 
       state = state.copyWith(lastMigrationResult: result, clearError: true);
 

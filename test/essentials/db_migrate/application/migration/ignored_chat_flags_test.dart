@@ -97,9 +97,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-  final service = container.read(handlesMigrationServiceProvider);
+      final service = container.read(handlesMigrationServiceProvider);
 
-  final result = await service.run();
+      final result = await service.run();
       expect(result.success, isTrue);
 
       final migratedChats = await workingDb
