@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../features/messages/presentation/widgets/message_link_preview_card.dart';
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../application/panels_view_state_provider.dart';
@@ -176,8 +175,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         minWidth: 120,
         startWidth: _endSidebarWidth ?? 280,
         builder: (context, scrollController) {
-          //return ref.watch(rightPanelWidgetProvider);
-          return MessageLinkPreviewCard(messageId: 121823);
+          return ref.watch(rightPanelWidgetProvider);
         },
       ),
       child: MacosScaffold(
