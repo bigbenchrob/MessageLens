@@ -6,7 +6,7 @@ part of 'spam_management_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$spamHandlesHash() => r'cfe575e4e1b41fa733a0a325ffd105e488048f85';
+String _$spamHandlesHash() => r'38bc03d5296865948b40f7bc145275d780f58e5d';
 
 /// Provider for managing spam/blacklisted handles
 ///

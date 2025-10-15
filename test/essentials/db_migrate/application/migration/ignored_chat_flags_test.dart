@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import 'package:remember_this_text/essentials/db/shared/handle_identifier_utils.dart';
 import 'package:remember_this_text/essentials/db_import/application/debug_settings_provider.dart';
 import 'package:remember_this_text/essentials/db_migrate/feature_level_providers.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -51,6 +52,12 @@ void main() {
         id: 1,
         service: 'iMessage',
         rawIdentifier: 'ignored@example.com',
+        normalizedIdentifier: 'ignored@example.com',
+        compoundIdentifier: buildCompoundIdentifier(
+          normalizedIdentifier: 'ignored@example.com',
+          rawIdentifier: 'ignored@example.com',
+          service: 'iMessage',
+        ),
         batchId: batchId,
       );
       await ledger.flagHandleAsIgnored(ignoredHandleId);
@@ -59,6 +66,12 @@ void main() {
         id: 2,
         service: 'iMessage',
         rawIdentifier: 'active@example.com',
+        normalizedIdentifier: 'active@example.com',
+        compoundIdentifier: buildCompoundIdentifier(
+          normalizedIdentifier: 'active@example.com',
+          rawIdentifier: 'active@example.com',
+          service: 'iMessage',
+        ),
         batchId: batchId,
       );
 

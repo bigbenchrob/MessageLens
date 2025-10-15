@@ -26,16 +26,18 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
 
     final handleCount = await count(ctx.workingDb, 'handles');
     await expectTrueOrThrow(
-      handleCount > 0,
-      'HANDLE_LINKS_REQUIRES_HANDLES',
-      'handle_to_participant: import has $importLinks links but working database has no handles',
+      ok: handleCount > 0,
+      errorCode: 'HANDLE_LINKS_REQUIRES_HANDLES',
+      message:
+          'handle_to_participant: import has $importLinks links but working database has no handles',
     );
 
     final participantCount = await count(ctx.workingDb, 'participants');
     await expectTrueOrThrow(
-      participantCount > 0,
-      'HANDLE_LINKS_REQUIRES_PARTICIPANTS',
-      'handle_to_participant: import has $importLinks links but working database has no participants',
+      ok: participantCount > 0,
+      errorCode: 'HANDLE_LINKS_REQUIRES_PARTICIPANTS',
+      message:
+          'handle_to_participant: import has $importLinks links but working database has no participants',
     );
   }
 
@@ -117,7 +119,57 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
       final rows = await ctx.workingDb
           .customSelect('SELECT changes() AS c')
           .get();
-      return _extractCount(rows, 'c');
+      final insertCount = _extractCount(rows, 'c');
+
+      // Debug: Check if any were skipped due to OR IGNORE
+      final expectedToInsert = await ctx.workingDb.customSelect('''
+        SELECT COUNT(*) AS c
+        FROM $_attachAlias.contact_to_chat_handle cth
+        JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
+        JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
+        JOIN handle_canonical_map map
+          ON map.source_handle_id = cth.chat_handle_id
+        JOIN handles wh ON wh.id = map.canonical_handle_id
+        JOIN participants p ON p.id = c.Z_PK
+      ''').get();
+      final expectedCount = _extractCount(expectedToInsert, 'c');
+
+      if (insertCount < expectedCount) {
+        ctx.log(
+          '[handle_to_participant] INSERT OR IGNORE skipped ${expectedCount - insertCount} duplicate(s)',
+        );
+
+        // Find which ones were skipped
+        final duplicates = await ctx.workingDb.customSelect('''
+          SELECT 
+            map.canonical_handle_id,
+            c.Z_PK AS participant_id,
+            h.id AS source_handle_id
+          FROM $_attachAlias.contact_to_chat_handle cth
+          JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
+          JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
+          JOIN handle_canonical_map map
+            ON map.source_handle_id = cth.chat_handle_id
+          JOIN handles wh ON wh.id = map.canonical_handle_id
+          JOIN participants p ON p.id = c.Z_PK
+          WHERE EXISTS (
+            SELECT 1 FROM handle_to_participant htp
+            WHERE htp.handle_id = map.canonical_handle_id
+              AND htp.participant_id = c.Z_PK
+          )
+        ''').get();
+
+        for (final dup in duplicates) {
+          final handleId = _coerceToInt(dup.data['canonical_handle_id']);
+          final participantId = _coerceToInt(dup.data['participant_id']);
+          final sourceHandleId = _coerceToInt(dup.data['source_handle_id']);
+          ctx.log(
+            '[handle_to_participant] duplicate: source_handle=$sourceHandleId → canonical_handle=$handleId, participant=$participantId (already exists)',
+          );
+        }
+      }
+
+      return insertCount;
     });
 
     ctx.log('[handle_to_participant] inserted $inserted rows');
@@ -127,7 +179,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
   Future<void> postValidate(MigrationContext ctx) async {
     final expected = await _withAttachedImport(ctx, () async {
       final rows = await ctx.workingDb.customSelect('''
-        SELECT COUNT(*) AS c
+        SELECT COUNT(DISTINCT map.canonical_handle_id || '-' || c.Z_PK) AS c
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
@@ -144,17 +196,19 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
 
     if (expected == 0) {
       await expectTrueOrThrow(
-        projected == 0,
-        'HANDLE_LINKS_UNEXPECTED_ROWS',
-        'handle_to_participant: working has $projected rows but import had none',
+        ok: projected == 0,
+        errorCode: 'HANDLE_LINKS_UNEXPECTED_ROWS',
+        message:
+            'handle_to_participant: working has $projected rows but import had none',
       );
       return;
     }
 
     await expectTrueOrThrow(
-      projected == expected,
-      'HANDLE_LINKS_ROW_MISMATCH',
-      'handle_to_participant: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'HANDLE_LINKS_ROW_MISMATCH',
+      message:
+          'handle_to_participant: working has $projected rows but expected $expected',
     );
   }
 

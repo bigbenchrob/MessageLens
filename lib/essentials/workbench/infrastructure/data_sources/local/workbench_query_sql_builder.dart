@@ -45,16 +45,14 @@ class WorkbenchQuerySqlBuilder {
     }
 
     if (searchText != null && searchText.isNotEmpty) {
-      clauses.add(
-        '(h.raw_identifier LIKE ? OR h.normalized_identifier LIKE ?)',
-      );
+      clauses.add('(h.raw_identifier LIKE ? OR h.compound_identifier LIKE ?)');
       final pattern = '%$searchText%';
       params.addAll([pattern, pattern]);
     }
 
     final buffer = StringBuffer(
       'SELECT h.id, h.service, h.raw_identifier, '
-      'h.normalized_identifier, h.country, h.last_seen_utc, h.is_ignored '
+      'h.compound_identifier, h.country, h.last_seen_utc, h.is_ignored '
       'FROM handles h',
     );
 

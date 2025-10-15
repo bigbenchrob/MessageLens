@@ -54,9 +54,10 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
     ctx.log('[message_read_marks] expected=$expected projected=$projected');
 
     await expectTrueOrThrow(
-      projected == expected,
-      'MESSAGE_READ_MARKS_ROW_MISMATCH',
-      'message_read_marks: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'MESSAGE_READ_MARKS_ROW_MISMATCH',
+      message:
+          'message_read_marks: working has $projected rows but expected $expected',
     );
   }
 

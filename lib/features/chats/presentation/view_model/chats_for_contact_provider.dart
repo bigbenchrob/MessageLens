@@ -99,7 +99,7 @@ Future<List<ContactChatSummary>> chatsForContact(
             .getSingle()
             .then((row) => row.read(db.workingMessages.id.count()) ?? 0);
 
-    final handleDisplay = handle.normalizedIdentifier ?? handle.rawIdentifier;
+    final handleDisplay = handle.compoundIdentifier;
 
     // Create chat title based on whether it's a group or individual chat
     String chatTitle;

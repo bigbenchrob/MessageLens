@@ -26,6 +26,12 @@ class MsgTheme {
   static const metadataGrey = Color(0xFF6E6E73); // SF secondary label-ish
   static const outline = Color(0x1F000000); // subtle border on white
   static const linkBannerBlack = Colors.black;
+  static const highlightOnBlue = Color(
+    0xFF0056B3,
+  ); // darker blue for contrast with white text
+  static const highlightOnGray = Color(
+    0xFFB3D7FF,
+  ); // light blue for search highlighting
 
   // Text styles
   static TextStyle get bodyOnBlue =>
@@ -38,7 +44,7 @@ class MsgTheme {
       const TextStyle(color: metadataGrey, fontSize: 11, height: 1.2);
 
   // Layout helper for left / right
-  static Alignment alignmentFor(bool isMe) =>
+  static Alignment alignmentFor({required bool isMe}) =>
       isMe ? Alignment.centerRight : Alignment.centerLeft;
 
   // Horizontal padding of the conversation viewport
@@ -122,6 +128,7 @@ class TextMessageTile extends StatelessWidget {
     required this.sender,
     required this.sentAt,
     required this.messageId,
+    this.highlight,
   });
 
   final bool isMe;
@@ -129,11 +136,21 @@ class TextMessageTile extends StatelessWidget {
   final String sender;
   final DateTime sentAt;
   final int messageId;
+  final String? highlight;
 
   @override
   Widget build(BuildContext context) {
     final bg = isMe ? MsgTheme.bubbleBlue : MsgTheme.bubbleGray;
     final style = isMe ? MsgTheme.bodyOnBlue : MsgTheme.bodyOnGray;
+    final highlightStyle = style.copyWith(
+      backgroundColor: isMe
+          ? MsgTheme.highlightOnBlue
+          : MsgTheme.highlightOnGray,
+    );
+    final contentSpan = _buildContentSpan(
+      baseStyle: style,
+      highlightStyle: highlightStyle,
+    );
 
     return MessageShell(
       isMe: isMe,
@@ -145,9 +162,53 @@ class TextMessageTile extends StatelessWidget {
       child: Container(
         padding: MsgTheme.bubblePadding,
         decoration: BoxDecoration(color: bg, borderRadius: MsgTheme.textRadius),
-        child: SelectableText(text, style: style),
+        child: SelectableText.rich(contentSpan),
       ),
     );
+  }
+
+  TextSpan _buildContentSpan({
+    required TextStyle baseStyle,
+    required TextStyle highlightStyle,
+  }) {
+    final query = highlight?.trim();
+    if (query == null || query.isEmpty) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    var start = 0;
+    var matchIndex = lowerText.indexOf(lowerQuery, start);
+
+    while (matchIndex != -1) {
+      if (matchIndex > start) {
+        spans.add(
+          TextSpan(text: text.substring(start, matchIndex), style: baseStyle),
+        );
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(matchIndex, matchIndex + query.length),
+          style: highlightStyle,
+        ),
+      );
+
+      start = matchIndex + query.length;
+      matchIndex = lowerText.indexOf(lowerQuery, start);
+    }
+
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start), style: baseStyle));
+    }
+
+    if (spans.isEmpty) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
+    return TextSpan(children: spans);
   }
 }
 
@@ -224,7 +285,9 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
     _controller = VideoPlayerController.file(widget.file)
       ..setLooping(true)
       ..initialize().then((_) {
-        if (mounted) setState(() => _ready = true);
+        if (mounted) {
+          setState(() => _ready = true);
+        }
       });
   }
 
@@ -235,7 +298,9 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
   }
 
   void _toggle() {
-    if (!_ready) return;
+    if (!_ready) {
+      return;
+    }
     if (_controller.value.isPlaying) {
       _controller.pause();
     } else {

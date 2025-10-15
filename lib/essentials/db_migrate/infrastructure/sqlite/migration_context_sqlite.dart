@@ -1,6 +1,13 @@
 import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 
+class CanonicalHandleInfo {
+  const CanonicalHandleInfo({required this.compound, required this.display});
+
+  final String compound;
+  final String display;
+}
+
 /// Common context shared by all migrators.
 class MigrationContext {
   final SqfliteImportDatabase importDb;
@@ -8,17 +15,15 @@ class MigrationContext {
   final bool dryRun;
   final void Function(String msg) log;
   final Map<int, int> handleIdCanonicalMap;
-  final Map<int, String> canonicalHandleNormalized;
-  final Map<int, String> canonicalHandleDisplay;
+  final Map<int, CanonicalHandleInfo> canonicalHandleInfo;
   MigrationContext({
     required this.importDb,
     required this.workingDb,
     this.dryRun = false,
     required this.log,
     Map<int, int>? handleIdCanonicalMap,
-    Map<int, String>? canonicalHandleNormalized,
-    Map<int, String>? canonicalHandleDisplay,
+    Map<int, CanonicalHandleInfo>? canonicalHandleInfo,
   }) : handleIdCanonicalMap = handleIdCanonicalMap ?? <int, int>{},
-       canonicalHandleNormalized = canonicalHandleNormalized ?? <int, String>{},
-       canonicalHandleDisplay = canonicalHandleDisplay ?? <int, String>{};
+       canonicalHandleInfo =
+           canonicalHandleInfo ?? <int, CanonicalHandleInfo>{};
 }

@@ -23,16 +23,18 @@ class ChatToHandleMigrator extends BaseTableMigrator {
 
     final projectedChats = await count(ctx.workingDb, 'chats');
     await expectTrueOrThrow(
-      projectedChats > 0,
-      'CHAT_TO_HANDLE_MISSING_CHATS',
-      'chat_to_handle: import has $importLinks rows but working database has no chats',
+      ok: projectedChats > 0,
+      errorCode: 'CHAT_TO_HANDLE_MISSING_CHATS',
+      message:
+          'chat_to_handle: import has $importLinks rows but working database has no chats',
     );
 
     final projectedHandles = await count(ctx.workingDb, 'handles');
     await expectTrueOrThrow(
-      projectedHandles > 0,
-      'CHAT_TO_HANDLE_MISSING_HANDLES',
-      'chat_to_handle: import has $importLinks rows but working database has no handles',
+      ok: projectedHandles > 0,
+      errorCode: 'CHAT_TO_HANDLE_MISSING_HANDLES',
+      message:
+          'chat_to_handle: import has $importLinks rows but working database has no handles',
     );
   }
 
@@ -138,9 +140,10 @@ class ChatToHandleMigrator extends BaseTableMigrator {
     ctx.log('[chat_to_handle] expected=$expected projected=$projected');
 
     await expectTrueOrThrow(
-      projected == expected,
-      'CHAT_TO_HANDLE_ROW_MISMATCH',
-      'chat_to_handle: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'CHAT_TO_HANDLE_ROW_MISMATCH',
+      message:
+          'chat_to_handle: working has $projected rows but expected $expected',
     );
   }
 

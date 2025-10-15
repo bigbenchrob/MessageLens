@@ -64,11 +64,14 @@ abstract class BaseTableImporter implements TableImporter {
     return Future<void>.value();
   }
 
-  Future<void> expectTrueOrThrow(bool ok, String errorCode, String message) {
+  Future<void> expectTrueOrThrow({
+    required bool ok,
+    required String errorCode,
+    required String message,
+  }) async {
     if (!ok) {
       throw ImportException(code: errorCode, message: message);
     }
-    return Future<void>.value();
   }
 }
 

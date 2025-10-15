@@ -78,7 +78,7 @@ Future<List<UnlinkedHandle>> unlinkedHandles(Ref ref) async {
     results.add(
       UnlinkedHandle(
         id: handle.id,
-        handleId: handle.normalizedIdentifier ?? handle.rawIdentifier,
+        handleId: handle.compoundIdentifier,
         service: handle.service,
         chatCount: chatCount,
       ),

@@ -17,9 +17,9 @@ class ChatsMigrator extends BaseTableMigrator {
     final importCount = await _countImportRowsWithGuid(ctx);
     ctx.log('[chats] import count = $importCount');
     await expectTrueOrThrow(
-      importCount > 0,
-      'CHATS_NO_SOURCE_ROWS',
-      'chats: import database returned zero rows',
+      ok: importCount > 0,
+      errorCode: 'CHATS_NO_SOURCE_ROWS',
+      message: 'chats: import database returned zero rows',
     );
   }
 
@@ -70,9 +70,9 @@ class ChatsMigrator extends BaseTableMigrator {
     final dst = await count(ctx.workingDb, 'chats');
     ctx.log('[chats] src=$src dst=$dst');
     await expectTrueOrThrow(
-      dst == src,
-      'CHATS_ROW_MISMATCH',
-      'chats: working has $dst rows but import has $src',
+      ok: dst == src,
+      errorCode: 'CHATS_ROW_MISMATCH',
+      message: 'chats: working has $dst rows but import has $src',
     );
   }
 

@@ -103,9 +103,9 @@ class ContactsImporter extends BaseTableImporter {
   Future<void> postValidate(ImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
-      total > 0,
-      'contacts-empty',
-      'Contacts table should contain rows after import.',
+      ok: total > 0,
+      errorCode: 'contacts-empty',
+      message: 'Contacts table should contain rows after import.',
     );
   }
 }

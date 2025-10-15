@@ -53,9 +53,9 @@ class ReadStateMigrator extends BaseTableMigrator {
     ctx.log('[read_state] expected=$expected projected=$projected');
 
     await expectTrueOrThrow(
-      projected == expected,
-      'READ_STATE_ROW_MISMATCH',
-      'read_state: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'READ_STATE_ROW_MISMATCH',
+      message: 'read_state: working has $projected rows but expected $expected',
     );
   }
 

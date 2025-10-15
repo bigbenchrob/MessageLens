@@ -75,11 +75,11 @@ abstract class BaseTableMigrator implements TableMigrator {
     }
   }
 
-  Future<void> expectTrueOrThrow(
-    bool ok,
-    String errorCode,
-    String message,
-  ) async {
+  Future<void> expectTrueOrThrow({
+    required bool ok,
+    required String errorCode,
+    required String message,
+  }) async {
     if (!ok) {
       throw MigrationException(code: errorCode, message: message);
     }

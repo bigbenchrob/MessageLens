@@ -87,9 +87,10 @@ class ReactionCountsMigrator extends BaseTableMigrator {
     ctx.log('[reaction_counts] expected=$sourceCount projected=$tallies');
 
     await expectTrueOrThrow(
-      tallies == sourceCount,
-      'REACTION_COUNTS_ROW_MISMATCH',
-      'reaction_counts: working has $tallies rows but expected $sourceCount',
+      ok: tallies == sourceCount,
+      errorCode: 'REACTION_COUNTS_ROW_MISMATCH',
+      message:
+          'reaction_counts: working has $tallies rows but expected $sourceCount',
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../../db/shared/handle_identifier_utils.dart';
 import '../../../application/services/base_table_migrator.dart';
 import '../migration_context_sqlite.dart';
 
@@ -24,17 +25,17 @@ class HandlesMigrator extends BaseTableMigrator {
         ? 'no result'
         : integrityRows.first.values.first;
     await expectTrueOrThrow(
-      integrityStatus == 'ok',
-      'HANDLES_INTEGRITY_CHECK_FAILED',
-      'handles: PRAGMA integrity_check returned "$integrityStatus"',
+      ok: integrityStatus == 'ok',
+      errorCode: 'HANDLES_INTEGRITY_CHECK_FAILED',
+      message: 'handles: PRAGMA integrity_check returned "$integrityStatus"',
     );
 
     final importCount = await count(ctx.importDb, 'handles');
     ctx.log('[handles] import count = $importCount');
     await expectTrueOrThrow(
-      importCount > 0,
-      'HANDLES_NO_SOURCE_ROWS',
-      'handles: import database returned zero rows',
+      ok: importCount > 0,
+      errorCode: 'HANDLES_NO_SOURCE_ROWS',
+      message: 'handles: import database returned zero rows',
     );
 
     final duplicateIds = await _singleInt(importDb, '''
@@ -47,6 +48,20 @@ class HandlesMigrator extends BaseTableMigrator {
       'HANDLES_DUPLICATE_PRIMARY_KEY',
       'handles: duplicate id values detected in import database',
     );
+
+    final duplicateCompoundIdentifiers = await _singleInt(importDb, '''
+      SELECT COUNT(*) FROM (
+        SELECT compound_identifier FROM handles
+        WHERE compound_identifier IS NOT NULL AND TRIM(compound_identifier) <> ''
+        GROUP BY compound_identifier
+        HAVING COUNT(*) > 1
+      )
+    ''');
+    if (duplicateCompoundIdentifiers > 0) {
+      ctx.log(
+        '[handles] detected $duplicateCompoundIdentifiers compound identifier group(s); variants will be merged into canonical handles',
+      );
+    }
 
     final missingIdentifiers = await _singleInt(importDb, '''
       SELECT COUNT(*) FROM handles
@@ -78,8 +93,7 @@ class HandlesMigrator extends BaseTableMigrator {
     }
 
     ctx.handleIdCanonicalMap.clear();
-    ctx.canonicalHandleNormalized.clear();
-    ctx.canonicalHandleDisplay.clear();
+    ctx.canonicalHandleInfo.clear();
 
     final importDb = await ctx.importDb.database;
     final sourceRows = await importDb.query('handles');
@@ -90,36 +104,47 @@ class HandlesMigrator extends BaseTableMigrator {
       if (parsed == null) {
         continue;
       }
-      final key = '${parsed.service}::${parsed.canonicalNormalized}';
+      final key = parsed.compoundIdentifier;
       final group = groups.putIfAbsent(
         key,
         () => _HandleGroup(
           service: parsed.service,
           normalized: parsed.canonicalNormalized,
+          compoundIdentifier: parsed.compoundIdentifier,
         ),
       );
       group.rows.add(parsed);
     }
 
     final canonicalHandles = <_CanonicalHandle>[];
-    final mappingEntries = <int, int>{};
+    final aliasRows = <_AliasRow>[];
 
     for (final group in groups.values) {
       final canonical = group.toCanonical();
       canonicalHandles.add(canonical);
 
-      for (final aliasId in canonical.aliasIds) {
-        mappingEntries[aliasId] = canonical.id;
-        ctx.handleIdCanonicalMap[aliasId] = canonical.id;
+      for (final parsed in group.rows) {
+        ctx.handleIdCanonicalMap[parsed.id] = canonical.id;
+        aliasRows.add(
+          _AliasRow(
+            sourceId: parsed.id,
+            canonicalId: canonical.id,
+            rawIdentifier: parsed.rawIdentifier,
+            compoundIdentifier: parsed.compoundIdentifier,
+            normalizedIdentifier: parsed.canonicalNormalized,
+            service: parsed.service,
+            aliasKind: _classifyAlias(parsed, canonical),
+          ),
+        );
       }
-      ctx.canonicalHandleNormalized[canonical.id] =
-          canonical.normalizedIdentifier;
-      ctx.canonicalHandleDisplay[canonical.id] = canonical.rawIdentifier;
+      ctx.canonicalHandleInfo[canonical.id] = CanonicalHandleInfo(
+        compound: canonical.compoundIdentifier,
+        display: canonical.displayName,
+      );
     }
 
     canonicalHandles.sort((a, b) => a.id.compareTo(b.id));
 
-    await _ensureCanonicalMapTable(ctx);
     await _clearCanonicalMap(ctx);
 
     await ctx.workingDb.transaction(() async {
@@ -132,7 +157,8 @@ class HandlesMigrator extends BaseTableMigrator {
             WorkingHandlesCompanion.insert(
               id: Value(handle.id),
               rawIdentifier: handle.rawIdentifier,
-              normalizedIdentifier: Value(handle.normalizedIdentifier),
+              displayName: handle.displayName,
+              compoundIdentifier: handle.compoundIdentifier,
               service: Value(handle.service),
               isIgnored: Value(handle.isIgnored),
               isVisible: Value(!handle.isIgnored),
@@ -146,15 +172,23 @@ class HandlesMigrator extends BaseTableMigrator {
         }
       });
 
-      if (mappingEntries.isNotEmpty) {
+      if (aliasRows.isNotEmpty) {
         await ctx.workingDb.batch((batch) {
-          mappingEntries.forEach((sourceId, canonicalId) {
-            batch.customStatement(
-              'INSERT OR REPLACE INTO handle_canonical_map '
-              '(source_handle_id, canonical_handle_id) VALUES (?, ?)',
-              <Object>[sourceId, canonicalId],
+          for (final alias in aliasRows) {
+            batch.insert(
+              ctx.workingDb.handleCanonicalMap,
+              HandleCanonicalMapCompanion.insert(
+                sourceHandleId: Value(alias.sourceId),
+                canonicalHandleId: alias.canonicalId,
+                rawIdentifier: alias.rawIdentifier,
+                compoundIdentifier: alias.compoundIdentifier,
+                normalizedIdentifier: alias.normalizedIdentifier,
+                service: Value(alias.service),
+                aliasKind: Value(alias.aliasKind),
+              ),
+              mode: InsertMode.insertOrReplace,
             );
-          });
+          }
         });
       }
     });
@@ -168,14 +202,12 @@ class HandlesMigrator extends BaseTableMigrator {
       final preview = aliases.take(5).join(', ');
       final suffix = aliases.length > 5 ? '…' : '';
       ctx.log(
-        '[handles] canonical ${handle.id} collapsed '
-        '${aliases.length} alias id(s): $preview$suffix',
+        '[handles] canonical ${handle.id} collapsed ${aliases.length} alias id(s): $preview$suffix',
       );
     }
 
     ctx.log(
-      '[handles] projected ${canonicalHandles.length} canonical handle(s) '
-      'from ${sourceRows.length} source row(s)',
+      '[handles] projected ${canonicalHandles.length} canonical handle(s) from ${sourceRows.length} source row(s)',
     );
   }
 
@@ -188,15 +220,17 @@ class HandlesMigrator extends BaseTableMigrator {
     ctx.log('[handles] src=$src canonical=$canonical projected=$dst');
 
     await expectTrueOrThrow(
-      mapped == src,
-      'HANDLES_MAP_INCOMPLETE',
-      'handles: canonical map has $mapped entries but import has $src rows',
+      ok: mapped == src,
+      errorCode: 'HANDLES_MAP_INCOMPLETE',
+      message:
+          'handles: canonical map has $mapped entries but import has $src rows',
     );
 
     await expectTrueOrThrow(
-      dst == canonical,
-      'HANDLES_ROW_MISMATCH',
-      'handles: working has $dst rows but expected $canonical canonical rows',
+      ok: dst == canonical,
+      errorCode: 'HANDLES_ROW_MISMATCH',
+      message:
+          'handles: working has $dst rows but expected $canonical canonical rows',
     );
   }
 
@@ -218,26 +252,60 @@ class HandlesMigrator extends BaseTableMigrator {
     return int.tryParse(value.toString()) ?? 0;
   }
 
-  Future<void> _ensureCanonicalMapTable(MigrationContext ctx) async {
-    // Downstream migrators join this table to translate import handle ids.
-    await ctx.workingDb.customStatement(
-      'CREATE TEMP TABLE IF NOT EXISTS handle_canonical_map ('
-      'source_handle_id INTEGER PRIMARY KEY, '
-      'canonical_handle_id INTEGER NOT NULL'
-      ')',
-    );
-  }
-
   Future<void> _clearCanonicalMap(MigrationContext ctx) async {
     await ctx.workingDb.customStatement('DELETE FROM handle_canonical_map');
   }
 }
 
+class _AliasRow {
+  const _AliasRow({
+    required this.sourceId,
+    required this.canonicalId,
+    required this.rawIdentifier,
+    required this.compoundIdentifier,
+    required this.normalizedIdentifier,
+    required this.service,
+    required this.aliasKind,
+  });
+
+  final int sourceId;
+  final int canonicalId;
+  final String rawIdentifier;
+  final String compoundIdentifier;
+  final String normalizedIdentifier;
+  final String service;
+  final String aliasKind;
+}
+
+String _classifyAlias(_ParsedHandle alias, _CanonicalHandle canonical) {
+  if (alias.id == canonical.id) {
+    return 'canonical';
+  }
+  final aliasStripped = _stripKnownSchemes(alias.rawIdentifier);
+  final canonicalStripped = _stripKnownSchemes(canonical.rawIdentifier);
+  if (aliasStripped == canonicalStripped &&
+      alias.rawIdentifier != canonical.rawIdentifier) {
+    return 'scheme_variant';
+  }
+  if (alias.compoundIdentifier == canonical.compoundIdentifier) {
+    return 'format_variant';
+  }
+  if (alias.canonicalNormalized == canonical.normalizedIdentifier) {
+    return 'normalized_variant';
+  }
+  return 'variant';
+}
+
 class _HandleGroup {
-  _HandleGroup({required this.service, required this.normalized});
+  _HandleGroup({
+    required this.service,
+    required this.normalized,
+    required this.compoundIdentifier,
+  });
 
   final String service;
   final String normalized;
+  final String compoundIdentifier;
   final List<_ParsedHandle> rows = <_ParsedHandle>[];
 
   _CanonicalHandle toCanonical() {
@@ -258,11 +326,14 @@ class _HandleGroup {
     final lastSeen = _pickLatestTimestamp(rows.map((row) => row.lastSeenUtc));
     final batchId = _pickMaxInt(rows.map((row) => row.batchId));
     final display = _deriveDisplay(rows, normalized);
+    final canonicalRaw = canonicalRow.rawIdentifier.trim();
 
     return _CanonicalHandle(
       id: canonicalRow.id,
-      rawIdentifier: display,
+      rawIdentifier: canonicalRaw,
+      displayName: display,
       normalizedIdentifier: normalized,
+      compoundIdentifier: compoundIdentifier,
       service: service,
       isIgnored: isIgnored,
       country: country,
@@ -279,6 +350,7 @@ class _ParsedHandle {
     required this.service,
     required this.rawIdentifier,
     required this.canonicalNormalized,
+    required this.compoundIdentifier,
     required this.isIgnored,
     this.country,
     this.lastSeenUtc,
@@ -289,6 +361,7 @@ class _ParsedHandle {
   final String service;
   final String rawIdentifier;
   final String canonicalNormalized;
+  final String compoundIdentifier;
   final bool isIgnored;
   final String? country;
   final String? lastSeenUtc;
@@ -299,7 +372,9 @@ class _CanonicalHandle {
   const _CanonicalHandle({
     required this.id,
     required this.rawIdentifier,
+    required this.displayName,
     required this.normalizedIdentifier,
+    required this.compoundIdentifier,
     required this.service,
     required this.isIgnored,
     required this.country,
@@ -310,7 +385,9 @@ class _CanonicalHandle {
 
   final int id;
   final String rawIdentifier;
+  final String displayName;
   final String normalizedIdentifier;
+  final String compoundIdentifier;
   final String service;
   final bool isIgnored;
   final String? country;
@@ -327,9 +404,18 @@ _ParsedHandle? _parseImportHandle(Map<String, Object?> row) {
   }
 
   final id = _coerceToInt(idValue);
-  final resolvedService = _sanitizeService(row['service'] as String?);
+  final resolvedService = sanitizeHandleService(row['service'] as String?);
   final normalizedFromRow = row['normalized_identifier'] as String?;
   final canonicalNormalized = _resolveNormalized(raw, normalizedFromRow);
+  final compoundFromRow = (row['compound_identifier'] as String?)?.trim();
+  final compoundIdentifier =
+      (compoundFromRow != null && compoundFromRow.isNotEmpty)
+      ? compoundFromRow
+      : buildCompoundIdentifier(
+          normalizedIdentifier: canonicalNormalized,
+          rawIdentifier: raw,
+          service: resolvedService,
+        );
   final isIgnored = (row['is_ignored'] as int?) == 1;
   final countryRaw = (row['country'] as String?)?.trim();
   final lastSeenRaw = (row['last_seen_utc'] as String?)?.trim();
@@ -340,19 +426,12 @@ _ParsedHandle? _parseImportHandle(Map<String, Object?> row) {
     service: resolvedService,
     rawIdentifier: raw.trim(),
     canonicalNormalized: canonicalNormalized,
+    compoundIdentifier: compoundIdentifier,
     isIgnored: isIgnored,
     country: countryRaw?.isEmpty == true ? null : countryRaw,
     lastSeenUtc: lastSeenRaw?.isEmpty == true ? null : lastSeenRaw,
     batchId: batchId,
   );
-}
-
-String _sanitizeService(String? service) {
-  final trimmed = service?.trim();
-  if (trimmed == null || trimmed.isEmpty) {
-    return 'Unknown';
-  }
-  return trimmed;
 }
 
 String _resolveNormalized(String raw, String? normalized) {

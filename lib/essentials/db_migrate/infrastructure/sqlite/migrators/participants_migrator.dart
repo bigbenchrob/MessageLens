@@ -25,9 +25,10 @@ class ParticipantsMigrator extends BaseTableMigrator {
 
     final handlesProjected = await count(ctx.workingDb, 'handles');
     await expectTrueOrThrow(
-      handlesProjected > 0,
-      'PARTICIPANTS_REQUIRES_HANDLES',
-      'participants: import has $importCount rows but working database has no handles',
+      ok: handlesProjected > 0,
+      errorCode: 'PARTICIPANTS_REQUIRES_HANDLES',
+      message:
+          'participants: import has $importCount rows but working database has no handles',
     );
   }
 
@@ -96,17 +97,19 @@ class ParticipantsMigrator extends BaseTableMigrator {
 
     if (expected == 0) {
       await expectTrueOrThrow(
-        projected == 0,
-        'PARTICIPANTS_UNEXPECTED_ROWS',
-        'participants: working has $projected rows but import had none',
+        ok: projected == 0,
+        errorCode: 'PARTICIPANTS_UNEXPECTED_ROWS',
+        message:
+            'participants: working has $projected rows but import had none',
       );
       return;
     }
 
     await expectTrueOrThrow(
-      projected == expected,
-      'PARTICIPANTS_ROW_MISMATCH',
-      'participants: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'PARTICIPANTS_ROW_MISMATCH',
+      message:
+          'participants: working has $projected rows but expected $expected',
     );
   }
 

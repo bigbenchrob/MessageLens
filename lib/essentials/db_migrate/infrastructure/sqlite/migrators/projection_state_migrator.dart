@@ -14,9 +14,9 @@ class ProjectionStateMigrator extends BaseTableMigrator {
   Future<void> validatePrereqs(MigrationContext ctx) async {
     final batchId = await _latestBatchId(ctx);
     await expectTrueOrThrow(
-      batchId != null,
-      'PROJECTION_STATE_NO_BATCH',
-      'projection_state: import database contains no batches',
+      ok: batchId != null,
+      errorCode: 'PROJECTION_STATE_NO_BATCH',
+      message: 'projection_state: import database contains no batches',
     );
     ctx.log('[projection_state] latest batch id=$batchId');
   }
@@ -60,17 +60,17 @@ class ProjectionStateMigrator extends BaseTableMigrator {
         .get();
 
     await expectTrueOrThrow(
-      rows.length == 1,
-      'PROJECTION_STATE_ROW_MISSING',
-      'projection_state: expected singleton row with id=1',
+      ok: rows.length == 1,
+      errorCode: 'PROJECTION_STATE_ROW_MISSING',
+      message: 'projection_state: expected singleton row with id=1',
     );
 
     final data = rows.first.data;
     final lastBatch = data['last_import_batch_id'] as int?;
     await expectTrueOrThrow(
-      lastBatch != null,
-      'PROJECTION_STATE_BATCH_NULL',
-      'projection_state: last_import_batch_id is null',
+      ok: lastBatch != null,
+      errorCode: 'PROJECTION_STATE_BATCH_NULL',
+      message: 'projection_state: last_import_batch_id is null',
     );
     ctx.log(
       '[projection_state] batch=$lastBatch lastMessage=${data['last_projected_message_id']} lastAttachment=${data['last_projected_attachment_id']}',

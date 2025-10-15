@@ -26,16 +26,18 @@ class ReactionsMigrator extends BaseTableMigrator {
 
     final projectedMessages = await count(ctx.workingDb, 'messages');
     await expectTrueOrThrow(
-      projectedMessages > 0,
-      'REACTIONS_REQUIRES_MESSAGES',
-      'reactions: import has $joinable rows but working database has no messages',
+      ok: projectedMessages > 0,
+      errorCode: 'REACTIONS_REQUIRES_MESSAGES',
+      message:
+          'reactions: import has $joinable rows but working database has no messages',
     );
 
     final projectedHandles = await count(ctx.workingDb, 'handles');
     await expectTrueOrThrow(
-      projectedHandles > 0,
-      'REACTIONS_REQUIRES_HANDLES',
-      'reactions: import has $joinable rows but working database has no handles',
+      ok: projectedHandles > 0,
+      errorCode: 'REACTIONS_REQUIRES_HANDLES',
+      message:
+          'reactions: import has $joinable rows but working database has no handles',
     );
   }
 
@@ -52,11 +54,9 @@ class ReactionsMigrator extends BaseTableMigrator {
         FROM $_attachAlias.reactions r
         WHERE r.reactor_handle_id IS NOT NULL
           AND NOT EXISTS (
-            SELECT 1
-            FROM handle_canonical_map map
-            JOIN handles h ON h.id = map.canonical_handle_id
+            SELECT 1 FROM handle_canonical_map map
             WHERE map.source_handle_id = r.reactor_handle_id
-          );
+          )
       ''').get();
       final missingHandleCount = _extractCount(missingHandlesRows, 'c');
       if (missingHandleCount > 0) {
@@ -116,17 +116,17 @@ class ReactionsMigrator extends BaseTableMigrator {
 
     if (expected == 0) {
       await expectTrueOrThrow(
-        projected == 0,
-        'REACTIONS_UNEXPECTED_ROWS',
-        'reactions: working has $projected rows but import had none',
+        ok: projected == 0,
+        errorCode: 'REACTIONS_UNEXPECTED_ROWS',
+        message: 'reactions: working has $projected rows but import had none',
       );
       return;
     }
 
     await expectTrueOrThrow(
-      projected == expected,
-      'REACTIONS_ROW_MISMATCH',
-      'reactions: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'REACTIONS_ROW_MISMATCH',
+      message: 'reactions: working has $projected rows but expected $expected',
     );
   }
 

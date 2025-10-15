@@ -862,16 +862,27 @@ class $WorkingHandlesTable extends WorkingHandles
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _normalizedIdentifierMeta =
-      const VerificationMeta('normalizedIdentifier');
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
   @override
-  late final GeneratedColumn<String> normalizedIdentifier =
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _compoundIdentifierMeta =
+      const VerificationMeta('compoundIdentifier');
+  @override
+  late final GeneratedColumn<String> compoundIdentifier =
       GeneratedColumn<String>(
-        'normalized_identifier',
+        'compound_identifier',
         aliasedName,
-        true,
+        false,
         type: DriftSqlType.string,
-        requiredDuringInsert: false,
+        requiredDuringInsert: true,
       );
   static const VerificationMeta _serviceMeta = const VerificationMeta(
     'service',
@@ -969,7 +980,8 @@ class $WorkingHandlesTable extends WorkingHandles
   List<GeneratedColumn> get $columns => [
     id,
     rawIdentifier,
-    normalizedIdentifier,
+    displayName,
+    compoundIdentifier,
     service,
     isIgnored,
     isVisible,
@@ -1004,14 +1016,27 @@ class $WorkingHandlesTable extends WorkingHandles
     } else if (isInserting) {
       context.missing(_rawIdentifierMeta);
     }
-    if (data.containsKey('normalized_identifier')) {
+    if (data.containsKey('display_name')) {
       context.handle(
-        _normalizedIdentifierMeta,
-        normalizedIdentifier.isAcceptableOrUnknown(
-          data['normalized_identifier']!,
-          _normalizedIdentifierMeta,
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('compound_identifier')) {
+      context.handle(
+        _compoundIdentifierMeta,
+        compoundIdentifier.isAcceptableOrUnknown(
+          data['compound_identifier']!,
+          _compoundIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_compoundIdentifierMeta);
     }
     if (data.containsKey('service')) {
       context.handle(
@@ -1068,8 +1093,8 @@ class $WorkingHandlesTable extends WorkingHandles
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   List<Set<GeneratedColumn>> get uniqueKeys => [
+    {compoundIdentifier},
     {rawIdentifier, service},
-    {service, normalizedIdentifier},
   ];
   @override
   WorkingHandle map(Map<String, dynamic> data, {String? tablePrefix}) {
@@ -1083,10 +1108,14 @@ class $WorkingHandlesTable extends WorkingHandles
         DriftSqlType.string,
         data['${effectivePrefix}raw_identifier'],
       )!,
-      normalizedIdentifier: attachedDatabase.typeMapping.read(
+      displayName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}normalized_identifier'],
-      ),
+        data['${effectivePrefix}display_name'],
+      )!,
+      compoundIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}compound_identifier'],
+      )!,
       service: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}service'],
@@ -1127,7 +1156,8 @@ class $WorkingHandlesTable extends WorkingHandles
 class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   final int id;
   final String rawIdentifier;
-  final String? normalizedIdentifier;
+  final String displayName;
+  final String compoundIdentifier;
   final String service;
   final bool isIgnored;
   final bool isVisible;
@@ -1138,7 +1168,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   const WorkingHandle({
     required this.id,
     required this.rawIdentifier,
-    this.normalizedIdentifier,
+    required this.displayName,
+    required this.compoundIdentifier,
     required this.service,
     required this.isIgnored,
     required this.isVisible,
@@ -1152,9 +1183,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['raw_identifier'] = Variable<String>(rawIdentifier);
-    if (!nullToAbsent || normalizedIdentifier != null) {
-      map['normalized_identifier'] = Variable<String>(normalizedIdentifier);
-    }
+    map['display_name'] = Variable<String>(displayName);
+    map['compound_identifier'] = Variable<String>(compoundIdentifier);
     map['service'] = Variable<String>(service);
     map['is_ignored'] = Variable<bool>(isIgnored);
     map['is_visible'] = Variable<bool>(isVisible);
@@ -1175,9 +1205,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return WorkingHandlesCompanion(
       id: Value(id),
       rawIdentifier: Value(rawIdentifier),
-      normalizedIdentifier: normalizedIdentifier == null && nullToAbsent
-          ? const Value.absent()
-          : Value(normalizedIdentifier),
+      displayName: Value(displayName),
+      compoundIdentifier: Value(compoundIdentifier),
       service: Value(service),
       isIgnored: Value(isIgnored),
       isVisible: Value(isVisible),
@@ -1202,8 +1231,9 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return WorkingHandle(
       id: serializer.fromJson<int>(json['id']),
       rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
-      normalizedIdentifier: serializer.fromJson<String?>(
-        json['normalizedIdentifier'],
+      displayName: serializer.fromJson<String>(json['displayName']),
+      compoundIdentifier: serializer.fromJson<String>(
+        json['compoundIdentifier'],
       ),
       service: serializer.fromJson<String>(json['service']),
       isIgnored: serializer.fromJson<bool>(json['isIgnored']),
@@ -1220,7 +1250,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'rawIdentifier': serializer.toJson<String>(rawIdentifier),
-      'normalizedIdentifier': serializer.toJson<String?>(normalizedIdentifier),
+      'displayName': serializer.toJson<String>(displayName),
+      'compoundIdentifier': serializer.toJson<String>(compoundIdentifier),
       'service': serializer.toJson<String>(service),
       'isIgnored': serializer.toJson<bool>(isIgnored),
       'isVisible': serializer.toJson<bool>(isVisible),
@@ -1234,7 +1265,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   WorkingHandle copyWith({
     int? id,
     String? rawIdentifier,
-    Value<String?> normalizedIdentifier = const Value.absent(),
+    String? displayName,
+    String? compoundIdentifier,
     String? service,
     bool? isIgnored,
     bool? isVisible,
@@ -1245,9 +1277,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   }) => WorkingHandle(
     id: id ?? this.id,
     rawIdentifier: rawIdentifier ?? this.rawIdentifier,
-    normalizedIdentifier: normalizedIdentifier.present
-        ? normalizedIdentifier.value
-        : this.normalizedIdentifier,
+    displayName: displayName ?? this.displayName,
+    compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
     service: service ?? this.service,
     isIgnored: isIgnored ?? this.isIgnored,
     isVisible: isVisible ?? this.isVisible,
@@ -1262,9 +1293,12 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
       rawIdentifier: data.rawIdentifier.present
           ? data.rawIdentifier.value
           : this.rawIdentifier,
-      normalizedIdentifier: data.normalizedIdentifier.present
-          ? data.normalizedIdentifier.value
-          : this.normalizedIdentifier,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      compoundIdentifier: data.compoundIdentifier.present
+          ? data.compoundIdentifier.value
+          : this.compoundIdentifier,
       service: data.service.present ? data.service.value : this.service,
       isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
       isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
@@ -1284,7 +1318,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
     return (StringBuffer('WorkingHandle(')
           ..write('id: $id, ')
           ..write('rawIdentifier: $rawIdentifier, ')
-          ..write('normalizedIdentifier: $normalizedIdentifier, ')
+          ..write('displayName: $displayName, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
           ..write('service: $service, ')
           ..write('isIgnored: $isIgnored, ')
           ..write('isVisible: $isVisible, ')
@@ -1300,7 +1335,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
   int get hashCode => Object.hash(
     id,
     rawIdentifier,
-    normalizedIdentifier,
+    displayName,
+    compoundIdentifier,
     service,
     isIgnored,
     isVisible,
@@ -1315,7 +1351,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
       (other is WorkingHandle &&
           other.id == this.id &&
           other.rawIdentifier == this.rawIdentifier &&
-          other.normalizedIdentifier == this.normalizedIdentifier &&
+          other.displayName == this.displayName &&
+          other.compoundIdentifier == this.compoundIdentifier &&
           other.service == this.service &&
           other.isIgnored == this.isIgnored &&
           other.isVisible == this.isVisible &&
@@ -1328,7 +1365,8 @@ class WorkingHandle extends DataClass implements Insertable<WorkingHandle> {
 class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   final Value<int> id;
   final Value<String> rawIdentifier;
-  final Value<String?> normalizedIdentifier;
+  final Value<String> displayName;
+  final Value<String> compoundIdentifier;
   final Value<String> service;
   final Value<bool> isIgnored;
   final Value<bool> isVisible;
@@ -1339,7 +1377,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   const WorkingHandlesCompanion({
     this.id = const Value.absent(),
     this.rawIdentifier = const Value.absent(),
-    this.normalizedIdentifier = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.compoundIdentifier = const Value.absent(),
     this.service = const Value.absent(),
     this.isIgnored = const Value.absent(),
     this.isVisible = const Value.absent(),
@@ -1351,7 +1390,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   WorkingHandlesCompanion.insert({
     this.id = const Value.absent(),
     required String rawIdentifier,
-    this.normalizedIdentifier = const Value.absent(),
+    required String displayName,
+    required String compoundIdentifier,
     this.service = const Value.absent(),
     this.isIgnored = const Value.absent(),
     this.isVisible = const Value.absent(),
@@ -1359,11 +1399,14 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     this.country = const Value.absent(),
     this.lastSeenUtc = const Value.absent(),
     this.batchId = const Value.absent(),
-  }) : rawIdentifier = Value(rawIdentifier);
+  }) : rawIdentifier = Value(rawIdentifier),
+       displayName = Value(displayName),
+       compoundIdentifier = Value(compoundIdentifier);
   static Insertable<WorkingHandle> custom({
     Expression<int>? id,
     Expression<String>? rawIdentifier,
-    Expression<String>? normalizedIdentifier,
+    Expression<String>? displayName,
+    Expression<String>? compoundIdentifier,
     Expression<String>? service,
     Expression<bool>? isIgnored,
     Expression<bool>? isVisible,
@@ -1375,8 +1418,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (rawIdentifier != null) 'raw_identifier': rawIdentifier,
-      if (normalizedIdentifier != null)
-        'normalized_identifier': normalizedIdentifier,
+      if (displayName != null) 'display_name': displayName,
+      if (compoundIdentifier != null) 'compound_identifier': compoundIdentifier,
       if (service != null) 'service': service,
       if (isIgnored != null) 'is_ignored': isIgnored,
       if (isVisible != null) 'is_visible': isVisible,
@@ -1390,7 +1433,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   WorkingHandlesCompanion copyWith({
     Value<int>? id,
     Value<String>? rawIdentifier,
-    Value<String?>? normalizedIdentifier,
+    Value<String>? displayName,
+    Value<String>? compoundIdentifier,
     Value<String>? service,
     Value<bool>? isIgnored,
     Value<bool>? isVisible,
@@ -1402,7 +1446,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     return WorkingHandlesCompanion(
       id: id ?? this.id,
       rawIdentifier: rawIdentifier ?? this.rawIdentifier,
-      normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
+      displayName: displayName ?? this.displayName,
+      compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
       service: service ?? this.service,
       isIgnored: isIgnored ?? this.isIgnored,
       isVisible: isVisible ?? this.isVisible,
@@ -1422,10 +1467,11 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     if (rawIdentifier.present) {
       map['raw_identifier'] = Variable<String>(rawIdentifier.value);
     }
-    if (normalizedIdentifier.present) {
-      map['normalized_identifier'] = Variable<String>(
-        normalizedIdentifier.value,
-      );
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (compoundIdentifier.present) {
+      map['compound_identifier'] = Variable<String>(compoundIdentifier.value);
     }
     if (service.present) {
       map['service'] = Variable<String>(service.value);
@@ -1456,7 +1502,8 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
     return (StringBuffer('WorkingHandlesCompanion(')
           ..write('id: $id, ')
           ..write('rawIdentifier: $rawIdentifier, ')
-          ..write('normalizedIdentifier: $normalizedIdentifier, ')
+          ..write('displayName: $displayName, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
           ..write('service: $service, ')
           ..write('isIgnored: $isIgnored, ')
           ..write('isVisible: $isVisible, ')
@@ -2571,6 +2618,500 @@ class HandleToParticipantCompanion
           ..write('participantId: $participantId, ')
           ..write('confidence: $confidence, ')
           ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HandleCanonicalMapTable extends HandleCanonicalMap
+    with TableInfo<$HandleCanonicalMapTable, HandleCanonicalMapData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HandleCanonicalMapTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sourceHandleIdMeta = const VerificationMeta(
+    'sourceHandleId',
+  );
+  @override
+  late final GeneratedColumn<int> sourceHandleId = GeneratedColumn<int>(
+    'source_handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _canonicalHandleIdMeta = const VerificationMeta(
+    'canonicalHandleId',
+  );
+  @override
+  late final GeneratedColumn<int> canonicalHandleId = GeneratedColumn<int>(
+    'canonical_handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _rawIdentifierMeta = const VerificationMeta(
+    'rawIdentifier',
+  );
+  @override
+  late final GeneratedColumn<String> rawIdentifier = GeneratedColumn<String>(
+    'raw_identifier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _compoundIdentifierMeta =
+      const VerificationMeta('compoundIdentifier');
+  @override
+  late final GeneratedColumn<String> compoundIdentifier =
+      GeneratedColumn<String>(
+        'compound_identifier',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _normalizedIdentifierMeta =
+      const VerificationMeta('normalizedIdentifier');
+  @override
+  late final GeneratedColumn<String> normalizedIdentifier =
+      GeneratedColumn<String>(
+        'normalized_identifier',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _serviceMeta = const VerificationMeta(
+    'service',
+  );
+  @override
+  late final GeneratedColumn<String> service = GeneratedColumn<String>(
+    'service',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT \'Unknown\' CHECK(service IN (\'iMessage\',\'iMessageLite\',\'SMS\',\'RCS\',\'Unknown\'))',
+    defaultValue: const CustomExpression('\'Unknown\''),
+  );
+  static const VerificationMeta _aliasKindMeta = const VerificationMeta(
+    'aliasKind',
+  );
+  @override
+  late final GeneratedColumn<String> aliasKind = GeneratedColumn<String>(
+    'alias_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('variant'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sourceHandleId,
+    canonicalHandleId,
+    rawIdentifier,
+    compoundIdentifier,
+    normalizedIdentifier,
+    service,
+    aliasKind,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'handle_canonical_map';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HandleCanonicalMapData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('source_handle_id')) {
+      context.handle(
+        _sourceHandleIdMeta,
+        sourceHandleId.isAcceptableOrUnknown(
+          data['source_handle_id']!,
+          _sourceHandleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('canonical_handle_id')) {
+      context.handle(
+        _canonicalHandleIdMeta,
+        canonicalHandleId.isAcceptableOrUnknown(
+          data['canonical_handle_id']!,
+          _canonicalHandleIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_canonicalHandleIdMeta);
+    }
+    if (data.containsKey('raw_identifier')) {
+      context.handle(
+        _rawIdentifierMeta,
+        rawIdentifier.isAcceptableOrUnknown(
+          data['raw_identifier']!,
+          _rawIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_rawIdentifierMeta);
+    }
+    if (data.containsKey('compound_identifier')) {
+      context.handle(
+        _compoundIdentifierMeta,
+        compoundIdentifier.isAcceptableOrUnknown(
+          data['compound_identifier']!,
+          _compoundIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_compoundIdentifierMeta);
+    }
+    if (data.containsKey('normalized_identifier')) {
+      context.handle(
+        _normalizedIdentifierMeta,
+        normalizedIdentifier.isAcceptableOrUnknown(
+          data['normalized_identifier']!,
+          _normalizedIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedIdentifierMeta);
+    }
+    if (data.containsKey('service')) {
+      context.handle(
+        _serviceMeta,
+        service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
+      );
+    }
+    if (data.containsKey('alias_kind')) {
+      context.handle(
+        _aliasKindMeta,
+        aliasKind.isAcceptableOrUnknown(data['alias_kind']!, _aliasKindMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sourceHandleId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {canonicalHandleId, rawIdentifier},
+  ];
+  @override
+  HandleCanonicalMapData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HandleCanonicalMapData(
+      sourceHandleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_handle_id'],
+      )!,
+      canonicalHandleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}canonical_handle_id'],
+      )!,
+      rawIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_identifier'],
+      )!,
+      compoundIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}compound_identifier'],
+      )!,
+      normalizedIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_identifier'],
+      )!,
+      service: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service'],
+      )!,
+      aliasKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alias_kind'],
+      )!,
+    );
+  }
+
+  @override
+  $HandleCanonicalMapTable createAlias(String alias) {
+    return $HandleCanonicalMapTable(attachedDatabase, alias);
+  }
+}
+
+class HandleCanonicalMapData extends DataClass
+    implements Insertable<HandleCanonicalMapData> {
+  final int sourceHandleId;
+  final int canonicalHandleId;
+  final String rawIdentifier;
+  final String compoundIdentifier;
+  final String normalizedIdentifier;
+  final String service;
+  final String aliasKind;
+  const HandleCanonicalMapData({
+    required this.sourceHandleId,
+    required this.canonicalHandleId,
+    required this.rawIdentifier,
+    required this.compoundIdentifier,
+    required this.normalizedIdentifier,
+    required this.service,
+    required this.aliasKind,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['source_handle_id'] = Variable<int>(sourceHandleId);
+    map['canonical_handle_id'] = Variable<int>(canonicalHandleId);
+    map['raw_identifier'] = Variable<String>(rawIdentifier);
+    map['compound_identifier'] = Variable<String>(compoundIdentifier);
+    map['normalized_identifier'] = Variable<String>(normalizedIdentifier);
+    map['service'] = Variable<String>(service);
+    map['alias_kind'] = Variable<String>(aliasKind);
+    return map;
+  }
+
+  HandleCanonicalMapCompanion toCompanion(bool nullToAbsent) {
+    return HandleCanonicalMapCompanion(
+      sourceHandleId: Value(sourceHandleId),
+      canonicalHandleId: Value(canonicalHandleId),
+      rawIdentifier: Value(rawIdentifier),
+      compoundIdentifier: Value(compoundIdentifier),
+      normalizedIdentifier: Value(normalizedIdentifier),
+      service: Value(service),
+      aliasKind: Value(aliasKind),
+    );
+  }
+
+  factory HandleCanonicalMapData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HandleCanonicalMapData(
+      sourceHandleId: serializer.fromJson<int>(json['sourceHandleId']),
+      canonicalHandleId: serializer.fromJson<int>(json['canonicalHandleId']),
+      rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
+      compoundIdentifier: serializer.fromJson<String>(
+        json['compoundIdentifier'],
+      ),
+      normalizedIdentifier: serializer.fromJson<String>(
+        json['normalizedIdentifier'],
+      ),
+      service: serializer.fromJson<String>(json['service']),
+      aliasKind: serializer.fromJson<String>(json['aliasKind']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sourceHandleId': serializer.toJson<int>(sourceHandleId),
+      'canonicalHandleId': serializer.toJson<int>(canonicalHandleId),
+      'rawIdentifier': serializer.toJson<String>(rawIdentifier),
+      'compoundIdentifier': serializer.toJson<String>(compoundIdentifier),
+      'normalizedIdentifier': serializer.toJson<String>(normalizedIdentifier),
+      'service': serializer.toJson<String>(service),
+      'aliasKind': serializer.toJson<String>(aliasKind),
+    };
+  }
+
+  HandleCanonicalMapData copyWith({
+    int? sourceHandleId,
+    int? canonicalHandleId,
+    String? rawIdentifier,
+    String? compoundIdentifier,
+    String? normalizedIdentifier,
+    String? service,
+    String? aliasKind,
+  }) => HandleCanonicalMapData(
+    sourceHandleId: sourceHandleId ?? this.sourceHandleId,
+    canonicalHandleId: canonicalHandleId ?? this.canonicalHandleId,
+    rawIdentifier: rawIdentifier ?? this.rawIdentifier,
+    compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
+    normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
+    service: service ?? this.service,
+    aliasKind: aliasKind ?? this.aliasKind,
+  );
+  HandleCanonicalMapData copyWithCompanion(HandleCanonicalMapCompanion data) {
+    return HandleCanonicalMapData(
+      sourceHandleId: data.sourceHandleId.present
+          ? data.sourceHandleId.value
+          : this.sourceHandleId,
+      canonicalHandleId: data.canonicalHandleId.present
+          ? data.canonicalHandleId.value
+          : this.canonicalHandleId,
+      rawIdentifier: data.rawIdentifier.present
+          ? data.rawIdentifier.value
+          : this.rawIdentifier,
+      compoundIdentifier: data.compoundIdentifier.present
+          ? data.compoundIdentifier.value
+          : this.compoundIdentifier,
+      normalizedIdentifier: data.normalizedIdentifier.present
+          ? data.normalizedIdentifier.value
+          : this.normalizedIdentifier,
+      service: data.service.present ? data.service.value : this.service,
+      aliasKind: data.aliasKind.present ? data.aliasKind.value : this.aliasKind,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleCanonicalMapData(')
+          ..write('sourceHandleId: $sourceHandleId, ')
+          ..write('canonicalHandleId: $canonicalHandleId, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
+          ..write('service: $service, ')
+          ..write('aliasKind: $aliasKind')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sourceHandleId,
+    canonicalHandleId,
+    rawIdentifier,
+    compoundIdentifier,
+    normalizedIdentifier,
+    service,
+    aliasKind,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HandleCanonicalMapData &&
+          other.sourceHandleId == this.sourceHandleId &&
+          other.canonicalHandleId == this.canonicalHandleId &&
+          other.rawIdentifier == this.rawIdentifier &&
+          other.compoundIdentifier == this.compoundIdentifier &&
+          other.normalizedIdentifier == this.normalizedIdentifier &&
+          other.service == this.service &&
+          other.aliasKind == this.aliasKind);
+}
+
+class HandleCanonicalMapCompanion
+    extends UpdateCompanion<HandleCanonicalMapData> {
+  final Value<int> sourceHandleId;
+  final Value<int> canonicalHandleId;
+  final Value<String> rawIdentifier;
+  final Value<String> compoundIdentifier;
+  final Value<String> normalizedIdentifier;
+  final Value<String> service;
+  final Value<String> aliasKind;
+  const HandleCanonicalMapCompanion({
+    this.sourceHandleId = const Value.absent(),
+    this.canonicalHandleId = const Value.absent(),
+    this.rawIdentifier = const Value.absent(),
+    this.compoundIdentifier = const Value.absent(),
+    this.normalizedIdentifier = const Value.absent(),
+    this.service = const Value.absent(),
+    this.aliasKind = const Value.absent(),
+  });
+  HandleCanonicalMapCompanion.insert({
+    this.sourceHandleId = const Value.absent(),
+    required int canonicalHandleId,
+    required String rawIdentifier,
+    required String compoundIdentifier,
+    required String normalizedIdentifier,
+    this.service = const Value.absent(),
+    this.aliasKind = const Value.absent(),
+  }) : canonicalHandleId = Value(canonicalHandleId),
+       rawIdentifier = Value(rawIdentifier),
+       compoundIdentifier = Value(compoundIdentifier),
+       normalizedIdentifier = Value(normalizedIdentifier);
+  static Insertable<HandleCanonicalMapData> custom({
+    Expression<int>? sourceHandleId,
+    Expression<int>? canonicalHandleId,
+    Expression<String>? rawIdentifier,
+    Expression<String>? compoundIdentifier,
+    Expression<String>? normalizedIdentifier,
+    Expression<String>? service,
+    Expression<String>? aliasKind,
+  }) {
+    return RawValuesInsertable({
+      if (sourceHandleId != null) 'source_handle_id': sourceHandleId,
+      if (canonicalHandleId != null) 'canonical_handle_id': canonicalHandleId,
+      if (rawIdentifier != null) 'raw_identifier': rawIdentifier,
+      if (compoundIdentifier != null) 'compound_identifier': compoundIdentifier,
+      if (normalizedIdentifier != null)
+        'normalized_identifier': normalizedIdentifier,
+      if (service != null) 'service': service,
+      if (aliasKind != null) 'alias_kind': aliasKind,
+    });
+  }
+
+  HandleCanonicalMapCompanion copyWith({
+    Value<int>? sourceHandleId,
+    Value<int>? canonicalHandleId,
+    Value<String>? rawIdentifier,
+    Value<String>? compoundIdentifier,
+    Value<String>? normalizedIdentifier,
+    Value<String>? service,
+    Value<String>? aliasKind,
+  }) {
+    return HandleCanonicalMapCompanion(
+      sourceHandleId: sourceHandleId ?? this.sourceHandleId,
+      canonicalHandleId: canonicalHandleId ?? this.canonicalHandleId,
+      rawIdentifier: rawIdentifier ?? this.rawIdentifier,
+      compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
+      normalizedIdentifier: normalizedIdentifier ?? this.normalizedIdentifier,
+      service: service ?? this.service,
+      aliasKind: aliasKind ?? this.aliasKind,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sourceHandleId.present) {
+      map['source_handle_id'] = Variable<int>(sourceHandleId.value);
+    }
+    if (canonicalHandleId.present) {
+      map['canonical_handle_id'] = Variable<int>(canonicalHandleId.value);
+    }
+    if (rawIdentifier.present) {
+      map['raw_identifier'] = Variable<String>(rawIdentifier.value);
+    }
+    if (compoundIdentifier.present) {
+      map['compound_identifier'] = Variable<String>(compoundIdentifier.value);
+    }
+    if (normalizedIdentifier.present) {
+      map['normalized_identifier'] = Variable<String>(
+        normalizedIdentifier.value,
+      );
+    }
+    if (service.present) {
+      map['service'] = Variable<String>(service.value);
+    }
+    if (aliasKind.present) {
+      map['alias_kind'] = Variable<String>(aliasKind.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleCanonicalMapCompanion(')
+          ..write('sourceHandleId: $sourceHandleId, ')
+          ..write('canonicalHandleId: $canonicalHandleId, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
+          ..write('normalizedIdentifier: $normalizedIdentifier, ')
+          ..write('service: $service, ')
+          ..write('aliasKind: $aliasKind')
           ..write(')'))
         .toString();
   }
@@ -8701,6 +9242,8 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
       $WorkingParticipantsTable(this);
   late final $HandleToParticipantTable handleToParticipant =
       $HandleToParticipantTable(this);
+  late final $HandleCanonicalMapTable handleCanonicalMap =
+      $HandleCanonicalMapTable(this);
   late final $WorkingChatsTable workingChats = $WorkingChatsTable(this);
   late final $ChatToHandleTable chatToHandle = $ChatToHandleTable(this);
   late final $WorkingMessagesTable workingMessages = $WorkingMessagesTable(
@@ -8732,6 +9275,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     workingHandles,
     workingParticipants,
     handleToParticipant,
+    handleCanonicalMap,
     workingChats,
     chatToHandle,
     workingMessages,
@@ -8758,6 +9302,13 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('handle_to_participant', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'handles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('handle_canonical_map', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -9331,7 +9882,8 @@ typedef $$WorkingHandlesTableCreateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
       required String rawIdentifier,
-      Value<String?> normalizedIdentifier,
+      required String displayName,
+      required String compoundIdentifier,
       Value<String> service,
       Value<bool> isIgnored,
       Value<bool> isVisible,
@@ -9344,7 +9896,8 @@ typedef $$WorkingHandlesTableUpdateCompanionBuilder =
     WorkingHandlesCompanion Function({
       Value<int> id,
       Value<String> rawIdentifier,
-      Value<String?> normalizedIdentifier,
+      Value<String> displayName,
+      Value<String> compoundIdentifier,
       Value<String> service,
       Value<bool> isIgnored,
       Value<bool> isVisible,
@@ -9384,6 +9937,33 @@ final class $$WorkingHandlesTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _handleToParticipantRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $HandleCanonicalMapTable,
+    List<HandleCanonicalMapData>
+  >
+  _handleCanonicalMapRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.handleCanonicalMap,
+        aliasName: $_aliasNameGenerator(
+          db.workingHandles.id,
+          db.handleCanonicalMap.canonicalHandleId,
+        ),
+      );
+
+  $$HandleCanonicalMapTableProcessedTableManager get handleCanonicalMapRefs {
+    final manager = $$HandleCanonicalMapTableTableManager(
+      $_db,
+      $_db.handleCanonicalMap,
+    ).filter((f) => f.canonicalHandleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _handleCanonicalMapRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -9500,8 +10080,13 @@ class $$WorkingHandlesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get normalizedIdentifier => $composableBuilder(
-    column: $table.normalizedIdentifier,
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9556,6 +10141,31 @@ class $$WorkingHandlesTableFilterComposer
           }) => $$HandleToParticipantTableFilterComposer(
             $db: $db,
             $table: $db.handleToParticipant,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> handleCanonicalMapRefs(
+    Expression<bool> Function($$HandleCanonicalMapTableFilterComposer f) f,
+  ) {
+    final $$HandleCanonicalMapTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.handleCanonicalMap,
+      getReferencedColumn: (t) => t.canonicalHandleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HandleCanonicalMapTableFilterComposer(
+            $db: $db,
+            $table: $db.handleCanonicalMap,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -9685,8 +10295,13 @@ class $$WorkingHandlesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get normalizedIdentifier => $composableBuilder(
-    column: $table.normalizedIdentifier,
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -9743,8 +10358,13 @@ class $$WorkingHandlesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get normalizedIdentifier => $composableBuilder(
-    column: $table.normalizedIdentifier,
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
     builder: (column) => column,
   );
 
@@ -9790,6 +10410,32 @@ class $$WorkingHandlesTableAnnotationComposer
               }) => $$HandleToParticipantTableAnnotationComposer(
                 $db: $db,
                 $table: $db.handleToParticipant,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> handleCanonicalMapRefs<T extends Object>(
+    Expression<T> Function($$HandleCanonicalMapTableAnnotationComposer a) f,
+  ) {
+    final $$HandleCanonicalMapTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.handleCanonicalMap,
+          getReferencedColumn: (t) => t.canonicalHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$HandleCanonicalMapTableAnnotationComposer(
+                $db: $db,
+                $table: $db.handleCanonicalMap,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -9915,6 +10561,7 @@ class $$WorkingHandlesTableTableManager
           WorkingHandle,
           PrefetchHooks Function({
             bool handleToParticipantRefs,
+            bool handleCanonicalMapRefs,
             bool workingChatsRefs,
             bool chatToHandleRefs,
             bool workingMessagesRefs,
@@ -9938,7 +10585,8 @@ class $$WorkingHandlesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> rawIdentifier = const Value.absent(),
-                Value<String?> normalizedIdentifier = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> compoundIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<bool> isIgnored = const Value.absent(),
                 Value<bool> isVisible = const Value.absent(),
@@ -9949,7 +10597,8 @@ class $$WorkingHandlesTableTableManager
               }) => WorkingHandlesCompanion(
                 id: id,
                 rawIdentifier: rawIdentifier,
-                normalizedIdentifier: normalizedIdentifier,
+                displayName: displayName,
+                compoundIdentifier: compoundIdentifier,
                 service: service,
                 isIgnored: isIgnored,
                 isVisible: isVisible,
@@ -9962,7 +10611,8 @@ class $$WorkingHandlesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String rawIdentifier,
-                Value<String?> normalizedIdentifier = const Value.absent(),
+                required String displayName,
+                required String compoundIdentifier,
                 Value<String> service = const Value.absent(),
                 Value<bool> isIgnored = const Value.absent(),
                 Value<bool> isVisible = const Value.absent(),
@@ -9973,7 +10623,8 @@ class $$WorkingHandlesTableTableManager
               }) => WorkingHandlesCompanion.insert(
                 id: id,
                 rawIdentifier: rawIdentifier,
-                normalizedIdentifier: normalizedIdentifier,
+                displayName: displayName,
+                compoundIdentifier: compoundIdentifier,
                 service: service,
                 isIgnored: isIgnored,
                 isVisible: isVisible,
@@ -9993,6 +10644,7 @@ class $$WorkingHandlesTableTableManager
           prefetchHooksCallback:
               ({
                 handleToParticipantRefs = false,
+                handleCanonicalMapRefs = false,
                 workingChatsRefs = false,
                 chatToHandleRefs = false,
                 workingMessagesRefs = false,
@@ -10002,6 +10654,7 @@ class $$WorkingHandlesTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (handleToParticipantRefs) db.handleToParticipant,
+                    if (handleCanonicalMapRefs) db.handleCanonicalMap,
                     if (workingChatsRefs) db.workingChats,
                     if (chatToHandleRefs) db.chatToHandle,
                     if (workingMessagesRefs) db.workingMessages,
@@ -10028,6 +10681,27 @@ class $$WorkingHandlesTableTableManager
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.handleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (handleCanonicalMapRefs)
+                        await $_getPrefetchedData<
+                          WorkingHandle,
+                          $WorkingHandlesTable,
+                          HandleCanonicalMapData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingHandlesTableReferences
+                              ._handleCanonicalMapRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingHandlesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).handleCanonicalMapRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.canonicalHandleId == item.id,
                               ),
                           typedResults: items,
                         ),
@@ -10137,6 +10811,7 @@ typedef $$WorkingHandlesTableProcessedTableManager =
       WorkingHandle,
       PrefetchHooks Function({
         bool handleToParticipantRefs,
+        bool handleCanonicalMapRefs,
         bool workingChatsRefs,
         bool chatToHandleRefs,
         bool workingMessagesRefs,
@@ -11049,6 +11724,384 @@ typedef $$HandleToParticipantTableProcessedTableManager =
       (HandleToParticipantData, $$HandleToParticipantTableReferences),
       HandleToParticipantData,
       PrefetchHooks Function({bool handleId, bool participantId})
+    >;
+typedef $$HandleCanonicalMapTableCreateCompanionBuilder =
+    HandleCanonicalMapCompanion Function({
+      Value<int> sourceHandleId,
+      required int canonicalHandleId,
+      required String rawIdentifier,
+      required String compoundIdentifier,
+      required String normalizedIdentifier,
+      Value<String> service,
+      Value<String> aliasKind,
+    });
+typedef $$HandleCanonicalMapTableUpdateCompanionBuilder =
+    HandleCanonicalMapCompanion Function({
+      Value<int> sourceHandleId,
+      Value<int> canonicalHandleId,
+      Value<String> rawIdentifier,
+      Value<String> compoundIdentifier,
+      Value<String> normalizedIdentifier,
+      Value<String> service,
+      Value<String> aliasKind,
+    });
+
+final class $$HandleCanonicalMapTableReferences
+    extends
+        BaseReferences<
+          _$WorkingDatabase,
+          $HandleCanonicalMapTable,
+          HandleCanonicalMapData
+        > {
+  $$HandleCanonicalMapTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkingHandlesTable _canonicalHandleIdTable(_$WorkingDatabase db) =>
+      db.workingHandles.createAlias(
+        $_aliasNameGenerator(
+          db.handleCanonicalMap.canonicalHandleId,
+          db.workingHandles.id,
+        ),
+      );
+
+  $$WorkingHandlesTableProcessedTableManager get canonicalHandleId {
+    final $_column = $_itemColumn<int>('canonical_handle_id')!;
+
+    final manager = $$WorkingHandlesTableTableManager(
+      $_db,
+      $_db.workingHandles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_canonicalHandleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$HandleCanonicalMapTableFilterComposer
+    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
+  $$HandleCanonicalMapTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get sourceHandleId => $composableBuilder(
+    column: $table.sourceHandleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get aliasKind => $composableBuilder(
+    column: $table.aliasKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkingHandlesTableFilterComposer get canonicalHandleId {
+    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.canonicalHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableFilterComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HandleCanonicalMapTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
+  $$HandleCanonicalMapTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get sourceHandleId => $composableBuilder(
+    column: $table.sourceHandleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get aliasKind => $composableBuilder(
+    column: $table.aliasKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkingHandlesTableOrderingComposer get canonicalHandleId {
+    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.canonicalHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HandleCanonicalMapTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
+  $$HandleCanonicalMapTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get sourceHandleId => $composableBuilder(
+    column: $table.sourceHandleId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get normalizedIdentifier => $composableBuilder(
+    column: $table.normalizedIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get service =>
+      $composableBuilder(column: $table.service, builder: (column) => column);
+
+  GeneratedColumn<String> get aliasKind =>
+      $composableBuilder(column: $table.aliasKind, builder: (column) => column);
+
+  $$WorkingHandlesTableAnnotationComposer get canonicalHandleId {
+    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.canonicalHandleId,
+      referencedTable: $db.workingHandles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingHandlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingHandles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HandleCanonicalMapTableTableManager
+    extends
+        RootTableManager<
+          _$WorkingDatabase,
+          $HandleCanonicalMapTable,
+          HandleCanonicalMapData,
+          $$HandleCanonicalMapTableFilterComposer,
+          $$HandleCanonicalMapTableOrderingComposer,
+          $$HandleCanonicalMapTableAnnotationComposer,
+          $$HandleCanonicalMapTableCreateCompanionBuilder,
+          $$HandleCanonicalMapTableUpdateCompanionBuilder,
+          (HandleCanonicalMapData, $$HandleCanonicalMapTableReferences),
+          HandleCanonicalMapData,
+          PrefetchHooks Function({bool canonicalHandleId})
+        > {
+  $$HandleCanonicalMapTableTableManager(
+    _$WorkingDatabase db,
+    $HandleCanonicalMapTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HandleCanonicalMapTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HandleCanonicalMapTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HandleCanonicalMapTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> sourceHandleId = const Value.absent(),
+                Value<int> canonicalHandleId = const Value.absent(),
+                Value<String> rawIdentifier = const Value.absent(),
+                Value<String> compoundIdentifier = const Value.absent(),
+                Value<String> normalizedIdentifier = const Value.absent(),
+                Value<String> service = const Value.absent(),
+                Value<String> aliasKind = const Value.absent(),
+              }) => HandleCanonicalMapCompanion(
+                sourceHandleId: sourceHandleId,
+                canonicalHandleId: canonicalHandleId,
+                rawIdentifier: rawIdentifier,
+                compoundIdentifier: compoundIdentifier,
+                normalizedIdentifier: normalizedIdentifier,
+                service: service,
+                aliasKind: aliasKind,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> sourceHandleId = const Value.absent(),
+                required int canonicalHandleId,
+                required String rawIdentifier,
+                required String compoundIdentifier,
+                required String normalizedIdentifier,
+                Value<String> service = const Value.absent(),
+                Value<String> aliasKind = const Value.absent(),
+              }) => HandleCanonicalMapCompanion.insert(
+                sourceHandleId: sourceHandleId,
+                canonicalHandleId: canonicalHandleId,
+                rawIdentifier: rawIdentifier,
+                compoundIdentifier: compoundIdentifier,
+                normalizedIdentifier: normalizedIdentifier,
+                service: service,
+                aliasKind: aliasKind,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HandleCanonicalMapTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({canonicalHandleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (canonicalHandleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.canonicalHandleId,
+                                referencedTable:
+                                    $$HandleCanonicalMapTableReferences
+                                        ._canonicalHandleIdTable(db),
+                                referencedColumn:
+                                    $$HandleCanonicalMapTableReferences
+                                        ._canonicalHandleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HandleCanonicalMapTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $HandleCanonicalMapTable,
+      HandleCanonicalMapData,
+      $$HandleCanonicalMapTableFilterComposer,
+      $$HandleCanonicalMapTableOrderingComposer,
+      $$HandleCanonicalMapTableAnnotationComposer,
+      $$HandleCanonicalMapTableCreateCompanionBuilder,
+      $$HandleCanonicalMapTableUpdateCompanionBuilder,
+      (HandleCanonicalMapData, $$HandleCanonicalMapTableReferences),
+      HandleCanonicalMapData,
+      PrefetchHooks Function({bool canonicalHandleId})
     >;
 typedef $$WorkingChatsTableCreateCompanionBuilder =
     WorkingChatsCompanion Function({
@@ -15345,6 +16398,8 @@ class $WorkingDatabaseManager {
       $$WorkingParticipantsTableTableManager(_db, _db.workingParticipants);
   $$HandleToParticipantTableTableManager get handleToParticipant =>
       $$HandleToParticipantTableTableManager(_db, _db.handleToParticipant);
+  $$HandleCanonicalMapTableTableManager get handleCanonicalMap =>
+      $$HandleCanonicalMapTableTableManager(_db, _db.handleCanonicalMap);
   $$WorkingChatsTableTableManager get workingChats =>
       $$WorkingChatsTableTableManager(_db, _db.workingChats);
   $$ChatToHandleTableTableManager get chatToHandle =>

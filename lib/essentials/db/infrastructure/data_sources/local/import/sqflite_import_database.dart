@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../../db_import/application/debug_settings_provider.dart';
+import '../../../../shared/handle_identifier_utils.dart';
 
 class SqfliteImportDatabase {
   SqfliteImportDatabase({
@@ -17,7 +18,7 @@ class SqfliteImportDatabase {
        _databaseName = databaseName,
        _debugSettings = debugSettings;
 
-  static const int _schemaVersion = 7;
+  static const int _schemaVersion = 9;
 
   final String _databaseDirectory;
   final String _databaseName;
@@ -159,6 +160,15 @@ class SqfliteImportDatabase {
       await db.execute('DROP TABLE contacts');
       await db.execute('ALTER TABLE contacts_new RENAME TO contacts');
     }
+    if (oldVersion < 9) {
+      _debugSettings.logDatabase(
+        'SqfliteImportDatabase._onUpgrade: applying migration to v9 (add compound_identifier to handles)',
+      );
+      await db.execute(
+        "ALTER TABLE handles ADD COLUMN compound_identifier TEXT NOT NULL DEFAULT ''",
+      );
+      await _backfillCompoundIdentifiers(db);
+    }
 
     // Recreate indexes/views to ensure consistency
     final batch = db.batch();
@@ -170,6 +180,32 @@ class SqfliteImportDatabase {
       'version': newVersion,
       'applied_at_utc': DateTime.now().toUtc().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> _backfillCompoundIdentifiers(Database db) async {
+    final rows = await db.query('handles');
+    for (final row in rows) {
+      final id = row['id'] as int?;
+      if (id == null) {
+        continue;
+      }
+
+      final rawIdentifier = row['raw_identifier'] as String?;
+      final normalizedIdentifier = row['normalized_identifier'] as String?;
+      final service = sanitizeHandleService(row['service'] as String?);
+      final compound = buildCompoundIdentifier(
+        normalizedIdentifier: normalizedIdentifier,
+        rawIdentifier: rawIdentifier,
+        service: service,
+      );
+
+      await db.update(
+        'handles',
+        <String, Object?>{'compound_identifier': compound},
+        where: 'id = ?',
+        whereArgs: <Object>[id],
+      );
+    }
   }
 
   Future<void> close() async {
@@ -526,6 +562,7 @@ AND Z_PK NOT IN (
     required String service,
     required String rawIdentifier,
     String? normalizedIdentifier,
+    required String compoundIdentifier,
     String? country,
     String? lastSeenUtc,
     required int batchId,
@@ -546,16 +583,23 @@ AND Z_PK NOT IN (
       throw Exception('Cannot insert handle: batch $batchId does not exist');
     }
 
+    final safeService = sanitizeHandleService(service);
+    final trimmedCompound = compoundIdentifier.trim();
+    if (trimmedCompound.isEmpty) {
+      throw Exception('Cannot insert handle without compound identifier');
+    }
+
     _debugSettings.logDatabase(
-      'SqfliteImportDatabase.insertHandle: inserting handle for batch $batchId, service=$service, rawIdentifier=$rawIdentifier',
+      'SqfliteImportDatabase.insertHandle: inserting handle for batch $batchId, service=$safeService, rawIdentifier=$rawIdentifier',
     );
 
     final data = _cleanMap(<String, Object?>{
       'id': id,
       'source_rowid': sourceRowid,
-      'service': service,
+      'service': safeService,
       'raw_identifier': rawIdentifier,
       'normalized_identifier': normalizedIdentifier,
+      'compound_identifier': trimmedCompound,
       'country': country,
       'last_seen_utc': lastSeenUtc,
       'batch_id': batchId,
@@ -1149,10 +1193,10 @@ AND Z_PK NOT IN (
     "CREATE TABLE IF NOT EXISTS import_logs (id INTEGER PRIMARY KEY, batch_id INTEGER REFERENCES import_batches(id) ON DELETE SET NULL, at_utc TEXT NOT NULL, level TEXT NOT NULL CHECK(level IN ('debug','info','warn','error')), message TEXT NOT NULL, context_json TEXT)",
     'CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY, Z_PK INTEGER NOT NULL UNIQUE, first_name TEXT, last_name TEXT, organization TEXT, display_name TEXT NOT NULL, short_name TEXT, created_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
     "CREATE TABLE IF NOT EXISTS contact_phone_email (id INTEGER PRIMARY KEY, ZOWNER INTEGER NOT NULL REFERENCES contacts(Z_PK) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('email','phone')), value TEXT NOT NULL, label TEXT, UNIQUE(kind, value))",
-    "CREATE TABLE IF NOT EXISTS handles (id INTEGER PRIMARY KEY, source_rowid INTEGER, service TEXT NOT NULL, raw_identifier TEXT NOT NULL, normalized_identifier TEXT, country TEXT, last_seen_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(service, raw_identifier))",
+    "CREATE TABLE IF NOT EXISTS handles (id INTEGER PRIMARY KEY, source_rowid INTEGER, service TEXT NOT NULL, raw_identifier TEXT NOT NULL, normalized_identifier TEXT, compound_identifier TEXT NOT NULL DEFAULT '', country TEXT, last_seen_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(service, raw_identifier))",
     "CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, service TEXT, display_name TEXT, is_group INTEGER NOT NULL DEFAULT 0 CHECK(is_group IN (0,1)), created_at_utc TEXT, updated_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
     "CREATE TABLE IF NOT EXISTS chat_to_handle (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, role TEXT CHECK(role IN ('member','owner','unknown')) DEFAULT 'member', added_at_utc TEXT, PRIMARY KEY (chat_id, handle_id))",
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, sender_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, service TEXT, is_from_me INTEGER NOT NULL CHECK(is_from_me IN (0,1)), date_utc TEXT, date_read_utc TEXT, date_delivered_utc TEXT, subject TEXT, text TEXT, attributed_body_blob BLOB, item_type TEXT CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown')), error_code INTEGER, is_system_message INTEGER NOT NULL DEFAULT 0 CHECK(is_system_message IN (0,1)), thread_originator_guid TEXT, associated_message_guid TEXT, balloon_bundle_id TEXT, payload_json TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
+    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT NOT NULL, chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, sender_handle_id INTEGER REFERENCES handles(id) ON DELETE SET NULL, service TEXT, is_from_me INTEGER NOT NULL CHECK(is_from_me IN (0,1)), date_utc TEXT, date_read_utc TEXT, date_delivered_utc TEXT, subject TEXT, text TEXT, attributed_body_blob BLOB, item_type TEXT CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown','balloon')), error_code INTEGER, is_system_message INTEGER NOT NULL DEFAULT 0 CHECK(is_system_message IN (0,1)), thread_originator_guid TEXT, associated_message_guid TEXT, balloon_bundle_id TEXT, payload_json TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(guid))",
     'CREATE TABLE IF NOT EXISTS chat_to_message (chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE, message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (chat_id, message_id))',
     'CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY, source_rowid INTEGER, guid TEXT, transfer_name TEXT, uti TEXT, mime_type TEXT, total_bytes INTEGER, is_sticker INTEGER NOT NULL DEFAULT 0 CHECK(is_sticker IN (0,1)), is_outgoing INTEGER CHECK(is_outgoing IN (0,1)), created_at_utc TEXT, local_path TEXT, sha256_hex TEXT, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
     'CREATE TABLE IF NOT EXISTS message_attachments (message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE, attachment_id INTEGER NOT NULL REFERENCES attachments(id) ON DELETE CASCADE, source_rowid INTEGER, PRIMARY KEY (message_id, attachment_id))',
@@ -1162,6 +1206,7 @@ AND Z_PK NOT IN (
   ];
 
   static const List<String> _indexStatements = <String>[
+    'CREATE INDEX IF NOT EXISTS idx_handles_compound ON handles(compound_identifier)',
     'CREATE INDEX IF NOT EXISTS idx_handles_norm ON handles(normalized_identifier)',
     'CREATE INDEX IF NOT EXISTS idx_handles_ignore ON handles(is_ignored)',
     'CREATE INDEX IF NOT EXISTS idx_participants_handle ON chat_to_handle(handle_id)',

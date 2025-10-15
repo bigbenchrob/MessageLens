@@ -72,9 +72,9 @@ class ChatToHandleImporter extends BaseTableImporter {
   Future<void> postValidate(ImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
-      total > 0,
-      'chat-to-handle-empty',
-      'Chat-to-handle table should contain rows after import.',
+      ok: total > 0,
+      errorCode: 'chat-to-handle-empty',
+      message: 'Chat-to-handle table should contain rows after import.',
     );
   }
 }

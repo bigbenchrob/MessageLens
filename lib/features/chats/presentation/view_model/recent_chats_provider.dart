@@ -168,31 +168,63 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int limit = 5}) async {
       final handle = row.readTable(db.workingHandles);
       final participant = row.readTableOrNull(db.workingParticipants);
 
+      // Debug logging for chat 279
+      if (chat.id == 279) {
+        print(
+          '[DEBUG] Chat 279 - Handle ID: ${handle.id}, Raw: ${handle.rawIdentifier}, Display: ${handle.displayName}',
+        );
+        print(
+          '[DEBUG] Chat 279 - Participant: ${participant?.id}, Display: ${participant?.displayName}',
+        );
+      }
+
       String resolvedName;
       if (participant != null) {
+        // We have a matched participant (contact) - use their display name
         resolvedName = resolveParticipantName(participant);
+        if (chat.id == 279) {
+          print(
+            '[DEBUG] Chat 279 - Resolved name from participant: $resolvedName',
+          );
+        }
       } else {
-        final normalizedIdentifier = handle.normalizedIdentifier?.trim();
+        // No matched participant - fall back to handle identifier
+        final displayName = handle.displayName.trim();
         final rawIdentifier = handle.rawIdentifier.trim();
-        resolvedName =
-            (normalizedIdentifier != null && normalizedIdentifier.isNotEmpty)
-            ? normalizedIdentifier
+        final compoundIdentifier = handle.compoundIdentifier.trim();
+
+        // Prefer display_name populated during migration for human readable output
+        resolvedName = displayName.isNotEmpty
+            ? displayName
             : rawIdentifier.isNotEmpty
             ? rawIdentifier
+            : compoundIdentifier.isNotEmpty
+            ? compoundIdentifier
             : 'Unknown Contact';
+
+        if (chat.id == 279) {
+          print(
+            '[DEBUG] Chat 279 - No participant, using handle: $resolvedName',
+          );
+        }
       }
 
       final normalized = resolvedName.toLowerCase();
       final isSelfAlias = normalized == 'me';
       if (!isSelfAlias || chat.isGroup) {
         if (!seenNames.add(normalized)) {
+          if (chat.id == 279) {
+            print('[DEBUG] Chat 279 - Skipping duplicate name: $resolvedName');
+          }
           continue;
         }
       }
 
       participantNames.add(resolvedName);
+      if (chat.id == 279) {
+        print('[DEBUG] Chat 279 - Added participant name: $resolvedName');
+      }
     }
-
     if (participantNames.isEmpty) {
       participantNames.add('Unknown Contact');
     }

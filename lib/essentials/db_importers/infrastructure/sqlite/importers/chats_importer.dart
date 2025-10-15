@@ -95,9 +95,9 @@ class ChatsImporter extends BaseTableImporter {
   Future<void> postValidate(ImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
-      total > 0,
-      'chats-empty',
-      'Chats table should contain rows after import.',
+      ok: total > 0,
+      errorCode: 'chats-empty',
+      message: 'Chats table should contain rows after import.',
     );
   }
 }

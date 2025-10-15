@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import '../../../../shared/handle_identifier_utils.dart';
+
 part 'working_database.g.dart';
 
 /// Drift projection database used by the application UI (working.db).
@@ -11,6 +13,7 @@ part 'working_database.g.dart';
     WorkingHandles,
     WorkingParticipants,
     HandleToParticipant,
+    HandleCanonicalMap,
     ChatToHandle,
     WorkingChats,
     WorkingMessages,
@@ -27,7 +30,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -59,6 +62,18 @@ class WorkingDatabase extends _$WorkingDatabase {
       }
       if (from < 8) {
         await _renameHandleVisibilityFlag();
+      }
+      if (from < 9) {
+        await _addCompoundIdentifierColumn(m);
+      }
+      if (from < 10) {
+        await _removeNormalizedIdentifierColumn(m);
+      }
+      if (from < 11) {
+        await _addHandleDisplayNameColumn(m);
+      }
+      if (from < 12) {
+        await _addHandleCanonicalMapTable(m);
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -99,10 +114,6 @@ class WorkingDatabase extends _$WorkingDatabase {
 
   Future<void> _alignWithLedgerSchema(Migrator migrator) async {
     // Handles metadata
-    await migrator.addColumn(
-      workingHandles,
-      workingHandles.normalizedIdentifier as GeneratedColumn,
-    );
     await migrator.addColumn(
       workingHandles,
       workingHandles.isIgnored as GeneratedColumn,
@@ -220,9 +231,6 @@ class WorkingDatabase extends _$WorkingDatabase {
 
     // Backfill sensible defaults for migrated rows
     await customStatement(
-      'UPDATE handles SET normalized_identifier = COALESCE(normalized_identifier, raw_identifier)',
-    );
-    await customStatement(
       'UPDATE handles SET is_ignored = 0 WHERE is_ignored IS NULL',
     );
     await customStatement(
@@ -284,6 +292,153 @@ class WorkingDatabase extends _$WorkingDatabase {
       );
     }
   }
+
+  Future<void> _addCompoundIdentifierColumn(Migrator migrator) async {
+    final columns = await customSelect("PRAGMA table_info('handles')").get();
+    var hasCompound = false;
+    var hasNormalized = false;
+
+    for (final row in columns) {
+      final name = row.data['name'] as String?;
+      if (name == 'compound_identifier') {
+        hasCompound = true;
+      }
+      if (name == 'normalized_identifier') {
+        hasNormalized = true;
+      }
+    }
+
+    if (!hasCompound) {
+      await migrator.addColumn(
+        workingHandles,
+        workingHandles.compoundIdentifier as GeneratedColumn,
+      );
+    }
+
+    final selectSql = hasNormalized
+        ? 'SELECT id, raw_identifier, normalized_identifier, service, compound_identifier FROM handles'
+        : 'SELECT id, raw_identifier, NULL AS normalized_identifier, service, compound_identifier FROM handles';
+    final existing = await customSelect(selectSql).get();
+
+    for (final row in existing) {
+      final data = row.data;
+      final id = data['id'] as int?;
+      if (id == null) {
+        continue;
+      }
+
+      final rawIdentifier = data['raw_identifier'] as String?;
+      final normalizedIdentifier = data['normalized_identifier'] as String?;
+      final service = sanitizeHandleService(data['service'] as String?);
+      final compoundFromRow = (data['compound_identifier'] as String?)?.trim();
+      final compoundIdentifier =
+          (compoundFromRow != null && compoundFromRow.isNotEmpty)
+          ? compoundFromRow
+          : buildCompoundIdentifier(
+              normalizedIdentifier: normalizedIdentifier,
+              rawIdentifier: rawIdentifier,
+              service: service,
+            );
+
+      await customStatement(
+        'UPDATE handles SET compound_identifier = ? WHERE id = ?',
+        <Object?>[compoundIdentifier, id],
+      );
+    }
+  }
+
+  Future<void> _removeNormalizedIdentifierColumn(Migrator migrator) async {
+    final columns = await customSelect("PRAGMA table_info('handles')").get();
+    var hasNormalized = false;
+
+    for (final row in columns) {
+      final name = row.data['name'] as String?;
+      if (name == 'normalized_identifier') {
+        hasNormalized = true;
+        break;
+      }
+    }
+
+    if (!hasNormalized) {
+      return;
+    }
+
+    await customStatement('ALTER TABLE handles RENAME TO handles_old');
+    await migrator.createTable(workingHandles);
+    await customStatement('''
+      INSERT INTO handles (
+        id,
+        raw_identifier,
+        display_name,
+        compound_identifier,
+        service,
+        is_ignored,
+        is_visible,
+        is_blacklisted,
+        country,
+        last_seen_utc,
+        batch_id
+      )
+      SELECT
+        id,
+        raw_identifier,
+        CASE
+          WHEN TRIM(raw_identifier) <> '' THEN TRIM(raw_identifier)
+          WHEN TRIM(compound_identifier) <> '' THEN TRIM(compound_identifier)
+          ELSE 'Unknown Contact'
+        END AS display_name,
+        compound_identifier,
+        service,
+        is_ignored,
+        is_visible,
+        is_blacklisted,
+        country,
+        last_seen_utc,
+        batch_id
+      FROM handles_old
+      ''');
+    await customStatement('DROP TABLE handles_old');
+  }
+
+  Future<void> _addHandleDisplayNameColumn(Migrator migrator) async {
+    final columns = await customSelect("PRAGMA table_info('handles')").get();
+    var hasDisplayColumn = false;
+
+    for (final row in columns) {
+      final name = row.data['name'] as String?;
+      if (name == 'display_name') {
+        hasDisplayColumn = true;
+        break;
+      }
+    }
+
+    if (!hasDisplayColumn) {
+      await migrator.addColumn(
+        workingHandles,
+        workingHandles.displayName as GeneratedColumn,
+      );
+    }
+
+    await customStatement('''
+      UPDATE handles
+         SET display_name = CASE
+           WHEN TRIM(raw_identifier) <> '' THEN TRIM(raw_identifier)
+           WHEN TRIM(compound_identifier) <> '' THEN TRIM(compound_identifier)
+           ELSE 'Unknown Contact'
+         END
+       WHERE display_name IS NULL OR TRIM(display_name) = ''
+      ''');
+  }
+
+  Future<void> _addHandleCanonicalMapTable(Migrator migrator) async {
+    final existing = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'handle_canonical_map'",
+    ).getSingleOrNull();
+
+    if (existing == null) {
+      await migrator.createTable(handleCanonicalMap);
+    }
+  }
 }
 
 const List<String> _workingIndexStatements = [
@@ -299,10 +454,11 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_reactions_carrier ON reactions(carrier_message_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_handle ON handle_to_participant(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_participant ON handle_to_participant(participant_id)',
-  'CREATE INDEX IF NOT EXISTS idx_handles_normalized ON handles(normalized_identifier)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_compound ON handles(compound_identifier)',
   'CREATE INDEX IF NOT EXISTS idx_handles_blacklist ON handles(is_blacklisted, service)',
   'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_chat_to_handle_handle ON chat_to_handle(handle_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handle_canonical_map_canonical ON handle_canonical_map(canonical_handle_id)',
 ];
 
 const List<String> _workingVirtualAndTriggerStatements = [
@@ -363,7 +519,7 @@ const List<String> _workingVirtualAndTriggerStatements = [
     m.is_from_me,
   m.sender_handle_id,
   h.raw_identifier AS sender_handle,
-    h.normalized_identifier AS sender_handle_normalized,
+    h.compound_identifier AS sender_handle_compound,
     p.id AS sender_participant_id,
     p.display_name AS sender_name,
     rc.love, rc.like, rc.dislike, rc.laugh, rc.emphasize, rc.question
@@ -494,8 +650,8 @@ class WorkingHandles extends Table {
 
   IntColumn get id => integer().named('id')();
   TextColumn get rawIdentifier => text().named('raw_identifier')();
-  TextColumn get normalizedIdentifier =>
-      text().named('normalized_identifier').nullable()();
+  TextColumn get displayName => text().named('display_name')();
+  TextColumn get compoundIdentifier => text().named('compound_identifier')();
   TextColumn get service => text()
       .named('service')
       .customConstraint(
@@ -516,8 +672,8 @@ class WorkingHandles extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
+    {compoundIdentifier},
     {rawIdentifier, service},
-    {service, normalizedIdentifier},
   ];
 }
 
@@ -563,6 +719,35 @@ class HandleToParticipant extends Table {
   @override
   List<Set<Column>> get uniqueKeys => [
     {handleId, participantId},
+  ];
+}
+
+class HandleCanonicalMap extends Table {
+  @override
+  String get tableName => 'handle_canonical_map';
+
+  IntColumn get sourceHandleId => integer().named('source_handle_id')();
+  IntColumn get canonicalHandleId => integer()
+      .named('canonical_handle_id')
+      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+  TextColumn get rawIdentifier => text().named('raw_identifier')();
+  TextColumn get compoundIdentifier => text().named('compound_identifier')();
+  TextColumn get normalizedIdentifier =>
+      text().named('normalized_identifier')();
+  TextColumn get service => text()
+      .named('service')
+      .customConstraint(
+        "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
+      )();
+  TextColumn get aliasKind =>
+      text().named('alias_kind').withDefault(const Constant('variant'))();
+
+  @override
+  Set<Column> get primaryKey => {sourceHandleId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {canonicalHandleId, rawIdentifier},
   ];
 }
 

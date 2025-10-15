@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import 'package:remember_this_text/essentials/db/shared/handle_identifier_utils.dart';
 import 'package:remember_this_text/features/settings/application/contact_short_names/contact_short_name_candidates_provider.dart';
 
 void main() {
@@ -69,7 +70,12 @@ void main() {
           WorkingHandlesCompanion.insert(
             id: const drift.Value(101),
             rawIdentifier: 'claire@example.com',
-            normalizedIdentifier: const drift.Value('claire@example.com'),
+            displayName: 'claire@example.com',
+            compoundIdentifier: buildCompoundIdentifier(
+              normalizedIdentifier: 'claire@example.com',
+              rawIdentifier: 'claire@example.com',
+              service: 'iMessage',
+            ),
             service: const drift.Value('iMessage'),
           ),
         );
@@ -79,7 +85,12 @@ void main() {
           WorkingHandlesCompanion.insert(
             id: const drift.Value(102),
             rawIdentifier: '555-0100',
-            normalizedIdentifier: const drift.Value('555-0100'),
+            displayName: '555-0100',
+            compoundIdentifier: buildCompoundIdentifier(
+              normalizedIdentifier: '555-0100',
+              rawIdentifier: '555-0100',
+              service: 'SMS',
+            ),
             service: const drift.Value('SMS'),
           ),
         );
@@ -89,7 +100,12 @@ void main() {
           WorkingHandlesCompanion.insert(
             id: const drift.Value(104),
             rawIdentifier: '555-0300',
-            normalizedIdentifier: const drift.Value('555-0300'),
+            displayName: '555-0300',
+            compoundIdentifier: buildCompoundIdentifier(
+              normalizedIdentifier: '555-0300',
+              rawIdentifier: '555-0300',
+              service: 'SMS',
+            ),
             service: const drift.Value('SMS'),
           ),
         );
@@ -122,7 +138,14 @@ void main() {
     );
     expect(claire.identities.length, 1);
     expect(claire.displayName, 'Claire Jennings');
-    expect(claire.identities.first.normalizedAddress, 'claire@example.com');
+    expect(
+      claire.identities.first.normalizedAddress,
+      buildCompoundIdentifier(
+        normalizedIdentifier: 'claire@example.com',
+        rawIdentifier: 'claire@example.com',
+        service: 'iMessage',
+      ),
+    );
     expect(claire.identities.first.service, 'iMessage');
 
     // Participant 2 - Mom
@@ -131,7 +154,14 @@ void main() {
     );
     expect(mom.identities.length, 1);
     expect(mom.displayName, 'Mom');
-    expect(mom.identities.first.normalizedAddress, '555-0100');
+    expect(
+      mom.identities.first.normalizedAddress,
+      buildCompoundIdentifier(
+        normalizedIdentifier: '555-0100',
+        rawIdentifier: '555-0100',
+        service: 'SMS',
+      ),
+    );
     expect(mom.identities.first.service, 'SMS');
 
     final individual = result.firstWhere(
@@ -171,7 +201,12 @@ void main() {
           WorkingHandlesCompanion.insert(
             id: const drift.Value(110),
             rawIdentifier: '555-0400',
-            normalizedIdentifier: const drift.Value('555-0400'),
+            displayName: '555-0400',
+            compoundIdentifier: buildCompoundIdentifier(
+              normalizedIdentifier: '555-0400',
+              rawIdentifier: '555-0400',
+              service: 'SMS',
+            ),
             service: const drift.Value('SMS'),
           ),
         );
@@ -181,7 +216,12 @@ void main() {
           WorkingHandlesCompanion.insert(
             id: const drift.Value(111),
             rawIdentifier: 'beta@example.com',
-            normalizedIdentifier: const drift.Value('beta@example.com'),
+            displayName: 'beta@example.com',
+            compoundIdentifier: buildCompoundIdentifier(
+              normalizedIdentifier: 'beta@example.com',
+              rawIdentifier: 'beta@example.com',
+              service: 'iMessage',
+            ),
             service: const drift.Value('iMessage'),
           ),
         );
@@ -232,7 +272,12 @@ void main() {
             WorkingHandlesCompanion.insert(
               id: const drift.Value(120),
               rawIdentifier: '+12024742228',
-              normalizedIdentifier: const drift.Value('+12024742228'),
+              displayName: '+12024742228',
+              compoundIdentifier: buildCompoundIdentifier(
+                normalizedIdentifier: '+12024742228',
+                rawIdentifier: '+12024742228',
+                service: 'iMessage',
+              ),
               service: const drift.Value('iMessage'),
             ),
           );

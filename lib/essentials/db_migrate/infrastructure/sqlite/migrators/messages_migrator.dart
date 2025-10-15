@@ -26,16 +26,18 @@ class MessagesMigrator extends BaseTableMigrator {
 
     final projectedChats = await count(ctx.workingDb, 'chats');
     await expectTrueOrThrow(
-      projectedChats > 0,
-      'MESSAGES_REQUIRES_CHATS',
-      'messages: import has $joinableMessages rows but working database has no chats',
+      ok: projectedChats > 0,
+      errorCode: 'MESSAGES_REQUIRES_CHATS',
+      message:
+          'messages: import has $joinableMessages rows but working database has no chats',
     );
 
     final projectedHandles = await count(ctx.workingDb, 'handles');
     await expectTrueOrThrow(
-      projectedHandles > 0,
-      'MESSAGES_REQUIRES_HANDLES',
-      'messages: import has $joinableMessages rows but working database has no handles',
+      ok: projectedHandles > 0,
+      errorCode: 'MESSAGES_REQUIRES_HANDLES',
+      message:
+          'messages: import has $joinableMessages rows but working database has no handles',
     );
   }
 
@@ -213,6 +215,9 @@ class MessagesMigrator extends BaseTableMigrator {
         );
       ''');
 
+      // Ensure all statements are fully executed before returning
+      await ctx.workingDb.customSelect('SELECT changes() AS c').get();
+
       return insertedCount;
     });
 
@@ -227,17 +232,17 @@ class MessagesMigrator extends BaseTableMigrator {
 
     if (expected == 0) {
       await expectTrueOrThrow(
-        projected == 0,
-        'MESSAGES_UNEXPECTED_ROWS',
-        'messages: working has $projected rows but import had none',
+        ok: projected == 0,
+        errorCode: 'MESSAGES_UNEXPECTED_ROWS',
+        message: 'messages: working has $projected rows but import had none',
       );
       return;
     }
 
     await expectTrueOrThrow(
-      projected == expected,
-      'MESSAGES_ROW_MISMATCH',
-      'messages: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'MESSAGES_ROW_MISMATCH',
+      message: 'messages: working has $projected rows but expected $expected',
     );
   }
 
@@ -259,15 +264,39 @@ class MessagesMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    final importSqlite = await ctx.importDb.database;
-    final escapedPath = importSqlite.path.replaceAll("'", "''");
-    await ctx.workingDb.customStatement(
-      "ATTACH DATABASE '$escapedPath' AS $_attachAlias",
-    );
-    try {
-      return await run();
-    } finally {
-      await ctx.workingDb.customStatement('DETACH DATABASE $_attachAlias');
+    return ctx.workingDb.transaction<T>(() async {
+      final importSqlite = await ctx.importDb.database;
+      final escapedPath = importSqlite.path.replaceAll("'", "''");
+      await ctx.workingDb.customStatement(
+        "ATTACH DATABASE '$escapedPath' AS $_attachAlias",
+      );
+      try {
+        return await run();
+      } finally {
+        await _detachImportWithRetry(ctx);
+      }
+    });
+  }
+
+  Future<void> _detachImportWithRetry(MigrationContext ctx) async {
+    const maxAttempts = 5;
+    var attempt = 0;
+    while (true) {
+      attempt += 1;
+      try {
+        await ctx.workingDb.customStatement('DETACH DATABASE $_attachAlias');
+        return;
+      } catch (error) {
+        final message = error.toString();
+        final isLocked =
+            message.contains('database is locked') ||
+            message.contains('SQLITE_LOCKED') ||
+            message.contains('SQLITE_BUSY');
+        if (!isLocked || attempt >= maxAttempts) {
+          rethrow;
+        }
+        await Future<void>.delayed(Duration(milliseconds: 150 * attempt));
+      }
     }
   }
 

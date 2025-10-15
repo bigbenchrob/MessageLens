@@ -346,7 +346,7 @@ class _TableProgressCard extends StatelessWidget {
           ),
           if (failureMessage != null && failureMessage.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
+            SelectableText(
               failureMessage,
               style: const TextStyle(fontSize: 11, color: Color(0xFFC62828)),
             ),
@@ -392,7 +392,7 @@ class _TablePhaseRow extends StatelessWidget {
               Text(statusLabel, style: TextStyle(fontSize: 11, color: color)),
               if (message != null && message.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text(
+                SelectableText(
                   message,
                   style: const TextStyle(
                     fontSize: 11,

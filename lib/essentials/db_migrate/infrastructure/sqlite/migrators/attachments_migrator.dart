@@ -24,9 +24,10 @@ class AttachmentsMigrator extends BaseTableMigrator {
 
     final projectedMessages = await count(ctx.workingDb, 'messages');
     await expectTrueOrThrow(
-      projectedMessages > 0,
-      'ATTACHMENTS_REQUIRES_MESSAGES',
-      'attachments: import has $joinable rows but working database has no messages',
+      ok: projectedMessages > 0,
+      errorCode: 'ATTACHMENTS_REQUIRES_MESSAGES',
+      message:
+          'attachments: import has $joinable rows but working database has no messages',
     );
   }
 
@@ -108,17 +109,18 @@ class AttachmentsMigrator extends BaseTableMigrator {
 
     if (expected == 0) {
       await expectTrueOrThrow(
-        projected == 0,
-        'ATTACHMENTS_UNEXPECTED_ROWS',
-        'attachments: working has $projected rows but import had none',
+        ok: projected == 0,
+        errorCode: 'ATTACHMENTS_UNEXPECTED_ROWS',
+        message: 'attachments: working has $projected rows but import had none',
       );
       return;
     }
 
     await expectTrueOrThrow(
-      projected == expected,
-      'ATTACHMENTS_ROW_MISMATCH',
-      'attachments: working has $projected rows but expected $expected',
+      ok: projected == expected,
+      errorCode: 'ATTACHMENTS_ROW_MISMATCH',
+      message:
+          'attachments: working has $projected rows but expected $expected',
     );
   }
 

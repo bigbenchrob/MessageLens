@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../features/chats/presentation/view_model/recent_chats_provider.dart';
 import '../../../db/feature_level_providers.dart';
+import '../../../db_importers/domain/states/table_import_progress.dart';
 import '../../../db_migrate/domain/entities/db_migration_result.dart';
 import '../../../db_migrate/domain/states/db_migration_progress.dart';
 import '../../../db_migrate/domain/states/table_migration_progress.dart';
@@ -424,10 +426,13 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     );
 
     try {
-      final service = ref.read(ledgerImportServiceProvider);
+      final service = ref.read(orchestratedLedgerImportServiceProvider);
       final result = await service.runImport(
         onProgress: (progress) {
           _handleImportProgress(progress);
+        },
+        onTableProgress: (event) {
+          _handleTableImportProgress(event);
         },
       );
 
@@ -467,6 +472,24 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       clearMigrationResult: true,
     );
 
+    // CRITICAL: Close ALL database connections BEFORE migration
+    // to avoid "database is locked" errors during ATTACH
+    try {
+      final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
+      await workingDb.close();
+    } catch (_) {
+      // Database might not exist yet or already closed - that's fine
+    }
+    ref.invalidate(driftWorkingDatabaseProvider);
+
+    try {
+      final importDb = await ref.read(sqfliteImportDatabaseProvider.future);
+      await importDb.close();
+    } catch (_) {
+      // Import database might not exist yet or already closed - that's fine
+    }
+    ref.invalidate(sqfliteImportDatabaseProvider);
+
     try {
       final result = await ref
           .read(handlesMigrationServiceProvider)
@@ -492,6 +515,10 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         stages: updatedStages,
         lastMigrationResult: result,
       );
+
+      if (result.success) {
+        ref.invalidate(recentChatsProvider);
+      }
     } catch (error) {
       final message = _mapDatabaseError('Migration failed', error);
       state = state.copyWith(
@@ -631,6 +658,75 @@ that prevent migration access. Restarting the app is the best solution.''';
       progress: progress.overallProgress,
       statusMessage: progress.message,
     );
+  }
+
+  void _handleTableImportProgress(TableImportProgressEvent event) {
+    final now = DateTime.now();
+    final entries = List<UiTableMigrationProgress>.of(state.tableProgress);
+    final index = entries.indexWhere(
+      (progress) => progress.tableName == event.importerName,
+    );
+
+    // Convert TableImportPhase to TableMigrationPhase (they have same values)
+    final phase = TableMigrationPhase.values.firstWhere(
+      (p) => p.name == event.phase.name,
+    );
+
+    // Convert TableImportStatus to TableMigrationStatus
+    final status = TableMigrationStatus.values.firstWhere(
+      (s) => s.name == event.status.name,
+    );
+
+    UiTableMigrationPhaseStatus buildStatus(
+      UiTableMigrationPhaseStatus? existing,
+    ) {
+      final startedAt = existing?.startedAt ?? now;
+      switch (event.status) {
+        case TableImportStatus.started:
+          return UiTableMigrationPhaseStatus(
+            phase: phase,
+            status: status,
+            updatedAt: now,
+            startedAt: existing?.startedAt ?? now,
+            message: event.message,
+          );
+        case TableImportStatus.succeeded:
+        case TableImportStatus.failed:
+          final message = event.message ?? existing?.message;
+          return UiTableMigrationPhaseStatus(
+            phase: phase,
+            status: status,
+            updatedAt: now,
+            startedAt: existing?.startedAt ?? startedAt,
+            completedAt: now,
+            message: message,
+          );
+      }
+    }
+
+    if (index == -1) {
+      final phaseStatus = buildStatus(null);
+      entries.add(
+        UiTableMigrationProgress(
+          tableName: event.importerName,
+          displayName: event.displayName,
+          sortIndex: entries.length,
+          phases: <TableMigrationPhase, UiTableMigrationPhaseStatus>{
+            phase: phaseStatus,
+          },
+        ),
+      );
+    } else {
+      final current = entries[index];
+      final phases = Map<TableMigrationPhase, UiTableMigrationPhaseStatus>.from(
+        current.phases,
+      );
+      final phaseStatus = buildStatus(phases[phase]);
+      phases[phase] = phaseStatus;
+      entries[index] = current.copyWith(phases: phases);
+    }
+
+    state = state.copyWith(tableProgress: _sortTableProgress(entries));
   }
 
   void _handleTableMigrationProgress(TableMigrationProgressEvent event) {

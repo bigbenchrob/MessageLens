@@ -11,6 +11,7 @@ import '../../../../features/address_book_folders/feature_level_providers.dart';
 import '../../../../providers.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
+import '../../../db/shared/handle_identifier_utils.dart';
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/ports/message_extractor_port.dart';
 import '../../domain/states/db_import_progress.dart';
@@ -438,7 +439,12 @@ class LedgerImportService {
       final sourceRowId = row['ROWID'] as int?;
       final rawIdentifier = (row['id'] as String?)?.trim();
       final normalizedAddress = _normalizeIdentifier(rawIdentifier);
-      final service = (row['service'] as String?)?.trim();
+      final service = sanitizeHandleService(row['service'] as String?);
+      final compoundIdentifier = buildCompoundIdentifier(
+        normalizedIdentifier: normalizedAddress,
+        rawIdentifier: rawIdentifier,
+        service: service,
+      );
       final country = (row['country'] as String?)?.trim();
       final lastSeen =
           DateConverter.toIntSafe(row['last_read_date']) ??
@@ -450,9 +456,10 @@ class LedgerImportService {
       await ledgerDb.insertHandle(
         id: sourceRowId,
         sourceRowid: sourceRowId,
-        service: service ?? 'Unknown',
+        service: service,
         rawIdentifier: rawIdentifier ?? 'unknown',
         normalizedIdentifier: normalizedAddress,
+        compoundIdentifier: compoundIdentifier,
         country: country,
         lastSeenUtc: lastSeenUtc,
         batchId: batchId,

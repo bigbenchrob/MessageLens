@@ -1,5 +1,5 @@
 import '../../../../../core/util/date_converter.dart';
-
+import '../../../../db/shared/handle_identifier_utils.dart';
 import '../../../application/services/base_table_importer.dart';
 import '../../sqlite/import_context_sqlite.dart';
 
@@ -46,7 +46,12 @@ class HandlesImporter extends BaseTableImporter {
       final sourceRowId = row['ROWID'] as int?;
       final rawIdentifier = (row['id'] as String?)?.trim();
       final normalizedIdentifier = _normalizeIdentifier(rawIdentifier);
-      final service = (row['service'] as String?)?.trim() ?? 'Unknown';
+      final service = sanitizeHandleService(row['service'] as String?);
+      final compoundIdentifier = buildCompoundIdentifier(
+        normalizedIdentifier: normalizedIdentifier,
+        rawIdentifier: rawIdentifier,
+        service: service,
+      );
       final country = (row['country'] as String?)?.trim();
       final lastSeen =
           DateConverter.toIntSafe(row['last_read_date']) ??
@@ -59,6 +64,7 @@ class HandlesImporter extends BaseTableImporter {
         service: service,
         rawIdentifier: rawIdentifier ?? 'unknown',
         normalizedIdentifier: normalizedIdentifier,
+        compoundIdentifier: compoundIdentifier,
         country: country,
         lastSeenUtc: lastSeenUtc,
         batchId: ctx.batchId,
@@ -85,9 +91,9 @@ class HandlesImporter extends BaseTableImporter {
   Future<void> postValidate(ImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
-      total > 0,
-      'handles-empty',
-      'Handles table should contain rows after import.',
+      ok: total > 0,
+      errorCode: 'handles-empty',
+      message: 'Handles table should contain rows after import.',
     );
   }
 }

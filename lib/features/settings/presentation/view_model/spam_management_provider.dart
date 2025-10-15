@@ -71,7 +71,7 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   final results = uniqueHandles.values.map((handle) {
     return SpamHandleInfo(
       id: handle.id,
-      handleId: handle.normalizedIdentifier ?? handle.rawIdentifier,
+      handleId: handle.compoundIdentifier,
       service: handle.service,
       isBlacklisted: handle.isBlacklisted,
       isVisible: handle.isVisible,
