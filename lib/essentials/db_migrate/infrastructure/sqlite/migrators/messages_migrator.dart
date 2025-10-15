@@ -5,6 +5,14 @@ class MessagesMigrator extends BaseTableMigrator {
   const MessagesMigrator();
 
   static const _attachAlias = 'import_messages';
+  static const List<String> _allowedItemTypes = <String>[
+    'text',
+    'attachment-only',
+    'sticker',
+    'reaction-carrier',
+    'system',
+    'unknown',
+  ];
 
   @override
   String get name => 'messages';
@@ -49,6 +57,29 @@ class MessagesMigrator extends BaseTableMigrator {
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
+      final unsupportedTypes = await ctx.workingDb.customSelect('''
+        SELECT COALESCE(m.item_type, '<<NULL>>') AS item_type, COUNT(*) AS c
+        FROM $_attachAlias.messages m
+        WHERE m.guid IS NOT NULL
+          AND LENGTH(TRIM(m.guid)) > 0
+          AND (m.item_type IS NULL OR m.item_type NOT IN (
+            ${_allowedItemTypes.map((type) => "'$type'").join(', ')}
+          ))
+        GROUP BY m.item_type
+      ''').get();
+
+      if (unsupportedTypes.isNotEmpty) {
+        for (final row in unsupportedTypes) {
+          final data = row.data;
+          final rawType = data['item_type'] as String?;
+          final count = _coerceToInt(data['c']);
+          final label = rawType == '<<NULL>>' ? 'NULL' : rawType;
+          ctx.log(
+            '[messages] mapping unsupported item_type $label for $count messages to "unknown"',
+          );
+        }
+      }
+
       final missingHandles = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.messages m
@@ -110,7 +141,15 @@ class MessagesMigrator extends BaseTableMigrator {
           m.date_read_utc,
           'unknown' AS status,
           m.text,
-          m.item_type,
+          CASE m.item_type
+            WHEN 'text' THEN 'text'
+            WHEN 'attachment-only' THEN 'attachment-only'
+            WHEN 'sticker' THEN 'sticker'
+            WHEN 'reaction-carrier' THEN 'reaction-carrier'
+            WHEN 'system' THEN 'system'
+            WHEN 'unknown' THEN 'unknown'
+            ELSE 'unknown'
+          END AS item_type,
           COALESCE(m.is_system_message, 0),
           m.error_code,
           CASE
@@ -264,18 +303,16 @@ class MessagesMigrator extends BaseTableMigrator {
     MigrationContext ctx,
     Future<T> Function() run,
   ) async {
-    return ctx.workingDb.transaction<T>(() async {
-      final importSqlite = await ctx.importDb.database;
-      final escapedPath = importSqlite.path.replaceAll("'", "''");
-      await ctx.workingDb.customStatement(
-        "ATTACH DATABASE '$escapedPath' AS $_attachAlias",
-      );
-      try {
-        return await run();
-      } finally {
-        await _detachImportWithRetry(ctx);
-      }
-    });
+    final importSqlite = await ctx.importDb.database;
+    final escapedPath = importSqlite.path.replaceAll("'", "''");
+    await ctx.workingDb.customStatement(
+      "ATTACH DATABASE '$escapedPath' AS $_attachAlias",
+    );
+    try {
+      return await ctx.workingDb.transaction<T>(() => run());
+    } finally {
+      await _detachImportWithRetry(ctx);
+    }
   }
 
   Future<void> _detachImportWithRetry(MigrationContext ctx) async {

@@ -122,6 +122,7 @@ class MigrationOrchestrator {
   }) async {
     final displayName = _displayNameFor(migrator);
     final stage = _stageForPhase(phase);
+    final phaseLabel = '${migrator.name}::$phase';
 
     onTableProgress?.call(
       TableMigrationProgressEvent(
@@ -134,7 +135,9 @@ class MigrationOrchestrator {
     );
 
     try {
+      await ctx.ensureImportReady('$phaseLabel (preflight)');
       await action();
+      await ctx.ensureImportClean('$phaseLabel (postflight)');
       onTableProgress?.call(
         TableMigrationProgressEvent(
           tableName: migrator.name,
@@ -146,6 +149,13 @@ class MigrationOrchestrator {
       );
     } catch (error) {
       ctx.log('[${migrator.name}] phase $phase failed: $error');
+      try {
+        await ctx.ensureImportClean('$phaseLabel (cleanup)');
+      } catch (cleanupError) {
+        ctx.log(
+          '[${migrator.name}] phase $phase cleanup failed: $cleanupError',
+        );
+      }
       onTableProgress?.call(
         TableMigrationProgressEvent(
           tableName: migrator.name,
