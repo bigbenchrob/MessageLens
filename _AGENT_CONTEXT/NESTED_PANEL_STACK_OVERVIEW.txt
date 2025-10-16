@@ -1,0 +1,184 @@
+ Give each panel its own mini-router (stack of pages/tabs) instead of a single ViewSpec. Opening Preferences simply pushes a page (or tab) on the center panel’s stack; dismissing it pops that page. Your current PanelsViewState maps WindowPanel → ViewSpec?; change it to map WindowPanel → PanelStack, and render each panel with a nested Navigator (or a tab strip bound to the same stack).
+
+1) Data model: stacks per panel
+
+enum WindowPanel { left, center, right }
+
+sealed class ViewSpec {
+  const ViewSpec();
+  const factory ViewSpec.chats(ChatsSpec spec) = ChatsViewSpec;
+  const factory ViewSpec.messages(MessagesSpec spec) = MessagesViewSpec;
+  const factory ViewSpec.preferences() = PreferencesViewSpec;
+  // …add more
+}
+
+class PanelPage {
+  final ViewSpec spec;
+  final Key key;               // for state & scroll preservation
+  final String title;          // for tab strip
+  const PanelPage(this.spec, {required this.key, required this.title});
+}
+
+class PanelStack {
+  final List<PanelPage> pages;
+  final int activeIndex;       // for tab selection (VSCode-like)
+  const PanelStack({required this.pages, this.activeIndex = 0});
+
+  PanelStack push(PanelPage p) =>
+      PanelStack(pages: [...pages, p], activeIndex: pages.length);
+
+  PanelStack pop() =>
+      pages.isEmpty ? this
+      : PanelStack(pages: pages.sublist(0, pages.length - 1),
+                   activeIndex: (activeIndex - 1).clamp(0, pages.length - 2));
+}
+
+2) State: one stack per panel (Riverpod)2) State: one stack per panel (Riverpod)
+
+@riverpod
+class PanelsViewState extends _$PanelsViewState {
+  @override
+  Map<WindowPanel, PanelStack> build() => {
+    WindowPanel.left: PanelStack(
+      pages: [PanelPage(const ViewSpec.chats(ChatsSpec.recent(limit: 5)),
+                        key: const PageStorageKey('left:chats'),
+                        title: 'Chats')],
+    ),
+    WindowPanel.center: const PanelStack(pages: []),
+    WindowPanel.right: const PanelStack(pages: []),
+  };
+
+  void push({required WindowPanel panel, required PanelPage page}) {
+    final stack = state[panel]!;
+    state = {...state, panel: stack.push(page)};
+  }
+
+  void pop(WindowPanel panel) {
+    final stack = state[panel]!;
+    state = {...state, panel: stack.pop()};
+  }
+
+  void activate({required WindowPanel panel, required int index}) {
+    final stack = state[panel]!;
+    state = {
+      ...state,
+      panel: PanelStack(pages: stack.pages, activeIndex: index),
+    };
+  }
+}
+
+3) Rendering: a nested Navigator per panel
+
+Using a nested Navigator preserves each panel’s state independently (and mirrors VSCode’s “editor group” behavior). You can add a small tab strip that reflects PanelStack.pages.
+
+class PanelHost extends ConsumerWidget {
+  const PanelHost({super.key, required this.panel});
+  final WindowPanel panel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stack = ref.watch(panelsViewStateProvider)[panel]!;
+    final pages = stack.pages.map((p) {
+      return MaterialPage(
+        key: p.key,
+        name: p.title,
+        child: _buildForSpec(p.spec),
+      );
+    }).toList();
+
+    return Column(
+      children: [
+        if (pages.length > 1) _TabStrip(panel: panel, stack: stack),
+        Expanded(
+          child: Navigator(
+            key: ValueKey('nav:$panel'),
+            pages: pages.isEmpty
+              ? [const MaterialPage(child: _EmptyPanel())]
+              : pages,
+            onPopPage: (route, result) {
+              if (!route.didPop(result)) return false;
+              ref.read(panelsViewStateProvider.notifier).pop(panel);
+              return true;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForSpec(ViewSpec spec) => switch (spec) {
+    PreferencesViewSpec() => const PreferencesScreen(),         // dismissible
+    ChatsViewSpec(:final spec) => ChatsList(spec: spec),
+    MessagesViewSpec(:final spec) => MessagesView(spec: spec),
+    _ => const SizedBox.shrink(),
+  };
+}
+
+A minimal tab strip:
+
+class _TabStrip extends ConsumerWidget {
+  const _TabStrip({required this.panel, required this.stack});
+  final WindowPanel panel;
+  final PanelStack stack;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      onReorder: (oldIndex, newIndex) { /* optional */ },
+      itemCount: stack.pages.length,
+      itemBuilder: (_, i) {
+        final page = stack.pages[i];
+        final selected = i == stack.activeIndex;
+        return GestureDetector(
+          onTap: () => ref.read(panelsViewStateProvider.notifier)
+                           .activate(panel: panel, index: i),
+          child: Row(
+            children: [
+              Expanded(child: _TabChip(title: page.title, selected: selected)),
+              IconButton(
+                icon: const Icon(Icons.close, size: 16),
+                onPressed: () => ref.read(panelsViewStateProvider.notifier)
+                                     .pop(panel),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+4) Open Preferences without losing context
+
+Wherever you trigger Preferences (menu item, ⌘, etc.), just push a page onto the center stack:
+
+void openPreferences(WidgetRef ref) {
+  ref.read(panelsViewStateProvider.notifier).push(
+    panel: WindowPanel.center,
+    page: PanelPage(const ViewSpec.preferences(),
+      key: const PageStorageKey('center:prefs'),
+      title: 'Preferences'),
+  );
+}
+
+This guarantees:
+	•	Your left sidebar (chats) and right panel remain untouched.
+	•	The center panel’s previous content stays underneath the prefs page/tab.
+	•	Closing prefs is a simple pop; the previous chat/message view is still alive with its scroll position and selection (thanks to PageStorageKey + AutomaticKeepAliveClientMixin in your views).
+
+5) A few polish tips
+	•	Keep-alive: add AutomaticKeepAliveClientMixin to heavy center views so switching tabs doesn’t rebuild expensive trees.
+	•	State restoration: assign restorationId to each nested Navigator so panel stacks survive app restarts.
+	•	Command palette: mirror VSCode—add a quick “> Preferences: Open” action that calls openPreferences.
+	•	Unsaved changes guard: if a pref page has pending edits, intercept onPopPage to confirm.
+
+⸻
+
+Bottom line: convert each panel into a small, self-contained router/tab stack. Opening Preferences becomes a push onto the center panel—just like opening a new editor tab in VSCode—so the user never has to rebuild their workspace.
+
+
+
+
+

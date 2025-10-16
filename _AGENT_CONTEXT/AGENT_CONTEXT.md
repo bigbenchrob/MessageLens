@@ -48,15 +48,15 @@ This file serves as the master index for all critical documentation that AI agen
 - ChatToParticipant table DELETED (UI joins through handles directly)
 - **IGNORE THIS = BROKEN IMPORTS** - Wrong architecture = duplicate participants
 
-### 4. Database Schema Reference ⚠️ CRITICAL FOR DATABASE WORK
+### 4. Database Schema Overview ⚠️ CRITICAL FOR DATABASE WORK
 
-📁 **`10-database-schema-reference.md`**
+📁 **`10-database-schema-overview.md`**
 
 - **REQUIRED BEFORE ANY DATABASE QUERIES** - Prevents field name mistakes
-- Authoritative schema for all database tables
-- Common join patterns and query examples
-- Database file locations (NOT in Application Support!)
-- Critical anti-patterns to avoid (message vs messages, text vs content, etc.)
+- Summarises ledger vs working schemas and their invariants
+- Highlights canonical handle expectations and alias handling
+- Lists database file locations (NOT in Application Support!)
+- Critical anti-patterns to avoid (messages vs message, compound identifiers, etc.)
 - **IGNORE THIS = BROKEN QUERIES** - Wrong table/field names cause runtime errors
 
 ### 5. Riverpod Provider Patterns ⚠️ MANDATORY PATTERNS
@@ -155,18 +155,28 @@ See `03-navigation-overview.md` for complete architecture, implementation layers
 - Explains service wiring, widget behaviour, and fallback UX
 - Notes there is no longer any attachment parsing or Rust dependency for previews
 
-### 8. Data Import & Migration Strategy ⚠️ CRITICAL FOR IMPORT/MIGRATION WORK
+### 8. Import & Migration Playbook ⚠️ CRITICAL FOR LEDGER/PROJECTION WORK
 
-📁 **`11-data-import-migration-strategy.md`**
+📁 **`11-orchestration-strategy.md`**
 
-- **ESSENTIAL FOR ALL IMPORT AND MIGRATION WORK** - Complete strategy documentation
-- Two-database architecture: import.db (immutable ledger) + working.db (application database)
-- 12-stage import pipeline with progress tracking
-- Data flow: macOS chat.db/AddressBook → import.db → working.db
-- Batch tracking and provenance system
-- Rust extractor integration for attributedBody
-- Performance considerations and best practices
-- **WITHOUT THIS**: Risk breaking import/migration workflows
+- Shared contract for importers and migrators
+- Dependency graph sorting (Kahn’s algorithm) and three-phase lifecycle
+- Atomic transaction requirements and attach/detach rules
+
+📁 **`12-import-orchestration.md`**
+
+- Full import pipeline (preparation → integrity verification)
+- Contact ↔ handle linking strategy and normalization collision handling
+- Rust attributed body extraction reference hook
+
+📁 **`13-migration-orchestration.md`**
+
+- Migration sequence and dependency graph
+- Handle canonicalization details and alias map behaviour
+- Message, attachment, and reaction projection safeguards
+- Post-migration validation expectations
+
+- **WITHOUT THESE**: Risk breaking import/migration workflows or leaving databases locked
 
 ## File Organization
 
@@ -182,8 +192,10 @@ _AGENT_CONTEXT/
 ├── 08-rust-message-extractor.md           # ⚠️ CRITICAL - Rust binary for message text extraction
 ├── 09-participant-handle-architecture.md  # ⚠️ CRITICAL - Participant/Handle design & import architecture
 ├── 09-rust-url-preview-parser.md          # LinkPresentation quick reference (naming retained)
-├── 10-database-schema-reference.md        # ⚠️ CRITICAL - Database schema & query patterns
-├── 11-data-import-migration-strategy.md   # ⚠️ CRITICAL - Import/migration architecture
+├── 10-database-schema-overview.md         # ⚠️ CRITICAL - Ledger & working schema contracts
+├── 11-orchestration-strategy.md           # ⚠️ CRITICAL - Shared importer/migrator contract
+├── 12-import-orchestration.md             # Import pipeline specifics
+├── 13-migration-orchestration.md          # Migration pipeline specifics
 ├── 12-native-link-preview-implementation.md # Native LinkPresentation for URL previews
 └── [Additional numbered files as needed]
 ```
