@@ -14,6 +14,7 @@ import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/features/messages_spec.dart';
 import '../../domain/entities/features/settings_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
+import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
 import '../view_model/panel_widget_providers.dart';
@@ -137,11 +138,12 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     });
 
     // Watch for right panel content changes and auto-show/hide sidebar
-    ref.listen<Map<WindowPanel, ViewSpec?>>(panelsViewStateProvider, (
+    ref.listen<Map<WindowPanel, Object?>>(panelsViewStateProvider, (
       previous,
       next,
     ) {
-      final hasContent = next[WindowPanel.right] != null;
+      final stack = next[WindowPanel.right];
+      final hasContent = stack is PanelStack && !stack.isEmpty;
       _handleEndSidebarContentChange(hasContent);
     });
 

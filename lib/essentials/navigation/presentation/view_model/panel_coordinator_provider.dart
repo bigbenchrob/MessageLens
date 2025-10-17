@@ -8,9 +8,11 @@ import '../../../db_import/presentation/view/db_import_control_panel.dart';
 import '../../../db_import/presentation/view_model/db_import_control_provider.dart';
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
 import '../../application/panels_view_state_provider.dart';
+import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../view/panel_stack_surface.dart';
 
 part 'panel_coordinator_provider.g.dart';
 
@@ -19,12 +21,12 @@ part 'panel_coordinator_provider.g.dart';
 class PanelCoordinator extends _$PanelCoordinator {
   @override
   void build() {
-    ref.listen<Map<WindowPanel, ViewSpec?>>(panelsViewStateProvider, (
+    ref.listen<Map<WindowPanel, PanelStack>>(panelsViewStateProvider, (
       previous,
       next,
     ) {
-      final nextSpec = next[WindowPanel.right];
-
+      final nextStack = next[WindowPanel.right];
+      final nextSpec = nextStack?.activePage?.spec;
       if (nextSpec == null) {
         return;
       }
@@ -40,22 +42,27 @@ class PanelCoordinator extends _$PanelCoordinator {
     });
   }
 
-  /// Build widget for the specified panel
-  Widget buildPanelWidget(WindowPanel panel) {
-    final panelSpecs = ref.read(panelsViewStateProvider);
-    final viewSpec = panelSpecs[panel];
+  Widget buildPanelSurface(WindowPanel panel, PanelStack stack) {
+    return PanelStackSurface(
+      panel: panel,
+      stack: stack,
+      buildPanel: buildForPage,
+      placeholder: _buildEmptyPanelPlaceholder(panel),
+    );
+  }
 
-    if (viewSpec == null) {
-      return _buildEmptyPanelPlaceholder(panel);
-    }
+  Widget buildForPage(PanelPage page) {
+    return buildForSpec(page.spec);
+  }
 
-    return viewSpec.when(
+  Widget buildForSpec(ViewSpec spec) {
+    return spec.when(
       messages: (messagesSpec) => ref
           .read(messagesCoordinatorProvider.notifier)
           .buildForSpec(messagesSpec),
       chats: (chatsSpec) => ChatsSidebarView(spec: chatsSpec),
-      contacts: (_) => _buildEmptyPanelPlaceholder(panel),
-      import: (spec) => _buildImportPanel(spec),
+      contacts: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),
+      import: _buildImportPanel,
       settings: (_) => const SettingsPanelView(),
       workbench: (_) => const WorkbenchPanelView(),
     );

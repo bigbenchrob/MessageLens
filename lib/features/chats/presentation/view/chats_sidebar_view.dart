@@ -11,6 +11,7 @@ import '../../../../essentials/db_import/presentation/view_model/db_import_contr
 import '../../../../essentials/navigation/application/panels_view_state_provider.dart';
 import '../../../../essentials/navigation/domain/entities/features/chats_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
+import '../../../../essentials/navigation/domain/entities/panel_stack.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../view_model/chat_list_header_provider.dart';
@@ -75,15 +76,16 @@ class ChatsSidebarView extends HookConsumerWidget {
 
     // Watch the center panel to determine which chat is currently selected
     final panelState = ref.watch(panelsViewStateProvider);
-    final centerSpec = panelState[WindowPanel.center];
+    final PanelStack? centerStack = panelState[WindowPanel.center];
+    final ViewSpec? centerSpec = centerStack?.activePage?.spec;
 
     // Extract the selected chatId if viewing messages for a chat
     int? selectedChatId;
     if (centerSpec != null) {
       centerSpec.when(
-        messages: (messagesSpec) {
-          messagesSpec.when(
-            forChat: (chatId) {
+        messages: (MessagesSpec messagesSpec) {
+          messagesSpec.when<void>(
+            forChat: (int chatId) {
               selectedChatId = chatId;
             },
             forContact: (_) {},

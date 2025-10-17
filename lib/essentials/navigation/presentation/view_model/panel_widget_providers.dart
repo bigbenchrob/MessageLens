@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../application/panels_view_state_provider.dart';
+import '../../domain/entities/panel_stack.dart';
 import '../../domain/navigation_constants.dart';
 import 'panel_coordinator_provider.dart';
 
@@ -11,29 +12,29 @@ part 'panel_widget_providers.g.dart';
 /// Widget provider for left panel
 @riverpod
 Widget leftPanelWidget(Ref ref) {
-  // Watch both the coordinator and the state to trigger rebuilds
-  ref.watch(panelsViewStateProvider);
+  final stacks = ref.watch(panelsViewStateProvider);
+  final stack = stacks[WindowPanel.left] ?? const PanelStack.empty();
   return ref
       .read(panelCoordinatorProvider.notifier)
-      .buildPanelWidget(WindowPanel.left);
+      .buildPanelSurface(WindowPanel.left, stack);
 }
 
 /// Widget provider for center panel
 @riverpod
 Widget centerPanelWidget(Ref ref) {
-  // Watch both the coordinator and the state to trigger rebuilds
-  ref.watch(panelsViewStateProvider);
+  final stacks = ref.watch(panelsViewStateProvider);
+  final stack = stacks[WindowPanel.center] ?? const PanelStack.empty();
   return ref
       .read(panelCoordinatorProvider.notifier)
-      .buildPanelWidget(WindowPanel.center);
+      .buildPanelSurface(WindowPanel.center, stack);
 }
 
 /// Widget provider for right panel
 @riverpod
 Widget rightPanelWidget(Ref ref) {
-  // Watch both the coordinator and the state to trigger rebuilds
-  ref.watch(panelsViewStateProvider);
+  final stacks = ref.watch(panelsViewStateProvider);
+  final stack = stacks[WindowPanel.right] ?? const PanelStack.empty();
   return ref
       .read(panelCoordinatorProvider.notifier)
-      .buildPanelWidget(WindowPanel.right);
+      .buildPanelSurface(WindowPanel.right, stack);
 }

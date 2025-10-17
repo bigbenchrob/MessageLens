@@ -6,7 +6,7 @@ part of 'panel_widget_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$leftPanelWidgetHash() => r'cecfdd2d35e28861b40ce28983d167540379641c';
+String _$leftPanelWidgetHash() => r'0fcf6f2a65000623fea41e264913c36eb9a84ccc';
 
 /// Widget provider for left panel
 ///
@@ -25,7 +25,7 @@ final leftPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LeftPanelWidgetRef = AutoDisposeProviderRef<Widget>;
-String _$centerPanelWidgetHash() => r'0f4e4894b6afe99300dc002b37ec439c6db412d6';
+String _$centerPanelWidgetHash() => r'0b557dc2191051c590a46ec279c6d8f387f18ebf';
 
 /// Widget provider for center panel
 ///
@@ -44,7 +44,7 @@ final centerPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CenterPanelWidgetRef = AutoDisposeProviderRef<Widget>;
-String _$rightPanelWidgetHash() => r'989413a7fd86275791ffeac9221ba225f9ddf09f';
+String _$rightPanelWidgetHash() => r'a4d6b509b6529ac6f80806bc345dc9612bc5e5e4';
 
 /// Widget provider for right panel
 ///
