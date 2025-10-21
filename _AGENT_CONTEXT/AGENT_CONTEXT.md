@@ -35,6 +35,16 @@ This file serves as the master index for all critical documentation that AI agen
 - Naming conventions and file organization patterns
 - Infrastructure/Application/Domain layer separation
 
+### 3.2. macOS Window Management & `macos_ui`
+
+📁 **`01-MACOS_UI_AGENT_WINDOW_MANAGEMENT.md`**
+
+- **REQUIRED FOR WINDOW MANAGEMENT WORK** - Complete macOS chrome control playbook
+- Shows how `macos_ui` integrates with `macos_window_utils`
+- Initialization checklists for Swift runner and Dart bootstrap
+- Titlebar, toolbar passthrough, min/max sizing, delegate callbacks
+- **FOLLOW THIS** when adjusting window sizing, toolbar chrome, or delegate listeners
+
 ### 3.5. Participant-Handle Architecture ⚠️ CRITICAL FOR PARTICIPANTS/HANDLES/IMPORT
 
 📁 **`09-participant-handle-architecture.md`**
@@ -185,6 +195,7 @@ _AGENT_CONTEXT/
 ├── AGENT_CONTEXT.md                        # This master index file
 ├── 00-code-standards.md                    # ⭐ MANDATORY - Code rules & patterns
 ├── 01-addressbook-database-resolution.md  # ⚠️ CRITICAL - Import path resolution
+├── 01-MACOS_UI_AGENT_WINDOW_MANAGEMENT.md # ⭐ ESSENTIAL - macOS window control playbook
 ├── 02-architecture-overview.md            # DDD structure & naming conventions
 ├── 03-navigation-overview.md              # ⭐ ESSENTIAL - Navigation system with explicit event fields
 ├── 05-riverpod-provider-patterns.md       # ⚠️ MANDATORY - Provider code generation rules
@@ -213,6 +224,7 @@ _AGENT_CONTEXT/
 9. **FOR MESSAGE IMPORTS** - Read `08-rust-message-extractor.md` for text extraction
 10. **FOR URL PREVIEWS** - Read `09-rust-url-preview-parser.md` (quick reference) and `12-native-link-preview-implementation.md`
 11. **FOR IMPORT/MIGRATION WORK** - Read `11-data-import-migration-strategy.md` for complete system architecture
-12. When in doubt, ask for clarification rather than guessing
+13. **FOR macOS WINDOW MANAGEMENT** - Read `01-MACOS_UI_AGENT_WINDOW_MANAGEMENT.md` before modifying chrome, sizing, or delegate hooks
+14. When in doubt, ask for clarification rather than guessing
 
 **Remember**: Following these guidelines prevents the most common agent mistakes and ensures code quality.

@@ -6,10 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../../essentials/navigation/application/panels_view_state_provider.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../view_model/chats_for_contact_provider.dart';
 
 /// UI component showing all chats with a specific contact.

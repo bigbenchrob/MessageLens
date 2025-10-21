@@ -7,11 +7,11 @@ import '../../../../features/settings/presentation/view/settings_panel_view.dart
 import '../../../db_import/presentation/view/db_import_control_panel.dart';
 import '../../../db_import/presentation/view_model/db_import_control_provider.dart';
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
-import '../../application/panels_view_state_provider.dart';
-import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/features/import_spec.dart';
+import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../../feature_level_providers.dart';
 import '../view/panel_stack_surface.dart';
 
 part 'panel_coordinator_provider.g.dart';

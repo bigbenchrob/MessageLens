@@ -1,4 +1,3 @@
-// panel_switcher.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/entities/features/chats_spec.dart';
@@ -30,6 +29,7 @@ class PanelsViewState extends _$PanelsViewState {
     };
   }
 
+  // Show a new panel stack with a single page, replacing any existing stack.
   void show({required WindowPanel panel, required ViewSpec spec}) {
     final page = _createPage(
       spec: spec,
@@ -42,6 +42,7 @@ class PanelsViewState extends _$PanelsViewState {
     };
   }
 
+  // Push a new page onto the stack for the specified panel.
   void push({
     required WindowPanel panel,
     required ViewSpec spec,
@@ -57,6 +58,7 @@ class PanelsViewState extends _$PanelsViewState {
     state = {...state, panel: current.push(page)};
   }
 
+  // Activate a page at the specified index for the given panel.
   void activate({required WindowPanel panel, required int index}) {
     final current = state[panel];
     if (current == null) {
@@ -65,6 +67,7 @@ class PanelsViewState extends _$PanelsViewState {
     state = {...state, panel: current.activate(index)};
   }
 
+  // Pop the top page off the stack for the specified panel.
   void pop(WindowPanel panel) {
     final current = state[panel];
     if (current == null || current.pages.isEmpty) {
@@ -77,6 +80,7 @@ class PanelsViewState extends _$PanelsViewState {
     state = {...state, panel: current.pop()};
   }
 
+  // Close the page at the specified index for the given panel.
   void closeAt({required WindowPanel panel, required int index}) {
     final current = state[panel];
     if (current == null || current.pages.isEmpty) {
@@ -89,6 +93,7 @@ class PanelsViewState extends _$PanelsViewState {
     state = {...state, panel: current.removeAt(index)};
   }
 
+  /// Create a new panel page with the given specifications.
   PanelPage _createPage({
     required ViewSpec spec,
     required String title,
@@ -98,6 +103,7 @@ class PanelsViewState extends _$PanelsViewState {
     return PanelPage(id: id, spec: spec, title: title, isClosable: isClosable);
   }
 
+  /// Get a default title for a given view spec.
   String _defaultTitleFor(ViewSpec spec) {
     return spec.map(
       messages: (_) => 'Messages',
@@ -109,9 +115,3 @@ class PanelsViewState extends _$PanelsViewState {
     );
   }
 }
-
-// /// Convenience family to watch a single panel.
-// @riverpod
-// ViewSpec? panelViewFor(PanelViewForRef ref, WindowPanel panel) {
-//   return ref.watch(panelViewsNotifierProvider)[panel];
-// }

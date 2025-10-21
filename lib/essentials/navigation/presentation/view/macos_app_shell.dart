@@ -7,7 +7,6 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
-import '../../application/panels_view_state_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
@@ -17,6 +16,7 @@ import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../../feature_level_providers.dart';
 import '../view_model/panel_widget_providers.dart';
 
 /// Basic macOS window with two sidebars
@@ -138,12 +138,12 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     });
 
     // Watch for right panel content changes and auto-show/hide sidebar
-    ref.listen<Map<WindowPanel, Object?>>(panelsViewStateProvider, (
+    ref.listen<Map<WindowPanel, PanelStack>>(panelsViewStateProvider, (
       previous,
       next,
     ) {
       final stack = next[WindowPanel.right];
-      final hasContent = stack is PanelStack && !stack.isEmpty;
+      final hasContent = stack != null && !stack.isEmpty;
       _handleEndSidebarContentChange(hasContent);
     });
 

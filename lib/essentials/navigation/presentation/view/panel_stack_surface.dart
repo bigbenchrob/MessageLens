@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../application/panels_view_state_provider.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/navigation_constants.dart';
+import '../../feature_level_providers.dart';
 
 typedef PanelViewBuilder = Widget Function(PanelPage page);
 
+/// Surface widget that displays a panel stack with tab strip
 class PanelStackSurface extends ConsumerWidget {
   const PanelStackSurface({
     super.key,
@@ -126,7 +127,7 @@ class _TabChip extends StatelessWidget {
     final theme = Theme.of(context);
     final color = selected
         ? theme.colorScheme.primary.withValues(alpha: 0.12)
-        : theme.colorScheme.surfaceVariant;
+        : theme.colorScheme.surfaceContainerHighest;
     final borderColor = selected
         ? theme.colorScheme.primary
         : theme.dividerColor;

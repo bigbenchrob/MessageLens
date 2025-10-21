@@ -108,4 +108,20 @@ class MacosWindowManager implements WindowManagerPort {
     // minimized state in macos_window_utils
     return false;
   }
+
+  @override
+  Future<void> setWindowMinSize({
+    required double width,
+    required double height,
+  }) async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+
+    try {
+      await WindowManipulator.setWindowMinSize(Size(width, height));
+    } catch (e) {
+      // Silently fail if window manipulation is not available
+    }
+  }
 }

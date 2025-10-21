@@ -14,4 +14,9 @@ abstract class WindowManagerPort {
 
   Future<bool> isMaximized();
   Future<bool> isMinimized();
+
+  Future<void> setWindowMinSize({
+    required double width,
+    required double height,
+  });
 }

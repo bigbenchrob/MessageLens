@@ -27,6 +27,7 @@ Future<void> _configureMacosWindowUtils() async {
 
 class _MyDelegate extends NSWindowDelegate {
   ProviderContainer? _container;
+  Timer? _pendingSave;
 
   void setContainer(ProviderContainer container) {
     _container = container;
@@ -35,25 +36,51 @@ class _MyDelegate extends NSWindowDelegate {
   @override
   void windowDidResize() {
     super.windowDidResize();
-    _saveWindowState();
+    _scheduleWindowStateSave();
   }
 
   @override
   void windowDidMove() {
     super.windowDidMove();
-    _saveWindowState();
+    _scheduleWindowStateSave();
   }
 
-  void _saveWindowState() {
+  @override
+  void windowDidEndLiveResize() {
+    super.windowDidEndLiveResize();
+    _scheduleWindowStateSave();
+  }
+
+  @override
+  void windowDidChangeScreen() {
+    super.windowDidChangeScreen();
+    final container = _container;
+    if (container == null) {
+      return;
+    }
+
+    // Cancel any in-flight save while the window is transitioning between displays.
+    _pendingSave?.cancel();
+
+    () async {
+      final service = container.read(windowStateServiceProvider);
+      await service.reconcileAfterScreenChange();
+      _scheduleWindowStateSave();
+    }();
+  }
+
+  void _scheduleWindowStateSave() {
     final container = _container;
     if (container != null) {
-      // Don't await - save in background
-      container
-          .read(windowStateServiceProvider)
-          .saveCurrentWindowState() // Use the method that preserves sidebar widths
-          .catchError((error) {
-            // Silently ignore errors in background saves
-          });
+      _pendingSave?.cancel();
+      _pendingSave = Timer(const Duration(milliseconds: 240), () {
+        container
+            .read(windowStateServiceProvider)
+            .saveCurrentWindowState() // Use the method that preserves sidebar widths
+            .catchError((error) {
+              // Silently ignore errors in background saves
+            });
+      });
     }
   }
 }
