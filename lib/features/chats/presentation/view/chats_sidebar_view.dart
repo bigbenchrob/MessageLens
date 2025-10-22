@@ -13,6 +13,7 @@ import '../../../../essentials/navigation/domain/entities/features/messages_spec
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
+import '../../application/chats_by_age_provider.dart';
 import '../view_model/chat_list_header_provider.dart';
 import '../view_model/chats_view_model_provider.dart';
 import '../view_model/recent_chats_provider.dart';
@@ -22,11 +23,14 @@ class ChatsSidebarView extends HookConsumerWidget {
 
   final ChatsSpec spec;
 
-  int _resolveLimit() {
+  int? _resolveLimit() {
     return spec.when(
-      list: () => 5,
-      forContact: (_) => 5,
+      list: () => null,
+      forContact: (_) => null,
       recent: (limit) => limit,
+      byAgeOldest: (limit) => limit,
+      byAgeNewest: (limit) => limit,
+      unmatched: (limit) => limit,
     );
   }
 
@@ -34,7 +38,17 @@ class ChatsSidebarView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final limit = _resolveLimit();
     final scrollController = useScrollController();
-    final asyncChats = ref.watch(recentChatsProvider(limit: limit));
+
+    // Select provider based on spec variant
+    final asyncChats = spec.when(
+      recent: (limit) => ref.watch(recentChatsProvider(limit: limit)),
+      byAgeOldest: (limit) => ref.watch(chatsByAgeProvider(limit: limit)),
+      byAgeNewest: (limit) => ref.watch(chatsByAgeRecentProvider(limit: limit)),
+      unmatched: (limit) => ref.watch(unmatchedChatsProvider(limit: limit)),
+      list: () => ref.watch(recentChatsProvider()),
+      forContact: (_) => ref.watch(recentChatsProvider()),
+    );
+
     final senderFilterChatId = useState<int?>(null);
     final sortAlphabetically = useState(false);
 
@@ -54,6 +68,7 @@ class ChatsSidebarView extends HookConsumerWidget {
         chats: chats,
         selectedChatId: senderFilterChatId.value,
         sortAlphabetically: sortAlphabetically.value,
+        currentSpec: spec,
         onSelectedChatIdChanged: (value) {
           senderFilterChatId.value = value;
         },
@@ -368,13 +383,14 @@ class _SearchPlaceholder extends StatelessWidget {
   }
 }
 
-class _SenderFilter extends StatelessWidget {
+class _SenderFilter extends HookConsumerWidget {
   const _SenderFilter({
     required this.chats,
     required this.selectedChatId,
     required this.sortAlphabetically,
     required this.onSelectedChatIdChanged,
     required this.onSortAlphabeticallyChanged,
+    required this.currentSpec,
   });
 
   final List<RecentChatSummary> chats;
@@ -382,9 +398,10 @@ class _SenderFilter extends StatelessWidget {
   final bool sortAlphabetically;
   final ValueChanged<int?> onSelectedChatIdChanged;
   final ValueChanged<bool> onSortAlphabeticallyChanged;
+  final ChatsSpec currentSpec;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final typography = MacosTheme.of(context).typography;
     final options = chats
         .map(
@@ -428,7 +445,40 @@ class _SenderFilter extends StatelessWidget {
             'Filters',
             style: typography.title3.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
+          Text(
+            'View Mode',
+            style: typography.caption1.copyWith(color: const Color(0xFF6B6B70)),
+          ),
+          const SizedBox(height: 8),
+          MacosPopupButton<String>(
+            value: _getCurrentViewMode(currentSpec),
+            items: const [
+              MacosPopupMenuItem<String>(
+                value: 'recent',
+                child: Text('Recent Activity'),
+              ),
+              MacosPopupMenuItem<String>(
+                value: 'oldest',
+                child: Text('Oldest First'),
+              ),
+              MacosPopupMenuItem<String>(
+                value: 'newest',
+                child: Text('Newest First'),
+              ),
+              MacosPopupMenuItem<String>(
+                value: 'unmatched',
+                child: Text('Unmatched Numbers'),
+              ),
+            ],
+            onChanged: (String? value) {
+              if (value == null) {
+                return;
+              }
+              _switchViewMode(ref, value, currentSpec);
+            },
+          ),
+          const SizedBox(height: 12),
           Text(
             'Sender',
             style: typography.caption1.copyWith(color: const Color(0xFF6B6B70)),
@@ -465,6 +515,40 @@ class _SenderFilter extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getCurrentViewMode(ChatsSpec spec) {
+    return spec.when(
+      recent: (_) => 'recent',
+      byAgeOldest: (_) => 'oldest',
+      byAgeNewest: (_) => 'newest',
+      unmatched: (_) => 'unmatched',
+      list: () => 'recent',
+      forContact: (_) => 'recent',
+    );
+  }
+
+  void _switchViewMode(WidgetRef ref, String mode, ChatsSpec currentSpec) {
+    final limit = currentSpec.when(
+      recent: (l) => l,
+      byAgeOldest: (l) => l,
+      byAgeNewest: (l) => l,
+      unmatched: (l) => l,
+      list: () => null,
+      forContact: (_) => null,
+    );
+
+    final newSpec = switch (mode) {
+      'recent' => ChatsSpec.recent(limit: limit),
+      'oldest' => ChatsSpec.byAgeOldest(limit: limit),
+      'newest' => ChatsSpec.byAgeNewest(limit: limit),
+      'unmatched' => ChatsSpec.unmatched(limit: limit),
+      _ => ChatsSpec.recent(limit: limit),
+    };
+
+    ref
+        .read(panelsViewStateProvider.notifier)
+        .show(panel: WindowPanel.left, spec: ViewSpec.chats(newSpec));
   }
 
   static String _formatMessageCount(int value) {

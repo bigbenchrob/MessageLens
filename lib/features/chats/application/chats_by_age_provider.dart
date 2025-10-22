@@ -2,47 +2,51 @@ import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../settings/application/contact_short_names/contact_short_names_controller.dart';
+import '../../../essentials/db/feature_level_providers.dart';
+import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../settings/application/contact_short_names/contact_short_names_controller.dart';
+import '../presentation/view_model/recent_chats_provider.dart';
 
-part 'recent_chats_provider.g.dart';
+part 'chats_by_age_provider.g.dart';
 
-/// Lightweight view model describing the data needed for the recent chats list.
-class RecentChatSummary {
-  const RecentChatSummary({
-    required this.chatId,
-    required this.title,
-    required this.messageCount,
-    required this.firstMessageDate,
-    required this.lastMessageDate,
-    required this.isGroup,
-    required this.participants,
-  });
-
-  final int chatId;
-  final String title;
-  final int messageCount;
-  final DateTime? firstMessageDate;
-  final DateTime? lastMessageDate;
-  final bool isGroup;
-  final List<String> participants;
-}
-
+/// Returns chats ordered by first message date (oldest first).
 @riverpod
-Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
+Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
   final shortNames = await ref.watch(contactShortNamesProvider.future);
 
-  List<WorkingChat> chatRows;
   final chatsQuery = db.select(db.workingChats)
     ..orderBy([
       (tbl) => drift.OrderingTerm(
-        expression: tbl.lastMessageAtUtc,
-        mode: drift.OrderingMode.desc,
+        expression: tbl.createdAtUtc,
+        mode: drift.OrderingMode.asc,
       ),
+      (tbl) => drift.OrderingTerm(expression: tbl.id),
+    ]);
+
+  if (limit != null) {
+    chatsQuery.limit(limit);
+  }
+
+  final chatRows = await chatsQuery.get();
+
+  return _buildChatSummaries(
+    db: db,
+    chatRows: chatRows,
+    shortNames: shortNames,
+  );
+}
+
+/// Returns chats ordered by first message date (newest first).
+@riverpod
+Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
+  final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final shortNames = await ref.watch(contactShortNamesProvider.future);
+
+  final chatsQuery = db.select(db.workingChats)
+    ..orderBy([
       (tbl) => drift.OrderingTerm(
-        expression: tbl.updatedAtUtc,
+        expression: tbl.createdAtUtc,
         mode: drift.OrderingMode.desc,
       ),
       (tbl) => drift.OrderingTerm(expression: tbl.id),
@@ -52,8 +56,83 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
     chatsQuery.limit(limit);
   }
 
-  chatRows = await chatsQuery.get();
+  final chatRows = await chatsQuery.get();
 
+  return _buildChatSummaries(
+    db: db,
+    chatRows: chatRows,
+    shortNames: shortNames,
+  );
+}
+
+/// Returns chats where the handle has no participant match (unmatched phone numbers/emails).
+@riverpod
+Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
+  final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final shortNames = await ref.watch(contactShortNamesProvider.future);
+
+  // Find chats whose handle_id does NOT appear in handle_to_participant
+  final unmatchedHandleIds =
+      await (db.selectOnly(db.workingHandles)
+            ..addColumns([db.workingHandles.id])
+            ..where(
+              drift.notExistsQuery(
+                db.select(
+                  db.handleToParticipant,
+                )..where((tbl) => tbl.handleId.equalsExp(db.workingHandles.id)),
+              ),
+            ))
+          .map((row) => row.read(db.workingHandles.id)!)
+          .get();
+
+  if (unmatchedHandleIds.isEmpty) {
+    return [];
+  }
+
+  // Now find chats using those handles
+  final chatHandleQuery = db.select(db.chatToHandle)
+    ..where((tbl) => tbl.handleId.isIn(unmatchedHandleIds));
+
+  final chatHandleRows = await chatHandleQuery.get();
+  final unmatchedChatIds = chatHandleRows
+      .map((row) => row.chatId)
+      .toSet()
+      .toList();
+
+  if (unmatchedChatIds.isEmpty) {
+    return [];
+  }
+
+  final chatsQuery = db.select(db.workingChats)
+    ..where((tbl) => tbl.id.isIn(unmatchedChatIds))
+    ..orderBy([
+      (tbl) => drift.OrderingTerm(
+        expression: tbl.lastMessageAtUtc,
+        mode: drift.OrderingMode.desc,
+      ),
+      (tbl) => drift.OrderingTerm(expression: tbl.id),
+    ]);
+
+  if (limit != null) {
+    chatsQuery.limit(limit);
+  }
+
+  final chatRows = await chatsQuery.get();
+
+  return _buildChatSummaries(
+    db: db,
+    chatRows: chatRows,
+    shortNames: shortNames,
+  );
+}
+
+/// Shared logic to build RecentChatSummary list from chat rows.
+/// Extracted from recentChatsProvider to avoid duplication.
+Future<List<RecentChatSummary>> _buildChatSummaries({
+  required WorkingDatabase db,
+  required List<WorkingChat> chatRows,
+  required Map<String, String> shortNames,
+}) async {
   final messageCountExpression = db.workingMessages.id.count();
   final firstSentExpression = db.workingMessages.sentAtUtc.min();
   final lastSentExpression = db.workingMessages.sentAtUtc.max();
@@ -67,8 +146,37 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
   }
 
   String resolveContactKey(WorkingParticipant participant) {
-    // Since contact_ref is removed, use participant.id directly
     return 'participant:${participant.id}';
+  }
+
+  String resolveParticipantName(WorkingParticipant participant) {
+    final key = resolveContactKey(participant);
+    final trimmedShortName = shortNames[key]?.trim();
+    if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
+      return trimmedShortName;
+    }
+
+    final candidates = <String?>[
+      participant.displayName,
+      participant.originalName,
+      () {
+        final given = participant.givenName?.trim();
+        final family = participant.familyName?.trim();
+        if (given?.isNotEmpty == true && family?.isNotEmpty == true) {
+          return '$given $family';
+        }
+        return given?.isNotEmpty == true ? given : family;
+      }(),
+      participant.organization,
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate != null && candidate.trim().isNotEmpty) {
+        return candidate.trim();
+      }
+    }
+
+    return 'Unknown Contact';
   }
 
   String deriveTitle(WorkingChat chat, List<String> participants) {
@@ -111,20 +219,15 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
 
     final lastMessageDate = parseUtc(lastSentUtc ?? chat.lastMessageAtUtc);
 
-    // Query participants for this chat:
-    // chats.handle_id → handle_to_participant → participants
     final participantsQuery = db.select(db.chatToHandle).join([
-      // Join chat_to_handle → handles
       drift.innerJoin(
         db.workingHandles,
         db.workingHandles.id.equalsExp(db.chatToHandle.handleId),
       ),
-      // Left join handles → handle_to_participant (some handles may be unmatched)
       drift.leftOuterJoin(
         db.handleToParticipant,
         db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
       ),
-      // Left join participants for resolved contacts (optional)
       drift.leftOuterJoin(
         db.workingParticipants,
         db.workingParticipants.id.equalsExp(
@@ -132,36 +235,6 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
         ),
       ),
     ])..where(db.chatToHandle.chatId.equals(chat.id));
-
-    String resolveParticipantName(WorkingParticipant participant) {
-      final key = resolveContactKey(participant);
-      final trimmedShortName = shortNames[key]?.trim();
-      if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
-        return trimmedShortName;
-      }
-
-      final candidates = <String?>[
-        participant.displayName,
-        participant.originalName,
-        () {
-          final given = participant.givenName?.trim();
-          final family = participant.familyName?.trim();
-          if (given?.isNotEmpty == true && family?.isNotEmpty == true) {
-            return '$given $family';
-          }
-          return given?.isNotEmpty == true ? given : family;
-        }(),
-        participant.organization,
-      ];
-
-      for (final candidate in candidates) {
-        if (candidate != null && candidate.trim().isNotEmpty) {
-          return candidate.trim();
-        }
-      }
-
-      return 'Unknown Contact';
-    }
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];
@@ -171,32 +244,14 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
       final handle = row.readTable(db.workingHandles);
       final participant = row.readTableOrNull(db.workingParticipants);
 
-      // Debug logging for chat 279
-      if (chat.id == 279) {
-        print(
-          '[DEBUG] Chat 279 - Handle ID: ${handle.id}, Raw: ${handle.rawIdentifier}, Display: ${handle.displayName}',
-        );
-        print(
-          '[DEBUG] Chat 279 - Participant: ${participant?.id}, Display: ${participant?.displayName}',
-        );
-      }
-
       String resolvedName;
       if (participant != null) {
-        // We have a matched participant (contact) - use their display name
         resolvedName = resolveParticipantName(participant);
-        if (chat.id == 279) {
-          print(
-            '[DEBUG] Chat 279 - Resolved name from participant: $resolvedName',
-          );
-        }
       } else {
-        // No matched participant - fall back to handle identifier
         final displayName = handle.displayName.trim();
         final rawIdentifier = handle.rawIdentifier.trim();
         final compoundIdentifier = handle.compoundIdentifier.trim();
 
-        // Prefer display_name populated during migration for human readable output
         resolvedName = displayName.isNotEmpty
             ? displayName
             : rawIdentifier.isNotEmpty
@@ -204,30 +259,19 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
             : compoundIdentifier.isNotEmpty
             ? compoundIdentifier
             : 'Unknown Contact';
-
-        if (chat.id == 279) {
-          print(
-            '[DEBUG] Chat 279 - No participant, using handle: $resolvedName',
-          );
-        }
       }
 
       final normalized = resolvedName.toLowerCase();
       final isSelfAlias = normalized == 'me';
       if (!isSelfAlias || chat.isGroup) {
         if (!seenNames.add(normalized)) {
-          if (chat.id == 279) {
-            print('[DEBUG] Chat 279 - Skipping duplicate name: $resolvedName');
-          }
           continue;
         }
       }
 
       participantNames.add(resolvedName);
-      if (chat.id == 279) {
-        print('[DEBUG] Chat 279 - Added participant name: $resolvedName');
-      }
     }
+
     if (participantNames.isEmpty) {
       participantNames.add('Unknown Contact');
     }

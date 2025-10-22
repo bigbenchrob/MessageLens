@@ -6,7 +6,7 @@ part of 'chat_list_header_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatListHeaderHash() => r'df6441ead6ee2e054dfa4bcd74fa8600d4a9a472';
+String _$chatListHeaderHash() => r'f9f996094034c36f1e3295c7a29e7ee087fb159f';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -41,7 +41,7 @@ class ChatListHeaderFamily extends Family<String> {
   /// See also [chatListHeader].
   ChatListHeaderProvider call({
     required ChatsSpec spec,
-    required int limit,
+    int? limit,
     int? selectedChatId,
   }) {
     return ChatListHeaderProvider(
@@ -82,7 +82,7 @@ class ChatListHeaderProvider extends AutoDisposeProvider<String> {
   /// See also [chatListHeader].
   ChatListHeaderProvider({
     required ChatsSpec spec,
-    required int limit,
+    int? limit,
     int? selectedChatId,
   }) : this._internal(
          (ref) => chatListHeader(
@@ -117,7 +117,7 @@ class ChatListHeaderProvider extends AutoDisposeProvider<String> {
   }) : super.internal();
 
   final ChatsSpec spec;
-  final int limit;
+  final int? limit;
   final int? selectedChatId;
 
   @override
@@ -169,7 +169,7 @@ mixin ChatListHeaderRef on AutoDisposeProviderRef<String> {
   ChatsSpec get spec;
 
   /// The parameter `limit` of this provider.
-  int get limit;
+  int? get limit;
 
   /// The parameter `selectedChatId` of this provider.
   int? get selectedChatId;
@@ -182,7 +182,7 @@ class _ChatListHeaderProviderElement extends AutoDisposeProviderElement<String>
   @override
   ChatsSpec get spec => (origin as ChatListHeaderProvider).spec;
   @override
-  int get limit => (origin as ChatListHeaderProvider).limit;
+  int? get limit => (origin as ChatListHeaderProvider).limit;
   @override
   int? get selectedChatId => (origin as ChatListHeaderProvider).selectedChatId;
 }

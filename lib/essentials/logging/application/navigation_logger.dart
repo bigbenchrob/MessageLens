@@ -67,6 +67,9 @@ class NavigationLogEntry {
             'contactId': contactId,
           },
           recent: (limit) => {'variant': 'recent', 'limit': limit},
+          byAgeOldest: (limit) => {'variant': 'byAgeOldest', 'limit': limit},
+          byAgeNewest: (limit) => {'variant': 'byAgeNewest', 'limit': limit},
+          unmatched: (limit) => {'variant': 'unmatched', 'limit': limit},
         ),
       },
       contacts: (contactsSpec) => {

@@ -18,7 +18,7 @@ class PanelsViewState extends _$PanelsViewState {
       WindowPanel.left: PanelStack(
         pages: <PanelPage>[
           _createPage(
-            spec: const ViewSpec.chats(ChatsSpec.recent(limit: 5)),
+            spec: const ViewSpec.chats(ChatsSpec.recent(limit: null)),
             title: 'Chats',
             isClosable: false,
           ),

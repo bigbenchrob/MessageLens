@@ -55,13 +55,16 @@ extension ChatsSpecPatterns on ChatsSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ChatsList value)?  list,TResult Function( _ChatsForContact value)?  forContact,TResult Function( _RecentChats value)?  recent,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ChatsList value)?  list,TResult Function( _ChatsForContact value)?  forContact,TResult Function( _RecentChats value)?  recent,TResult Function( _ByAgeOldest value)?  byAgeOldest,TResult Function( _ByAgeNewest value)?  byAgeNewest,TResult Function( _Unmatched value)?  unmatched,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ChatsList() when list != null:
 return list(_that);case _ChatsForContact() when forContact != null:
 return forContact(_that);case _RecentChats() when recent != null:
-return recent(_that);case _:
+return recent(_that);case _ByAgeOldest() when byAgeOldest != null:
+return byAgeOldest(_that);case _ByAgeNewest() when byAgeNewest != null:
+return byAgeNewest(_that);case _Unmatched() when unmatched != null:
+return unmatched(_that);case _:
   return orElse();
 
 }
@@ -79,13 +82,16 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ChatsList value)  list,required TResult Function( _ChatsForContact value)  forContact,required TResult Function( _RecentChats value)  recent,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ChatsList value)  list,required TResult Function( _ChatsForContact value)  forContact,required TResult Function( _RecentChats value)  recent,required TResult Function( _ByAgeOldest value)  byAgeOldest,required TResult Function( _ByAgeNewest value)  byAgeNewest,required TResult Function( _Unmatched value)  unmatched,}){
 final _that = this;
 switch (_that) {
 case _ChatsList():
 return list(_that);case _ChatsForContact():
 return forContact(_that);case _RecentChats():
-return recent(_that);case _:
+return recent(_that);case _ByAgeOldest():
+return byAgeOldest(_that);case _ByAgeNewest():
+return byAgeNewest(_that);case _Unmatched():
+return unmatched(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -102,13 +108,16 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ChatsList value)?  list,TResult? Function( _ChatsForContact value)?  forContact,TResult? Function( _RecentChats value)?  recent,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ChatsList value)?  list,TResult? Function( _ChatsForContact value)?  forContact,TResult? Function( _RecentChats value)?  recent,TResult? Function( _ByAgeOldest value)?  byAgeOldest,TResult? Function( _ByAgeNewest value)?  byAgeNewest,TResult? Function( _Unmatched value)?  unmatched,}){
 final _that = this;
 switch (_that) {
 case _ChatsList() when list != null:
 return list(_that);case _ChatsForContact() when forContact != null:
 return forContact(_that);case _RecentChats() when recent != null:
-return recent(_that);case _:
+return recent(_that);case _ByAgeOldest() when byAgeOldest != null:
+return byAgeOldest(_that);case _ByAgeNewest() when byAgeNewest != null:
+return byAgeNewest(_that);case _Unmatched() when unmatched != null:
+return unmatched(_that);case _:
   return null;
 
 }
@@ -125,12 +134,15 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  list,TResult Function( String contactId)?  forContact,TResult Function( int limit)?  recent,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  list,TResult Function( String contactId)?  forContact,TResult Function( int? limit)?  recent,TResult Function( int? limit)?  byAgeOldest,TResult Function( int? limit)?  byAgeNewest,TResult Function( int? limit)?  unmatched,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ChatsList() when list != null:
 return list();case _ChatsForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentChats() when recent != null:
-return recent(_that.limit);case _:
+return recent(_that.limit);case _ByAgeOldest() when byAgeOldest != null:
+return byAgeOldest(_that.limit);case _ByAgeNewest() when byAgeNewest != null:
+return byAgeNewest(_that.limit);case _Unmatched() when unmatched != null:
+return unmatched(_that.limit);case _:
   return orElse();
 
 }
@@ -148,12 +160,15 @@ return recent(_that.limit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  list,required TResult Function( String contactId)  forContact,required TResult Function( int limit)  recent,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  list,required TResult Function( String contactId)  forContact,required TResult Function( int? limit)  recent,required TResult Function( int? limit)  byAgeOldest,required TResult Function( int? limit)  byAgeNewest,required TResult Function( int? limit)  unmatched,}) {final _that = this;
 switch (_that) {
 case _ChatsList():
 return list();case _ChatsForContact():
 return forContact(_that.contactId);case _RecentChats():
-return recent(_that.limit);case _:
+return recent(_that.limit);case _ByAgeOldest():
+return byAgeOldest(_that.limit);case _ByAgeNewest():
+return byAgeNewest(_that.limit);case _Unmatched():
+return unmatched(_that.limit);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -170,12 +185,15 @@ return recent(_that.limit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  list,TResult? Function( String contactId)?  forContact,TResult? Function( int limit)?  recent,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  list,TResult? Function( String contactId)?  forContact,TResult? Function( int? limit)?  recent,TResult? Function( int? limit)?  byAgeOldest,TResult? Function( int? limit)?  byAgeNewest,TResult? Function( int? limit)?  unmatched,}) {final _that = this;
 switch (_that) {
 case _ChatsList() when list != null:
 return list();case _ChatsForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentChats() when recent != null:
-return recent(_that.limit);case _:
+return recent(_that.limit);case _ByAgeOldest() when byAgeOldest != null:
+return byAgeOldest(_that.limit);case _ByAgeNewest() when byAgeNewest != null:
+return byAgeNewest(_that.limit);case _Unmatched() when unmatched != null:
+return unmatched(_that.limit);case _:
   return null;
 
 }
@@ -285,10 +303,10 @@ as String,
 
 
 class _RecentChats implements ChatsSpec {
-  const _RecentChats({required this.limit});
+  const _RecentChats({this.limit});
   
 
- final  int limit;
+ final  int? limit;
 
 /// Create a copy of ChatsSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -320,7 +338,7 @@ abstract mixin class _$RecentChatsCopyWith<$Res> implements $ChatsSpecCopyWith<$
   factory _$RecentChatsCopyWith(_RecentChats value, $Res Function(_RecentChats) _then) = __$RecentChatsCopyWithImpl;
 @useResult
 $Res call({
- int limit
+ int? limit
 });
 
 
@@ -337,10 +355,208 @@ class __$RecentChatsCopyWithImpl<$Res>
 
 /// Create a copy of ChatsSpec
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? limit = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? limit = freezed,}) {
   return _then(_RecentChats(
-limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
-as int,
+limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _ByAgeOldest implements ChatsSpec {
+  const _ByAgeOldest({this.limit});
+  
+
+ final  int? limit;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ByAgeOldestCopyWith<_ByAgeOldest> get copyWith => __$ByAgeOldestCopyWithImpl<_ByAgeOldest>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ByAgeOldest&&(identical(other.limit, limit) || other.limit == limit));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,limit);
+
+@override
+String toString() {
+  return 'ChatsSpec.byAgeOldest(limit: $limit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ByAgeOldestCopyWith<$Res> implements $ChatsSpecCopyWith<$Res> {
+  factory _$ByAgeOldestCopyWith(_ByAgeOldest value, $Res Function(_ByAgeOldest) _then) = __$ByAgeOldestCopyWithImpl;
+@useResult
+$Res call({
+ int? limit
+});
+
+
+
+
+}
+/// @nodoc
+class __$ByAgeOldestCopyWithImpl<$Res>
+    implements _$ByAgeOldestCopyWith<$Res> {
+  __$ByAgeOldestCopyWithImpl(this._self, this._then);
+
+  final _ByAgeOldest _self;
+  final $Res Function(_ByAgeOldest) _then;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? limit = freezed,}) {
+  return _then(_ByAgeOldest(
+limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _ByAgeNewest implements ChatsSpec {
+  const _ByAgeNewest({this.limit});
+  
+
+ final  int? limit;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ByAgeNewestCopyWith<_ByAgeNewest> get copyWith => __$ByAgeNewestCopyWithImpl<_ByAgeNewest>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ByAgeNewest&&(identical(other.limit, limit) || other.limit == limit));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,limit);
+
+@override
+String toString() {
+  return 'ChatsSpec.byAgeNewest(limit: $limit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ByAgeNewestCopyWith<$Res> implements $ChatsSpecCopyWith<$Res> {
+  factory _$ByAgeNewestCopyWith(_ByAgeNewest value, $Res Function(_ByAgeNewest) _then) = __$ByAgeNewestCopyWithImpl;
+@useResult
+$Res call({
+ int? limit
+});
+
+
+
+
+}
+/// @nodoc
+class __$ByAgeNewestCopyWithImpl<$Res>
+    implements _$ByAgeNewestCopyWith<$Res> {
+  __$ByAgeNewestCopyWithImpl(this._self, this._then);
+
+  final _ByAgeNewest _self;
+  final $Res Function(_ByAgeNewest) _then;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? limit = freezed,}) {
+  return _then(_ByAgeNewest(
+limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _Unmatched implements ChatsSpec {
+  const _Unmatched({this.limit});
+  
+
+ final  int? limit;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UnmatchedCopyWith<_Unmatched> get copyWith => __$UnmatchedCopyWithImpl<_Unmatched>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Unmatched&&(identical(other.limit, limit) || other.limit == limit));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,limit);
+
+@override
+String toString() {
+  return 'ChatsSpec.unmatched(limit: $limit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UnmatchedCopyWith<$Res> implements $ChatsSpecCopyWith<$Res> {
+  factory _$UnmatchedCopyWith(_Unmatched value, $Res Function(_Unmatched) _then) = __$UnmatchedCopyWithImpl;
+@useResult
+$Res call({
+ int? limit
+});
+
+
+
+
+}
+/// @nodoc
+class __$UnmatchedCopyWithImpl<$Res>
+    implements _$UnmatchedCopyWith<$Res> {
+  __$UnmatchedCopyWithImpl(this._self, this._then);
+
+  final _Unmatched _self;
+  final $Res Function(_Unmatched) _then;
+
+/// Create a copy of ChatsSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? limit = freezed,}) {
+  return _then(_Unmatched(
+limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

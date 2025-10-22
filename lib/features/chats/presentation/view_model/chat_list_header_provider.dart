@@ -10,13 +10,16 @@ part 'chat_list_header_provider.g.dart';
 String chatListHeader(
   Ref ref, {
   required ChatsSpec spec,
-  required int limit,
+  int? limit,
   int? selectedChatId,
 }) {
   final baseTitle = spec.when(
     list: () => 'Chats',
     forContact: (_) => 'Chats',
     recent: (value) => 'Recent Chats',
+    byAgeOldest: (value) => 'Oldest Chats',
+    byAgeNewest: (value) => 'Newest Chats',
+    unmatched: (value) => 'Unmatched Numbers',
   );
 
   if (selectedChatId == null) {

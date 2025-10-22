@@ -6,7 +6,7 @@ part of 'recent_chats_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$recentChatsHash() => r'd148886069c1a5f641e1e77fff7a00bf257dfc8d';
+String _$recentChatsHash() => r'77232b712f9a56f96eff6bd616e0e1cc1a72f757';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -39,7 +39,7 @@ class RecentChatsFamily extends Family<AsyncValue<List<RecentChatSummary>>> {
   const RecentChatsFamily();
 
   /// See also [recentChats].
-  RecentChatsProvider call({int limit = 5}) {
+  RecentChatsProvider call({int? limit}) {
     return RecentChatsProvider(limit: limit);
   }
 
@@ -69,7 +69,7 @@ class RecentChatsFamily extends Family<AsyncValue<List<RecentChatSummary>>> {
 class RecentChatsProvider
     extends AutoDisposeFutureProvider<List<RecentChatSummary>> {
   /// See also [recentChats].
-  RecentChatsProvider({int limit = 5})
+  RecentChatsProvider({int? limit})
     : this._internal(
         (ref) => recentChats(ref as RecentChatsRef, limit: limit),
         from: recentChatsProvider,
@@ -92,7 +92,7 @@ class RecentChatsProvider
     required this.limit,
   }) : super.internal();
 
-  final int limit;
+  final int? limit;
 
   @override
   Override overrideWith(
@@ -135,7 +135,7 @@ class RecentChatsProvider
 // ignore: unused_element
 mixin RecentChatsRef on AutoDisposeFutureProviderRef<List<RecentChatSummary>> {
   /// The parameter `limit` of this provider.
-  int get limit;
+  int? get limit;
 }
 
 class _RecentChatsProviderElement
@@ -144,7 +144,7 @@ class _RecentChatsProviderElement
   _RecentChatsProviderElement(super.provider);
 
   @override
-  int get limit => (origin as RecentChatsProvider).limit;
+  int? get limit => (origin as RecentChatsProvider).limit;
 }
 
 // ignore_for_file: type=lint
