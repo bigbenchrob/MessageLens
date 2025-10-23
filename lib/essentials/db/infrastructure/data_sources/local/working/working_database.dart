@@ -419,6 +419,29 @@ class WorkingDatabase extends _$WorkingDatabase {
       );
     }
 
+    // Read all handles and format phone numbers for display_name
+    final handles = await customSelect(
+      'SELECT id, raw_identifier FROM handles',
+    ).get();
+
+    for (final row in handles) {
+      final id = row.data['id'] as int?;
+      final rawIdentifier = row.data['raw_identifier'] as String?;
+
+      if (id == null || rawIdentifier == null || rawIdentifier.trim().isEmpty) {
+        continue;
+      }
+
+      // Format phone numbers into human-friendly display
+      final displayName = formatPhoneNumberForDisplay(rawIdentifier);
+
+      await customStatement(
+        'UPDATE handles SET display_name = ? WHERE id = ?',
+        [displayName, id],
+      );
+    }
+
+    // Fallback for any remaining null display_name values
     await customStatement('''
       UPDATE handles
          SET display_name = CASE

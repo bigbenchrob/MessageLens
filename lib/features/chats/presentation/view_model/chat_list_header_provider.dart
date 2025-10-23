@@ -20,6 +20,7 @@ String chatListHeader(
     byAgeOldest: (value) => 'Oldest Chats',
     byAgeNewest: (value) => 'Newest Chats',
     unmatched: (value) => 'Unmatched Numbers',
+    forParticipant: (_) => 'Chats for Contact',
   );
 
   if (selectedChatId == null) {

@@ -31,6 +31,7 @@ class ChatsSidebarView extends HookConsumerWidget {
       byAgeOldest: (limit) => limit,
       byAgeNewest: (limit) => limit,
       unmatched: (limit) => limit,
+      forParticipant: (_) => null,
     );
   }
 
@@ -47,6 +48,7 @@ class ChatsSidebarView extends HookConsumerWidget {
       unmatched: (limit) => ref.watch(unmatchedChatsProvider(limit: limit)),
       list: () => ref.watch(recentChatsProvider()),
       forContact: (_) => ref.watch(recentChatsProvider()),
+      forParticipant: (_) => ref.watch(recentChatsProvider()),
     );
 
     final senderFilterChatId = useState<int?>(null);
@@ -104,6 +106,7 @@ class ChatsSidebarView extends HookConsumerWidget {
             },
             forContact: (_) {},
             recent: (_) {},
+            forHandle: (_) {},
           );
         },
         chats: (_) {},
@@ -111,6 +114,7 @@ class ChatsSidebarView extends HookConsumerWidget {
         import: (_) {},
         settings: (_) {},
         workbench: (_) {},
+        sidebar: (_) {},
       );
     }
 
@@ -525,6 +529,7 @@ class _SenderFilter extends HookConsumerWidget {
       unmatched: (_) => 'unmatched',
       list: () => 'recent',
       forContact: (_) => 'recent',
+      forParticipant: (_) => 'recent',
     );
   }
 
@@ -536,6 +541,7 @@ class _SenderFilter extends HookConsumerWidget {
       unmatched: (l) => l,
       list: () => null,
       forContact: (_) => null,
+      forParticipant: (_) => null,
     );
 
     final newSpec = switch (mode) {

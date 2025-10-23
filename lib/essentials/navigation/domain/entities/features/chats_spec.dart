@@ -16,4 +16,8 @@ class ChatsSpec with _$ChatsSpec {
   const factory ChatsSpec.byAgeNewest({int? limit}) = _ByAgeNewest;
 
   const factory ChatsSpec.unmatched({int? limit}) = _Unmatched;
+
+  /// Show all chats for a specific participant (contact)
+  const factory ChatsSpec.forParticipant({required int participantId}) =
+      _ChatsForParticipant;
 }

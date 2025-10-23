@@ -10,4 +10,8 @@ class MessagesSpec with _$MessagesSpec {
       _MessagesForContact;
 
   const factory MessagesSpec.recent({required int limit}) = _RecentMessages;
+
+  /// Show ALL messages from a handle across all chats chronologically
+  const factory MessagesSpec.forHandle({required int handleId}) =
+      _MessagesForHandle;
 }

@@ -529,27 +529,30 @@ String _deriveDisplay(List<_ParsedHandle> rows, String normalized) {
       .where((value) => value.isNotEmpty)
       .toList();
 
+  // For email addresses, use normalized form
   if (normalized.contains('@')) {
     return normalized;
   }
 
+  // For phone numbers, format into human-friendly display
   final digitsExpression = RegExp(r'^[0-9]+$');
   if (digitsExpression.hasMatch(normalized)) {
     final plusCandidate = cleaned.firstWhere(
       (value) => value.startsWith('+'),
       orElse: () => '',
     );
-    if (plusCandidate.isNotEmpty) {
-      return plusCandidate;
-    }
-    if (normalized.length >= 10) {
-      return '+$normalized';
-    }
-    return normalized;
+    
+    // Format the phone number for display
+    final rawToFormat = plusCandidate.isNotEmpty
+        ? plusCandidate
+        : (normalized.length >= 10 ? '+$normalized' : normalized);
+    
+    return formatPhoneNumberForDisplay(rawToFormat);
   }
 
+  // Fallback to first cleaned value
   if (cleaned.isNotEmpty) {
-    return cleaned.first;
+    return formatPhoneNumberForDisplay(cleaned.first);
   }
 
   return normalized;

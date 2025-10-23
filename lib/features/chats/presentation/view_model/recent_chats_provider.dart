@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../settings/application/contact_short_names/contact_short_names_controller.dart';
+import '../../application/chat_timeline_calculator.dart';
+import '../../domain/chat_timeline_data.dart';
 
 part 'recent_chats_provider.g.dart';
 
@@ -18,6 +20,9 @@ class RecentChatSummary {
     required this.lastMessageDate,
     required this.isGroup,
     required this.participants,
+    required this.handles,
+    required this.recency,
+    required this.timelineData,
   });
 
   final int chatId;
@@ -27,6 +32,9 @@ class RecentChatSummary {
   final DateTime? lastMessageDate;
   final bool isGroup;
   final List<String> participants;
+  final List<String> handles;
+  final ChatRecency? recency;
+  final ChatTimelineData? timelineData;
 }
 
 @riverpod
@@ -165,11 +173,15 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];
+    final handleIdentifiers = <String>[];
     final seenNames = <String>{};
 
     for (final row in participantRows) {
       final handle = row.readTable(db.workingHandles);
       final participant = row.readTableOrNull(db.workingParticipants);
+
+      // Store the display name (formatted phone number or email)
+      handleIdentifiers.add(handle.displayName);
 
       // Debug logging for chat 279
       if (chat.id == 279) {
@@ -232,15 +244,32 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
       participantNames.add('Unknown Contact');
     }
 
+    // Calculate recency from last message date
+    final recency = lastMessageDate != null
+        ? ChatRecency.fromDateTime(lastMessageDate)
+        : null;
+
+    // Calculate timeline data
+    final firstMsgDate = parseUtc(firstSentUtc ?? chat.createdAtUtc);
+    final timelineData = await calculateChatTimeline(
+      db,
+      chat.id,
+      firstMsgDate,
+      lastMessageDate,
+    );
+
     results.add(
       RecentChatSummary(
         chatId: chat.id,
         title: deriveTitle(chat, participantNames),
         messageCount: messageCount,
-        firstMessageDate: parseUtc(firstSentUtc ?? chat.createdAtUtc),
+        firstMessageDate: firstMsgDate,
         lastMessageDate: lastMessageDate,
         isGroup: chat.isGroup,
         participants: participantNames,
+        handles: handleIdentifiers,
+        recency: recency,
+        timelineData: timelineData,
       ),
     );
   }

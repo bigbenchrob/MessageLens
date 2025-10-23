@@ -188,6 +188,18 @@ See `03-navigation-overview.md` for complete architecture, implementation layers
 
 - **WITHOUT THESE**: Risk breaking import/migration workflows or leaving databases locked
 
+### 9. Sidebar Navigation & Organization ⭐ ESSENTIAL FOR UI WORK
+
+📁 **`09-sidebar-navigation-and-organization.md`**
+
+- **REQUIRED FOR ALL SIDEBAR/NAVIGATION WORK** - Complete left sidebar behavior specification
+- Two-tier organizational system (MENU A: Contacts vs Unmatched, MENU B: specific selection)
+- Critical rule: Center panel stays EMPTY until user clicks an item in the sidebar list
+- Contacts mode: Shows chat list in sidebar → click chat → messages in center panel
+- Unmatched mode: Shows handle list in sidebar → click handle → ALL messages from handle in center
+- UI pattern guidelines (radio buttons vs menus, consistency rules)
+- **IGNORE THIS = WRONG NAVIGATION FLOW** - Prevents showing content in wrong panels
+
 ## File Organization
 
 ```
@@ -203,6 +215,7 @@ _AGENT_CONTEXT/
 ├── 08-rust-message-extractor.md           # ⚠️ CRITICAL - Rust binary for message text extraction
 ├── 09-participant-handle-architecture.md  # ⚠️ CRITICAL - Participant/Handle design & import architecture
 ├── 09-rust-url-preview-parser.md          # LinkPresentation quick reference (naming retained)
+├── 09-sidebar-navigation-and-organization.md # ⭐ ESSENTIAL - Left sidebar behavior & navigation flow
 ├── 10-database-schema-overview.md         # ⚠️ CRITICAL - Ledger & working schema contracts
 ├── 11-orchestration-strategy.md           # ⚠️ CRITICAL - Shared importer/migrator contract
 ├── 12-import-orchestration.md             # Import pipeline specifics
@@ -224,6 +237,7 @@ _AGENT_CONTEXT/
 9. **FOR MESSAGE IMPORTS** - Read `08-rust-message-extractor.md` for text extraction
 10. **FOR URL PREVIEWS** - Read `09-rust-url-preview-parser.md` (quick reference) and `12-native-link-preview-implementation.md`
 11. **FOR IMPORT/MIGRATION WORK** - Read `11-data-import-migration-strategy.md` for complete system architecture
+12. **FOR SIDEBAR/NAVIGATION** - Read `09-sidebar-navigation-and-organization.md` for correct panel behavior
 13. **FOR macOS WINDOW MANAGEMENT** - Read `01-MACOS_UI_AGENT_WINDOW_MANAGEMENT.md` before modifying chrome, sizing, or delegate hooks
 14. When in doubt, ask for clarification rather than guessing
 

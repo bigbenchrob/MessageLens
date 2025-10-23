@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../features/chats/presentation/view/chats_center_panel_view.dart';
 import '../../../../features/chats/presentation/view/chats_sidebar_view.dart';
+import '../../../../features/contacts/presentation/view/contacts_sidebar_view.dart';
+import '../../../../features/contacts/presentation/view/unmatched_handles_sidebar_view.dart';
 import '../../../../features/messages/feature_level_providers.dart';
 import '../../../../features/settings/presentation/view/settings_panel_view.dart';
 import '../../../db_import/presentation/view/db_import_control_panel.dart';
 import '../../../db_import/presentation/view_model/db_import_control_provider.dart';
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
+import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
+import '../../domain/entities/features/sidebar_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
@@ -60,11 +65,29 @@ class PanelCoordinator extends _$PanelCoordinator {
       messages: (messagesSpec) => ref
           .read(messagesCoordinatorProvider.notifier)
           .buildForSpec(messagesSpec),
-      chats: (chatsSpec) => ChatsSidebarView(spec: chatsSpec),
+      chats: (chatsSpec) {
+        // Use center panel view for forParticipant, sidebar view for others
+        return chatsSpec.when(
+          list: () => ChatsSidebarView(spec: chatsSpec),
+          forContact: (_) => ChatsSidebarView(spec: chatsSpec),
+          recent: (_) => ChatsSidebarView(spec: chatsSpec),
+          byAgeOldest: (_) => ChatsSidebarView(spec: chatsSpec),
+          byAgeNewest: (_) => ChatsSidebarView(spec: chatsSpec),
+          unmatched: (_) => ChatsSidebarView(spec: chatsSpec),
+          forParticipant: (_) => ChatsCenterPanelView(spec: chatsSpec),
+        );
+      },
       contacts: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),
       import: _buildImportPanel,
       settings: (_) => const SettingsPanelView(),
       workbench: (_) => const WorkbenchPanelView(),
+      sidebar: (sidebarSpec) {
+        if (sidebarSpec is SidebarSpecContacts) {
+          return ContactsSidebarView(spec: sidebarSpec);
+        } else {
+          return UnmatchedHandlesSidebarView(spec: sidebarSpec);
+        }
+      },
     );
   }
 

@@ -94,6 +94,7 @@ class MessageShell extends StatelessWidget {
 }
 
 /// The metadata line: tiny grey text on white background.
+/// Format: "You * Sun, Jun 21 9:21 AM [YEAR if not current year] * ID: 85811"
 class MetadataLine extends StatelessWidget {
   const MetadataLine({
     super.key,
@@ -108,13 +109,62 @@ class MetadataLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ts = TimeOfDay.fromDateTime(sentAt);
-    final date = MaterialLocalizations.of(context).formatMediumDate(sentAt);
-    final time = ts.format(context);
+    final formattedDateTime = _formatDateTime(sentAt);
     return Text(
-      '$sender • $date $time • ID: $messageId',
+      '$sender * $formattedDateTime * ID: $messageId',
       style: MsgTheme.metadata,
     );
+  }
+
+  /// Format: "Sun, Jun 21 9:21 AM" or "Sun, Jun 21, 2020 9:21 AM" if not current year
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final isCurrentYear = dateTime.year == now.year;
+
+    // Day of week (Sun, Mon, etc.)
+    final weekday = _getWeekdayAbbreviation(dateTime.weekday);
+
+    // Month abbreviation (Jan, Feb, etc.)
+    final month = _getMonthAbbreviation(dateTime.month);
+
+    // Day of month
+    final day = dateTime.day;
+
+    // Time in 12-hour format
+    final hour = dateTime.hour;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+
+    if (isCurrentYear) {
+      return '$weekday, $month $day $hour12:$minute $amPm';
+    } else {
+      final year = dateTime.year;
+      return '$weekday, $month $day, $year $hour12:$minute $amPm';
+    }
+  }
+
+  String _getWeekdayAbbreviation(int weekday) {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return weekdays[weekday - 1];
+  }
+
+  String _getMonthAbbreviation(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
   }
 }
 

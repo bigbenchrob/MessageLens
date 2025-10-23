@@ -69,7 +69,11 @@ class MessagesForChatView extends HookConsumerWidget {
         if (!scrollController.hasClients) {
           return;
         }
-        if (scrollController.position.pixels <= 160) {
+        // With reverse: true, older messages are at the bottom (higher scroll position)
+        final maxExtent = scrollController.position.maxScrollExtent;
+        final currentPosition = scrollController.position.pixels;
+        // Trigger when within 160 pixels of the bottom (older messages)
+        if (maxExtent - currentPosition <= 160) {
           ref
               .read(chatMessagesPagerProvider(chatId: chatId).notifier)
               .loadOlder();
@@ -90,9 +94,8 @@ class MessagesForChatView extends HookConsumerWidget {
           if (!hasAutoScrolled.value && state.messages.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (scrollController.hasClients) {
-                scrollController.jumpTo(
-                  scrollController.position.maxScrollExtent,
-                );
+                // With reverse: true, position 0.0 is the bottom
+                scrollController.jumpTo(0.0);
                 hasAutoScrolled.value = true;
               }
             });
@@ -184,10 +187,11 @@ class MessagesForChatView extends HookConsumerWidget {
         final itemCount = messages.length + (hasLoader ? 1 : 0);
 
         return ListView.builder(
-          controller: scrollController,
-          padding: const EdgeInsets.only(top: 12, bottom: 24),
-          itemCount: itemCount,
-          itemBuilder: (context, index) {
+            controller: scrollController,
+            reverse: true,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: itemCount,
+            itemBuilder: (context, index) {
             if (hasLoader) {
               if (index == 0) {
                 return const Padding(

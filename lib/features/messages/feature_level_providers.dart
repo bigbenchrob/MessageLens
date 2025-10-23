@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import 'application/use_cases/messages_for_chat_view_builder_provider.dart';
+import 'application/use_cases/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
 
 part 'feature_level_providers.g.dart';
@@ -35,6 +36,8 @@ class MessagesCoordinator extends _$MessagesCoordinator {
           _buildComingSoon('Messages for contact $contactId are coming soon.'),
       recent: (limit) =>
           _buildComingSoon('Recent $limit messages view is coming soon.'),
+      forHandle: (handleId) =>
+          ref.read(messagesForHandleViewBuilderProvider(handleId)),
     );
   }
 

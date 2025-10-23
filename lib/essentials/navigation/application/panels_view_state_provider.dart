@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../domain/entities/features/chats_spec.dart';
+import '../domain/entities/features/contacts_list_spec.dart';
+import '../domain/entities/features/sidebar_spec.dart';
 import '../domain/entities/panel_stack.dart';
 import '../domain/entities/view_spec.dart';
 import '../domain/navigation_constants.dart';
@@ -18,8 +19,10 @@ class PanelsViewState extends _$PanelsViewState {
       WindowPanel.left: PanelStack(
         pages: <PanelPage>[
           _createPage(
-            spec: const ViewSpec.chats(ChatsSpec.recent(limit: null)),
-            title: 'Chats',
+            spec: const ViewSpec.sidebar(
+              SidebarSpec.contacts(listMode: ContactsListSpec.all()),
+            ),
+            title: 'Contacts',
             isClosable: false,
           ),
         ],
@@ -93,6 +96,11 @@ class PanelsViewState extends _$PanelsViewState {
     state = {...state, panel: current.removeAt(index)};
   }
 
+  // Clear the panel, setting it to empty.
+  void clear({required WindowPanel panel}) {
+    state = {...state, panel: const PanelStack.empty()};
+  }
+
   /// Create a new panel page with the given specifications.
   PanelPage _createPage({
     required ViewSpec spec,
@@ -112,6 +120,7 @@ class PanelsViewState extends _$PanelsViewState {
       import: (_) => 'Import',
       settings: (_) => 'Settings',
       workbench: (_) => 'Workbench',
+      sidebar: (_) => 'Sidebar',
     );
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../new_display_widgets.dart';
 import '../view_model/message_by_id_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
 import 'url_preview_widget.dart';
@@ -37,9 +37,6 @@ class _LinkPreviewContent extends StatelessWidget {
   final ChatMessageListItem message;
   final double maxWidth;
 
-  static const _metadataColor = Color(0xFF6B6B70);
-  static final _dateFormat = DateFormat('MMM d, yyyy • h:mm a');
-
   @override
   Widget build(BuildContext context) {
     final urls = _extractUrls(message.text);
@@ -51,6 +48,7 @@ class _LinkPreviewContent extends StatelessWidget {
     }
 
     final firstUrl = urls.first;
+    final sender = message.isFromMe ? 'You' : message.senderName;
 
     return Align(
       alignment: message.isFromMe
@@ -67,19 +65,10 @@ class _LinkPreviewContent extends StatelessWidget {
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.only(left: 8, right: 8, bottom: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _formatTimestamp(message.sentAt),
-                    style: const TextStyle(fontSize: 11, color: _metadataColor),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'ID: ${message.id}',
-                    style: const TextStyle(fontSize: 10, color: _metadataColor),
-                  ),
-                ],
+              child: MetadataLine(
+                sender: sender,
+                sentAt: message.sentAt ?? DateTime.now(),
+                messageId: message.id,
               ),
             ),
           ],
@@ -95,13 +84,6 @@ class _LinkPreviewContent extends StatelessWidget {
     );
     final matches = urlPattern.allMatches(text);
     return matches.map((match) => match.group(0)!).toList();
-  }
-
-  String _formatTimestamp(DateTime? timestamp) {
-    if (timestamp == null) {
-      return 'Unknown time';
-    }
-    return _dateFormat.format(timestamp);
   }
 }
 

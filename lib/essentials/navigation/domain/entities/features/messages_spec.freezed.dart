@@ -55,13 +55,14 @@ extension MessagesSpecPatterns on MessagesSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,TResult Function( _MessagesForHandle value)?  forHandle,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
-return recent(_that);case _:
+return recent(_that);case _MessagesForHandle() when forHandle != null:
+return forHandle(_that);case _:
   return orElse();
 
 }
@@ -79,13 +80,14 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,required TResult Function( _MessagesForHandle value)  forHandle,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that);case _MessagesForContact():
 return forContact(_that);case _RecentMessages():
-return recent(_that);case _:
+return recent(_that);case _MessagesForHandle():
+return forHandle(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -102,13 +104,14 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,TResult? Function( _MessagesForHandle value)?  forHandle,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
-return recent(_that);case _:
+return recent(_that);case _MessagesForHandle() when forHandle != null:
+return forHandle(_that);case _:
   return null;
 
 }
@@ -125,12 +128,13 @@ return recent(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( String contactId)?  forContact,TResult Function( int limit)?  recent,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( String contactId)?  forContact,TResult Function( int limit)?  recent,TResult Function( int handleId)?  forHandle,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentMessages() when recent != null:
-return recent(_that.limit);case _:
+return recent(_that.limit);case _MessagesForHandle() when forHandle != null:
+return forHandle(_that.handleId);case _:
   return orElse();
 
 }
@@ -148,12 +152,13 @@ return recent(_that.limit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( String contactId)  forContact,required TResult Function( int limit)  recent,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( String contactId)  forContact,required TResult Function( int limit)  recent,required TResult Function( int handleId)  forHandle,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
 return forContact(_that.contactId);case _RecentMessages():
-return recent(_that.limit);case _:
+return recent(_that.limit);case _MessagesForHandle():
+return forHandle(_that.handleId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -170,12 +175,13 @@ return recent(_that.limit);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( String contactId)?  forContact,TResult? Function( int limit)?  recent,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( String contactId)?  forContact,TResult? Function( int limit)?  recent,TResult? Function( int handleId)?  forHandle,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentMessages() when recent != null:
-return recent(_that.limit);case _:
+return recent(_that.limit);case _MessagesForHandle() when forHandle != null:
+return forHandle(_that.handleId);case _:
   return null;
 
 }
@@ -374,6 +380,72 @@ class __$RecentMessagesCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? limit = null,}) {
   return _then(_RecentMessages(
 limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _MessagesForHandle implements MessagesSpec {
+  const _MessagesForHandle({required this.handleId});
+  
+
+ final  int handleId;
+
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MessagesForHandleCopyWith<_MessagesForHandle> get copyWith => __$MessagesForHandleCopyWithImpl<_MessagesForHandle>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesForHandle&&(identical(other.handleId, handleId) || other.handleId == handleId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,handleId);
+
+@override
+String toString() {
+  return 'MessagesSpec.forHandle(handleId: $handleId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MessagesForHandleCopyWith<$Res> implements $MessagesSpecCopyWith<$Res> {
+  factory _$MessagesForHandleCopyWith(_MessagesForHandle value, $Res Function(_MessagesForHandle) _then) = __$MessagesForHandleCopyWithImpl;
+@useResult
+$Res call({
+ int handleId
+});
+
+
+
+
+}
+/// @nodoc
+class __$MessagesForHandleCopyWithImpl<$Res>
+    implements _$MessagesForHandleCopyWith<$Res> {
+  __$MessagesForHandleCopyWithImpl(this._self, this._then);
+
+  final _MessagesForHandle _self;
+  final $Res Function(_MessagesForHandle) _then;
+
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? handleId = null,}) {
+  return _then(_MessagesForHandle(
+handleId: null == handleId ? _self.handleId : handleId // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
