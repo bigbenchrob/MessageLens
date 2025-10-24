@@ -6,7 +6,7 @@ part of 'manual_linking_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unlinkedHandlesHash() => r'5191415d3915a676848081fb5a9674a06ec57066';
+String _$unlinkedHandlesHash() => r'8f46160845f93188f6c35b5ac4b038bc0d659265';
 
 /// Provider that finds handles not linked to any participant
 ///

@@ -7,7 +7,7 @@ part of 'chats_for_participant_provider.dart';
 // **************************************************************************
 
 String _$chatsForParticipantHash() =>
-    r'bdd2fb36c395a77b79e5066b434160d3fef9f335';
+    r'73169deb0fa697eafba4eef5c02858e615c51c6d';
 
 /// Copied from Dart SDK
 class _SystemHash {

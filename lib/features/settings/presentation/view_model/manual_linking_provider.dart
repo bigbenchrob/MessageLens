@@ -43,23 +43,23 @@ Future<List<UnlinkedHandle>> unlinkedHandles(Ref ref) async {
 
   // Query handles that don't have any participant links
   final query =
-      db.select(db.workingHandles).join([
+      db.select(db.handlesCanonical).join([
         // Left join to handle_to_participant to find unlinked handles
         drift.leftOuterJoin(
           db.handleToParticipant,
-          db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+          db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
         ),
       ])..where(
         // Only handles with no participant links and not blacklisted
         db.handleToParticipant.handleId.isNull() &
-            db.workingHandles.isBlacklisted.equals(false),
+            db.handlesCanonical.isBlacklisted.equals(false),
       );
 
   final rows = await query.get();
   final results = <UnlinkedHandle>[];
 
   for (final row in rows) {
-    final handle = row.readTable(db.workingHandles);
+    final handle = row.readTable(db.handlesCanonical);
 
     // Count chats for this handle
     // Count chats for this handle via chat_to_handle join

@@ -75,16 +75,16 @@ Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
 
   // Find chats whose handle_id does NOT appear in handle_to_participant
   final unmatchedHandleIds =
-      await (db.selectOnly(db.workingHandles)
-            ..addColumns([db.workingHandles.id])
+      await (db.selectOnly(db.handlesCanonical)
+            ..addColumns([db.handlesCanonical.id])
             ..where(
               drift.notExistsQuery(
-                db.select(
-                  db.handleToParticipant,
-                )..where((tbl) => tbl.handleId.equalsExp(db.workingHandles.id)),
+                db.select(db.handleToParticipant)..where(
+                  (tbl) => tbl.handleId.equalsExp(db.handlesCanonical.id),
+                ),
               ),
             ))
-          .map((row) => row.read(db.workingHandles.id)!)
+          .map((row) => row.read(db.handlesCanonical.id)!)
           .get();
 
   if (unmatchedHandleIds.isEmpty) {
@@ -223,12 +223,12 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
 
     final participantsQuery = db.select(db.chatToHandle).join([
       drift.innerJoin(
-        db.workingHandles,
-        db.workingHandles.id.equalsExp(db.chatToHandle.handleId),
+        db.handlesCanonical,
+        db.handlesCanonical.id.equalsExp(db.chatToHandle.handleId),
       ),
       drift.leftOuterJoin(
         db.handleToParticipant,
-        db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+        db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
       ),
       drift.leftOuterJoin(
         db.workingParticipants,
@@ -244,7 +244,7 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
     final seenNames = <String>{};
 
     for (final row in participantRows) {
-      final handle = row.readTable(db.workingHandles);
+      final handle = row.readTable(db.handlesCanonical);
       final participant = row.readTableOrNull(db.workingParticipants);
 
       // Store the display name (formatted phone number or email)

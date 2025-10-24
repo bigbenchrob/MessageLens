@@ -28,12 +28,12 @@ Future<List<ChatMessageListItem>> chatMessageSearchResults(
   final queryBuilder =
       db.select(db.workingMessages).join([
           drift.leftOuterJoin(
-            db.workingHandles,
-            db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+            db.handlesCanonical,
+            db.handlesCanonical.id.equalsExp(db.workingMessages.senderHandleId),
           ),
           drift.leftOuterJoin(
             db.handleToParticipant,
-            db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+            db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
           ),
           drift.leftOuterJoin(
             db.workingParticipants,

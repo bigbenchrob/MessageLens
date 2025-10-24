@@ -326,7 +326,7 @@ class HandlesMigrationService {
     await db.batch((batch) {
       overrides.forEach((id, override) {
         batch.update(
-          db.workingHandles,
+          db.handlesCanonical,
           WorkingHandlesCompanion(
             isVisible: Value(override.isVisible),
             isBlacklisted: Value(override.isBlacklisted),

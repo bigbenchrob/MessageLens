@@ -18,16 +18,16 @@ Future<List<RecentChatSummary>> chatsForParticipant(
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
   // Get all handles for this participant
-  final handlesQuery = db.select(db.workingHandles).join([
+  final handlesQuery = db.select(db.handlesCanonical).join([
     drift.innerJoin(
       db.handleToParticipant,
-      db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+      db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
     ),
   ])..where(db.handleToParticipant.participantId.equals(participantId));
 
   final handleRows = await handlesQuery.get();
   final handleIds = handleRows
-      .map((row) => row.readTable(db.workingHandles).id)
+      .map((row) => row.readTable(db.handlesCanonical).id)
       .toList();
 
   print(
@@ -93,14 +93,14 @@ Future<List<RecentChatSummary>> chatsForParticipant(
     final lastSentUtc = messageStatsRow?.read(lastSentExpression);
 
     // Get all handles in this chat with their participants
-    final chatHandlesQuery = db.select(db.workingHandles).join([
+    final chatHandlesQuery = db.select(db.handlesCanonical).join([
       drift.innerJoin(
         db.chatToHandle,
-        db.chatToHandle.handleId.equalsExp(db.workingHandles.id),
+        db.chatToHandle.handleId.equalsExp(db.handlesCanonical.id),
       ),
       drift.leftOuterJoin(
         db.handleToParticipant,
-        db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+        db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
       ),
       drift.leftOuterJoin(
         db.workingParticipants,
@@ -116,7 +116,7 @@ Future<List<RecentChatSummary>> chatsForParticipant(
     final participantNames = <String>[];
     final handleIdentifiers = <String>[];
     for (final row in chatHandleRows) {
-      final handle = row.readTable(db.workingHandles);
+      final handle = row.readTable(db.handlesCanonical);
       final participant = row.readTableOrNull(db.workingParticipants);
 
       // Store the display name (formatted phone number or email)

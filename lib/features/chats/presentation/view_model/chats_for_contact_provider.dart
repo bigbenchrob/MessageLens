@@ -57,13 +57,13 @@ Future<List<ContactChatSummary>> chatsForContact(
             db.chatToHandle.chatId.equalsExp(db.workingChats.id),
           ),
           drift.innerJoin(
-            db.workingHandles,
-            db.workingHandles.id.equalsExp(db.chatToHandle.handleId),
+            db.handlesCanonical,
+            db.handlesCanonical.id.equalsExp(db.chatToHandle.handleId),
           ),
           // Join handles → handle_to_participant
           drift.innerJoin(
             db.handleToParticipant,
-            db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+            db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
           ),
           // Join handle_to_participant → participants
           drift.innerJoin(
@@ -81,7 +81,7 @@ Future<List<ContactChatSummary>> chatsForContact(
 
   for (final row in rows) {
     final chat = row.readTable(db.workingChats);
-    final handle = row.readTable(db.workingHandles);
+    final handle = row.readTable(db.handlesCanonical);
     final participant = row.readTable(db.workingParticipants);
 
     // Get participant display name (with short name override if available)

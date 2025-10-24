@@ -40,12 +40,12 @@ class MessagesMigrator extends BaseTableMigrator {
           'messages: import has $joinableMessages rows but working database has no chats',
     );
 
-    final projectedHandles = await count(ctx.workingDb, 'handles');
+    final projectedHandles = await count(ctx.workingDb, 'handles_canonical');
     await expectTrueOrThrow(
       ok: projectedHandles > 0,
       errorCode: 'MESSAGES_REQUIRES_HANDLES',
       message:
-          'messages: import has $joinableMessages rows but working database has no handles',
+          'messages: import has $joinableMessages rows but working database has no canonical handles',
     );
   }
 

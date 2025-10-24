@@ -7,7 +7,7 @@ part of 'chat_message_search_provider.dart';
 // **************************************************************************
 
 String _$chatMessageSearchResultsHash() =>
-    r'571029217173f39f46e51ab8844824f07adb0c02';
+    r'9028a09ceccc61c9b27cf97b794186dfa47eea7f';
 
 /// Copied from Dart SDK
 class _SystemHash {

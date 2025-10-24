@@ -43,8 +43,8 @@ Future<List<MessageWithChatContext>> messagesForHandle(
             db.workingChats.id.equalsExp(db.workingMessages.chatId),
           ),
           drift.leftOuterJoin(
-            db.workingHandles,
-            db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+            db.handlesCanonical,
+            db.handlesCanonical.id.equalsExp(db.workingMessages.senderHandleId),
           ),
         ])
         ..where(db.workingMessages.senderHandleId.equals(handleId))
@@ -75,8 +75,8 @@ Future<List<MessageWithChatContext>> messagesForHandle(
             db.workingChats.id.equalsExp(db.workingMessages.chatId),
           ),
           drift.leftOuterJoin(
-            db.workingHandles,
-            db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+            db.handlesCanonical,
+            db.handlesCanonical.id.equalsExp(db.workingMessages.senderHandleId),
           ),
         ])
         ..where(db.workingMessages.chatId.isIn(chatIds))
@@ -116,7 +116,7 @@ Future<List<MessageWithChatContext>> messagesForHandle(
   for (final row in uniqueRows) {
     final message = row.readTable(db.workingMessages);
     final chat = row.readTable(db.workingChats);
-    final senderHandle = row.readTableOrNull(db.workingHandles);
+    final senderHandle = row.readTableOrNull(db.handlesCanonical);
 
     // Parse sent date
     DateTime? sentAt;
@@ -133,16 +133,16 @@ Future<List<MessageWithChatContext>> messagesForHandle(
     String? chatDisplayName;
     if (chat.guid.isNotEmpty) {
       // Try to get participants for this chat
-      final chatHandlesQuery = db.select(db.workingHandles).join([
+      final chatHandlesQuery = db.select(db.handlesCanonical).join([
         drift.innerJoin(
           db.chatToHandle,
-          db.chatToHandle.handleId.equalsExp(db.workingHandles.id),
+          db.chatToHandle.handleId.equalsExp(db.handlesCanonical.id),
         ),
       ])..where(db.chatToHandle.chatId.equals(chat.id));
 
       final chatHandleRows = await chatHandlesQuery.get();
       final chatHandles = chatHandleRows
-          .map((r) => r.readTable(db.workingHandles))
+          .map((r) => r.readTable(db.handlesCanonical))
           .toList();
 
       if (chatHandles.isNotEmpty) {

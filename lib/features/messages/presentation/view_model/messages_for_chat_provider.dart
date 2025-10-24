@@ -116,13 +116,13 @@ Stream<List<ChatMessageListItem>> messagesForChat(
       db.select(db.workingMessages).join([
           // Join messages → handles
           drift.leftOuterJoin(
-            db.workingHandles,
-            db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+            db.handlesCanonical,
+            db.handlesCanonical.id.equalsExp(db.workingMessages.senderHandleId),
           ),
           // Join handles → handle_to_participant
           drift.leftOuterJoin(
             db.handleToParticipant,
-            db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+            db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
           ),
           // Join handle_to_participant → participants
           drift.leftOuterJoin(
@@ -136,7 +136,7 @@ Stream<List<ChatMessageListItem>> messagesForChat(
         ..orderBy([
           drift.OrderingTerm(
             expression: db.workingMessages.id,
-            mode: drift.OrderingMode.desc,
+            mode: drift.OrderingMode.asc,
           ),
         ]);
 

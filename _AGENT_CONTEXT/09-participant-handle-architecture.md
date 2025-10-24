@@ -57,7 +57,7 @@ Or:
 ```
 handle_canonical_map:
 source_handle_id | canonical_handle_id | raw_identifier      | service      | alias_kind
-60               | 5                   | +17789908506        | SMS          | normalized_variant
+60               | 5                   |  +17789908506       | SMS          | normalized_variant
 265              | 5                   | +17789908506        | iMessageLite | normalized_variant
 
 handles table:

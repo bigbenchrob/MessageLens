@@ -129,13 +129,13 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
     final participantsQuery = db.select(db.chatToHandle).join([
       // Join chat_to_handle → handles
       drift.innerJoin(
-        db.workingHandles,
-        db.workingHandles.id.equalsExp(db.chatToHandle.handleId),
+        db.handlesCanonical,
+        db.handlesCanonical.id.equalsExp(db.chatToHandle.handleId),
       ),
       // Left join handles → handle_to_participant (some handles may be unmatched)
       drift.leftOuterJoin(
         db.handleToParticipant,
-        db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+        db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
       ),
       // Left join participants for resolved contacts (optional)
       drift.leftOuterJoin(
@@ -182,7 +182,7 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
     final seenNames = <String>{};
 
     for (final row in participantRows) {
-      final handle = row.readTable(db.workingHandles);
+      final handle = row.readTable(db.handlesCanonical);
       final participant = row.readTableOrNull(db.workingParticipants);
 
       // Store the display name (formatted phone number or email)

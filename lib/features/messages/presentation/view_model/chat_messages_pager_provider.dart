@@ -64,7 +64,7 @@ class ChatMessagesPager extends _$ChatMessagesPager {
     final result = await _fetchPage(limit: _pageSize);
 
     if (result.messages.isNotEmpty) {
-      _oldestFetchedId = result.messages.first.id;
+      _oldestFetchedId = result.messages.last.id;
     }
     _hasMore = result.hasMore;
 
@@ -98,13 +98,13 @@ class ChatMessagesPager extends _$ChatMessagesPager {
       );
 
       if (result.messages.isNotEmpty) {
-        _oldestFetchedId = result.messages.first.id;
+        _oldestFetchedId = result.messages.last.id;
       }
       _hasMore = result.hasMore;
 
       final updatedMessages = <ChatMessageListItem>[
-        ...result.messages,
         ...currentState.messages,
+        ...result.messages,
       ];
 
       state = AsyncValue.data(
@@ -128,12 +128,14 @@ class ChatMessagesPager extends _$ChatMessagesPager {
     final query =
         db.select(db.workingMessages).join([
             drift.leftOuterJoin(
-              db.workingHandles,
-              db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+              db.handlesCanonical,
+              db.handlesCanonical.id.equalsExp(
+                db.workingMessages.senderHandleId,
+              ),
             ),
             drift.leftOuterJoin(
               db.handleToParticipant,
-              db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+              db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
             ),
             drift.leftOuterJoin(
               db.workingParticipants,
@@ -173,12 +175,14 @@ class ChatMessagesPager extends _$ChatMessagesPager {
     final query =
         db.select(db.workingMessages).join([
             drift.leftOuterJoin(
-              db.workingHandles,
-              db.workingHandles.id.equalsExp(db.workingMessages.senderHandleId),
+              db.handlesCanonical,
+              db.handlesCanonical.id.equalsExp(
+                db.workingMessages.senderHandleId,
+              ),
             ),
             drift.leftOuterJoin(
               db.handleToParticipant,
-              db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+              db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
             ),
             drift.leftOuterJoin(
               db.workingParticipants,

@@ -24,12 +24,12 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
       return;
     }
 
-    final handleCount = await count(ctx.workingDb, 'handles');
+    final handleCount = await count(ctx.workingDb, 'handles_canonical');
     await expectTrueOrThrow(
       ok: handleCount > 0,
       errorCode: 'HANDLE_LINKS_REQUIRES_HANDLES',
       message:
-          'handle_to_participant: import has $importLinks links but working database has no handles',
+          'handle_to_participant: import has $importLinks links but working database has no canonical handles',
     );
 
     final participantCount = await count(ctx.workingDb, 'participants');
@@ -78,7 +78,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
         LEFT JOIN handle_canonical_map map
           ON map.source_handle_id = cth.chat_handle_id
-        LEFT JOIN handles wh ON wh.id = map.canonical_handle_id
+        LEFT JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         WHERE map.canonical_handle_id IS NULL OR wh.id IS NULL
       ''').get();
       if (missingHandles.isNotEmpty) {
@@ -112,7 +112,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
         JOIN handle_canonical_map map
           ON map.source_handle_id = cth.chat_handle_id
-        JOIN handles wh ON wh.id = map.canonical_handle_id
+        JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK;
       ''');
 
@@ -129,7 +129,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
         JOIN handle_canonical_map map
           ON map.source_handle_id = cth.chat_handle_id
-        JOIN handles wh ON wh.id = map.canonical_handle_id
+        JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK
       ''').get();
       final expectedCount = _extractCount(expectedToInsert, 'c');
@@ -150,7 +150,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
           JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
           JOIN handle_canonical_map map
             ON map.source_handle_id = cth.chat_handle_id
-          JOIN handles wh ON wh.id = map.canonical_handle_id
+          JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
           JOIN participants p ON p.id = c.Z_PK
           WHERE EXISTS (
             SELECT 1 FROM handle_to_participant htp
@@ -185,7 +185,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
         JOIN handle_canonical_map map
           ON map.source_handle_id = cth.chat_handle_id
-        JOIN handles wh ON wh.id = map.canonical_handle_id
+        JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK
       ''').get();
       return _extractCount(rows, 'c');

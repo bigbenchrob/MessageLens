@@ -34,11 +34,10 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
   // Query all handles with their chat counts
-  final query = db.select(db.workingHandles).join([
-    // Left join through chat_to_handle to get chat count for each handle
+  final query = db.select(db.handlesCanonical).join([
     drift.leftOuterJoin(
       db.chatToHandle,
-      db.chatToHandle.handleId.equalsExp(db.workingHandles.id),
+      db.chatToHandle.handleId.equalsExp(db.handlesCanonical.id),
     ),
     drift.leftOuterJoin(
       db.workingChats,
@@ -51,7 +50,7 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
 
   // Count chats per handle
   for (final row in rows) {
-    final handle = row.readTable(db.workingHandles);
+    final handle = row.readTable(db.handlesCanonical);
     final chat = row.readTableOrNull(db.workingChats);
 
     if (chat != null) {
@@ -62,9 +61,9 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   }
 
   // Get unique handles and build SpamHandleInfo list
-  final uniqueHandles = <int, WorkingHandle>{};
+  final uniqueHandles = <int, HandlesCanonicalData>{};
   for (final row in rows) {
-    final handle = row.readTable(db.workingHandles);
+    final handle = row.readTable(db.handlesCanonical);
     uniqueHandles[handle.id] = handle;
   }
 
@@ -103,9 +102,9 @@ class SpamManagement extends _$SpamManagement {
     final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
     await (db.update(
-      db.workingHandles,
+      db.handlesCanonical,
     )..where((h) => h.id.equals(handleId))).write(
-      const WorkingHandlesCompanion(
+      const HandlesCanonicalCompanion(
         isBlacklisted: Value(true),
         isVisible: Value(false),
       ),
@@ -120,9 +119,9 @@ class SpamManagement extends _$SpamManagement {
     final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
     await (db.update(
-      db.workingHandles,
+      db.handlesCanonical,
     )..where((h) => h.id.equals(handleId))).write(
-      const WorkingHandlesCompanion(
+      const HandlesCanonicalCompanion(
         isBlacklisted: Value(false),
         isVisible: Value(true),
       ),
@@ -137,24 +136,24 @@ class SpamManagement extends _$SpamManagement {
     final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
     final totalHandles =
-        await (db.selectOnly(db.workingHandles)
-              ..addColumns([db.workingHandles.id.count()]))
+        await (db.selectOnly(db.handlesCanonical)
+              ..addColumns([db.handlesCanonical.id.count()]))
             .getSingle()
-            .then((row) => row.read(db.workingHandles.id.count()) ?? 0);
+            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
 
     final blacklistedHandles =
-        await (db.selectOnly(db.workingHandles)
-              ..addColumns([db.workingHandles.id.count()])
-              ..where(db.workingHandles.isBlacklisted.equals(true)))
+        await (db.selectOnly(db.handlesCanonical)
+              ..addColumns([db.handlesCanonical.id.count()])
+              ..where(db.handlesCanonical.isBlacklisted.equals(true)))
             .getSingle()
-            .then((row) => row.read(db.workingHandles.id.count()) ?? 0);
+            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
 
     final visibleHandles =
-        await (db.selectOnly(db.workingHandles)
-              ..addColumns([db.workingHandles.id.count()])
-              ..where(db.workingHandles.isVisible.equals(true)))
+        await (db.selectOnly(db.handlesCanonical)
+              ..addColumns([db.handlesCanonical.id.count()])
+              ..where(db.handlesCanonical.isVisible.equals(true)))
             .getSingle()
-            .then((row) => row.read(db.workingHandles.id.count()) ?? 0);
+            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
 
     return SpamStats(
       totalHandles: totalHandles,

@@ -7,7 +7,7 @@ part of 'contact_short_name_candidates_provider.dart';
 // **************************************************************************
 
 String _$contactShortNameCandidatesHash() =>
-    r'2f06bc7fb23df1c4264b6efb5000ab0392909282';
+    r'd0b3f4bd75b9eca918c754a95115a3573214c4ce';
 
 /// See also [contactShortNameCandidates].
 @ProviderFor(contactShortNameCandidates)

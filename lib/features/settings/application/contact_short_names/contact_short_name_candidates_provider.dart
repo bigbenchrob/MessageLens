@@ -85,8 +85,8 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
     final handleLinks =
         await (db.select(db.handleToParticipant).join([
               drift.innerJoin(
-                db.workingHandles,
-                db.workingHandles.id.equalsExp(db.handleToParticipant.handleId),
+                db.handlesCanonical,
+                db.handlesCanonical.id.equalsExp(db.handleToParticipant.handleId),
               ),
             ])..where(
               db.handleToParticipant.participantId.equals(participant.id),
@@ -98,7 +98,7 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
 
     // Create identity entries for each handle associated with this participant
     for (final linkRow in handleLinks) {
-      final handle = linkRow.readTable(db.workingHandles);
+      final handle = linkRow.readTable(db.handlesCanonical);
 
       final participantEntry = SettingsContactIdentity(
         identityId: participant.id,

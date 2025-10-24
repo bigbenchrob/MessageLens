@@ -6,7 +6,7 @@ part of 'spam_management_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$spamHandlesHash() => r'38bc03d5296865948b40f7bc145275d780f58e5d';
+String _$spamHandlesHash() => r'c778d791e6e45980a65f994882119a8d62b6f12d';
 
 /// Provider for managing spam/blacklisted handles
 ///
@@ -26,7 +26,7 @@ final spamHandlesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SpamHandlesRef = AutoDisposeFutureProviderRef<List<SpamHandleInfo>>;
-String _$spamManagementHash() => r'5ff155648b8d5e19c034b782eadac2957a8fed90';
+String _$spamManagementHash() => r'40667c218dd7fcaf37a7c84e67e526b99b0badb9';
 
 /// Provider for spam management operations
 ///

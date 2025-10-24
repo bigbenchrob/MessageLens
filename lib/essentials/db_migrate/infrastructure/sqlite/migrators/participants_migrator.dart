@@ -23,12 +23,12 @@ class ParticipantsMigrator extends BaseTableMigrator {
       return;
     }
 
-    final handlesProjected = await count(ctx.workingDb, 'handles');
+    final handlesProjected = await count(ctx.workingDb, 'handles_canonical');
     await expectTrueOrThrow(
       ok: handlesProjected > 0,
       errorCode: 'PARTICIPANTS_REQUIRES_HANDLES',
       message:
-          'participants: import has $importCount rows but working database has no handles',
+          'participants: import has $importCount rows but working database has no canonical handles',
     );
   }
 

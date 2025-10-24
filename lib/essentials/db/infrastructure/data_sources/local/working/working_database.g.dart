@@ -1516,6 +1516,687 @@ class WorkingHandlesCompanion extends UpdateCompanion<WorkingHandle> {
   }
 }
 
+class $HandlesCanonicalTable extends HandlesCanonical
+    with TableInfo<$HandlesCanonicalTable, HandlesCanonicalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HandlesCanonicalTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawIdentifierMeta = const VerificationMeta(
+    'rawIdentifier',
+  );
+  @override
+  late final GeneratedColumn<String> rawIdentifier = GeneratedColumn<String>(
+    'raw_identifier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _compoundIdentifierMeta =
+      const VerificationMeta('compoundIdentifier');
+  @override
+  late final GeneratedColumn<String> compoundIdentifier =
+      GeneratedColumn<String>(
+        'compound_identifier',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _serviceMeta = const VerificationMeta(
+    'service',
+  );
+  @override
+  late final GeneratedColumn<String> service = GeneratedColumn<String>(
+    'service',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT \'Unknown\' CHECK(service IN (\'iMessage\',\'iMessageLite\',\'SMS\',\'RCS\',\'Unknown\'))',
+    defaultValue: const CustomExpression('\'Unknown\''),
+  );
+  static const VerificationMeta _isIgnoredMeta = const VerificationMeta(
+    'isIgnored',
+  );
+  @override
+  late final GeneratedColumn<bool> isIgnored = GeneratedColumn<bool>(
+    'is_ignored',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_ignored" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isVisibleMeta = const VerificationMeta(
+    'isVisible',
+  );
+  @override
+  late final GeneratedColumn<bool> isVisible = GeneratedColumn<bool>(
+    'is_visible',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_visible" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isBlacklistedMeta = const VerificationMeta(
+    'isBlacklisted',
+  );
+  @override
+  late final GeneratedColumn<bool> isBlacklisted = GeneratedColumn<bool>(
+    'is_blacklisted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_blacklisted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSeenUtcMeta = const VerificationMeta(
+    'lastSeenUtc',
+  );
+  @override
+  late final GeneratedColumn<String> lastSeenUtc = GeneratedColumn<String>(
+    'last_seen_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    rawIdentifier,
+    displayName,
+    compoundIdentifier,
+    service,
+    isIgnored,
+    isVisible,
+    isBlacklisted,
+    country,
+    lastSeenUtc,
+    batchId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'handles_canonical';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HandlesCanonicalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('raw_identifier')) {
+      context.handle(
+        _rawIdentifierMeta,
+        rawIdentifier.isAcceptableOrUnknown(
+          data['raw_identifier']!,
+          _rawIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_rawIdentifierMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('compound_identifier')) {
+      context.handle(
+        _compoundIdentifierMeta,
+        compoundIdentifier.isAcceptableOrUnknown(
+          data['compound_identifier']!,
+          _compoundIdentifierMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_compoundIdentifierMeta);
+    }
+    if (data.containsKey('service')) {
+      context.handle(
+        _serviceMeta,
+        service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
+      );
+    }
+    if (data.containsKey('is_ignored')) {
+      context.handle(
+        _isIgnoredMeta,
+        isIgnored.isAcceptableOrUnknown(data['is_ignored']!, _isIgnoredMeta),
+      );
+    }
+    if (data.containsKey('is_visible')) {
+      context.handle(
+        _isVisibleMeta,
+        isVisible.isAcceptableOrUnknown(data['is_visible']!, _isVisibleMeta),
+      );
+    }
+    if (data.containsKey('is_blacklisted')) {
+      context.handle(
+        _isBlacklistedMeta,
+        isBlacklisted.isAcceptableOrUnknown(
+          data['is_blacklisted']!,
+          _isBlacklistedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('last_seen_utc')) {
+      context.handle(
+        _lastSeenUtcMeta,
+        lastSeenUtc.isAcceptableOrUnknown(
+          data['last_seen_utc']!,
+          _lastSeenUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {compoundIdentifier},
+    {rawIdentifier, service},
+  ];
+  @override
+  HandlesCanonicalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HandlesCanonicalData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      rawIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_identifier'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      compoundIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}compound_identifier'],
+      )!,
+      service: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service'],
+      )!,
+      isIgnored: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_ignored'],
+      )!,
+      isVisible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_visible'],
+      )!,
+      isBlacklisted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_blacklisted'],
+      )!,
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      lastSeenUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_seen_utc'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      ),
+    );
+  }
+
+  @override
+  $HandlesCanonicalTable createAlias(String alias) {
+    return $HandlesCanonicalTable(attachedDatabase, alias);
+  }
+}
+
+class HandlesCanonicalData extends DataClass
+    implements Insertable<HandlesCanonicalData> {
+  final int id;
+  final String rawIdentifier;
+  final String displayName;
+  final String compoundIdentifier;
+  final String service;
+  final bool isIgnored;
+  final bool isVisible;
+  final bool isBlacklisted;
+  final String? country;
+  final String? lastSeenUtc;
+  final int? batchId;
+  const HandlesCanonicalData({
+    required this.id,
+    required this.rawIdentifier,
+    required this.displayName,
+    required this.compoundIdentifier,
+    required this.service,
+    required this.isIgnored,
+    required this.isVisible,
+    required this.isBlacklisted,
+    this.country,
+    this.lastSeenUtc,
+    this.batchId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['raw_identifier'] = Variable<String>(rawIdentifier);
+    map['display_name'] = Variable<String>(displayName);
+    map['compound_identifier'] = Variable<String>(compoundIdentifier);
+    map['service'] = Variable<String>(service);
+    map['is_ignored'] = Variable<bool>(isIgnored);
+    map['is_visible'] = Variable<bool>(isVisible);
+    map['is_blacklisted'] = Variable<bool>(isBlacklisted);
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || lastSeenUtc != null) {
+      map['last_seen_utc'] = Variable<String>(lastSeenUtc);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
+    }
+    return map;
+  }
+
+  HandlesCanonicalCompanion toCompanion(bool nullToAbsent) {
+    return HandlesCanonicalCompanion(
+      id: Value(id),
+      rawIdentifier: Value(rawIdentifier),
+      displayName: Value(displayName),
+      compoundIdentifier: Value(compoundIdentifier),
+      service: Value(service),
+      isIgnored: Value(isIgnored),
+      isVisible: Value(isVisible),
+      isBlacklisted: Value(isBlacklisted),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      lastSeenUtc: lastSeenUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenUtc),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
+    );
+  }
+
+  factory HandlesCanonicalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HandlesCanonicalData(
+      id: serializer.fromJson<int>(json['id']),
+      rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      compoundIdentifier: serializer.fromJson<String>(
+        json['compoundIdentifier'],
+      ),
+      service: serializer.fromJson<String>(json['service']),
+      isIgnored: serializer.fromJson<bool>(json['isIgnored']),
+      isVisible: serializer.fromJson<bool>(json['isVisible']),
+      isBlacklisted: serializer.fromJson<bool>(json['isBlacklisted']),
+      country: serializer.fromJson<String?>(json['country']),
+      lastSeenUtc: serializer.fromJson<String?>(json['lastSeenUtc']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'rawIdentifier': serializer.toJson<String>(rawIdentifier),
+      'displayName': serializer.toJson<String>(displayName),
+      'compoundIdentifier': serializer.toJson<String>(compoundIdentifier),
+      'service': serializer.toJson<String>(service),
+      'isIgnored': serializer.toJson<bool>(isIgnored),
+      'isVisible': serializer.toJson<bool>(isVisible),
+      'isBlacklisted': serializer.toJson<bool>(isBlacklisted),
+      'country': serializer.toJson<String?>(country),
+      'lastSeenUtc': serializer.toJson<String?>(lastSeenUtc),
+      'batchId': serializer.toJson<int?>(batchId),
+    };
+  }
+
+  HandlesCanonicalData copyWith({
+    int? id,
+    String? rawIdentifier,
+    String? displayName,
+    String? compoundIdentifier,
+    String? service,
+    bool? isIgnored,
+    bool? isVisible,
+    bool? isBlacklisted,
+    Value<String?> country = const Value.absent(),
+    Value<String?> lastSeenUtc = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
+  }) => HandlesCanonicalData(
+    id: id ?? this.id,
+    rawIdentifier: rawIdentifier ?? this.rawIdentifier,
+    displayName: displayName ?? this.displayName,
+    compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
+    service: service ?? this.service,
+    isIgnored: isIgnored ?? this.isIgnored,
+    isVisible: isVisible ?? this.isVisible,
+    isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+    country: country.present ? country.value : this.country,
+    lastSeenUtc: lastSeenUtc.present ? lastSeenUtc.value : this.lastSeenUtc,
+    batchId: batchId.present ? batchId.value : this.batchId,
+  );
+  HandlesCanonicalData copyWithCompanion(HandlesCanonicalCompanion data) {
+    return HandlesCanonicalData(
+      id: data.id.present ? data.id.value : this.id,
+      rawIdentifier: data.rawIdentifier.present
+          ? data.rawIdentifier.value
+          : this.rawIdentifier,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      compoundIdentifier: data.compoundIdentifier.present
+          ? data.compoundIdentifier.value
+          : this.compoundIdentifier,
+      service: data.service.present ? data.service.value : this.service,
+      isIgnored: data.isIgnored.present ? data.isIgnored.value : this.isIgnored,
+      isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
+      isBlacklisted: data.isBlacklisted.present
+          ? data.isBlacklisted.value
+          : this.isBlacklisted,
+      country: data.country.present ? data.country.value : this.country,
+      lastSeenUtc: data.lastSeenUtc.present
+          ? data.lastSeenUtc.value
+          : this.lastSeenUtc,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandlesCanonicalData(')
+          ..write('id: $id, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
+          ..write('displayName: $displayName, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
+          ..write('service: $service, ')
+          ..write('isIgnored: $isIgnored, ')
+          ..write('isVisible: $isVisible, ')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('country: $country, ')
+          ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    rawIdentifier,
+    displayName,
+    compoundIdentifier,
+    service,
+    isIgnored,
+    isVisible,
+    isBlacklisted,
+    country,
+    lastSeenUtc,
+    batchId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HandlesCanonicalData &&
+          other.id == this.id &&
+          other.rawIdentifier == this.rawIdentifier &&
+          other.displayName == this.displayName &&
+          other.compoundIdentifier == this.compoundIdentifier &&
+          other.service == this.service &&
+          other.isIgnored == this.isIgnored &&
+          other.isVisible == this.isVisible &&
+          other.isBlacklisted == this.isBlacklisted &&
+          other.country == this.country &&
+          other.lastSeenUtc == this.lastSeenUtc &&
+          other.batchId == this.batchId);
+}
+
+class HandlesCanonicalCompanion extends UpdateCompanion<HandlesCanonicalData> {
+  final Value<int> id;
+  final Value<String> rawIdentifier;
+  final Value<String> displayName;
+  final Value<String> compoundIdentifier;
+  final Value<String> service;
+  final Value<bool> isIgnored;
+  final Value<bool> isVisible;
+  final Value<bool> isBlacklisted;
+  final Value<String?> country;
+  final Value<String?> lastSeenUtc;
+  final Value<int?> batchId;
+  const HandlesCanonicalCompanion({
+    this.id = const Value.absent(),
+    this.rawIdentifier = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.compoundIdentifier = const Value.absent(),
+    this.service = const Value.absent(),
+    this.isIgnored = const Value.absent(),
+    this.isVisible = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+    this.country = const Value.absent(),
+    this.lastSeenUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
+  });
+  HandlesCanonicalCompanion.insert({
+    this.id = const Value.absent(),
+    required String rawIdentifier,
+    required String displayName,
+    required String compoundIdentifier,
+    this.service = const Value.absent(),
+    this.isIgnored = const Value.absent(),
+    this.isVisible = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+    this.country = const Value.absent(),
+    this.lastSeenUtc = const Value.absent(),
+    this.batchId = const Value.absent(),
+  }) : rawIdentifier = Value(rawIdentifier),
+       displayName = Value(displayName),
+       compoundIdentifier = Value(compoundIdentifier);
+  static Insertable<HandlesCanonicalData> custom({
+    Expression<int>? id,
+    Expression<String>? rawIdentifier,
+    Expression<String>? displayName,
+    Expression<String>? compoundIdentifier,
+    Expression<String>? service,
+    Expression<bool>? isIgnored,
+    Expression<bool>? isVisible,
+    Expression<bool>? isBlacklisted,
+    Expression<String>? country,
+    Expression<String>? lastSeenUtc,
+    Expression<int>? batchId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (rawIdentifier != null) 'raw_identifier': rawIdentifier,
+      if (displayName != null) 'display_name': displayName,
+      if (compoundIdentifier != null) 'compound_identifier': compoundIdentifier,
+      if (service != null) 'service': service,
+      if (isIgnored != null) 'is_ignored': isIgnored,
+      if (isVisible != null) 'is_visible': isVisible,
+      if (isBlacklisted != null) 'is_blacklisted': isBlacklisted,
+      if (country != null) 'country': country,
+      if (lastSeenUtc != null) 'last_seen_utc': lastSeenUtc,
+      if (batchId != null) 'batch_id': batchId,
+    });
+  }
+
+  HandlesCanonicalCompanion copyWith({
+    Value<int>? id,
+    Value<String>? rawIdentifier,
+    Value<String>? displayName,
+    Value<String>? compoundIdentifier,
+    Value<String>? service,
+    Value<bool>? isIgnored,
+    Value<bool>? isVisible,
+    Value<bool>? isBlacklisted,
+    Value<String?>? country,
+    Value<String?>? lastSeenUtc,
+    Value<int?>? batchId,
+  }) {
+    return HandlesCanonicalCompanion(
+      id: id ?? this.id,
+      rawIdentifier: rawIdentifier ?? this.rawIdentifier,
+      displayName: displayName ?? this.displayName,
+      compoundIdentifier: compoundIdentifier ?? this.compoundIdentifier,
+      service: service ?? this.service,
+      isIgnored: isIgnored ?? this.isIgnored,
+      isVisible: isVisible ?? this.isVisible,
+      isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+      country: country ?? this.country,
+      lastSeenUtc: lastSeenUtc ?? this.lastSeenUtc,
+      batchId: batchId ?? this.batchId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (rawIdentifier.present) {
+      map['raw_identifier'] = Variable<String>(rawIdentifier.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (compoundIdentifier.present) {
+      map['compound_identifier'] = Variable<String>(compoundIdentifier.value);
+    }
+    if (service.present) {
+      map['service'] = Variable<String>(service.value);
+    }
+    if (isIgnored.present) {
+      map['is_ignored'] = Variable<bool>(isIgnored.value);
+    }
+    if (isVisible.present) {
+      map['is_visible'] = Variable<bool>(isVisible.value);
+    }
+    if (isBlacklisted.present) {
+      map['is_blacklisted'] = Variable<bool>(isBlacklisted.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (lastSeenUtc.present) {
+      map['last_seen_utc'] = Variable<String>(lastSeenUtc.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandlesCanonicalCompanion(')
+          ..write('id: $id, ')
+          ..write('rawIdentifier: $rawIdentifier, ')
+          ..write('displayName: $displayName, ')
+          ..write('compoundIdentifier: $compoundIdentifier, ')
+          ..write('service: $service, ')
+          ..write('isIgnored: $isIgnored, ')
+          ..write('isVisible: $isVisible, ')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('country: $country, ')
+          ..write('lastSeenUtc: $lastSeenUtc, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorkingParticipantsTable extends WorkingParticipants
     with TableInfo<$WorkingParticipantsTable, WorkingParticipant> {
   @override
@@ -2284,7 +2965,7 @@ class $HandleToParticipantTable extends HandleToParticipant
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE CASCADE',
+      'REFERENCES handles_canonical (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _participantIdMeta = const VerificationMeta(
@@ -2651,7 +3332,7 @@ class $HandleCanonicalMapTable extends HandleCanonicalMap
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE CASCADE',
+      'REFERENCES handles_canonical (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _rawIdentifierMeta = const VerificationMeta(
@@ -3191,7 +3872,7 @@ class $WorkingChatsTable extends WorkingChats
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE SET NULL',
+      'REFERENCES handles_canonical (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _lastMessagePreviewMeta =
@@ -4051,7 +4732,7 @@ class $ChatToHandleTable extends ChatToHandle
     type: DriftSqlType.int,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE CASCADE',
+      'REFERENCES handles_canonical (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _roleMeta = const VerificationMeta('role');
@@ -4472,7 +5153,7 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE SET NULL',
+      'REFERENCES handles_canonical (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _isFromMeMeta = const VerificationMeta(
@@ -6789,7 +7470,7 @@ class $WorkingReactionsTable extends WorkingReactions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES handles (id) ON DELETE SET NULL',
+      'REFERENCES handles_canonical (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _actionMeta = const VerificationMeta('action');
@@ -9234,6 +9915,9 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
   );
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $WorkingHandlesTable workingHandles = $WorkingHandlesTable(this);
+  late final $HandlesCanonicalTable handlesCanonical = $HandlesCanonicalTable(
+    this,
+  );
   late final $WorkingParticipantsTable workingParticipants =
       $WorkingParticipantsTable(this);
   late final $HandleToParticipantTable handleToParticipant =
@@ -9269,6 +9953,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     projectionState,
     appSettings,
     workingHandles,
+    handlesCanonical,
     workingParticipants,
     handleToParticipant,
     handleCanonicalMap,
@@ -9287,7 +9972,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('handle_to_participant', kind: UpdateKind.delete)],
@@ -9301,14 +9986,14 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('handle_canonical_map', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('chats', kind: UpdateKind.update)],
@@ -9322,7 +10007,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('chat_to_handle', kind: UpdateKind.delete)],
@@ -9336,14 +10021,14 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('messages', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'handles',
+        'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('reactions', kind: UpdateKind.update)],
@@ -9903,10 +10588,338 @@ typedef $$WorkingHandlesTableUpdateCompanionBuilder =
       Value<int?> batchId,
     });
 
-final class $$WorkingHandlesTableReferences
+class $$WorkingHandlesTableFilterComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkingHandlesTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIgnored => $composableBuilder(
+    column: $table.isIgnored,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkingHandlesTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
+  $$WorkingHandlesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get rawIdentifier => $composableBuilder(
+    column: $table.rawIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get compoundIdentifier => $composableBuilder(
+    column: $table.compoundIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get service =>
+      $composableBuilder(column: $table.service, builder: (column) => column);
+
+  GeneratedColumn<bool> get isIgnored =>
+      $composableBuilder(column: $table.isIgnored, builder: (column) => column);
+
+  GeneratedColumn<bool> get isVisible =>
+      $composableBuilder(column: $table.isVisible, builder: (column) => column);
+
+  GeneratedColumn<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get lastSeenUtc => $composableBuilder(
+    column: $table.lastSeenUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
+}
+
+class $$WorkingHandlesTableTableManager
     extends
-        BaseReferences<_$WorkingDatabase, $WorkingHandlesTable, WorkingHandle> {
-  $$WorkingHandlesTableReferences(
+        RootTableManager<
+          _$WorkingDatabase,
+          $WorkingHandlesTable,
+          WorkingHandle,
+          $$WorkingHandlesTableFilterComposer,
+          $$WorkingHandlesTableOrderingComposer,
+          $$WorkingHandlesTableAnnotationComposer,
+          $$WorkingHandlesTableCreateCompanionBuilder,
+          $$WorkingHandlesTableUpdateCompanionBuilder,
+          (
+            WorkingHandle,
+            BaseReferences<
+              _$WorkingDatabase,
+              $WorkingHandlesTable,
+              WorkingHandle
+            >,
+          ),
+          WorkingHandle,
+          PrefetchHooks Function()
+        > {
+  $$WorkingHandlesTableTableManager(
+    _$WorkingDatabase db,
+    $WorkingHandlesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkingHandlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkingHandlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkingHandlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> rawIdentifier = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> compoundIdentifier = const Value.absent(),
+                Value<String> service = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> lastSeenUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => WorkingHandlesCompanion(
+                id: id,
+                rawIdentifier: rawIdentifier,
+                displayName: displayName,
+                compoundIdentifier: compoundIdentifier,
+                service: service,
+                isIgnored: isIgnored,
+                isVisible: isVisible,
+                isBlacklisted: isBlacklisted,
+                country: country,
+                lastSeenUtc: lastSeenUtc,
+                batchId: batchId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String rawIdentifier,
+                required String displayName,
+                required String compoundIdentifier,
+                Value<String> service = const Value.absent(),
+                Value<bool> isIgnored = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> lastSeenUtc = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => WorkingHandlesCompanion.insert(
+                id: id,
+                rawIdentifier: rawIdentifier,
+                displayName: displayName,
+                compoundIdentifier: compoundIdentifier,
+                service: service,
+                isIgnored: isIgnored,
+                isVisible: isVisible,
+                isBlacklisted: isBlacklisted,
+                country: country,
+                lastSeenUtc: lastSeenUtc,
+                batchId: batchId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkingHandlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $WorkingHandlesTable,
+      WorkingHandle,
+      $$WorkingHandlesTableFilterComposer,
+      $$WorkingHandlesTableOrderingComposer,
+      $$WorkingHandlesTableAnnotationComposer,
+      $$WorkingHandlesTableCreateCompanionBuilder,
+      $$WorkingHandlesTableUpdateCompanionBuilder,
+      (
+        WorkingHandle,
+        BaseReferences<_$WorkingDatabase, $WorkingHandlesTable, WorkingHandle>,
+      ),
+      WorkingHandle,
+      PrefetchHooks Function()
+    >;
+typedef $$HandlesCanonicalTableCreateCompanionBuilder =
+    HandlesCanonicalCompanion Function({
+      Value<int> id,
+      required String rawIdentifier,
+      required String displayName,
+      required String compoundIdentifier,
+      Value<String> service,
+      Value<bool> isIgnored,
+      Value<bool> isVisible,
+      Value<bool> isBlacklisted,
+      Value<String?> country,
+      Value<String?> lastSeenUtc,
+      Value<int?> batchId,
+    });
+typedef $$HandlesCanonicalTableUpdateCompanionBuilder =
+    HandlesCanonicalCompanion Function({
+      Value<int> id,
+      Value<String> rawIdentifier,
+      Value<String> displayName,
+      Value<String> compoundIdentifier,
+      Value<String> service,
+      Value<bool> isIgnored,
+      Value<bool> isVisible,
+      Value<bool> isBlacklisted,
+      Value<String?> country,
+      Value<String?> lastSeenUtc,
+      Value<int?> batchId,
+    });
+
+final class $$HandlesCanonicalTableReferences
+    extends
+        BaseReferences<
+          _$WorkingDatabase,
+          $HandlesCanonicalTable,
+          HandlesCanonicalData
+        > {
+  $$HandlesCanonicalTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
@@ -9920,7 +10933,7 @@ final class $$WorkingHandlesTableReferences
       MultiTypedResultKey.fromTable(
         db.handleToParticipant,
         aliasName: $_aliasNameGenerator(
-          db.workingHandles.id,
+          db.handlesCanonical.id,
           db.handleToParticipant.handleId,
         ),
       );
@@ -9947,7 +10960,7 @@ final class $$WorkingHandlesTableReferences
       MultiTypedResultKey.fromTable(
         db.handleCanonicalMap,
         aliasName: $_aliasNameGenerator(
-          db.workingHandles.id,
+          db.handlesCanonical.id,
           db.handleCanonicalMap.canonicalHandleId,
         ),
       );
@@ -9970,7 +10983,7 @@ final class $$WorkingHandlesTableReferences
   _workingChatsRefsTable(_$WorkingDatabase db) => MultiTypedResultKey.fromTable(
     db.workingChats,
     aliasName: $_aliasNameGenerator(
-      db.workingHandles.id,
+      db.handlesCanonical.id,
       db.workingChats.lastSenderHandleId,
     ),
   );
@@ -9991,7 +11004,7 @@ final class $$WorkingHandlesTableReferences
   _chatToHandleRefsTable(_$WorkingDatabase db) => MultiTypedResultKey.fromTable(
     db.chatToHandle,
     aliasName: $_aliasNameGenerator(
-      db.workingHandles.id,
+      db.handlesCanonical.id,
       db.chatToHandle.handleId,
     ),
   );
@@ -10013,7 +11026,7 @@ final class $$WorkingHandlesTableReferences
       MultiTypedResultKey.fromTable(
         db.workingMessages,
         aliasName: $_aliasNameGenerator(
-          db.workingHandles.id,
+          db.handlesCanonical.id,
           db.workingMessages.senderHandleId,
         ),
       );
@@ -10037,7 +11050,7 @@ final class $$WorkingHandlesTableReferences
       MultiTypedResultKey.fromTable(
         db.workingReactions,
         aliasName: $_aliasNameGenerator(
-          db.workingHandles.id,
+          db.handlesCanonical.id,
           db.workingReactions.reactorHandleId,
         ),
       );
@@ -10057,9 +11070,9 @@ final class $$WorkingHandlesTableReferences
   }
 }
 
-class $$WorkingHandlesTableFilterComposer
-    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
-  $$WorkingHandlesTableFilterComposer({
+class $$HandlesCanonicalTableFilterComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalTable> {
+  $$HandlesCanonicalTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10272,9 +11285,9 @@ class $$WorkingHandlesTableFilterComposer
   }
 }
 
-class $$WorkingHandlesTableOrderingComposer
-    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
-  $$WorkingHandlesTableOrderingComposer({
+class $$HandlesCanonicalTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalTable> {
+  $$HandlesCanonicalTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10337,9 +11350,9 @@ class $$WorkingHandlesTableOrderingComposer
   );
 }
 
-class $$WorkingHandlesTableAnnotationComposer
-    extends Composer<_$WorkingDatabase, $WorkingHandlesTable> {
-  $$WorkingHandlesTableAnnotationComposer({
+class $$HandlesCanonicalTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalTable> {
+  $$HandlesCanonicalTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -10542,19 +11555,19 @@ class $$WorkingHandlesTableAnnotationComposer
   }
 }
 
-class $$WorkingHandlesTableTableManager
+class $$HandlesCanonicalTableTableManager
     extends
         RootTableManager<
           _$WorkingDatabase,
-          $WorkingHandlesTable,
-          WorkingHandle,
-          $$WorkingHandlesTableFilterComposer,
-          $$WorkingHandlesTableOrderingComposer,
-          $$WorkingHandlesTableAnnotationComposer,
-          $$WorkingHandlesTableCreateCompanionBuilder,
-          $$WorkingHandlesTableUpdateCompanionBuilder,
-          (WorkingHandle, $$WorkingHandlesTableReferences),
-          WorkingHandle,
+          $HandlesCanonicalTable,
+          HandlesCanonicalData,
+          $$HandlesCanonicalTableFilterComposer,
+          $$HandlesCanonicalTableOrderingComposer,
+          $$HandlesCanonicalTableAnnotationComposer,
+          $$HandlesCanonicalTableCreateCompanionBuilder,
+          $$HandlesCanonicalTableUpdateCompanionBuilder,
+          (HandlesCanonicalData, $$HandlesCanonicalTableReferences),
+          HandlesCanonicalData,
           PrefetchHooks Function({
             bool handleToParticipantRefs,
             bool handleCanonicalMapRefs,
@@ -10564,19 +11577,19 @@ class $$WorkingHandlesTableTableManager
             bool workingReactionsRefs,
           })
         > {
-  $$WorkingHandlesTableTableManager(
+  $$HandlesCanonicalTableTableManager(
     _$WorkingDatabase db,
-    $WorkingHandlesTable table,
+    $HandlesCanonicalTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$WorkingHandlesTableFilterComposer($db: db, $table: table),
+              $$HandlesCanonicalTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$WorkingHandlesTableOrderingComposer($db: db, $table: table),
+              $$HandlesCanonicalTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$WorkingHandlesTableAnnotationComposer($db: db, $table: table),
+              $$HandlesCanonicalTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -10590,7 +11603,7 @@ class $$WorkingHandlesTableTableManager
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
                 Value<int?> batchId = const Value.absent(),
-              }) => WorkingHandlesCompanion(
+              }) => HandlesCanonicalCompanion(
                 id: id,
                 rawIdentifier: rawIdentifier,
                 displayName: displayName,
@@ -10616,7 +11629,7 @@ class $$WorkingHandlesTableTableManager
                 Value<String?> country = const Value.absent(),
                 Value<String?> lastSeenUtc = const Value.absent(),
                 Value<int?> batchId = const Value.absent(),
-              }) => WorkingHandlesCompanion.insert(
+              }) => HandlesCanonicalCompanion.insert(
                 id: id,
                 rawIdentifier: rawIdentifier,
                 displayName: displayName,
@@ -10633,7 +11646,7 @@ class $$WorkingHandlesTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$WorkingHandlesTableReferences(db, table, e),
+                  $$HandlesCanonicalTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -10661,15 +11674,15 @@ class $$WorkingHandlesTableTableManager
                     return [
                       if (handleToParticipantRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           HandleToParticipantData
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._handleToParticipantRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10682,15 +11695,15 @@ class $$WorkingHandlesTableTableManager
                         ),
                       if (handleCanonicalMapRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           HandleCanonicalMapData
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._handleCanonicalMapRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10703,15 +11716,15 @@ class $$WorkingHandlesTableTableManager
                         ),
                       if (workingChatsRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           WorkingChat
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._workingChatsRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10724,15 +11737,15 @@ class $$WorkingHandlesTableTableManager
                         ),
                       if (chatToHandleRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           ChatToHandleData
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._chatToHandleRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10745,15 +11758,15 @@ class $$WorkingHandlesTableTableManager
                         ),
                       if (workingMessagesRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           WorkingMessage
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._workingMessagesRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10766,15 +11779,15 @@ class $$WorkingHandlesTableTableManager
                         ),
                       if (workingReactionsRefs)
                         await $_getPrefetchedData<
-                          WorkingHandle,
-                          $WorkingHandlesTable,
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
                           WorkingReaction
                         >(
                           currentTable: table,
-                          referencedTable: $$WorkingHandlesTableReferences
+                          referencedTable: $$HandlesCanonicalTableReferences
                               ._workingReactionsRefsTable(db),
                           managerFromTypedResult: (p0) =>
-                              $$WorkingHandlesTableReferences(
+                              $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
@@ -10793,18 +11806,18 @@ class $$WorkingHandlesTableTableManager
       );
 }
 
-typedef $$WorkingHandlesTableProcessedTableManager =
+typedef $$HandlesCanonicalTableProcessedTableManager =
     ProcessedTableManager<
       _$WorkingDatabase,
-      $WorkingHandlesTable,
-      WorkingHandle,
-      $$WorkingHandlesTableFilterComposer,
-      $$WorkingHandlesTableOrderingComposer,
-      $$WorkingHandlesTableAnnotationComposer,
-      $$WorkingHandlesTableCreateCompanionBuilder,
-      $$WorkingHandlesTableUpdateCompanionBuilder,
-      (WorkingHandle, $$WorkingHandlesTableReferences),
-      WorkingHandle,
+      $HandlesCanonicalTable,
+      HandlesCanonicalData,
+      $$HandlesCanonicalTableFilterComposer,
+      $$HandlesCanonicalTableOrderingComposer,
+      $$HandlesCanonicalTableAnnotationComposer,
+      $$HandlesCanonicalTableCreateCompanionBuilder,
+      $$HandlesCanonicalTableUpdateCompanionBuilder,
+      (HandlesCanonicalData, $$HandlesCanonicalTableReferences),
+      HandlesCanonicalData,
       PrefetchHooks Function({
         bool handleToParticipantRefs,
         bool handleCanonicalMapRefs,
@@ -11319,20 +12332,20 @@ final class $$HandleToParticipantTableReferences
     super.$_typedResult,
   );
 
-  static $WorkingHandlesTable _handleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
+  static $HandlesCanonicalTable _handleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
         $_aliasNameGenerator(
           db.handleToParticipant.handleId,
-          db.workingHandles.id,
+          db.handlesCanonical.id,
         ),
       );
 
-  $$WorkingHandlesTableProcessedTableManager get handleId {
+  $$HandlesCanonicalTableProcessedTableManager get handleId {
     final $_column = $_itemColumn<int>('handle_id')!;
 
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_handleIdTable($_db));
     if (item == null) return manager;
@@ -11388,20 +12401,20 @@ class $$HandleToParticipantTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingHandlesTableFilterComposer get handleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get handleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11459,20 +12472,20 @@ class $$HandleToParticipantTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingHandlesTableOrderingComposer get handleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get handleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11527,20 +12540,20 @@ class $$HandleToParticipantTableAnnotationComposer
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
 
-  $$WorkingHandlesTableAnnotationComposer get handleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get handleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11755,20 +12768,20 @@ final class $$HandleCanonicalMapTableReferences
     super.$_typedResult,
   );
 
-  static $WorkingHandlesTable _canonicalHandleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
+  static $HandlesCanonicalTable _canonicalHandleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
         $_aliasNameGenerator(
           db.handleCanonicalMap.canonicalHandleId,
-          db.workingHandles.id,
+          db.handlesCanonical.id,
         ),
       );
 
-  $$WorkingHandlesTableProcessedTableManager get canonicalHandleId {
+  $$HandlesCanonicalTableProcessedTableManager get canonicalHandleId {
     final $_column = $_itemColumn<int>('canonical_handle_id')!;
 
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_canonicalHandleIdTable($_db));
     if (item == null) return manager;
@@ -11817,20 +12830,20 @@ class $$HandleCanonicalMapTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingHandlesTableFilterComposer get canonicalHandleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get canonicalHandleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.canonicalHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11880,20 +12893,20 @@ class $$HandleCanonicalMapTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingHandlesTableOrderingComposer get canonicalHandleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get canonicalHandleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.canonicalHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11939,20 +12952,20 @@ class $$HandleCanonicalMapTableAnnotationComposer
   GeneratedColumn<String> get aliasKind =>
       $composableBuilder(column: $table.aliasKind, builder: (column) => column);
 
-  $$WorkingHandlesTableAnnotationComposer get canonicalHandleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get canonicalHandleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.canonicalHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -12140,20 +13153,21 @@ final class $$WorkingChatsTableReferences
     extends BaseReferences<_$WorkingDatabase, $WorkingChatsTable, WorkingChat> {
   $$WorkingChatsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $WorkingHandlesTable _lastSenderHandleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
-        $_aliasNameGenerator(
-          db.workingChats.lastSenderHandleId,
-          db.workingHandles.id,
-        ),
-      );
+  static $HandlesCanonicalTable _lastSenderHandleIdTable(
+    _$WorkingDatabase db,
+  ) => db.handlesCanonical.createAlias(
+    $_aliasNameGenerator(
+      db.workingChats.lastSenderHandleId,
+      db.handlesCanonical.id,
+    ),
+  );
 
-  $$WorkingHandlesTableProcessedTableManager? get lastSenderHandleId {
+  $$HandlesCanonicalTableProcessedTableManager? get lastSenderHandleId {
     final $_column = $_itemColumn<int>('last_sender_handle_id');
     if ($_column == null) return null;
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_lastSenderHandleIdTable($_db));
     if (item == null) return manager;
@@ -12302,20 +13316,20 @@ class $$WorkingChatsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingHandlesTableFilterComposer get lastSenderHandleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get lastSenderHandleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.lastSenderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -12480,20 +13494,20 @@ class $$WorkingChatsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingHandlesTableOrderingComposer get lastSenderHandleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get lastSenderHandleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.lastSenderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -12567,20 +13581,20 @@ class $$WorkingChatsTableAnnotationComposer
   GeneratedColumn<bool> get isIgnored =>
       $composableBuilder(column: $table.isIgnored, builder: (column) => column);
 
-  $$WorkingHandlesTableAnnotationComposer get lastSenderHandleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get lastSenderHandleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.lastSenderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -12962,17 +13976,17 @@ final class $$ChatToHandleTableReferences
     );
   }
 
-  static $WorkingHandlesTable _handleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
-        $_aliasNameGenerator(db.chatToHandle.handleId, db.workingHandles.id),
+  static $HandlesCanonicalTable _handleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
+        $_aliasNameGenerator(db.chatToHandle.handleId, db.handlesCanonical.id),
       );
 
-  $$WorkingHandlesTableProcessedTableManager get handleId {
+  $$HandlesCanonicalTableProcessedTableManager get handleId {
     final $_column = $_itemColumn<int>('handle_id')!;
 
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_handleIdTable($_db));
     if (item == null) return manager;
@@ -13034,20 +14048,20 @@ class $$ChatToHandleTableFilterComposer
     return composer;
   }
 
-  $$WorkingHandlesTableFilterComposer get handleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get handleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13110,20 +14124,20 @@ class $$ChatToHandleTableOrderingComposer
     return composer;
   }
 
-  $$WorkingHandlesTableOrderingComposer get handleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get handleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13180,20 +14194,20 @@ class $$ChatToHandleTableAnnotationComposer
     return composer;
   }
 
-  $$WorkingHandlesTableAnnotationComposer get handleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get handleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.handleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13435,20 +14449,20 @@ final class $$WorkingMessagesTableReferences
     );
   }
 
-  static $WorkingHandlesTable _senderHandleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
+  static $HandlesCanonicalTable _senderHandleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
         $_aliasNameGenerator(
           db.workingMessages.senderHandleId,
-          db.workingHandles.id,
+          db.handlesCanonical.id,
         ),
       );
 
-  $$WorkingHandlesTableProcessedTableManager? get senderHandleId {
+  $$HandlesCanonicalTableProcessedTableManager? get senderHandleId {
     final $_column = $_itemColumn<int>('sender_handle_id');
     if ($_column == null) return null;
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_senderHandleIdTable($_db));
     if (item == null) return manager;
@@ -13634,20 +14648,20 @@ class $$WorkingMessagesTableFilterComposer
     return composer;
   }
 
-  $$WorkingHandlesTableFilterComposer get senderHandleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get senderHandleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.senderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13835,20 +14849,20 @@ class $$WorkingMessagesTableOrderingComposer
     return composer;
   }
 
-  $$WorkingHandlesTableOrderingComposer get senderHandleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get senderHandleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.senderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -13991,20 +15005,20 @@ class $$WorkingMessagesTableAnnotationComposer
     return composer;
   }
 
-  $$WorkingHandlesTableAnnotationComposer get senderHandleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get senderHandleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.senderHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -14727,20 +15741,20 @@ final class $$WorkingReactionsTableReferences
     super.$_typedResult,
   );
 
-  static $WorkingHandlesTable _reactorHandleIdTable(_$WorkingDatabase db) =>
-      db.workingHandles.createAlias(
+  static $HandlesCanonicalTable _reactorHandleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
         $_aliasNameGenerator(
           db.workingReactions.reactorHandleId,
-          db.workingHandles.id,
+          db.handlesCanonical.id,
         ),
       );
 
-  $$WorkingHandlesTableProcessedTableManager? get reactorHandleId {
+  $$HandlesCanonicalTableProcessedTableManager? get reactorHandleId {
     final $_column = $_itemColumn<int>('reactor_handle_id');
     if ($_column == null) return null;
-    final manager = $$WorkingHandlesTableTableManager(
+    final manager = $$HandlesCanonicalTableTableManager(
       $_db,
-      $_db.workingHandles,
+      $_db.handlesCanonical,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_reactorHandleIdTable($_db));
     if (item == null) return manager;
@@ -14816,20 +15830,20 @@ class $$WorkingReactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$WorkingHandlesTableFilterComposer get reactorHandleId {
-    final $$WorkingHandlesTableFilterComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableFilterComposer get reactorHandleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.reactorHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableFilterComposer(
+          }) => $$HandlesCanonicalTableFilterComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -14907,20 +15921,20 @@ class $$WorkingReactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$WorkingHandlesTableOrderingComposer get reactorHandleId {
-    final $$WorkingHandlesTableOrderingComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableOrderingComposer get reactorHandleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.reactorHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableOrderingComposer(
+          }) => $$HandlesCanonicalTableOrderingComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -14992,20 +16006,20 @@ class $$WorkingReactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  $$WorkingHandlesTableAnnotationComposer get reactorHandleId {
-    final $$WorkingHandlesTableAnnotationComposer composer = $composerBuilder(
+  $$HandlesCanonicalTableAnnotationComposer get reactorHandleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.reactorHandleId,
-      referencedTable: $db.workingHandles,
+      referencedTable: $db.handlesCanonical,
       getReferencedColumn: (t) => t.id,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$WorkingHandlesTableAnnotationComposer(
+          }) => $$HandlesCanonicalTableAnnotationComposer(
             $db: $db,
-            $table: $db.workingHandles,
+            $table: $db.handlesCanonical,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -16390,6 +17404,8 @@ class $WorkingDatabaseManager {
       $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$WorkingHandlesTableTableManager get workingHandles =>
       $$WorkingHandlesTableTableManager(_db, _db.workingHandles);
+  $$HandlesCanonicalTableTableManager get handlesCanonical =>
+      $$HandlesCanonicalTableTableManager(_db, _db.handlesCanonical);
   $$WorkingParticipantsTableTableManager get workingParticipants =>
       $$WorkingParticipantsTableTableManager(_db, _db.workingParticipants);
   $$HandleToParticipantTableTableManager get handleToParticipant =>

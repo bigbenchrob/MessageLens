@@ -29,12 +29,12 @@ class ChatToHandleMigrator extends BaseTableMigrator {
           'chat_to_handle: import has $importLinks rows but working database has no chats',
     );
 
-    final projectedHandles = await count(ctx.workingDb, 'handles');
+    final projectedHandles = await count(ctx.workingDb, 'handles_canonical');
     await expectTrueOrThrow(
       ok: projectedHandles > 0,
       errorCode: 'CHAT_TO_HANDLE_MISSING_HANDLES',
       message:
-          'chat_to_handle: import has $importLinks rows but working database has no handles',
+          'chat_to_handle: import has $importLinks rows but working database has no canonical handles',
     );
   }
 
@@ -72,7 +72,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
         FROM $_attachAlias.chat_to_handle cth
         LEFT JOIN handle_canonical_map map
           ON map.source_handle_id = cth.handle_id
-        LEFT JOIN handles h ON h.id = map.canonical_handle_id
+        LEFT JOIN handles_canonical h ON h.id = map.canonical_handle_id
         WHERE map.canonical_handle_id IS NULL OR h.id IS NULL
       ''').get();
 
@@ -111,7 +111,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
         JOIN handle_canonical_map map
           ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
-        JOIN handles h ON h.id = map.canonical_handle_id;
+        JOIN handles_canonical h ON h.id = map.canonical_handle_id;
       ''');
 
       final insertedRows = await ctx.workingDb
@@ -131,7 +131,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
         JOIN handle_canonical_map map
           ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
-        JOIN handles h ON h.id = map.canonical_handle_id
+        JOIN handles_canonical h ON h.id = map.canonical_handle_id
       ''').get();
       return _extractCount(rows, 'c');
     });

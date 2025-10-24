@@ -80,11 +80,10 @@ class MessagesForChatView extends HookConsumerWidget {
         if (!scrollController.hasClients) {
           return;
         }
-        // With reverse: true, older messages are at the bottom (higher scroll position)
-        final maxExtent = scrollController.position.maxScrollExtent;
+        // Without reverse, older messages are at the top (lower scroll position)
         final currentPosition = scrollController.position.pixels;
-        // Trigger when within 160 pixels of the bottom (older messages)
-        if (maxExtent - currentPosition <= 160) {
+        // Trigger when within 160 pixels of the top (older messages)
+        if (currentPosition <= 160) {
           ref
               .read(chatMessagesPagerProvider(chatId: chatId).notifier)
               .loadOlder();
@@ -110,9 +109,8 @@ class MessagesForChatView extends HookConsumerWidget {
                   final messages = state.messages;
                   int targetIndex = -1;
 
-                  // Messages are newest-first in the list, but reverse:true shows oldest at top
-                  // So we need to find from the end (oldest messages)
-                  for (var i = messages.length - 1; i >= 0; i--) {
+                  // Messages are oldest-first in the list
+                  for (var i = 0; i < messages.length; i++) {
                     final msgDate = messages[i].sentAt;
                     if (msgDate != null &&
                         msgDate.year == scrollToDate!.year &&
@@ -123,8 +121,7 @@ class MessagesForChatView extends HookConsumerWidget {
                   }
 
                   if (targetIndex >= 0) {
-                    // With reverse:true, list is inverted: index 0 = newest (bottom)
-                    // So higher indices are at higher scroll positions
+                    // Without reverse, index 0 is at top (oldest)
                     // Estimate: each message ~60px
                     final estimatedOffset = targetIndex * 60.0;
                     final clampedOffset = estimatedOffset.clamp(
@@ -134,11 +131,15 @@ class MessagesForChatView extends HookConsumerWidget {
                     scrollController.jumpTo(clampedOffset);
                   } else {
                     // Month not found, scroll to bottom (newest)
-                    scrollController.jumpTo(0.0);
+                    scrollController.jumpTo(
+                      scrollController.position.maxScrollExtent,
+                    );
                   }
                 } else {
                   // No scrollToDate: default behavior (scroll to newest at bottom)
-                  scrollController.jumpTo(0.0);
+                  scrollController.jumpTo(
+                    scrollController.position.maxScrollExtent,
+                  );
                 }
                 hasAutoScrolled.value = true;
               }
@@ -173,6 +174,8 @@ class MessagesForChatView extends HookConsumerWidget {
               if (!scrollController.hasClients) {
                 return;
               }
+              // When loading older messages at top, content is pushed down
+              // so we need to adjust scroll position to maintain view
               final newMaxExtent = scrollController.position.maxScrollExtent;
               final delta = newMaxExtent - previousMaxExtent.value!;
               final target = (previousScrollOffset.value! + delta).clamp(
@@ -232,7 +235,6 @@ class MessagesForChatView extends HookConsumerWidget {
 
         return ListView.builder(
           controller: scrollController,
-          reverse: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: itemCount,
           itemBuilder: (context, index) {

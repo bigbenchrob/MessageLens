@@ -11,6 +11,7 @@ part 'working_database.g.dart';
     ProjectionState,
     AppSettings,
     WorkingHandles,
+    HandlesCanonical, // New table - will replace WorkingHandles
     WorkingParticipants,
     HandleToParticipant,
     HandleCanonicalMap,
@@ -700,6 +701,42 @@ class WorkingHandles extends Table {
   ];
 }
 
+/// New canonical handles table - will replace WorkingHandles
+/// This table stores only canonical handles (one per real-world communication endpoint)
+/// All handle variants (SMS/iMessage/etc of same phone) are collapsed to one canonical
+class HandlesCanonical extends Table {
+  @override
+  String get tableName => 'handles_canonical';
+
+  IntColumn get id => integer().named('id')();
+  TextColumn get rawIdentifier => text().named('raw_identifier')();
+  TextColumn get displayName => text().named('display_name')();
+  TextColumn get compoundIdentifier => text().named('compound_identifier')();
+  TextColumn get service => text()
+      .named('service')
+      .customConstraint(
+        "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
+      )();
+  BoolColumn get isIgnored =>
+      boolean().named('is_ignored').withDefault(const Constant(false))();
+  BoolColumn get isVisible =>
+      boolean().named('is_visible').withDefault(const Constant(true))();
+  BoolColumn get isBlacklisted =>
+      boolean().named('is_blacklisted').withDefault(const Constant(false))();
+  TextColumn get country => text().named('country').nullable()();
+  TextColumn get lastSeenUtc => text().named('last_seen_utc').nullable()();
+  IntColumn get batchId => integer().named('batch_id').nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {compoundIdentifier},
+    {rawIdentifier, service},
+  ];
+}
+
 class WorkingParticipants extends Table {
   @override
   String get tableName => 'participants';
@@ -730,7 +767,7 @@ class HandleToParticipant extends Table {
   IntColumn get id => integer().named('id').autoIncrement()();
   IntColumn get handleId => integer()
       .named('handle_id')
-      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.cascade)();
   IntColumn get participantId => integer()
       .named('participant_id')
       .references(WorkingParticipants, #id, onDelete: KeyAction.cascade)();
@@ -752,7 +789,7 @@ class HandleCanonicalMap extends Table {
   IntColumn get sourceHandleId => integer().named('source_handle_id')();
   IntColumn get canonicalHandleId => integer()
       .named('canonical_handle_id')
-      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.cascade)();
   TextColumn get rawIdentifier => text().named('raw_identifier')();
   TextColumn get compoundIdentifier => text().named('compound_identifier')();
   TextColumn get normalizedIdentifier =>
@@ -783,7 +820,7 @@ class ChatToHandle extends Table {
       .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
   IntColumn get handleId => integer()
       .named('handle_id')
-      .references(WorkingHandles, #id, onDelete: KeyAction.cascade)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.cascade)();
   TextColumn get role =>
       text().named('role').withDefault(const Constant('member'))();
   TextColumn get addedAtUtc => text().named('added_at_utc').nullable()();
@@ -814,7 +851,7 @@ class WorkingChats extends Table {
   IntColumn get lastSenderHandleId => integer()
       .named('last_sender_handle_id')
       .nullable()
-      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.setNull)();
   TextColumn get lastMessagePreview =>
       text().named('last_message_preview').nullable()();
   IntColumn get unreadCount =>
@@ -849,7 +886,7 @@ class WorkingMessages extends Table {
   IntColumn get senderHandleId => integer()
       .named('sender_handle_id')
       .nullable()
-      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.setNull)();
   BoolColumn get isFromMe =>
       boolean().named('is_from_me').withDefault(const Constant(false))();
   TextColumn get sentAtUtc => text().named('sent_at_utc').nullable()();
@@ -936,7 +973,7 @@ class WorkingReactions extends Table {
   IntColumn get reactorHandleId => integer()
       .named('reactor_handle_id')
       .nullable()
-      .references(WorkingHandles, #id, onDelete: KeyAction.setNull)();
+      .references(HandlesCanonical, #id, onDelete: KeyAction.setNull)();
   TextColumn get action => text()
       .named('action')
       .customConstraint("NOT NULL CHECK(\"action\" IN ('add','remove'))")();

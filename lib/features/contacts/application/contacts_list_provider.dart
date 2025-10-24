@@ -69,16 +69,16 @@ Future<List<ContactSummary>> contactsList(
 
   for (final participant in participants) {
     // Get all handles for this participant
-    final handlesQuery = db.select(db.workingHandles).join([
+    final handlesQuery = db.select(db.handlesCanonical).join([
       drift.innerJoin(
         db.handleToParticipant,
-        db.handleToParticipant.handleId.equalsExp(db.workingHandles.id),
+        db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
       ),
     ])..where(db.handleToParticipant.participantId.equals(participant.id));
 
     final handleRows = await handlesQuery.get();
     final handleIds = handleRows
-        .map((row) => row.readTable(db.workingHandles).id)
+        .map((row) => row.readTable(db.handlesCanonical).id)
         .toList();
 
     if (handleIds.isEmpty) {

@@ -56,7 +56,7 @@ Future<List<UnmatchedHandleSummary>> unmatchedPhones(
 
   // Query handles WHERE NOT EXISTS (handle_to_participant)
   // Filter for SMS/iMessage services (phone numbers)
-  final handlesQuery = db.select(db.workingHandles)
+  final handlesQuery = db.select(db.handlesCanonical)
     ..where(
       (tbl) =>
           drift.notExistsQuery(
@@ -137,7 +137,7 @@ Future<List<UnmatchedHandleSummary>> unmatchedEmails(Ref ref) async {
 
   // Query handles WHERE NOT EXISTS (handle_to_participant)
   // Filter for email addresses (contain @)
-  final handlesQuery = db.select(db.workingHandles)
+  final handlesQuery = db.select(db.handlesCanonical)
     ..where(
       (tbl) =>
           drift.notExistsQuery(
