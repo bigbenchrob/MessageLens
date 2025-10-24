@@ -2806,10 +2806,6 @@ class $HandleCanonicalMapTable extends HandleCanonicalMap
   @override
   Set<GeneratedColumn> get $primaryKey => {sourceHandleId};
   @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {canonicalHandleId, rawIdentifier},
-  ];
-  @override
   HandleCanonicalMapData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return HandleCanonicalMapData(

@@ -6,6 +6,7 @@ import '../../essentials/navigation/domain/entities/features/messages_spec.dart'
 import 'application/use_cases/messages_for_chat_view_builder_provider.dart';
 import 'application/use_cases/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
+import 'presentation/view/messages_for_chat_view.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -38,6 +39,10 @@ class MessagesCoordinator extends _$MessagesCoordinator {
           _buildComingSoon('Recent $limit messages view is coming soon.'),
       forHandle: (handleId) =>
           ref.read(messagesForHandleViewBuilderProvider(handleId)),
+      forChatInDateRange: (chatId, startDate, endDate) {
+        // Directly construct widget to allow scrollToDate changes without full rebuild
+        return MessagesForChatView(chatId: chatId, scrollToDate: startDate);
+      },
     );
   }
 

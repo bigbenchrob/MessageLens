@@ -3,7 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
-import '../../chats/application/chat_timeline_calculator.dart';
+import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../chats/application/calendar_heatmap_timeline_calculator.dart';
 import '../../chats/domain/chat_timeline_data.dart';
 import '../../chats/presentation/view_model/recent_chats_provider.dart';
 
@@ -29,6 +30,10 @@ Future<List<RecentChatSummary>> chatsForParticipant(
       .map((row) => row.readTable(db.workingHandles).id)
       .toList();
 
+  print(
+    '[PARTICIPANT_CHATS] Participant $participantId has ${handleIds.length} handles: $handleIds',
+  );
+
   if (handleIds.isEmpty) {
     return [];
   }
@@ -50,7 +55,20 @@ Future<List<RecentChatSummary>> chatsForParticipant(
         ]);
 
   final chatRows = await chatsQuery.get();
-  final chats = chatRows.map((row) => row.readTable(db.workingChats)).toList();
+
+  // Deduplicate chats (a participant may have multiple handles in same chat)
+  final seenChatIds = <int>{};
+  final chats = <WorkingChat>[];
+  for (final row in chatRows) {
+    final chat = row.readTable(db.workingChats);
+    if (seenChatIds.add(chat.id)) {
+      chats.add(chat);
+    }
+  }
+
+  print(
+    '[PARTICIPANT_CHATS] Found ${chats.length} unique chats for participant $participantId (from ${chatRows.length} rows)',
+  );
 
   // Build RecentChatSummary for each chat
   final results = <RecentChatSummary>[];
@@ -152,15 +170,13 @@ Future<List<RecentChatSummary>> chatsForParticipant(
         : null;
 
     // Calculate timeline data if we have date range
-    ChatTimelineData? timelineData;
-    if (firstMessageDate != null && lastMessageDate != null) {
-      timelineData = await calculateChatTimeline(
-        db,
-        chat.id,
-        firstMessageDate,
-        lastMessageDate,
-      );
-    }
+    const ChatTimelineData? timelineData = null; // Old timeline disabled
+    final calendarHeatmapTimelineData = await calculateCalendarHeatmapTimeline(
+      db,
+      chat.id,
+      firstMessageDate,
+      lastMessageDate,
+    );
 
     results.add(
       RecentChatSummary(
@@ -174,6 +190,7 @@ Future<List<RecentChatSummary>> chatsForParticipant(
         handles: handleIdentifiers,
         recency: recency,
         timelineData: timelineData,
+        calendarHeatmapTimelineData: calendarHeatmapTimelineData,
       ),
     );
   }

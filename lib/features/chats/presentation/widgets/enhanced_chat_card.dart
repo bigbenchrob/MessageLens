@@ -4,7 +4,7 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../domain/chat_timeline_data.dart';
 import '../view_model/recent_chats_provider.dart';
-import 'chat_timeline_widget.dart';
+import 'calendar_heatmap_timeline_widget.dart';
 
 /// Enhanced chat card with recency indicator and activity timeline.
 ///
@@ -40,9 +40,9 @@ class EnhancedChatCard extends StatelessWidget {
 
     // Debug: Log timeline data availability
     print(
-      '[CARD] Chat ${chat.chatId}: timelineData=${chat.timelineData != null}, '
+      '[CARD] Chat ${chat.chatId}: heatmap=${chat.calendarHeatmapTimelineData != null}, '
       'firstDate=${chat.firstMessageDate}, lastDate=${chat.lastMessageDate}, '
-      'buckets=${chat.timelineData?.buckets.length ?? 0}',
+      'years=${chat.calendarHeatmapTimelineData?.yearRows.length ?? 0}',
     );
 
     return GestureDetector(
@@ -120,16 +120,13 @@ class EnhancedChatCard extends StatelessWidget {
                 ],
               ),
 
-              // Timeline visualization
-              if (chat.timelineData != null &&
-                  chat.firstMessageDate != null &&
-                  chat.lastMessageDate != null) ...[
+              // Calendar heatmap timeline visualization
+              if (chat.calendarHeatmapTimelineData != null) ...[
                 const SizedBox(height: 12),
-                ChatTimelineWidget(
-                  data: chat.timelineData!,
-                  firstMessageDate: chat.firstMessageDate!,
-                  lastMessageDate: chat.lastMessageDate!,
-                  height: 36,
+                CalendarHeatmapTimelineWidget(
+                  data: chat.calendarHeatmapTimelineData!,
+                  monthSize: 14,
+                  monthSpacing: 2,
                 ),
               ],
             ],

@@ -55,14 +55,15 @@ extension MessagesSpecPatterns on MessagesSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,TResult Function( _MessagesForHandle value)?  forHandle,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,TResult Function( _MessagesForHandle value)?  forHandle,TResult Function( _MessagesForChatInDateRange value)?  forChatInDateRange,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
 return recent(_that);case _MessagesForHandle() when forHandle != null:
-return forHandle(_that);case _:
+return forHandle(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
+return forChatInDateRange(_that);case _:
   return orElse();
 
 }
@@ -80,14 +81,15 @@ return forHandle(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,required TResult Function( _MessagesForHandle value)  forHandle,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,required TResult Function( _MessagesForHandle value)  forHandle,required TResult Function( _MessagesForChatInDateRange value)  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that);case _MessagesForContact():
 return forContact(_that);case _RecentMessages():
 return recent(_that);case _MessagesForHandle():
-return forHandle(_that);case _:
+return forHandle(_that);case _MessagesForChatInDateRange():
+return forChatInDateRange(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -104,14 +106,15 @@ return forHandle(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,TResult? Function( _MessagesForHandle value)?  forHandle,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,TResult? Function( _MessagesForHandle value)?  forHandle,TResult? Function( _MessagesForChatInDateRange value)?  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
 return recent(_that);case _MessagesForHandle() when forHandle != null:
-return forHandle(_that);case _:
+return forHandle(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
+return forChatInDateRange(_that);case _:
   return null;
 
 }
@@ -128,13 +131,14 @@ return forHandle(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( String contactId)?  forContact,TResult Function( int limit)?  recent,TResult Function( int handleId)?  forHandle,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( String contactId)?  forContact,TResult Function( int limit)?  recent,TResult Function( int handleId)?  forHandle,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesForHandle() when forHandle != null:
-return forHandle(_that.handleId);case _:
+return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
+return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return orElse();
 
 }
@@ -152,13 +156,14 @@ return forHandle(_that.handleId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( String contactId)  forContact,required TResult Function( int limit)  recent,required TResult Function( int handleId)  forHandle,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( String contactId)  forContact,required TResult Function( int limit)  recent,required TResult Function( int handleId)  forHandle,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
 return forContact(_that.contactId);case _RecentMessages():
 return recent(_that.limit);case _MessagesForHandle():
-return forHandle(_that.handleId);case _:
+return forHandle(_that.handleId);case _MessagesForChatInDateRange():
+return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -175,13 +180,14 @@ return forHandle(_that.handleId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( String contactId)?  forContact,TResult? Function( int limit)?  recent,TResult? Function( int handleId)?  forHandle,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( String contactId)?  forContact,TResult? Function( int limit)?  recent,TResult? Function( int handleId)?  forHandle,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesForHandle() when forHandle != null:
-return forHandle(_that.handleId);case _:
+return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
+return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return null;
 
 }
@@ -447,6 +453,76 @@ class __$MessagesForHandleCopyWithImpl<$Res>
   return _then(_MessagesForHandle(
 handleId: null == handleId ? _self.handleId : handleId // ignore: cast_nullable_to_non_nullable
 as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _MessagesForChatInDateRange implements MessagesSpec {
+  const _MessagesForChatInDateRange({required this.chatId, required this.startDate, required this.endDate});
+  
+
+ final  int chatId;
+ final  DateTime startDate;
+ final  DateTime endDate;
+
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MessagesForChatInDateRangeCopyWith<_MessagesForChatInDateRange> get copyWith => __$MessagesForChatInDateRangeCopyWithImpl<_MessagesForChatInDateRange>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesForChatInDateRange&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,chatId,startDate,endDate);
+
+@override
+String toString() {
+  return 'MessagesSpec.forChatInDateRange(chatId: $chatId, startDate: $startDate, endDate: $endDate)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MessagesForChatInDateRangeCopyWith<$Res> implements $MessagesSpecCopyWith<$Res> {
+  factory _$MessagesForChatInDateRangeCopyWith(_MessagesForChatInDateRange value, $Res Function(_MessagesForChatInDateRange) _then) = __$MessagesForChatInDateRangeCopyWithImpl;
+@useResult
+$Res call({
+ int chatId, DateTime startDate, DateTime endDate
+});
+
+
+
+
+}
+/// @nodoc
+class __$MessagesForChatInDateRangeCopyWithImpl<$Res>
+    implements _$MessagesForChatInDateRangeCopyWith<$Res> {
+  __$MessagesForChatInDateRangeCopyWithImpl(this._self, this._then);
+
+  final _MessagesForChatInDateRange _self;
+  final $Res Function(_MessagesForChatInDateRange) _then;
+
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? chatId = null,Object? startDate = null,Object? endDate = null,}) {
+  return _then(_MessagesForChatInDateRange(
+chatId: null == chatId ? _self.chatId : chatId // ignore: cast_nullable_to_non_nullable
+as int,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime,endDate: null == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 

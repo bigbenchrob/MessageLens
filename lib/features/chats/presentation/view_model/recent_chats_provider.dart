@@ -5,7 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../settings/application/contact_short_names/contact_short_names_controller.dart';
-import '../../application/chat_timeline_calculator.dart';
+import '../../application/calendar_heatmap_timeline_calculator.dart';
+import '../../domain/calendar_heatmap_timeline_data.dart';
 import '../../domain/chat_timeline_data.dart';
 
 part 'recent_chats_provider.g.dart';
@@ -23,6 +24,7 @@ class RecentChatSummary {
     required this.handles,
     required this.recency,
     required this.timelineData,
+    required this.calendarHeatmapTimelineData,
   });
 
   final int chatId;
@@ -35,6 +37,7 @@ class RecentChatSummary {
   final List<String> handles;
   final ChatRecency? recency;
   final ChatTimelineData? timelineData;
+  final CalendarHeatmapTimelineData? calendarHeatmapTimelineData;
 }
 
 @riverpod
@@ -101,6 +104,8 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
   }
 
   final results = <RecentChatSummary>[];
+
+  print('[CHATS] Processing ${chatRows.length} chats...');
 
   for (final chat in chatRows) {
     final stats =
@@ -249,9 +254,11 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
         ? ChatRecency.fromDateTime(lastMessageDate)
         : null;
 
-    // Calculate timeline data
+    // Calculate calendar heatmap timeline data
     final firstMsgDate = parseUtc(firstSentUtc ?? chat.createdAtUtc);
-    final timelineData = await calculateChatTimeline(
+    const ChatTimelineData? timelineData = null; // Old algorithms disabled
+
+    final calendarHeatmapTimelineData = await calculateCalendarHeatmapTimeline(
       db,
       chat.id,
       firstMsgDate,
@@ -270,9 +277,11 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
         handles: handleIdentifiers,
         recency: recency,
         timelineData: timelineData,
+        calendarHeatmapTimelineData: calendarHeatmapTimelineData,
       ),
     );
   }
 
+  print('[CHATS] Returning ${results.length} chat summaries');
   return results;
 }

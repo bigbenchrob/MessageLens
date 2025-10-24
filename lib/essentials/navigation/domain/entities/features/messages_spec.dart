@@ -14,4 +14,11 @@ class MessagesSpec with _$MessagesSpec {
   /// Show ALL messages from a handle across all chats chronologically
   const factory MessagesSpec.forHandle({required int handleId}) =
       _MessagesForHandle;
+
+  /// Show messages for a chat within a specific date range (e.g., for a month)
+  const factory MessagesSpec.forChatInDateRange({
+    required int chatId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) = _MessagesForChatInDateRange;
 }

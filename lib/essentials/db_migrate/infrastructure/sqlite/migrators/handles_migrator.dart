@@ -99,12 +99,30 @@ class HandlesMigrator extends BaseTableMigrator {
     final sourceRows = await importDb.query('handles');
 
     final groups = <String, _HandleGroup>{};
+    final clairesHandles = <int>[];
     for (final row in sourceRows) {
       final parsed = _parseImportHandle(row);
       if (parsed == null) {
+        ctx.log('[handles] WARNING: parsed handle is null for row: $row');
         continue;
       }
-      final key = parsed.compoundIdentifier;
+      // Group by normalized identifier only (not compound identifier)
+      // This merges handles like +17789908506 across iMessage/SMS/iMessageLite
+      final key = parsed.canonicalNormalized;
+
+      // Debug logging to trace grouping behavior for Claire's handles
+      if (parsed.id == 5 ||
+          parsed.id == 60 ||
+          parsed.id == 265 ||
+          parsed.rawIdentifier.contains('7789908506') ||
+          parsed.rawIdentifier.contains('clairemc')) {
+        ctx.log(
+          '[handles] grouping handle ${parsed.id}: raw="${parsed.rawIdentifier}" '
+          'normalized="$key" service="${parsed.service}" compound="${parsed.compoundIdentifier}"',
+        );
+        clairesHandles.add(parsed.id);
+      }
+
       final group = groups.putIfAbsent(
         key,
         () => _HandleGroup(
@@ -114,6 +132,25 @@ class HandlesMigrator extends BaseTableMigrator {
         ),
       );
       group.rows.add(parsed);
+    }
+
+    if (clairesHandles.isNotEmpty) {
+      ctx.log(
+        '[handles] Processed Claire handles: ${clairesHandles.join(', ')}',
+      );
+    }
+
+    // Debug log group sizes
+    ctx.log(
+      '[handles] created ${groups.length} groups from ${sourceRows.length} handles',
+    );
+    for (final entry in groups.entries) {
+      if (entry.value.rows.length > 1) {
+        final ids = entry.value.rows.map((r) => r.id).join(', ');
+        ctx.log(
+          '[handles] group "${entry.key}" has ${entry.value.rows.length} handles: $ids',
+        );
+      }
     }
 
     final canonicalHandles = <_CanonicalHandle>[];
@@ -541,12 +578,12 @@ String _deriveDisplay(List<_ParsedHandle> rows, String normalized) {
       (value) => value.startsWith('+'),
       orElse: () => '',
     );
-    
+
     // Format the phone number for display
     final rawToFormat = plusCandidate.isNotEmpty
         ? plusCandidate
         : (normalized.length >= 10 ? '+$normalized' : normalized);
-    
+
     return formatPhoneNumberForDisplay(rawToFormat);
   }
 

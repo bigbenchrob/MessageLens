@@ -768,10 +768,9 @@ class HandleCanonicalMap extends Table {
   @override
   Set<Column> get primaryKey => {sourceHandleId};
 
-  @override
-  List<Set<Column>> get uniqueKeys => [
-    {canonicalHandleId, rawIdentifier},
-  ];
+  // No additional unique constraints needed - source_handle_id PK is sufficient
+  // Removed: {canonicalHandleId, rawIdentifier} which incorrectly prevented
+  // multiple source handles with same raw_identifier from mapping to same canonical
 }
 
 class ChatToHandle extends Table {

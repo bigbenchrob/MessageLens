@@ -7,7 +7,7 @@ import '../../../essentials/db/infrastructure/data_sources/local/working/working
 import '../../settings/application/contact_short_names/contact_short_names_controller.dart';
 import '../domain/chat_timeline_data.dart';
 import '../presentation/view_model/recent_chats_provider.dart';
-import 'chat_timeline_calculator.dart';
+import 'calendar_heatmap_timeline_calculator.dart';
 
 part 'chats_by_age_provider.g.dart';
 
@@ -287,9 +287,10 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
         ? ChatRecency.fromDateTime(lastMessageDate)
         : null;
 
-    // Calculate timeline data
+    // Calculate calendar heatmap timeline data
     final firstMsgDate = parseUtc(firstSentUtc ?? chat.createdAtUtc);
-    final timelineData = await calculateChatTimeline(
+    const ChatTimelineData? timelineData = null; // Old timeline disabled
+    final calendarHeatmapTimelineData = await calculateCalendarHeatmapTimeline(
       db,
       chat.id,
       firstMsgDate,
@@ -308,6 +309,7 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
         handles: handleIdentifiers,
         recency: recency,
         timelineData: timelineData,
+        calendarHeatmapTimelineData: calendarHeatmapTimelineData,
       ),
     );
   }

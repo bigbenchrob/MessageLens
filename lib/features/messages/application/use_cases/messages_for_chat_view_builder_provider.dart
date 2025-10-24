@@ -10,7 +10,8 @@ part 'messages_for_chat_view_builder_provider.g.dart';
 @riverpod
 Widget messagesForChatViewBuilder(
   MessagesForChatViewBuilderRef ref,
-  int chatId,
-) {
-  return MessagesForChatView(chatId: chatId);
+  int chatId, {
+  DateTime? scrollToDate,
+}) {
+  return MessagesForChatView(chatId: chatId, scrollToDate: scrollToDate);
 }

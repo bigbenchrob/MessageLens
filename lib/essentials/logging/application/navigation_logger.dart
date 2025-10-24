@@ -61,6 +61,12 @@ class NavigationLogEntry {
             'variant': 'forHandle',
             'handleId': handleId,
           },
+          forChatInDateRange: (chatId, startDate, endDate) => {
+            'variant': 'forChatInDateRange',
+            'chatId': chatId,
+            'startDate': startDate.toIso8601String(),
+            'endDate': endDate.toIso8601String(),
+          },
         ),
       },
       chats: (chatsSpec) => {

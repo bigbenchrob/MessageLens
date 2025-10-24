@@ -7,7 +7,7 @@ part of 'messages_for_chat_view_builder_provider.dart';
 // **************************************************************************
 
 String _$messagesForChatViewBuilderHash() =>
-    r'a50f5d7b08a38f0d16fe1f866aaece034af11891';
+    r'c601251dfa46d6c7bcffb5e730560a208d1f7a77';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -48,15 +48,21 @@ class MessagesForChatViewBuilderFamily extends Family<Widget> {
   /// Resolves the widget used to display messages for a specific chat.
   ///
   /// Copied from [messagesForChatViewBuilder].
-  MessagesForChatViewBuilderProvider call(int chatId) {
-    return MessagesForChatViewBuilderProvider(chatId);
+  MessagesForChatViewBuilderProvider call(
+    int chatId, {
+    DateTime? scrollToDate,
+  }) {
+    return MessagesForChatViewBuilderProvider(
+      chatId,
+      scrollToDate: scrollToDate,
+    );
   }
 
   @override
   MessagesForChatViewBuilderProvider getProviderOverride(
     covariant MessagesForChatViewBuilderProvider provider,
   ) {
-    return call(provider.chatId);
+    return call(provider.chatId, scrollToDate: provider.scrollToDate);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -81,11 +87,12 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
   /// Resolves the widget used to display messages for a specific chat.
   ///
   /// Copied from [messagesForChatViewBuilder].
-  MessagesForChatViewBuilderProvider(int chatId)
+  MessagesForChatViewBuilderProvider(int chatId, {DateTime? scrollToDate})
     : this._internal(
         (ref) => messagesForChatViewBuilder(
           ref as MessagesForChatViewBuilderRef,
           chatId,
+          scrollToDate: scrollToDate,
         ),
         from: messagesForChatViewBuilderProvider,
         name: r'messagesForChatViewBuilderProvider',
@@ -96,6 +103,7 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
         allTransitiveDependencies:
             MessagesForChatViewBuilderFamily._allTransitiveDependencies,
         chatId: chatId,
+        scrollToDate: scrollToDate,
       );
 
   MessagesForChatViewBuilderProvider._internal(
@@ -106,9 +114,11 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.chatId,
+    required this.scrollToDate,
   }) : super.internal();
 
   final int chatId;
+  final DateTime? scrollToDate;
 
   @override
   Override overrideWith(
@@ -124,6 +134,7 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         chatId: chatId,
+        scrollToDate: scrollToDate,
       ),
     );
   }
@@ -136,13 +147,15 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
   @override
   bool operator ==(Object other) {
     return other is MessagesForChatViewBuilderProvider &&
-        other.chatId == chatId;
+        other.chatId == chatId &&
+        other.scrollToDate == scrollToDate;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, chatId.hashCode);
+    hash = _SystemHash.combine(hash, scrollToDate.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -153,6 +166,9 @@ class MessagesForChatViewBuilderProvider extends AutoDisposeProvider<Widget> {
 mixin MessagesForChatViewBuilderRef on AutoDisposeProviderRef<Widget> {
   /// The parameter `chatId` of this provider.
   int get chatId;
+
+  /// The parameter `scrollToDate` of this provider.
+  DateTime? get scrollToDate;
 }
 
 class _MessagesForChatViewBuilderProviderElement
@@ -162,6 +178,9 @@ class _MessagesForChatViewBuilderProviderElement
 
   @override
   int get chatId => (origin as MessagesForChatViewBuilderProvider).chatId;
+  @override
+  DateTime? get scrollToDate =>
+      (origin as MessagesForChatViewBuilderProvider).scrollToDate;
 }
 
 // ignore_for_file: type=lint

@@ -14,7 +14,9 @@ class MessagesForHandleView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncMessages = ref.watch(messagesForHandleProvider(handleId: handleId));
+    final asyncMessages = ref.watch(
+      messagesForHandleProvider(handleId: handleId),
+    );
 
     return MacosScaffold(
       toolBar: ToolBar(
@@ -40,10 +42,7 @@ class MessagesForHandleView extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const MacosIcon(
-                          CupertinoIcons.chat_bubble_2,
-                          size: 64,
-                        ),
+                        const MacosIcon(CupertinoIcons.chat_bubble_2, size: 64),
                         const SizedBox(height: 16),
                         Text(
                           'No messages found for this handle',
@@ -111,10 +110,7 @@ class _MessageWithChatContextCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.canvasColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.dividerColor,
-          width: 1,
-        ),
+        border: Border.all(color: theme.dividerColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,8 +182,8 @@ class _MessageWithChatContextCard extends StatelessWidget {
                 message.isFromMe
                     ? 'You'
                     : (message.senderHandleDisplay ??
-                        message.senderHandleRaw ??
-                        'Unknown'),
+                          message.senderHandleRaw ??
+                          'Unknown'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

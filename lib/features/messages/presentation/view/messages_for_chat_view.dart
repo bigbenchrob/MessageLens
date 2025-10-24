@@ -14,9 +14,14 @@ import '../view_model/messages_for_chat_provider.dart';
 import '../widgets/message_link_preview_card.dart';
 
 class MessagesForChatView extends HookConsumerWidget {
-  const MessagesForChatView({required this.chatId, super.key});
+  const MessagesForChatView({
+    required this.chatId,
+    this.scrollToDate,
+    super.key,
+  });
 
   final int chatId;
+  final DateTime? scrollToDate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,6 +43,12 @@ class MessagesForChatView extends HookConsumerWidget {
       debouncedQuery.value = '';
       return null;
     }, [chatId]);
+
+    // Separate effect for scrollToDate changes (allows re-scrolling without reloading)
+    useEffect(() {
+      hasAutoScrolled.value = false;
+      return null;
+    }, [scrollToDate]);
 
     useEffect(() {
       void listener() {
@@ -94,8 +105,41 @@ class MessagesForChatView extends HookConsumerWidget {
           if (!hasAutoScrolled.value && state.messages.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (scrollController.hasClients) {
-                // With reverse: true, position 0.0 is the bottom
-                scrollController.jumpTo(0.0);
+                if (scrollToDate != null) {
+                  // Find the first message on or after scrollToDate
+                  final messages = state.messages;
+                  int targetIndex = -1;
+
+                  // Messages are newest-first in the list, but reverse:true shows oldest at top
+                  // So we need to find from the end (oldest messages)
+                  for (var i = messages.length - 1; i >= 0; i--) {
+                    final msgDate = messages[i].sentAt;
+                    if (msgDate != null &&
+                        msgDate.year == scrollToDate!.year &&
+                        msgDate.month == scrollToDate!.month) {
+                      targetIndex = i;
+                      break;
+                    }
+                  }
+
+                  if (targetIndex >= 0) {
+                    // With reverse:true, list is inverted: index 0 = newest (bottom)
+                    // So higher indices are at higher scroll positions
+                    // Estimate: each message ~60px
+                    final estimatedOffset = targetIndex * 60.0;
+                    final clampedOffset = estimatedOffset.clamp(
+                      0.0,
+                      scrollController.position.maxScrollExtent,
+                    );
+                    scrollController.jumpTo(clampedOffset);
+                  } else {
+                    // Month not found, scroll to bottom (newest)
+                    scrollController.jumpTo(0.0);
+                  }
+                } else {
+                  // No scrollToDate: default behavior (scroll to newest at bottom)
+                  scrollController.jumpTo(0.0);
+                }
                 hasAutoScrolled.value = true;
               }
             });
@@ -103,7 +147,7 @@ class MessagesForChatView extends HookConsumerWidget {
         },
       );
       return null;
-    }, [pagerAsync.valueOrNull?.messages.length, isSearching]);
+    }, [pagerAsync.valueOrNull?.messages.length, isSearching, scrollToDate]);
 
     useEffect(
       () {
@@ -187,11 +231,11 @@ class MessagesForChatView extends HookConsumerWidget {
         final itemCount = messages.length + (hasLoader ? 1 : 0);
 
         return ListView.builder(
-            controller: scrollController,
-            reverse: true,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: itemCount,
-            itemBuilder: (context, index) {
+          controller: scrollController,
+          reverse: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
             if (hasLoader) {
               if (index == 0) {
                 return const Padding(

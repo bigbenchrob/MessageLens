@@ -28,6 +28,59 @@ The current `WorkingParticipants` table conflates **people** (participants/conta
 
 ## The Correct Architecture
 
+### Canonical Handle Merging Strategy
+
+During migration from import.db to working.db, the system encounters multiple handle records that represent the same real-world identity but differ in service or raw form. For example:
+
+- `+17789908506` with service `iMessage` (handle ID 5)
+- `+17789908506` with service `SMS` (handle ID 60)  
+- `+17789908506` with service `iMessageLite` (handle ID 265)
+
+Or:
+
+- `+14127362358` (handle ID 123)
+- `tel:+14127362358` (handle ID 456)
+
+**Canonicalization Rules:**
+
+1. **Normalization**: All handles are normalized by stripping URI schemes (`tel:`, `mailto:`), removing formatting, and lowercasing emails or extracting digits from phone numbers
+2. **Grouping**: Handles with the **same normalized identifier** are grouped together, **regardless of service**
+3. **Canonical Selection**: Within each group, one handle is selected as canonical based on preference scoring:
+   - For emails: exact match to normalized form (no `mailto:` prefix)
+   - For phones: international format with `+` prefix
+   - No URI scheme prefix (`tel:`, `mailto:`) is preferred
+   - Lowest handle ID as tiebreaker
+4. **Alias Recording**: All non-canonical handles in the group are marked as aliases
+
+**Example Result:**
+
+```
+handle_canonical_map:
+source_handle_id | canonical_handle_id | raw_identifier      | service      | alias_kind
+60               | 5                   | +17789908506        | SMS          | normalized_variant
+265              | 5                   | +17789908506        | iMessageLite | normalized_variant
+
+handles table:
+id  | raw_identifier | service
+5   | +17789908506   | iMessage
+```
+
+**How It Works:**
+
+1. **Canonical handles** (handle 5) exist ONLY in the `handles` table
+2. **Alias handles** (60, 265) exist ONLY in `handle_canonical_map`, pointing to their canonical
+3. **Source handle ID lookup**: If a handle ID isn't in `handle_canonical_map`, it IS the canonical handle
+
+**Critical Insight**: Service is a property of chats, not handles. The same phone number or email used across multiple services (iMessage, SMS, RCS) maps to a **single canonical handle**. This enables:
+
+- One person → one set of canonical handles (phone + email)
+- All chats using variants of the same phone number appear under that person
+- Proper deduplication: "Claire" appears once, not 3 times for each service
+
+**Migration Impact**: The `handle_canonical_map` table preserves the original chat.db handle IDs (source_handle_id) and maps them to canonical handles (canonical_handle_id). The `chat_to_handle` migrator resolves all source handle IDs to their canonical equivalents when projecting from import.db to working.db.
+
+**Schema Note**: The `handle_canonical_map` table uses `source_handle_id` as PRIMARY KEY. There is NO `UNIQUE(canonical_handle_id, raw_identifier)` constraint - this would incorrectly prevent multiple handles with the same raw identifier (like `+17789908506` across different services) from mapping to the same canonical handle.
+
 ### 1. Participants Table (People/Contacts)
 
 ```sql
@@ -213,8 +266,43 @@ For each handle in handles table:
 
 **From macos_import.db → working.db:**
 
+**Step 3.1: Create canonical handles**
+
+The `handles_migrator` groups all import.db handles by normalized identifier (stripping schemes, normalizing phone/email):
+
+```dart
+// Group by normalized identifier (NOT by compound identifier or service)
+final key = parsed.canonicalNormalized;  // e.g., "7789908506"
+```
+
+For each group:
+- Select one canonical handle (lowest ID, best formatting)
+- Insert ONLY the canonical handle into `working.handles`
+- Record ALL handles (canonical + aliases) in `working.handle_canonical_map`
+
+Result: 
+- `working.handles` contains 194 canonical handles (from 232 source handles)
+- `working.handle_canonical_map` contains 232 entries mapping source→canonical
+
+**Step 3.2: Project chats with canonical handle references**
+
+The `chat_to_handle_migrator` rewrites chat memberships to use canonical handles:
+
 ```sql
--- Create participants from matched contacts
+INSERT INTO chat_to_handle (chat_id, handle_id, ...)
+SELECT 
+  cth.chat_id,
+  map.canonical_handle_id,  -- Resolves source → canonical
+  ...
+FROM import.chat_to_handle cth
+JOIN handle_canonical_map map ON map.source_handle_id = cth.handle_id
+```
+
+This ensures all chats reference canonical handles, regardless of which service variant was used in the original chat.db.
+
+**Step 3.3: Create participants from matched contacts**
+
+```sql
 INSERT INTO working.participants (id, original_name, display_name, short_name, avatar_ref)
 SELECT
   c.id,  -- Preserve AddressBook Z_PK!
@@ -230,16 +318,25 @@ WHERE EXISTS (
   SELECT 1 FROM macos_import.contact_to_chat_handle cch
   WHERE cch.contact_id = c.id
 );
+```
 
--- Create handle_to_participant links
+**Step 3.4: Create handle_to_participant links**
+
+The `handle_to_participant_migrator` maps CANONICAL handles to participants:
+
+```sql
 INSERT INTO working.handle_to_participant (handle_id, participant_id, confidence, source)
 SELECT
-  cch.chat_handle_id,
-  cch.contact_id,
+  map.canonical_handle_id,  -- Uses canonical, not source
+  c.Z_PK,
   1.0,
   'addressbook'
-FROM macos_import.contact_to_chat_handle cch;
+FROM macos_import.contact_to_chat_handle cch
+JOIN handle_canonical_map map ON map.source_handle_id = cch.chat_handle_id
+JOIN macos_import.contacts c ON c.Z_PK = cch.contact_id
 ```
+
+**Critical**: Links are created to CANONICAL handles only. Since Claire's phone has canonical handle 5, the link is: `(handle_id=5, participant_id=17)`. All chats using handles 5, 60, or 265 will resolve to this single link.
 
 ### Phase 4: Filter Spam/Junk (Optional)
 
