@@ -69,7 +69,7 @@ class ContactsSidebarView extends HookConsumerWidget {
                           .read(panelsViewStateProvider.notifier)
                           .show(
                             panel: WindowPanel.left,
-                            spec: ViewSpec.sidebar(
+                            spec: const ViewSpec.sidebar(
                               SidebarSpec.unmatchedHandles(
                                 listMode: HandlesListSpec.phones(
                                   filterMode: PhoneFilterMode.all,

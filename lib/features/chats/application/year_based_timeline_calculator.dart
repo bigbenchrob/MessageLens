@@ -182,7 +182,7 @@ Future<YearTimeline?> _buildYearTimeline(
       // Aggregate months into ~4 weeks each
       for (var month = 1; month <= 12; month++) {
         final count = yearMonths[month] ?? 0;
-        final weekIndex = ((month - 1) * 4); // Approximate: 4 weeks per month
+        final weekIndex = (month - 1) * 4; // Approximate: 4 weeks per month
 
         // Distribute the month's messages across ~4 weeks
         final weekCount = (count / 4).round();

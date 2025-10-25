@@ -14,7 +14,7 @@ part 'working_database.g.dart';
     HandlesCanonical, // New table - will replace WorkingHandles
     WorkingParticipants,
     HandleToParticipant,
-    HandleCanonicalMap,
+    HandlesCanonicalToAlias, // New table - replaces legacy HandleCanonicalMap
     ChatToHandle,
     WorkingChats,
     WorkingMessages,
@@ -31,7 +31,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,8 +73,8 @@ class WorkingDatabase extends _$WorkingDatabase {
       if (from < 11) {
         await _addHandleDisplayNameColumn(m);
       }
-      if (from < 12) {
-        await _addHandleCanonicalMapTable(m);
+      if (from < 13) {
+        await _dropLegacyHandleCanonicalMapTable();
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -454,14 +454,11 @@ class WorkingDatabase extends _$WorkingDatabase {
       ''');
   }
 
-  Future<void> _addHandleCanonicalMapTable(Migrator migrator) async {
-    final existing = await customSelect(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'handle_canonical_map'",
-    ).getSingleOrNull();
-
-    if (existing == null) {
-      await migrator.createTable(handleCanonicalMap);
-    }
+  Future<void> _dropLegacyHandleCanonicalMapTable() async {
+    await customStatement(
+      'DROP INDEX IF EXISTS idx_handle_canonical_map_canonical',
+    );
+    await customStatement('DROP TABLE IF EXISTS handle_canonical_map');
   }
 }
 
@@ -482,7 +479,7 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_handles_blacklist ON handles(is_blacklisted, service)',
   'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_chat_to_handle_handle ON chat_to_handle(handle_id)',
-  'CREATE INDEX IF NOT EXISTS idx_handle_canonical_map_canonical ON handle_canonical_map(canonical_handle_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_canonical_to_alias_canonical ON handles_canonical_to_alias(canonical_handle_id)',
 ];
 
 const List<String> _workingVirtualAndTriggerStatements = [
@@ -782,9 +779,9 @@ class HandleToParticipant extends Table {
   ];
 }
 
-class HandleCanonicalMap extends Table {
+class HandlesCanonicalToAlias extends Table {
   @override
-  String get tableName => 'handle_canonical_map';
+  String get tableName => 'handles_canonical_to_alias';
 
   IntColumn get sourceHandleId => integer().named('source_handle_id')();
   IntColumn get canonicalHandleId => integer()

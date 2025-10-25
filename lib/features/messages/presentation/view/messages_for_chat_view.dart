@@ -107,7 +107,7 @@ class MessagesForChatView extends HookConsumerWidget {
                 if (scrollToDate != null) {
                   // Find the first message on or after scrollToDate
                   final messages = state.messages;
-                  int targetIndex = -1;
+                  var targetIndex = -1;
 
                   // Messages are oldest-first in the list
                   for (var i = 0; i < messages.length; i++) {

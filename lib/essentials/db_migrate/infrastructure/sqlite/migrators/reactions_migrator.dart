@@ -54,7 +54,7 @@ class ReactionsMigrator extends BaseTableMigrator {
         FROM $_attachAlias.reactions r
         WHERE r.reactor_handle_id IS NOT NULL
           AND NOT EXISTS (
-            SELECT 1 FROM handle_canonical_map map
+            SELECT 1 FROM handles_canonical_to_alias map
             WHERE map.source_handle_id = r.reactor_handle_id
           )
       ''').get();
@@ -93,7 +93,7 @@ class ReactionsMigrator extends BaseTableMigrator {
         FROM $_attachAlias.reactions r
         JOIN $_attachAlias.messages carrier ON carrier.id = r.carrier_message_id
         JOIN messages wm ON wm.id = carrier.id
-        LEFT JOIN handle_canonical_map map
+        LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = r.reactor_handle_id
         LEFT JOIN handles rh ON rh.id = map.canonical_handle_id
         WHERE wm.guid IS NOT NULL AND LENGTH(TRIM(wm.guid)) > 0;

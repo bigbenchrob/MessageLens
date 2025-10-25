@@ -303,7 +303,7 @@ class _DotMatrixIndicator extends StatelessWidget {
     const gridSize = 6;
     const dotSize = 1.0;
     const spacing = 1.0;
-    final totalGridSize = (gridSize * dotSize) + ((gridSize - 1) * spacing);
+    const totalGridSize = (gridSize * dotSize) + ((gridSize - 1) * spacing);
     final padding = (size - totalGridSize) / 2;
 
     return SizedBox(
@@ -313,7 +313,7 @@ class _DotMatrixIndicator extends StatelessWidget {
         padding: EdgeInsets.all(padding),
         child: CustomPaint(
           painter: _DotMatrixPainter(dotCount: dotCount),
-          size: Size(totalGridSize, totalGridSize),
+          size: const Size(totalGridSize, totalGridSize),
         ),
       ),
     );

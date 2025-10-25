@@ -70,7 +70,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
       final missingHandles = await ctx.workingDb.customSelect('''
         SELECT DISTINCT cth.handle_id AS handle_id
         FROM $_attachAlias.chat_to_handle cth
-        LEFT JOIN handle_canonical_map map
+        LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.handle_id
         LEFT JOIN handles_canonical h ON h.id = map.canonical_handle_id
         WHERE map.canonical_handle_id IS NULL OR h.id IS NULL
@@ -108,7 +108,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
             ELSE 0
           END AS is_ignored
         FROM $_attachAlias.chat_to_handle cth
-        JOIN handle_canonical_map map
+        JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
         JOIN handles_canonical h ON h.id = map.canonical_handle_id;
@@ -128,7 +128,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
       final rows = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
         FROM $_attachAlias.chat_to_handle cth
-        JOIN handle_canonical_map map
+        JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.handle_id
         JOIN chats c ON c.id = cth.chat_id
         JOIN handles_canonical h ON h.id = map.canonical_handle_id

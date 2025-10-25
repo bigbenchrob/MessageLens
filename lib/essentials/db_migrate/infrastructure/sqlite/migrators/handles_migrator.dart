@@ -230,11 +230,32 @@ class HandlesMigrator extends BaseTableMigrator {
       });
 
       if (aliasRows.isNotEmpty) {
+        // Legacy dual-write disabled while verifying handles_canonical_to_alias coverage.
+        // Keeping the original block for quick rollback if issues surface.
+        // await ctx.workingDb.batch((batch) {
+        //   for (final alias in aliasRows) {
+        //     batch.insert(
+        //       ctx.workingDb.handleCanonicalMap,
+        //       HandleCanonicalMapCompanion.insert(
+        //         sourceHandleId: Value(alias.sourceId),
+        //         canonicalHandleId: alias.canonicalId,
+        //         rawIdentifier: alias.rawIdentifier,
+        //         compoundIdentifier: alias.compoundIdentifier,
+        //         normalizedIdentifier: alias.normalizedIdentifier,
+        //         service: Value(alias.service),
+        //         aliasKind: Value(alias.aliasKind),
+        //       ),
+        //       mode: InsertMode.insertOrReplace,
+        //     );
+        //   }
+        // });
+
+        // NEW TABLE - Dual write to handles_canonical_to_alias
         await ctx.workingDb.batch((batch) {
           for (final alias in aliasRows) {
             batch.insert(
-              ctx.workingDb.handleCanonicalMap,
-              HandleCanonicalMapCompanion.insert(
+              ctx.workingDb.handlesCanonicalToAlias,
+              HandlesCanonicalToAliasCompanion.insert(
                 sourceHandleId: Value(alias.sourceId),
                 canonicalHandleId: alias.canonicalId,
                 rawIdentifier: alias.rawIdentifier,
@@ -324,7 +345,10 @@ class HandlesMigrator extends BaseTableMigrator {
   }
 
   Future<void> _clearCanonicalMap(MigrationContext ctx) async {
-    await ctx.workingDb.customStatement('DELETE FROM handle_canonical_map');
+    // await ctx.workingDb.customStatement('DELETE FROM handle_canonical_map');
+    await ctx.workingDb.customStatement(
+      'DELETE FROM handles_canonical_to_alias',
+    );
   }
 }
 

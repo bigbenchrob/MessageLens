@@ -76,7 +76,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        LEFT JOIN handle_canonical_map map
+        LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.chat_handle_id
         LEFT JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         WHERE map.canonical_handle_id IS NULL OR wh.id IS NULL
@@ -110,7 +110,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        JOIN handle_canonical_map map
+        JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.chat_handle_id
         JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK;
@@ -127,7 +127,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        JOIN handle_canonical_map map
+        JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.chat_handle_id
         JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK
@@ -148,7 +148,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
           FROM $_attachAlias.contact_to_chat_handle cth
           JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
           JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-          JOIN handle_canonical_map map
+          JOIN handles_canonical_to_alias map
             ON map.source_handle_id = cth.chat_handle_id
           JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
           JOIN participants p ON p.id = c.Z_PK
@@ -183,7 +183,7 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
         FROM $_attachAlias.contact_to_chat_handle cth
         JOIN $_attachAlias.contacts c ON c.Z_PK = cth.contact_Z_PK AND c.is_ignored = 0
         JOIN $_attachAlias.handles h ON h.id = cth.chat_handle_id AND h.is_ignored = 0
-        JOIN handle_canonical_map map
+        JOIN handles_canonical_to_alias map
           ON map.source_handle_id = cth.chat_handle_id
         JOIN handles_canonical wh ON wh.id = map.canonical_handle_id
         JOIN participants p ON p.id = c.Z_PK

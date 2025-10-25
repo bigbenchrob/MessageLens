@@ -3304,12 +3304,12 @@ class HandleToParticipantCompanion
   }
 }
 
-class $HandleCanonicalMapTable extends HandleCanonicalMap
-    with TableInfo<$HandleCanonicalMapTable, HandleCanonicalMapData> {
+class $HandlesCanonicalToAliasTable extends HandlesCanonicalToAlias
+    with TableInfo<$HandlesCanonicalToAliasTable, HandlesCanonicalToAlia> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $HandleCanonicalMapTable(this.attachedDatabase, [this._alias]);
+  $HandlesCanonicalToAliasTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _sourceHandleIdMeta = const VerificationMeta(
     'sourceHandleId',
   );
@@ -3408,10 +3408,10 @@ class $HandleCanonicalMapTable extends HandleCanonicalMap
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'handle_canonical_map';
+  static const String $name = 'handles_canonical_to_alias';
   @override
   VerificationContext validateIntegrity(
-    Insertable<HandleCanonicalMapData> instance, {
+    Insertable<HandlesCanonicalToAlia> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3487,9 +3487,9 @@ class $HandleCanonicalMapTable extends HandleCanonicalMap
   @override
   Set<GeneratedColumn> get $primaryKey => {sourceHandleId};
   @override
-  HandleCanonicalMapData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  HandlesCanonicalToAlia map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return HandleCanonicalMapData(
+    return HandlesCanonicalToAlia(
       sourceHandleId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}source_handle_id'],
@@ -3522,13 +3522,13 @@ class $HandleCanonicalMapTable extends HandleCanonicalMap
   }
 
   @override
-  $HandleCanonicalMapTable createAlias(String alias) {
-    return $HandleCanonicalMapTable(attachedDatabase, alias);
+  $HandlesCanonicalToAliasTable createAlias(String alias) {
+    return $HandlesCanonicalToAliasTable(attachedDatabase, alias);
   }
 }
 
-class HandleCanonicalMapData extends DataClass
-    implements Insertable<HandleCanonicalMapData> {
+class HandlesCanonicalToAlia extends DataClass
+    implements Insertable<HandlesCanonicalToAlia> {
   final int sourceHandleId;
   final int canonicalHandleId;
   final String rawIdentifier;
@@ -3536,7 +3536,7 @@ class HandleCanonicalMapData extends DataClass
   final String normalizedIdentifier;
   final String service;
   final String aliasKind;
-  const HandleCanonicalMapData({
+  const HandlesCanonicalToAlia({
     required this.sourceHandleId,
     required this.canonicalHandleId,
     required this.rawIdentifier,
@@ -3558,8 +3558,8 @@ class HandleCanonicalMapData extends DataClass
     return map;
   }
 
-  HandleCanonicalMapCompanion toCompanion(bool nullToAbsent) {
-    return HandleCanonicalMapCompanion(
+  HandlesCanonicalToAliasCompanion toCompanion(bool nullToAbsent) {
+    return HandlesCanonicalToAliasCompanion(
       sourceHandleId: Value(sourceHandleId),
       canonicalHandleId: Value(canonicalHandleId),
       rawIdentifier: Value(rawIdentifier),
@@ -3570,12 +3570,12 @@ class HandleCanonicalMapData extends DataClass
     );
   }
 
-  factory HandleCanonicalMapData.fromJson(
+  factory HandlesCanonicalToAlia.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return HandleCanonicalMapData(
+    return HandlesCanonicalToAlia(
       sourceHandleId: serializer.fromJson<int>(json['sourceHandleId']),
       canonicalHandleId: serializer.fromJson<int>(json['canonicalHandleId']),
       rawIdentifier: serializer.fromJson<String>(json['rawIdentifier']),
@@ -3603,7 +3603,7 @@ class HandleCanonicalMapData extends DataClass
     };
   }
 
-  HandleCanonicalMapData copyWith({
+  HandlesCanonicalToAlia copyWith({
     int? sourceHandleId,
     int? canonicalHandleId,
     String? rawIdentifier,
@@ -3611,7 +3611,7 @@ class HandleCanonicalMapData extends DataClass
     String? normalizedIdentifier,
     String? service,
     String? aliasKind,
-  }) => HandleCanonicalMapData(
+  }) => HandlesCanonicalToAlia(
     sourceHandleId: sourceHandleId ?? this.sourceHandleId,
     canonicalHandleId: canonicalHandleId ?? this.canonicalHandleId,
     rawIdentifier: rawIdentifier ?? this.rawIdentifier,
@@ -3620,8 +3620,10 @@ class HandleCanonicalMapData extends DataClass
     service: service ?? this.service,
     aliasKind: aliasKind ?? this.aliasKind,
   );
-  HandleCanonicalMapData copyWithCompanion(HandleCanonicalMapCompanion data) {
-    return HandleCanonicalMapData(
+  HandlesCanonicalToAlia copyWithCompanion(
+    HandlesCanonicalToAliasCompanion data,
+  ) {
+    return HandlesCanonicalToAlia(
       sourceHandleId: data.sourceHandleId.present
           ? data.sourceHandleId.value
           : this.sourceHandleId,
@@ -3644,7 +3646,7 @@ class HandleCanonicalMapData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('HandleCanonicalMapData(')
+    return (StringBuffer('HandlesCanonicalToAlia(')
           ..write('sourceHandleId: $sourceHandleId, ')
           ..write('canonicalHandleId: $canonicalHandleId, ')
           ..write('rawIdentifier: $rawIdentifier, ')
@@ -3669,7 +3671,7 @@ class HandleCanonicalMapData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is HandleCanonicalMapData &&
+      (other is HandlesCanonicalToAlia &&
           other.sourceHandleId == this.sourceHandleId &&
           other.canonicalHandleId == this.canonicalHandleId &&
           other.rawIdentifier == this.rawIdentifier &&
@@ -3679,8 +3681,8 @@ class HandleCanonicalMapData extends DataClass
           other.aliasKind == this.aliasKind);
 }
 
-class HandleCanonicalMapCompanion
-    extends UpdateCompanion<HandleCanonicalMapData> {
+class HandlesCanonicalToAliasCompanion
+    extends UpdateCompanion<HandlesCanonicalToAlia> {
   final Value<int> sourceHandleId;
   final Value<int> canonicalHandleId;
   final Value<String> rawIdentifier;
@@ -3688,7 +3690,7 @@ class HandleCanonicalMapCompanion
   final Value<String> normalizedIdentifier;
   final Value<String> service;
   final Value<String> aliasKind;
-  const HandleCanonicalMapCompanion({
+  const HandlesCanonicalToAliasCompanion({
     this.sourceHandleId = const Value.absent(),
     this.canonicalHandleId = const Value.absent(),
     this.rawIdentifier = const Value.absent(),
@@ -3697,7 +3699,7 @@ class HandleCanonicalMapCompanion
     this.service = const Value.absent(),
     this.aliasKind = const Value.absent(),
   });
-  HandleCanonicalMapCompanion.insert({
+  HandlesCanonicalToAliasCompanion.insert({
     this.sourceHandleId = const Value.absent(),
     required int canonicalHandleId,
     required String rawIdentifier,
@@ -3709,7 +3711,7 @@ class HandleCanonicalMapCompanion
        rawIdentifier = Value(rawIdentifier),
        compoundIdentifier = Value(compoundIdentifier),
        normalizedIdentifier = Value(normalizedIdentifier);
-  static Insertable<HandleCanonicalMapData> custom({
+  static Insertable<HandlesCanonicalToAlia> custom({
     Expression<int>? sourceHandleId,
     Expression<int>? canonicalHandleId,
     Expression<String>? rawIdentifier,
@@ -3730,7 +3732,7 @@ class HandleCanonicalMapCompanion
     });
   }
 
-  HandleCanonicalMapCompanion copyWith({
+  HandlesCanonicalToAliasCompanion copyWith({
     Value<int>? sourceHandleId,
     Value<int>? canonicalHandleId,
     Value<String>? rawIdentifier,
@@ -3739,7 +3741,7 @@ class HandleCanonicalMapCompanion
     Value<String>? service,
     Value<String>? aliasKind,
   }) {
-    return HandleCanonicalMapCompanion(
+    return HandlesCanonicalToAliasCompanion(
       sourceHandleId: sourceHandleId ?? this.sourceHandleId,
       canonicalHandleId: canonicalHandleId ?? this.canonicalHandleId,
       rawIdentifier: rawIdentifier ?? this.rawIdentifier,
@@ -3781,7 +3783,7 @@ class HandleCanonicalMapCompanion
 
   @override
   String toString() {
-    return (StringBuffer('HandleCanonicalMapCompanion(')
+    return (StringBuffer('HandlesCanonicalToAliasCompanion(')
           ..write('sourceHandleId: $sourceHandleId, ')
           ..write('canonicalHandleId: $canonicalHandleId, ')
           ..write('rawIdentifier: $rawIdentifier, ')
@@ -9922,8 +9924,8 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
       $WorkingParticipantsTable(this);
   late final $HandleToParticipantTable handleToParticipant =
       $HandleToParticipantTable(this);
-  late final $HandleCanonicalMapTable handleCanonicalMap =
-      $HandleCanonicalMapTable(this);
+  late final $HandlesCanonicalToAliasTable handlesCanonicalToAlias =
+      $HandlesCanonicalToAliasTable(this);
   late final $WorkingChatsTable workingChats = $WorkingChatsTable(this);
   late final $ChatToHandleTable chatToHandle = $ChatToHandleTable(this);
   late final $WorkingMessagesTable workingMessages = $WorkingMessagesTable(
@@ -9956,7 +9958,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     handlesCanonical,
     workingParticipants,
     handleToParticipant,
-    handleCanonicalMap,
+    handlesCanonicalToAlias,
     workingChats,
     chatToHandle,
     workingMessages,
@@ -9989,7 +9991,9 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
         'handles_canonical',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('handle_canonical_map', kind: UpdateKind.delete)],
+      result: [
+        TableUpdate('handles_canonical_to_alias', kind: UpdateKind.delete),
+      ],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -10953,26 +10957,27 @@ final class $$HandlesCanonicalTableReferences
   }
 
   static MultiTypedResultKey<
-    $HandleCanonicalMapTable,
-    List<HandleCanonicalMapData>
+    $HandlesCanonicalToAliasTable,
+    List<HandlesCanonicalToAlia>
   >
-  _handleCanonicalMapRefsTable(_$WorkingDatabase db) =>
+  _handlesCanonicalToAliasRefsTable(_$WorkingDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.handleCanonicalMap,
+        db.handlesCanonicalToAlias,
         aliasName: $_aliasNameGenerator(
           db.handlesCanonical.id,
-          db.handleCanonicalMap.canonicalHandleId,
+          db.handlesCanonicalToAlias.canonicalHandleId,
         ),
       );
 
-  $$HandleCanonicalMapTableProcessedTableManager get handleCanonicalMapRefs {
-    final manager = $$HandleCanonicalMapTableTableManager(
+  $$HandlesCanonicalToAliasTableProcessedTableManager
+  get handlesCanonicalToAliasRefs {
+    final manager = $$HandlesCanonicalToAliasTableTableManager(
       $_db,
-      $_db.handleCanonicalMap,
+      $_db.handlesCanonicalToAlias,
     ).filter((f) => f.canonicalHandleId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _handleCanonicalMapRefsTable($_db),
+      _handlesCanonicalToAliasRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -11159,28 +11164,29 @@ class $$HandlesCanonicalTableFilterComposer
     return f(composer);
   }
 
-  Expression<bool> handleCanonicalMapRefs(
-    Expression<bool> Function($$HandleCanonicalMapTableFilterComposer f) f,
+  Expression<bool> handlesCanonicalToAliasRefs(
+    Expression<bool> Function($$HandlesCanonicalToAliasTableFilterComposer f) f,
   ) {
-    final $$HandleCanonicalMapTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.handleCanonicalMap,
-      getReferencedColumn: (t) => t.canonicalHandleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HandleCanonicalMapTableFilterComposer(
-            $db: $db,
-            $table: $db.handleCanonicalMap,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
+    final $$HandlesCanonicalToAliasTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.handlesCanonicalToAlias,
+          getReferencedColumn: (t) => t.canonicalHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-          ),
-    );
+              }) => $$HandlesCanonicalToAliasTableFilterComposer(
+                $db: $db,
+                $table: $db.handlesCanonicalToAlias,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -11428,23 +11434,24 @@ class $$HandlesCanonicalTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> handleCanonicalMapRefs<T extends Object>(
-    Expression<T> Function($$HandleCanonicalMapTableAnnotationComposer a) f,
+  Expression<T> handlesCanonicalToAliasRefs<T extends Object>(
+    Expression<T> Function($$HandlesCanonicalToAliasTableAnnotationComposer a)
+    f,
   ) {
-    final $$HandleCanonicalMapTableAnnotationComposer composer =
+    final $$HandlesCanonicalToAliasTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.handleCanonicalMap,
+          referencedTable: $db.handlesCanonicalToAlias,
           getReferencedColumn: (t) => t.canonicalHandleId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$HandleCanonicalMapTableAnnotationComposer(
+              }) => $$HandlesCanonicalToAliasTableAnnotationComposer(
                 $db: $db,
-                $table: $db.handleCanonicalMap,
+                $table: $db.handlesCanonicalToAlias,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -11570,7 +11577,7 @@ class $$HandlesCanonicalTableTableManager
           HandlesCanonicalData,
           PrefetchHooks Function({
             bool handleToParticipantRefs,
-            bool handleCanonicalMapRefs,
+            bool handlesCanonicalToAliasRefs,
             bool workingChatsRefs,
             bool chatToHandleRefs,
             bool workingMessagesRefs,
@@ -11653,7 +11660,7 @@ class $$HandlesCanonicalTableTableManager
           prefetchHooksCallback:
               ({
                 handleToParticipantRefs = false,
-                handleCanonicalMapRefs = false,
+                handlesCanonicalToAliasRefs = false,
                 workingChatsRefs = false,
                 chatToHandleRefs = false,
                 workingMessagesRefs = false,
@@ -11663,7 +11670,7 @@ class $$HandlesCanonicalTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (handleToParticipantRefs) db.handleToParticipant,
-                    if (handleCanonicalMapRefs) db.handleCanonicalMap,
+                    if (handlesCanonicalToAliasRefs) db.handlesCanonicalToAlias,
                     if (workingChatsRefs) db.workingChats,
                     if (chatToHandleRefs) db.chatToHandle,
                     if (workingMessagesRefs) db.workingMessages,
@@ -11693,21 +11700,21 @@ class $$HandlesCanonicalTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (handleCanonicalMapRefs)
+                      if (handlesCanonicalToAliasRefs)
                         await $_getPrefetchedData<
                           HandlesCanonicalData,
                           $HandlesCanonicalTable,
-                          HandleCanonicalMapData
+                          HandlesCanonicalToAlia
                         >(
                           currentTable: table,
                           referencedTable: $$HandlesCanonicalTableReferences
-                              ._handleCanonicalMapRefsTable(db),
+                              ._handlesCanonicalToAliasRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$HandlesCanonicalTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).handleCanonicalMapRefs,
+                              ).handlesCanonicalToAliasRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.canonicalHandleId == item.id,
@@ -11820,7 +11827,7 @@ typedef $$HandlesCanonicalTableProcessedTableManager =
       HandlesCanonicalData,
       PrefetchHooks Function({
         bool handleToParticipantRefs,
-        bool handleCanonicalMapRefs,
+        bool handlesCanonicalToAliasRefs,
         bool workingChatsRefs,
         bool chatToHandleRefs,
         bool workingMessagesRefs,
@@ -12734,8 +12741,8 @@ typedef $$HandleToParticipantTableProcessedTableManager =
       HandleToParticipantData,
       PrefetchHooks Function({bool handleId, bool participantId})
     >;
-typedef $$HandleCanonicalMapTableCreateCompanionBuilder =
-    HandleCanonicalMapCompanion Function({
+typedef $$HandlesCanonicalToAliasTableCreateCompanionBuilder =
+    HandlesCanonicalToAliasCompanion Function({
       Value<int> sourceHandleId,
       required int canonicalHandleId,
       required String rawIdentifier,
@@ -12744,8 +12751,8 @@ typedef $$HandleCanonicalMapTableCreateCompanionBuilder =
       Value<String> service,
       Value<String> aliasKind,
     });
-typedef $$HandleCanonicalMapTableUpdateCompanionBuilder =
-    HandleCanonicalMapCompanion Function({
+typedef $$HandlesCanonicalToAliasTableUpdateCompanionBuilder =
+    HandlesCanonicalToAliasCompanion Function({
       Value<int> sourceHandleId,
       Value<int> canonicalHandleId,
       Value<String> rawIdentifier,
@@ -12755,14 +12762,14 @@ typedef $$HandleCanonicalMapTableUpdateCompanionBuilder =
       Value<String> aliasKind,
     });
 
-final class $$HandleCanonicalMapTableReferences
+final class $$HandlesCanonicalToAliasTableReferences
     extends
         BaseReferences<
           _$WorkingDatabase,
-          $HandleCanonicalMapTable,
-          HandleCanonicalMapData
+          $HandlesCanonicalToAliasTable,
+          HandlesCanonicalToAlia
         > {
-  $$HandleCanonicalMapTableReferences(
+  $$HandlesCanonicalToAliasTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
@@ -12771,7 +12778,7 @@ final class $$HandleCanonicalMapTableReferences
   static $HandlesCanonicalTable _canonicalHandleIdTable(_$WorkingDatabase db) =>
       db.handlesCanonical.createAlias(
         $_aliasNameGenerator(
-          db.handleCanonicalMap.canonicalHandleId,
+          db.handlesCanonicalToAlias.canonicalHandleId,
           db.handlesCanonical.id,
         ),
       );
@@ -12791,9 +12798,9 @@ final class $$HandleCanonicalMapTableReferences
   }
 }
 
-class $$HandleCanonicalMapTableFilterComposer
-    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
-  $$HandleCanonicalMapTableFilterComposer({
+class $$HandlesCanonicalToAliasTableFilterComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalToAliasTable> {
+  $$HandlesCanonicalToAliasTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12854,9 +12861,9 @@ class $$HandleCanonicalMapTableFilterComposer
   }
 }
 
-class $$HandleCanonicalMapTableOrderingComposer
-    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
-  $$HandleCanonicalMapTableOrderingComposer({
+class $$HandlesCanonicalToAliasTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalToAliasTable> {
+  $$HandlesCanonicalToAliasTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12917,9 +12924,9 @@ class $$HandleCanonicalMapTableOrderingComposer
   }
 }
 
-class $$HandleCanonicalMapTableAnnotationComposer
-    extends Composer<_$WorkingDatabase, $HandleCanonicalMapTable> {
-  $$HandleCanonicalMapTableAnnotationComposer({
+class $$HandlesCanonicalToAliasTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $HandlesCanonicalToAliasTable> {
+  $$HandlesCanonicalToAliasTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12976,34 +12983,40 @@ class $$HandleCanonicalMapTableAnnotationComposer
   }
 }
 
-class $$HandleCanonicalMapTableTableManager
+class $$HandlesCanonicalToAliasTableTableManager
     extends
         RootTableManager<
           _$WorkingDatabase,
-          $HandleCanonicalMapTable,
-          HandleCanonicalMapData,
-          $$HandleCanonicalMapTableFilterComposer,
-          $$HandleCanonicalMapTableOrderingComposer,
-          $$HandleCanonicalMapTableAnnotationComposer,
-          $$HandleCanonicalMapTableCreateCompanionBuilder,
-          $$HandleCanonicalMapTableUpdateCompanionBuilder,
-          (HandleCanonicalMapData, $$HandleCanonicalMapTableReferences),
-          HandleCanonicalMapData,
+          $HandlesCanonicalToAliasTable,
+          HandlesCanonicalToAlia,
+          $$HandlesCanonicalToAliasTableFilterComposer,
+          $$HandlesCanonicalToAliasTableOrderingComposer,
+          $$HandlesCanonicalToAliasTableAnnotationComposer,
+          $$HandlesCanonicalToAliasTableCreateCompanionBuilder,
+          $$HandlesCanonicalToAliasTableUpdateCompanionBuilder,
+          (HandlesCanonicalToAlia, $$HandlesCanonicalToAliasTableReferences),
+          HandlesCanonicalToAlia,
           PrefetchHooks Function({bool canonicalHandleId})
         > {
-  $$HandleCanonicalMapTableTableManager(
+  $$HandlesCanonicalToAliasTableTableManager(
     _$WorkingDatabase db,
-    $HandleCanonicalMapTable table,
+    $HandlesCanonicalToAliasTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$HandleCanonicalMapTableFilterComposer($db: db, $table: table),
+              $$HandlesCanonicalToAliasTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
           createOrderingComposer: () =>
-              $$HandleCanonicalMapTableOrderingComposer($db: db, $table: table),
+              $$HandlesCanonicalToAliasTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
           createComputedFieldComposer: () =>
-              $$HandleCanonicalMapTableAnnotationComposer(
+              $$HandlesCanonicalToAliasTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
@@ -13016,7 +13029,7 @@ class $$HandleCanonicalMapTableTableManager
                 Value<String> normalizedIdentifier = const Value.absent(),
                 Value<String> service = const Value.absent(),
                 Value<String> aliasKind = const Value.absent(),
-              }) => HandleCanonicalMapCompanion(
+              }) => HandlesCanonicalToAliasCompanion(
                 sourceHandleId: sourceHandleId,
                 canonicalHandleId: canonicalHandleId,
                 rawIdentifier: rawIdentifier,
@@ -13034,7 +13047,7 @@ class $$HandleCanonicalMapTableTableManager
                 required String normalizedIdentifier,
                 Value<String> service = const Value.absent(),
                 Value<String> aliasKind = const Value.absent(),
-              }) => HandleCanonicalMapCompanion.insert(
+              }) => HandlesCanonicalToAliasCompanion.insert(
                 sourceHandleId: sourceHandleId,
                 canonicalHandleId: canonicalHandleId,
                 rawIdentifier: rawIdentifier,
@@ -13047,7 +13060,7 @@ class $$HandleCanonicalMapTableTableManager
               .map(
                 (e) => (
                   e.readTable(table),
-                  $$HandleCanonicalMapTableReferences(db, table, e),
+                  $$HandlesCanonicalToAliasTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -13077,10 +13090,10 @@ class $$HandleCanonicalMapTableTableManager
                                 currentTable: table,
                                 currentColumn: table.canonicalHandleId,
                                 referencedTable:
-                                    $$HandleCanonicalMapTableReferences
+                                    $$HandlesCanonicalToAliasTableReferences
                                         ._canonicalHandleIdTable(db),
                                 referencedColumn:
-                                    $$HandleCanonicalMapTableReferences
+                                    $$HandlesCanonicalToAliasTableReferences
                                         ._canonicalHandleIdTable(db)
                                         .id,
                               )
@@ -13098,18 +13111,18 @@ class $$HandleCanonicalMapTableTableManager
       );
 }
 
-typedef $$HandleCanonicalMapTableProcessedTableManager =
+typedef $$HandlesCanonicalToAliasTableProcessedTableManager =
     ProcessedTableManager<
       _$WorkingDatabase,
-      $HandleCanonicalMapTable,
-      HandleCanonicalMapData,
-      $$HandleCanonicalMapTableFilterComposer,
-      $$HandleCanonicalMapTableOrderingComposer,
-      $$HandleCanonicalMapTableAnnotationComposer,
-      $$HandleCanonicalMapTableCreateCompanionBuilder,
-      $$HandleCanonicalMapTableUpdateCompanionBuilder,
-      (HandleCanonicalMapData, $$HandleCanonicalMapTableReferences),
-      HandleCanonicalMapData,
+      $HandlesCanonicalToAliasTable,
+      HandlesCanonicalToAlia,
+      $$HandlesCanonicalToAliasTableFilterComposer,
+      $$HandlesCanonicalToAliasTableOrderingComposer,
+      $$HandlesCanonicalToAliasTableAnnotationComposer,
+      $$HandlesCanonicalToAliasTableCreateCompanionBuilder,
+      $$HandlesCanonicalToAliasTableUpdateCompanionBuilder,
+      (HandlesCanonicalToAlia, $$HandlesCanonicalToAliasTableReferences),
+      HandlesCanonicalToAlia,
       PrefetchHooks Function({bool canonicalHandleId})
     >;
 typedef $$WorkingChatsTableCreateCompanionBuilder =
@@ -17410,8 +17423,11 @@ class $WorkingDatabaseManager {
       $$WorkingParticipantsTableTableManager(_db, _db.workingParticipants);
   $$HandleToParticipantTableTableManager get handleToParticipant =>
       $$HandleToParticipantTableTableManager(_db, _db.handleToParticipant);
-  $$HandleCanonicalMapTableTableManager get handleCanonicalMap =>
-      $$HandleCanonicalMapTableTableManager(_db, _db.handleCanonicalMap);
+  $$HandlesCanonicalToAliasTableTableManager get handlesCanonicalToAlias =>
+      $$HandlesCanonicalToAliasTableTableManager(
+        _db,
+        _db.handlesCanonicalToAlias,
+      );
   $$WorkingChatsTableTableManager get workingChats =>
       $$WorkingChatsTableTableManager(_db, _db.workingChats);
   $$ChatToHandleTableTableManager get chatToHandle =>

@@ -86,7 +86,7 @@ class MessagesMigrator extends BaseTableMigrator {
         WHERE m.sender_handle_id IS NOT NULL
           AND NOT EXISTS (
             SELECT 1
-            FROM handle_canonical_map map
+            FROM handles_canonical_to_alias map
             JOIN handles h ON h.id = map.canonical_handle_id
             WHERE map.source_handle_id = m.sender_handle_id
           );
@@ -172,7 +172,7 @@ class MessagesMigrator extends BaseTableMigrator {
           m.batch_id
         FROM $_attachAlias.messages m
         JOIN chats c ON c.id = m.chat_id
-        LEFT JOIN handle_canonical_map map
+        LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = m.sender_handle_id
         LEFT JOIN handles h ON h.id = map.canonical_handle_id
         WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0;

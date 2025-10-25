@@ -33,7 +33,7 @@ class ChatsCenterPanelView extends ConsumerWidget {
     );
 
     return MacosScaffold(
-      toolBar: ToolBar(height: 40, title: const Text('Chats for Contact')),
+      toolBar: const ToolBar(height: 40, title: Text('Chats for Contact')),
       children: [
         ContentArea(
           builder: (context, scrollController) {

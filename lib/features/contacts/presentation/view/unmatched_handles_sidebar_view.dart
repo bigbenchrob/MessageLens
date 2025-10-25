@@ -77,9 +77,9 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                           .read(panelsViewStateProvider.notifier)
                           .show(
                             panel: WindowPanel.left,
-                            spec: ViewSpec.sidebar(
+                            spec: const ViewSpec.sidebar(
                               SidebarSpec.contacts(
-                                listMode: const ContactsListSpec.all(),
+                                listMode: ContactsListSpec.all(),
                               ),
                             ),
                           );
@@ -155,7 +155,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                           )
                                           .show(
                                             panel: WindowPanel.left,
-                                            spec: ViewSpec.sidebar(
+                                            spec: const ViewSpec.sidebar(
                                               SidebarSpec.unmatchedHandles(
                                                 listMode:
                                                     HandlesListSpec.phones(
@@ -188,7 +188,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                           )
                                           .show(
                                             panel: WindowPanel.left,
-                                            spec: ViewSpec.sidebar(
+                                            spec: const ViewSpec.sidebar(
                                               SidebarSpec.unmatchedHandles(
                                                 listMode:
                                                     HandlesListSpec.emails(),
@@ -235,7 +235,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                             )
                                             .show(
                                               panel: WindowPanel.left,
-                                              spec: ViewSpec.sidebar(
+                                              spec: const ViewSpec.sidebar(
                                                 SidebarSpec.unmatchedHandles(
                                                   listMode:
                                                       HandlesListSpec.phones(
@@ -265,7 +265,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                             )
                                             .show(
                                               panel: WindowPanel.left,
-                                              spec: ViewSpec.sidebar(
+                                              spec: const ViewSpec.sidebar(
                                                 SidebarSpec.unmatchedHandles(
                                                   listMode:
                                                       HandlesListSpec.phones(

@@ -14,7 +14,7 @@ import '../lib/essentials/db/shared/handle_identifier_utils.dart';
 
 void main() async {
   // Database is at /Users/rob/sqlite_rmc/remember_every_text/working.db
-  final dbPath = '/Users/rob/sqlite_rmc/remember_every_text/working.db';
+  const dbPath = '/Users/rob/sqlite_rmc/remember_every_text/working.db';
 
   if (!File(dbPath).existsSync()) {
     print('ERROR: Database not found at $dbPath');
