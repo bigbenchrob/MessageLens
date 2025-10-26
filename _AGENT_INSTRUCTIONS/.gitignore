@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VSCode / Editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*~
+
+# Python / tooling caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.log
+
+# Build or output zips
+*.zip
+*.tar.gz
+
+# Local agent scratch data
+*_scratch/
+scratch/
+tmp/
+local/
+notes_private/
+
+# Backups and temp exports
+*.bak
+*.old
+*.orig
+
+# Ignore generated indexes or review reports
+INDEX-*.md
+review-*.md
+
+# Keep placeholder file so Git tracks empty dirs
+!.gitkeep
