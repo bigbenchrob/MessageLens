@@ -1,15 +1,14 @@
-// lib/widgets/message_tiles.dart
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
-// ignore: avoid_classes_with_only_static_members
-/// ---- Design tokens & helpers ------------------------------------------------
+import 'view_model/attachment_info.dart';
 
+// ignore: avoid_classes_with_only_static_members
 class MsgTheme {
-  // Sizing
-  static const maxBubbleWidth = 520.0; // generous on macOS
+  static const maxBubbleWidth = 520.0;
   static const bubblePadding = EdgeInsets.symmetric(
     horizontal: 12,
     vertical: 10,
@@ -17,23 +16,16 @@ class MsgTheme {
   static const mediaRadius = BorderRadius.all(Radius.circular(14));
   static const textRadius = BorderRadius.all(Radius.circular(16));
   static const gapXS = SizedBox(height: 4);
-  static const gapSM = SizedBox(height: 8);
   static const gapMD = SizedBox(height: 12);
 
-  // Colors
-  static const bubbleBlue = Color(0xFF0A84FF); // macOS accent-ish blue
-  static const bubbleGray = Color(0xFFE9E9EB); // iMessage-ish gray
-  static const metadataGrey = Color(0xFF6E6E73); // SF secondary label-ish
-  static const outline = Color(0x1F000000); // subtle border on white
+  static const bubbleBlue = Color(0xFF0A84FF);
+  static const bubbleGray = Color(0xFFE9E9EB);
+  static const metadataGrey = Color(0xFF6E6E73);
+  static const outline = Color(0x1F000000);
   static const linkBannerBlack = Colors.black;
-  static const highlightOnBlue = Color(
-    0xFF0056B3,
-  ); // darker blue for contrast with white text
-  static const highlightOnGray = Color(
-    0xFFB3D7FF,
-  ); // light blue for search highlighting
+  static const highlightOnBlue = Color(0xFF0056B3);
+  static const highlightOnGray = Color(0xFFB3D7FF);
 
-  // Text styles
   static TextStyle get bodyOnBlue =>
       const TextStyle(color: Colors.white, height: 1.25, fontSize: 14.5);
 
@@ -43,17 +35,9 @@ class MsgTheme {
   static TextStyle get metadata =>
       const TextStyle(color: metadataGrey, fontSize: 11, height: 1.2);
 
-  // Layout helper for left / right
-  static Alignment alignmentFor({required bool isMe}) =>
-      isMe ? Alignment.centerRight : Alignment.centerLeft;
-
-  // Horizontal padding of the conversation viewport
-  static EdgeInsets convoHPad(BuildContext context) =>
-      const EdgeInsets.symmetric(horizontal: 14);
+  static EdgeInsets convoHPad() => const EdgeInsets.symmetric(horizontal: 14);
 }
 
-/// A thin shell that applies alignment (left/right), width clamp, and outer padding.
-/// Everything sits on white; metadata also goes on white (by requirement).
 class MessageShell extends StatelessWidget {
   const MessageShell({
     super.key,
@@ -93,8 +77,6 @@ class MessageShell extends StatelessWidget {
   }
 }
 
-/// The metadata line: tiny grey text on white background.
-/// Format: "You * Sun, Jun 21 9:21 AM [YEAR if not current year] * ID: 85811"
 class MetadataLine extends StatelessWidget {
   const MetadataLine({
     super.key,
@@ -116,40 +98,8 @@ class MetadataLine extends StatelessWidget {
     );
   }
 
-  /// Format: "Sun, Jun 21 9:21 AM" or "Sun, Jun 21, 2020 9:21 AM" if not current year
   String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final isCurrentYear = dateTime.year == now.year;
-
-    // Day of week (Sun, Mon, etc.)
-    final weekday = _getWeekdayAbbreviation(dateTime.weekday);
-
-    // Month abbreviation (Jan, Feb, etc.)
-    final month = _getMonthAbbreviation(dateTime.month);
-
-    // Day of month
-    final day = dateTime.day;
-
-    // Time in 12-hour format
-    final hour = dateTime.hour;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final amPm = hour >= 12 ? 'PM' : 'AM';
-
-    if (isCurrentYear) {
-      return '$weekday, $month $day $hour12:$minute $amPm';
-    } else {
-      final year = dateTime.year;
-      return '$weekday, $month $day, $year $hour12:$minute $amPm';
-    }
-  }
-
-  String _getWeekdayAbbreviation(int weekday) {
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return weekdays[weekday - 1];
-  }
-
-  String _getMonthAbbreviation(int month) {
     const months = [
       'Jan',
       'Feb',
@@ -164,11 +114,17 @@ class MetadataLine extends StatelessWidget {
       'Nov',
       'Dec',
     ];
-    return months[month - 1];
+    final weekday = weekdays[dateTime.weekday - 1];
+    final month = months[dateTime.month - 1];
+    final day = dateTime.day;
+    final hour = dateTime.hour;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final year = dateTime.year;
+    return '$weekday, $month $day, $year $hour12:$minute $amPm';
   }
 }
-
-/// ---- 1) Plain text message --------------------------------------------------
 
 class TextMessageTile extends StatelessWidget {
   const TextMessageTile({
@@ -245,7 +201,6 @@ class TextMessageTile extends StatelessWidget {
           style: highlightStyle,
         ),
       );
-
       start = matchIndex + query.length;
       matchIndex = lowerText.indexOf(lowerQuery, start);
     }
@@ -262,26 +217,29 @@ class TextMessageTile extends StatelessWidget {
   }
 }
 
-/// ---- 2) Image message (full-size look, rounded corners) --------------------
-
 class ImageMessageTile extends StatelessWidget {
   const ImageMessageTile({
     super.key,
     required this.isMe,
-    required this.file,
+    required this.attachment,
     required this.sender,
     required this.sentAt,
     required this.messageId,
   });
 
   final bool isMe;
-  final File file;
+  final AttachmentInfo attachment;
   final String sender;
   final DateTime sentAt;
   final int messageId;
 
   @override
   Widget build(BuildContext context) {
+    final resolvedPath = attachment.resolvedLocalPath();
+    final file = resolvedPath != null ? File(resolvedPath) : null;
+    final exists = file?.existsSync() ?? false;
+    final aspectRatio = attachment.aspectRatio ?? 4 / 3;
+
     return MessageShell(
       isMe: isMe,
       metadata: MetadataLine(
@@ -292,10 +250,22 @@ class ImageMessageTile extends StatelessWidget {
       child: ClipRRect(
         borderRadius: MsgTheme.mediaRadius,
         child: _IntrinsicSizedMedia(
-          child: Image.file(
-            file,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const ColoredBox(color: Colors.black12),
+                if (exists)
+                  Image.file(
+                    file!,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                  )
+                else
+                  const Center(child: Text('Image unavailable')),
+              ],
+            ),
           ),
         ),
       ),
@@ -303,20 +273,18 @@ class ImageMessageTile extends StatelessWidget {
   }
 }
 
-/// ---- 3) Video message (rounded, with simple controls) ----------------------
-
 class VideoMessageTile extends StatefulWidget {
   const VideoMessageTile({
     super.key,
     required this.isMe,
-    required this.file,
+    required this.attachment,
     required this.sender,
     required this.sentAt,
     required this.messageId,
   });
 
   final bool isMe;
-  final File file;
+  final AttachmentInfo attachment;
   final String sender;
   final DateTime sentAt;
   final int messageId;
@@ -326,94 +294,54 @@ class VideoMessageTile extends StatefulWidget {
 }
 
 class _VideoMessageTileState extends State<VideoMessageTile> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _ready = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(widget.file)
+    final resolvedPath = widget.attachment.resolvedLocalPath();
+    if (resolvedPath == null) {
+      return;
+    }
+    final file = File(resolvedPath);
+    if (!file.existsSync()) {
+      return;
+    }
+    _controller = VideoPlayerController.file(file)
       ..setLooping(true)
       ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _ready = true);
+        if (!mounted) {
+          return;
         }
+        setState(() {
+          _ready = true;
+        });
       });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   void _toggle() {
-    if (!_ready) {
+    if (_controller == null || !_ready) {
       return;
     }
-    if (_controller.value.isPlaying) {
-      _controller.pause();
+    if (_controller!.value.isPlaying) {
+      _controller!.pause();
     } else {
-      _controller.play();
+      _controller!.play();
     }
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final media = !_ready
-        ? const AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          )
-        : AspectRatio(
-            aspectRatio: _controller.value.aspectRatio == 0
-                ? 16 / 9
-                : _controller.value.aspectRatio,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                VideoPlayer(_controller),
-                IgnorePointer(
-                  ignoring: false,
-                  child: GestureDetector(
-                    onTap: _toggle,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _controller.value.isPlaying ? 0.0 : 1.0,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          size: 28,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 8,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
+    final aspectRatio = widget.attachment.aspectRatio ?? 16 / 9;
+    final hasVideo = _controller != null;
 
     return MessageShell(
       isMe: widget.isMe,
@@ -430,16 +358,79 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
         ),
         child: ClipRRect(
           borderRadius: MsgTheme.mediaRadius,
-          child: _IntrinsicSizedMedia(child: media),
+          child: _IntrinsicSizedMedia(
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: Stack(
+                fit: StackFit.expand,
+                alignment: Alignment.center,
+                children: [
+                  const ColoredBox(color: Colors.black26),
+                  if (hasVideo && _ready)
+                    VideoPlayer(_controller!)
+                  else if (hasVideo)
+                    const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else
+                    const Center(child: Text('Video unavailable')),
+                  if (hasVideo)
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _toggle,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 180),
+                            opacity: _controller!.value.isPlaying ? 0.0 : 1.0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _controller!.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                  size: 28,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (hasVideo && _ready)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: VideoProgressIndicator(
+                        _controller!,
+                        allowScrubbing: true,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 8,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// ---- 4) Link preview (image → black URL banner → preview text) -------------
-/// Pass in the values you obtain from Apple's LinkPresentation bridge.
-/// Entire card (image + banner + preview text) is clickable. Metadata is not.
 class LinkPreviewTile extends StatelessWidget {
   const LinkPreviewTile({
     super.key,
@@ -448,8 +439,8 @@ class LinkPreviewTile extends StatelessWidget {
     required this.sender,
     required this.sentAt,
     required this.messageId,
-    this.previewImage, // full-size image bytes or from file
-    this.previewImageWidget, // or provide a ready widget (e.g., Image.memory)
+    this.previewImage,
+    this.previewImageWidget,
     this.previewText,
   }) : assert(
          previewImage != null || previewImageWidget != null,
@@ -461,7 +452,6 @@ class LinkPreviewTile extends StatelessWidget {
   final String sender;
   final DateTime sentAt;
   final int messageId;
-
   final File? previewImage;
   final Widget? previewImageWidget;
   final String? previewText;
@@ -489,7 +479,6 @@ class LinkPreviewTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _IntrinsicSizedMedia(child: image),
-            // Black URL banner (white text), flush to image width
             Container(
               color: MsgTheme.linkBannerBlack,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -504,10 +493,9 @@ class LinkPreviewTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if ((previewText ?? '').trim().isNotEmpty) ...[
+            if ((previewText ?? '').trim().isNotEmpty)
               Container(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                // stay on white; do not use blue/gray here
                 child: Text(
                   previewText!,
                   maxLines: 3,
@@ -519,7 +507,6 @@ class LinkPreviewTile extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -532,34 +519,32 @@ class LinkPreviewTile extends StatelessWidget {
         sentAt: sentAt,
         messageId: messageId,
       ),
-      child: InkWell(onTap: () => _launch(url), child: card),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(onTap: () => _launch(url), child: card),
+      ),
     );
   }
 
-  Future<void> _launch(Uri u) async {
-    if (!await launchUrl(u, mode: LaunchMode.externalApplication)) {
-      // Optionally show a snackbar in caller
+  Future<void> _launch(Uri target) async {
+    if (!await launchUrl(target, mode: LaunchMode.externalApplication)) {
+      // Optional: surface failure to caller.
     }
   }
 }
 
-/// ---- Shared: keep media looking "full-size" without tiny thumbnails --------
-/// Expands media to a reasonable height while preserving intrinsic aspect.
-/// - If the image/video is very tall (portrait), it will still look big but not
-///   exceed a reasonable max height.
-/// - If it’s landscape, it gets breathing room horizontally.
 class _IntrinsicSizedMedia extends StatelessWidget {
   const _IntrinsicSizedMedia({required this.child});
 
   final Widget child;
 
-  static const double _maxHeight = 420; // generous on desktop
+  static const double _maxHeight = 420;
   static const double _minHeight = 140;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (ctx, bc) {
+      builder: (context, constraints) {
         return ConstrainedBox(
           constraints: const BoxConstraints(
             minHeight: _minHeight,
@@ -572,8 +557,6 @@ class _IntrinsicSizedMedia extends StatelessWidget {
   }
 }
 
-/// ---- Example usage in a ListView -------------------------------------------
-/// NOTE: Replace this with your real message model & builder switch.
 enum MsgType { text, image, video, link }
 
 class DemoMessage {
@@ -602,49 +585,60 @@ class DemoMessage {
 
 class DemoConversationList extends StatelessWidget {
   const DemoConversationList({super.key, required this.items});
+
   final List<DemoMessage> items;
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: MsgTheme.convoHPad(context),
+      padding: MsgTheme.convoHPad(),
       itemCount: items.length,
-      itemBuilder: (context, i) {
-        final m = items[i];
-        switch (m.type) {
+      itemBuilder: (context, index) {
+        final message = items[index];
+        switch (message.type) {
           case MsgType.text:
             return TextMessageTile(
-              isMe: m.isMe,
-              text: m.text ?? '',
-              sender: m.sender,
-              sentAt: m.sentAt,
-              messageId: m.messageId,
+              isMe: message.isMe,
+              text: message.text ?? '',
+              sender: message.sender,
+              sentAt: message.sentAt,
+              messageId: message.messageId,
             );
           case MsgType.image:
             return ImageMessageTile(
-              isMe: m.isMe,
-              file: m.file!,
-              sender: m.sender,
-              sentAt: m.sentAt,
-              messageId: m.messageId,
+              isMe: message.isMe,
+              attachment: AttachmentInfo(
+                id: message.messageId,
+                localPath: message.file?.path,
+                mimeType: 'image/*',
+                transferName: message.file?.path,
+              ),
+              sender: message.sender,
+              sentAt: message.sentAt,
+              messageId: message.messageId,
             );
           case MsgType.video:
             return VideoMessageTile(
-              isMe: m.isMe,
-              file: m.file!,
-              sender: m.sender,
-              sentAt: m.sentAt,
-              messageId: m.messageId,
+              isMe: message.isMe,
+              attachment: AttachmentInfo(
+                id: message.messageId,
+                localPath: message.file?.path,
+                mimeType: 'video/*',
+                transferName: message.file?.path,
+              ),
+              sender: message.sender,
+              sentAt: message.sentAt,
+              messageId: message.messageId,
             );
           case MsgType.link:
             return LinkPreviewTile(
-              isMe: m.isMe,
-              url: m.url!,
-              sender: m.sender,
-              sentAt: m.sentAt,
-              messageId: m.messageId,
-              previewImage: m.file, // or use previewImageWidget:
-              previewText: m.previewText,
+              isMe: message.isMe,
+              url: message.url!,
+              sender: message.sender,
+              sentAt: message.sentAt,
+              messageId: message.messageId,
+              previewImage: message.file,
+              previewText: message.previewText,
             );
         }
       },

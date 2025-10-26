@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart' as drift;
 
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import 'attachment_info.dart';
+import 'attachment_info_loader.dart';
 import 'messages_for_chat_provider.dart';
 
 class ChatMessageRowMapper {
@@ -36,18 +38,12 @@ class ChatMessageRowMapper {
       )..where((a) => a.messageGuid.isIn(guidWithAttachments))).get();
 
       for (final attachment in attachmentRows) {
+        final info = await loadAttachment(attachment);
         final list = attachmentsByGuid.putIfAbsent(
           attachment.messageGuid,
           () => <AttachmentInfo>[],
         );
-        list.add(
-          AttachmentInfo(
-            id: attachment.id,
-            localPath: attachment.localPath,
-            mimeType: attachment.mimeType,
-            transferName: attachment.transferName,
-          ),
-        );
+        list.add(info);
       }
     }
 

@@ -1,33 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
 
 import '../new_display_widgets.dart';
-import '../view_model/message_by_id_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
 import 'url_preview_widget.dart';
 
-class MessageLinkPreviewCard extends ConsumerWidget {
+class MessageLinkPreviewCard extends StatelessWidget {
   const MessageLinkPreviewCard({
     super.key,
-    required this.messageId,
+    required this.message,
     this.maxWidth = 420,
   });
 
-  final int messageId;
+  final ChatMessageListItem message;
   final double maxWidth;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncMessage = ref.watch(messageByIdProvider(messageId: messageId));
-
-    return asyncMessage.when<Widget>(
-      data: (ChatMessageListItem message) =>
-          _LinkPreviewContent(message: message, maxWidth: maxWidth),
-      loading: () => const Center(child: ProgressCircle(radius: 12)),
-      error: (Object error, _) =>
-          _LinkPreviewError(messageId: messageId, error: error),
-    );
+  Widget build(BuildContext context) {
+    return _LinkPreviewContent(message: message, maxWidth: maxWidth);
   }
 }
 

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -8,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../new_display_widgets.dart';
+import '../view_model/attachment_info.dart';
 import '../view_model/chat_message_search_provider.dart';
 import '../view_model/chat_messages_pager_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
@@ -30,11 +29,15 @@ class MessagesForChatView extends HookConsumerWidget {
     final searchScrollController = useScrollController();
     final hasAutoScrolled = useRef(false);
     final prevLoadingOlder = useRef(false);
-    final previousMaxExtent = useRef<double?>(null);
+    final previousExtentBefore = useRef<double?>(null);
     final previousScrollOffset = useRef<double?>(null);
     final searchController = useTextEditingController();
     final searchQuery = useState('');
     final debouncedQuery = useState('');
+
+    void logJump(String message) {
+      debugPrint('[MessagesForChatView] $message');
+    }
 
     useEffect(() {
       hasAutoScrolled.value = false;
@@ -49,6 +52,21 @@ class MessagesForChatView extends HookConsumerWidget {
       hasAutoScrolled.value = false;
       return null;
     }, [scrollToDate]);
+
+    useEffect(() {
+      if (scrollToDate == null) {
+        return null;
+      }
+
+      final normalized = DateTime(scrollToDate!.year, scrollToDate!.month);
+      Future.microtask(() async {
+        await ref
+            .read(chatMessagesPagerProvider(chatId: chatId).notifier)
+            .ensureMonthLoaded(normalized);
+      });
+
+      return null;
+    }, [chatId, scrollToDate]);
 
     useEffect(() {
       void listener() {
@@ -94,61 +112,98 @@ class MessagesForChatView extends HookConsumerWidget {
       return () => scrollController.removeListener(listener);
     }, [scrollController, chatId, isSearching]);
 
-    useEffect(() {
-      if (isSearching) {
-        return null;
-      }
+    useEffect(
+      () {
+        if (isSearching) {
+          return null;
+        }
 
-      pagerAsync.whenOrNull(
-        data: (state) {
-          if (!hasAutoScrolled.value && state.messages.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (scrollController.hasClients) {
-                if (scrollToDate != null) {
-                  // Find the first message on or after scrollToDate
-                  final messages = state.messages;
-                  var targetIndex = -1;
+        final state = pagerAsync.valueOrNull;
+        if (state == null) {
+          return null;
+        }
 
-                  // Messages are oldest-first in the list
-                  for (var i = 0; i < messages.length; i++) {
-                    final msgDate = messages[i].sentAt;
-                    if (msgDate != null &&
-                        msgDate.year == scrollToDate!.year &&
-                        msgDate.month == scrollToDate!.month) {
-                      targetIndex = i;
-                      break;
-                    }
-                  }
+        if (hasAutoScrolled.value || state.messages.isEmpty) {
+          return null;
+        }
 
-                  if (targetIndex >= 0) {
-                    // Without reverse, index 0 is at top (oldest)
-                    // Estimate: each message ~60px
-                    final estimatedOffset = targetIndex * 60.0;
-                    final clampedOffset = estimatedOffset.clamp(
-                      0.0,
-                      scrollController.position.maxScrollExtent,
-                    );
-                    scrollController.jumpTo(clampedOffset);
-                  } else {
-                    // Month not found, scroll to bottom (newest)
-                    scrollController.jumpTo(
-                      scrollController.position.maxScrollExtent,
-                    );
-                  }
-                } else {
-                  // No scrollToDate: default behavior (scroll to newest at bottom)
-                  scrollController.jumpTo(
-                    scrollController.position.maxScrollExtent,
-                  );
-                }
-                hasAutoScrolled.value = true;
-              }
-            });
+        if (state.isLoadingOlder) {
+          return null;
+        }
+
+        final targetDate = scrollToDate;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!scrollController.hasClients) {
+            return;
           }
-        },
-      );
-      return null;
-    }, [pagerAsync.valueOrNull?.messages.length, isSearching, scrollToDate]);
+
+          if (targetDate != null) {
+            final messages = state.messages;
+            var targetIndex = -1;
+
+            for (var i = 0; i < messages.length; i++) {
+              final msgDate = messages[i].sentAt;
+              if (msgDate != null &&
+                  msgDate.year == targetDate.year &&
+                  msgDate.month == targetDate.month) {
+                targetIndex = i;
+                break;
+              }
+            }
+
+            if (targetIndex >= 0) {
+              final totalScrollableRange =
+                  scrollController.position.maxScrollExtent;
+              final segmentCount = messages.length > 1
+                  ? messages.length - 1
+                  : 1;
+              final normalizedIndex = targetIndex / segmentCount;
+              final targetOffset = (normalizedIndex * totalScrollableRange)
+                  .clamp(0.0, totalScrollableRange);
+              logJump(
+                'jumpTo month target='
+                '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}'
+                ' index=$targetIndex offset=$targetOffset range='
+                '$totalScrollableRange',
+              );
+              scrollController.jumpTo(targetOffset);
+              hasAutoScrolled.value = true;
+              return;
+            }
+
+            if (!state.hasMore) {
+              final bottomOffset = scrollController.position.maxScrollExtent;
+              logJump(
+                'jumpTo bottom (month not found, no more pages) '
+                'offset=$bottomOffset messages=${messages.length}',
+              );
+              scrollController.jumpTo(bottomOffset);
+              hasAutoScrolled.value = true;
+            }
+
+            return;
+          }
+
+          final latestOffset = scrollController.position.maxScrollExtent;
+          logJump(
+            'jumpTo bottom for latest messages '
+            'offset=$latestOffset messages=${state.messages.length}',
+          );
+          scrollController.jumpTo(latestOffset);
+          hasAutoScrolled.value = true;
+        });
+
+        return null;
+      },
+      [
+        pagerAsync.valueOrNull?.messages.length,
+        pagerAsync.valueOrNull?.isLoadingOlder,
+        pagerAsync.valueOrNull?.hasMore,
+        isSearching,
+        scrollToDate,
+      ],
+    );
 
     useEffect(
       () {
@@ -161,31 +216,40 @@ class MessagesForChatView extends HookConsumerWidget {
 
         if (isLoadingOlder && !prevLoadingOlder.value) {
           if (scrollController.hasClients) {
-            previousMaxExtent.value = scrollController.position.maxScrollExtent;
+            previousExtentBefore.value = scrollController.position.extentBefore;
             previousScrollOffset.value = scrollController.position.pixels;
           }
         }
 
         if (!isLoadingOlder && prevLoadingOlder.value) {
           if (scrollController.hasClients &&
-              previousMaxExtent.value != null &&
+              previousExtentBefore.value != null &&
               previousScrollOffset.value != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!scrollController.hasClients) {
                 return;
               }
-              // When loading older messages at top, content is pushed down
-              // so we need to adjust scroll position to maintain view
-              final newMaxExtent = scrollController.position.maxScrollExtent;
-              final delta = newMaxExtent - previousMaxExtent.value!;
+              // When loading older messages at top, new content increases the
+              // extentBefore value by exactly the height inserted above the
+              // current viewport. Adjust by that delta so the same message
+              // stays pinned after the load completes.
+              final newExtentBefore = scrollController.position.extentBefore;
+              final delta = newExtentBefore - previousExtentBefore.value!;
               final target = (previousScrollOffset.value! + delta).clamp(
                 0.0,
                 scrollController.position.maxScrollExtent,
               );
+              logJump(
+                'jumpTo after loadOlder prevExtent='
+                '${previousExtentBefore.value} newExtent=$newExtentBefore '
+                'delta=$delta prevOffset=${previousScrollOffset.value} '
+                'target=$target maxExtent='
+                '${scrollController.position.maxScrollExtent}',
+              );
               scrollController.jumpTo(target);
             });
           }
-          previousMaxExtent.value = null;
+          previousExtentBefore.value = null;
           previousScrollOffset.value = null;
         }
 
@@ -249,12 +313,18 @@ class MessagesForChatView extends HookConsumerWidget {
               final messageIndex = index - 1;
               final message = messages[messageIndex];
               final isLast = messageIndex == messages.length - 1;
-              return _buildMessageEntry(context, message, isLast: isLast);
+              return KeyedSubtree(
+                key: ValueKey(message.id),
+                child: _buildMessageEntry(context, message, isLast: isLast),
+              );
             }
 
             final message = messages[index];
             final isLast = index == messages.length - 1;
-            return _buildMessageEntry(context, message, isLast: isLast);
+            return KeyedSubtree(
+              key: ValueKey(message.id),
+              child: _buildMessageEntry(context, message, isLast: isLast),
+            );
           },
         );
       },
@@ -298,9 +368,9 @@ class MessagesForChatView extends HookConsumerWidget {
                   ? '1 match'
                   : '${results.length} matches';
               return Padding(
-                padding: MsgTheme.convoHPad(
-                  context,
-                ).add(const EdgeInsets.only(bottom: 8)),
+                padding: MsgTheme.convoHPad().add(
+                  const EdgeInsets.only(bottom: 8),
+                ),
                 child: Text(
                   '$label for "${debouncedQuery.value}"',
                   style: MsgTheme.metadata,
@@ -311,11 +381,14 @@ class MessagesForChatView extends HookConsumerWidget {
             final messageIndex = index - 1;
             final message = results[messageIndex];
             final isLast = index == itemCount - 1;
-            return _buildMessageEntry(
-              context,
-              message,
-              isLast: isLast,
-              highlightText: debouncedQuery.value,
+            return KeyedSubtree(
+              key: ValueKey(message.id),
+              child: _buildMessageEntry(
+                context,
+                message,
+                isLast: isLast,
+                highlightText: debouncedQuery.value,
+              ),
             );
           },
         );
@@ -340,9 +413,9 @@ class MessagesForChatView extends HookConsumerWidget {
       child: Column(
         children: [
           Padding(
-            padding: MsgTheme.convoHPad(
-              context,
-            ).add(const EdgeInsets.fromLTRB(0, 12, 0, 8)),
+            padding: MsgTheme.convoHPad().add(
+              const EdgeInsets.fromLTRB(0, 12, 0, 8),
+            ),
             child: MacosSearchField<String>(
               controller: searchController,
               placeholder: 'Search this conversation',
@@ -363,7 +436,7 @@ class MessagesForChatView extends HookConsumerWidget {
     String? highlightText,
   }) {
     return Padding(
-      padding: MsgTheme.convoHPad(context),
+      padding: MsgTheme.convoHPad(),
       child: Column(
         children: [
           _buildMessageTile(message, highlightText: highlightText),
@@ -396,7 +469,7 @@ class MessagesForChatView extends HookConsumerWidget {
 
     if (urlPreviewAttachment != null || isPureUrlMessage) {
       return MessageLinkPreviewCard(
-        messageId: message.id,
+        message: message,
         maxWidth: MsgTheme.maxBubbleWidth,
       );
     }
@@ -405,7 +478,7 @@ class MessagesForChatView extends HookConsumerWidget {
       final attachment = imageAttachments.first;
       return ImageMessageTile(
         isMe: message.isFromMe,
-        file: File(_expandPath(attachment.localPath!)),
+        attachment: attachment,
         sender: message.senderName,
         sentAt: message.sentAt ?? DateTime.now(),
         messageId: message.id,
@@ -416,7 +489,7 @@ class MessagesForChatView extends HookConsumerWidget {
       final attachment = videoAttachments.first;
       return VideoMessageTile(
         isMe: message.isFromMe,
-        file: File(_expandPath(attachment.localPath!)),
+        attachment: attachment,
         sender: message.senderName,
         sentAt: message.sentAt ?? DateTime.now(),
         messageId: message.id,
@@ -452,13 +525,5 @@ class MessagesForChatView extends HookConsumerWidget {
       }
     }
     return null;
-  }
-
-  String _expandPath(String path) {
-    if (path.startsWith('~/')) {
-      final home = Platform.environment['HOME'] ?? '';
-      return path.replaceFirst('~', home);
-    }
-    return path;
   }
 }

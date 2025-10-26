@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import 'attachment_info.dart';
+import 'attachment_info_loader.dart';
 import 'messages_for_chat_provider.dart';
 
 part 'message_by_id_provider.g.dart';
@@ -64,21 +66,7 @@ Future<ChatMessageListItem> messageById(
   final participant = row.readTableOrNull(db.workingParticipants);
 
   final attachments = message.hasAttachments
-      ? await (db.select(db.workingAttachments)
-              ..where((a) => a.messageGuid.equals(message.guid)))
-            .get()
-            .then((List<WorkingAttachment> attachmentRows) {
-              return attachmentRows
-                  .map(
-                    (WorkingAttachment attachment) => AttachmentInfo(
-                      id: attachment.id,
-                      localPath: attachment.localPath,
-                      mimeType: attachment.mimeType,
-                      transferName: attachment.transferName,
-                    ),
-                  )
-                  .toList();
-            })
+      ? await loadAttachmentsForMessage(db, message.guid)
       : <AttachmentInfo>[];
 
   return ChatMessageListItem(

@@ -10,7 +10,7 @@ import 'messages_for_chat_provider.dart';
 
 part 'chat_messages_pager_provider.g.dart';
 
-const _pageSize = 60;
+const _pageSize = 300;
 
 class MessagesPagerState {
   const MessagesPagerState({
@@ -52,6 +52,30 @@ class ChatMessagesPager extends _$ChatMessagesPager {
   StreamSubscription<List<drift.TypedResult>>? _latestMessagesSubscription;
   late ChatMessageRowMapper _rowMapper;
 
+  List<ChatMessageListItem> _sortedChronologically(
+    Iterable<ChatMessageListItem> items,
+  ) {
+    final sorted = items.toList(growable: true)
+      ..sort((a, b) {
+        final aSent = a.sentAt;
+        final bSent = b.sentAt;
+
+        if (aSent != null && bSent != null) {
+          final dateCompare = aSent.compareTo(bSent);
+          if (dateCompare != 0) {
+            return dateCompare;
+          }
+        } else if (aSent != null) {
+          return 1;
+        } else if (bSent != null) {
+          return -1;
+        }
+
+        return a.id.compareTo(b.id);
+      });
+    return List<ChatMessageListItem>.unmodifiable(sorted);
+  }
+
   @override
   FutureOr<MessagesPagerState> build({required int chatId}) async {
     _chatId = chatId;
@@ -62,16 +86,16 @@ class ChatMessagesPager extends _$ChatMessagesPager {
     });
 
     final result = await _fetchPage(limit: _pageSize);
+    final initialMessages = _sortedChronologically(result.messages);
 
-    if (result.messages.isNotEmpty) {
-      _oldestFetchedId = result.messages.last.id;
+    if (initialMessages.isNotEmpty) {
+      _oldestFetchedId = initialMessages.first.id;
     }
     _hasMore = result.hasMore;
-
     _listenToLatestPage();
 
     return MessagesPagerState(
-      messages: result.messages,
+      messages: initialMessages,
       hasMore: result.hasMore,
       isLoadingOlder: false,
     );
@@ -97,19 +121,21 @@ class ChatMessagesPager extends _$ChatMessagesPager {
         beforeMessageId: _oldestFetchedId,
       );
 
-      if (result.messages.isNotEmpty) {
-        _oldestFetchedId = result.messages.last.id;
-      }
       _hasMore = result.hasMore;
 
-      final updatedMessages = <ChatMessageListItem>[
-        ...currentState.messages,
+      final combinedMessages = <ChatMessageListItem>[
         ...result.messages,
+        ...currentState.messages,
       ];
+      final sortedMessages = _sortedChronologically(combinedMessages);
+
+      if (sortedMessages.isNotEmpty) {
+        _oldestFetchedId = sortedMessages.first.id;
+      }
 
       state = AsyncValue.data(
         currentState.copyWith(
-          messages: updatedMessages,
+          messages: sortedMessages,
           hasMore: _hasMore,
           isLoadingOlder: false,
         ),
@@ -162,7 +188,8 @@ class ChatMessagesPager extends _$ChatMessagesPager {
       return const _FetchPageResult(messages: [], hasMore: false);
     }
 
-    final orderedMessages = await _rowMapper.mapRows(rows);
+    final mapped = await _rowMapper.mapRows(rows);
+    final orderedMessages = _sortedChronologically(mapped);
     final hasMore = rows.length == limit;
 
     return _FetchPageResult(messages: orderedMessages, hasMore: hasMore);
@@ -224,24 +251,100 @@ class ChatMessagesPager extends _$ChatMessagesPager {
       final latestIds = latestMessages.map((message) => message.id).toSet();
       final retainedOlder = currentState.messages
           .where((message) => !latestIds.contains(message.id))
-          .toList(growable: false);
+          .toList();
 
       final mergedMessages = <ChatMessageListItem>[
         ...retainedOlder,
         ...latestMessages,
       ];
+      final sortedMessages = _sortedChronologically(mergedMessages);
 
-      if (mergedMessages.isNotEmpty) {
-        _oldestFetchedId = mergedMessages.first.id;
+      if (sortedMessages.isNotEmpty) {
+        _oldestFetchedId = sortedMessages.first.id;
       }
 
       state = AsyncValue.data(
         currentState.copyWith(
-          messages: mergedMessages,
+          messages: sortedMessages,
           hasMore: currentState.hasMore,
           isLoadingOlder: currentState.isLoadingOlder,
         ),
       );
     });
+  }
+
+  Future<void> ensureMonthLoaded(DateTime targetDate) async {
+    final normalized = DateTime(targetDate.year, targetDate.month);
+    var attempts = 0;
+
+    while (true) {
+      attempts += 1;
+      if (attempts > 32) {
+        return;
+      }
+
+      if (state.isLoading) {
+        await Future<void>.delayed(const Duration(milliseconds: 32));
+        continue;
+      }
+
+      final currentState = state.valueOrNull;
+      if (currentState == null) {
+        return;
+      }
+
+      final messages = currentState.messages;
+      final monthFound = messages.any((message) {
+        final sentAt = message.sentAt;
+        if (sentAt == null) {
+          return false;
+        }
+        return sentAt.year == normalized.year &&
+            sentAt.month == normalized.month;
+      });
+
+      if (monthFound) {
+        return;
+      }
+
+      if (!_hasMore) {
+        return;
+      }
+
+      if (currentState.isLoadingOlder) {
+        await Future<void>.delayed(const Duration(milliseconds: 32));
+        continue;
+      }
+
+      final earliest = _firstNonNullSentAt(messages);
+      if (earliest == null) {
+        return;
+      }
+
+      final earliestMonth = DateTime(earliest.year, earliest.month);
+      final targetMonth = DateTime(normalized.year, normalized.month);
+
+      if (!earliestMonth.isAfter(targetMonth)) {
+        return;
+      }
+
+      final previousCount = messages.length;
+      await loadOlder();
+      final updatedState = state.valueOrNull;
+      if (updatedState == null ||
+          updatedState.messages.length == previousCount) {
+        return;
+      }
+    }
+  }
+
+  DateTime? _firstNonNullSentAt(List<ChatMessageListItem> messages) {
+    for (final message in messages) {
+      final sentAt = message.sentAt;
+      if (sentAt != null) {
+        return sentAt;
+      }
+    }
+    return null;
   }
 }

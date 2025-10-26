@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:flutter/scheduler.dart' as sched;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:media_kit/media_kit.dart';
@@ -110,7 +110,7 @@ void main() async {
   final handle = WindowManipulator.addNSWindowDelegate(delegate);
 
   final brightness =
-      SchedulerBinding.instance.platformDispatcher.platformBrightness;
+      sched.SchedulerBinding.instance.platformDispatcher.platformBrightness;
 
   // Create provider container
   final container = ProviderContainer(
@@ -130,6 +130,10 @@ void main() async {
     // If window state restoration fails, continue with default state
     debugPrint('Failed to restore window state: $e');
   }
+
+  ///todo: remove
+  /// Slow down scrolling so jumps are observable during debugging
+  //sched.timeDilation = 5.0;
 
   runApp(UncontrolledProviderScope(container: container, child: const App()));
 }
