@@ -1,12 +1,15 @@
 import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../new_display_widgets.dart';
 import '../view_model/attachment_info.dart';
+import '../view_model/chat_header_info_provider.dart';
 import '../view_model/chat_message_search_provider.dart';
 import '../view_model/chat_messages_pager_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
@@ -24,6 +27,7 @@ class MessagesForChatView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final headerAsync = ref.watch(chatHeaderInfoProvider(chatId: chatId));
     final pagerAsync = ref.watch(chatMessagesPagerProvider(chatId: chatId));
     final scrollController = useScrollController();
     final searchScrollController = useScrollController();
@@ -407,11 +411,18 @@ class MessagesForChatView extends HookConsumerWidget {
     );
 
     final body = isSearching ? searchBody : messageListBody;
+    final header = headerAsync.when(
+      data: (info) => _MessagesHeader(info: info),
+      loading: () => const _MessagesHeaderLoading(),
+      error: (error, stackTrace) => _MessagesHeaderError(error: error),
+    );
 
     return Material(
       color: Colors.white,
       child: Column(
         children: [
+          header,
+          const Divider(height: 1),
           Padding(
             padding: MsgTheme.convoHPad().add(
               const EdgeInsets.fromLTRB(0, 12, 0, 8),
@@ -525,5 +536,238 @@ class MessagesForChatView extends HookConsumerWidget {
       }
     }
     return null;
+  }
+}
+
+class _MessagesHeader extends StatelessWidget {
+  const _MessagesHeader({required this.info});
+
+  final ChatHeaderInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    final macosTheme = MacosTheme.of(context);
+    final typography = macosTheme.typography;
+    final isDark = macosTheme.brightness == Brightness.dark;
+
+    final visibleParticipants = info.participants.length > 3
+        ? [
+            ...info.participants.take(3),
+            '+${info.participants.length - 3} more',
+          ]
+        : info.participants;
+
+    final visibleHandles = info.handles.length > 2
+        ? [...info.handles.take(2), '+${info.handles.length - 2} more']
+        : info.handles;
+
+    final formatter = DateFormat('MMM d, yyyy • h:mm a');
+    final lastLabel = info.lastMessageDate != null
+        ? formatter.format(info.lastMessageDate!)
+        : 'No messages yet';
+    final messageLabel = info.messageCount == 1
+        ? '1 message'
+        : '${info.messageCount} messages';
+
+    final metadataChips = <Widget>[
+      _MetadataBadge(
+        icon: CupertinoIcons.chat_bubble_text_fill,
+        label: messageLabel,
+        isDark: isDark,
+      ),
+      if (info.recency != null)
+        _MetadataBadge(
+          icon: CupertinoIcons.time,
+          label: info.recency!.label,
+          isDark: isDark,
+        ),
+      _MetadataBadge(
+        icon: CupertinoIcons.calendar,
+        label: lastLabel,
+        isDark: isDark,
+      ),
+    ];
+
+    final headerBackground = isDark ? const Color(0xFF1F1F24) : Colors.white;
+
+    return ColoredBox(
+      color: headerBackground,
+      child: Padding(
+        padding: MsgTheme.convoHPad().add(
+          const EdgeInsets.fromLTRB(0, 16, 0, 12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Messages',
+              style: typography.largeTitle.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              info.title,
+              style: typography.title1.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: visibleParticipants
+                  .map(
+                    (name) => _InfoChip(
+                      label: name,
+                      isDark: isDark,
+                      isSecondary: false,
+                    ),
+                  )
+                  .toList(),
+            ),
+            if (visibleHandles.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: visibleHandles
+                    .map(
+                      (handle) => _InfoChip(
+                        label: handle,
+                        isDark: isDark,
+                        isSecondary: true,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(spacing: 12, runSpacing: 8, children: metadataChips),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MessagesHeaderLoading extends StatelessWidget {
+  const _MessagesHeaderLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: MsgTheme.convoHPad().add(
+        const EdgeInsets.fromLTRB(0, 20, 0, 20),
+      ),
+      child: const Align(
+        alignment: Alignment.centerLeft,
+        child: ProgressCircle(radius: 12),
+      ),
+    );
+  }
+}
+
+class _MessagesHeaderError extends StatelessWidget {
+  const _MessagesHeaderError({required this.error});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: MsgTheme.convoHPad().add(
+        const EdgeInsets.fromLTRB(0, 16, 0, 12),
+      ),
+      child: Text(
+        'Unable to load conversation details. $error',
+        style: const TextStyle(color: Color(0xFFD14343)),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.label,
+    required this.isDark,
+    required this.isSecondary,
+  });
+
+  final String label;
+  final bool isDark;
+  final bool isSecondary;
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = isSecondary
+        ? (isDark ? const Color(0xFF31313A) : const Color(0xFFF1F5F9))
+        : (isDark ? const Color(0xFF24304D) : const Color(0xFFE0ECFF));
+    final textColor = isSecondary
+        ? (isDark ? const Color(0xFFC8CCD8) : const Color(0xFF4B5563))
+        : (isDark ? const Color(0xFFBFD6FF) : const Color(0xFF1D4ED8));
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: MacosTheme.of(context).typography.caption1.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetadataBadge extends StatelessWidget {
+  const _MetadataBadge({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = isDark
+        ? const Color(0xFF2D2D35)
+        : const Color(0xFFF3F4F6);
+    final foregroundColor = isDark
+        ? const Color(0xFFAAB1C1)
+        : const Color(0xFF4B5563);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: foregroundColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: MacosTheme.of(context).typography.caption1.copyWith(
+                color: foregroundColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

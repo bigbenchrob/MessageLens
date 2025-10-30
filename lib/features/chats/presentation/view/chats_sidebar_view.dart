@@ -302,71 +302,90 @@ class _ChatSummaryCard extends StatelessWidget {
     ).typography.caption1.copyWith(color: const Color(0xFF6B6B70));
 
     final isDarkMode = MacosTheme.of(context).brightness == Brightness.dark;
+    const highlightDuration = Duration(milliseconds: 160);
+    final accentColor = isDarkMode
+        ? const Color(0xFF5B8BFF)
+        : const Color(0xFF2563EB);
 
-    // Subtle highlight for selected card
     final backgroundColor = isSelected
-        ? (isDarkMode
-              ? const Color(
-                  0xFF3A3A42,
-                ) // Slightly lighter than normal dark background
-              : const Color(0xFFEFF6FF)) // Very light blue tint for light mode
+        ? (isDarkMode ? const Color(0xFF2D3548) : const Color(0xFFE8F1FF))
         : (isDarkMode ? const Color(0xFF2C2C33) : Colors.white);
 
     final borderColor = isSelected
-        ? (isDarkMode
-              ? const Color(0xFF5A5A66) // Slightly more visible border
-              : const Color(0xFFBFDBFE)) // Light blue border
+        ? (isDarkMode ? const Color(0xFF4B5A7A) : const Color(0xFF94C0FF))
         : const Color(0xFFE2E2EA);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-        child: DecoratedBox(
+        child: AnimatedContainer(
+          duration: highlightDuration,
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isSelected ? 0.08 : 0.05),
-                blurRadius: isSelected ? 8 : 6,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: isSelected ? 0.12 : 0.05),
+                blurRadius: isSelected ? 12 : 6,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildParticipantTitle(context),
-                const SizedBox(height: 8),
-                Text('Messages: ${summary.messageCount}', style: captionStyle),
-                const SizedBox(height: 6),
-                Text(
-                  'First message: ${_format(summary.firstMessageDate)}',
-                  style: captionStyle,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AnimatedContainer(
+                duration: highlightDuration,
+                width: 4,
+                decoration: BoxDecoration(
+                  color: isSelected ? accentColor : Colors.transparent,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                    bottom: Radius.circular(12),
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Last message: ${_format(summary.lastMessageDate)}',
-                      style: captionStyle,
-                    ),
-                    Text(
-                      'ID: ${summary.chatId}',
-                      style: captionStyle.copyWith(
-                        fontSize: 10,
-                        color: const Color(0xFF999999),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildParticipantTitle(context),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Messages: ${summary.messageCount}',
+                        style: captionStyle,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        'First message: ${_format(summary.firstMessageDate)}',
+                        style: captionStyle,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Last message: ${_format(summary.lastMessageDate)}',
+                            style: captionStyle,
+                          ),
+                          Text(
+                            'ID: ${summary.chatId}',
+                            style: captionStyle.copyWith(
+                              fontSize: 10,
+                              color: const Color(0xFF999999),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
