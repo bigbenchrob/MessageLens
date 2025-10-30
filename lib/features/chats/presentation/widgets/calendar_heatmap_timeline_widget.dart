@@ -154,6 +154,20 @@ class _MonthCell extends StatelessWidget {
     }
 
     final startDate = DateTime(monthData.year, monthData.month, 1);
+    final endDate = DateTime(
+      monthData.year,
+      monthData.month + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+
+    print(
+      '[TIMELINE_TAP] Clicked ${monthData.year}-${monthData.month.toString().padLeft(2, '0')} '
+      '(${monthData.messageCount} messages). '
+      'startDate=$startDate, endDate=$endDate',
+    );
 
     // Always navigate with forChatInDateRange
     // The view will detect if it's the same chat and just scroll instead of reloading
@@ -165,14 +179,7 @@ class _MonthCell extends StatelessWidget {
             MessagesSpec.forChatInDateRange(
               chatId: monthData.chatId,
               startDate: startDate,
-              endDate: DateTime(
-                monthData.year,
-                monthData.month + 1,
-                0,
-                23,
-                59,
-                59,
-              ),
+              endDate: endDate,
             ),
           ),
         );

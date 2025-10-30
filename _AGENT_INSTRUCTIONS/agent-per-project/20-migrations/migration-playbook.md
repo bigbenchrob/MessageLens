@@ -12,3 +12,7 @@ tests: []
 1. Backup DB
 2. Apply migrations
 3. Verify with smoke queries
+
+## Reference
+- Schema inventory: `schema-reference.md`
+- Historical notes: `schema-history.md`

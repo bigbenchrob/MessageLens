@@ -63,10 +63,38 @@ class MessagesForChatView extends HookConsumerWidget {
       }
 
       final normalized = DateTime(scrollToDate!.year, scrollToDate!.month);
+      print(
+        '[MESSAGES_VIEW] scrollToDate effect triggered: '
+        'raw=$scrollToDate, normalized=$normalized',
+      );
       Future.microtask(() async {
-        await ref
-            .read(chatMessagesPagerProvider(chatId: chatId).notifier)
-            .ensureMonthLoaded(normalized);
+        // Wait for the provider to finish its initial build with polling
+        var retries = 0;
+        while (retries < 50) {
+          final pagerState = ref.read(
+            chatMessagesPagerProvider(chatId: chatId),
+          );
+          if (pagerState.hasValue) {
+            print('[MESSAGES_VIEW] Provider ready after $retries retries');
+            // Provider is ready, now ensure the target month is loaded
+            await ref
+                .read(chatMessagesPagerProvider(chatId: chatId).notifier)
+                .ensureMonthLoaded(normalized);
+            break;
+          }
+          retries++;
+          if (retries % 10 == 0) {
+            print(
+              '[MESSAGES_VIEW] Still waiting for provider (attempt $retries)',
+            );
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        }
+        if (retries >= 50) {
+          print(
+            '[MESSAGES_VIEW] Gave up waiting for provider after $retries attempts',
+          );
+        }
       });
 
       return null;
@@ -229,6 +257,9 @@ class MessagesForChatView extends HookConsumerWidget {
           if (scrollController.hasClients &&
               previousExtentBefore.value != null &&
               previousScrollOffset.value != null) {
+            final capturedExtentBefore = previousExtentBefore.value!;
+            final capturedScrollOffset = previousScrollOffset.value!;
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!scrollController.hasClients) {
                 return;
@@ -238,15 +269,15 @@ class MessagesForChatView extends HookConsumerWidget {
               // current viewport. Adjust by that delta so the same message
               // stays pinned after the load completes.
               final newExtentBefore = scrollController.position.extentBefore;
-              final delta = newExtentBefore - previousExtentBefore.value!;
-              final target = (previousScrollOffset.value! + delta).clamp(
+              final delta = newExtentBefore - capturedExtentBefore;
+              final target = (capturedScrollOffset + delta).clamp(
                 0.0,
                 scrollController.position.maxScrollExtent,
               );
               logJump(
                 'jumpTo after loadOlder prevExtent='
-                '${previousExtentBefore.value} newExtent=$newExtentBefore '
-                'delta=$delta prevOffset=${previousScrollOffset.value} '
+                '$capturedExtentBefore newExtent=$newExtentBefore '
+                'delta=$delta prevOffset=$capturedScrollOffset '
                 'target=$target maxExtent='
                 '${scrollController.position.maxScrollExtent}',
               );

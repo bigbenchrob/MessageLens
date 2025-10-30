@@ -275,25 +275,50 @@ class ChatMessagesPager extends _$ChatMessagesPager {
 
   Future<void> ensureMonthLoaded(DateTime targetDate) async {
     final normalized = DateTime(targetDate.year, targetDate.month);
+    print(
+      '[ENSURE_MONTH] Starting: target=$normalized '
+      '(${normalized.year}-${normalized.month.toString().padLeft(2, '0')})',
+    );
+
+    // Wait for initial state to be ready
+    var waitAttempts = 0;
+    while (state.isLoading && waitAttempts < 50) {
+      waitAttempts++;
+      print('[ENSURE_MONTH] Waiting for initial state (attempt $waitAttempts)');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (state.isLoading) {
+      print('[ENSURE_MONTH] Timed out waiting for initial state');
+      return;
+    }
+
     var attempts = 0;
 
     while (true) {
       attempts += 1;
       if (attempts > 32) {
+        print('[ENSURE_MONTH] Exceeded 32 attempts, giving up');
         return;
       }
 
       if (state.isLoading) {
+        print('[ENSURE_MONTH] Attempt $attempts: State is loading, waiting...');
         await Future<void>.delayed(const Duration(milliseconds: 32));
         continue;
       }
 
       final currentState = state.valueOrNull;
       if (currentState == null) {
+        print('[ENSURE_MONTH] State is null, aborting');
         return;
       }
 
       final messages = currentState.messages;
+      print(
+        '[ENSURE_MONTH] Attempt $attempts: Checking ${messages.length} messages, '
+        'isLoadingOlder=${currentState.isLoadingOlder}, hasMore=$_hasMore',
+      );
       final monthFound = messages.any((message) {
         final sentAt = message.sentAt;
         if (sentAt == null) {
@@ -304,37 +329,114 @@ class ChatMessagesPager extends _$ChatMessagesPager {
       });
 
       if (monthFound) {
+        print(
+          '[ENSURE_MONTH] Found target month in loaded messages '
+          '(attempt $attempts)',
+        );
         return;
       }
 
       if (!_hasMore) {
+        print('[ENSURE_MONTH] No more messages to load, target not found');
         return;
       }
 
       if (currentState.isLoadingOlder) {
+        print(
+          '[ENSURE_MONTH] Attempt $attempts: Already loading older, waiting...',
+        );
         await Future<void>.delayed(const Duration(milliseconds: 32));
         continue;
       }
 
       final earliest = _firstNonNullSentAt(messages);
       if (earliest == null) {
+        print('[ENSURE_MONTH] No messages with sentAt found');
         return;
       }
 
       final earliestMonth = DateTime(earliest.year, earliest.month);
       final targetMonth = DateTime(normalized.year, normalized.month);
 
+      // Debug: Show a sample of message dates around the boundary
+      if (attempts <= 3 || attempts == 16) {
+        final sampleDates = messages
+            .where((m) => m.sentAt != null)
+            .take(5)
+            .map((m) => m.sentAt.toString())
+            .join(', ');
+        print('[ENSURE_MONTH] Sample earliest dates: $sampleDates');
+      }
+
+      print(
+        '[ENSURE_MONTH] Attempt $attempts: '
+        'earliest=$earliestMonth, target=$targetMonth, '
+        'isAfter=${earliestMonth.isAfter(targetMonth)}',
+      );
+
       if (!earliestMonth.isAfter(targetMonth)) {
+        print(
+          '[ENSURE_MONTH] Earliest month ($earliestMonth) '
+          'is not after target ($targetMonth), stopping',
+        );
+
+        // Debug: Check if target month exists but with lower IDs
+        final targetCheck = await _db
+            .customSelect(
+              '''
+          SELECT COUNT(*) as count, MIN(id) as min_id, MAX(id) as max_id
+          FROM messages
+          WHERE chat_id = ?
+            AND strftime('%Y-%m', sent_at_utc) = ?
+          ''',
+              variables: [
+                drift.Variable.withInt(_chatId),
+                drift.Variable.withString(
+                  '${normalized.year}-${normalized.month.toString().padLeft(2, '0')}',
+                ),
+              ],
+              readsFrom: {_db.workingMessages},
+            )
+            .get();
+
+        if (targetCheck.isNotEmpty) {
+          final count = targetCheck.first.read<int>('count');
+          final minId = targetCheck.first.read<int?>('min_id');
+          final maxId = targetCheck.first.read<int?>('max_id');
+          print(
+            '[ENSURE_MONTH] Target month check: $count messages exist, '
+            'ID range: $minId-$maxId',
+          );
+          if (count > 0 && messages.isNotEmpty) {
+            final loadedMinId = messages
+                .map((m) => m.id)
+                .reduce((a, b) => a < b ? a : b);
+            final loadedMaxId = messages
+                .map((m) => m.id)
+                .reduce((a, b) => a > b ? a : b);
+            print(
+              '[ENSURE_MONTH] Currently loaded ID range: $loadedMinId-$loadedMaxId',
+            );
+          }
+        }
+
         return;
       }
 
       final previousCount = messages.length;
+      print(
+        '[ENSURE_MONTH] Loading older messages (current count: $previousCount)',
+      );
       await loadOlder();
       final updatedState = state.valueOrNull;
       if (updatedState == null ||
           updatedState.messages.length == previousCount) {
+        print('[ENSURE_MONTH] No new messages loaded, stopping');
         return;
       }
+      print(
+        '[ENSURE_MONTH] Loaded ${updatedState.messages.length - previousCount} more messages',
+      );
     }
   }
 

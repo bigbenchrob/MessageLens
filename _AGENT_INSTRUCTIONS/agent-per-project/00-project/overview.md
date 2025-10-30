@@ -16,3 +16,5 @@ tests: []
 - Build flavors: <dev/staging/prod>
 - Code owners: <handles>
 - Test strategy: <smoke/golden/unit>
+- Data access quickstart: see `00-project/data-locations.md`
+- Database schemas: see `20-migrations/schema-reference.md`
