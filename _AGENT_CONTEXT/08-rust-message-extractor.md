@@ -53,7 +53,7 @@ This is where the Flutter app looks for the extractor binary.
 ### Flutter Integration
 
 ```
-lib/essentials/db_import/infrastructure/extraction/
+lib/essentials/db_importers/infrastructure/extraction/
 └── rust_message_extractor.dart
 ```
 
@@ -186,7 +186,7 @@ The Rust code was originally developed in the `remember_this_text` project and h
 
 ## Integration with Import Process
 
-### LedgerImportService Flow
+### OrchestratedLedgerImportService Flow
 
 1. **Initialize**: Check extractor availability
 2. **Import Messages**: Process messages table normally

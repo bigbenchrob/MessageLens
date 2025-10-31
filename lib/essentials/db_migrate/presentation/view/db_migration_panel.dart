@@ -2,9 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../db_import/presentation/view_model/db_import_control_provider.dart';
-import '../../../db_import/presentation/widgets/db_import_details_pane.dart';
-import '../../../db_import/presentation/widgets/db_import_progress_pane.dart';
+import '../../../db_importers/presentation/view_model/db_import_control_provider.dart';
+import '../../../db_importers/presentation/widgets/db_import_details_pane.dart';
+import '../../../db_importers/presentation/widgets/db_import_progress_pane.dart';
 
 class DbMigrationPanel extends StatelessWidget {
   const DbMigrationPanel({

@@ -64,6 +64,24 @@ A recurring issue is that multiple chat handles collapse to the same normalized 
 
 Developers must update both the ledger alias logic and the migration alias projection whenever new normalization rules are introduced.
 
+## ImportOrchestrator Implementation
+
+**Location:** `lib/essentials/db_importers/application/orchestrator/import_orchestrator.dart`
+
+- **Modular pipeline.** Instead of one monolithic procedure, the orchestrator executes a list of `TableImporter` instances—each focused on a single ledger table or tightly scoped concern. This mirrors the migration pipeline and makes it obvious which component failed.
+- **Dependency ordering.** Before any work begins, `_sorted()` performs a Kahn topological sort over every importer’s `dependsOn` list. Missing dependencies trigger a cycle error immediately, preventing half-configured runs.
+- **Phase lifecycle.** `_runPhase()` wraps every call to `validatePrereqs`, `copy`, and `postValidate`, emitting `TableImportProgressEvent`s with `TableImportStatus.started|succeeded|failed`. On error, the orchestrator logs the failure, notifies observers, and rethrows so upstream callers halt the run.
+- **Dry-run support.** When `ImportContext.dryRun` is true, the orchestrator still executes `validatePrereqs` and `postValidate` but skips the mutating `copy` phase. This is invaluable for checking referential integrity on user machines without touching disk.
+- **Human-readable progress.** `BaseTableImporter` exposes `displayName`, which `_displayNameFor()` uses to generate UI-friendly labels. View models subscribe via the optional `TableImportProgressCallback` to keep the control panel in sync with real-time phase changes.
+- **Audit logging.** Each phase is timestamped and written to the shared `ImportContext.info()` stream, giving developers a chronological log in the ledger batch record and console output.
+
+### Supporting Types
+
+- `TableImporter` (domain contract) lives in `lib/essentials/db_importers/domain/i_importers.dart/table_importer.dart` and defines the required methods plus dependency metadata.
+- `BaseTableImporter` (`lib/essentials/db_importers/application/services/base_table_importer.dart`) supplies assertion helpers (`expectTrueOrThrow`, `expectZeroOrThrow`), a common row-count utility, and default display-name formatting.
+- `ImportContext` (`lib/essentials/db_importers/infrastructure/sqlite/import_context_sqlite.dart`) packages the ledger `SqfliteImportDatabase`, raw `chat.db`/AddressBook `Database` handles, active `batchId`, previous max ROWIDs for incremental imports, the optional Rust `MessageExtractorPort`, and a run-scoped scratchpad for inter-importer coordination.
+- `TableImportProgressEvent` (`lib/essentials/db_importers/domain/states/table_import_progress.dart`) describes the phase/status payload the orchestrator emits. UI layers map these events to progress bars, badges, and error banners.
+
 ## Rust Attributed Body Extraction
 
 Messages with rich formatting keep their `attributed_body_blob` in the ledger. The orchestrator hands these blobs to the Rust extractor (`rust/rust/attributed-string-decoder`) in batch mode. See [08 – Rust Message Extractor](08-rust-message-extractor.md) for usage and troubleshooting. The extractor outputs JSON payloads that the importer stores back into `messages.payload_json`, ready for migration.

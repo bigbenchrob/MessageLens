@@ -180,7 +180,9 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
         state = state.copyWith(lastDataVersion: currentVersion);
 
-        final result = await ref.read(ledgerImportServiceProvider).runImport();
+        final result = await ref
+            .read(orchestratedLedgerImportServiceProvider)
+            .runImport();
 
         state = state.copyWith(lastImportResult: result, clearError: true);
 

@@ -1,7 +1,7 @@
 ````instructions
 You are an AI assistant helping with a Flutter macOS application called "remember_this_text".
 
-🚨 **MANDATORY FIRST STEP**: You MUST read `_AGENT_CONTEXT/AGENT_CONTEXT.md` before making ANY code changes. This file contains critical project context including AddressBook path resolution that prevents import failures.
+🚨 **MANDATORY FIRST STEP**: You MUST read `_AGENT_INSTRUCTIONS/agent-per-project/README.md` before making ANY code changes. This file contains the canonical index to all project documentation including critical import, database, and architecture patterns.
 
 ## Project Context
 This is a macOS-native Flutter application that imports and manages Messages and AddressBook data. The project uses:
@@ -14,12 +14,15 @@ This is a macOS-native Flutter application that imports and manages Messages and
 
 ## Essential Reading Order
 You MUST read these files in order before any code changes:
-1. **`_AGENT_CONTEXT/AGENT_CONTEXT.md`** - Master index of all agent documentation
-2. **`_AGENT_CONTEXT/00-code-standards.md`** - Linting rules, deprecated methods, code patterns
-3. **`_AGENT_CONTEXT/01-addressbook-database-resolution.md`** - CRITICAL for import operations
-4. **`_AGENT_CONTEXT/02-architecture-overview.md`** - DDD structure and naming conventions
-5. **`_AGENT_CONTEXT/03-navigation-overview.md`** - ViewSpec navigation system architecture
-6. **`_AGENT_CONTEXT/05-riverpod-provider-patterns.md`** - MANDATORY provider code generation patterns
+1. **`_AGENT_INSTRUCTIONS/agent-per-project/README.md`** - Canonical index of all project documentation
+2. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart-code-standards.md`** - Dart linting rules, type annotations, code patterns
+3. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/flutter-code-standards.md`** - Flutter-specific standards, deprecated methods
+4. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md`** - MANDATORY provider code generation patterns
+5. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md`** - Database access patterns and schema references
+6. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`** - AddressBook path resolution (CRITICAL for imports)
+7. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
+8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
+9. **`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`** - ViewSpec-based navigation system
 
 ## Quick Reference Code Standards
 - **Primary import**: Always use `hooks_riverpod`, never `flutter_riverpod`
@@ -52,7 +55,7 @@ You MUST read these files in order before any code changes:
 - **`lib/essentials/import/`** - macOS data import system with Rust integration
 - **`lib/essentials/navigation/`** - ViewSpec-based reactive navigation system
 - **`rust/`** - High-performance Rust modules via flutter_rust_bridge
-- **`_AGENT_CONTEXT/`** - Comprehensive agent documentation (READ FIRST!)
+- **`_AGENT_INSTRUCTIONS/`** - Comprehensive agent documentation (READ FIRST!)
 
 ## Navigation System (Current)
 Uses sealed classes and reactive providers for type-safe navigation:
@@ -68,7 +71,7 @@ ref.read(panelsViewStateProvider.notifier).show(
 
 ## 🔥 MANDATORY RIVERPOD PROVIDER PATTERNS
 
-**🚨 CRITICAL**: All Riverpod patterns are documented in `_AGENT_CONTEXT/05-riverpod-provider-patterns.md`
+**🚨 CRITICAL**: All Riverpod patterns are documented in `_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md`
 
 **DO NOT** scan the codebase for provider examples - use ONLY the documented patterns:
 

@@ -182,10 +182,14 @@ class HandlesMigrator extends BaseTableMigrator {
 
     canonicalHandles.sort((a, b) => a.id.compareTo(b.id));
 
-    await _clearCanonicalMap(ctx);
-
     await ctx.workingDb.transaction(() async {
       await ctx.workingDb.customStatement('PRAGMA foreign_keys = ON');
+
+      // Clear existing projections so stale rows don't inflate post-validate counts.
+      await ctx.workingDb.customStatement('DELETE FROM handles_canonical');
+      await ctx.workingDb.customStatement(
+        'DELETE FROM handles_canonical_to_alias',
+      );
 
       await ctx.workingDb.batch((batch) {
         for (final handle in canonicalHandles) {
@@ -342,13 +346,6 @@ class HandlesMigrator extends BaseTableMigrator {
       return value.toInt();
     }
     return int.tryParse(value.toString()) ?? 0;
-  }
-
-  Future<void> _clearCanonicalMap(MigrationContext ctx) async {
-    // await ctx.workingDb.customStatement('DELETE FROM handle_canonical_map');
-    await ctx.workingDb.customStatement(
-      'DELETE FROM handles_canonical_to_alias',
-    );
   }
 }
 

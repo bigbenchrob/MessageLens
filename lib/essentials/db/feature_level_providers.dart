@@ -8,7 +8,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../db_import/application/debug_settings_provider.dart';
+import '../db_importers/application/debug_settings_provider.dart';
 
 import 'infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import 'infrastructure/data_sources/local/overlay/overlay_database.dart';

@@ -4,7 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../features/chats/presentation/view_model/recent_chats_provider.dart';
 import '../../../db/feature_level_providers.dart';
-import '../../../db_importers/domain/states/table_import_progress.dart';
 import '../../../db_migrate/domain/entities/db_migration_result.dart';
 import '../../../db_migrate/domain/states/db_migration_progress.dart';
 import '../../../db_migrate/domain/states/table_migration_progress.dart';
@@ -12,6 +11,7 @@ import '../../../db_migrate/domain/value_objects/db_migration_stage.dart';
 import '../../../db_migrate/feature_level_providers.dart';
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/states/db_import_progress.dart';
+import '../../domain/states/table_import_progress.dart';
 import '../../domain/value_objects/db_import_stage.dart';
 import '../../feature_level_providers.dart';
 

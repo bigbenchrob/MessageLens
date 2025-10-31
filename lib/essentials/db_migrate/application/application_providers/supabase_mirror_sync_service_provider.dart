@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../config/application/supabase_api_url_provider.dart';
 import '../../../config/application/supabase_service_role_key_provider.dart';
 import '../../../db/feature_level_providers.dart';
-import '../../../db_import/application/debug_settings_provider.dart';
+import '../../../db_importers/application/debug_settings_provider.dart';
 import '../supabase/supabase_mirror_sync_service.dart';
 
 part 'supabase_mirror_sync_service_provider.g.dart';

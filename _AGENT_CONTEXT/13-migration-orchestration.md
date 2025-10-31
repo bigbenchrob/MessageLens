@@ -90,3 +90,13 @@ When introducing a new migrator:
 5. Update this note with the new agent’s responsibilities and validation logic.
 
 By following these conventions we maintain a migration system that is deterministic, debuggable, and resilient to the edge cases we routinely encounter in real-world iMessage data.
+
+## HandlesMigrationService Entry Point
+
+**Location:** `lib/essentials/db_migrate/application/orchestrator/handles_migration_service.dart`
+
+- **Delegated execution** – The service constructs a `MigrationContext`, wires together all table-level migrators, and hands them to `MigrationOrchestrator`. Apart from reporting progress and restoring user overrides (visibility / blacklist flags), it performs no data reshaping itself.
+- **Stable identifiers** – Every migrator copies rows from `macos_import.db` to `working.db` using the original source identifiers (chat IDs, handle IDs, message IDs, AddressBook `Z_PK`). Links between tables are preserved exactly as the import stage recorded them; migration never fabricates new primary keys or relationships.
+- **Pre/post validation** – Mirroring the import pipeline, each migrator’s `validatePrereqs` phase checks ledger integrity (duplicate IDs, orphaned FKs, malformed enums). `postValidate` confirms row counts and referential integrity after the transactional `copy` completes. Failures raise `MigrationException` instances, which the orchestrator surfaces while halting downstream work.
+- **Progress reporting** – `HandlesMigrationService` translates `TableMigrationProgressEvent`s into high-level `DbMigrationProgress` updates so UI surfaces can display phase-by-phase status, while `MigrationOrchestrator` emits granular table progress events.
+- **Preserving user state** – Before truncating working tables, the service snapshots user-managed handle overrides. After the migrators finish, it reapplies those settings so visibility/blacklist choices survive a projection rebuild.

@@ -1,7 +1,7 @@
 import '../../../config/domain/value_objects/supabase_api_url.dart';
 import '../../../config/domain/value_objects/supabase_service_role_key.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../db_import/application/debug_settings_provider.dart';
+import '../../../db_importers/application/debug_settings_provider.dart';
 
 /// Coordinates mirroring the working database into Supabase.
 ///

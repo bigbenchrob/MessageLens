@@ -7,7 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../essentials/db_import/presentation/view_model/db_import_control_provider.dart';
+import '../../../../essentials/db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../../../../essentials/navigation/domain/entities/features/chats_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';

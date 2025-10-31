@@ -53,7 +53,6 @@ class RustMessageExtractor implements MessageExtractorPort {
       final path = extractorPath;
       print('🔍 Checking Rust extractor availability at: $path');
 
-      // Check if the file exists
       final file = File(path);
       final exists = file.existsSync();
 
@@ -63,7 +62,6 @@ class RustMessageExtractor implements MessageExtractorPort {
         return false;
       }
 
-      // Check if it's executable (additional safety check)
       try {
         final stat = file.statSync();
         print('📊 File mode: ${stat.mode.toRadixString(8)}');
@@ -78,7 +76,6 @@ class RustMessageExtractor implements MessageExtractorPort {
     }
   }
 
-  // Optional helper to build the Rust extractor in development environments
   Future<bool> buildExtractor() async {
     try {
       final result = await Process.run('cargo', [

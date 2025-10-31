@@ -8,11 +8,9 @@
 ## Component Map
 - Binary: `target/release/extract_messages_limited` (also searched for next to `Platform.resolvedExecutable` when the macOS app is bundled).
 - Rust crate: `rust/rust/attributed-string-decoder/` (Cargo project that produces the binary and a minimal flutter_rust_bridge stub).
-- Flutter adapter: `lib/essentials/db_import/infrastructure/extraction/rust_message_extractor.dart` implements `MessageExtractorPort`.
-- Provider wiring: `lib/essentials/db_import/feature_level_providers.dart` exposes `dbImportMessageExtractorProvider`; both `LedgerImportService` and `OrchestratedLedgerImportService` depend on it.
-- Import consumers:
-  - `LedgerImportService._extractRichText` + `_applyExtractedMessageText` for the classic pipeline.
-  - `MessageRichTextImporter` (orchestrated pipeline) located at `lib/essentials/db_importers/infrastructure/sqlite/importers/message_rich_text_importer.dart`.
+- Flutter adapter: `lib/essentials/db_importers/infrastructure/extraction/rust_message_extractor.dart` implements `MessageExtractorPort`.
+- Provider wiring: `lib/essentials/db_importers/feature_level_providers.dart` exposes `dbImportMessageExtractorProvider`; `OrchestratedLedgerImportService` depends on it.
+- Import consumer: `MessageRichTextImporter` (orchestrated pipeline) located at `lib/essentials/db_importers/infrastructure/sqlite/importers/message_rich_text_importer.dart`, invoked from `OrchestratedLedgerImportService`.
 - Database sink: `SqfliteImportDatabase.updateMessageText` applies the extracted strings to `messages.text`.
 
 ## Runtime Flow (Ledger Import)

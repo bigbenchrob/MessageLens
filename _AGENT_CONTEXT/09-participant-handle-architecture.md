@@ -26,6 +26,14 @@ The current `WorkingParticipants` table conflates **people** (participants/conta
 - **Same handle, multiple chats**: "rusung@icloud.com" appears in many different chat threads
 - **One person, multiple handles**: Danny's phone AND email both identify him
 
+## Import Overview (Two Sources, Two Steps)
+
+- **Dual-source ingestion** – Every import run reads from both the macOS Messages database (`chat.db`) and the AddressBook store. `chat.db` provides chats, handles, messages, attachments, and their immutable ROWIDs; AddressBook contributes contact identities, phone numbers, and email addresses.
+- **Two-phase pipeline** – Phase one stages raw data into `macos_import.db`, preserving all source identifiers. Phase two migrates that ledger into `working.db`, retaining the original `chat.db` ROWIDs and AddressBook `Z_PK` values so provenance is never lost.
+- **Chat-first sequencing** – Messages, chats, and handles are imported first, complete with their source IDs and service metadata. Subsequent migration steps continue to reference those IDs directly when building canonical handles.
+- **AddressBook’s role** – Contacts exist solely to label known conversations. Importers pull contact names plus phone/email channels, match them to existing handle IDs via normalized comparisons, and never create new handles during this process.
+- **Handle merging discipline** – When multiple raw handles represent the same real-world endpoint (different services, URI schemes, or formatting), they are merged according to the canonical strategy described below. Matching contacts to handles happens after this normalization so that every linked participant points at a canonical handle, not a newly minted identifier.
+
 ## The Correct Architecture
 
 ### Canonical Handle Merging Strategy

@@ -29,31 +29,10 @@ final dbImportMessageExtractorProvider =
 // ignore: unused_element
 typedef DbImportMessageExtractorRef =
     AutoDisposeProviderRef<MessageExtractorPort>;
-String _$ledgerImportServiceHash() =>
-    r'891c20e4e9eef2c4c504dc34250fb0afd311596f';
-
-/// High-level service orchestrating the ingest into the Sqflite ledger.
-///
-/// Copied from [ledgerImportService].
-@ProviderFor(ledgerImportService)
-final ledgerImportServiceProvider =
-    AutoDisposeProvider<LedgerImportService>.internal(
-      ledgerImportService,
-      name: r'ledgerImportServiceProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$ledgerImportServiceHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LedgerImportServiceRef = AutoDisposeProviderRef<LedgerImportService>;
 String _$orchestratedLedgerImportServiceHash() =>
     r'6aca1303b778d17d459a830947e8049a53a715d9';
 
-/// Experimental orchestrated ledger import service backed by table importers.
+/// High-level service orchestrating the ingest into the Sqflite ledger.
 ///
 /// Copied from [orchestratedLedgerImportService].
 @ProviderFor(orchestratedLedgerImportService)

@@ -285,9 +285,9 @@ SELECT id, content FROM messages;
 
 ### Service Classes
 
-#### 1. LedgerImportService
+#### 1. OrchestratedLedgerImportService
 
-**Location:** `lib/essentials/db_import/application/import/ledger_import_service.dart`
+**Location:** `lib/essentials/db_importers/application/services/orchestrated_ledger_import_service.dart`
 
 **Responsibilities:**
 
@@ -418,8 +418,8 @@ Test full import/migration pipeline:
 
 ```dart
 testWidgets('import completes successfully', (tester) async {
-  final service = LedgerImportService(/* ... */);
-  final result = await service.importFromSources(/* ... */);
+  final service = OrchestratedLedgerImportService(/* ... */);
+  final result = await service.runImport(/* ... */);
 
   expect(result.success, true);
   expect(result.messagesImported, greaterThan(0));
@@ -729,7 +729,7 @@ if (!File(attachmentPath).existsSync()) {
 ### Code Locations
 
 ```
-lib/essentials/db_import/                # Import system
+lib/essentials/db_importers/             # Import system
 ├── application/
 │   └── import/
 │       └── ledger_import_service.dart   # Main import service

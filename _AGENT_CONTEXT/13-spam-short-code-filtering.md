@@ -226,7 +226,7 @@ WHERE is_system = 0
 
 ### 1. Import Service (Prevents spam at source)
 
-**File**: `lib/essentials/db_import/application/import/ledger_import_service.dart`
+**File**: `lib/essentials/db_importers/application/services/orchestrated_ledger_import_service.dart`
 
 - Added `_isSpamShortCode()` method
 - Added spam filtering logic in handle import loop
