@@ -6,14 +6,18 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../../../essentials/db/feature_level_providers.dart';
+import '../../infrastructure/data_sources/message_index_data_source.dart';
 import '../new_display_widgets.dart';
 import '../view_model/attachment_info.dart';
 import '../view_model/chat_header_info_provider.dart';
 import '../view_model/chat_message_search_provider.dart';
-import '../view_model/chat_messages_pager_provider.dart';
+import '../view_model/chat_messages_ordinal_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
 import '../widgets/message_link_preview_card.dart';
+import '../widgets/ordinal_message_row.dart';
 
 class MessagesForChatView extends HookConsumerWidget {
   const MessagesForChatView({
@@ -28,20 +32,12 @@ class MessagesForChatView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headerAsync = ref.watch(chatHeaderInfoProvider(chatId: chatId));
-    final pagerAsync = ref.watch(chatMessagesPagerProvider(chatId: chatId));
-    final scrollController = useScrollController();
+    final ordinalAsync = ref.watch(chatMessagesOrdinalProvider(chatId: chatId));
     final searchScrollController = useScrollController();
     final hasAutoScrolled = useRef(false);
-    final prevLoadingOlder = useRef(false);
-    final previousExtentBefore = useRef<double?>(null);
-    final previousScrollOffset = useRef<double?>(null);
     final searchController = useTextEditingController();
     final searchQuery = useState('');
     final debouncedQuery = useState('');
-
-    void logJump(String message) {
-      debugPrint('[MessagesForChatView] $message');
-    }
 
     useEffect(() {
       hasAutoScrolled.value = false;
@@ -57,43 +53,27 @@ class MessagesForChatView extends HookConsumerWidget {
       return null;
     }, [scrollToDate]);
 
+    // Jump to specific month when scrollToDate is provided
     useEffect(() {
       if (scrollToDate == null) {
         return null;
       }
 
       final normalized = DateTime(scrollToDate!.year, scrollToDate!.month);
+      final monthKey =
+          '${normalized.year.toString().padLeft(4, '0')}-${normalized.month.toString().padLeft(2, '0')}';
       print(
         '[MESSAGES_VIEW] scrollToDate effect triggered: '
-        'raw=$scrollToDate, normalized=$normalized',
+        'raw=$scrollToDate, monthKey=$monthKey',
       );
       Future.microtask(() async {
-        // Wait for the provider to finish its initial build with polling
-        var retries = 0;
-        while (retries < 50) {
-          final pagerState = ref.read(
-            chatMessagesPagerProvider(chatId: chatId),
-          );
-          if (pagerState.hasValue) {
-            print('[MESSAGES_VIEW] Provider ready after $retries retries');
-            // Provider is ready, now ensure the target month is loaded
-            await ref
-                .read(chatMessagesPagerProvider(chatId: chatId).notifier)
-                .ensureMonthLoaded(normalized);
-            break;
-          }
-          retries++;
-          if (retries % 10 == 0) {
-            print(
-              '[MESSAGES_VIEW] Still waiting for provider (attempt $retries)',
-            );
-          }
-          await Future<void>.delayed(const Duration(milliseconds: 100));
-        }
-        if (retries >= 50) {
-          print(
-            '[MESSAGES_VIEW] Gave up waiting for provider after $retries attempts',
-          );
+        final ordinalState = ref.read(
+          chatMessagesOrdinalProvider(chatId: chatId),
+        );
+        if (ordinalState.hasValue) {
+          await ref
+              .read(chatMessagesOrdinalProvider(chatId: chatId).notifier)
+              .jumpToMonth(monthKey);
         }
       });
 
@@ -121,182 +101,8 @@ class MessagesForChatView extends HookConsumerWidget {
 
     final isSearching = debouncedQuery.value.isNotEmpty;
 
-    useEffect(() {
-      if (isSearching) {
-        return null;
-      }
-
-      void listener() {
-        if (!scrollController.hasClients) {
-          return;
-        }
-        // Without reverse, older messages are at the top (lower scroll position)
-        final currentPosition = scrollController.position.pixels;
-        // Trigger when within 160 pixels of the top (older messages)
-        if (currentPosition <= 160) {
-          ref
-              .read(chatMessagesPagerProvider(chatId: chatId).notifier)
-              .loadOlder();
-        }
-      }
-
-      scrollController.addListener(listener);
-      return () => scrollController.removeListener(listener);
-    }, [scrollController, chatId, isSearching]);
-
-    useEffect(
-      () {
-        if (isSearching) {
-          return null;
-        }
-
-        final state = pagerAsync.valueOrNull;
-        if (state == null) {
-          return null;
-        }
-
-        if (hasAutoScrolled.value || state.messages.isEmpty) {
-          return null;
-        }
-
-        if (state.isLoadingOlder) {
-          return null;
-        }
-
-        final targetDate = scrollToDate;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!scrollController.hasClients) {
-            return;
-          }
-
-          if (targetDate != null) {
-            final messages = state.messages;
-            var targetIndex = -1;
-
-            for (var i = 0; i < messages.length; i++) {
-              final msgDate = messages[i].sentAt;
-              if (msgDate != null &&
-                  msgDate.year == targetDate.year &&
-                  msgDate.month == targetDate.month) {
-                targetIndex = i;
-                break;
-              }
-            }
-
-            if (targetIndex >= 0) {
-              final totalScrollableRange =
-                  scrollController.position.maxScrollExtent;
-              final segmentCount = messages.length > 1
-                  ? messages.length - 1
-                  : 1;
-              final normalizedIndex = targetIndex / segmentCount;
-              final targetOffset = (normalizedIndex * totalScrollableRange)
-                  .clamp(0.0, totalScrollableRange);
-              logJump(
-                'jumpTo month target='
-                '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}'
-                ' index=$targetIndex offset=$targetOffset range='
-                '$totalScrollableRange',
-              );
-              scrollController.jumpTo(targetOffset);
-              hasAutoScrolled.value = true;
-              return;
-            }
-
-            if (!state.hasMore) {
-              final bottomOffset = scrollController.position.maxScrollExtent;
-              logJump(
-                'jumpTo bottom (month not found, no more pages) '
-                'offset=$bottomOffset messages=${messages.length}',
-              );
-              scrollController.jumpTo(bottomOffset);
-              hasAutoScrolled.value = true;
-            }
-
-            return;
-          }
-
-          final latestOffset = scrollController.position.maxScrollExtent;
-          logJump(
-            'jumpTo bottom for latest messages '
-            'offset=$latestOffset messages=${state.messages.length}',
-          );
-          scrollController.jumpTo(latestOffset);
-          hasAutoScrolled.value = true;
-        });
-
-        return null;
-      },
-      [
-        pagerAsync.valueOrNull?.messages.length,
-        pagerAsync.valueOrNull?.isLoadingOlder,
-        pagerAsync.valueOrNull?.hasMore,
-        isSearching,
-        scrollToDate,
-      ],
-    );
-
-    useEffect(
-      () {
-        if (isSearching) {
-          return null;
-        }
-
-        final state = pagerAsync.valueOrNull;
-        final isLoadingOlder = state?.isLoadingOlder ?? false;
-
-        if (isLoadingOlder && !prevLoadingOlder.value) {
-          if (scrollController.hasClients) {
-            previousExtentBefore.value = scrollController.position.extentBefore;
-            previousScrollOffset.value = scrollController.position.pixels;
-          }
-        }
-
-        if (!isLoadingOlder && prevLoadingOlder.value) {
-          if (scrollController.hasClients &&
-              previousExtentBefore.value != null &&
-              previousScrollOffset.value != null) {
-            final capturedExtentBefore = previousExtentBefore.value!;
-            final capturedScrollOffset = previousScrollOffset.value!;
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!scrollController.hasClients) {
-                return;
-              }
-              // When loading older messages at top, new content increases the
-              // extentBefore value by exactly the height inserted above the
-              // current viewport. Adjust by that delta so the same message
-              // stays pinned after the load completes.
-              final newExtentBefore = scrollController.position.extentBefore;
-              final delta = newExtentBefore - capturedExtentBefore;
-              final target = (capturedScrollOffset + delta).clamp(
-                0.0,
-                scrollController.position.maxScrollExtent,
-              );
-              logJump(
-                'jumpTo after loadOlder prevExtent='
-                '$capturedExtentBefore newExtent=$newExtentBefore '
-                'delta=$delta prevOffset=$capturedScrollOffset '
-                'target=$target maxExtent='
-                '${scrollController.position.maxScrollExtent}',
-              );
-              scrollController.jumpTo(target);
-            });
-          }
-          previousExtentBefore.value = null;
-          previousScrollOffset.value = null;
-        }
-
-        prevLoadingOlder.value = isLoadingOlder;
-        return null;
-      },
-      [
-        pagerAsync.valueOrNull?.isLoadingOlder,
-        pagerAsync.valueOrNull?.messages.length,
-        isSearching,
-      ],
-    );
+    // Ordinal system: No scroll listener needed - ScrollablePositionedList
+    // automatically loads items on-demand as user scrolls
 
     final searchAsync = isSearching
         ? ref.watch(
@@ -309,11 +115,9 @@ class MessagesForChatView extends HookConsumerWidget {
             <ChatMessageListItem>[],
           );
 
-    final messageListBody = pagerAsync.when<Widget>(
+    final messageListBody = ordinalAsync.when<Widget>(
       data: (state) {
-        final messages = state.messages;
-
-        if (messages.isEmpty) {
+        if (state.totalCount == 0) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -329,36 +133,25 @@ class MessagesForChatView extends HookConsumerWidget {
           );
         }
 
-        final hasLoader = state.isLoadingOlder;
-        final itemCount = messages.length + (hasLoader ? 1 : 0);
+        // Start at the last (most recent) message, unless scrollToDate is specified
+        final initialIndex = scrollToDate == null && state.totalCount > 0
+            ? state.totalCount - 1
+            : 0;
 
-        return ListView.builder(
-          controller: scrollController,
+        return ScrollablePositionedList.builder(
+          initialScrollIndex: initialIndex,
+          itemScrollController: state.itemScrollController,
+          itemPositionsListener: state.itemPositionsListener,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: itemCount,
-          itemBuilder: (context, index) {
-            if (hasLoader) {
-              if (index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: ProgressCircle(radius: 12)),
-                );
-              }
-
-              final messageIndex = index - 1;
-              final message = messages[messageIndex];
-              final isLast = messageIndex == messages.length - 1;
-              return KeyedSubtree(
-                key: ValueKey(message.id),
-                child: _buildMessageEntry(context, message, isLast: isLast),
-              );
-            }
-
-            final message = messages[index];
-            final isLast = index == messages.length - 1;
-            return KeyedSubtree(
-              key: ValueKey(message.id),
-              child: _buildMessageEntry(context, message, isLast: isLast),
+          itemCount: state.totalCount,
+          itemBuilder: (context, ordinal) {
+            final isLast = ordinal == state.totalCount - 1;
+            return OrdinalMessageRow(
+              key: ValueKey('msg-ordinal-$ordinal'),
+              chatId: chatId,
+              ordinal: ordinal,
+              buildMessage: (message) =>
+                  _buildMessageEntry(context, message, isLast: isLast),
             );
           },
         );
@@ -443,7 +236,7 @@ class MessagesForChatView extends HookConsumerWidget {
 
     final body = isSearching ? searchBody : messageListBody;
     final header = headerAsync.when(
-      data: (info) => _MessagesHeader(info: info),
+      data: (info) => _MessagesHeader(info: info, chatId: chatId),
       loading: () => const _MessagesHeaderLoading(),
       error: (error, stackTrace) => _MessagesHeaderError(error: error),
     );
@@ -570,115 +363,251 @@ class MessagesForChatView extends HookConsumerWidget {
   }
 }
 
-class _MessagesHeader extends StatelessWidget {
-  const _MessagesHeader({required this.info});
+class _MessagesHeader extends HookConsumerWidget {
+  const _MessagesHeader({required this.info, required this.chatId});
 
   final ChatHeaderInfo info;
+  final int chatId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final macosTheme = MacosTheme.of(context);
     final typography = macosTheme.typography;
     final isDark = macosTheme.brightness == Brightness.dark;
 
-    final visibleParticipants = info.participants.length > 3
-        ? [
-            ...info.participants.take(3),
-            '+${info.participants.length - 3} more',
-          ]
-        : info.participants;
+    // Track visible month based on scroll position
+    final visibleMonth = useState<String?>('Oct 2025'); // Default to latest
 
-    final visibleHandles = info.handles.length > 2
-        ? [...info.handles.take(2), '+${info.handles.length - 2} more']
-        : info.handles;
+    // Watch ordinal state to get position listener
+    final ordinalAsync = ref.watch(chatMessagesOrdinalProvider(chatId: chatId));
+    final dbAsync = ref.watch(driftWorkingDatabaseProvider);
 
-    final formatter = DateFormat('MMM d, yyyy • h:mm a');
-    final lastLabel = info.lastMessageDate != null
-        ? formatter.format(info.lastMessageDate!)
-        : 'No messages yet';
-    final messageLabel = info.messageCount == 1
-        ? '1 message'
-        : '${info.messageCount} messages';
+    useEffect(() {
+      return ordinalAsync.whenOrNull(
+        data: (state) {
+          void listener() {
+            final positions = state.itemPositionsListener.itemPositions.value;
+            if (positions.isNotEmpty) {
+              // Get the topmost visible item
+              final topItem = positions.reduce(
+                (a, b) => a.itemLeadingEdge < b.itemLeadingEdge ? a : b,
+              );
 
-    final metadataChips = <Widget>[
-      _MetadataBadge(
-        icon: CupertinoIcons.chat_bubble_text_fill,
-        label: messageLabel,
-        isDark: isDark,
-      ),
-      if (info.recency != null)
-        _MetadataBadge(
-          icon: CupertinoIcons.time,
-          label: info.recency!.label,
-          isDark: isDark,
-        ),
-      _MetadataBadge(
-        icon: CupertinoIcons.calendar,
-        label: lastLabel,
-        isDark: isDark,
-      ),
-    ];
+              // Query the month for this ordinal from message_index table
+              dbAsync.whenData((db) {
+                final indexSource = MessageIndexDataSource(db);
+                indexSource.getMonthKeyForOrdinal(chatId, topItem.index).then((
+                  monthKey,
+                ) {
+                  if (monthKey != null) {
+                    visibleMonth.value = monthKey;
+                  }
+                });
+              });
+            }
+          }
+
+          state.itemPositionsListener.itemPositions.addListener(listener);
+          return () => state.itemPositionsListener.itemPositions.removeListener(
+            listener,
+          );
+        },
+      );
+    }, [ordinalAsync, dbAsync]);
+
+    // Format display names
+    final displayName = info.title;
+    final subtitle = info.handles.isNotEmpty ? info.handles.first : null;
+
+    // Format date range
+    final dateRangeText = _formatDateRange(
+      info.firstMessageDate,
+      info.lastMessageDate,
+    );
+
+    // Format message count with spaces
+    final messageCountText = _formatMessageCount(info.messageCount);
 
     final headerBackground = isDark ? const Color(0xFF1F1F24) : Colors.white;
+    final dividerColor = isDark
+        ? const Color(0xFF38383D)
+        : const Color(0xFFE5E5EA);
 
     return ColoredBox(
       color: headerBackground,
       child: Padding(
-        padding: MsgTheme.convoHPad().add(
-          const EdgeInsets.fromLTRB(0, 16, 0, 12),
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Messages',
-              style: typography.largeTitle.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              info.title,
-              style: typography.title1.copyWith(fontWeight: FontWeight.w600),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: visibleParticipants
-                  .map(
-                    (name) => _InfoChip(
-                      label: name,
-                      isDark: isDark,
-                      isSecondary: false,
+            // Line 1: Avatar + Name
+            Row(
+              children: [
+                // Avatar or initials
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: _generateAvatarColor(displayName, isDark),
+                  child: Text(
+                    _getInitials(displayName),
+                    style: typography.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    displayName,
+                    style: typography.title1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-            if (visibleHandles.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: visibleHandles
-                    .map(
-                      (handle) => _InfoChip(
-                        label: handle,
-                        isDark: isDark,
-                        isSecondary: true,
-                      ),
-                    )
-                    .toList(),
+
+            // Line 2: Handle (phone number/email)
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.only(left: 44),
+                child: Text(
+                  subtitle,
+                  style: typography.body.copyWith(
+                    fontSize: 13,
+                    color:
+                        (isDark
+                                ? MacosColors.systemGrayColor
+                                : MacosColors.systemGrayColor.darkColor)
+                            .withValues(alpha: 0.8),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
+
+            // Divider
             const SizedBox(height: 12),
-            Wrap(spacing: 12, runSpacing: 8, children: metadataChips),
+            Container(height: 0.5, color: dividerColor),
+            const SizedBox(height: 12),
+
+            // Line 3: Metadata chips
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _InfoChip(label: '$messageCountText messages', isDark: isDark),
+                if (dateRangeText != null)
+                  _InfoChip(label: dateRangeText, isDark: isDark),
+                // Animated month indicator
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.3),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _InfoChip(
+                    key: ValueKey(visibleMonth.value),
+                    label: 'Showing: ${visibleMonth.value ?? "—"}',
+                    isDark: isDark,
+                    isHighlighted: true,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _getInitials(String name) {
+    final words = name.trim().split(RegExp(r'\s+'));
+    if (words.isEmpty) {
+      return '?';
+    }
+    if (words.length == 1) {
+      return words[0].substring(0, 1).toUpperCase();
+    }
+    return (words[0].substring(0, 1) + words[1].substring(0, 1)).toUpperCase();
+  }
+
+  Color _generateAvatarColor(String name, bool isDark) {
+    // Generate consistent color based on name
+    final hash = name.hashCode.abs();
+    final colors = isDark
+        ? [
+            const Color(0xFF5E81AC),
+            const Color(0xFFBF616A),
+            const Color(0xFFD08770),
+            const Color(0xFFEBCB8B),
+            const Color(0xFFA3BE8C),
+            const Color(0xFFB48EAD),
+          ]
+        : [
+            const Color(0xFF4C9AFF),
+            const Color(0xFFE94B3C),
+            const Color(0xFFFF8B00),
+            const Color(0xFFFFC400),
+            const Color(0xFF36B37E),
+            const Color(0xFF6554C0),
+          ];
+    return colors[hash % colors.length];
+  }
+
+  String? _formatDateRange(DateTime? first, DateTime? last) {
+    if (first == null || last == null) {
+      return null;
+    }
+
+    final firstFormat = DateFormat('MMM yyyy');
+    final lastFormat = DateFormat('MMM yyyy');
+
+    final firstStr = firstFormat.format(first);
+    final lastStr = lastFormat.format(last);
+
+    if (firstStr == lastStr) {
+      return firstStr;
+    }
+
+    return '$firstStr – $lastStr';
+  }
+
+  String _formatMessageCount(int count) {
+    // Format with spaces as thousands separator (e.g., "53 081")
+    final str = count.toString();
+    if (str.length <= 3) {
+      return str;
+    }
+
+    final reversed = str.split('').reversed.toList();
+    final chunks = <String>[];
+
+    for (var i = 0; i < reversed.length; i += 3) {
+      final end = i + 3;
+      final chunk = reversed.sublist(
+        i,
+        end > reversed.length ? reversed.length : end,
+      );
+      chunks.add(chunk.reversed.join());
+    }
+
+    return chunks.reversed.join(' ');
   }
 }
 
@@ -720,28 +649,30 @@ class _MessagesHeaderError extends StatelessWidget {
 
 class _InfoChip extends StatelessWidget {
   const _InfoChip({
+    super.key,
     required this.label,
     required this.isDark,
-    required this.isSecondary,
+    this.isHighlighted = false,
   });
 
   final String label;
   final bool isDark;
-  final bool isSecondary;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = isSecondary
-        ? (isDark ? const Color(0xFF31313A) : const Color(0xFFF1F5F9))
-        : (isDark ? const Color(0xFF24304D) : const Color(0xFFE0ECFF));
-    final textColor = isSecondary
-        ? (isDark ? const Color(0xFFC8CCD8) : const Color(0xFF4B5563))
-        : (isDark ? const Color(0xFFBFD6FF) : const Color(0xFF1D4ED8));
+    final backgroundColor = isHighlighted
+        ? (isDark ? const Color(0xFF3A4A5C) : const Color(0xFFE0ECFF))
+        : (isDark ? const Color(0xFF2D2D35) : const Color(0xFFF3F4F6));
+
+    final textColor = isHighlighted
+        ? (isDark ? const Color(0xFFBFD6FF) : const Color(0xFF1D4ED8))
+        : (isDark ? const Color(0xFFAAB1C1) : const Color(0xFF6B7280));
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -749,54 +680,9 @@ class _InfoChip extends StatelessWidget {
           label,
           style: MacosTheme.of(context).typography.caption1.copyWith(
             color: textColor,
-            fontWeight: FontWeight.w600,
+            fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 12,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetadataBadge extends StatelessWidget {
-  const _MetadataBadge({
-    required this.icon,
-    required this.label,
-    required this.isDark,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final backgroundColor = isDark
-        ? const Color(0xFF2D2D35)
-        : const Color(0xFFF3F4F6);
-    final foregroundColor = isDark
-        ? const Color(0xFFAAB1C1)
-        : const Color(0xFF4B5563);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: foregroundColor),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: MacosTheme.of(context).typography.caption1.copyWith(
-                color: foregroundColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ),
       ),
     );

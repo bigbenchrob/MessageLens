@@ -325,7 +325,52 @@ class ContactsSidebarView extends HookConsumerWidget {
                                 ),
                               ),
                             )
-                          else
+                          else ...[
+                            // "View All Messages" button
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: MacosTheme.of(context).dividerColor,
+                                    width: 0.5,
+                                  ),
+                                ),
+                              ),
+                              child: PushButton(
+                                controlSize: ControlSize.regular,
+                                onPressed: () {
+                                  // Navigate to unified contact messages view
+                                  ref
+                                      .read(panelsViewStateProvider.notifier)
+                                      .show(
+                                        panel: WindowPanel.center,
+                                        spec: ViewSpec.messages(
+                                          MessagesSpec.forContact(
+                                            contactId: selectedParticipantId,
+                                          ),
+                                        ),
+                                      );
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      CupertinoIcons.chat_bubble_text,
+                                      size: 14,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'View All Messages',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                             Expanded(
                               child: _ChatsListForContact(
                                 participantId: selectedParticipantId,
@@ -333,6 +378,7 @@ class ContactsSidebarView extends HookConsumerWidget {
                                 contactsSpec: contactsSpec,
                               ),
                             ),
+                          ],
                         ],
                       );
                     },

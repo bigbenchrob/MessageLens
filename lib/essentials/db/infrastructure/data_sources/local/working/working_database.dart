@@ -18,6 +18,8 @@ part 'working_database.g.dart';
     ChatToHandle,
     WorkingChats,
     WorkingMessages,
+    MessageIndex, // Stable ordinal index for large chat virtualization
+    ContactMessageIndex, // Ordinal index for all messages with a contact
     WorkingAttachments,
     WorkingReactions,
     ReactionCounts,
@@ -31,7 +33,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +77,12 @@ class WorkingDatabase extends _$WorkingDatabase {
       }
       if (from < 13) {
         await _dropLegacyHandleCanonicalMapTable();
+      }
+      if (from < 14) {
+        await _addMessageIndexTable(m);
+      }
+      if (from < 15) {
+        await _addContactMessageIndexTable(m);
       }
       await _createIndexes();
       await _createVirtualTablesAndTriggers();
@@ -460,6 +468,69 @@ class WorkingDatabase extends _$WorkingDatabase {
     );
     await customStatement('DROP TABLE IF EXISTS handle_canonical_map');
   }
+
+  Future<void> _addMessageIndexTable(Migrator m) async {
+    // Create the table
+    await m.createTable(messageIndex);
+
+    // Populate ordinals for existing messages using ROW_NUMBER()
+    // This generates sequential indices (0, 1, 2...) per chat, ordered by sent_at_utc and id
+    // Note: Ongoing maintenance is handled automatically by database triggers
+    // (see trg_message_index_insert, trg_message_index_update, trg_message_index_delete)
+    await customStatement('''
+      INSERT INTO message_index (chat_id, ordinal, message_id, sent_at_utc, month_key)
+      SELECT 
+        chat_id,
+        (ROW_NUMBER() OVER (PARTITION BY chat_id ORDER BY sent_at_utc, id) - 1) AS ordinal,
+        id AS message_id,
+        sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+      FROM messages
+      WHERE chat_id IS NOT NULL
+      ORDER BY chat_id, sent_at_utc, id
+    ''');
+  }
+
+  Future<void> _addContactMessageIndexTable(Migrator m) async {
+    // Create the table
+    await m.createTable(contactMessageIndex);
+
+    // Populate ordinals for existing messages, indexed by contact (participant)
+    // Each message appears once per contact they communicated with
+    // For outgoing messages: index by recipient participant
+    // For incoming messages: index by sender participant
+    // Note: Ongoing maintenance handled by triggers (see contact_message_index triggers)
+    await customStatement('''
+      WITH contact_messages AS (
+        SELECT DISTINCT
+          m.id AS message_id,
+          m.sent_at_utc,
+          CASE 
+            WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+            ELSE htp_sender.participant_id
+          END AS contact_id
+        FROM messages m
+        LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+        LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+        LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+        LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+        WHERE (
+          (m.is_from_me = 1 AND htp_recip.participant_id IS NOT NULL)
+          OR (m.is_from_me = 0 AND htp_sender.participant_id IS NOT NULL)
+        )
+      )
+      INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+      SELECT 
+        contact_id,
+        (ROW_NUMBER() OVER (PARTITION BY contact_id ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+        message_id,
+        sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+      FROM contact_messages
+      WHERE contact_id IS NOT NULL
+      ORDER BY contact_id, sent_at_utc, message_id
+    ''');
+  }
 }
 
 const List<String> _workingIndexStatements = [
@@ -469,6 +540,12 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to_guid)',
   'CREATE INDEX IF NOT EXISTS idx_messages_associated ON messages(associated_message_guid)',
   'CREATE INDEX IF NOT EXISTS idx_messages_batch ON messages(batch_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_message_index_ordinal ON message_index(chat_id, ordinal)',
+  'CREATE INDEX IF NOT EXISTS idx_message_index_month ON message_index(chat_id, month_key, ordinal)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_message_index_message ON message_index(message_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_contact_message_index_ordinal ON contact_message_index(contact_id, ordinal)',
+  'CREATE INDEX IF NOT EXISTS idx_contact_message_index_month ON contact_message_index(contact_id, month_key, ordinal)',
+  'CREATE INDEX IF NOT EXISTS idx_contact_message_index_message_contact ON contact_message_index(message_id, contact_id)',
   'CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_guid)',
   'CREATE INDEX IF NOT EXISTS idx_attachments_batch ON attachments(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(target_message_guid)',
@@ -512,6 +589,341 @@ const List<String> _workingVirtualAndTriggerStatements = [
     DELETE FROM messages_fts WHERE rowid = old.id;
   END;
   ''',
+
+  // Message index maintenance triggers
+  // Insert: Reindex entire chat to maintain correct ordinals
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_message_index_insert
+  AFTER INSERT ON messages 
+  WHEN new.chat_id IS NOT NULL
+  BEGIN
+    -- Delete all index entries for this chat
+    DELETE FROM message_index WHERE chat_id = new.chat_id;
+    
+    -- Rebuild index for this chat with correct ordinals
+    INSERT INTO message_index (chat_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      chat_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id = new.chat_id
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
+  // Update: If sent_at_utc changes, reindex the entire chat
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_message_index_update
+  AFTER UPDATE OF sent_at_utc ON messages
+  WHEN old.chat_id IS NOT NULL AND new.sent_at_utc != old.sent_at_utc
+  BEGIN
+    -- Delete all index entries for this chat
+    DELETE FROM message_index WHERE chat_id = old.chat_id;
+    
+    -- Rebuild index for this chat
+    INSERT INTO message_index (chat_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      chat_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id = old.chat_id
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
+  // Delete: Reindex entire chat to maintain correct ordinals
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_message_index_delete
+  AFTER DELETE ON messages
+  WHEN old.chat_id IS NOT NULL
+  BEGIN
+    -- Delete all index entries for this chat
+    DELETE FROM message_index WHERE chat_id = old.chat_id;
+    
+    -- Rebuild index for this chat
+    INSERT INTO message_index (chat_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      chat_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id = old.chat_id
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
+  // Contact message index maintenance triggers
+  // These maintain the contact_message_index which shows all messages with a contact
+  // across all chats/handles. More complex than chat index because we need to
+  // determine which contact(s) are affected by each message change.
+
+  // Insert: Reindex all affected contacts
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_contact_message_index_insert
+  AFTER INSERT ON messages 
+  BEGIN
+    -- Delete and rebuild index for sender's participant (if incoming message)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM handles_canonical h
+      JOIN handle_to_participant htp ON h.id = htp.handle_id
+      WHERE h.id = new.sender_handle_id AND new.is_from_me = 0
+    );
+    
+    -- Rebuild for sender participant
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_sender.participant_id IN (
+        SELECT participant_id FROM handle_to_participant htp2
+        JOIN handles_canonical h2 ON htp2.handle_id = h2.id
+        WHERE h2.id = new.sender_handle_id AND new.is_from_me = 0
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+    
+    -- Delete and rebuild index for recipient participants (if outgoing message)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM chat_to_handle cth
+      JOIN handle_to_participant htp ON cth.handle_id = htp.handle_id
+      WHERE cth.chat_id = new.chat_id AND new.is_from_me = 1
+    );
+    
+    -- Rebuild for recipient participants
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_recip.participant_id IN (
+        SELECT participant_id FROM chat_to_handle cth2
+        JOIN handle_to_participant htp2 ON cth2.handle_id = htp2.handle_id
+        WHERE cth2.chat_id = new.chat_id AND new.is_from_me = 1
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+  END;
+  ''',
+
+  // Update: If sent_at_utc changes, reindex affected contacts
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_contact_message_index_update
+  AFTER UPDATE OF sent_at_utc ON messages
+  WHEN new.sent_at_utc != old.sent_at_utc
+  BEGIN
+    -- Delete entries for all affected contacts
+    DELETE FROM contact_message_index WHERE message_id = old.id;
+    
+    -- Reindex sender participant (if incoming)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM handles_canonical h
+      JOIN handle_to_participant htp ON h.id = htp.handle_id
+      WHERE h.id = old.sender_handle_id AND old.is_from_me = 0
+    );
+    
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_sender.participant_id IN (
+        SELECT participant_id FROM handle_to_participant htp2
+        JOIN handles_canonical h2 ON htp2.handle_id = h2.id
+        WHERE h2.id = old.sender_handle_id AND old.is_from_me = 0
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+    
+    -- Reindex recipient participants (if outgoing)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM chat_to_handle cth
+      JOIN handle_to_participant htp ON cth.handle_id = htp.handle_id
+      WHERE cth.chat_id = old.chat_id AND old.is_from_me = 1
+    );
+    
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_recip.participant_id IN (
+        SELECT participant_id FROM chat_to_handle cth2
+        JOIN handle_to_participant htp2 ON cth2.handle_id = htp2.handle_id
+        WHERE cth2.chat_id = old.chat_id AND old.is_from_me = 1
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+  END;
+  ''',
+
+  // Delete: Remove from all affected contacts' indexes
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_contact_message_index_delete
+  AFTER DELETE ON messages
+  BEGIN
+    -- Simply delete the message from all contact indexes
+    DELETE FROM contact_message_index WHERE message_id = old.id;
+    
+    -- Reindex affected contacts to maintain correct ordinals
+    -- Sender participant (if incoming)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM handles_canonical h
+      JOIN handle_to_participant htp ON h.id = htp.handle_id
+      WHERE h.id = old.sender_handle_id AND old.is_from_me = 0
+    );
+    
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_sender.participant_id IN (
+        SELECT participant_id FROM handle_to_participant htp2
+        JOIN handles_canonical h2 ON htp2.handle_id = h2.id
+        WHERE h2.id = old.sender_handle_id AND old.is_from_me = 0
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+    
+    -- Recipient participants (if outgoing)
+    DELETE FROM contact_message_index 
+    WHERE contact_id IN (
+      SELECT htp.participant_id 
+      FROM chat_to_handle cth
+      JOIN handle_to_participant htp ON cth.handle_id = htp.handle_id
+      WHERE cth.chat_id = old.chat_id AND old.is_from_me = 1
+    );
+    
+    INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+    SELECT 
+      contact_id,
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+      message_id,
+      sent_at_utc,
+      month_key
+    FROM (
+      SELECT DISTINCT
+        m.id AS message_id,
+        m.sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(m.sent_at_utc, '1970-01-01')) AS month_key,
+        CASE 
+          WHEN m.is_from_me = 1 THEN htp_recip.participant_id
+          ELSE htp_sender.participant_id
+        END AS contact_id
+      FROM messages m
+      LEFT JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+      LEFT JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+      LEFT JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+      LEFT JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+      WHERE htp_recip.participant_id IN (
+        SELECT participant_id FROM chat_to_handle cth2
+        JOIN handle_to_participant htp2 ON cth2.handle_id = htp2.handle_id
+        WHERE cth2.chat_id = old.chat_id AND old.is_from_me = 1
+      )
+    ) WHERE contact_id IS NOT NULL
+    ORDER BY sent_at_utc, message_id;
+  END;
+  ''',
+
   // Projection helper views
   '''
   CREATE VIEW IF NOT EXISTS v_chat_latest AS
@@ -930,6 +1342,60 @@ class WorkingMessages extends Table {
   @override
   List<Set<Column>> get uniqueKeys => [
     {guid},
+  ];
+}
+
+/// Ordinal index for stable message ordering in large chats.
+/// Maps each message to a zero-based sequential position within its chat.
+/// Enables O(1) lookups and instant timeline jumps without loading all messages.
+class MessageIndex extends Table {
+  @override
+  String get tableName => 'message_index';
+
+  IntColumn get chatId => integer()
+      .named('chat_id')
+      .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
+  IntColumn get ordinal => integer().named('ordinal')();
+  IntColumn get messageId => integer()
+      .named('message_id')
+      .references(WorkingMessages, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sentAtUtc => text().named('sent_at_utc').nullable()();
+  TextColumn get monthKey =>
+      text().named('month_key')(); // Format: 'YYYY-MM' for timeline
+
+  @override
+  Set<Column> get primaryKey => {chatId, ordinal};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {messageId},
+  ];
+}
+
+/// Ordinal index for all messages exchanged with a contact (participant).
+/// Enables unified chronological view across multiple chats/handles.
+/// Partitioned by contact_id, ordered by sent_at_utc.
+class ContactMessageIndex extends Table {
+  @override
+  String get tableName => 'contact_message_index';
+
+  IntColumn get contactId => integer()
+      .named('contact_id')
+      .references(WorkingParticipants, #id, onDelete: KeyAction.cascade)();
+  IntColumn get ordinal => integer().named('ordinal')();
+  IntColumn get messageId => integer()
+      .named('message_id')
+      .references(WorkingMessages, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sentAtUtc => text().named('sent_at_utc').nullable()();
+  TextColumn get monthKey =>
+      text().named('month_key')(); // Format: 'YYYY-MM' for timeline
+
+  @override
+  Set<Column> get primaryKey => {contactId, ordinal};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {messageId, contactId}, // Message can appear once per contact
   ];
 }
 

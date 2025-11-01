@@ -24,7 +24,7 @@ import '../../infrastructure/sqlite/migrators/reaction_counts_migrator.dart';
 import '../../infrastructure/sqlite/migrators/reactions_migrator.dart';
 import '../../infrastructure/sqlite/migrators/read_state_migrator.dart';
 import '../services/base_table_migrator.dart';
-import 'migration_orchestrator.dart';
+import './migration_orchestrator.dart';
 
 class HandlesMigrationService {
   HandlesMigrationService({required this.ref});

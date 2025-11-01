@@ -1,12 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'chat_messages_pager_provider.dart';
+part of 'chat_messages_ordinal_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatMessagesPagerHash() => r'42258f5aebcded92ac0c986b7fd1e2f0f9c772ff';
+String _$chatMessagesOrdinalHash() =>
+    r'a0139fd93b5797f7a3699fea8769a39c533ec4b9';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,30 +30,31 @@ class _SystemHash {
   }
 }
 
-abstract class _$ChatMessagesPager
-    extends BuildlessAutoDisposeAsyncNotifier<MessagesPagerState> {
+abstract class _$ChatMessagesOrdinal
+    extends BuildlessAutoDisposeAsyncNotifier<MessagesOrdinalState> {
   late final int chatId;
 
-  FutureOr<MessagesPagerState> build({required int chatId});
+  FutureOr<MessagesOrdinalState> build({required int chatId});
 }
 
-/// See also [ChatMessagesPager].
-@ProviderFor(ChatMessagesPager)
-const chatMessagesPagerProvider = ChatMessagesPagerFamily();
+/// See also [ChatMessagesOrdinal].
+@ProviderFor(ChatMessagesOrdinal)
+const chatMessagesOrdinalProvider = ChatMessagesOrdinalFamily();
 
-/// See also [ChatMessagesPager].
-class ChatMessagesPagerFamily extends Family<AsyncValue<MessagesPagerState>> {
-  /// See also [ChatMessagesPager].
-  const ChatMessagesPagerFamily();
+/// See also [ChatMessagesOrdinal].
+class ChatMessagesOrdinalFamily
+    extends Family<AsyncValue<MessagesOrdinalState>> {
+  /// See also [ChatMessagesOrdinal].
+  const ChatMessagesOrdinalFamily();
 
-  /// See also [ChatMessagesPager].
-  ChatMessagesPagerProvider call({required int chatId}) {
-    return ChatMessagesPagerProvider(chatId: chatId);
+  /// See also [ChatMessagesOrdinal].
+  ChatMessagesOrdinalProvider call({required int chatId}) {
+    return ChatMessagesOrdinalProvider(chatId: chatId);
   }
 
   @override
-  ChatMessagesPagerProvider getProviderOverride(
-    covariant ChatMessagesPagerProvider provider,
+  ChatMessagesOrdinalProvider getProviderOverride(
+    covariant ChatMessagesOrdinalProvider provider,
   ) {
     return call(chatId: provider.chatId);
   }
@@ -69,32 +71,32 @@ class ChatMessagesPagerFamily extends Family<AsyncValue<MessagesPagerState>> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'chatMessagesPagerProvider';
+  String? get name => r'chatMessagesOrdinalProvider';
 }
 
-/// See also [ChatMessagesPager].
-class ChatMessagesPagerProvider
+/// See also [ChatMessagesOrdinal].
+class ChatMessagesOrdinalProvider
     extends
         AutoDisposeAsyncNotifierProviderImpl<
-          ChatMessagesPager,
-          MessagesPagerState
+          ChatMessagesOrdinal,
+          MessagesOrdinalState
         > {
-  /// See also [ChatMessagesPager].
-  ChatMessagesPagerProvider({required int chatId})
+  /// See also [ChatMessagesOrdinal].
+  ChatMessagesOrdinalProvider({required int chatId})
     : this._internal(
-        () => ChatMessagesPager()..chatId = chatId,
-        from: chatMessagesPagerProvider,
-        name: r'chatMessagesPagerProvider',
+        () => ChatMessagesOrdinal()..chatId = chatId,
+        from: chatMessagesOrdinalProvider,
+        name: r'chatMessagesOrdinalProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$chatMessagesPagerHash,
-        dependencies: ChatMessagesPagerFamily._dependencies,
+            : _$chatMessagesOrdinalHash,
+        dependencies: ChatMessagesOrdinalFamily._dependencies,
         allTransitiveDependencies:
-            ChatMessagesPagerFamily._allTransitiveDependencies,
+            ChatMessagesOrdinalFamily._allTransitiveDependencies,
         chatId: chatId,
       );
 
-  ChatMessagesPagerProvider._internal(
+  ChatMessagesOrdinalProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -107,17 +109,17 @@ class ChatMessagesPagerProvider
   final int chatId;
 
   @override
-  FutureOr<MessagesPagerState> runNotifierBuild(
-    covariant ChatMessagesPager notifier,
+  FutureOr<MessagesOrdinalState> runNotifierBuild(
+    covariant ChatMessagesOrdinal notifier,
   ) {
     return notifier.build(chatId: chatId);
   }
 
   @override
-  Override overrideWith(ChatMessagesPager Function() create) {
+  Override overrideWith(ChatMessagesOrdinal Function() create) {
     return ProviderOverride(
       origin: this,
-      override: ChatMessagesPagerProvider._internal(
+      override: ChatMessagesOrdinalProvider._internal(
         () => create()..chatId = chatId,
         from: from,
         name: null,
@@ -130,14 +132,17 @@ class ChatMessagesPagerProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<ChatMessagesPager, MessagesPagerState>
+  AutoDisposeAsyncNotifierProviderElement<
+    ChatMessagesOrdinal,
+    MessagesOrdinalState
+  >
   createElement() {
-    return _ChatMessagesPagerProviderElement(this);
+    return _ChatMessagesOrdinalProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ChatMessagesPagerProvider && other.chatId == chatId;
+    return other is ChatMessagesOrdinalProvider && other.chatId == chatId;
   }
 
   @override
@@ -151,23 +156,23 @@ class ChatMessagesPagerProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ChatMessagesPagerRef
-    on AutoDisposeAsyncNotifierProviderRef<MessagesPagerState> {
+mixin ChatMessagesOrdinalRef
+    on AutoDisposeAsyncNotifierProviderRef<MessagesOrdinalState> {
   /// The parameter `chatId` of this provider.
   int get chatId;
 }
 
-class _ChatMessagesPagerProviderElement
+class _ChatMessagesOrdinalProviderElement
     extends
         AutoDisposeAsyncNotifierProviderElement<
-          ChatMessagesPager,
-          MessagesPagerState
+          ChatMessagesOrdinal,
+          MessagesOrdinalState
         >
-    with ChatMessagesPagerRef {
-  _ChatMessagesPagerProviderElement(super.provider);
+    with ChatMessagesOrdinalRef {
+  _ChatMessagesOrdinalProviderElement(super.provider);
 
   @override
-  int get chatId => (origin as ChatMessagesPagerProvider).chatId;
+  int get chatId => (origin as ChatMessagesOrdinalProvider).chatId;
 }
 
 // ignore_for_file: type=lint

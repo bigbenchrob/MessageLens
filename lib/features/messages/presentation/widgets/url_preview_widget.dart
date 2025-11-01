@@ -110,8 +110,8 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
     final child = _metadata != null
         ? _buildNativePreview(_metadata!)
         : _showFallback
-            ? _buildLinkFallback()
-            : _buildLoadingWidget();
+        ? _buildLinkFallback()
+        : _buildLoadingWidget();
 
     return AnimatedSwitcher(
       duration: _transitionDuration,
@@ -257,10 +257,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _PreviewMedia(
-                  metadata: metadata,
-                  mediaHeight: _mediaHeight,
-                ),
+                _PreviewMedia(metadata: metadata, mediaHeight: _mediaHeight),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -377,8 +374,9 @@ class _PreviewMedia extends StatelessWidget {
         child: Image.memory(
           previewBytes,
           fit: BoxFit.cover,
-          filterQuality:
-              isIconFallback ? FilterQuality.high : FilterQuality.low,
+          filterQuality: isIconFallback
+              ? FilterQuality.high
+              : FilterQuality.low,
           errorBuilder: (context, error, stackTrace) {
             return const ColoredBox(color: Color(0xFFE5E5E9));
           },

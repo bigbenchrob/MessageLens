@@ -40,6 +40,7 @@ dependencies:
   watcher: ^1.1.0
   url_launcher: ^6.3.0
   plist_parser: ^0.2.5
+  scrollable_positioned_list: ^0.3.8
 
   # Date/Time manipulation
   jiffy: ^6.3.1

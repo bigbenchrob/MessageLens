@@ -86,7 +86,9 @@ Future<List<SettingsContactEntry>> contactShortNameCandidates(Ref ref) async {
         await (db.select(db.handleToParticipant).join([
               drift.innerJoin(
                 db.handlesCanonical,
-                db.handlesCanonical.id.equalsExp(db.handleToParticipant.handleId),
+                db.handlesCanonical.id.equalsExp(
+                  db.handleToParticipant.handleId,
+                ),
               ),
             ])..where(
               db.handleToParticipant.participantId.equals(participant.id),
