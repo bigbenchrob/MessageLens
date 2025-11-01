@@ -25,12 +25,17 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
     required this.data,
     this.monthSize = 14.0,
     this.monthSpacing = 2.0,
+    this.onMonthTap,
     super.key,
   });
 
   final CalendarHeatmapTimelineData data;
   final double monthSize;
   final double monthSpacing;
+
+  /// Optional custom tap handler. If not provided, uses default chat navigation.
+  /// Parameters: (year, month, messageCount)
+  final void Function(int year, int month, int messageCount)? onMonthTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,6 +55,7 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
             yearRows: group,
             monthSize: monthSize,
             monthSpacing: monthSpacing,
+            onMonthTap: onMonthTap,
             ref: ref,
           ),
       ],
@@ -64,12 +70,14 @@ class _YearRowsGroup extends StatelessWidget {
     required this.monthSize,
     required this.monthSpacing,
     required this.ref,
+    this.onMonthTap,
   });
 
   final List<YearRow> yearRows;
   final double monthSize;
   final double monthSpacing;
   final WidgetRef ref;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +90,7 @@ class _YearRowsGroup extends StatelessWidget {
             yearRow: yearRow,
             monthSize: monthSize,
             monthSpacing: monthSpacing,
+            onMonthTap: onMonthTap,
             ref: ref,
           ),
           SizedBox(height: monthSpacing * 2),
@@ -98,12 +107,14 @@ class _SingleYearRow extends StatelessWidget {
     required this.monthSize,
     required this.monthSpacing,
     required this.ref,
+    this.onMonthTap,
   });
 
   final YearRow yearRow;
   final double monthSize;
   final double monthSpacing;
   final WidgetRef ref;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +139,12 @@ class _SingleYearRow extends StatelessWidget {
         // 12 months
         for (var i = 0; i < 12; i++) ...[
           if (i > 0) SizedBox(width: monthSpacing),
-          _MonthCell(monthData: yearRow.months[i], size: monthSize, ref: ref),
+          _MonthCell(
+            monthData: yearRow.months[i],
+            size: monthSize,
+            onMonthTap: onMonthTap,
+            ref: ref,
+          ),
         ],
       ],
     );
@@ -141,11 +157,13 @@ class _MonthCell extends StatelessWidget {
     required this.monthData,
     required this.size,
     required this.ref,
+    this.onMonthTap,
   });
 
   final MonthData monthData;
   final double size;
   final WidgetRef ref;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
 
   void _handleTap() {
     // Don't navigate for notYetStarted or empty months
@@ -153,6 +171,13 @@ class _MonthCell extends StatelessWidget {
       return;
     }
 
+    // If custom tap handler provided, use it
+    if (onMonthTap != null) {
+      onMonthTap!(monthData.year, monthData.month, monthData.messageCount);
+      return;
+    }
+
+    // Default behavior: navigate to chat in date range
     final startDate = DateTime(monthData.year, monthData.month, 1);
     final endDate = DateTime(
       monthData.year,

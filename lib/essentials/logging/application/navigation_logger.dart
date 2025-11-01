@@ -52,9 +52,11 @@ class NavigationLogEntry {
         'type': 'messages',
         'spec': messagesSpec.when(
           forChat: (chatId) => {'variant': 'forChat', 'chatId': chatId},
-          forContact: (contactId) => {
+          forContact: (contactId, scrollToDate) => {
             'variant': 'forContact',
             'contactId': contactId,
+            if (scrollToDate != null)
+              'scrollToDate': scrollToDate.toIso8601String(),
           },
           recent: (limit) => {'variant': 'recent', 'limit': limit},
           forHandle: (handleId) => {

@@ -34,7 +34,10 @@ class MessagesCoordinator extends _$MessagesCoordinator {
   Widget buildForSpec(MessagesSpec spec) {
     return spec.when(
       forChat: (chatId) => ref.read(messagesForChatViewBuilderProvider(chatId)),
-      forContact: (contactId) => MessagesForContactView(contactId: contactId),
+      forContact: (contactId, scrollToDate) => MessagesForContactView(
+        contactId: contactId,
+        scrollToDate: scrollToDate,
+      ),
       recent: (limit) =>
           _buildComingSoon('Recent $limit messages view is coming soon.'),
       forHandle: (handleId) =>

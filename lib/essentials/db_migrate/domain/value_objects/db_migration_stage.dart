@@ -11,6 +11,7 @@ enum DbMigrationStage {
   migratingMessages('migratingMessages', 'Projecting messages'),
   migratingAttachments('migratingAttachments', 'Projecting attachments'),
   migratingReactions('migratingReactions', 'Projecting reactions'),
+  indexing('indexing', 'Building indexes'),
   updatingProjectionState(
     'updatingProjectionState',
     'Updating projection state',

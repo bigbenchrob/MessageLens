@@ -6,13 +6,18 @@ part 'overlay_database.g.dart';
 /// This database stores user-specific overrides that enhance the working database
 /// without polluting it with UI-specific state.
 @DriftDatabase(
-  tables: [ParticipantOverrides, ChatOverrides, MessageAnnotations],
+  tables: [
+    ParticipantOverrides,
+    ChatOverrides,
+    MessageAnnotations,
+    HandleToParticipantOverrides,
+  ],
 )
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -23,6 +28,10 @@ class OverlayDatabase extends _$OverlayDatabase {
       if (from < 2) {
         // Add MessageAnnotations table in schema version 2
         await m.createTable(messageAnnotations);
+      }
+      if (from < 3) {
+        // Add HandleToParticipantOverrides table in schema version 3
+        await m.createTable(handleToParticipantOverrides);
       }
     },
   );
@@ -325,6 +334,54 @@ class OverlayDatabase extends _$OverlayDatabase {
       messageAnnotations,
     )..where((tbl) => tbl.priority.isBiggerOrEqualValue(4))).get();
   }
+
+  // Helper methods for handle-to-participant overrides
+
+  /// Get override for a specific handle
+  Future<HandleToParticipantOverride?> getHandleOverride(int handleId) {
+    return (select(
+      handleToParticipantOverrides,
+    )..where((tbl) => tbl.handleId.equals(handleId))).getSingleOrNull();
+  }
+
+  /// Get all handle overrides
+  Future<List<HandleToParticipantOverride>> getAllHandleOverrides() {
+    return (select(
+      handleToParticipantOverrides,
+    )..orderBy([(tbl) => OrderingTerm.asc(tbl.createdAtUtc)])).get();
+  }
+
+  /// Set manual link from handle to participant
+  Future<void> setHandleOverride(int handleId, int participantId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(handleToParticipantOverrides).insertOnConflictUpdate(
+      HandleToParticipantOverridesCompanion.insert(
+        handleId: Value(handleId),
+        participantId: participantId,
+        source: const Value('user_manual'),
+        confidence: const Value(1.0),
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      ),
+    );
+  }
+
+  /// Delete handle override
+  Future<void> deleteHandleOverride(int handleId) async {
+    await (delete(
+      handleToParticipantOverrides,
+    )..where((tbl) => tbl.handleId.equals(handleId))).go();
+  }
+
+  /// Get all overrides for a specific participant
+  Future<List<HandleToParticipantOverride>> getOverridesForParticipant(
+    int participantId,
+  ) {
+    return (select(
+      handleToParticipantOverrides,
+    )..where((tbl) => tbl.participantId.equals(participantId))).get();
+  }
 }
 
 /// User-defined short names and preferences for participants
@@ -409,4 +466,31 @@ class MessageAnnotations extends Table {
 
   @override
   Set<Column> get primaryKey => {messageId};
+}
+
+/// User-defined manual links from handles to participants
+/// Overrides automatic AddressBook matching when user explicitly assigns a handle to a contact
+class HandleToParticipantOverrides extends Table {
+  @override
+  String get tableName => 'handle_to_participant_overrides';
+
+  /// Matches working.handles.id
+  IntColumn get handleId => integer().named('handle_id')();
+
+  /// Matches working.participants.id
+  IntColumn get participantId => integer().named('participant_id')();
+
+  /// Source of the link (always 'user_manual' for manual overrides)
+  TextColumn get source =>
+      text().named('source').withDefault(const Constant('user_manual'))();
+
+  /// Confidence level (1.0 for user-confirmed manual links)
+  RealColumn get confidence =>
+      real().named('confidence').withDefault(const Constant(1.0))();
+
+  TextColumn get createdAtUtc => text().named('created_at_utc')();
+  TextColumn get updatedAtUtc => text().named('updated_at_utc')();
+
+  @override
+  Set<Column> get primaryKey => {handleId};
 }

@@ -26,7 +26,7 @@ final messageRepositoryProvider =
 
 typedef _$MessageRepository = AutoDisposeNotifier<SqliteMessagesRepository>;
 String _$messagesCoordinatorHash() =>
-    r'af6c4ea76b6bf819cf194a8f42f12fa908ef59be';
+    r'875b595a64f21c92e63b3a7abfebd68589eb6a33';
 
 /// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
 ///

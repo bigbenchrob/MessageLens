@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,6 +9,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../new_display_widgets.dart';
 import '../view_model/attachment_info.dart';
+import '../view_model/contact_message_search_provider.dart';
 import '../view_model/contact_messages_ordinal_provider.dart';
 import '../view_model/message_by_contact_ordinal_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
@@ -29,6 +32,12 @@ class MessagesForContactView extends HookConsumerWidget {
     final ordinalAsync = ref.watch(
       contactMessagesOrdinalProvider(contactId: contactId),
     );
+
+    // Search state management
+    final searchScrollController = useScrollController();
+    final searchController = useTextEditingController();
+    final searchQuery = useState('');
+    final debouncedQuery = useState('');
 
     // Jump to specific month when scrollToDate is provided
     useEffect(() {
@@ -56,7 +65,41 @@ class MessagesForContactView extends HookConsumerWidget {
       return null;
     }, [contactId, scrollToDate]);
 
-    return ordinalAsync.when<Widget>(
+    // Search controller listener
+    useEffect(() {
+      void listener() {
+        searchQuery.value = searchController.text;
+      }
+
+      searchController.addListener(listener);
+      return () => searchController.removeListener(listener);
+    }, [searchController]);
+
+    // Debounce search query
+    useEffect(() {
+      final timer = Timer(const Duration(milliseconds: 250), () {
+        final trimmed = searchQuery.value.trim();
+        if (debouncedQuery.value != trimmed) {
+          debouncedQuery.value = trimmed;
+        }
+      });
+      return timer.cancel;
+    }, [searchQuery.value]);
+
+    final isSearching = debouncedQuery.value.isNotEmpty;
+
+    final searchAsync = isSearching
+        ? ref.watch(
+            contactMessageSearchResultsProvider(
+              contactId: contactId,
+              query: debouncedQuery.value,
+            ),
+          )
+        : const AsyncValue<List<ChatMessageListItem>>.data(
+            <ChatMessageListItem>[],
+          );
+
+    final messageListBody = ordinalAsync.when<Widget>(
       data: (state) {
         if (state.totalCount == 0) {
           return const Center(
@@ -79,34 +122,22 @@ class MessagesForContactView extends HookConsumerWidget {
             ? state.totalCount - 1
             : 0;
 
-        return Column(
-          children: [
-            // Header showing contact info and message count
-            _ContactMessagesHeader(
+        return ScrollablePositionedList.builder(
+          initialScrollIndex: initialIndex,
+          itemScrollController: state.itemScrollController,
+          itemPositionsListener: state.itemPositionsListener,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: state.totalCount,
+          itemBuilder: (context, ordinal) {
+            final isLast = ordinal == state.totalCount - 1;
+            return _ContactOrdinalMessageRow(
+              key: ValueKey('contact-msg-ordinal-$ordinal'),
               contactId: contactId,
-              totalMessages: state.totalCount,
-            ),
-            // Message list
-            Expanded(
-              child: ScrollablePositionedList.builder(
-                initialScrollIndex: initialIndex,
-                itemScrollController: state.itemScrollController,
-                itemPositionsListener: state.itemPositionsListener,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: state.totalCount,
-                itemBuilder: (context, ordinal) {
-                  final isLast = ordinal == state.totalCount - 1;
-                  return _ContactOrdinalMessageRow(
-                    key: ValueKey('contact-msg-ordinal-$ordinal'),
-                    contactId: contactId,
-                    ordinal: ordinal,
-                    buildMessage: (message) =>
-                        _buildMessageEntry(context, message, isLast: isLast),
-                  );
-                },
-              ),
-            ),
-          ],
+              ordinal: ordinal,
+              buildMessage: (message) =>
+                  _buildMessageEntry(context, message, isLast: isLast),
+            );
+          },
         );
       },
       loading: () => const Center(child: ProgressCircle(radius: 12)),
@@ -119,6 +150,100 @@ class MessagesForContactView extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
         ),
+      ),
+    );
+
+    final searchBody = searchAsync.when<Widget>(
+      data: (results) {
+        if (results.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'No matches for "${debouncedQuery.value}".',
+                style: const TextStyle(color: Color(0xFF7A7A7F)),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final itemCount = results.length + 1;
+
+        return ListView.builder(
+          controller: searchScrollController,
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              final label = results.length == 1
+                  ? '1 match'
+                  : '${results.length} matches';
+              return Padding(
+                padding: MsgTheme.convoHPad().add(
+                  const EdgeInsets.only(bottom: 8),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF7A7A7F),
+                    fontSize: 13,
+                  ),
+                ),
+              );
+            }
+
+            final message = results[index - 1];
+            return Padding(
+              padding: MsgTheme.convoHPad(),
+              child: Column(
+                children: [
+                  _buildMessageTile(message),
+                  if (index < itemCount - 1) MsgTheme.gapMD,
+                ],
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: ProgressCircle(radius: 12)),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Search error. $error',
+            style: const TextStyle(color: Color(0xFFD14343)),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+
+    return Material(
+      color: Colors.white,
+      child: Column(
+        children: [
+          // Header
+          _ContactMessagesHeader(
+            contactId: contactId,
+            totalMessages: ordinalAsync.value?.totalCount ?? 0,
+          ),
+          const Divider(height: 1),
+          // Search field
+          Padding(
+            padding: MsgTheme.convoHPad().add(
+              const EdgeInsets.fromLTRB(0, 12, 0, 8),
+            ),
+            child: MacosSearchField<String>(
+              controller: searchController,
+              placeholder: 'Search messages with this contact',
+              results: const [],
+            ),
+          ),
+          const Divider(height: 1),
+          // Message list or search results
+          Expanded(child: isSearching ? searchBody : messageListBody),
+        ],
       ),
     );
   }

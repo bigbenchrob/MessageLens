@@ -1444,6 +1444,442 @@ class MessageAnnotationsCompanion extends UpdateCompanion<MessageAnnotation> {
   }
 }
 
+class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
+    with
+        TableInfo<
+          $HandleToParticipantOverridesTable,
+          HandleToParticipantOverride
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HandleToParticipantOverridesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _handleIdMeta = const VerificationMeta(
+    'handleId',
+  );
+  @override
+  late final GeneratedColumn<int> handleId = GeneratedColumn<int>(
+    'handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _participantIdMeta = const VerificationMeta(
+    'participantId',
+  );
+  @override
+  late final GeneratedColumn<int> participantId = GeneratedColumn<int>(
+    'participant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('user_manual'),
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    handleId,
+    participantId,
+    source,
+    confidence,
+    createdAtUtc,
+    updatedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'handle_to_participant_overrides';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HandleToParticipantOverride> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('handle_id')) {
+      context.handle(
+        _handleIdMeta,
+        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+      );
+    }
+    if (data.containsKey('participant_id')) {
+      context.handle(
+        _participantIdMeta,
+        participantId.isAcceptableOrUnknown(
+          data['participant_id']!,
+          _participantIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_participantIdMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {handleId};
+  @override
+  HandleToParticipantOverride map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HandleToParticipantOverride(
+      handleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}handle_id'],
+      )!,
+      participantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}participant_id'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $HandleToParticipantOverridesTable createAlias(String alias) {
+    return $HandleToParticipantOverridesTable(attachedDatabase, alias);
+  }
+}
+
+class HandleToParticipantOverride extends DataClass
+    implements Insertable<HandleToParticipantOverride> {
+  /// Matches working.handles.id
+  final int handleId;
+
+  /// Matches working.participants.id
+  final int participantId;
+
+  /// Source of the link (always 'user_manual' for manual overrides)
+  final String source;
+
+  /// Confidence level (1.0 for user-confirmed manual links)
+  final double confidence;
+  final String createdAtUtc;
+  final String updatedAtUtc;
+  const HandleToParticipantOverride({
+    required this.handleId,
+    required this.participantId,
+    required this.source,
+    required this.confidence,
+    required this.createdAtUtc,
+    required this.updatedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['handle_id'] = Variable<int>(handleId);
+    map['participant_id'] = Variable<int>(participantId);
+    map['source'] = Variable<String>(source);
+    map['confidence'] = Variable<double>(confidence);
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    return map;
+  }
+
+  HandleToParticipantOverridesCompanion toCompanion(bool nullToAbsent) {
+    return HandleToParticipantOverridesCompanion(
+      handleId: Value(handleId),
+      participantId: Value(participantId),
+      source: Value(source),
+      confidence: Value(confidence),
+      createdAtUtc: Value(createdAtUtc),
+      updatedAtUtc: Value(updatedAtUtc),
+    );
+  }
+
+  factory HandleToParticipantOverride.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HandleToParticipantOverride(
+      handleId: serializer.fromJson<int>(json['handleId']),
+      participantId: serializer.fromJson<int>(json['participantId']),
+      source: serializer.fromJson<String>(json['source']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+      updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'handleId': serializer.toJson<int>(handleId),
+      'participantId': serializer.toJson<int>(participantId),
+      'source': serializer.toJson<String>(source),
+      'confidence': serializer.toJson<double>(confidence),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+      'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
+    };
+  }
+
+  HandleToParticipantOverride copyWith({
+    int? handleId,
+    int? participantId,
+    String? source,
+    double? confidence,
+    String? createdAtUtc,
+    String? updatedAtUtc,
+  }) => HandleToParticipantOverride(
+    handleId: handleId ?? this.handleId,
+    participantId: participantId ?? this.participantId,
+    source: source ?? this.source,
+    confidence: confidence ?? this.confidence,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+  );
+  HandleToParticipantOverride copyWithCompanion(
+    HandleToParticipantOverridesCompanion data,
+  ) {
+    return HandleToParticipantOverride(
+      handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      participantId: data.participantId.present
+          ? data.participantId.value
+          : this.participantId,
+      source: data.source.present ? data.source.value : this.source,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleToParticipantOverride(')
+          ..write('handleId: $handleId, ')
+          ..write('participantId: $participantId, ')
+          ..write('source: $source, ')
+          ..write('confidence: $confidence, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    handleId,
+    participantId,
+    source,
+    confidence,
+    createdAtUtc,
+    updatedAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HandleToParticipantOverride &&
+          other.handleId == this.handleId &&
+          other.participantId == this.participantId &&
+          other.source == this.source &&
+          other.confidence == this.confidence &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.updatedAtUtc == this.updatedAtUtc);
+}
+
+class HandleToParticipantOverridesCompanion
+    extends UpdateCompanion<HandleToParticipantOverride> {
+  final Value<int> handleId;
+  final Value<int> participantId;
+  final Value<String> source;
+  final Value<double> confidence;
+  final Value<String> createdAtUtc;
+  final Value<String> updatedAtUtc;
+  const HandleToParticipantOverridesCompanion({
+    this.handleId = const Value.absent(),
+    this.participantId = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+  });
+  HandleToParticipantOverridesCompanion.insert({
+    this.handleId = const Value.absent(),
+    required int participantId,
+    this.source = const Value.absent(),
+    this.confidence = const Value.absent(),
+    required String createdAtUtc,
+    required String updatedAtUtc,
+  }) : participantId = Value(participantId),
+       createdAtUtc = Value(createdAtUtc),
+       updatedAtUtc = Value(updatedAtUtc);
+  static Insertable<HandleToParticipantOverride> custom({
+    Expression<int>? handleId,
+    Expression<int>? participantId,
+    Expression<String>? source,
+    Expression<double>? confidence,
+    Expression<String>? createdAtUtc,
+    Expression<String>? updatedAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (handleId != null) 'handle_id': handleId,
+      if (participantId != null) 'participant_id': participantId,
+      if (source != null) 'source': source,
+      if (confidence != null) 'confidence': confidence,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+    });
+  }
+
+  HandleToParticipantOverridesCompanion copyWith({
+    Value<int>? handleId,
+    Value<int>? participantId,
+    Value<String>? source,
+    Value<double>? confidence,
+    Value<String>? createdAtUtc,
+    Value<String>? updatedAtUtc,
+  }) {
+    return HandleToParticipantOverridesCompanion(
+      handleId: handleId ?? this.handleId,
+      participantId: participantId ?? this.participantId,
+      source: source ?? this.source,
+      confidence: confidence ?? this.confidence,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (handleId.present) {
+      map['handle_id'] = Variable<int>(handleId.value);
+    }
+    if (participantId.present) {
+      map['participant_id'] = Variable<int>(participantId.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleToParticipantOverridesCompanion(')
+          ..write('handleId: $handleId, ')
+          ..write('participantId: $participantId, ')
+          ..write('source: $source, ')
+          ..write('confidence: $confidence, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
@@ -1452,6 +1888,8 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
   late final $ChatOverridesTable chatOverrides = $ChatOverridesTable(this);
   late final $MessageAnnotationsTable messageAnnotations =
       $MessageAnnotationsTable(this);
+  late final $HandleToParticipantOverridesTable handleToParticipantOverrides =
+      $HandleToParticipantOverridesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1460,6 +1898,7 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
     participantOverrides,
     chatOverrides,
     messageAnnotations,
+    handleToParticipantOverrides,
   ];
 }
 
@@ -2214,6 +2653,246 @@ typedef $$MessageAnnotationsTableProcessedTableManager =
       MessageAnnotation,
       PrefetchHooks Function()
     >;
+typedef $$HandleToParticipantOverridesTableCreateCompanionBuilder =
+    HandleToParticipantOverridesCompanion Function({
+      Value<int> handleId,
+      required int participantId,
+      Value<String> source,
+      Value<double> confidence,
+      required String createdAtUtc,
+      required String updatedAtUtc,
+    });
+typedef $$HandleToParticipantOverridesTableUpdateCompanionBuilder =
+    HandleToParticipantOverridesCompanion Function({
+      Value<int> handleId,
+      Value<int> participantId,
+      Value<String> source,
+      Value<double> confidence,
+      Value<String> createdAtUtc,
+      Value<String> updatedAtUtc,
+    });
+
+class $$HandleToParticipantOverridesTableFilterComposer
+    extends Composer<_$OverlayDatabase, $HandleToParticipantOverridesTable> {
+  $$HandleToParticipantOverridesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get handleId => $composableBuilder(
+    column: $table.handleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HandleToParticipantOverridesTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $HandleToParticipantOverridesTable> {
+  $$HandleToParticipantOverridesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get handleId => $composableBuilder(
+    column: $table.handleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HandleToParticipantOverridesTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $HandleToParticipantOverridesTable> {
+  $$HandleToParticipantOverridesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get handleId =>
+      $composableBuilder(column: $table.handleId, builder: (column) => column);
+
+  GeneratedColumn<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$HandleToParticipantOverridesTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $HandleToParticipantOverridesTable,
+          HandleToParticipantOverride,
+          $$HandleToParticipantOverridesTableFilterComposer,
+          $$HandleToParticipantOverridesTableOrderingComposer,
+          $$HandleToParticipantOverridesTableAnnotationComposer,
+          $$HandleToParticipantOverridesTableCreateCompanionBuilder,
+          $$HandleToParticipantOverridesTableUpdateCompanionBuilder,
+          (
+            HandleToParticipantOverride,
+            BaseReferences<
+              _$OverlayDatabase,
+              $HandleToParticipantOverridesTable,
+              HandleToParticipantOverride
+            >,
+          ),
+          HandleToParticipantOverride,
+          PrefetchHooks Function()
+        > {
+  $$HandleToParticipantOverridesTableTableManager(
+    _$OverlayDatabase db,
+    $HandleToParticipantOverridesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HandleToParticipantOverridesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$HandleToParticipantOverridesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HandleToParticipantOverridesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> handleId = const Value.absent(),
+                Value<int> participantId = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
+              }) => HandleToParticipantOverridesCompanion(
+                handleId: handleId,
+                participantId: participantId,
+                source: source,
+                confidence: confidence,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> handleId = const Value.absent(),
+                required int participantId,
+                Value<String> source = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                required String createdAtUtc,
+                required String updatedAtUtc,
+              }) => HandleToParticipantOverridesCompanion.insert(
+                handleId: handleId,
+                participantId: participantId,
+                source: source,
+                confidence: confidence,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HandleToParticipantOverridesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $HandleToParticipantOverridesTable,
+      HandleToParticipantOverride,
+      $$HandleToParticipantOverridesTableFilterComposer,
+      $$HandleToParticipantOverridesTableOrderingComposer,
+      $$HandleToParticipantOverridesTableAnnotationComposer,
+      $$HandleToParticipantOverridesTableCreateCompanionBuilder,
+      $$HandleToParticipantOverridesTableUpdateCompanionBuilder,
+      (
+        HandleToParticipantOverride,
+        BaseReferences<
+          _$OverlayDatabase,
+          $HandleToParticipantOverridesTable,
+          HandleToParticipantOverride
+        >,
+      ),
+      HandleToParticipantOverride,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -2224,4 +2903,10 @@ class $OverlayDatabaseManager {
       $$ChatOverridesTableTableManager(_db, _db.chatOverrides);
   $$MessageAnnotationsTableTableManager get messageAnnotations =>
       $$MessageAnnotationsTableTableManager(_db, _db.messageAnnotations);
+  $$HandleToParticipantOverridesTableTableManager
+  get handleToParticipantOverrides =>
+      $$HandleToParticipantOverridesTableTableManager(
+        _db,
+        _db.handleToParticipantOverrides,
+      );
 }
