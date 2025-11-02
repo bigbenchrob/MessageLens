@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../db/feature_level_providers.dart';
+import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../db_importers/application/debug_settings_provider.dart';
 import '../../domain/entities/db_migration_result.dart';
@@ -113,6 +114,10 @@ class HandlesMigrationService {
     final orchestrator = MigrationOrchestrator(migrators);
 
     final overrides = await _snapshotHandleOverrides(workingDatabase);
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+    final handleOverrides = await _snapshotHandleToParticipantOverrides(
+      overlayDb,
+    );
 
     const basePhaseWeights = <TableMigrationPhase, double>{
       TableMigrationPhase.validatePrereqs: 0.2,
@@ -203,6 +208,10 @@ class HandlesMigrationService {
       await workingDatabase.createMessageIndexTriggers();
 
       await _restoreHandleOverrides(workingDatabase, overrides);
+      await _restoreHandleToParticipantOverrides(
+        workingDatabase,
+        handleOverrides,
+      );
 
       emitProgress(
         DbMigrationStage.completed,
@@ -372,4 +381,63 @@ class _HandleOverride {
 
   final bool isVisible;
   final bool isBlacklisted;
+}
+
+class _HandleToParticipantOverride {
+  const _HandleToParticipantOverride({
+    required this.handleId,
+    required this.participantId,
+  });
+
+  final int handleId;
+  final int participantId;
+}
+
+/// Snapshot handle-to-participant overrides from overlay DB
+Future<List<_HandleToParticipantOverride>>
+_snapshotHandleToParticipantOverrides(OverlayDatabase db) async {
+  final rows = await db.getAllHandleOverrides();
+  return rows
+      .map(
+        (row) => _HandleToParticipantOverride(
+          handleId: row.handleId,
+          participantId: row.participantId,
+        ),
+      )
+      .toList();
+}
+
+/// Restore handle-to-participant overrides after migration
+/// These are user-defined manual links that take precedence over AddressBook
+Future<void> _restoreHandleToParticipantOverrides(
+  WorkingDatabase db,
+  List<_HandleToParticipantOverride> overrides,
+) async {
+  if (overrides.isEmpty) {
+    return;
+  }
+
+  // Delete existing AddressBook links for these handles
+  // (Manual overrides take precedence)
+  final handleIds = overrides.map((o) => o.handleId).toList();
+  for (final handleId in handleIds) {
+    await (db.delete(db.handleToParticipant)
+          ..where((tbl) => tbl.handleId.equals(handleId))
+          ..where((tbl) => tbl.source.equals('addressbook')))
+        .go();
+  }
+
+  // Insert manual override links with source='user_manual'
+  for (final override in overrides) {
+    await db
+        .into(db.handleToParticipant)
+        .insert(
+          HandleToParticipantCompanion.insert(
+            handleId: override.handleId,
+            participantId: override.participantId,
+            confidence: const Value(1.0),
+            source: const Value('user_manual'),
+          ),
+        );
+  }
 }

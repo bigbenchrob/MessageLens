@@ -12,7 +12,9 @@ import '../../../../essentials/navigation/domain/entities/features/sidebar_spec.
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
+import '../../../settings/presentation/view_model/manual_linking_provider.dart';
 import '../../application/unmatched_handles_provider.dart';
+import '../widgets/contact_picker_dialog.dart';
 
 class UnmatchedHandlesSidebarView extends HookConsumerWidget {
   const UnmatchedHandlesSidebarView({required this.spec, super.key});
@@ -369,7 +371,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
   }
 }
 
-class _UnmatchedHandleListItem extends StatelessWidget {
+class _UnmatchedHandleListItem extends HookConsumerWidget {
   const _UnmatchedHandleListItem({
     required this.handle,
     required this.isSelected,
@@ -383,11 +385,88 @@ class _UnmatchedHandleListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
+    final isProcessing = useState(false);
+
+    Future<void> handleAssignToContact() async {
+      try {
+        // Show contact picker dialog
+        final participantId = await ContactPickerDialog.show(context);
+
+        if (participantId == null) {
+          return; // User cancelled
+        }
+
+        // Show processing state
+        isProcessing.value = true;
+
+        // Link the handle to the participant
+        await ref
+            .read(manualLinkingProvider.notifier)
+            .linkHandleToParticipant(
+              handleId: handle.handleId,
+              participantId: participantId,
+            );
+
+        if (context.mounted) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Handle successfully assigned to contact'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to assign handle: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        isProcessing.value = false;
+      }
+    }
+
+    void showContextMenu(BuildContext context, Offset position) {
+      final overlay =
+          Overlay.of(context).context.findRenderObject()! as RenderBox;
+
+      showMenu<String>(
+        context: context,
+        position: RelativeRect.fromRect(
+          Rect.fromLTWH(position.dx, position.dy, 0, 0),
+          Offset.zero & overlay.size,
+        ),
+        items: [
+          const PopupMenuItem<String>(
+            value: 'assign',
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.person_add, size: 16),
+                SizedBox(width: 8),
+                Text('Assign to contact...'),
+              ],
+            ),
+          ),
+        ],
+      ).then((value) {
+        if (value == 'assign') {
+          handleAssignToContact();
+        }
+      });
+    }
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: isProcessing.value ? null : onTap,
+      onSecondaryTapDown: (details) {
+        showContextMenu(context, details.globalPosition);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -398,90 +477,104 @@ class _UnmatchedHandleListItem extends StatelessWidget {
             bottom: BorderSide(color: theme.dividerColor, width: 0.5),
           ),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            // Icon indicating service type
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: handle.isProbableSpam
-                    ? Colors.orange.withValues(alpha: 0.2)
-                    : CupertinoColors.activeBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                handle.serviceType.toLowerCase().contains('sms') ||
-                        handle.serviceType == 'iMessage'
-                    ? CupertinoIcons.phone_fill
-                    : CupertinoIcons.mail_solid,
-                size: 20,
-                color: handle.isProbableSpam
-                    ? Colors.orange
-                    : CupertinoColors.activeBlue,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Handle info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            Row(
+              children: [
+                // Icon indicating service type
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: handle.isProbableSpam
+                        ? Colors.orange.withValues(alpha: 0.2)
+                        : CupertinoColors.activeBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    handle.serviceType.toLowerCase().contains('sms') ||
+                            handle.serviceType == 'iMessage'
+                        ? CupertinoIcons.phone_fill
+                        : CupertinoIcons.mail_solid,
+                    size: 20,
+                    color: handle.isProbableSpam
+                        ? Colors.orange
+                        : CupertinoColors.activeBlue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Handle info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Text(
-                          handle.handleValue,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (handle.isProbableSpam) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'SPAM?',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              handle.handleValue,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (handle.isProbableSpam) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'SPAM?',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${handle.totalMessages} ${handle.totalMessages == 1 ? 'message' : 'messages'} · ${handle.serviceType}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.typography.body.color?.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                ),
+                // Last message date
+                if (handle.lastMessageDate != null)
                   Text(
-                    '${handle.totalMessages} ${handle.totalMessages == 1 ? 'message' : 'messages'} · ${handle.serviceType}',
+                    dateFormatter.format(handle.lastMessageDate!),
                     style: TextStyle(
                       fontSize: 11,
                       color: theme.typography.body.color?.withValues(
-                        alpha: 0.6,
+                        alpha: 0.5,
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-            // Last message date
-            if (handle.lastMessageDate != null)
-              Text(
-                dateFormatter.format(handle.lastMessageDate!),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.typography.body.color?.withValues(alpha: 0.5),
+            // Processing overlay
+            if (isProcessing.value)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  child: const Center(child: ProgressCircle(radius: 12)),
                 ),
               ),
           ],

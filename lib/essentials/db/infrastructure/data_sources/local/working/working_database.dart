@@ -599,6 +599,70 @@ class WorkingDatabase extends _$WorkingDatabase {
 
     // Triggers will be recreated by _createVirtualTablesAndTriggers() after this
   }
+
+  /// Rebuild contact message index for a specific participant only
+  ///
+  /// More efficient than full rebuild when only one contact's links changed.
+  /// Used after manual handle-to-participant linking.
+  Future<void> rebuildContactMessageIndexForParticipant(
+    int participantId,
+  ) async {
+    // Delete existing entries for this participant
+    await (delete(
+      contactMessageIndex,
+    )..where((tbl) => tbl.contactId.equals(participantId))).go();
+
+    // Rebuild for this participant only using the same logic as full rebuild
+    await customStatement(
+      '''
+      WITH contact_messages_raw AS (
+        -- Outgoing messages: Index under recipient participant (filtered to target participant)
+        SELECT 
+          m.id AS message_id,
+          m.sent_at_utc,
+          htp_recip.participant_id AS contact_id
+        FROM messages m
+        JOIN chat_to_handle cth ON m.chat_id = cth.chat_id
+        JOIN handle_to_participant htp_recip ON cth.handle_id = htp_recip.handle_id
+        WHERE m.is_from_me = 1 
+          AND htp_recip.participant_id = ?
+        
+        UNION ALL
+        
+        -- Incoming messages: Index under sender participant (filtered to target participant)
+        SELECT 
+          m.id AS message_id,
+          m.sent_at_utc,
+          htp_sender.participant_id AS contact_id
+        FROM messages m
+        JOIN handles_canonical h_sender ON m.sender_handle_id = h_sender.id
+        JOIN handle_to_participant htp_sender ON h_sender.id = htp_sender.handle_id
+        WHERE m.is_from_me = 0
+          AND htp_sender.participant_id = ?
+      ),
+      contact_messages_deduped AS (
+        -- Deduplicate (message_id, contact_id) pairs
+        SELECT 
+          message_id,
+          MAX(sent_at_utc) AS sent_at_utc,
+          contact_id
+        FROM contact_messages_raw
+        WHERE contact_id IS NOT NULL
+        GROUP BY message_id, contact_id
+      )
+      INSERT INTO contact_message_index (contact_id, ordinal, message_id, sent_at_utc, month_key)
+      SELECT 
+        contact_id,
+        (ROW_NUMBER() OVER (PARTITION BY contact_id ORDER BY sent_at_utc, message_id) - 1) AS ordinal,
+        message_id,
+        sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+      FROM contact_messages_deduped
+      ORDER BY contact_id, sent_at_utc, message_id
+    ''',
+      [participantId, participantId],
+    );
+  }
 }
 
 const List<String> _workingIndexStatements = [

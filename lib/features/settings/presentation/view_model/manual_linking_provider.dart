@@ -143,27 +143,70 @@ class ManualLinking extends _$ManualLinking {
   }
 
   /// Link a handle to a participant manually
+  ///
+  /// This creates a permanent manual link that survives re-imports.
+  /// Steps:
+  /// 1. Create link in overlay database (for persistence)
+  /// 2. Update working.handle_to_participant
+  /// 3. Trigger contact message index rebuild for the participant
+  /// 4. Invalidate relevant provider caches
   Future<void> linkHandleToParticipant({
     required int handleId,
     required int participantId,
   }) async {
-    final db = await ref.watch(driftWorkingDatabaseProvider.future);
+    final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-    // Create the manual link with user_manual source
-    await db
-        .into(db.handleToParticipant)
-        .insert(
-          HandleToParticipantCompanion.insert(
-            handleId: handleId,
-            participantId: participantId,
-            confidence: const Value(0.8), // Lower confidence for manual links
-            source: const Value('user_manual'),
-          ),
-        );
+    // Step 1: Create overlay link (survives re-imports)
+    await overlayDb.setHandleOverride(handleId, participantId);
 
-    // Refresh the unlinked handles list
+    // Step 2: Delete any existing AddressBook link for this handle
+    await (workingDb.delete(workingDb.handleToParticipant)
+          ..where((tbl) => tbl.handleId.equals(handleId))
+          ..where((tbl) => tbl.source.equals('addressbook')))
+        .go();
+
+    /// Unlink a handle from a participant
+    ///
+    /// This removes the manual link from both overlay and working databases.
+    Future<void> unlinkHandle(int handleId) async {
+      final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
+      final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+
+      // Get participant ID before deleting (for index rebuild)
+      final link = await (workingDb.select(
+        workingDb.handleToParticipant,
+      )..where((tbl) => tbl.handleId.equals(handleId))).getSingleOrNull();
+
+      final participantId = link?.participantId;
+
+      // Delete from overlay database
+      await overlayDb.deleteHandleOverride(handleId);
+
+      // Delete from working database
+      await (workingDb.delete(
+        workingDb.handleToParticipant,
+      )..where((htp) => htp.handleId.equals(handleId))).go();
+
+      // Rebuild index for affected participant
+      if (participantId != null) {
+        await workingDb.rebuildContactMessageIndexForParticipant(participantId);
+      }
+
+      // Refresh the lists
+      ref.invalidate(unlinkedHandlesProvider);
+      ref.invalidate(availableParticipantsProvider);
+    }
+
+    // Step 4: Rebuild contact message index for this participant
+    await workingDb.rebuildContactMessageIndexForParticipant(participantId);
+
+    // Step 5: Invalidate affected providers
     ref.invalidate(unlinkedHandlesProvider);
     ref.invalidate(availableParticipantsProvider);
+    // TODO: Add more invalidations when implementing UI integration:
+    // ref.invalidate(contactMessagesOrdinalProvider);
+    // ref.invalidate(chatsForContactProvider);
   }
 
   /// Unlink a handle from a participant
