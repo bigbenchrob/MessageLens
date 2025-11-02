@@ -169,34 +169,6 @@ class ManualLinking extends _$ManualLinking {
     /// Unlink a handle from a participant
     ///
     /// This removes the manual link from both overlay and working databases.
-    Future<void> unlinkHandle(int handleId) async {
-      final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
-      final overlayDb = await ref.watch(overlayDatabaseProvider.future);
-
-      // Get participant ID before deleting (for index rebuild)
-      final link = await (workingDb.select(
-        workingDb.handleToParticipant,
-      )..where((tbl) => tbl.handleId.equals(handleId))).getSingleOrNull();
-
-      final participantId = link?.participantId;
-
-      // Delete from overlay database
-      await overlayDb.deleteHandleOverride(handleId);
-
-      // Delete from working database
-      await (workingDb.delete(
-        workingDb.handleToParticipant,
-      )..where((htp) => htp.handleId.equals(handleId))).go();
-
-      // Rebuild index for affected participant
-      if (participantId != null) {
-        await workingDb.rebuildContactMessageIndexForParticipant(participantId);
-      }
-
-      // Refresh the lists
-      ref.invalidate(unlinkedHandlesProvider);
-      ref.invalidate(availableParticipantsProvider);
-    }
 
     // Step 4: Rebuild contact message index for this participant
     await workingDb.rebuildContactMessageIndexForParticipant(participantId);
