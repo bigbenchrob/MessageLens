@@ -17,22 +17,12 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
-    },
-    onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 2) {
-        // Add MessageAnnotations table in schema version 2
-        await m.createTable(messageAnnotations);
-      }
-      if (from < 3) {
-        // Add HandleToParticipantOverrides table in schema version 3
-        await m.createTable(handleToParticipantOverrides);
-      }
     },
   );
 

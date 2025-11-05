@@ -8,7 +8,7 @@ Mount the shared repo at `agent/_shared` or similar.
 | Folder | Purpose | Canonical docs |
 | --- | --- | --- |
 | `00-project/` | Entry points and global context | [`overview.md`](00-project/overview.md), [`data-locations.md`](00-project/data-locations.md), [`aggregate-boundaries.md`](00-project/aggregate-boundaries.md), [`architecture-overview.md`](00-project/architecture-overview.md), [`env-and-secrets.md`](00-project/env-and-secrets.md) |
-| `05-databases/` | Database locations & access patterns | [`README.md`](05-databases/README.md), [`addressbook-path-resolution.md`](05-databases/addressbook-path-resolution.md) |
+| `05-databases/` | Database locations & access patterns | 🚨 **[`overlay-database-independence.md`](05-databases/overlay-database-independence.md)** (READ FIRST), [`README.md`](05-databases/README.md), [`addressbook-path-resolution.md`](05-databases/addressbook-path-resolution.md) |
 | `10-features/` | Completed feature documentation | [`navigation-overview.md`](10-features/navigation-overview.md), [`chats/overview.md`](10-features/chats/overview.md), [`messages/overview.md`](10-features/messages/overview.md) |
 | `20-new-features/` | **Active feature development** | [`README.md`](20-new-features/README.md) — See [Workflow Guide](../agent-instructions-shared/50-ai-workflow/feature-development-workflow.md) |
 | `30-migrations/` | Schema history and playbooks | [`migration-playbook.md`](30-migrations/migration-playbook.md), [`schema-history.md`](30-migrations/schema-history.md), [`schema-reference.md`](30-migrations/schema-reference.md), [`migration-orchestrator.md`](30-migrations/migration-orchestrator.md) |

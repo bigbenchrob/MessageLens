@@ -48,7 +48,7 @@ final availableParticipantsProvider =
 // ignore: unused_element
 typedef AvailableParticipantsRef =
     AutoDisposeFutureProviderRef<List<AvailableParticipant>>;
-String _$manualLinkingHash() => r'8fd7a0f8551bdb8b643183e7ed6bbabdc086933d';
+String _$manualLinkingHash() => r'fd69737ac307c837ff9c2a5c92b48250385da866';
 
 /// Provider for manual linking operations
 ///

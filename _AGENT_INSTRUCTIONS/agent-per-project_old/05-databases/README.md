@@ -2,8 +2,15 @@
 
 > Use this folder whenever you need to touch data stores. It consolidates where the databases live, how they are exposed to Dart, and which schemas govern the ledger (`macos_import.db`) and projection (`working.db`).
 
+## 🚨 CRITICAL: Database Independence Rule
+
+**READ THIS FIRST:** [Overlay Database Independence](overlay-database-independence.md)
+
+The overlay and working databases are **COMPLETELY INDEPENDENT**. They do NOT synchronize. Data merging happens **ONLY at the provider layer**. If you're working with manual user overrides or customizations, read this document IMMEDIATELY.
+
 ## Reference Library
 
+- 🚨 **[Overlay Database Independence](overlay-database-independence.md)** - Critical architectural principle
 - [Schema Overview](schema-overview.md)
 - [Working Database Schema Reference](working-schema-reference.md)
 - [Overlay Database: Extension Possibilities](overlay-database-extensions.md)

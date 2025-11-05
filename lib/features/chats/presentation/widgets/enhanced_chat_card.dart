@@ -137,9 +137,9 @@ class EnhancedChatCard extends StatelessWidget {
   }
 
   String _getHandleDisplayText() {
-    // Show the actual handle identifier (email/phone)
+    // Show all handle identifiers (email/phone) separated by commas
     if (chat.handles.isNotEmpty) {
-      return chat.handles.first;
+      return chat.handles.join(', ');
     }
     return 'Unknown';
   }

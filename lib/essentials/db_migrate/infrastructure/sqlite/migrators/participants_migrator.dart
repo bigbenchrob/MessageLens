@@ -77,7 +77,7 @@ class ParticipantsMigrator extends BaseTableMigrator {
           NULL AS updated_at_utc,
           c.id AS source_record_id
         FROM $_attachAlias.contacts c
-        WHERE c.is_ignored = 0 AND c.Z_PK IS NOT NULL;
+        WHERE c.Z_PK IS NOT NULL;
       ''');
 
       final rows = await ctx.workingDb
@@ -116,7 +116,7 @@ class ParticipantsMigrator extends BaseTableMigrator {
   Future<int> _countImportContacts(MigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
-      'SELECT COUNT(*) AS c FROM contacts WHERE is_ignored = 0 AND Z_PK IS NOT NULL',
+      'SELECT COUNT(*) AS c FROM contacts WHERE Z_PK IS NOT NULL',
     );
     if (rows.isEmpty) {
       return 0;
