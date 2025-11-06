@@ -2,20 +2,20 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./01-db-import.md
   - ./02-db-working.md
   - ./03-db-address-book.md
   - ./04-db-chat.md
-  - ./10-group-import-working.md
   - ./06-addressbook-path-resolution.md
   - ./07-overlay-database-independence.md
-  - ../20-MIGRATIONS/migration-orchestrator.md
-  - ../40-INTEGRATION/import-orchestrator.md
-  - ../20-MIGRATIONS/schema-reference.md
+  - ./10-group-import-working.md
+  - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 
@@ -35,11 +35,11 @@ This walkthrough captures the end-to-end path a macOS AddressBook contact takes 
   - `contact_phone_email` – normalised phone/email rows keyed by `ZOWNER`.
   - `contact_to_chat_handle` – matches between AddressBook contacts and chat handles, including confidence scores and batch IDs.
 - Chat handles import into ledger `handles` and membership rows populate `chat_to_handle`.
-- All ledger tables retain original ROWIDs and append-only batches (`../20-MIGRATIONS/schema-reference.md`).
+- All ledger tables retain original ROWIDs and append-only batches (`../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`).
 
 ## 3. Migration Phase (Projection Population)
 
-- `HandlesMigrationService` invokes `MigrationOrchestrator` to copy ledger data into `db-working` (`../20-MIGRATIONS/migration-orchestrator.md`).
+- `HandlesMigrationService` invokes `MigrationOrchestrator` to copy ledger data into `db-working` (`../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md`).
 - Migrators run in dependency order (handles → chats → memberships → participants → messages) using canonical maps supplied by `MigrationContext`.
 
 ### Key Migrator Outputs

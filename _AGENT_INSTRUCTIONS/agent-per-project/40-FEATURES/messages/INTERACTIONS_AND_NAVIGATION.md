@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: interactions
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./CHARTER.md
+	- ../../60-NAVIGATION/navigation-overview.md
+tests: []
 feature: messages
 doc_type: interactions
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

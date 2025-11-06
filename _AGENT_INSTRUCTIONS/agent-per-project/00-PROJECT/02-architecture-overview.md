@@ -1,14 +1,12 @@
----
 tier: project
 scope: architecture
 owner: agent-per-project
 last_reviewed: 2025-01-30
-source_of_truth: This file
+source_of_truth: doc
 links:
     - ./01-aggregate-boundaries.md
     - ../10-DATABASES/00-all-databases-accessed.md
 tests: []
----
 
 # Architecture and Naming Conventions
 

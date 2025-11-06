@@ -2,17 +2,17 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
+  - ./02-db-working.md
   - ./03-db-address-book.md
   - ./04-db-chat.md
-  - ./02-db-working.md
   - ./10-group-import-working.md
-  - ../20-MIGRATIONS/schema-reference.md
-  - ../20-MIGRATIONS/migration-orchestrator.md
-  - ../40-INTEGRATION/import-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md
 tests: []
 ---
 
@@ -56,7 +56,7 @@ Do not instantiate `SqfliteImportDatabase` manually; the provider handles direct
 `db-import` is a plain Sqflite database; schema definitions live alongside the import infrastructure. Key references:
 
 - `lib/essentials/db/infrastructure/data_sources/local/import/sqflite_import_database.dart` — Sqflite helper and schema bootstrap.
-- `_AGENT_INSTRUCTIONS/agent-per-project/20-MIGRATIONS/schema-reference.md` — Canonical table/column descriptions.
+- `_AGENT_INSTRUCTIONS/agent-per-project/20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Canonical table/column descriptions.
 
 Core tables include:
 
@@ -89,4 +89,4 @@ Because `db-import` is append-only, it provides a reliable audit trail for diagn
 - `10-group-import-working.md` — How `db-import` feeds `db-working`.
 - `02-db-working.md` — Projection database consuming this ledger.
 - `../40-INTEGRATION/import-orchestrator.md` — Pipeline that populates `db-import`.
-- `../20-MIGRATIONS/migration-orchestrator.md` — Pipeline that reads from `db-import`.
+- `../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md` — Pipeline that reads from `db-import`.

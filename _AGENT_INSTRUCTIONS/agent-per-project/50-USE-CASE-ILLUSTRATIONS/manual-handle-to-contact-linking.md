@@ -3,8 +3,8 @@ feature: manual-handle-to-contact-linking
 status: in-development
 created: 2025-11-04
 related_docs:
-  - ../20-new-features/manual-handle-to-contact-linking/PROPOSAL.md
-  - ../20-new-features/manual-handle-to-contact-linking/CHECKLIST.md
+  - ../30-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/PROPOSAL.md
+  - ../30-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/CHECKLIST.md
 ---
 
 # Use Case: Manual Handle-to-Contact Linking
@@ -38,23 +38,22 @@ Implement a **manual handle-to-contact linking system** that:
 **Change Required**: `ParticipantsMigrator` must import all AddressBook contacts, not just matched ones.
 
 **Before**:
-```sql
-WHERE c.is_ignored = 0 AND c.Z_PK IS NOT NULL 
-  AND EXISTS (SELECT 1 FROM contact_to_handle WHERE contact_z_pk = c.Z_PK)
-```
-
-**After**:
-```sql
-WHERE c.is_ignored = 0 AND c.Z_PK IS NOT NULL
-```
-
-**Impact**: Increases imported participants by ~10-30% (typical ratio of contacts with/without messages), but necessary for feature to work.
-
-### 2. Overlay Database Extension
-
-**Why Overlay DB?**: Manual links are user preferences, not source data. They must:
-- Persist across full database re-imports
-- Never be overwritten by migration
+---
+tier: project
+scope: use-case-illustrations
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ../10-DATABASES/05-db-overlay.md
+  - ../40-FEATURES/chat-handles/STATE_AND_PROVIDER_INVENTORY.md
+tests: []
+feature: manual-handle-to-contact-linking
+status: in-development
+created: 2025-11-04
+related_docs:
+  - ../30-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/PROPOSAL.md
+  - ../30-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/CHECKLIST.md
 - Be user-editable (add/remove links)
 
 **New Table**: `handle_to_participant_overrides`

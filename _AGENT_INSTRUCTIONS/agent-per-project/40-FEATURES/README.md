@@ -1,3 +1,16 @@
+---
+tier: project
+scope: features
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ../30-NEW-FEATURE-ADDITION/README.md
+  - ./chat-handles/CHARTER.md
+  - ../50-USE-CASE-ILLUSTRATIONS/README.md
+tests: []
+---
+
 # Features Library
 
 This directory documents every shipped feature. Each child folder should represent a stable capability that has graduated from `30-NEW-FEATURE-ADDITION/`.

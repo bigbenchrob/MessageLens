@@ -2,14 +2,14 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./06-addressbook-path-resolution.md
   - ./01-db-import.md
   - ./10-group-import-working.md
-  - ../20-MIGRATIONS/schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 
@@ -76,4 +76,4 @@ The import pipeline copies this data into ledger tables (`contacts`, `contact_ph
 - `06-addressbook-path-resolution.md` — Full provider chain and testing guidance.
 - `01-db-import.md` — Ledger destination after AddressBook data is staged.
 - `10-group-import-working.md` — Contract guaranteeing `Z_PK` propagation into `db-working`.
-- `../20-MIGRATIONS/schema-reference.md` — Ledger table definitions referencing AddressBook data.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Ledger table definitions referencing AddressBook data.

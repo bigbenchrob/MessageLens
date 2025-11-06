@@ -2,13 +2,13 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./01-db-import.md
   - ./10-group-import-working.md
-  - ../20-MIGRATIONS/schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 
@@ -54,4 +54,4 @@ Importers persist these tables into ledger equivalents (`chats`, `handles`, `mes
 
 - `01-db-import.md` — Ledger schema seeded from `chat.db`.
 - `10-group-import-working.md` — Contract ensuring IDs survive into `db-working`.
-- `../20-MIGRATIONS/schema-reference.md` — Detailed ledger table definitions.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Detailed ledger table definitions.

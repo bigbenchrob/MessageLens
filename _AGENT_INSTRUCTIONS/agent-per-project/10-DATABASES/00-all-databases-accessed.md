@@ -2,8 +2,8 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
        - ../00-PROJECT/03-data-locations.md
        - ./03-db-address-book.md
@@ -11,7 +11,7 @@ links:
        - ./05-db-overlay.md
        - ./06-addressbook-path-resolution.md
        - ./07-overlay-database-independence.md
-       - ../20-MIGRATIONS/schema-reference.md
+       - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 
@@ -84,4 +84,4 @@ macOS AddressBook (db-address-book)
 - `06-addressbook-path-resolution.md` — Provider chain for locating the live AddressBook.
 - `07-overlay-database-independence.md` — Non-negotiable rule set for overlay/working separation.
 - `10-group-import-working.md` — Contract tying the import and working databases together.
-- `../20-MIGRATIONS/schema-reference.md` — Table schemas for all ledger/projection databases.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Table schemas for all ledger/projection databases.

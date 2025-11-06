@@ -1,3 +1,27 @@
+---
+tier: project
+scope: use-case-illustrations
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ../30-NEW-FEATURE-ADDITION/README.md
+  - ./manual-handle-to-contact-linking.md
+tests: []
+---
+
+---
+tier: project
+scope: use-case-illustrations
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ../30-NEW-FEATURE-ADDITION/README.md
+  - ./manual-handle-to-contact-linking.md
+tests: []
+---
+
 # Use Case Illustrations
 
 This directory captures narrative walk-throughs of shipped capabilities. Each illustration explains how a user intention travels through UI, providers, services, migrations, and databases so future maintainers understand both **what** happens and **why** it happens that way.

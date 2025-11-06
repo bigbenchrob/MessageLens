@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: domain-data-map
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./CHARTER.md
+	- ./STATE_AND_PROVIDER_INVENTORY.md
+tests: []
 feature: chat-handles
 doc_type: domain-data-map
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

@@ -8,7 +8,6 @@ links:
   - ./01-overview.md
   - ./10-import-orchestrator.md
   - ../10-DATABASES/01-db-import.md
-  - ../../agent-per-project_old/40-integration/rust-message-extractor.md
 ---
 
 # Rust Message Text Extractor

@@ -1,14 +1,13 @@
 ---
----
 tier: project
 scope: navigation
 owner: agent-per-project
-last_reviewed: 2025-01-30
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ../00-PROJECT/02-architecture-overview.md
-  - ../../agent-instructions-shared/20-flutter/widgets.md
   - ../../agent-instructions-shared/00-global/riverpod-rules.md
+  - ../../agent-instructions-shared/20-flutter/widgets.md
 tests: []
 ---
 

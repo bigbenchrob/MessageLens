@@ -8,8 +8,8 @@ links:
   - ./01-overview.md
   - ./02-import-migration-schema-reference.md
   - ./10-import-orchestrator.md
+  - ./25-table-migrators.md
   - ../10-DATABASES/02-db-working.md
-  - ../../agent-per-project_old/20-migrations/migration-orchestrator.md
 ---
 
 # Migration Orchestrator

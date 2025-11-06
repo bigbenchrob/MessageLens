@@ -2,8 +2,8 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
        - ./00-all-databases-accessed.md
        - ./01-db-import.md
@@ -13,8 +13,8 @@ links:
        - ./05-db-overlay.md
        - ./07-overlay-database-independence.md
        - ./11-contact-to-chat-linking.md
-       - ../20-MIGRATIONS/migration-orchestrator.md
-       - ../40-INTEGRATION/import-orchestrator.md
+       - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
+       - ../20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md
 tests: []
 ---
 
@@ -35,7 +35,7 @@ macOS AddressBook (db-address-book)
 ```
 
 - **Import orchestrator** (`../40-INTEGRATION/import-orchestrator.md`) copies raw data into `db-import`, preserving all source ROWIDs and batch metadata.
-- **Migration orchestrator** (`../20-MIGRATIONS/migration-orchestrator.md`) projects ledger tables into Drift models with UI-friendly indexing.
+- **Migration orchestrator** (`../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md`) projects ledger tables into Drift models with UI-friendly indexing.
 
 ## 2. ID Preservation Rules (**Do Not Break**)
 
@@ -76,4 +76,4 @@ If a proposed change requires remapping IDs, stop and revisit this contract—re
 - `01-db-import.md` — Ledger details and provider access.
 - `02-db-working.md` — Projection schema and usage.
 - `./11-contact-to-chat-linking.md` — Deep dive into handle/contact/chat linking.
-- `../20-MIGRATIONS/schema-reference.md` — Table-level schema definitions.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Table-level schema definitions.

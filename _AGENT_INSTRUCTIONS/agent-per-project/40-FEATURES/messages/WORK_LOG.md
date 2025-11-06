@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: work-log
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./CHARTER.md
+	- ./TESTING_AND_MONITORING.md
+tests: []
 feature: messages
 doc_type: work-log
-owner: @rob
 status: active
 last_updated: 2025-11-06
 ---

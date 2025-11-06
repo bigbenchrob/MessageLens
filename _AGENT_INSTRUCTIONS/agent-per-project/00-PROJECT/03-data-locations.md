@@ -1,7 +1,7 @@
 ---
 tier: project
 scope: data
-owner: @rob
+owner: agent-per-project
 last_reviewed: 2025-10-25
 source_of_truth: doc
 links: []
@@ -28,5 +28,5 @@ tests: []
 - Schema definitions live in:
   - Import DB: `lib/essentials/db/infrastructure/data_sources/local/import/sqflite_import_database.dart`
   - Working DB: `lib/essentials/db/infrastructure/data_sources/local/working/working_database.dart`
-  - High-level summaries: `_AGENT_INSTRUCTIONS/agent-per-project/20-MIGRATIONS/schema-reference.md`
-- Migration playbooks and smoke-query checklists: `_AGENT_INSTRUCTIONS/agent-per-project/20-MIGRATIONS/`
+  - High-level summaries: `_AGENT_INSTRUCTIONS/agent-per-project/20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`
+    - Migration playbooks and smoke-query checklists: `_AGENT_INSTRUCTIONS/agent-per-project/20-DATA-IMPORT-MIGRATION/`

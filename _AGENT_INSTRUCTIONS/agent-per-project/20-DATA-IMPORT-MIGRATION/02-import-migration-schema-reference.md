@@ -13,7 +13,6 @@ links:
   - ../10-DATABASES/02-db-working.md
   - ../10-DATABASES/10-group-import-working.md
   - ../10-DATABASES/11-contact-to-chat-linking.md
-  - ../../agent-per-project_old/20-migrations/schema-reference.md
 tests: []
 ---
 

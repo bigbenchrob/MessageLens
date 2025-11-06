@@ -1,3 +1,18 @@
+---
+tier: feature
+scope: provider-strategy
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+  - ./PROPOSAL.md
+  - ../../50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md
+tests: []
+feature: manual-handle-to-contact-linking
+doc_type: provider-strategy
+status: draft
+last_updated: 2025-11-06
+---
+
 # Provider Strategy: Contact Menus (Working + Overlay DBs)
 
 This document describes the **simplest and clearest provider strategy** for supplying both:

@@ -1,14 +1,14 @@
 ---
 tier: project
 scope: architecture
-owner: @rob
+owner: agent-per-project
 last_reviewed: 2025-10-30
 source_of_truth: doc
 links:
   - ../_shared/30-architecture/ddd-app-structure.md
   - ../10-DATABASES/11-contact-to-chat-linking.md
-  - ../20-MIGRATIONS/migration-orchestrator.md
-  - ../20-MIGRATIONS/schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 

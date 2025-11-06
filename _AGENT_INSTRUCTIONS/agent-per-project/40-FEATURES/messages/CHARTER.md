@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: charter
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./DOMAIN_AND_DATA_MAP.md
+	- ./STATE_AND_PROVIDER_INVENTORY.md
+tests: []
 feature: messages
 doc_type: charter
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

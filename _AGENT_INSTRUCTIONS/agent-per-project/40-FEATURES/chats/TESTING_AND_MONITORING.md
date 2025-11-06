@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: testing-monitoring
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./STATE_AND_PROVIDER_INVENTORY.md
+	- ./WORK_LOG.md
+tests: []
 feature: chats
 doc_type: testing-monitoring
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

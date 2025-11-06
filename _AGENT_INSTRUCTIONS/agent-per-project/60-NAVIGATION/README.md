@@ -1,3 +1,27 @@
+---
+tier: project
+scope: navigation
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ./navigation-overview.md
+  - ../40-FEATURES/README.md
+tests: []
+---
+
+---
+tier: project
+scope: navigation
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ./navigation-overview.md
+  - ../40-FEATURES/README.md
+tests: []
+---
+
 # Navigation Documentation
 
 This folder gathers all guidance for the ViewSpec-driven navigation system. This project standardizes on sealed ViewSpec types, panel view state providers, and feature coordinators to keep navigation declarative, type-safe, and testable.

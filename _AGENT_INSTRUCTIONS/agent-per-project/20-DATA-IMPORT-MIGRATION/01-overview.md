@@ -3,7 +3,7 @@ tier: project
 scope: data-import-migration
 owner: agent-per-project
 last_reviewed: 2025-11-06
-source_of_truth: This file
+source_of_truth: doc
 links:
       - ./02-import-migration-schema-reference.md
       - ./10-import-orchestrator.md

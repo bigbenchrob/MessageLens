@@ -7,10 +7,9 @@ source_of_truth: code
 links:
   - ./01-overview.md
   - ./10-import-orchestrator.md
+   - ./11-rust-message-extractor.md
   - ./02-import-migration-schema-reference.md
   - ../10-DATABASES/01-db-import.md
-  - ../../agent-per-project_old/40-integration/import-orchestrator.md
-  - ../../agent-per-project_old/40-integration/pipelines.md
   - lib/essentials/db_importers/infrastructure/sqlite/import_context_sqlite.dart
   - lib/essentials/db_importers/infrastructure/sqlite/importers/messages_importer.dart
   - lib/essentials/db_importers/application/services/base_table_importer.dart

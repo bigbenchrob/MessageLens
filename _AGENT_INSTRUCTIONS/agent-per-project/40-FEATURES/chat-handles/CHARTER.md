@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: charter
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ../chat-handles/DOMAIN_AND_DATA_MAP.md
+	- ../../50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md
+tests: []
 feature: chat-handles
 doc_type: charter
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

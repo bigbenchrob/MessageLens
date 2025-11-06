@@ -1,8 +1,15 @@
 ---
+tier: feature
+scope: proposal
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+  - ../../50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md
+  - ../../40-FEATURES/chat-handles/CHARTER.md
+tests: []
 feature: manual-handle-to-contact-linking
 status: proposed
 created: 2025-11-01
-owner: agent
 ---
 
 # Feature Proposal: Manual Handle-to-Contact Linking

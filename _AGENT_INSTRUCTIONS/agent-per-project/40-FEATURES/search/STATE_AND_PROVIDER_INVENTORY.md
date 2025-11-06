@@ -1,7 +1,14 @@
 ---
+tier: feature
+scope: state-provider-inventory
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+	- ./CHARTER.md
+	- ./DOMAIN_AND_DATA_MAP.md
+tests: []
 feature: search
 doc_type: state-provider-inventory
-owner: @rob
 status: draft
 last_updated: 2025-11-06
 ---

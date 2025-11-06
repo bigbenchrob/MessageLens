@@ -2,8 +2,8 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./02-db-working.md
@@ -133,4 +133,4 @@ Future<void> syncOverlayToWorking(Ref ref) async {
 - `02-db-working.md` — Drift projection overview.
 - `05-db-overlay.md` — Overlay database schema and access patterns.
 - `10-group-import-working.md` — Import ↔ working contract.
-- `../20-MIGRATIONS/schema-reference.md` — Table definitions for both databases.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Table definitions for both databases.

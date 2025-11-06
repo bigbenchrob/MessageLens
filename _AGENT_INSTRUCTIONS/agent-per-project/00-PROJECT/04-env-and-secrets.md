@@ -1,7 +1,7 @@
 ---
 tier: project
 scope: security
-owner: @rob
+owner: agent-per-project
 last_reviewed: 2025-10-25
 source_of_truth: code
 links: []

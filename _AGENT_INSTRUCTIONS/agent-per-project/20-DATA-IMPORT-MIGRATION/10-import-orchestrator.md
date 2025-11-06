@@ -8,9 +8,9 @@ links:
   - ./01-overview.md
   - ./02-import-migration-schema-reference.md
   - ./11-rust-message-extractor.md
+  - ./15-table-importers.md
   - ../10-DATABASES/01-db-import.md
   - ../10-DATABASES/10-group-import-working.md
-  - ../../agent-per-project_old/40-integration/import-orchestrator.md
 ---
 
 # Import Orchestrator

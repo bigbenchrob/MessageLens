@@ -2,16 +2,16 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./01-db-import.md
   - ./05-db-overlay.md
   - ./10-group-import-working.md
   - ./07-overlay-database-independence.md
-  - ../20-MIGRATIONS/schema-reference.md
-  - ../20-MIGRATIONS/migration-orchestrator.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
 tests: []
 ---
 
@@ -54,7 +54,7 @@ Do not instantiate `WorkingDatabase` directly—providers configure foreign key 
 
 - Drift database: `lib/essentials/db/infrastructure/data_sources/local/working/working_database.dart`
 - Generated tables live under `lib/essentials/db/infrastructure/data_sources/local/working/tables/`
-- See `_AGENT_INSTRUCTIONS/agent-per-project/20-MIGRATIONS/schema-reference.md` for full table listings and relationships.
+- See `_AGENT_INSTRUCTIONS/agent-per-project/20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` for full table listings and relationships.
 
 Representative tables:
 
@@ -87,4 +87,4 @@ Remember: `db-working` is regenerated on every migration pass. Any manual edits 
 - `10-group-import-working.md` — Pipeline rules governing how data arrives here.
 - `01-db-import.md` — Source ledger feeding this projection.
 - `07-overlay-database-independence.md` — Runtime merge strategy for overlay data.
-- `../20-MIGRATIONS/migration-orchestrator.md` — Service orchestrating projections into `db-working`.
+- `../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md` — Service orchestrating projections into `db-working`.

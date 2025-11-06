@@ -1,4 +1,12 @@
 ---
+tier: feature
+scope: checklist
+owner: agent-per-project
+last_reviewed: 2025-11-06
+links:
+  - ./PROPOSAL.md
+  - ../../50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md
+tests: []
 feature: manual-handle-to-contact-linking
 status: in-development
 created: 2025-11-01

@@ -1,3 +1,15 @@
+---
+tier: project
+scope: workflow
+owner: agent-per-project
+last_reviewed: 2025-11-06
+source_of_truth: doc
+links:
+  - ../agent-instructions-shared/INDEX.md
+  - ../40-FEATURES/README.md
+tests: []
+---
+
 # New Feature Addition Workflow
 
 This folder tracks feature work that is still in planning or active development. Follow this workflow whenever the user asks for a new capability that is not yet represented in `40-FEATURES/`.
@@ -34,7 +46,7 @@ Templates live under `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates
 
 ## Reference Material
 
-- Workflow guide: `_AGENT_INSTRUCTIONS/agent-instructions-shared/50-ai-workflow/feature-development-workflow.md`
+- Workflow guide: `_AGENT_INSTRUCTIONS/agent-instructions-shared/40-tooling/agent-toolkit-references.md`
 - Proposal template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-proposal-template.md`
 - Checklist template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-checklist-template.md`
 - Testing template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-tests-template.md`

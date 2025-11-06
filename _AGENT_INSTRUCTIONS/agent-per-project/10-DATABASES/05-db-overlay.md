@@ -2,13 +2,13 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-05
-source_of_truth: This file
+last_reviewed: 2025-11-06
+source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./07-overlay-database-independence.md
   - ./10-group-import-working.md
-  - ../20-MIGRATIONS/schema-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
 
@@ -52,7 +52,7 @@ Providers that merge overlay and working data must request both databases separa
 | `chat_overrides` | Chat-specific preferences (custom titles, colours, pin states) that persist across rebuilds. |
 | `message_annotations` (planned) | Future table for per-message user notes and flags. |
 
-Full definitions live in `lib/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart` and `_AGENT_INSTRUCTIONS/agent-per-project/20-MIGRATIONS/schema-reference.md`.
+Full definitions live in `lib/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart` and `_AGENT_INSTRUCTIONS/agent-per-project/20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`.
 
 ## Usage Rules
 
@@ -65,4 +65,4 @@ Full definitions live in `lib/essentials/db/infrastructure/data_sources/local/ov
 
 - `07-overlay-database-independence.md` — Architectural rules for keeping overlay and working databases isolated.
 - `10-group-import-working.md` — Context on how overlay data supplements the import/working pipeline.
-- `../20-MIGRATIONS/schema-reference.md` — Table definitions and migration history.
+- `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Table definitions and migration history.

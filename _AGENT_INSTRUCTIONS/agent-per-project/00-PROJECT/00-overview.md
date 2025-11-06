@@ -1,11 +1,11 @@
 ---
 tier: project
 scope: overview
-owner: @rob
+owner: agent-per-project
 last_reviewed: 2025-10-25
 source_of_truth: doc
 links:
-  - ../_shared/INDEX.md
+  - ../agent-instructions-shared/INDEX.md
   - ./03-data-locations.md
 tests: []
 ---
@@ -18,4 +18,4 @@ tests: []
 - Code owners: <handles>
 - Test strategy: <smoke/golden/unit>
 - Data access quickstart: see `00-PROJECT/03-data-locations.md`
-- Database schemas: see `20-MIGRATIONS/schema-reference.md`
+- Database schemas: see `20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`
