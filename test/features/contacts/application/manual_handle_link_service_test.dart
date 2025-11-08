@@ -1,4 +1,3 @@
-import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';

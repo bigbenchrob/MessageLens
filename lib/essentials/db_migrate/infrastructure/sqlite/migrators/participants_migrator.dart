@@ -6,6 +6,41 @@ class ParticipantsMigrator extends BaseTableMigrator {
 
   static const _attachAlias = 'import_contacts';
 
+  static String _projectableContactPredicate(String alias) =>
+      '''
+$alias.Z_PK IS NOT NULL
+AND (
+  COALESCE(TRIM($alias.display_name), '') NOT IN ('', 'Unknown Contact')
+  OR COALESCE(TRIM($alias.short_name), '') NOT IN ('', 'Unknown Contact')
+  OR COALESCE(TRIM($alias.first_name), '') != ''
+  OR COALESCE(TRIM($alias.last_name), '') != ''
+  OR COALESCE(TRIM($alias.organization), '') != ''
+)
+''';
+
+  static String _resolvedDisplayNameExpr(String alias) =>
+      '''
+COALESCE(
+  NULLIF(TRIM($alias.display_name), ''),
+  NULLIF(TRIM($alias.organization), ''),
+  NULLIF(TRIM($alias.short_name), ''),
+  NULLIF(TRIM($alias.first_name), ''),
+  NULLIF(TRIM($alias.last_name), ''),
+  'Unknown Contact'
+)
+''';
+
+  static String _resolvedShortNameExpr(String alias) =>
+      '''
+COALESCE(
+  NULLIF(TRIM($alias.short_name), ''),
+  NULLIF(TRIM($alias.first_name), ''),
+  NULLIF(TRIM($alias.display_name), ''),
+  NULLIF(TRIM($alias.organization), ''),
+  'Unknown Contact'
+)
+''';
+
   @override
   String get name => 'participants';
 
@@ -57,12 +92,9 @@ class ParticipantsMigrator extends BaseTableMigrator {
         )
         SELECT
           c.Z_PK AS id,
-          COALESCE(NULLIF(TRIM(c.display_name), ''), 'Unknown Contact') AS original_name,
-          COALESCE(NULLIF(TRIM(c.display_name), ''), 'Unknown Contact') AS display_name,
-          COALESCE(
-            NULLIF(TRIM(c.short_name), ''),
-            COALESCE(NULLIF(TRIM(c.display_name), ''), 'Unknown Contact')
-          ) AS short_name,
+          ${_resolvedDisplayNameExpr('c')} AS original_name,
+          ${_resolvedDisplayNameExpr('c')} AS display_name,
+          ${_resolvedShortNameExpr('c')} AS short_name,
           NULL AS avatar_ref,
           NULLIF(TRIM(c.first_name), '') AS given_name,
           NULLIF(TRIM(c.last_name), '') AS family_name,
@@ -77,7 +109,7 @@ class ParticipantsMigrator extends BaseTableMigrator {
           NULL AS updated_at_utc,
           c.id AS source_record_id
         FROM $_attachAlias.contacts c
-        WHERE c.Z_PK IS NOT NULL;
+        WHERE ${_projectableContactPredicate('c')};
       ''');
 
       final rows = await ctx.workingDb
@@ -115,9 +147,11 @@ class ParticipantsMigrator extends BaseTableMigrator {
 
   Future<int> _countImportContacts(MigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
-    final rows = await importSqlite.rawQuery(
-      'SELECT COUNT(*) AS c FROM contacts WHERE Z_PK IS NOT NULL',
-    );
+    final rows = await importSqlite.rawQuery('''
+      SELECT COUNT(*) AS c
+      FROM contacts
+      WHERE ${_projectableContactPredicate('contacts')}
+      ''');
     if (rows.isEmpty) {
       return 0;
     }

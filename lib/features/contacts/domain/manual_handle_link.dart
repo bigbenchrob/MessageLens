@@ -5,8 +5,6 @@ part 'manual_handle_link.freezed.dart';
 /// Domain entity representing a manual handle-to-participant link
 @freezed
 abstract class ManualHandleLink with _$ManualHandleLink {
-  const ManualHandleLink._();
-
   const factory ManualHandleLink({
     required int handleId,
     required String handleIdentifier,
@@ -14,6 +12,8 @@ abstract class ManualHandleLink with _$ManualHandleLink {
     required String participantName,
     required DateTime createdAt,
   }) = _ManualHandleLink;
+
+  const ManualHandleLink._();
 
   /// Create from database row (overlay.handle_to_participant_overrides joined with working data)
   factory ManualHandleLink.fromDatabaseRow({

@@ -4,7 +4,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
+import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
+import '../domain/participant_origin.dart';
+import 'participant_merge_utils.dart';
+import 'virtual_participants_provider.dart';
 
 part 'contacts_list_provider.freezed.dart';
 part 'contacts_list_provider.g.dart';
@@ -18,7 +22,13 @@ abstract class ContactSummary with _$ContactSummary {
     required int totalChats,
     required int totalMessages,
     DateTime? lastMessageDate,
+    required ParticipantOrigin origin,
+    required int handleCount,
   }) = _ContactSummary;
+
+  const ContactSummary._();
+
+  bool get isVirtual => origin == ParticipantOrigin.overlayVirtual;
 }
 
 @riverpod
@@ -26,15 +36,23 @@ Future<List<ContactSummary>> contactsList(
   Ref ref, {
   required ContactsListSpec spec,
 }) async {
-  final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final virtualContacts = await ref.watch(virtualParticipantsProvider.future);
+
+  final overlayHandlesByParticipant = await overlayHandleIdsByParticipant(
+    overlayDb,
+  );
+  final participantOverrides = await participantOverridesById(overlayDb);
+  final overlayHandleCounts = await overlayHandleCountsByParticipant(overlayDb);
 
   // Query participants who have at least one handle
   // Join chain: participants → handle_to_participant → handles → chat_to_handle → chats
 
-  final participantsQuery = db.select(db.workingParticipants)
+  final participantsQuery = workingDb.select(workingDb.workingParticipants)
     ..where(
       (tbl) => drift.existsQuery(
-        db.select(db.handleToParticipant)
+        workingDb.select(workingDb.handleToParticipant)
           ..where((h2p) => h2p.participantId.equalsExp(tbl.id)),
       ),
     );
@@ -63,84 +81,174 @@ Future<List<ContactSummary>> contactsList(
     },
   );
 
-  final participants = await participantsQuery.get();
+  final participants = (await participantsQuery.get())
+      .where(
+        (participant) => !isPlaceholderDisplayName(participant.displayName),
+      )
+      .toList(growable: false);
 
-  final results = <ContactSummary>[];
+  final workingSummaries = <ContactSummary>[];
 
   for (final participant in participants) {
     // Get all handles for this participant
-    final handlesQuery = db.select(db.handlesCanonical).join([
-      drift.innerJoin(
-        db.handleToParticipant,
-        db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
-      ),
-    ])..where(db.handleToParticipant.participantId.equals(participant.id));
+    final handlesQuery =
+        workingDb.select(workingDb.handlesCanonical).join([
+          drift.innerJoin(
+            workingDb.handleToParticipant,
+            workingDb.handleToParticipant.handleId.equalsExp(
+              workingDb.handlesCanonical.id,
+            ),
+          ),
+        ])..where(
+          workingDb.handleToParticipant.participantId.equals(participant.id),
+        );
 
     final handleRows = await handlesQuery.get();
-    final handleIds = handleRows
-        .map((row) => row.readTable(db.handlesCanonical).id)
-        .toList();
+    final handleIds = <int>{
+      for (final row in handleRows)
+        row.readTable(workingDb.handlesCanonical).id,
+    };
+
+    final overlayHandleIds = overlayHandlesByParticipant[participant.id];
+
+    if (overlayHandleIds != null && overlayHandleIds.isNotEmpty) {
+      handleIds.addAll(overlayHandleIds);
+    }
 
     if (handleIds.isEmpty) {
       continue;
     }
 
-    // Count chats involving these handles
-    final chatsQuery = db.selectOnly(db.chatToHandle)
-      ..addColumns([db.chatToHandle.chatId.count()])
-      ..where(db.chatToHandle.handleId.isIn(handleIds));
-
-    final chatCountRow = await chatsQuery.getSingleOrNull();
-    final totalChats = chatCountRow?.read(db.chatToHandle.chatId.count()) ?? 0;
-
-    // Count total messages across all chats involving these handles
-    final messagesQuery =
-        db.selectOnly(db.workingMessages).join([
-            drift.innerJoin(
-              db.chatToHandle,
-              db.chatToHandle.chatId.equalsExp(db.workingMessages.chatId),
-            ),
-          ])
-          ..addColumns([db.workingMessages.id.count()])
-          ..where(db.chatToHandle.handleId.isIn(handleIds));
-
-    final messageCountRow = await messagesQuery.getSingleOrNull();
-    final totalMessages =
-        messageCountRow?.read(db.workingMessages.id.count()) ?? 0;
-
-    // Get last message date
-    final lastMessageQuery =
-        db.selectOnly(db.workingMessages).join([
-            drift.innerJoin(
-              db.chatToHandle,
-              db.chatToHandle.chatId.equalsExp(db.workingMessages.chatId),
-            ),
-          ])
-          ..addColumns([db.workingMessages.sentAtUtc.max()])
-          ..where(db.chatToHandle.handleId.isIn(handleIds));
-
-    final lastMessageRow = await lastMessageQuery.getSingleOrNull();
-    final lastMessageUtc = lastMessageRow?.read(
-      db.workingMessages.sentAtUtc.max(),
+    final metrics = await _calculateMetrics(
+      workingDb,
+      handleIds.toList(growable: false),
     );
 
-    DateTime? lastMessageDate;
-    if (lastMessageUtc != null && lastMessageUtc.isNotEmpty) {
-      final parsed = DateTime.tryParse(lastMessageUtc);
-      lastMessageDate = parsed?.toLocal();
-    }
+    final override = participantOverrides[participant.id];
 
-    results.add(
+    final origin =
+        override != null ||
+            (overlayHandleIds != null && overlayHandleIds.isNotEmpty)
+        ? ParticipantOrigin.overlayOverride
+        : ParticipantOrigin.working;
+
+    workingSummaries.add(
       ContactSummary(
         participantId: participant.id,
         displayName: participant.displayName,
-        shortName: participant.shortName,
-        totalChats: totalChats,
-        totalMessages: totalMessages,
-        lastMessageDate: lastMessageDate,
+        shortName: override?.shortName ?? participant.shortName,
+        totalChats: metrics.totalChats,
+        totalMessages: metrics.totalMessages,
+        lastMessageDate: metrics.lastMessageDate,
+        origin: origin,
+        handleCount: handleIds.length,
       ),
     );
   }
 
-  return results;
+  workingSummaries.sort((a, b) => a.displayName.compareTo(b.displayName));
+
+  final virtualSummaries = <ContactSummary>[];
+
+  for (final contact in virtualContacts) {
+    if (isPlaceholderDisplayName(contact.displayName)) {
+      continue;
+    }
+    final handleIds = overlayHandlesByParticipant[contact.id] ?? const <int>{};
+
+    final metrics = await _calculateMetrics(
+      workingDb,
+      handleIds.toList(growable: false),
+    );
+
+    virtualSummaries.add(
+      ContactSummary(
+        participantId: contact.id,
+        displayName: contact.displayName,
+        shortName: contact.shortName,
+        totalChats: metrics.totalChats,
+        totalMessages: metrics.totalMessages,
+        lastMessageDate: metrics.lastMessageDate,
+        origin: ParticipantOrigin.overlayVirtual,
+        handleCount: overlayHandleCounts[contact.id] ?? handleIds.length,
+      ),
+    );
+  }
+
+  virtualSummaries.sort((a, b) => a.displayName.compareTo(b.displayName));
+
+  return [...workingSummaries, ...virtualSummaries];
+}
+
+Future<_ParticipantMetrics> _calculateMetrics(
+  WorkingDatabase db,
+  List<int> handleIds,
+) async {
+  if (handleIds.isEmpty) {
+    return const _ParticipantMetrics(
+      totalChats: 0,
+      totalMessages: 0,
+      lastMessageDate: null,
+    );
+  }
+
+  final chatCountRow =
+      await (db.selectOnly(db.chatToHandle)
+            ..addColumns([db.chatToHandle.chatId.count()])
+            ..where(db.chatToHandle.handleId.isIn(handleIds)))
+          .getSingleOrNull();
+
+  final totalChats = chatCountRow?.read(db.chatToHandle.chatId.count()) ?? 0;
+
+  final messageCountRow =
+      await (db.selectOnly(db.workingMessages).join([
+              drift.innerJoin(
+                db.chatToHandle,
+                db.chatToHandle.chatId.equalsExp(db.workingMessages.chatId),
+              ),
+            ])
+            ..addColumns([db.workingMessages.id.count()])
+            ..where(db.chatToHandle.handleId.isIn(handleIds)))
+          .getSingleOrNull();
+
+  final totalMessages =
+      messageCountRow?.read(db.workingMessages.id.count()) ?? 0;
+
+  final lastMessageRow =
+      await (db.selectOnly(db.workingMessages).join([
+              drift.innerJoin(
+                db.chatToHandle,
+                db.chatToHandle.chatId.equalsExp(db.workingMessages.chatId),
+              ),
+            ])
+            ..addColumns([db.workingMessages.sentAtUtc.max()])
+            ..where(db.chatToHandle.handleId.isIn(handleIds)))
+          .getSingleOrNull();
+
+  final lastMessageUtc = lastMessageRow?.read(
+    db.workingMessages.sentAtUtc.max(),
+  );
+
+  DateTime? lastMessageDate;
+  if (lastMessageUtc != null && lastMessageUtc.isNotEmpty) {
+    lastMessageDate = DateTime.tryParse(lastMessageUtc)?.toLocal();
+  }
+
+  return _ParticipantMetrics(
+    totalChats: totalChats,
+    totalMessages: totalMessages,
+    lastMessageDate: lastMessageDate,
+  );
+}
+
+class _ParticipantMetrics {
+  const _ParticipantMetrics({
+    required this.totalChats,
+    required this.totalMessages,
+    required this.lastMessageDate,
+  });
+
+  final int totalChats;
+  final int totalMessages;
+  final DateTime? lastMessageDate;
 }

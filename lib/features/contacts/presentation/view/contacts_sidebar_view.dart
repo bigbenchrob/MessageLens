@@ -16,17 +16,17 @@ import '../../../chats/presentation/widgets/enhanced_chat_card.dart';
 import '../../application/contact_timeline_provider.dart';
 import '../../application/contacts_list_provider.dart';
 import '../../application/sorted_chats_for_participant_provider.dart';
+import '../../domain/participant_origin.dart';
 
-class ContactsSidebarView extends HookConsumerWidget {
+class ContactsSidebarView extends ConsumerWidget {
   const ContactsSidebarView({required this.spec, super.key});
 
   final SidebarSpec spec;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Extract the current list mode, selected participant, and chat view mode
     final contactsSpec = spec.when(
-      contacts: (listMode, selectedParticipantId, chatViewMode) => listMode,
+      contacts: (listMode, _, __) => listMode,
       unmatchedHandles: (_) => throw StateError('Wrong spec type'),
     );
 
@@ -41,6 +41,35 @@ class ContactsSidebarView extends HookConsumerWidget {
     );
 
     final asyncContacts = ref.watch(contactsListProvider(spec: contactsSpec));
+
+    void showSidebar({required ContactsListSpec listMode, int? participantId}) {
+      ref
+          .read(panelsViewStateProvider.notifier)
+          .show(
+            panel: WindowPanel.left,
+            spec: ViewSpec.sidebar(
+              SidebarSpec.contacts(
+                listMode: listMode,
+                selectedParticipantId: participantId,
+                chatViewMode: chatViewMode,
+              ),
+            ),
+          );
+    }
+
+    void selectParticipant(int? participantId) {
+      showSidebar(listMode: contactsSpec, participantId: participantId);
+
+      if (participantId != null) {
+        ref
+            .read(panelsViewStateProvider.notifier)
+            .clear(panel: WindowPanel.center);
+      }
+    }
+
+    void retryContacts() {
+      ref.invalidate(contactsListProvider(spec: contactsSpec));
+    }
 
     return Column(
       children: [
@@ -64,9 +93,8 @@ class ContactsSidebarView extends HookConsumerWidget {
               Expanded(
                 child: MacosPopupButton<String>(
                   value: 'contacts',
-                  onChanged: (newMode) {
-                    if (newMode == 'unmatched') {
-                      // Switch to unmatched handles view
+                  onChanged: (mode) {
+                    if (mode == 'unmatched') {
                       ref
                           .read(panelsViewStateProvider.notifier)
                           .show(
@@ -98,226 +126,80 @@ class ContactsSidebarView extends HookConsumerWidget {
         ),
         Expanded(
           child: MacosScaffold(
-            toolBar: ToolBar(
-              height: 40,
-              title: const Text('Contacts'),
-              actions: [
-                ToolBarIconButton(
-                  icon: const MacosIcon(CupertinoIcons.search),
-                  label: 'Search',
-                  onPressed: () {
-                    // TODO: Implement search
-                  },
-                  showLabel: false,
-                ),
-              ],
-            ),
+            toolBar: const ToolBar(height: 40, title: Text('Contacts')),
             children: [
               ContentArea(
                 builder: (context, scrollController) {
-                  return asyncContacts.when(
-                    data: (contacts) {
-                      return Column(
-                        children: [
-                          // Contact selector dropdown (Menu B)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: MacosTheme.of(context).dividerColor,
+                              width: 0.5,
                             ),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: MacosTheme.of(context).dividerColor,
-                                  width: 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text(
+                              'Contacts:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SizedBox(
+                                height: 28,
+                                child: asyncContacts.when(
+                                  data: (contacts) {
+                                    final entries = _entriesFromContacts(
+                                      contacts,
+                                    );
+                                    final hasSelection =
+                                        selectedParticipantId != null &&
+                                        entries.any(
+                                          (entry) =>
+                                              entry.participantId ==
+                                              selectedParticipantId,
+                                        );
+                                    final menuSelection = hasSelection
+                                        ? selectedParticipantId
+                                        : null;
+                                    final menuItems = _buildContactMenuItems(
+                                      entries,
+                                    );
+                                    return MacosPopupButton<int?>(
+                                      value: menuSelection,
+                                      items: menuItems,
+                                      onChanged: selectParticipant,
+                                      itemHeight: 48,
+                                    );
+                                  },
+                                  loading: () => const _ContactMenuLoading(),
+                                  error: (error, _) => _ContactMenuError(
+                                    onRetry: retryContacts,
+                                    error: error,
+                                  ),
                                 ),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  'Contact:',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: MacosPopupButton<int?>(
-                                    value: selectedParticipantId,
-                                    onChanged: (participantId) {
-                                      if (participantId != null) {
-                                        // Update sidebar to show chats for this contact
-                                        ref
-                                            .read(
-                                              panelsViewStateProvider.notifier,
-                                            )
-                                            .show(
-                                              panel: WindowPanel.left,
-                                              spec: ViewSpec.sidebar(
-                                                SidebarSpec.contacts(
-                                                  listMode: contactsSpec,
-                                                  selectedParticipantId:
-                                                      participantId,
-                                                  chatViewMode: chatViewMode,
-                                                ),
-                                              ),
-                                            );
-
-                                        // Clear center panel - it will show content when a chat is clicked
-                                        ref
-                                            .read(
-                                              panelsViewStateProvider.notifier,
-                                            )
-                                            .clear(panel: WindowPanel.center);
-                                      }
-                                    },
-                                    items: [
-                                      const MacosPopupMenuItem<int?>(
-                                        value: null,
-                                        child: Text('Select a contact...'),
-                                      ),
-                                      ...contacts.map(
-                                        (contact) => MacosPopupMenuItem<int?>(
-                                          value: contact.participantId,
-                                          child: Text(contact.displayName),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Filter radio buttons
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: MacosTheme.of(context).dividerColor,
-                                  width: 0.5,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      const Text('All Contacts'),
-                                      const SizedBox(width: 8),
-                                      MacosRadioButton<String>(
-                                        value: 'all',
-                                        groupValue: contactsSpec.when(
-                                          all: () => 'all',
-                                          alphabetical: () => 'alphabetical',
-                                          favorites: () => 'favorites',
-                                        ),
-                                        onChanged: (value) {
-                                          ref
-                                              .read(
-                                                panelsViewStateProvider
-                                                    .notifier,
-                                              )
-                                              .show(
-                                                panel: WindowPanel.left,
-                                                spec: ViewSpec.sidebar(
-                                                  SidebarSpec.contacts(
-                                                    listMode:
-                                                        const ContactsListSpec.all(),
-                                                    selectedParticipantId:
-                                                        selectedParticipantId,
-                                                    chatViewMode: chatViewMode,
-                                                  ),
-                                                ),
-                                              );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      const Text('A-Z'),
-                                      const SizedBox(width: 8),
-                                      MacosRadioButton<String>(
-                                        value: 'alphabetical',
-                                        groupValue: contactsSpec.when(
-                                          all: () => 'all',
-                                          alphabetical: () => 'alphabetical',
-                                          favorites: () => 'favorites',
-                                        ),
-                                        onChanged: (value) {
-                                          ref
-                                              .read(
-                                                panelsViewStateProvider
-                                                    .notifier,
-                                              )
-                                              .show(
-                                                panel: WindowPanel.left,
-                                                spec: ViewSpec.sidebar(
-                                                  SidebarSpec.contacts(
-                                                    listMode:
-                                                        const ContactsListSpec.alphabetical(),
-                                                    selectedParticipantId:
-                                                        selectedParticipantId,
-                                                    chatViewMode: chatViewMode,
-                                                  ),
-                                                ),
-                                              );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      const Text('Favorites'),
-                                      const SizedBox(width: 8),
-                                      MacosRadioButton<String>(
-                                        value: 'favorites',
-                                        groupValue: contactsSpec.when(
-                                          all: () => 'all',
-                                          alphabetical: () => 'alphabetical',
-                                          favorites: () => 'favorites',
-                                        ),
-                                        onChanged: (value) {
-                                          ref
-                                              .read(
-                                                panelsViewStateProvider
-                                                    .notifier,
-                                              )
-                                              .show(
-                                                panel: WindowPanel.left,
-                                                spec: ViewSpec.sidebar(
-                                                  SidebarSpec.contacts(
-                                                    listMode:
-                                                        const ContactsListSpec.favorites(),
-                                                    selectedParticipantId:
-                                                        selectedParticipantId,
-                                                    chatViewMode: chatViewMode,
-                                                  ),
-                                                ),
-                                              );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Empty state or chats list
-                          if (selectedParticipantId == null)
-                            const Expanded(
-                              child: Center(
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: asyncContacts.when(
+                          data: (contacts) {
+                            if (selectedParticipantId == null) {
+                              return const Center(
                                 child: Text(
                                   'Select a contact to view their chats',
                                   style: TextStyle(
@@ -325,33 +207,32 @@ class ContactsSidebarView extends HookConsumerWidget {
                                     color: CupertinoColors.secondaryLabel,
                                   ),
                                 ),
-                              ),
-                            )
-                          else
-                            Expanded(
-                              child: _ChatsListForContact(
-                                participantId: selectedParticipantId,
-                                chatViewMode: chatViewMode,
-                                contactsSpec: contactsSpec,
-                              ),
+                              );
+                            }
+
+                            return _ChatsListForContact(
+                              participantId: selectedParticipantId,
+                              chatViewMode: chatViewMode,
+                              contactsSpec: contactsSpec,
+                            );
+                          },
+                          loading: () => const Center(child: ProgressCircle()),
+                          error: (error, _) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const MacosIcon(
+                                  CupertinoIcons.exclamationmark_triangle,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text('Error loading contacts: $error'),
+                              ],
                             ),
-                        ],
-                      );
-                    },
-                    loading: () => const Center(child: ProgressCircle()),
-                    error: (error, stack) => Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const MacosIcon(
-                            CupertinoIcons.exclamationmark_triangle,
-                            size: 48,
                           ),
-                          const SizedBox(height: 16),
-                          Text('Error loading contacts: $error'),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   );
                 },
               ),
@@ -361,6 +242,211 @@ class ContactsSidebarView extends HookConsumerWidget {
       ],
     );
   }
+}
+
+class _ContactMenuLoading extends StatelessWidget {
+  const _ContactMenuLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 30,
+      child: Align(alignment: Alignment.centerLeft, child: ProgressCircle()),
+    );
+  }
+}
+
+class _ContactMenuError extends StatelessWidget {
+  const _ContactMenuError({required this.onRetry, required this.error});
+
+  final VoidCallback onRetry;
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    final typography = MacosTheme.of(context).typography;
+
+    return Row(
+      children: [
+        const MacosIcon(
+          CupertinoIcons.exclamationmark_triangle,
+          size: 18,
+          color: CupertinoColors.systemRed,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: MacosTooltip(
+            message: '$error',
+            child: Text(
+              'Unable to load contacts',
+              style: typography.caption1.copyWith(
+                color: CupertinoColors.systemRed,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        PushButton(
+          controlSize: ControlSize.small,
+          onPressed: onRetry,
+          child: const Text('Retry'),
+        ),
+      ],
+    );
+  }
+}
+
+List<_ContactMenuEntry> _entriesFromContacts(List<ContactSummary> contacts) {
+  return contacts
+      .map(
+        (contact) => _ContactMenuEntry(
+          participantId: contact.participantId,
+          displayName: contact.displayName,
+          shortName: contact.shortName,
+          handleCount: contact.handleCount,
+          origin: contact.origin,
+        ),
+      )
+      .toList(growable: false);
+}
+
+List<MacosPopupMenuItem<int?>> _buildContactMenuItems(
+  List<_ContactMenuEntry> entries,
+) {
+  return [
+    const MacosPopupMenuItem<int?>(
+      value: null,
+      child: Text('Select a contact...'),
+    ),
+    ...entries.map(
+      (entry) => MacosPopupMenuItem<int?>(
+        value: entry.participantId,
+        child: _ContactMenuItem(entry: entry),
+      ),
+    ),
+  ];
+}
+
+class _ContactMenuEntry {
+  const _ContactMenuEntry({
+    required this.participantId,
+    required this.displayName,
+    required this.shortName,
+    required this.handleCount,
+    required this.origin,
+  });
+
+  final int participantId;
+  final String displayName;
+  final String shortName;
+  final int handleCount;
+  final ParticipantOrigin origin;
+}
+
+class _ContactMenuItem extends StatelessWidget {
+  const _ContactMenuItem({required this.entry});
+
+  final _ContactMenuEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final typography = MacosTheme.of(context).typography;
+    final subtitleParts = <String>[];
+
+    if (entry.shortName.trim() != entry.displayName.trim()) {
+      subtitleParts.add(entry.shortName);
+    }
+
+    subtitleParts.add(_formatHandleCountLabel(entry.handleCount));
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 42),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.displayName,
+                  style: typography.headline.copyWith(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                if (subtitleParts.isNotEmpty)
+                  Text(
+                    subtitleParts.join(' • '),
+                    style: typography.caption2.copyWith(
+                      color: CupertinoColors.secondaryLabel,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (entry.origin != ParticipantOrigin.working)
+            _OriginBadge(origin: entry.origin),
+        ],
+      ),
+    );
+  }
+}
+
+class _OriginBadge extends StatelessWidget {
+  const _OriginBadge({required this.origin});
+
+  final ParticipantOrigin origin;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (origin) {
+      case ParticipantOrigin.overlayVirtual:
+        return const _Badge(label: 'Virtual', color: Color(0xFF9B59B6));
+      case ParticipantOrigin.overlayOverride:
+        return const _Badge(label: 'Override', color: Color(0xFF0A84FF));
+      case ParticipantOrigin.working:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: MacosTheme.of(context).typography.caption2.copyWith(
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+String _formatHandleCountLabel(int count) {
+  if (count <= 0) {
+    return 'No linked handles';
+  }
+
+  return count == 1 ? '1 linked handle' : '$count linked handles';
 }
 
 /// Widget that displays the list of chats for a selected contact

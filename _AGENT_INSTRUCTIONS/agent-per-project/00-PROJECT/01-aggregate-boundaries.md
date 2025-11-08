@@ -86,7 +86,7 @@ Modeling Chat → Messages as one aggregate would:
 ## Chat Aggregate
 
 ### Aggregate Root
-- **Entity**: `Chat` in `working.db` (`../20-MIGRATIONS/schema-reference.md`)
+- **Entity**: `Chat` in `working.db` (`../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`)
 - **Identity**: Stable `ChatId` (GUID from Apple)
 
 ### Aggregate Contents
@@ -125,8 +125,8 @@ Modeling Chat → Messages as one aggregate would:
 - Date consistency enforcement
 
 ### Data Flow
-- Importers copy `chats` and `chat_to_handle` from macOS sources into `macos_import.db` without altering ROWIDs (`../20-MIGRATIONS/schema-reference.md`)
-- Migration runs chat migrators after handle canonicalization so foreign keys resolve cleanly (`20-MIGRATIONS/migration-orchestrator.md`)
+- Importers copy `chats` and `chat_to_handle` from macOS sources into `macos_import.db` without altering ROWIDs (`../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`)
+- Migration runs chat migrators after handle canonicalization so foreign keys resolve cleanly (`20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md`)
 - Mutation policy: Chat data changes only during migration batches or sanctioned overlay adjustments (pin/archive)
 
 ## Message Aggregate
@@ -175,8 +175,8 @@ Modeling Chat → Messages as one aggregate would:
 - Content validation for required fields
 
 ### Data Flow
-- Ledger tables retain full message fidelity including attachments and reaction carriers (`../20-MIGRATIONS/schema-reference.md`)
-- Migrators insert messages after chats/handles to guarantee foreign keys, using idempotent `INSERT OR REPLACE` (`20-MIGRATIONS/migration-orchestrator.md`)
+- Ledger tables retain full message fidelity including attachments and reaction carriers (`../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`)
+- Migrators insert messages after chats/handles to guarantee foreign keys, using idempotent `INSERT OR REPLACE` (`20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md`)
 - Mutation policy: Runtime features never mutate message rows directly; overlays (starring, annotations) live in `user_overlays.db` (`../10-DATABASES/05-db-overlay.md`)
 
 ## Contacts: Non-Aggregate Reference Model
@@ -229,7 +229,7 @@ Participant {
 
 ### Data Flow
 
-- Importers load AddressBook structures into `macos_import.db` (`../20-MIGRATIONS/schema-reference.md`) while preserving original identifiers
+- Importers load AddressBook structures into `macos_import.db` (`../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`) while preserving original identifiers
 - Migrators populate participants first, then resolve handle links, enabling deterministic chat linkage (`../10-DATABASES/11-contact-to-chat-linking.md`)
 - Overlay metadata (short names, notes) stored in `user_overlays.db` so source projection stays pristine
 - This decoupling lets us re-project UI safely without touching chat/message rows and swap contact sources in the future
@@ -393,9 +393,9 @@ class ContactIdentityError extends DomainError { ... }
 ## Cross-Reference
 
 Related documentation:
-- Database schema: `../20-MIGRATIONS/schema-reference.md`
+- Database schema: `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md`
 - Contact linking: `../10-DATABASES/11-contact-to-chat-linking.md`
-- Migration flow: `20-MIGRATIONS/migration-orchestrator.md`
+- Migration flow: `20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md`
 - Import flow: `40-INTEGRATION/import-orchestrator.md`
 - Shared DDD patterns: `../_shared/30-architecture/ddd-app-structure.md`
 

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ContactSummary {
 
- int get participantId; String get displayName; String get shortName; int get totalChats; int get totalMessages; DateTime? get lastMessageDate;
+ int get participantId; String get displayName; String get shortName; int get totalChats; int get totalMessages; DateTime? get lastMessageDate; ParticipantOrigin get origin; int get handleCount;
 /// Create a copy of ContactSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ContactSummaryCopyWith<ContactSummary> get copyWith => _$ContactSummaryCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactSummary&&(identical(other.participantId, participantId) || other.participantId == participantId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.shortName, shortName) || other.shortName == shortName)&&(identical(other.totalChats, totalChats) || other.totalChats == totalChats)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactSummary&&(identical(other.participantId, participantId) || other.participantId == participantId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.shortName, shortName) || other.shortName == shortName)&&(identical(other.totalChats, totalChats) || other.totalChats == totalChats)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.handleCount, handleCount) || other.handleCount == handleCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,participantId,displayName,shortName,totalChats,totalMessages,lastMessageDate);
+int get hashCode => Object.hash(runtimeType,participantId,displayName,shortName,totalChats,totalMessages,lastMessageDate,origin,handleCount);
 
 @override
 String toString() {
-  return 'ContactSummary(participantId: $participantId, displayName: $displayName, shortName: $shortName, totalChats: $totalChats, totalMessages: $totalMessages, lastMessageDate: $lastMessageDate)';
+  return 'ContactSummary(participantId: $participantId, displayName: $displayName, shortName: $shortName, totalChats: $totalChats, totalMessages: $totalMessages, lastMessageDate: $lastMessageDate, origin: $origin, handleCount: $handleCount)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ContactSummaryCopyWith<$Res>  {
   factory $ContactSummaryCopyWith(ContactSummary value, $Res Function(ContactSummary) _then) = _$ContactSummaryCopyWithImpl;
 @useResult
 $Res call({
- int participantId, String displayName, String shortName, int totalChats, int totalMessages, DateTime? lastMessageDate
+ int participantId, String displayName, String shortName, int totalChats, int totalMessages, DateTime? lastMessageDate, ParticipantOrigin origin, int handleCount
 });
 
 
@@ -62,7 +62,7 @@ class _$ContactSummaryCopyWithImpl<$Res>
 
 /// Create a copy of ContactSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? participantId = null,Object? displayName = null,Object? shortName = null,Object? totalChats = null,Object? totalMessages = null,Object? lastMessageDate = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? participantId = null,Object? displayName = null,Object? shortName = null,Object? totalChats = null,Object? totalMessages = null,Object? lastMessageDate = freezed,Object? origin = null,Object? handleCount = null,}) {
   return _then(_self.copyWith(
 participantId: null == participantId ? _self.participantId : participantId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -70,7 +70,9 @@ as String,shortName: null == shortName ? _self.shortName : shortName // ignore: 
 as String,totalChats: null == totalChats ? _self.totalChats : totalChats // ignore: cast_nullable_to_non_nullable
 as int,totalMessages: null == totalMessages ? _self.totalMessages : totalMessages // ignore: cast_nullable_to_non_nullable
 as int,lastMessageDate: freezed == lastMessageDate ? _self.lastMessageDate : lastMessageDate // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,origin: null == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
+as ParticipantOrigin,handleCount: null == handleCount ? _self.handleCount : handleCount // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -155,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate,  ParticipantOrigin origin,  int handleCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ContactSummary() when $default != null:
-return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate);case _:
+return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate,_that.origin,_that.handleCount);case _:
   return orElse();
 
 }
@@ -176,10 +178,10 @@ return $default(_that.participantId,_that.displayName,_that.shortName,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate,  ParticipantOrigin origin,  int handleCount)  $default,) {final _that = this;
 switch (_that) {
 case _ContactSummary():
-return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate);case _:
+return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate,_that.origin,_that.handleCount);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +198,10 @@ return $default(_that.participantId,_that.displayName,_that.shortName,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int participantId,  String displayName,  String shortName,  int totalChats,  int totalMessages,  DateTime? lastMessageDate,  ParticipantOrigin origin,  int handleCount)?  $default,) {final _that = this;
 switch (_that) {
 case _ContactSummary() when $default != null:
-return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate);case _:
+return $default(_that.participantId,_that.displayName,_that.shortName,_that.totalChats,_that.totalMessages,_that.lastMessageDate,_that.origin,_that.handleCount);case _:
   return null;
 
 }
@@ -210,8 +212,8 @@ return $default(_that.participantId,_that.displayName,_that.shortName,_that.tota
 /// @nodoc
 
 
-class _ContactSummary implements ContactSummary {
-  const _ContactSummary({required this.participantId, required this.displayName, required this.shortName, required this.totalChats, required this.totalMessages, this.lastMessageDate});
+class _ContactSummary extends ContactSummary {
+  const _ContactSummary({required this.participantId, required this.displayName, required this.shortName, required this.totalChats, required this.totalMessages, this.lastMessageDate, required this.origin, required this.handleCount}): super._();
   
 
 @override final  int participantId;
@@ -220,6 +222,8 @@ class _ContactSummary implements ContactSummary {
 @override final  int totalChats;
 @override final  int totalMessages;
 @override final  DateTime? lastMessageDate;
+@override final  ParticipantOrigin origin;
+@override final  int handleCount;
 
 /// Create a copy of ContactSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +235,16 @@ _$ContactSummaryCopyWith<_ContactSummary> get copyWith => __$ContactSummaryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ContactSummary&&(identical(other.participantId, participantId) || other.participantId == participantId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.shortName, shortName) || other.shortName == shortName)&&(identical(other.totalChats, totalChats) || other.totalChats == totalChats)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ContactSummary&&(identical(other.participantId, participantId) || other.participantId == participantId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.shortName, shortName) || other.shortName == shortName)&&(identical(other.totalChats, totalChats) || other.totalChats == totalChats)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate)&&(identical(other.origin, origin) || other.origin == origin)&&(identical(other.handleCount, handleCount) || other.handleCount == handleCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,participantId,displayName,shortName,totalChats,totalMessages,lastMessageDate);
+int get hashCode => Object.hash(runtimeType,participantId,displayName,shortName,totalChats,totalMessages,lastMessageDate,origin,handleCount);
 
 @override
 String toString() {
-  return 'ContactSummary(participantId: $participantId, displayName: $displayName, shortName: $shortName, totalChats: $totalChats, totalMessages: $totalMessages, lastMessageDate: $lastMessageDate)';
+  return 'ContactSummary(participantId: $participantId, displayName: $displayName, shortName: $shortName, totalChats: $totalChats, totalMessages: $totalMessages, lastMessageDate: $lastMessageDate, origin: $origin, handleCount: $handleCount)';
 }
 
 
@@ -251,7 +255,7 @@ abstract mixin class _$ContactSummaryCopyWith<$Res> implements $ContactSummaryCo
   factory _$ContactSummaryCopyWith(_ContactSummary value, $Res Function(_ContactSummary) _then) = __$ContactSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int participantId, String displayName, String shortName, int totalChats, int totalMessages, DateTime? lastMessageDate
+ int participantId, String displayName, String shortName, int totalChats, int totalMessages, DateTime? lastMessageDate, ParticipantOrigin origin, int handleCount
 });
 
 
@@ -268,7 +272,7 @@ class __$ContactSummaryCopyWithImpl<$Res>
 
 /// Create a copy of ContactSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? participantId = null,Object? displayName = null,Object? shortName = null,Object? totalChats = null,Object? totalMessages = null,Object? lastMessageDate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? participantId = null,Object? displayName = null,Object? shortName = null,Object? totalChats = null,Object? totalMessages = null,Object? lastMessageDate = freezed,Object? origin = null,Object? handleCount = null,}) {
   return _then(_ContactSummary(
 participantId: null == participantId ? _self.participantId : participantId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -276,7 +280,9 @@ as String,shortName: null == shortName ? _self.shortName : shortName // ignore: 
 as String,totalChats: null == totalChats ? _self.totalChats : totalChats // ignore: cast_nullable_to_non_nullable
 as int,totalMessages: null == totalMessages ? _self.totalMessages : totalMessages // ignore: cast_nullable_to_non_nullable
 as int,lastMessageDate: freezed == lastMessageDate ? _self.lastMessageDate : lastMessageDate // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,origin: null == origin ? _self.origin : origin // ignore: cast_nullable_to_non_nullable
+as ParticipantOrigin,handleCount: null == handleCount ? _self.handleCount : handleCount // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

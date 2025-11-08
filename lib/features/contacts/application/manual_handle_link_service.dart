@@ -2,7 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
+import '../../../essentials/logging/application/message_logger.dart';
 import 'unmatched_handles_provider.dart';
+import 'virtual_participants_provider.dart';
 
 part 'manual_handle_link_service.g.dart';
 
@@ -29,6 +31,56 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
   @override
   void build() {
     // Stateless service, no initialization needed
+  }
+
+  /// Creates a virtual participant stored solely in the overlay database.
+  ///
+  /// Returns the new overlay-scoped participant ID on success, or
+  /// `Failure` when validation fails or persistence encounters an error.
+  Future<Either<Failure, int>> createVirtualParticipant({
+    required String displayName,
+    String? notes,
+  }) async {
+    final normalizedName = displayName.trim();
+    if (normalizedName.isEmpty) {
+      return const Left(
+        Failure('Display name cannot be empty when creating a contact.'),
+      );
+    }
+
+    try {
+      final overlayDb = await ref.read(overlayDatabaseProvider.future);
+      final existing = await overlayDb.getVirtualParticipants();
+      final normalizedLower = normalizedName.toLowerCase();
+
+      final hasDuplicate = existing.any(
+        (participant) =>
+            participant.displayName.toLowerCase() == normalizedLower,
+      );
+
+      if (hasDuplicate) {
+        ref
+            .read(messageLoggerProvider.notifier)
+            .warn(
+              'Duplicate virtual contact name requested: $normalizedName',
+              source: 'ManualHandleLinkService',
+              context: {'displayName': normalizedName},
+            );
+      }
+
+      final created = await overlayDb.createVirtualParticipant(
+        displayName: normalizedName,
+        notes: notes,
+      );
+
+      ref.invalidate(virtualParticipantsProvider);
+
+      return Right(created.id);
+    } catch (e, stackTrace) {
+      return Left(
+        Failure('Failed to create virtual contact: $e', stackTrace: stackTrace),
+      );
+    }
   }
 
   /// Links a handle to a participant manually

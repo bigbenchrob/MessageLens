@@ -1880,6 +1880,631 @@ class HandleToParticipantOverridesCompanion
   }
 }
 
+class $VirtualParticipantsTable extends VirtualParticipants
+    with TableInfo<$VirtualParticipantsTable, VirtualParticipant> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VirtualParticipantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shortNameMeta = const VerificationMeta(
+    'shortName',
+  );
+  @override
+  late final GeneratedColumn<String> shortName = GeneratedColumn<String>(
+    'short_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    shortName,
+    notes,
+    createdAtUtc,
+    updatedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'virtual_participants';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VirtualParticipant> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('short_name')) {
+      context.handle(
+        _shortNameMeta,
+        shortName.isAcceptableOrUnknown(data['short_name']!, _shortNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_shortNameMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VirtualParticipant map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VirtualParticipant(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      shortName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}short_name'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $VirtualParticipantsTable createAlias(String alias) {
+    return $VirtualParticipantsTable(attachedDatabase, alias);
+  }
+}
+
+class VirtualParticipant extends DataClass
+    implements Insertable<VirtualParticipant> {
+  final int id;
+  final String displayName;
+  final String shortName;
+  final String? notes;
+  final String createdAtUtc;
+  final String updatedAtUtc;
+  const VirtualParticipant({
+    required this.id,
+    required this.displayName,
+    required this.shortName,
+    this.notes,
+    required this.createdAtUtc,
+    required this.updatedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['display_name'] = Variable<String>(displayName);
+    map['short_name'] = Variable<String>(shortName);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
+    map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    return map;
+  }
+
+  VirtualParticipantsCompanion toCompanion(bool nullToAbsent) {
+    return VirtualParticipantsCompanion(
+      id: Value(id),
+      displayName: Value(displayName),
+      shortName: Value(shortName),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAtUtc: Value(createdAtUtc),
+      updatedAtUtc: Value(updatedAtUtc),
+    );
+  }
+
+  factory VirtualParticipant.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VirtualParticipant(
+      id: serializer.fromJson<int>(json['id']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      shortName: serializer.fromJson<String>(json['shortName']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
+      updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'displayName': serializer.toJson<String>(displayName),
+      'shortName': serializer.toJson<String>(shortName),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
+      'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
+    };
+  }
+
+  VirtualParticipant copyWith({
+    int? id,
+    String? displayName,
+    String? shortName,
+    Value<String?> notes = const Value.absent(),
+    String? createdAtUtc,
+    String? updatedAtUtc,
+  }) => VirtualParticipant(
+    id: id ?? this.id,
+    displayName: displayName ?? this.displayName,
+    shortName: shortName ?? this.shortName,
+    notes: notes.present ? notes.value : this.notes,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+  );
+  VirtualParticipant copyWithCompanion(VirtualParticipantsCompanion data) {
+    return VirtualParticipant(
+      id: data.id.present ? data.id.value : this.id,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      shortName: data.shortName.present ? data.shortName.value : this.shortName,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VirtualParticipant(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('shortName: $shortName, ')
+          ..write('notes: $notes, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    shortName,
+    notes,
+    createdAtUtc,
+    updatedAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VirtualParticipant &&
+          other.id == this.id &&
+          other.displayName == this.displayName &&
+          other.shortName == this.shortName &&
+          other.notes == this.notes &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.updatedAtUtc == this.updatedAtUtc);
+}
+
+class VirtualParticipantsCompanion extends UpdateCompanion<VirtualParticipant> {
+  final Value<int> id;
+  final Value<String> displayName;
+  final Value<String> shortName;
+  final Value<String?> notes;
+  final Value<String> createdAtUtc;
+  final Value<String> updatedAtUtc;
+  const VirtualParticipantsCompanion({
+    this.id = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.shortName = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+  });
+  VirtualParticipantsCompanion.insert({
+    this.id = const Value.absent(),
+    required String displayName,
+    required String shortName,
+    this.notes = const Value.absent(),
+    required String createdAtUtc,
+    required String updatedAtUtc,
+  }) : displayName = Value(displayName),
+       shortName = Value(shortName),
+       createdAtUtc = Value(createdAtUtc),
+       updatedAtUtc = Value(updatedAtUtc);
+  static Insertable<VirtualParticipant> custom({
+    Expression<int>? id,
+    Expression<String>? displayName,
+    Expression<String>? shortName,
+    Expression<String>? notes,
+    Expression<String>? createdAtUtc,
+    Expression<String>? updatedAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (displayName != null) 'display_name': displayName,
+      if (shortName != null) 'short_name': shortName,
+      if (notes != null) 'notes': notes,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+    });
+  }
+
+  VirtualParticipantsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? displayName,
+    Value<String>? shortName,
+    Value<String?>? notes,
+    Value<String>? createdAtUtc,
+    Value<String>? updatedAtUtc,
+  }) {
+    return VirtualParticipantsCompanion(
+      id: id ?? this.id,
+      displayName: displayName ?? this.displayName,
+      shortName: shortName ?? this.shortName,
+      notes: notes ?? this.notes,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (shortName.present) {
+      map['short_name'] = Variable<String>(shortName.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VirtualParticipantsCompanion(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('shortName: $shortName, ')
+          ..write('notes: $notes, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OverlaySettingsTable extends OverlaySettings
+    with TableInfo<$OverlaySettingsTable, OverlaySetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OverlaySettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'overlay_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OverlaySetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  OverlaySetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OverlaySetting(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $OverlaySettingsTable createAlias(String alias) {
+    return $OverlaySettingsTable(attachedDatabase, alias);
+  }
+}
+
+class OverlaySetting extends DataClass implements Insertable<OverlaySetting> {
+  final String key;
+  final String value;
+  const OverlaySetting({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  OverlaySettingsCompanion toCompanion(bool nullToAbsent) {
+    return OverlaySettingsCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory OverlaySetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OverlaySetting(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  OverlaySetting copyWith({String? key, String? value}) =>
+      OverlaySetting(key: key ?? this.key, value: value ?? this.value);
+  OverlaySetting copyWithCompanion(OverlaySettingsCompanion data) {
+    return OverlaySetting(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OverlaySetting(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OverlaySetting &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class OverlaySettingsCompanion extends UpdateCompanion<OverlaySetting> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const OverlaySettingsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OverlaySettingsCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<OverlaySetting> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OverlaySettingsCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return OverlaySettingsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OverlaySettingsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
@@ -1890,6 +2515,11 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
       $MessageAnnotationsTable(this);
   late final $HandleToParticipantOverridesTable handleToParticipantOverrides =
       $HandleToParticipantOverridesTable(this);
+  late final $VirtualParticipantsTable virtualParticipants =
+      $VirtualParticipantsTable(this);
+  late final $OverlaySettingsTable overlaySettings = $OverlaySettingsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1899,6 +2529,8 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
     chatOverrides,
     messageAnnotations,
     handleToParticipantOverrides,
+    virtualParticipants,
+    overlaySettings,
   ];
 }
 
@@ -2893,6 +3525,394 @@ typedef $$HandleToParticipantOverridesTableProcessedTableManager =
       HandleToParticipantOverride,
       PrefetchHooks Function()
     >;
+typedef $$VirtualParticipantsTableCreateCompanionBuilder =
+    VirtualParticipantsCompanion Function({
+      Value<int> id,
+      required String displayName,
+      required String shortName,
+      Value<String?> notes,
+      required String createdAtUtc,
+      required String updatedAtUtc,
+    });
+typedef $$VirtualParticipantsTableUpdateCompanionBuilder =
+    VirtualParticipantsCompanion Function({
+      Value<int> id,
+      Value<String> displayName,
+      Value<String> shortName,
+      Value<String?> notes,
+      Value<String> createdAtUtc,
+      Value<String> updatedAtUtc,
+    });
+
+class $$VirtualParticipantsTableFilterComposer
+    extends Composer<_$OverlayDatabase, $VirtualParticipantsTable> {
+  $$VirtualParticipantsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortName => $composableBuilder(
+    column: $table.shortName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VirtualParticipantsTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $VirtualParticipantsTable> {
+  $$VirtualParticipantsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shortName => $composableBuilder(
+    column: $table.shortName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VirtualParticipantsTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $VirtualParticipantsTable> {
+  $$VirtualParticipantsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get shortName =>
+      $composableBuilder(column: $table.shortName, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$VirtualParticipantsTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $VirtualParticipantsTable,
+          VirtualParticipant,
+          $$VirtualParticipantsTableFilterComposer,
+          $$VirtualParticipantsTableOrderingComposer,
+          $$VirtualParticipantsTableAnnotationComposer,
+          $$VirtualParticipantsTableCreateCompanionBuilder,
+          $$VirtualParticipantsTableUpdateCompanionBuilder,
+          (
+            VirtualParticipant,
+            BaseReferences<
+              _$OverlayDatabase,
+              $VirtualParticipantsTable,
+              VirtualParticipant
+            >,
+          ),
+          VirtualParticipant,
+          PrefetchHooks Function()
+        > {
+  $$VirtualParticipantsTableTableManager(
+    _$OverlayDatabase db,
+    $VirtualParticipantsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VirtualParticipantsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VirtualParticipantsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$VirtualParticipantsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> shortName = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
+              }) => VirtualParticipantsCompanion(
+                id: id,
+                displayName: displayName,
+                shortName: shortName,
+                notes: notes,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String displayName,
+                required String shortName,
+                Value<String?> notes = const Value.absent(),
+                required String createdAtUtc,
+                required String updatedAtUtc,
+              }) => VirtualParticipantsCompanion.insert(
+                id: id,
+                displayName: displayName,
+                shortName: shortName,
+                notes: notes,
+                createdAtUtc: createdAtUtc,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VirtualParticipantsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $VirtualParticipantsTable,
+      VirtualParticipant,
+      $$VirtualParticipantsTableFilterComposer,
+      $$VirtualParticipantsTableOrderingComposer,
+      $$VirtualParticipantsTableAnnotationComposer,
+      $$VirtualParticipantsTableCreateCompanionBuilder,
+      $$VirtualParticipantsTableUpdateCompanionBuilder,
+      (
+        VirtualParticipant,
+        BaseReferences<
+          _$OverlayDatabase,
+          $VirtualParticipantsTable,
+          VirtualParticipant
+        >,
+      ),
+      VirtualParticipant,
+      PrefetchHooks Function()
+    >;
+typedef $$OverlaySettingsTableCreateCompanionBuilder =
+    OverlaySettingsCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$OverlaySettingsTableUpdateCompanionBuilder =
+    OverlaySettingsCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$OverlaySettingsTableFilterComposer
+    extends Composer<_$OverlayDatabase, $OverlaySettingsTable> {
+  $$OverlaySettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OverlaySettingsTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $OverlaySettingsTable> {
+  $$OverlaySettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OverlaySettingsTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $OverlaySettingsTable> {
+  $$OverlaySettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$OverlaySettingsTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $OverlaySettingsTable,
+          OverlaySetting,
+          $$OverlaySettingsTableFilterComposer,
+          $$OverlaySettingsTableOrderingComposer,
+          $$OverlaySettingsTableAnnotationComposer,
+          $$OverlaySettingsTableCreateCompanionBuilder,
+          $$OverlaySettingsTableUpdateCompanionBuilder,
+          (
+            OverlaySetting,
+            BaseReferences<
+              _$OverlayDatabase,
+              $OverlaySettingsTable,
+              OverlaySetting
+            >,
+          ),
+          OverlaySetting,
+          PrefetchHooks Function()
+        > {
+  $$OverlaySettingsTableTableManager(
+    _$OverlayDatabase db,
+    $OverlaySettingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OverlaySettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OverlaySettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OverlaySettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OverlaySettingsCompanion(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => OverlaySettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OverlaySettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $OverlaySettingsTable,
+      OverlaySetting,
+      $$OverlaySettingsTableFilterComposer,
+      $$OverlaySettingsTableOrderingComposer,
+      $$OverlaySettingsTableAnnotationComposer,
+      $$OverlaySettingsTableCreateCompanionBuilder,
+      $$OverlaySettingsTableUpdateCompanionBuilder,
+      (
+        OverlaySetting,
+        BaseReferences<
+          _$OverlayDatabase,
+          $OverlaySettingsTable,
+          OverlaySetting
+        >,
+      ),
+      OverlaySetting,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -2909,4 +3929,8 @@ class $OverlayDatabaseManager {
         _db,
         _db.handleToParticipantOverrides,
       );
+  $$VirtualParticipantsTableTableManager get virtualParticipants =>
+      $$VirtualParticipantsTableTableManager(_db, _db.virtualParticipants);
+  $$OverlaySettingsTableTableManager get overlaySettings =>
+      $$OverlaySettingsTableTableManager(_db, _db.overlaySettings);
 }

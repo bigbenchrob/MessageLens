@@ -1,3 +1,4 @@
+import 'package:characters/characters.dart';
 import 'package:drift/drift.dart';
 
 part 'overlay_database.g.dart';
@@ -11,18 +12,26 @@ part 'overlay_database.g.dart';
     ChatOverrides,
     MessageAnnotations,
     HandleToParticipantOverrides,
+    VirtualParticipants,
+    OverlaySettings,
   ],
 )
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        await m.createTable(virtualParticipants);
+        await m.createTable(overlaySettings);
+      }
     },
   );
 
@@ -372,6 +381,120 @@ class OverlayDatabase extends _$OverlayDatabase {
       handleToParticipantOverrides,
     )..where((tbl) => tbl.participantId.equals(participantId))).get();
   }
+
+  // Helper methods for virtual participants
+
+  static const _virtualParticipantCounterKey = 'virtual_participant_id_counter';
+  static const _virtualParticipantIdFloor = 1000000000;
+
+  Future<VirtualParticipant> createVirtualParticipant({
+    required String displayName,
+    String? notes,
+  }) async {
+    final trimmedName = displayName.trim();
+    if (trimmedName.isEmpty) {
+      throw ArgumentError('displayName cannot be empty');
+    }
+
+    return transaction(() async {
+      final newId = await _nextVirtualParticipantId();
+      final now = DateTime.now().toUtc().toIso8601String();
+      final shortName = _deriveShortName(trimmedName);
+
+      await into(virtualParticipants).insert(
+        VirtualParticipantsCompanion.insert(
+          id: Value(newId),
+          displayName: trimmedName,
+          shortName: shortName,
+          notes: Value(notes),
+          createdAtUtc: now,
+          updatedAtUtc: now,
+        ),
+      );
+
+      return (select(
+        virtualParticipants,
+      )..where((tbl) => tbl.id.equals(newId))).getSingle();
+    });
+  }
+
+  Future<List<VirtualParticipant>> getVirtualParticipants() {
+    return (select(
+      virtualParticipants,
+    )..orderBy([(tbl) => OrderingTerm.asc(tbl.displayName)])).get();
+  }
+
+  Future<int> deleteVirtualParticipant(int id) async {
+    return (delete(
+      virtualParticipants,
+    )..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> _nextVirtualParticipantId() async {
+    final existingSetting =
+        await (select(overlaySettings)
+              ..where((tbl) => tbl.key.equals(_virtualParticipantCounterKey)))
+            .getSingleOrNull();
+
+    final current = existingSetting == null
+        ? _virtualParticipantIdFloor - 1
+        : int.tryParse(existingSetting.value) ?? _virtualParticipantIdFloor - 1;
+    final next = current + 1;
+
+    if (existingSetting == null) {
+      await into(overlaySettings).insert(
+        OverlaySettingsCompanion.insert(
+          key: _virtualParticipantCounterKey,
+          value: next.toString(),
+        ),
+      );
+    } else {
+      await (update(overlaySettings)
+            ..where((tbl) => tbl.key.equals(_virtualParticipantCounterKey)))
+          .write(OverlaySettingsCompanion(value: Value(next.toString())));
+    }
+
+    return next;
+  }
+
+  String _deriveShortName(String name) {
+    final tokens = name
+        .split(RegExp(r'\s+'))
+        .map((token) => token.trim())
+        .where((token) => token.isNotEmpty)
+        .toList(growable: false);
+
+    if (tokens.length >= 2) {
+      final first = _firstCharacter(tokens[0]);
+      final second = _firstCharacter(tokens[1]);
+      return '${first ?? ''}${second ?? ''}'.toUpperCase().padRight(2, '?');
+    }
+
+    if (tokens.length == 1) {
+      final chars = tokens.first.characters
+          .take(2)
+          .toList(growable: false)
+          .join();
+      if (chars.isNotEmpty) {
+        return chars.toUpperCase();
+      }
+    }
+
+    final fallback = name.characters.take(1).toList(growable: false).join();
+    if (fallback.isNotEmpty) {
+      return fallback.toUpperCase();
+    }
+
+    return '?';
+  }
+
+  String? _firstCharacter(String value) {
+    final iterator = value.characters.iterator;
+    if (!iterator.moveNext()) {
+      return null;
+    }
+    return iterator.current;
+  }
 }
 
 /// User-defined short names and preferences for participants
@@ -483,4 +606,41 @@ class HandleToParticipantOverrides extends Table {
 
   @override
   Set<Column> get primaryKey => {handleId};
+}
+
+/// Overlay-scoped virtual contacts created by the user
+class VirtualParticipants extends Table {
+  @override
+  String get tableName => 'virtual_participants';
+
+  IntColumn get id => integer().named('id')();
+
+  TextColumn get displayName => text().named('display_name')();
+
+  TextColumn get shortName => text().named('short_name')();
+
+  TextColumn get notes => text().named('notes').nullable()();
+
+  TextColumn get createdAtUtc => text().named('created_at_utc')();
+
+  TextColumn get updatedAtUtc => text().named('updated_at_utc')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => const ['CHECK (id >= 1000000000)'];
+}
+
+/// Key-value storage for overlay-scoped counters and preferences
+class OverlaySettings extends Table {
+  @override
+  String get tableName => 'overlay_settings';
+
+  TextColumn get key => text().named('key')();
+
+  TextColumn get value => text().named('value')();
+
+  @override
+  Set<Column> get primaryKey => {key};
 }

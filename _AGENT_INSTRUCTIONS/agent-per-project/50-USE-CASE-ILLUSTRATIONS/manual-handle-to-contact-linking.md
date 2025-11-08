@@ -36,6 +36,7 @@ Implement a **manual handle-to-contact linking system** that:
 **Problem**: The contact picker needs to show ALL contacts, but currently the migration only imports contacts that have at least one matched handle (performance optimization).
 
 **Change Required**: `ParticipantsMigrator` must import all AddressBook contacts, not just matched ones.
+- While projecting, skip placeholder rows whose only value is "Unknown Contact" so the picker isn't flooded with unusable entries.
 
 **Before**:
 ---
