@@ -14,13 +14,14 @@ part 'overlay_database.g.dart';
     HandleToParticipantOverrides,
     VirtualParticipants,
     OverlaySettings,
+    FavoriteContacts,
   ],
 )
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,6 +32,14 @@ class OverlayDatabase extends _$OverlayDatabase {
       if (from < 2) {
         await m.createTable(virtualParticipants);
         await m.createTable(overlaySettings);
+      }
+      if (from < 3) {
+        await m.createTable(favoriteContacts);
+        // Create index for efficient ordering
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_favorite_contacts_last_interaction '
+          'ON favorite_contacts(last_interaction_utc DESC);',
+        );
       }
     },
   );
