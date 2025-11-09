@@ -504,6 +504,87 @@ class OverlayDatabase extends _$OverlayDatabase {
     }
     return iterator.current;
   }
+
+  // Helper methods for favorite contacts
+
+  /// Get all favorite contacts ordered by last interaction (most recent first)
+  Future<List<FavoriteContact>> getAllFavorites() async {
+    return (select(favoriteContacts)..orderBy([
+          (tbl) => OrderingTerm(
+            expression: tbl.lastInteractionUtc,
+            mode: OrderingMode.desc,
+          ),
+        ]))
+        .get();
+  }
+
+  /// Get count of favorites (for limit enforcement)
+  Future<int> getFavoriteCount() async {
+    final countQuery = selectOnly(favoriteContacts)
+      ..addColumns([favoriteContacts.participantId.count()]);
+    final result = await countQuery.getSingleOrNull();
+    return result?.read(favoriteContacts.participantId.count()) ?? 0;
+  }
+
+  /// Check if a participant is favorited
+  Future<bool> isFavorite(int participantId) async {
+    final result =
+        await (select(favoriteContacts)
+              ..where((tbl) => tbl.participantId.equals(participantId)))
+            .getSingleOrNull();
+    return result != null;
+  }
+
+  /// Add a contact to favorites
+  Future<void> addFavorite(
+    int participantId,
+    DateTime? lastInteractionUtc,
+  ) async {
+    final now = DateTime.now().toUtc();
+
+    await into(favoriteContacts).insert(
+      FavoriteContactsCompanion.insert(
+        participantId: Value(participantId),
+        pinnedAtUtc: now.toIso8601String(),
+        lastInteractionUtc: lastInteractionUtc != null
+            ? Value(lastInteractionUtc.toUtc().toIso8601String())
+            : const Value.absent(),
+      ),
+    );
+  }
+
+  /// Remove a contact from favorites
+  Future<void> removeFavorite(int participantId) async {
+    await (delete(
+      favoriteContacts,
+    )..where((tbl) => tbl.participantId.equals(participantId))).go();
+  }
+
+  /// Update last interaction timestamp for a favorite (triggers re-sort)
+  Future<void> updateFavoriteLastInteraction(
+    int participantId,
+    DateTime timestamp,
+  ) async {
+    await (update(
+      favoriteContacts,
+    )..where((tbl) => tbl.participantId.equals(participantId))).write(
+      FavoriteContactsCompanion(
+        lastInteractionUtc: Value(timestamp.toUtc().toIso8601String()),
+      ),
+    );
+  }
+
+  /// Bulk reorder favorites by setting sort_order
+  /// (Currently not used since we auto-sort by lastInteractionUtc)
+  Future<void> reorderFavorites(List<int> participantIds) async {
+    await transaction(() async {
+      for (var i = 0; i < participantIds.length; i++) {
+        await (update(favoriteContacts)
+              ..where((tbl) => tbl.participantId.equals(participantIds[i])))
+            .write(FavoriteContactsCompanion(sortOrder: Value(i)));
+      }
+    });
+  }
 }
 
 /// User-defined short names and preferences for participants
@@ -652,4 +733,27 @@ class OverlaySettings extends Table {
 
   @override
   Set<Column> get primaryKey => {key};
+}
+
+/// User's pinned/favorite contacts
+class FavoriteContacts extends Table {
+  @override
+  String get tableName => 'favorite_contacts';
+
+  /// Matches working.participants.id
+  IntColumn get participantId => integer().named('participant_id')();
+
+  /// Order position (lower = higher priority, auto-managed)
+  IntColumn get sortOrder =>
+      integer().named('sort_order').withDefault(const Constant(0))();
+
+  /// ISO8601 timestamp when contact was pinned
+  TextColumn get pinnedAtUtc => text().named('pinned_at_utc')();
+
+  /// ISO8601 timestamp of last user interaction (for auto-sorting)
+  TextColumn get lastInteractionUtc =>
+      text().named('last_interaction_utc').nullable()();
+
+  @override
+  Set<Column> get primaryKey => {participantId};
 }

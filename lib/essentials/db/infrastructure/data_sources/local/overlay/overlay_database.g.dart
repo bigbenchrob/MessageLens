@@ -2505,6 +2505,339 @@ class OverlaySettingsCompanion extends UpdateCompanion<OverlaySetting> {
   }
 }
 
+class $FavoriteContactsTable extends FavoriteContacts
+    with TableInfo<$FavoriteContactsTable, FavoriteContact> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FavoriteContactsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _participantIdMeta = const VerificationMeta(
+    'participantId',
+  );
+  @override
+  late final GeneratedColumn<int> participantId = GeneratedColumn<int>(
+    'participant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _pinnedAtUtcMeta = const VerificationMeta(
+    'pinnedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> pinnedAtUtc = GeneratedColumn<String>(
+    'pinned_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastInteractionUtcMeta =
+      const VerificationMeta('lastInteractionUtc');
+  @override
+  late final GeneratedColumn<String> lastInteractionUtc =
+      GeneratedColumn<String>(
+        'last_interaction_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    participantId,
+    sortOrder,
+    pinnedAtUtc,
+    lastInteractionUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'favorite_contacts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FavoriteContact> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('participant_id')) {
+      context.handle(
+        _participantIdMeta,
+        participantId.isAcceptableOrUnknown(
+          data['participant_id']!,
+          _participantIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('pinned_at_utc')) {
+      context.handle(
+        _pinnedAtUtcMeta,
+        pinnedAtUtc.isAcceptableOrUnknown(
+          data['pinned_at_utc']!,
+          _pinnedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pinnedAtUtcMeta);
+    }
+    if (data.containsKey('last_interaction_utc')) {
+      context.handle(
+        _lastInteractionUtcMeta,
+        lastInteractionUtc.isAcceptableOrUnknown(
+          data['last_interaction_utc']!,
+          _lastInteractionUtcMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {participantId};
+  @override
+  FavoriteContact map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FavoriteContact(
+      participantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}participant_id'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      pinnedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pinned_at_utc'],
+      )!,
+      lastInteractionUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_interaction_utc'],
+      ),
+    );
+  }
+
+  @override
+  $FavoriteContactsTable createAlias(String alias) {
+    return $FavoriteContactsTable(attachedDatabase, alias);
+  }
+}
+
+class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
+  /// Matches working.participants.id
+  final int participantId;
+
+  /// Order position (lower = higher priority, auto-managed)
+  final int sortOrder;
+
+  /// ISO8601 timestamp when contact was pinned
+  final String pinnedAtUtc;
+
+  /// ISO8601 timestamp of last user interaction (for auto-sorting)
+  final String? lastInteractionUtc;
+  const FavoriteContact({
+    required this.participantId,
+    required this.sortOrder,
+    required this.pinnedAtUtc,
+    this.lastInteractionUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['participant_id'] = Variable<int>(participantId);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['pinned_at_utc'] = Variable<String>(pinnedAtUtc);
+    if (!nullToAbsent || lastInteractionUtc != null) {
+      map['last_interaction_utc'] = Variable<String>(lastInteractionUtc);
+    }
+    return map;
+  }
+
+  FavoriteContactsCompanion toCompanion(bool nullToAbsent) {
+    return FavoriteContactsCompanion(
+      participantId: Value(participantId),
+      sortOrder: Value(sortOrder),
+      pinnedAtUtc: Value(pinnedAtUtc),
+      lastInteractionUtc: lastInteractionUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractionUtc),
+    );
+  }
+
+  factory FavoriteContact.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FavoriteContact(
+      participantId: serializer.fromJson<int>(json['participantId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      pinnedAtUtc: serializer.fromJson<String>(json['pinnedAtUtc']),
+      lastInteractionUtc: serializer.fromJson<String?>(
+        json['lastInteractionUtc'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'participantId': serializer.toJson<int>(participantId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'pinnedAtUtc': serializer.toJson<String>(pinnedAtUtc),
+      'lastInteractionUtc': serializer.toJson<String?>(lastInteractionUtc),
+    };
+  }
+
+  FavoriteContact copyWith({
+    int? participantId,
+    int? sortOrder,
+    String? pinnedAtUtc,
+    Value<String?> lastInteractionUtc = const Value.absent(),
+  }) => FavoriteContact(
+    participantId: participantId ?? this.participantId,
+    sortOrder: sortOrder ?? this.sortOrder,
+    pinnedAtUtc: pinnedAtUtc ?? this.pinnedAtUtc,
+    lastInteractionUtc: lastInteractionUtc.present
+        ? lastInteractionUtc.value
+        : this.lastInteractionUtc,
+  );
+  FavoriteContact copyWithCompanion(FavoriteContactsCompanion data) {
+    return FavoriteContact(
+      participantId: data.participantId.present
+          ? data.participantId.value
+          : this.participantId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      pinnedAtUtc: data.pinnedAtUtc.present
+          ? data.pinnedAtUtc.value
+          : this.pinnedAtUtc,
+      lastInteractionUtc: data.lastInteractionUtc.present
+          ? data.lastInteractionUtc.value
+          : this.lastInteractionUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteContact(')
+          ..write('participantId: $participantId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('pinnedAtUtc: $pinnedAtUtc, ')
+          ..write('lastInteractionUtc: $lastInteractionUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(participantId, sortOrder, pinnedAtUtc, lastInteractionUtc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FavoriteContact &&
+          other.participantId == this.participantId &&
+          other.sortOrder == this.sortOrder &&
+          other.pinnedAtUtc == this.pinnedAtUtc &&
+          other.lastInteractionUtc == this.lastInteractionUtc);
+}
+
+class FavoriteContactsCompanion extends UpdateCompanion<FavoriteContact> {
+  final Value<int> participantId;
+  final Value<int> sortOrder;
+  final Value<String> pinnedAtUtc;
+  final Value<String?> lastInteractionUtc;
+  const FavoriteContactsCompanion({
+    this.participantId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.pinnedAtUtc = const Value.absent(),
+    this.lastInteractionUtc = const Value.absent(),
+  });
+  FavoriteContactsCompanion.insert({
+    this.participantId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    required String pinnedAtUtc,
+    this.lastInteractionUtc = const Value.absent(),
+  }) : pinnedAtUtc = Value(pinnedAtUtc);
+  static Insertable<FavoriteContact> custom({
+    Expression<int>? participantId,
+    Expression<int>? sortOrder,
+    Expression<String>? pinnedAtUtc,
+    Expression<String>? lastInteractionUtc,
+  }) {
+    return RawValuesInsertable({
+      if (participantId != null) 'participant_id': participantId,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (pinnedAtUtc != null) 'pinned_at_utc': pinnedAtUtc,
+      if (lastInteractionUtc != null)
+        'last_interaction_utc': lastInteractionUtc,
+    });
+  }
+
+  FavoriteContactsCompanion copyWith({
+    Value<int>? participantId,
+    Value<int>? sortOrder,
+    Value<String>? pinnedAtUtc,
+    Value<String?>? lastInteractionUtc,
+  }) {
+    return FavoriteContactsCompanion(
+      participantId: participantId ?? this.participantId,
+      sortOrder: sortOrder ?? this.sortOrder,
+      pinnedAtUtc: pinnedAtUtc ?? this.pinnedAtUtc,
+      lastInteractionUtc: lastInteractionUtc ?? this.lastInteractionUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (participantId.present) {
+      map['participant_id'] = Variable<int>(participantId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (pinnedAtUtc.present) {
+      map['pinned_at_utc'] = Variable<String>(pinnedAtUtc.value);
+    }
+    if (lastInteractionUtc.present) {
+      map['last_interaction_utc'] = Variable<String>(lastInteractionUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteContactsCompanion(')
+          ..write('participantId: $participantId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('pinnedAtUtc: $pinnedAtUtc, ')
+          ..write('lastInteractionUtc: $lastInteractionUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
@@ -2520,6 +2853,9 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
   late final $OverlaySettingsTable overlaySettings = $OverlaySettingsTable(
     this,
   );
+  late final $FavoriteContactsTable favoriteContacts = $FavoriteContactsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2531,6 +2867,7 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
     handleToParticipantOverrides,
     virtualParticipants,
     overlaySettings,
+    favoriteContacts,
   ];
 }
 
@@ -3913,6 +4250,197 @@ typedef $$OverlaySettingsTableProcessedTableManager =
       OverlaySetting,
       PrefetchHooks Function()
     >;
+typedef $$FavoriteContactsTableCreateCompanionBuilder =
+    FavoriteContactsCompanion Function({
+      Value<int> participantId,
+      Value<int> sortOrder,
+      required String pinnedAtUtc,
+      Value<String?> lastInteractionUtc,
+    });
+typedef $$FavoriteContactsTableUpdateCompanionBuilder =
+    FavoriteContactsCompanion Function({
+      Value<int> participantId,
+      Value<int> sortOrder,
+      Value<String> pinnedAtUtc,
+      Value<String?> lastInteractionUtc,
+    });
+
+class $$FavoriteContactsTableFilterComposer
+    extends Composer<_$OverlayDatabase, $FavoriteContactsTable> {
+  $$FavoriteContactsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pinnedAtUtc => $composableBuilder(
+    column: $table.pinnedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastInteractionUtc => $composableBuilder(
+    column: $table.lastInteractionUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FavoriteContactsTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $FavoriteContactsTable> {
+  $$FavoriteContactsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pinnedAtUtc => $composableBuilder(
+    column: $table.pinnedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastInteractionUtc => $composableBuilder(
+    column: $table.lastInteractionUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FavoriteContactsTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $FavoriteContactsTable> {
+  $$FavoriteContactsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get participantId => $composableBuilder(
+    column: $table.participantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get pinnedAtUtc => $composableBuilder(
+    column: $table.pinnedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastInteractionUtc => $composableBuilder(
+    column: $table.lastInteractionUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$FavoriteContactsTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $FavoriteContactsTable,
+          FavoriteContact,
+          $$FavoriteContactsTableFilterComposer,
+          $$FavoriteContactsTableOrderingComposer,
+          $$FavoriteContactsTableAnnotationComposer,
+          $$FavoriteContactsTableCreateCompanionBuilder,
+          $$FavoriteContactsTableUpdateCompanionBuilder,
+          (
+            FavoriteContact,
+            BaseReferences<
+              _$OverlayDatabase,
+              $FavoriteContactsTable,
+              FavoriteContact
+            >,
+          ),
+          FavoriteContact,
+          PrefetchHooks Function()
+        > {
+  $$FavoriteContactsTableTableManager(
+    _$OverlayDatabase db,
+    $FavoriteContactsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FavoriteContactsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FavoriteContactsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FavoriteContactsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> participantId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> pinnedAtUtc = const Value.absent(),
+                Value<String?> lastInteractionUtc = const Value.absent(),
+              }) => FavoriteContactsCompanion(
+                participantId: participantId,
+                sortOrder: sortOrder,
+                pinnedAtUtc: pinnedAtUtc,
+                lastInteractionUtc: lastInteractionUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> participantId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                required String pinnedAtUtc,
+                Value<String?> lastInteractionUtc = const Value.absent(),
+              }) => FavoriteContactsCompanion.insert(
+                participantId: participantId,
+                sortOrder: sortOrder,
+                pinnedAtUtc: pinnedAtUtc,
+                lastInteractionUtc: lastInteractionUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FavoriteContactsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $FavoriteContactsTable,
+      FavoriteContact,
+      $$FavoriteContactsTableFilterComposer,
+      $$FavoriteContactsTableOrderingComposer,
+      $$FavoriteContactsTableAnnotationComposer,
+      $$FavoriteContactsTableCreateCompanionBuilder,
+      $$FavoriteContactsTableUpdateCompanionBuilder,
+      (
+        FavoriteContact,
+        BaseReferences<
+          _$OverlayDatabase,
+          $FavoriteContactsTable,
+          FavoriteContact
+        >,
+      ),
+      FavoriteContact,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -3933,4 +4461,6 @@ class $OverlayDatabaseManager {
       $$VirtualParticipantsTableTableManager(_db, _db.virtualParticipants);
   $$OverlaySettingsTableTableManager get overlaySettings =>
       $$OverlaySettingsTableTableManager(_db, _db.overlaySettings);
+  $$FavoriteContactsTableTableManager get favoriteContacts =>
+      $$FavoriteContactsTableTableManager(_db, _db.favoriteContacts);
 }
