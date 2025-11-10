@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../domain/contact_constants.dart'; // NEW: contact picker mode
 import '../../../../essentials/navigation/domain/entities/features/chat_view_mode.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/handles_list_spec.dart';
@@ -13,10 +14,12 @@ import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../chats/presentation/widgets/calendar_heatmap_timeline_widget.dart';
 import '../../../chats/presentation/widgets/enhanced_chat_card.dart';
+import '../../application/contact_picker_mode.dart'; // NEW: contact picker mode
 import '../../application/contact_timeline_provider.dart';
 import '../../application/contacts_list_provider.dart';
 import '../../application/sorted_chats_for_participant_provider.dart';
 import '../../domain/participant_origin.dart';
+import '../widgets/flat_contacts_list.dart'; // NEW: contact picker mode
 import '../widgets/grouped_contact_selector.dart';
 
 class ContactsSidebarView extends ConsumerWidget {
@@ -192,22 +195,52 @@ class ContactsSidebarView extends ConsumerWidget {
                                   ),
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                GroupedContactSelector(
-                  selectedParticipantId: selectedParticipantId,
-                  onContactSelected: (participantId) {
-                    selectParticipant(participantId);
-                  },
-                ),
-                Expanded(
-                  child: asyncContacts.when(
-                    data: (contacts) {
-                      if (selectedParticipantId == null) {
-                        return const Center(
-                          child: Text(
+                      asyncContacts.when(
+                        // NEW: contact picker mode switch
+                        data: (contacts) {
+                          final config = resolveContactPickerConfig(
+                            contacts.length,
+                          );
+                          switch (config.mode) {
+                            case ContactPickerMode.flat:
+                              return FlatContactsList(
+                                contacts: contacts,
+                                selectedParticipantId: selectedParticipantId,
+                                onContactSelected: (participantId) {
+                                  selectParticipant(participantId);
+                                },
+                              );
+                            case ContactPickerMode.grouped:
+                              return GroupedContactSelector(
+                                selectedParticipantId: selectedParticipantId,
+                                onContactSelected: (participantId) {
+                                  selectParticipant(participantId);
+                                },
+                              );
+                          }
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: ProgressCircle()),
+                        ),
+                        error: (error, _) => Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: _ContactMenuError(
+                            onRetry: retryContacts,
+                            error: error,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: asyncContacts.when(
+                          data: (contacts) {
+                            if (selectedParticipantId == null) {
+                              return const Center(
+                                child: Text(
                                   'Select a contact to view their chats',
                                   style: TextStyle(
                                     fontSize: 14,
