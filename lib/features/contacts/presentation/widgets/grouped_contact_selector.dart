@@ -2,39 +2,39 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../application/contacts_list_provider.dart';
 import '../../application/grouped_contacts_provider.dart';
 
-class GroupedContactSelector extends ConsumerStatefulWidget {
-  const GroupedContactSelector({
+// NEW: collapsible contacts picker section
+final contactsPickerExpandedProvider = StateProvider<bool>(
+  (ref) => true,
+);
+
+// NEW: collapsible contacts picker section
+class ContactsPickerSection extends ConsumerWidget {
+  const ContactsPickerSection({
     super.key,
+    required this.contacts,
     required this.selectedParticipantId,
     required this.onContactSelected,
   });
 
+  final List<ContactSummary> contacts;
   final int? selectedParticipantId;
   final ValueChanged<int> onContactSelected;
 
   @override
-  ConsumerState<GroupedContactSelector> createState() =>
-      _GroupedContactSelectorState();
-}
-
-class _GroupedContactSelectorState
-    extends ConsumerState<GroupedContactSelector> {
-  final _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isExpanded = ref.watch(contactsPickerExpandedProvider);
     final groupedAsync = ref.watch(groupedContactsProvider);
     final theme = MacosTheme.of(context);
+    final selectedContact = _findContact(
+      contacts,
+      selectedParticipantId,
+    );
+    final selectedName = selectedContact?.displayName ?? 'Select a contact';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -48,50 +48,59 @@ class _GroupedContactSelectorState
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Grouped contacts (preview)',
-            style: theme.typography.caption1.copyWith(
-              fontWeight: FontWeight.w600,
+          GestureDetector(
+            key: const ValueKey('contactsPickerHeader'), // NEW: collapsible contacts picker section
+            onTap: () {
+              final notifier = ref.read(
+                contactsPickerExpandedProvider.notifier,
+              );
+              notifier.state = !notifier.state;
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                MacosIcon(
+                  isExpanded
+                      ? CupertinoIcons.chevron_down
+                      : CupertinoIcons.chevron_right,
+                  size: 14,
+                  color: CupertinoColors.secondaryLabel,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    selectedName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const SizedBox(width: 24), // NEW: placeholder for future metadata
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 260,
-            child: groupedAsync.when(
+          if (isExpanded) ...[
+            const SizedBox(height: 12),
+            groupedAsync.when(
               data: (grouped) {
                 if (grouped.availableLetters.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No contacts available',
-                      style: TextStyle(
-                        color: CupertinoColors.secondaryLabel,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
+                  return const _GroupedEmptyState();
                 }
-
-                return MacosScrollbar(
-                  controller: _scrollController,
-                  child: ListView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.zero,
-                    children: [
-                      for (final letter in grouped.availableLetters)
-                        _ContactGroupSection(
-                          letter: letter,
-                          contacts: grouped.groups[letter] ?? const [],
-                          selectedParticipantId: widget.selectedParticipantId,
-                          onContactSelected: widget.onContactSelected,
-                          count: grouped.letterCounts[letter] ?? 0,
-                        ),
-                    ],
-                  ),
+                return GroupedContactsPicker(
+                  grouped: grouped,
+                  selectedParticipantId: selectedParticipantId,
+                  onContactSelected: onContactSelected,
                 );
               },
-              loading: () => const Center(child: ProgressCircle()),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: ProgressCircle()),
+              ),
               error: (error, _) => _GroupedSelectorError(
                 message: '$error',
                 onRetry: () {
@@ -99,7 +108,249 @@ class _GroupedContactSelectorState
                 },
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+const double _kLetterSlotHeight = 18;
+const double _kPickerMinHeight = 160;
+const double _kPickerMaxHeight = 360;
+const double _kJumpBarWidth = 24;
+
+// NEW: integrated jump bar
+class GroupedContactsPicker extends StatefulWidget {
+  const GroupedContactsPicker({
+    super.key,
+    required this.grouped,
+    required this.selectedParticipantId,
+    required this.onContactSelected,
+  });
+
+  final GroupedContacts grouped;
+  final int? selectedParticipantId;
+  final ValueChanged<int> onContactSelected;
+
+  @override
+  State<GroupedContactsPicker> createState() => _GroupedContactsPickerState();
+}
+
+class _GroupedContactsPickerState extends State<GroupedContactsPicker> {
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
+  String? _activeLetter;
+
+  List<String> get _letters => widget.grouped.availableLetters;
+
+  double get _pickerHeight {
+    if (_letters.isEmpty) {
+      return _kPickerMinHeight;
+    }
+    final baseHeight = _letters.length * _kLetterSlotHeight;
+    final clampedHeight =
+        baseHeight.clamp(_kPickerMinHeight, _kPickerMaxHeight);
+    return clampedHeight;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _itemPositionsListener.itemPositions.addListener(_handlePositionsChanged);
+  }
+
+  @override
+  void dispose() {
+    _itemPositionsListener.itemPositions.removeListener(
+      _handlePositionsChanged,
+    );
+    super.dispose();
+  }
+
+  void _handlePositionsChanged() {
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty || _letters.isEmpty) {
+      return;
+    }
+
+    final visiblePositions = positions
+        .where((position) => position.itemTrailingEdge > 0)
+        .toList(growable: false)
+      ..sort((a, b) => a.index.compareTo(b.index));
+
+    if (visiblePositions.isEmpty) {
+      return;
+    }
+
+    final firstVisible = visiblePositions.first;
+    final currentLetter = _letters[firstVisible.index];
+    if (currentLetter != _activeLetter) {
+      setState(() {
+        _activeLetter = currentLetter;
+      });
+    }
+  }
+
+  void _scrollToLetter(String letter) {
+    final index = _letters.indexOf(letter);
+    if (index == -1) {
+      return;
+    }
+
+    _itemScrollController.scrollTo(
+      index: index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pickerHeight = _pickerHeight;
+
+    return SizedBox(
+      height: pickerHeight,
+      child: Row(
+        children: [
+          Expanded(
+            child: _GroupedContactsList(
+              grouped: widget.grouped,
+              selectedParticipantId: widget.selectedParticipantId,
+              onContactSelected: widget.onContactSelected,
+              controller: _itemScrollController,
+              positionsListener: _itemPositionsListener,
+            ),
           ),
+          const SizedBox(width: 8),
+          _JumpBar(
+            letters: _letters,
+            totalHeight: pickerHeight,
+            activeLetter: _activeLetter,
+            onLetterTap: _scrollToLetter,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupedEmptyState extends StatelessWidget {
+  const _GroupedEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'No contacts available',
+        style: TextStyle(
+          color: CupertinoColors.secondaryLabel,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupedContactsList extends StatelessWidget {
+  const _GroupedContactsList({
+    required this.grouped,
+    required this.selectedParticipantId,
+    required this.onContactSelected,
+    required this.controller,
+    required this.positionsListener,
+  });
+
+  final GroupedContacts grouped;
+  final int? selectedParticipantId;
+  final ValueChanged<int> onContactSelected;
+  final ItemScrollController controller;
+  final ItemPositionsListener positionsListener;
+
+  @override
+  Widget build(BuildContext context) {
+    final letters = grouped.availableLetters;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: ScrollablePositionedList.builder(
+        itemScrollController: controller,
+        itemPositionsListener: positionsListener,
+        itemCount: letters.length,
+        itemBuilder: (context, index) {
+          final letter = letters[index];
+          final contacts = grouped.groups[letter] ?? const [];
+          final count = grouped.letterCounts[letter] ?? contacts.length;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: _ContactGroupSection(
+              letter: letter,
+              contacts: contacts,
+              selectedParticipantId: selectedParticipantId,
+              onContactSelected: onContactSelected,
+              count: count,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _JumpBar extends StatelessWidget {
+  const _JumpBar({
+    required this.letters,
+    required this.totalHeight,
+    required this.activeLetter,
+    required this.onLetterTap,
+  });
+
+  final List<String> letters;
+  final double totalHeight;
+  final String? activeLetter;
+  final ValueChanged<String> onLetterTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (letters.isEmpty) {
+      return const SizedBox(
+        width: _kJumpBarWidth,
+      );
+    }
+
+    final letterHeight = totalHeight / letters.length;
+    final typography = MacosTheme.of(context).typography;
+
+    return Container(
+      width: _kJumpBarWidth,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: MacosTheme.of(context).canvasColor,
+      ),
+      child: Column(
+        children: [
+          for (final letter in letters)
+            SizedBox(
+              height: letterHeight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onLetterTap(letter),
+                child: Center(
+                  child: Text(
+                    letter,
+                    style: typography.caption1.copyWith(
+                      fontWeight: letter == activeLetter
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                      color: letter == activeLetter
+                          ? MacosTheme.of(context).primaryColor
+                          : CupertinoColors.secondaryLabel,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -295,4 +546,19 @@ class _ContactListItem extends StatelessWidget {
       ),
     );
   }
+}
+
+ContactSummary? _findContact(
+  List<ContactSummary> contacts,
+  int? participantId,
+) {
+  if (participantId == null) {
+    return null;
+  }
+  for (final contact in contacts) {
+    if (contact.participantId == participantId) {
+      return contact;
+    }
+  }
+  return null;
 }

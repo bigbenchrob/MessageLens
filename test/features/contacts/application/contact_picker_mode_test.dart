@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:remember_this_text/features/contacts/domain/contact_constants.dart';
+import 'package:remember_this_text/constants/domain/contact_constants.dart';
 import 'package:remember_this_text/features/contacts/application/contact_picker_mode.dart';
 
 void main() {

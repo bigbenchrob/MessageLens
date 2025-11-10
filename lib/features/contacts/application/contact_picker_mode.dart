@@ -1,4 +1,4 @@
-import '../domain/contact_constants.dart';
+import '../../../constants/domain/contact_constants.dart';
 
 // NEW: contact picker mode helper
 class ContactPickerConfig {

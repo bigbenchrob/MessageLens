@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -8,7 +9,7 @@ import 'package:remember_this_text/features/contacts/presentation/widgets/groupe
 import '../../../../test_utils/contact_summary_fixture.dart';
 
 void main() {
-  testWidgets('grouped selector renders sections and handles taps',
+  testWidgets('contacts picker section toggles and handles taps',
       (tester) async {
     final grouped = GroupedContacts(
       groups: {
@@ -23,6 +24,11 @@ void main() {
       availableLetters: const ['A', 'B'],
     );
 
+    final contacts = [
+      buildContactSummary(participantId: 1, displayName: 'Alice'),
+      buildContactSummary(participantId: 2, displayName: 'Bob'),
+    ];
+
     int? tappedId;
 
     await tester.pumpWidget(
@@ -32,7 +38,8 @@ void main() {
         ],
         child: MacosApp(
           home: MacosWindow(
-            child: GroupedContactSelector(
+            child: ContactsPickerSection(
+              contacts: contacts,
               selectedParticipantId: null,
               onContactSelected: (id) {
                 tappedId = id;
@@ -45,11 +52,17 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Grouped contacts (preview)'), findsOneWidget);
+    expect(find.text('Select a contact'), findsOneWidget);
     expect(find.text('A'), findsWidgets);
     expect(find.text('B'), findsWidgets);
 
     await tester.tap(find.text('Bob'));
     expect(tappedId, 2);
+
+    await tester.tap(find.byKey(const ValueKey('contactsPickerHeader')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('A'), findsNothing);
+    expect(find.text('B'), findsNothing);
   });
 }
