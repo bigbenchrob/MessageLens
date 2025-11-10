@@ -17,6 +17,7 @@ import '../../application/contact_timeline_provider.dart';
 import '../../application/contacts_list_provider.dart';
 import '../../application/sorted_chats_for_participant_provider.dart';
 import '../../domain/participant_origin.dart';
+import '../widgets/grouped_contact_selector.dart';
 
 class ContactsSidebarView extends ConsumerWidget {
   const ContactsSidebarView({required this.spec, super.key});
@@ -191,16 +192,22 @@ class ContactsSidebarView extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
                       ),
-                      Expanded(
-                        child: asyncContacts.when(
-                          data: (contacts) {
-                            if (selectedParticipantId == null) {
-                              return const Center(
-                                child: Text(
+                    ],
+                  ),
+                ),
+                GroupedContactSelector(
+                  selectedParticipantId: selectedParticipantId,
+                  onContactSelected: (participantId) {
+                    selectParticipant(participantId);
+                  },
+                ),
+                Expanded(
+                  child: asyncContacts.when(
+                    data: (contacts) {
+                      if (selectedParticipantId == null) {
+                        return const Center(
+                          child: Text(
                                   'Select a contact to view their chats',
                                   style: TextStyle(
                                     fontSize: 14,
