@@ -2534,12 +2534,12 @@ class $FavoriteContactsTable extends FavoriteContacts
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _pinnedAtUtcMeta = const VerificationMeta(
-    'pinnedAtUtc',
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
   );
   @override
-  late final GeneratedColumn<String> pinnedAtUtc = GeneratedColumn<String>(
-    'pinned_at_utc',
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -2556,12 +2556,25 @@ class $FavoriteContactsTable extends FavoriteContacts
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('1970-01-01T00:00:00Z'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     participantId,
     sortOrder,
-    pinnedAtUtc,
+    createdAtUtc,
     lastInteractionUtc,
+    updatedAtUtc,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2590,16 +2603,16 @@ class $FavoriteContactsTable extends FavoriteContacts
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
-    if (data.containsKey('pinned_at_utc')) {
+    if (data.containsKey('created_at_utc')) {
       context.handle(
-        _pinnedAtUtcMeta,
-        pinnedAtUtc.isAcceptableOrUnknown(
-          data['pinned_at_utc']!,
-          _pinnedAtUtcMeta,
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_pinnedAtUtcMeta);
+      context.missing(_createdAtUtcMeta);
     }
     if (data.containsKey('last_interaction_utc')) {
       context.handle(
@@ -2607,6 +2620,15 @@ class $FavoriteContactsTable extends FavoriteContacts
         lastInteractionUtc.isAcceptableOrUnknown(
           data['last_interaction_utc']!,
           _lastInteractionUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
         ),
       );
     }
@@ -2627,14 +2649,18 @@ class $FavoriteContactsTable extends FavoriteContacts
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
-      pinnedAtUtc: attachedDatabase.typeMapping.read(
+      createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}pinned_at_utc'],
+        data['${effectivePrefix}created_at_utc'],
       )!,
       lastInteractionUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}last_interaction_utc'],
       ),
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
     );
   }
 
@@ -2651,26 +2677,31 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
   /// Order position (lower = higher priority, auto-managed)
   final int sortOrder;
 
-  /// ISO8601 timestamp when contact was pinned
-  final String pinnedAtUtc;
+  /// ISO8601 timestamp when contact was pinned/created
+  final String createdAtUtc;
 
   /// ISO8601 timestamp of last user interaction (for auto-sorting)
   final String? lastInteractionUtc;
+
+  /// ISO8601 timestamp of the last mutation for bookkeeping
+  final String updatedAtUtc;
   const FavoriteContact({
     required this.participantId,
     required this.sortOrder,
-    required this.pinnedAtUtc,
+    required this.createdAtUtc,
     this.lastInteractionUtc,
+    required this.updatedAtUtc,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['participant_id'] = Variable<int>(participantId);
     map['sort_order'] = Variable<int>(sortOrder);
-    map['pinned_at_utc'] = Variable<String>(pinnedAtUtc);
+    map['created_at_utc'] = Variable<String>(createdAtUtc);
     if (!nullToAbsent || lastInteractionUtc != null) {
       map['last_interaction_utc'] = Variable<String>(lastInteractionUtc);
     }
+    map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     return map;
   }
 
@@ -2678,10 +2709,11 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
     return FavoriteContactsCompanion(
       participantId: Value(participantId),
       sortOrder: Value(sortOrder),
-      pinnedAtUtc: Value(pinnedAtUtc),
+      createdAtUtc: Value(createdAtUtc),
       lastInteractionUtc: lastInteractionUtc == null && nullToAbsent
           ? const Value.absent()
           : Value(lastInteractionUtc),
+      updatedAtUtc: Value(updatedAtUtc),
     );
   }
 
@@ -2693,10 +2725,11 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
     return FavoriteContact(
       participantId: serializer.fromJson<int>(json['participantId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
-      pinnedAtUtc: serializer.fromJson<String>(json['pinnedAtUtc']),
+      createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
       lastInteractionUtc: serializer.fromJson<String?>(
         json['lastInteractionUtc'],
       ),
+      updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
     );
   }
   @override
@@ -2705,23 +2738,26 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
     return <String, dynamic>{
       'participantId': serializer.toJson<int>(participantId),
       'sortOrder': serializer.toJson<int>(sortOrder),
-      'pinnedAtUtc': serializer.toJson<String>(pinnedAtUtc),
+      'createdAtUtc': serializer.toJson<String>(createdAtUtc),
       'lastInteractionUtc': serializer.toJson<String?>(lastInteractionUtc),
+      'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
     };
   }
 
   FavoriteContact copyWith({
     int? participantId,
     int? sortOrder,
-    String? pinnedAtUtc,
+    String? createdAtUtc,
     Value<String?> lastInteractionUtc = const Value.absent(),
+    String? updatedAtUtc,
   }) => FavoriteContact(
     participantId: participantId ?? this.participantId,
     sortOrder: sortOrder ?? this.sortOrder,
-    pinnedAtUtc: pinnedAtUtc ?? this.pinnedAtUtc,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
     lastInteractionUtc: lastInteractionUtc.present
         ? lastInteractionUtc.value
         : this.lastInteractionUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
   );
   FavoriteContact copyWithCompanion(FavoriteContactsCompanion data) {
     return FavoriteContact(
@@ -2729,12 +2765,15 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
           ? data.participantId.value
           : this.participantId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
-      pinnedAtUtc: data.pinnedAtUtc.present
-          ? data.pinnedAtUtc.value
-          : this.pinnedAtUtc,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
       lastInteractionUtc: data.lastInteractionUtc.present
           ? data.lastInteractionUtc.value
           : this.lastInteractionUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
     );
   }
 
@@ -2743,68 +2782,82 @@ class FavoriteContact extends DataClass implements Insertable<FavoriteContact> {
     return (StringBuffer('FavoriteContact(')
           ..write('participantId: $participantId, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('pinnedAtUtc: $pinnedAtUtc, ')
-          ..write('lastInteractionUtc: $lastInteractionUtc')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('lastInteractionUtc: $lastInteractionUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(participantId, sortOrder, pinnedAtUtc, lastInteractionUtc);
+  int get hashCode => Object.hash(
+    participantId,
+    sortOrder,
+    createdAtUtc,
+    lastInteractionUtc,
+    updatedAtUtc,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FavoriteContact &&
           other.participantId == this.participantId &&
           other.sortOrder == this.sortOrder &&
-          other.pinnedAtUtc == this.pinnedAtUtc &&
-          other.lastInteractionUtc == this.lastInteractionUtc);
+          other.createdAtUtc == this.createdAtUtc &&
+          other.lastInteractionUtc == this.lastInteractionUtc &&
+          other.updatedAtUtc == this.updatedAtUtc);
 }
 
 class FavoriteContactsCompanion extends UpdateCompanion<FavoriteContact> {
   final Value<int> participantId;
   final Value<int> sortOrder;
-  final Value<String> pinnedAtUtc;
+  final Value<String> createdAtUtc;
   final Value<String?> lastInteractionUtc;
+  final Value<String> updatedAtUtc;
   const FavoriteContactsCompanion({
     this.participantId = const Value.absent(),
     this.sortOrder = const Value.absent(),
-    this.pinnedAtUtc = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
     this.lastInteractionUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
   });
   FavoriteContactsCompanion.insert({
     this.participantId = const Value.absent(),
     this.sortOrder = const Value.absent(),
-    required String pinnedAtUtc,
+    required String createdAtUtc,
     this.lastInteractionUtc = const Value.absent(),
-  }) : pinnedAtUtc = Value(pinnedAtUtc);
+    this.updatedAtUtc = const Value.absent(),
+  }) : createdAtUtc = Value(createdAtUtc);
   static Insertable<FavoriteContact> custom({
     Expression<int>? participantId,
     Expression<int>? sortOrder,
-    Expression<String>? pinnedAtUtc,
+    Expression<String>? createdAtUtc,
     Expression<String>? lastInteractionUtc,
+    Expression<String>? updatedAtUtc,
   }) {
     return RawValuesInsertable({
       if (participantId != null) 'participant_id': participantId,
       if (sortOrder != null) 'sort_order': sortOrder,
-      if (pinnedAtUtc != null) 'pinned_at_utc': pinnedAtUtc,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (lastInteractionUtc != null)
         'last_interaction_utc': lastInteractionUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
     });
   }
 
   FavoriteContactsCompanion copyWith({
     Value<int>? participantId,
     Value<int>? sortOrder,
-    Value<String>? pinnedAtUtc,
+    Value<String>? createdAtUtc,
     Value<String?>? lastInteractionUtc,
+    Value<String>? updatedAtUtc,
   }) {
     return FavoriteContactsCompanion(
       participantId: participantId ?? this.participantId,
       sortOrder: sortOrder ?? this.sortOrder,
-      pinnedAtUtc: pinnedAtUtc ?? this.pinnedAtUtc,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       lastInteractionUtc: lastInteractionUtc ?? this.lastInteractionUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
     );
   }
 
@@ -2817,11 +2870,14 @@ class FavoriteContactsCompanion extends UpdateCompanion<FavoriteContact> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
-    if (pinnedAtUtc.present) {
-      map['pinned_at_utc'] = Variable<String>(pinnedAtUtc.value);
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
     }
     if (lastInteractionUtc.present) {
       map['last_interaction_utc'] = Variable<String>(lastInteractionUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
     }
     return map;
   }
@@ -2831,8 +2887,9 @@ class FavoriteContactsCompanion extends UpdateCompanion<FavoriteContact> {
     return (StringBuffer('FavoriteContactsCompanion(')
           ..write('participantId: $participantId, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('pinnedAtUtc: $pinnedAtUtc, ')
-          ..write('lastInteractionUtc: $lastInteractionUtc')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('lastInteractionUtc: $lastInteractionUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
         .toString();
   }
@@ -4254,15 +4311,17 @@ typedef $$FavoriteContactsTableCreateCompanionBuilder =
     FavoriteContactsCompanion Function({
       Value<int> participantId,
       Value<int> sortOrder,
-      required String pinnedAtUtc,
+      required String createdAtUtc,
       Value<String?> lastInteractionUtc,
+      Value<String> updatedAtUtc,
     });
 typedef $$FavoriteContactsTableUpdateCompanionBuilder =
     FavoriteContactsCompanion Function({
       Value<int> participantId,
       Value<int> sortOrder,
-      Value<String> pinnedAtUtc,
+      Value<String> createdAtUtc,
       Value<String?> lastInteractionUtc,
+      Value<String> updatedAtUtc,
     });
 
 class $$FavoriteContactsTableFilterComposer
@@ -4284,13 +4343,18 @@ class $$FavoriteContactsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get pinnedAtUtc => $composableBuilder(
-    column: $table.pinnedAtUtc,
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
     builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<String> get lastInteractionUtc => $composableBuilder(
     column: $table.lastInteractionUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4314,13 +4378,18 @@ class $$FavoriteContactsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get pinnedAtUtc => $composableBuilder(
-    column: $table.pinnedAtUtc,
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<String> get lastInteractionUtc => $composableBuilder(
     column: $table.lastInteractionUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -4342,13 +4411,18 @@ class $$FavoriteContactsTableAnnotationComposer
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
-  GeneratedColumn<String> get pinnedAtUtc => $composableBuilder(
-    column: $table.pinnedAtUtc,
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
     builder: (column) => column,
   );
 
   GeneratedColumn<String> get lastInteractionUtc => $composableBuilder(
     column: $table.lastInteractionUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
     builder: (column) => column,
   );
 }
@@ -4392,25 +4466,29 @@ class $$FavoriteContactsTableTableManager
               ({
                 Value<int> participantId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
-                Value<String> pinnedAtUtc = const Value.absent(),
+                Value<String> createdAtUtc = const Value.absent(),
                 Value<String?> lastInteractionUtc = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
               }) => FavoriteContactsCompanion(
                 participantId: participantId,
                 sortOrder: sortOrder,
-                pinnedAtUtc: pinnedAtUtc,
+                createdAtUtc: createdAtUtc,
                 lastInteractionUtc: lastInteractionUtc,
+                updatedAtUtc: updatedAtUtc,
               ),
           createCompanionCallback:
               ({
                 Value<int> participantId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
-                required String pinnedAtUtc,
+                required String createdAtUtc,
                 Value<String?> lastInteractionUtc = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
               }) => FavoriteContactsCompanion.insert(
                 participantId: participantId,
                 sortOrder: sortOrder,
-                pinnedAtUtc: pinnedAtUtc,
+                createdAtUtc: createdAtUtc,
                 lastInteractionUtc: lastInteractionUtc,
+                updatedAtUtc: updatedAtUtc,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -21,7 +21,7 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -39,6 +39,22 @@ class OverlayDatabase extends _$OverlayDatabase {
         await customStatement(
           'CREATE INDEX IF NOT EXISTS idx_favorite_contacts_last_interaction '
           'ON favorite_contacts(last_interaction_utc DESC);',
+        );
+      }
+      if (from >= 3 && from < 4) {
+        // Align pinned_at_utc with our created/updated timestamp conventions.
+        await customStatement(
+          'ALTER TABLE favorite_contacts '
+          'RENAME COLUMN pinned_at_utc TO created_at_utc;',
+        );
+        await m.addColumn(
+          favoriteContacts,
+          favoriteContacts.updatedAtUtc,
+        );
+        await customStatement(
+          'UPDATE favorite_contacts '
+          'SET updated_at_utc = created_at_utc '
+          'WHERE updated_at_utc IS NULL;',
         );
       }
     },
@@ -509,12 +525,17 @@ class OverlayDatabase extends _$OverlayDatabase {
 
   /// Get all favorite contacts ordered by last interaction (most recent first)
   Future<List<FavoriteContact>> getAllFavorites() async {
-    return (select(favoriteContacts)..orderBy([
-          (tbl) => OrderingTerm(
-            expression: tbl.lastInteractionUtc,
-            mode: OrderingMode.desc,
-          ),
-        ]))
+    return (select(favoriteContacts)
+          ..orderBy([
+            (tbl) => OrderingTerm(
+                  expression: tbl.lastInteractionUtc,
+                  mode: OrderingMode.desc,
+                ),
+            (tbl) => OrderingTerm(
+                  expression: tbl.createdAtUtc,
+                  mode: OrderingMode.desc,
+                ),
+          ]))
         .get();
   }
 
@@ -545,10 +566,11 @@ class OverlayDatabase extends _$OverlayDatabase {
     await into(favoriteContacts).insert(
       FavoriteContactsCompanion.insert(
         participantId: Value(participantId),
-        pinnedAtUtc: now.toIso8601String(),
+        createdAtUtc: now.toIso8601String(),
         lastInteractionUtc: lastInteractionUtc != null
             ? Value(lastInteractionUtc.toUtc().toIso8601String())
             : const Value.absent(),
+        updatedAtUtc: Value(now.toIso8601String()),
       ),
     );
   }
@@ -560,17 +582,25 @@ class OverlayDatabase extends _$OverlayDatabase {
     )..where((tbl) => tbl.participantId.equals(participantId))).go();
   }
 
-  /// Update last interaction timestamp for a favorite (triggers re-sort)
-  Future<void> updateFavoriteLastInteraction(
-    int participantId,
-    DateTime timestamp,
-  ) async {
+  /// Update mutable attributes for a favorite contact.
+  Future<void> updateFavorite({
+    required int participantId,
+    DateTime? lastInteractionUtc,
+    int? sortOrder,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final companion = FavoriteContactsCompanion(
+      updatedAtUtc: Value(now),
+      lastInteractionUtc: lastInteractionUtc != null
+          ? Value(lastInteractionUtc.toUtc().toIso8601String())
+          : const Value.absent(),
+      sortOrder: sortOrder != null ? Value(sortOrder) : const Value.absent(),
+    );
+
     await (update(
       favoriteContacts,
     )..where((tbl) => tbl.participantId.equals(participantId))).write(
-      FavoriteContactsCompanion(
-        lastInteractionUtc: Value(timestamp.toUtc().toIso8601String()),
-      ),
+      companion,
     );
   }
 
@@ -579,9 +609,10 @@ class OverlayDatabase extends _$OverlayDatabase {
   Future<void> reorderFavorites(List<int> participantIds) async {
     await transaction(() async {
       for (var i = 0; i < participantIds.length; i++) {
-        await (update(favoriteContacts)
-              ..where((tbl) => tbl.participantId.equals(participantIds[i])))
-            .write(FavoriteContactsCompanion(sortOrder: Value(i)));
+        await updateFavorite(
+          participantId: participantIds[i],
+          sortOrder: i,
+        );
       }
     });
   }
@@ -747,12 +778,17 @@ class FavoriteContacts extends Table {
   IntColumn get sortOrder =>
       integer().named('sort_order').withDefault(const Constant(0))();
 
-  /// ISO8601 timestamp when contact was pinned
-  TextColumn get pinnedAtUtc => text().named('pinned_at_utc')();
+  /// ISO8601 timestamp when contact was pinned/created
+  TextColumn get createdAtUtc => text().named('created_at_utc')();
 
   /// ISO8601 timestamp of last user interaction (for auto-sorting)
   TextColumn get lastInteractionUtc =>
       text().named('last_interaction_utc').nullable()();
+
+  /// ISO8601 timestamp of the last mutation for bookkeeping
+  TextColumn get updatedAtUtc => text()
+      .named('updated_at_utc')
+      .withDefault(const Constant('1970-01-01T00:00:00Z'))();
 
   @override
   Set<Column> get primaryKey => {participantId};
