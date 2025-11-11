@@ -376,8 +376,8 @@ class _JumpBarState extends State<_JumpBar> {
                     style: typography.caption1.copyWith(
                       color: letter == widget.activeLetter
                           ? Colors.white
-                          : Colors.white.withOpacity(
-                              letter == _hoveredLetter ? 0.95 : 0.75,
+                          : Colors.white.withValues(
+                              alpha: letter == _hoveredLetter ? 0.95 : 0.75,
                             ),
                       fontWeight: letter == widget.activeLetter
                           ? FontWeight.w700

@@ -1,0 +1,16 @@
+This feature grew out of a desire to make the macOS sidebar contact selection feel more natural and scalable once the flat Contacts dropdown was no longer sufficient.
+
+Key ideas that informed the design:
+
+- The grouped contact picker (with A–Z sections and a jump bar) is already a strong, visually organized way to browse many contacts.
+- The app should avoid redundant controls (e.g., a flat dropdown + a grouped list) and speak with a single, clear "contact picker" voice.
+- When scrolling through a long list of chats, the user should never lose track of which contact is currently in focus.
+
+The solution is a "smart pinned picker":
+
+- At the top of the sidebar, the user sees the full grouped picker with header "Select a contact".
+- Once they select a contact, that picker becomes the anchor for all subsequent navigation for that contact.
+- As the user scrolls, the picker transitions into a compact lozenge pinned to the top, always reminding the user whose messages they are viewing.
+- The user can bring back the full picker either by scrolling to the top or by clicking the lozenge—no extra disclosure controls or menus are needed.
+
+Everything is driven by scroll position and a single, intuitive click target. The underlying data model (contacts, chats, messages) remains unchanged; this feature is a UI and layout refinement that makes the existing capabilities easier and more pleasant to use.

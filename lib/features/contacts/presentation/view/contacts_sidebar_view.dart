@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 
-import '../../../../constants/domain/contact_constants.dart'; // NEW: contact picker mode
 import '../../../../essentials/navigation/domain/entities/features/chat_view_mode.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/handles_list_spec.dart';
@@ -15,12 +14,9 @@ import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../chats/presentation/widgets/calendar_heatmap_timeline_widget.dart';
 import '../../../chats/presentation/widgets/enhanced_chat_card.dart';
-import '../../application/contact_picker_mode.dart'; // NEW: contact picker mode
 import '../../application/contact_timeline_provider.dart';
 import '../../application/contacts_list_provider.dart';
 import '../../application/sorted_chats_for_participant_provider.dart';
-import '../../domain/participant_origin.dart';
-import '../widgets/flat_contacts_list.dart'; // NEW: contact picker mode
 import '../widgets/grouped_contact_selector.dart';
 
 class ContactsSidebarView extends ConsumerWidget {
@@ -129,101 +125,38 @@ class ContactsSidebarView extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 20),
         Expanded(
           child: MacosScaffold(
-            toolBar: const ToolBar(height: 40, title: Text('Contacts')),
             children: [
               ContentArea(
                 builder: (context, scrollController) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      asyncContacts.when(
-                        data: (contacts) {
-                          final mode = resolveContactPickerConfig(
-                            contacts.length,
-                          ).mode;
-                          if (mode == ContactPickerMode.grouped) {
-                            return const SizedBox.shrink();
-                          }
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: MacosTheme.of(context).dividerColor,
-                                  width: 0.5,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  'Contacts:',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: SizedBox(
-                                    height: 28,
-                                    child: _FlatPickerDropdown(
-                                      contacts: contacts,
-                                      selectedParticipantId:
-                                          selectedParticipantId,
-                                      onChanged: selectParticipant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        loading: () => const _ContactMenuLoading(),
-                        error: (error, _) => _ContactMenuError(
-                          onRetry: retryContacts,
-                          error: error,
-                        ),
-                      ),
-                  asyncContacts.when(
-                    // NEW: contact picker mode switch
-                    data: (contacts) {
-                      final config = resolveContactPickerConfig(
-                        contacts.length,
-                      );
-                      if (config.mode == ContactPickerMode.flat) {
-                        return FlatContactsList(
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: asyncContacts.when(
+                      // Phase 1: grouped picker is the only selector
+                      data: (contacts) {
+                        return ContactsPickerSection(
                           contacts: contacts,
                           selectedParticipantId: selectedParticipantId,
-                          onContactSelected: (participantId) {
-                            selectParticipant(participantId);
-                          },
-                        );
-                      }
-
-                      return ContactsPickerSection(
-                        contacts: contacts,
-                        selectedParticipantId: selectedParticipantId,
                         onContactSelected: (participantId) {
                           selectParticipant(participantId);
                         },
                       );
-                    },
-                    loading: () => const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: ProgressCircle()),
-                    ),
-                    error: (error, _) => Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: _ContactMenuError(
-                        onRetry: retryContacts,
-                        error: error,
+                      },
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: ProgressCircle()),
+                      ),
+                      error: (error, _) => Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: _ContactMenuError(
+                          onRetry: retryContacts,
+                          error: error,
+                        ),
                       ),
                     ),
                   ),
@@ -276,18 +209,6 @@ class ContactsSidebarView extends ConsumerWidget {
   }
 }
 
-class _ContactMenuLoading extends StatelessWidget {
-  const _ContactMenuLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 30,
-      child: Align(alignment: Alignment.centerLeft, child: ProgressCircle()),
-    );
-  }
-}
-
 class _ContactMenuError extends StatelessWidget {
   const _ContactMenuError({required this.onRetry, required this.error});
 
@@ -329,187 +250,6 @@ class _ContactMenuError extends StatelessWidget {
   }
 }
 
-List<_ContactMenuEntry> _entriesFromContacts(List<ContactSummary> contacts) {
-  return contacts
-      .map(
-        (contact) => _ContactMenuEntry(
-          participantId: contact.participantId,
-          displayName: contact.displayName,
-          shortName: contact.shortName,
-          handleCount: contact.handleCount,
-          origin: contact.origin,
-        ),
-      )
-      .toList(growable: false);
-}
-
-List<MacosPopupMenuItem<int?>> _buildContactMenuItems(
-  List<_ContactMenuEntry> entries,
-) {
-  return [
-    const MacosPopupMenuItem<int?>(
-      value: null,
-      child: Text('Select a contact...'),
-    ),
-    ...entries.map(
-      (entry) => MacosPopupMenuItem<int?>(
-        value: entry.participantId,
-        child: _ContactMenuItem(entry: entry),
-      ),
-    ),
-  ];
-}
-
-class _ContactMenuEntry {
-  const _ContactMenuEntry({
-    required this.participantId,
-    required this.displayName,
-    required this.shortName,
-    required this.handleCount,
-    required this.origin,
-  });
-
-  final int participantId;
-  final String displayName;
-  final String shortName;
-  final int handleCount;
-  final ParticipantOrigin origin;
-}
-
-class _ContactMenuItem extends StatelessWidget {
-  const _ContactMenuItem({required this.entry});
-
-  final _ContactMenuEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final typography = MacosTheme.of(context).typography;
-    final subtitleParts = <String>[];
-
-    if (entry.shortName.trim() != entry.displayName.trim()) {
-      subtitleParts.add(entry.shortName);
-    }
-
-    subtitleParts.add(_formatHandleCountLabel(entry.handleCount));
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 42),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  entry.displayName,
-                  style: typography.headline.copyWith(fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                if (subtitleParts.isNotEmpty)
-                  Text(
-                    subtitleParts.join(' • '),
-                    style: typography.caption2.copyWith(
-                      color: CupertinoColors.secondaryLabel,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (entry.origin != ParticipantOrigin.working)
-            _OriginBadge(origin: entry.origin),
-        ],
-      ),
-    );
-  }
-}
-
-class _OriginBadge extends StatelessWidget {
-  const _OriginBadge({required this.origin});
-
-  final ParticipantOrigin origin;
-
-  @override
-  Widget build(BuildContext context) {
-    switch (origin) {
-      case ParticipantOrigin.overlayVirtual:
-        return const _Badge(label: 'Virtual', color: Color(0xFF9B59B6));
-      case ParticipantOrigin.overlayOverride:
-        return const _Badge(label: 'Override', color: Color(0xFF0A84FF));
-      case ParticipantOrigin.working:
-        return const SizedBox.shrink();
-    }
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: MacosTheme.of(context).typography.caption2.copyWith(
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
-String _formatHandleCountLabel(int count) {
-  if (count <= 0) {
-    return 'No linked handles';
-  }
-
-  return count == 1 ? '1 linked handle' : '$count linked handles';
-}
-
-class _FlatPickerDropdown extends StatelessWidget {
-  const _FlatPickerDropdown({
-    required this.contacts,
-    required this.selectedParticipantId,
-    required this.onChanged,
-  });
-
-  final List<ContactSummary> contacts;
-  final int? selectedParticipantId;
-  final ValueChanged<int?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = _entriesFromContacts(contacts);
-    final hasSelection = selectedParticipantId != null &&
-        entries.any(
-          (entry) => entry.participantId == selectedParticipantId,
-        );
-    final menuSelection = hasSelection ? selectedParticipantId : null;
-    final menuItems = _buildContactMenuItems(entries);
-
-    return MacosPopupButton<int?>(
-      value: menuSelection,
-      items: menuItems,
-      onChanged: onChanged,
-      itemHeight: 48,
-    );
-  }
-}
 
 /// Widget that displays the list of chats for a selected contact
 class _ChatsListForContact extends HookConsumerWidget {
