@@ -138,66 +138,57 @@ class ContactsSidebarView extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: MacosTheme.of(context).dividerColor,
-                              width: 0.5,
+                      asyncContacts.when(
+                        data: (contacts) {
+                          final mode = resolveContactPickerConfig(
+                            contacts.length,
+                          ).mode;
+                          if (mode == ContactPickerMode.grouped) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Text(
-                              'Contacts:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SizedBox(
-                                height: 28,
-                                child: asyncContacts.when(
-                                  data: (contacts) {
-                                    final entries = _entriesFromContacts(
-                                      contacts,
-                                    );
-                                    final hasSelection =
-                                        selectedParticipantId != null &&
-                                        entries.any(
-                                          (entry) =>
-                                              entry.participantId ==
-                                              selectedParticipantId,
-                                        );
-                                    final menuSelection = hasSelection
-                                        ? selectedParticipantId
-                                        : null;
-                                    final menuItems = _buildContactMenuItems(
-                                      entries,
-                                    );
-                                    return MacosPopupButton<int?>(
-                                      value: menuSelection,
-                                      items: menuItems,
-                                      onChanged: selectParticipant,
-                                      itemHeight: 48,
-                                    );
-                                  },
-                                  loading: () => const _ContactMenuLoading(),
-                                  error: (error, _) => _ContactMenuError(
-                                    onRetry: retryContacts,
-                                    error: error,
-                                  ),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: MacosTheme.of(context).dividerColor,
+                                  width: 0.5,
                                 ),
                               ),
                             ),
-                          ],
+                            child: Row(
+                              children: [
+                                const Text(
+                                  'Contacts:',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 28,
+                                    child: _FlatPickerDropdown(
+                                      contacts: contacts,
+                                      selectedParticipantId:
+                                          selectedParticipantId,
+                                      onChanged: selectParticipant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        loading: () => const _ContactMenuLoading(),
+                        error: (error, _) => _ContactMenuError(
+                          onRetry: retryContacts,
+                          error: error,
                         ),
                       ),
                   asyncContacts.when(
@@ -488,6 +479,36 @@ String _formatHandleCountLabel(int count) {
   }
 
   return count == 1 ? '1 linked handle' : '$count linked handles';
+}
+
+class _FlatPickerDropdown extends StatelessWidget {
+  const _FlatPickerDropdown({
+    required this.contacts,
+    required this.selectedParticipantId,
+    required this.onChanged,
+  });
+
+  final List<ContactSummary> contacts;
+  final int? selectedParticipantId;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = _entriesFromContacts(contacts);
+    final hasSelection = selectedParticipantId != null &&
+        entries.any(
+          (entry) => entry.participantId == selectedParticipantId,
+        );
+    final menuSelection = hasSelection ? selectedParticipantId : null;
+    final menuItems = _buildContactMenuItems(entries);
+
+    return MacosPopupButton<int?>(
+      value: menuSelection,
+      items: menuItems,
+      onChanged: onChanged,
+      itemHeight: 48,
+    );
+  }
 }
 
 /// Widget that displays the list of chats for a selected contact

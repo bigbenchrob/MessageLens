@@ -35,9 +35,13 @@ class ContactsPickerSection extends ConsumerWidget {
       selectedParticipantId,
     );
     final selectedName = selectedContact?.displayName ?? 'Select a contact';
+    void handleSelection(int participantId) {
+      onContactSelected(participantId);
+      ref.read(contactsPickerExpandedProvider.notifier).state = false;
+    }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.canvasColor,
@@ -79,36 +83,43 @@ class ContactsPickerSection extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                const SizedBox(width: 24), // NEW: placeholder for future metadata
               ],
             ),
           ),
-          if (isExpanded) ...[
-            const SizedBox(height: 12),
-            groupedAsync.when(
-              data: (grouped) {
-                if (grouped.availableLetters.isEmpty) {
-                  return const _GroupedEmptyState();
-                }
-                return GroupedContactsPicker(
-                  grouped: grouped,
-                  selectedParticipantId: selectedParticipantId,
-                  onContactSelected: onContactSelected,
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: ProgressCircle()),
-              ),
-              error: (error, _) => _GroupedSelectorError(
-                message: '$error',
-                onRetry: () {
-                  ref.invalidate(groupedContactsProvider);
-                },
-              ),
-            ),
-          ],
+          AnimatedSize(
+            clipBehavior: Clip.none,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeInOut,
+            child: isExpanded
+                ? Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      groupedAsync.when(
+                        data: (grouped) {
+                          if (grouped.availableLetters.isEmpty) {
+                            return const _GroupedEmptyState();
+                          }
+                          return GroupedContactsPicker(
+                            grouped: grouped,
+                            selectedParticipantId: selectedParticipantId,
+                            onContactSelected: handleSelection,
+                          );
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: ProgressCircle()),
+                        ),
+                        error: (error, _) => _GroupedSelectorError(
+                          message: '$error',
+                          onRetry: () {
+                            ref.invalidate(groupedContactsProvider);
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
@@ -223,7 +234,6 @@ class _GroupedContactsPickerState extends State<GroupedContactsPicker> {
               positionsListener: _itemPositionsListener,
             ),
           ),
-          const SizedBox(width: 8),
           _JumpBar(
             letters: _letters,
             totalHeight: pickerHeight,
@@ -298,7 +308,7 @@ class _GroupedContactsList extends StatelessWidget {
   }
 }
 
-class _JumpBar extends StatelessWidget {
+class _JumpBar extends StatefulWidget {
   const _JumpBar({
     required this.letters,
     required this.totalHeight,
@@ -312,40 +322,66 @@ class _JumpBar extends StatelessWidget {
   final ValueChanged<String> onLetterTap;
 
   @override
+  State<_JumpBar> createState() => _JumpBarState();
+}
+
+class _JumpBarState extends State<_JumpBar> {
+  String? _hoveredLetter;
+
+  @override
   Widget build(BuildContext context) {
-    if (letters.isEmpty) {
-      return const SizedBox(
-        width: _kJumpBarWidth,
-      );
+    if (widget.letters.isEmpty) {
+      return const SizedBox(width: _kJumpBarWidth);
     }
 
-    final letterHeight = totalHeight / letters.length;
+    final letterHeight = widget.totalHeight / widget.letters.length;
     final typography = MacosTheme.of(context).typography;
+    const baseBackground = Color(0xFF3A3A3A);
 
     return Container(
       width: _kJumpBarWidth,
       decoration: BoxDecoration(
+        color: baseBackground,
         borderRadius: BorderRadius.circular(12),
-        color: MacosTheme.of(context).canvasColor,
       ),
       child: Column(
         children: [
-          for (final letter in letters)
-            SizedBox(
-              height: letterHeight,
+          for (final letter in widget.letters)
+            MouseRegion(
+              onEnter: (_) => setState(() {
+                _hoveredLetter = letter;
+              }),
+              onExit: (_) => setState(() {
+                if (_hoveredLetter == letter) {
+                  _hoveredLetter = null;
+                }
+              }),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => onLetterTap(letter),
-                child: Center(
+                onTap: () => widget.onLetterTap(letter),
+                child: Container(
+                  height: letterHeight,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: letter == widget.activeLetter
+                        ? MacosTheme.of(context).primaryColor.withValues(
+                              alpha: 0.9,
+                            )
+                        : letter == _hoveredLetter
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.transparent,
+                  ),
                   child: Text(
                     letter,
                     style: typography.caption1.copyWith(
-                      fontWeight: letter == activeLetter
+                      color: letter == widget.activeLetter
+                          ? Colors.white
+                          : Colors.white.withOpacity(
+                              letter == _hoveredLetter ? 0.95 : 0.75,
+                            ),
+                      fontWeight: letter == widget.activeLetter
                           ? FontWeight.w700
-                          : FontWeight.w400,
-                      color: letter == activeLetter
-                          ? MacosTheme.of(context).primaryColor
-                          : CupertinoColors.secondaryLabel,
+                          : FontWeight.w500,
                     ),
                   ),
                 ),

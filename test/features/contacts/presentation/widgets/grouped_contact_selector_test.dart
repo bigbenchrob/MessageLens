@@ -58,10 +58,7 @@ void main() {
 
     await tester.tap(find.text('Bob'));
     expect(tappedId, 2);
-
-    await tester.tap(find.byKey(const ValueKey('contactsPickerHeader')));
     await tester.pumpAndSettle();
-
     expect(find.text('A'), findsNothing);
     expect(find.text('B'), findsNothing);
   });
