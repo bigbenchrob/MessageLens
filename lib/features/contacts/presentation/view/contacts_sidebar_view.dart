@@ -131,40 +131,41 @@ class ContactsSidebarView extends ConsumerWidget {
             children: [
               ContentArea(
                 builder: (context, scrollController) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: asyncContacts.when(
-                      // Phase 1: grouped picker is the only selector
-                      data: (contacts) {
-                        return ContactsPickerSection(
-                          contacts: contacts,
-                          selectedParticipantId: selectedParticipantId,
-                        onContactSelected: (participantId) {
-                          selectParticipant(participantId);
+                  return asyncContacts.when(
+                    data: (contacts) {
+                      final pickerHeight =
+                          _calculatePickerHeight(contacts.length) + 50;
+                      final canCollapse = selectedParticipantId != null;
+
+                      return NestedScrollView(
+                        controller: scrollController,
+                        physics: canCollapse
+                            ? null
+                            : const NeverScrollableScrollPhysics(),
+                        headerSliverBuilder: (context, _) {
+                          return [
+                            SliverPersistentHeader(
+                              pinned: true,
+                              delegate: _SmartPickerHeaderDelegate(
+                                contacts: contacts,
+                                selectedParticipantId: selectedParticipantId,
+                                onContactSelected: selectParticipant,
+                                contentExtent: pickerHeight,
+                                enableCollapse: canCollapse,
+                                onLozengeTap: () {
+                                  scrollController.animateTo(
+                                    0,
+                                    duration:
+                                        const Duration(milliseconds: 250),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
+                              ),
+                            ),
+                          ];
                         },
-                      );
-                      },
-                      loading: () => const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: ProgressCircle()),
-                      ),
-                      error: (error, _) => Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: _ContactMenuError(
-                          onRetry: retryContacts,
-                          error: error,
-                        ),
-                      ),
-                    ),
-                  ),
-                      Expanded(
-                        child: asyncContacts.when(
-                          data: (contacts) {
-                            if (selectedParticipantId == null) {
-                              return const Center(
+                        body: selectedParticipantId == null
+                            ? const Center(
                                 child: Text(
                                   'Select a contact to view their chats',
                                   style: TextStyle(
@@ -172,32 +173,22 @@ class ContactsSidebarView extends ConsumerWidget {
                                     color: CupertinoColors.secondaryLabel,
                                   ),
                                 ),
-                              );
-                            }
-
-                            return _ChatsListForContact(
-                              participantId: selectedParticipantId,
-                              chatViewMode: chatViewMode,
-                              contactsSpec: contactsSpec,
-                            );
-                          },
-                          loading: () => const Center(child: ProgressCircle()),
-                          error: (error, _) => Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const MacosIcon(
-                                  CupertinoIcons.exclamationmark_triangle,
-                                  size: 48,
-                                ),
-                                const SizedBox(height: 16),
-                                Text('Error loading contacts: $error'),
-                              ],
-                            ),
-                          ),
-                        ),
+                              )
+                            : _ChatsListForContact(
+                                participantId: selectedParticipantId,
+                                chatViewMode: chatViewMode,
+                                contactsSpec: contactsSpec,
+                              ),
+                      );
+                    },
+                    loading: () => const Center(child: ProgressCircle()),
+                    error: (error, _) => Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: _ContactMenuError(
+                        onRetry: retryContacts,
+                        error: error,
                       ),
-                    ],
+                    ),
                   );
                 },
               ),
@@ -248,6 +239,74 @@ class _ContactMenuError extends StatelessWidget {
       ],
     );
   }
+}
+
+
+class _SmartPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _SmartPickerHeaderDelegate({
+    required this.contacts,
+    required this.selectedParticipantId,
+    required this.onContactSelected,
+    required this.contentExtent,
+    required this.enableCollapse,
+    this.onLozengeTap,
+  });
+
+  final List<ContactSummary> contacts;
+  final int? selectedParticipantId;
+  final ValueChanged<int> onContactSelected;
+  final double contentExtent;
+  final bool enableCollapse;
+  final VoidCallback? onLozengeTap;
+
+  static const double _lozengeExtent = 56;
+  static const double _topPadding = 16;
+
+  @override
+  double get minExtent => _lozengeExtent + _topPadding;
+
+  @override
+  double get maxExtent => contentExtent + _topPadding;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final collapseThreshold = (maxExtent - minExtent) * 0.6;
+    final isCollapsed =
+        enableCollapse && shrinkOffset >= collapseThreshold;
+
+    return ColoredBox(
+      color: MacosTheme.of(context).canvasColor,
+      child: Padding(
+        padding: const EdgeInsets.only(top: _topPadding),
+        child: SmartContactPickerHeader(
+          contacts: contacts,
+          selectedParticipantId: selectedParticipantId,
+          onContactSelected: onContactSelected,
+          isCollapsed: isCollapsed,
+          onLozengeTap: onLozengeTap,
+          maxHeight: contentExtent,
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SmartPickerHeaderDelegate oldDelegate) {
+    return oldDelegate.contacts != contacts ||
+        oldDelegate.selectedParticipantId != selectedParticipantId;
+  }
+}
+
+double _calculatePickerHeight(int letterCount) {
+  if (letterCount == 0) {
+    return 200;
+  }
+  final base = letterCount * 18;
+  return base.clamp(200, 360).toDouble();
 }
 
 

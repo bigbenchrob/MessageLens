@@ -17,14 +17,14 @@ This README contains the canonical index to all project documentation including:
 
 ### Must-Read Before Coding
 1. **[Project README](_AGENT_INSTRUCTIONS/agent-per-project/README.md)** - Start here (canonical index)
-2. **[Dart Code Standards](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart-code-standards.md)** - Linting rules, type annotations
-3. **[Flutter Standards](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/flutter-code-standards.md)** - Flutter-specific patterns, deprecated methods
+2. **[Dart Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart.md)** - Language rules, async patterns, null-safety expectations
+3. **[Flutter Widget Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/widgets.md)** - Composition, navigation, and state management rules
 4. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
 5. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
 6. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
 
 ### Quick Reference
-- **Agent Toolkit**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/40-tooling/agent-toolkit-references.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/40-tooling/agent-toolkit-references.md) - Common commands, DTD connection, breaking changes
+- **Lint Antipatterns**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md) - One-stop list of analyzer tripwires
 - **Navigation System**: [`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md)
 - **AddressBook Imports**: [`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md)
 

@@ -46,7 +46,7 @@ Templates live under `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates
 
 ## Reference Material
 
-- Workflow guide: `_AGENT_INSTRUCTIONS/agent-instructions-shared/40-tooling/agent-toolkit-references.md`
+- Workflow guide: `AGENTS.md`
 - Proposal template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-proposal-template.md`
 - Checklist template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-checklist-template.md`
 - Testing template: `_AGENT_INSTRUCTIONS/agent-instructions-shared/90-templates/feature-tests-template.md`

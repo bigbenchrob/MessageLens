@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -8,7 +9,7 @@ import 'package:remember_this_text/features/contacts/presentation/widgets/groupe
 import '../../../../test_utils/contact_summary_fixture.dart';
 
 void main() {
-  testWidgets('contacts picker section toggles and handles taps',
+  testWidgets('smart picker header renders full picker when expanded',
       (tester) async {
     final grouped = GroupedContacts(
       groups: {
@@ -37,12 +38,18 @@ void main() {
         ],
         child: MacosApp(
           home: MacosWindow(
-            child: ContactsPickerSection(
-              contacts: contacts,
-              selectedParticipantId: null,
-              onContactSelected: (id) {
-                tappedId = id;
-              },
+            child: SizedBox(
+              height: 700,
+              width: 400,
+              child: SmartContactPickerHeader(
+                contacts: contacts,
+                selectedParticipantId: null,
+                onContactSelected: (id) {
+                  tappedId = id;
+                },
+                isCollapsed: false,
+                maxHeight: 700,
+              ),
             ),
           ),
         ),
@@ -57,8 +64,5 @@ void main() {
 
     await tester.tap(find.text('Bob'));
     expect(tappedId, 2);
-    await tester.pumpAndSettle();
-    expect(find.text('A'), findsNothing);
-    expect(find.text('B'), findsNothing);
   });
 }
