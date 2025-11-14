@@ -12,8 +12,9 @@ void main() {
     final constraints = _extractServiceConstraints(workingDatabaseSource);
     expect(
       constraints.length,
-      2,
-      reason: 'identities and chats should each declare a service constraint',
+      4,
+      reason:
+          'identities and chats each declare a service constraint (4 tables total)',
     );
 
     constraints.forEach(_expectConstraintMatchesValues);

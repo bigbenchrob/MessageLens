@@ -68,6 +68,15 @@ class ContactsSidebarView extends ConsumerWidget {
       }
     }
 
+    void openGlobalTimeline() {
+      ref
+          .read(panelsViewStateProvider.notifier)
+          .show(
+            panel: WindowPanel.center,
+            spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
+          );
+    }
+
     void retryContacts() {
       ref.invalidate(contactsListProvider(spec: contactsSpec));
     }
@@ -108,6 +117,8 @@ class ContactsSidebarView extends ConsumerWidget {
                               ),
                             ),
                           );
+                    } else if (mode == 'all') {
+                      openGlobalTimeline();
                     }
                   },
                   items: const [
@@ -118,6 +129,10 @@ class ContactsSidebarView extends ConsumerWidget {
                     MacosPopupMenuItem(
                       value: 'unmatched',
                       child: Text('Unmatched phone or email'),
+                    ),
+                    MacosPopupMenuItem(
+                      value: 'all',
+                      child: Text('All Messages'),
                     ),
                   ],
                 ),

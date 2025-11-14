@@ -1,0 +1,16 @@
+**Message Indexing**
+- **Tables**: `global_message_index`, `message_index`, and `contact_message_index` in `lib/essentials/db/infrastructure/data_sources/local/working/working_database.dart` assign zero-based ordinals, message IDs, chat/contact IDs, UTC timestamps, and `YYYY-MM` month buckets to give stable ordering for global, per-chat, and per-contact timelines.
+- **Rebuild pipeline**: After a migration batch, `HandlesMigrationService` (`lib/essentials/db_migrate/application/orchestrator/handles_migration_service.dart`) calls `rebuildGlobalMessageIndex()`, `rebuildMessageIndex()`, and `rebuildContactMessageIndex()`; each uses windowed `ROW_NUMBER()` over `sent_at_utc, id` to repopulate ordinals and derives `month_key`, with the contact index UNION-ing outgoing recipients and incoming senders via `handle_to_participant`.
+- **Trigger upkeep**: `createMessageIndexTriggers()` installs `trg_global_message_index_*` and `trg_message_index_*` triggers so inserts/updates/deletes recompute the relevant index slice (global clears/rebuilds the whole table; per-chat wipes only that chat), while FTS triggers keep the `messages_fts` virtual table synchronized for future full-text search.
+
+**Timeline Consumption**
+- **Global timeline**: `globalMessageTimelineProvider` (`lib/features/messages/application/use_cases/global_message_timeline_provider.dart`) pages the global index through `GlobalMessageIndexDataSource`, and `GlobalTimelineController` merges before/after pages while tracking `hasMore*` flags for UI infinite scroll.
+- **Chat timeline**: `MessageIndexDataSource` powers `chatMessagesOrdinalProvider`, `messageByOrdinalProvider`, and header month lookups in `messages_for_chat_view.dart`, letting the UI jump to ordinals, compute total counts, and translate ordinals back to `ChatMessageListItem` rows on demand.
+- **Contact timeline**: `ContactMessageIndexDataSource` feeds `contactMessagesOrdinalProvider` and `messageByContactOrdinalProvider`, yielding a unified chronology across all chats/handles for a participant by leveraging the contact index’s per-recipient/per-sender entries.
+- **Verification**: `test/essentials/db/infrastructure/data_sources/local/working/global_message_index_triggers_test.dart` covers trigger maintenance (ordering, reindexing, month keys), giving confidence that post-migration rebuild + triggers keep the ordinals coherent.
+
+**Search Behavior**
+- **Per-chat search**: `chatMessageSearchResults` (`lib/features/messages/presentation/view_model/chat_message_search_provider.dart`) filters `working_messages` with a lowered `LIKE '%query%'`, reusing the standard joins to hydrate sender/participant context before mapping to `ChatMessageListItem`.
+- **Contact search**: `contactMessageSearchResults` starts from `contact_message_index` to scope message IDs, then applies the same `LIKE` filter so results span every chat linked to the contact while preserving chronology metadata.
+- **FTS readiness**: `messages_fts` and its triggers are already wired in the database schema, so replacing the current `LIKE` clauses with FTS queries would add ranking without extra synchronization work.
+- **Next step**: Run `flutter test` before shipping any changes that touch these paths.

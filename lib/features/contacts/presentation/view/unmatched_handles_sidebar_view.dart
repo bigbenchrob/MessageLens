@@ -50,6 +50,15 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
       emails: () => 'Unmatched Emails',
     );
 
+    void openGlobalTimeline() {
+      ref
+          .read(panelsViewStateProvider.notifier)
+          .show(
+            panel: WindowPanel.center,
+            spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
+          );
+    }
+
     return Column(
       children: [
         Container(
@@ -85,6 +94,8 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                               ),
                             ),
                           );
+                    } else if (newMode == 'all') {
+                      openGlobalTimeline();
                     }
                   },
                   items: const [
@@ -95,6 +106,10 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                     MacosPopupMenuItem(
                       value: 'unmatched',
                       child: Text('Unmatched phone or email'),
+                    ),
+                    MacosPopupMenuItem(
+                      value: 'all',
+                      child: Text('All Messages'),
                     ),
                   ],
                 ),

@@ -12,8 +12,13 @@ void main() {
 
     // Run migrations to create schema and triggers
     await db.customStatement('PRAGMA foreign_keys = ON');
+    await db.rebuildMessageIndex();
+    await db.createMessageIndexTriggers();
   });
 
+  tearDown(() async {
+    await db.close();
+  });
 
   group('message_index triggers', () {
     test('INSERT trigger maintains ordinal sequence', () async {

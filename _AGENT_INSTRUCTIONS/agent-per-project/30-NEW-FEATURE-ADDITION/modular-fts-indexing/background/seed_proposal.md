@@ -1,0 +1,13 @@
+I would like to expand the ability of my messages app to perform global searches of message text in various new ways. Currently the app only supports searching for a single contiguous string. The included file, seed.md, explains how message data is currently indexed during migration from source and how searching is done in the app.
+
+What I have in mind, first, is the ability to search for multiple terms, such that a hit for termA, termB, termC is ranked highest, a hit on two terms is ranked next etc. 
+
+ However, I would also like to be able to include semantic meaning, such that a search for "AI" will also pull up "LLM", "artificial + intelligence" and so forth. Another possibility is to search for emotionally charged messages based on metrics like all-caps use, multiple punctuation mark ("!!!") use, emoji use etc.
+
+WHAT  I WANT TO AVOID: A previous strategy for migration of data from the staging to the working database was implemented by the Github Copilot chat agent. The migration process is inherently complex, as it involves maintaining and enhancing the relationships among data from multiple tables. This proved too much for the agent to accomplish all at once: it delivered a single huge block of procedural code. This basically worked in some fashion, but when problems arose or refactoring was required, finding the relevant part of the code to fix or refactor was exceedingly difficult, as not only was there a lot of it in the single block but the logic was often opaque. 
+
+This problem was solved by breaking the migration process down into a series of individual table migrators, which were coordinated by a single migration orchestrator. Each migrator was responsible for a single table. It performed pre- and post-migration validation checks to head off errors left by the previous agent and avoid leaving errors itself. It was a great success, both greatly simplifying the logic and allowing rapid diagnosis of the location of an error thrown during the migration process.
+
+I envision employing a not necessarily identical but nonetheless analogous architecture to enable the various modes of indexing required to implement the search modes I have already described and those I might come up with in the future. To wit: indexers should be entirely independent, with an individual indexer being able to be omitted entirely without affecting others in the indexing flow. They should be able to share data as necessary, but without a dependency chain being built up between various indexers (see migration_context_sqlite.dart).
+
+I would appreciate any ideas you have -- no need to go into too much detail at this early stage of what will undoubtedly be a complex task.

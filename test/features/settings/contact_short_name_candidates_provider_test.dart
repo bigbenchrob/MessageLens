@@ -65,9 +65,9 @@ void main() {
 
     // Create handles
     await database
-        .into(database.workingHandles)
+        .into(database.handlesCanonical)
         .insert(
-          WorkingHandlesCompanion.insert(
+          HandlesCanonicalCompanion.insert(
             id: const drift.Value(101),
             rawIdentifier: 'claire@example.com',
             displayName: 'claire@example.com',
@@ -80,9 +80,9 @@ void main() {
           ),
         );
     await database
-        .into(database.workingHandles)
+        .into(database.handlesCanonical)
         .insert(
-          WorkingHandlesCompanion.insert(
+          HandlesCanonicalCompanion.insert(
             id: const drift.Value(102),
             rawIdentifier: '555-0100',
             displayName: '555-0100',
@@ -95,9 +95,9 @@ void main() {
           ),
         );
     await database
-        .into(database.workingHandles)
+        .into(database.handlesCanonical)
         .insert(
-          WorkingHandlesCompanion.insert(
+          HandlesCanonicalCompanion.insert(
             id: const drift.Value(104),
             rawIdentifier: '555-0300',
             displayName: '555-0300',
@@ -196,9 +196,9 @@ void main() {
 
     // Create handles
     await database
-        .into(database.workingHandles)
+        .into(database.handlesCanonical)
         .insert(
-          WorkingHandlesCompanion.insert(
+          HandlesCanonicalCompanion.insert(
             id: const drift.Value(110),
             rawIdentifier: '555-0400',
             displayName: '555-0400',
@@ -211,9 +211,9 @@ void main() {
           ),
         );
     await database
-        .into(database.workingHandles)
+        .into(database.handlesCanonical)
         .insert(
-          WorkingHandlesCompanion.insert(
+          HandlesCanonicalCompanion.insert(
             id: const drift.Value(111),
             rawIdentifier: 'beta@example.com',
             displayName: 'beta@example.com',
@@ -267,9 +267,9 @@ void main() {
 
       // Create handle
       await database
-          .into(database.workingHandles)
+          .into(database.handlesCanonical)
           .insert(
-            WorkingHandlesCompanion.insert(
+            HandlesCanonicalCompanion.insert(
               id: const drift.Value(120),
               rawIdentifier: '+12024742228',
               displayName: '+12024742228',

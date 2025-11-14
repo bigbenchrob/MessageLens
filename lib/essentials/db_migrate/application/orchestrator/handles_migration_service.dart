@@ -201,6 +201,7 @@ class HandlesMigrationService {
       // Rebuild indexes AFTER all messages are migrated
       // This prevents O(N²) trigger firing during bulk message insert
       emitProgress(DbMigrationStage.indexing, 0.92, 'Building message indexes');
+      await workingDatabase.rebuildGlobalMessageIndex();
       await workingDatabase.rebuildMessageIndex();
       await workingDatabase.rebuildContactMessageIndex();
 

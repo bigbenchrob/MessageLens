@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/navigation/domain/entities/features/messages_spec.dart';
+import 'application/use_cases/global_timeline_view_builder_provider.dart';
 import 'application/use_cases/messages_for_chat_view_builder_provider.dart';
 import 'application/use_cases/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
@@ -40,6 +41,7 @@ class MessagesCoordinator extends _$MessagesCoordinator {
       ),
       recent: (limit) =>
           _buildComingSoon('Recent $limit messages view is coming soon.'),
+      globalTimeline: () => ref.read(globalTimelineViewBuilderProvider),
       forHandle: (handleId) =>
           ref.read(messagesForHandleViewBuilderProvider(handleId)),
       forChatInDateRange: (chatId, startDate, endDate) {

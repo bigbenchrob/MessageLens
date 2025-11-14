@@ -18,6 +18,7 @@ part 'working_database.g.dart';
     ChatToHandle,
     WorkingChats,
     WorkingMessages,
+    GlobalMessageIndex, // Stable ordinal index across all messages
     MessageIndex, // Stable ordinal index for large chat virtualization
     ContactMessageIndex, // Ordinal index for all messages with a contact
     WorkingAttachments,
@@ -33,7 +34,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +85,9 @@ class WorkingDatabase extends _$WorkingDatabase {
       if (from < 15) {
         await _addContactMessageIndexTable(m);
       }
+      if (from < 16) {
+        await _addGlobalMessageIndexTable(m);
+      }
       // Note: contact_message_index population deferred to HandlesMigrationService
       // to avoid O(N²) trigger overhead during bulk message insert
       await _createIndexes();
@@ -107,7 +111,8 @@ class WorkingDatabase extends _$WorkingDatabase {
   }
 
   /// Creates message index maintenance triggers.
-  /// Should be called AFTER rebuildMessageIndex() and rebuildContactMessageIndex()
+  /// Should be called AFTER rebuildGlobalMessageIndex(), rebuildMessageIndex(),
+  /// and rebuildContactMessageIndex()
   /// to avoid O(N²) behavior during bulk message insertion.
   Future<void> createMessageIndexTriggers() async {
     for (final statement in _messageIndexTriggerStatements) {
@@ -482,6 +487,11 @@ class WorkingDatabase extends _$WorkingDatabase {
     await customStatement('DROP TABLE IF EXISTS handle_canonical_map');
   }
 
+  Future<void> _addGlobalMessageIndexTable(Migrator m) async {
+    // Table is populated via rebuildGlobalMessageIndex() after migrations complete.
+    await m.createTable(globalMessageIndex);
+  }
+
   Future<void> _addMessageIndexTable(Migrator m) async {
     // Create the table only - DO NOT populate yet
     // Triggers will be created later by _createVirtualTablesAndTriggers()
@@ -499,6 +509,33 @@ class WorkingDatabase extends _$WorkingDatabase {
   /// Rebuilds the message_index table from scratch.
   /// Should be called AFTER all messages are migrated to avoid O(N²) trigger overhead.
   /// This is public so HandlesMigrationService can call it after MessagesMigrator completes.
+  Future<void> rebuildGlobalMessageIndex() async {
+    await customStatement(
+      'DROP TRIGGER IF EXISTS trg_global_message_index_insert',
+    );
+    await customStatement(
+      'DROP TRIGGER IF EXISTS trg_global_message_index_update',
+    );
+    await customStatement(
+      'DROP TRIGGER IF EXISTS trg_global_message_index_delete',
+    );
+
+    await customStatement('DELETE FROM global_message_index');
+
+    await customStatement('''
+      INSERT INTO global_message_index (ordinal, message_id, chat_id, sent_at_utc, month_key)
+      SELECT
+        (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+        id AS message_id,
+        chat_id,
+        sent_at_utc,
+        STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+      FROM messages
+      WHERE chat_id IS NOT NULL
+      ORDER BY sent_at_utc, id
+    ''');
+  }
+
   Future<void> rebuildMessageIndex() async {
     // Drop existing triggers to prevent O(N²) behavior during bulk insert
     await customStatement('DROP TRIGGER IF EXISTS trg_message_index_insert');
@@ -672,6 +709,10 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to_guid)',
   'CREATE INDEX IF NOT EXISTS idx_messages_associated ON messages(associated_message_guid)',
   'CREATE INDEX IF NOT EXISTS idx_messages_batch ON messages(batch_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_global_message_index_ordinal ON global_message_index(ordinal)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_global_message_index_message ON global_message_index(message_id)',
+  'CREATE INDEX IF NOT EXISTS idx_global_message_index_month ON global_message_index(month_key, ordinal)',
+  'CREATE INDEX IF NOT EXISTS idx_global_message_index_chat ON global_message_index(chat_id)',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_message_index_ordinal ON message_index(chat_id, ordinal)',
   'CREATE INDEX IF NOT EXISTS idx_message_index_month ON message_index(chat_id, month_key, ordinal)',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_message_index_message ON message_index(message_id)',
@@ -835,6 +876,66 @@ const List<String> _workingVirtualAndTriggerStatements = [
 // These triggers are NOT included in _workingVirtualAndTriggerStatements
 // Instead, they are created by createMessageIndexTriggers() after rebuildMessageIndex()
 const List<String> _messageIndexTriggerStatements = [
+  // Global message index: Insert trigger
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_global_message_index_insert
+  AFTER INSERT ON messages 
+  WHEN new.chat_id IS NOT NULL
+  BEGIN
+    DELETE FROM global_message_index;
+    INSERT INTO global_message_index (ordinal, message_id, chat_id, sent_at_utc, month_key)
+    SELECT 
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      chat_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id IS NOT NULL
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
+  // Global message index: Update trigger
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_global_message_index_update
+  AFTER UPDATE OF sent_at_utc ON messages
+  WHEN new.chat_id IS NOT NULL AND new.sent_at_utc != old.sent_at_utc
+  BEGIN
+    DELETE FROM global_message_index;
+    INSERT INTO global_message_index (ordinal, message_id, chat_id, sent_at_utc, month_key)
+    SELECT 
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      chat_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id IS NOT NULL
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
+  // Global message index: Delete trigger
+  '''
+  CREATE TRIGGER IF NOT EXISTS trg_global_message_index_delete
+  AFTER DELETE ON messages
+  WHEN old.chat_id IS NOT NULL
+  BEGIN
+    DELETE FROM global_message_index;
+    INSERT INTO global_message_index (ordinal, message_id, chat_id, sent_at_utc, month_key)
+    SELECT 
+      (ROW_NUMBER() OVER (ORDER BY sent_at_utc, id) - 1) AS ordinal,
+      id AS message_id,
+      chat_id,
+      sent_at_utc,
+      STRFTIME('%Y-%m', COALESCE(sent_at_utc, '1970-01-01')) AS month_key
+    FROM messages
+    WHERE chat_id IS NOT NULL
+    ORDER BY sent_at_utc, id;
+  END;
+  ''',
+
   // Message index: Insert trigger
   '''
   CREATE TRIGGER IF NOT EXISTS trg_message_index_insert
@@ -1215,6 +1316,30 @@ class WorkingMessages extends Table {
 /// Ordinal index for stable message ordering in large chats.
 /// Maps each message to a zero-based sequential position within its chat.
 /// Enables O(1) lookups and instant timeline jumps without loading all messages.
+class GlobalMessageIndex extends Table {
+  @override
+  String get tableName => 'global_message_index';
+
+  IntColumn get ordinal => integer().named('ordinal')();
+  IntColumn get messageId => integer()
+      .named('message_id')
+      .references(WorkingMessages, #id, onDelete: KeyAction.cascade)();
+  IntColumn get chatId => integer()
+      .named('chat_id')
+      .references(WorkingChats, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sentAtUtc => text().named('sent_at_utc').nullable()();
+  TextColumn get monthKey =>
+      text().named('month_key')(); // Format: 'YYYY-MM' for timeline buckets
+
+  @override
+  Set<Column> get primaryKey => {ordinal};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {messageId},
+  ];
+}
+
 class MessageIndex extends Table {
   @override
   String get tableName => 'message_index';

@@ -6597,6 +6597,371 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
   }
 }
 
+class $GlobalMessageIndexTable extends GlobalMessageIndex
+    with TableInfo<$GlobalMessageIndexTable, GlobalMessageIndexData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GlobalMessageIndexTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ordinalMeta = const VerificationMeta(
+    'ordinal',
+  );
+  @override
+  late final GeneratedColumn<int> ordinal = GeneratedColumn<int>(
+    'ordinal',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<int> messageId = GeneratedColumn<int>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES messages (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _chatIdMeta = const VerificationMeta('chatId');
+  @override
+  late final GeneratedColumn<int> chatId = GeneratedColumn<int>(
+    'chat_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chats (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _sentAtUtcMeta = const VerificationMeta(
+    'sentAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> sentAtUtc = GeneratedColumn<String>(
+    'sent_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _monthKeyMeta = const VerificationMeta(
+    'monthKey',
+  );
+  @override
+  late final GeneratedColumn<String> monthKey = GeneratedColumn<String>(
+    'month_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    ordinal,
+    messageId,
+    chatId,
+    sentAtUtc,
+    monthKey,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'global_message_index';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GlobalMessageIndexData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ordinal')) {
+      context.handle(
+        _ordinalMeta,
+        ordinal.isAcceptableOrUnknown(data['ordinal']!, _ordinalMeta),
+      );
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('chat_id')) {
+      context.handle(
+        _chatIdMeta,
+        chatId.isAcceptableOrUnknown(data['chat_id']!, _chatIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chatIdMeta);
+    }
+    if (data.containsKey('sent_at_utc')) {
+      context.handle(
+        _sentAtUtcMeta,
+        sentAtUtc.isAcceptableOrUnknown(data['sent_at_utc']!, _sentAtUtcMeta),
+      );
+    }
+    if (data.containsKey('month_key')) {
+      context.handle(
+        _monthKeyMeta,
+        monthKey.isAcceptableOrUnknown(data['month_key']!, _monthKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthKeyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ordinal};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {messageId},
+  ];
+  @override
+  GlobalMessageIndexData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GlobalMessageIndexData(
+      ordinal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ordinal'],
+      )!,
+      messageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}message_id'],
+      )!,
+      chatId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chat_id'],
+      )!,
+      sentAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sent_at_utc'],
+      ),
+      monthKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}month_key'],
+      )!,
+    );
+  }
+
+  @override
+  $GlobalMessageIndexTable createAlias(String alias) {
+    return $GlobalMessageIndexTable(attachedDatabase, alias);
+  }
+}
+
+class GlobalMessageIndexData extends DataClass
+    implements Insertable<GlobalMessageIndexData> {
+  final int ordinal;
+  final int messageId;
+  final int chatId;
+  final String? sentAtUtc;
+  final String monthKey;
+  const GlobalMessageIndexData({
+    required this.ordinal,
+    required this.messageId,
+    required this.chatId,
+    this.sentAtUtc,
+    required this.monthKey,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ordinal'] = Variable<int>(ordinal);
+    map['message_id'] = Variable<int>(messageId);
+    map['chat_id'] = Variable<int>(chatId);
+    if (!nullToAbsent || sentAtUtc != null) {
+      map['sent_at_utc'] = Variable<String>(sentAtUtc);
+    }
+    map['month_key'] = Variable<String>(monthKey);
+    return map;
+  }
+
+  GlobalMessageIndexCompanion toCompanion(bool nullToAbsent) {
+    return GlobalMessageIndexCompanion(
+      ordinal: Value(ordinal),
+      messageId: Value(messageId),
+      chatId: Value(chatId),
+      sentAtUtc: sentAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentAtUtc),
+      monthKey: Value(monthKey),
+    );
+  }
+
+  factory GlobalMessageIndexData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GlobalMessageIndexData(
+      ordinal: serializer.fromJson<int>(json['ordinal']),
+      messageId: serializer.fromJson<int>(json['messageId']),
+      chatId: serializer.fromJson<int>(json['chatId']),
+      sentAtUtc: serializer.fromJson<String?>(json['sentAtUtc']),
+      monthKey: serializer.fromJson<String>(json['monthKey']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ordinal': serializer.toJson<int>(ordinal),
+      'messageId': serializer.toJson<int>(messageId),
+      'chatId': serializer.toJson<int>(chatId),
+      'sentAtUtc': serializer.toJson<String?>(sentAtUtc),
+      'monthKey': serializer.toJson<String>(monthKey),
+    };
+  }
+
+  GlobalMessageIndexData copyWith({
+    int? ordinal,
+    int? messageId,
+    int? chatId,
+    Value<String?> sentAtUtc = const Value.absent(),
+    String? monthKey,
+  }) => GlobalMessageIndexData(
+    ordinal: ordinal ?? this.ordinal,
+    messageId: messageId ?? this.messageId,
+    chatId: chatId ?? this.chatId,
+    sentAtUtc: sentAtUtc.present ? sentAtUtc.value : this.sentAtUtc,
+    monthKey: monthKey ?? this.monthKey,
+  );
+  GlobalMessageIndexData copyWithCompanion(GlobalMessageIndexCompanion data) {
+    return GlobalMessageIndexData(
+      ordinal: data.ordinal.present ? data.ordinal.value : this.ordinal,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      chatId: data.chatId.present ? data.chatId.value : this.chatId,
+      sentAtUtc: data.sentAtUtc.present ? data.sentAtUtc.value : this.sentAtUtc,
+      monthKey: data.monthKey.present ? data.monthKey.value : this.monthKey,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GlobalMessageIndexData(')
+          ..write('ordinal: $ordinal, ')
+          ..write('messageId: $messageId, ')
+          ..write('chatId: $chatId, ')
+          ..write('sentAtUtc: $sentAtUtc, ')
+          ..write('monthKey: $monthKey')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(ordinal, messageId, chatId, sentAtUtc, monthKey);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GlobalMessageIndexData &&
+          other.ordinal == this.ordinal &&
+          other.messageId == this.messageId &&
+          other.chatId == this.chatId &&
+          other.sentAtUtc == this.sentAtUtc &&
+          other.monthKey == this.monthKey);
+}
+
+class GlobalMessageIndexCompanion
+    extends UpdateCompanion<GlobalMessageIndexData> {
+  final Value<int> ordinal;
+  final Value<int> messageId;
+  final Value<int> chatId;
+  final Value<String?> sentAtUtc;
+  final Value<String> monthKey;
+  const GlobalMessageIndexCompanion({
+    this.ordinal = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.chatId = const Value.absent(),
+    this.sentAtUtc = const Value.absent(),
+    this.monthKey = const Value.absent(),
+  });
+  GlobalMessageIndexCompanion.insert({
+    this.ordinal = const Value.absent(),
+    required int messageId,
+    required int chatId,
+    this.sentAtUtc = const Value.absent(),
+    required String monthKey,
+  }) : messageId = Value(messageId),
+       chatId = Value(chatId),
+       monthKey = Value(monthKey);
+  static Insertable<GlobalMessageIndexData> custom({
+    Expression<int>? ordinal,
+    Expression<int>? messageId,
+    Expression<int>? chatId,
+    Expression<String>? sentAtUtc,
+    Expression<String>? monthKey,
+  }) {
+    return RawValuesInsertable({
+      if (ordinal != null) 'ordinal': ordinal,
+      if (messageId != null) 'message_id': messageId,
+      if (chatId != null) 'chat_id': chatId,
+      if (sentAtUtc != null) 'sent_at_utc': sentAtUtc,
+      if (monthKey != null) 'month_key': monthKey,
+    });
+  }
+
+  GlobalMessageIndexCompanion copyWith({
+    Value<int>? ordinal,
+    Value<int>? messageId,
+    Value<int>? chatId,
+    Value<String?>? sentAtUtc,
+    Value<String>? monthKey,
+  }) {
+    return GlobalMessageIndexCompanion(
+      ordinal: ordinal ?? this.ordinal,
+      messageId: messageId ?? this.messageId,
+      chatId: chatId ?? this.chatId,
+      sentAtUtc: sentAtUtc ?? this.sentAtUtc,
+      monthKey: monthKey ?? this.monthKey,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ordinal.present) {
+      map['ordinal'] = Variable<int>(ordinal.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<int>(messageId.value);
+    }
+    if (chatId.present) {
+      map['chat_id'] = Variable<int>(chatId.value);
+    }
+    if (sentAtUtc.present) {
+      map['sent_at_utc'] = Variable<String>(sentAtUtc.value);
+    }
+    if (monthKey.present) {
+      map['month_key'] = Variable<String>(monthKey.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GlobalMessageIndexCompanion(')
+          ..write('ordinal: $ordinal, ')
+          ..write('messageId: $messageId, ')
+          ..write('chatId: $chatId, ')
+          ..write('sentAtUtc: $sentAtUtc, ')
+          ..write('monthKey: $monthKey')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MessageIndexTable extends MessageIndex
     with TableInfo<$MessageIndexTable, MessageIndexData> {
   @override
@@ -10693,6 +11058,8 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
   late final $WorkingMessagesTable workingMessages = $WorkingMessagesTable(
     this,
   );
+  late final $GlobalMessageIndexTable globalMessageIndex =
+      $GlobalMessageIndexTable(this);
   late final $MessageIndexTable messageIndex = $MessageIndexTable(this);
   late final $ContactMessageIndexTable contactMessageIndex =
       $ContactMessageIndexTable(this);
@@ -10727,6 +11094,7 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     workingChats,
     chatToHandle,
     workingMessages,
+    globalMessageIndex,
     messageIndex,
     contactMessageIndex,
     workingAttachments,
@@ -10796,6 +11164,20 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('messages', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'messages',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('global_message_index', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chats',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('global_message_index', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14136,6 +14518,33 @@ final class $$WorkingChatsTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $GlobalMessageIndexTable,
+    List<GlobalMessageIndexData>
+  >
+  _globalMessageIndexRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.globalMessageIndex,
+        aliasName: $_aliasNameGenerator(
+          db.workingChats.id,
+          db.globalMessageIndex.chatId,
+        ),
+      );
+
+  $$GlobalMessageIndexTableProcessedTableManager get globalMessageIndexRefs {
+    final manager = $$GlobalMessageIndexTableTableManager(
+      $_db,
+      $_db.globalMessageIndex,
+    ).filter((f) => f.chatId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _globalMessageIndexRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$MessageIndexTable, List<MessageIndexData>>
   _messageIndexRefsTable(_$WorkingDatabase db) => MultiTypedResultKey.fromTable(
     db.messageIndex,
@@ -14316,6 +14725,31 @@ class $$WorkingChatsTableFilterComposer
           }) => $$WorkingMessagesTableFilterComposer(
             $db: $db,
             $table: $db.workingMessages,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> globalMessageIndexRefs(
+    Expression<bool> Function($$GlobalMessageIndexTableFilterComposer f) f,
+  ) {
+    final $$GlobalMessageIndexTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.globalMessageIndex,
+      getReferencedColumn: (t) => t.chatId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GlobalMessageIndexTableFilterComposer(
+            $db: $db,
+            $table: $db.globalMessageIndex,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -14615,6 +15049,32 @@ class $$WorkingChatsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> globalMessageIndexRefs<T extends Object>(
+    Expression<T> Function($$GlobalMessageIndexTableAnnotationComposer a) f,
+  ) {
+    final $$GlobalMessageIndexTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.globalMessageIndex,
+          getReferencedColumn: (t) => t.chatId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$GlobalMessageIndexTableAnnotationComposer(
+                $db: $db,
+                $table: $db.globalMessageIndex,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> messageIndexRefs<T extends Object>(
     Expression<T> Function($$MessageIndexTableAnnotationComposer a) f,
   ) {
@@ -14683,6 +15143,7 @@ class $$WorkingChatsTableTableManager
             bool lastSenderHandleId,
             bool chatToHandleRefs,
             bool workingMessagesRefs,
+            bool globalMessageIndexRefs,
             bool messageIndexRefs,
             bool readStateRefs,
           })
@@ -14781,6 +15242,7 @@ class $$WorkingChatsTableTableManager
                 lastSenderHandleId = false,
                 chatToHandleRefs = false,
                 workingMessagesRefs = false,
+                globalMessageIndexRefs = false,
                 messageIndexRefs = false,
                 readStateRefs = false,
               }) {
@@ -14789,6 +15251,7 @@ class $$WorkingChatsTableTableManager
                   explicitlyWatchedTables: [
                     if (chatToHandleRefs) db.chatToHandle,
                     if (workingMessagesRefs) db.workingMessages,
+                    if (globalMessageIndexRefs) db.globalMessageIndex,
                     if (messageIndexRefs) db.messageIndex,
                     if (readStateRefs) db.readState,
                   ],
@@ -14870,6 +15333,27 @@ class $$WorkingChatsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (globalMessageIndexRefs)
+                        await $_getPrefetchedData<
+                          WorkingChat,
+                          $WorkingChatsTable,
+                          GlobalMessageIndexData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingChatsTableReferences
+                              ._globalMessageIndexRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingChatsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).globalMessageIndexRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chatId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (messageIndexRefs)
                         await $_getPrefetchedData<
                           WorkingChat,
@@ -14936,6 +15420,7 @@ typedef $$WorkingChatsTableProcessedTableManager =
         bool lastSenderHandleId,
         bool chatToHandleRefs,
         bool workingMessagesRefs,
+        bool globalMessageIndexRefs,
         bool messageIndexRefs,
         bool readStateRefs,
       })
@@ -15482,6 +15967,33 @@ final class $$WorkingMessagesTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $GlobalMessageIndexTable,
+    List<GlobalMessageIndexData>
+  >
+  _globalMessageIndexRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.globalMessageIndex,
+        aliasName: $_aliasNameGenerator(
+          db.workingMessages.id,
+          db.globalMessageIndex.messageId,
+        ),
+      );
+
+  $$GlobalMessageIndexTableProcessedTableManager get globalMessageIndexRefs {
+    final manager = $$GlobalMessageIndexTableTableManager(
+      $_db,
+      $_db.globalMessageIndex,
+    ).filter((f) => f.messageId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _globalMessageIndexRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$MessageIndexTable, List<MessageIndexData>>
   _messageIndexRefsTable(_$WorkingDatabase db) => MultiTypedResultKey.fromTable(
     db.messageIndex,
@@ -15728,6 +16240,31 @@ class $$WorkingMessagesTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> globalMessageIndexRefs(
+    Expression<bool> Function($$GlobalMessageIndexTableFilterComposer f) f,
+  ) {
+    final $$GlobalMessageIndexTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.globalMessageIndex,
+      getReferencedColumn: (t) => t.messageId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GlobalMessageIndexTableFilterComposer(
+            $db: $db,
+            $table: $db.globalMessageIndex,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 
   Expression<bool> messageIndexRefs(
@@ -16137,6 +16674,32 @@ class $$WorkingMessagesTableAnnotationComposer
     return composer;
   }
 
+  Expression<T> globalMessageIndexRefs<T extends Object>(
+    Expression<T> Function($$GlobalMessageIndexTableAnnotationComposer a) f,
+  ) {
+    final $$GlobalMessageIndexTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.globalMessageIndex,
+          getReferencedColumn: (t) => t.messageId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$GlobalMessageIndexTableAnnotationComposer(
+                $db: $db,
+                $table: $db.globalMessageIndex,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> messageIndexRefs<T extends Object>(
     Expression<T> Function($$MessageIndexTableAnnotationComposer a) f,
   ) {
@@ -16230,6 +16793,7 @@ class $$WorkingMessagesTableTableManager
           PrefetchHooks Function({
             bool chatId,
             bool senderHandleId,
+            bool globalMessageIndexRefs,
             bool messageIndexRefs,
             bool contactMessageIndexRefs,
             bool workingReactionsRefs,
@@ -16372,6 +16936,7 @@ class $$WorkingMessagesTableTableManager
               ({
                 chatId = false,
                 senderHandleId = false,
+                globalMessageIndexRefs = false,
                 messageIndexRefs = false,
                 contactMessageIndexRefs = false,
                 workingReactionsRefs = false,
@@ -16379,6 +16944,7 @@ class $$WorkingMessagesTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (globalMessageIndexRefs) db.globalMessageIndex,
                     if (messageIndexRefs) db.messageIndex,
                     if (contactMessageIndexRefs) db.contactMessageIndex,
                     if (workingReactionsRefs) db.workingReactions,
@@ -16434,6 +17000,27 @@ class $$WorkingMessagesTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (globalMessageIndexRefs)
+                        await $_getPrefetchedData<
+                          WorkingMessage,
+                          $WorkingMessagesTable,
+                          GlobalMessageIndexData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkingMessagesTableReferences
+                              ._globalMessageIndexRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkingMessagesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).globalMessageIndexRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.messageId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (messageIndexRefs)
                         await $_getPrefetchedData<
                           WorkingMessage,
@@ -16520,10 +17107,433 @@ typedef $$WorkingMessagesTableProcessedTableManager =
       PrefetchHooks Function({
         bool chatId,
         bool senderHandleId,
+        bool globalMessageIndexRefs,
         bool messageIndexRefs,
         bool contactMessageIndexRefs,
         bool workingReactionsRefs,
       })
+    >;
+typedef $$GlobalMessageIndexTableCreateCompanionBuilder =
+    GlobalMessageIndexCompanion Function({
+      Value<int> ordinal,
+      required int messageId,
+      required int chatId,
+      Value<String?> sentAtUtc,
+      required String monthKey,
+    });
+typedef $$GlobalMessageIndexTableUpdateCompanionBuilder =
+    GlobalMessageIndexCompanion Function({
+      Value<int> ordinal,
+      Value<int> messageId,
+      Value<int> chatId,
+      Value<String?> sentAtUtc,
+      Value<String> monthKey,
+    });
+
+final class $$GlobalMessageIndexTableReferences
+    extends
+        BaseReferences<
+          _$WorkingDatabase,
+          $GlobalMessageIndexTable,
+          GlobalMessageIndexData
+        > {
+  $$GlobalMessageIndexTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkingMessagesTable _messageIdTable(_$WorkingDatabase db) =>
+      db.workingMessages.createAlias(
+        $_aliasNameGenerator(
+          db.globalMessageIndex.messageId,
+          db.workingMessages.id,
+        ),
+      );
+
+  $$WorkingMessagesTableProcessedTableManager get messageId {
+    final $_column = $_itemColumn<int>('message_id')!;
+
+    final manager = $$WorkingMessagesTableTableManager(
+      $_db,
+      $_db.workingMessages,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_messageIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $WorkingChatsTable _chatIdTable(_$WorkingDatabase db) =>
+      db.workingChats.createAlias(
+        $_aliasNameGenerator(db.globalMessageIndex.chatId, db.workingChats.id),
+      );
+
+  $$WorkingChatsTableProcessedTableManager get chatId {
+    final $_column = $_itemColumn<int>('chat_id')!;
+
+    final manager = $$WorkingChatsTableTableManager(
+      $_db,
+      $_db.workingChats,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chatIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$GlobalMessageIndexTableFilterComposer
+    extends Composer<_$WorkingDatabase, $GlobalMessageIndexTable> {
+  $$GlobalMessageIndexTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ordinal => $composableBuilder(
+    column: $table.ordinal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sentAtUtc => $composableBuilder(
+    column: $table.sentAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get monthKey => $composableBuilder(
+    column: $table.monthKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkingMessagesTableFilterComposer get messageId {
+    final $$WorkingMessagesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.messageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableFilterComposer(
+            $db: $db,
+            $table: $db.workingMessages,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingChatsTableFilterComposer get chatId {
+    final $$WorkingChatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatId,
+      referencedTable: $db.workingChats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingChatsTableFilterComposer(
+            $db: $db,
+            $table: $db.workingChats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GlobalMessageIndexTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $GlobalMessageIndexTable> {
+  $$GlobalMessageIndexTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ordinal => $composableBuilder(
+    column: $table.ordinal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sentAtUtc => $composableBuilder(
+    column: $table.sentAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get monthKey => $composableBuilder(
+    column: $table.monthKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkingMessagesTableOrderingComposer get messageId {
+    final $$WorkingMessagesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.messageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingMessages,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingChatsTableOrderingComposer get chatId {
+    final $$WorkingChatsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatId,
+      referencedTable: $db.workingChats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingChatsTableOrderingComposer(
+            $db: $db,
+            $table: $db.workingChats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GlobalMessageIndexTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $GlobalMessageIndexTable> {
+  $$GlobalMessageIndexTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ordinal =>
+      $composableBuilder(column: $table.ordinal, builder: (column) => column);
+
+  GeneratedColumn<String> get sentAtUtc =>
+      $composableBuilder(column: $table.sentAtUtc, builder: (column) => column);
+
+  GeneratedColumn<String> get monthKey =>
+      $composableBuilder(column: $table.monthKey, builder: (column) => column);
+
+  $$WorkingMessagesTableAnnotationComposer get messageId {
+    final $$WorkingMessagesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.messageId,
+      referencedTable: $db.workingMessages,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingMessagesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingMessages,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$WorkingChatsTableAnnotationComposer get chatId {
+    final $$WorkingChatsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chatId,
+      referencedTable: $db.workingChats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkingChatsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workingChats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GlobalMessageIndexTableTableManager
+    extends
+        RootTableManager<
+          _$WorkingDatabase,
+          $GlobalMessageIndexTable,
+          GlobalMessageIndexData,
+          $$GlobalMessageIndexTableFilterComposer,
+          $$GlobalMessageIndexTableOrderingComposer,
+          $$GlobalMessageIndexTableAnnotationComposer,
+          $$GlobalMessageIndexTableCreateCompanionBuilder,
+          $$GlobalMessageIndexTableUpdateCompanionBuilder,
+          (GlobalMessageIndexData, $$GlobalMessageIndexTableReferences),
+          GlobalMessageIndexData,
+          PrefetchHooks Function({bool messageId, bool chatId})
+        > {
+  $$GlobalMessageIndexTableTableManager(
+    _$WorkingDatabase db,
+    $GlobalMessageIndexTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GlobalMessageIndexTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GlobalMessageIndexTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GlobalMessageIndexTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> ordinal = const Value.absent(),
+                Value<int> messageId = const Value.absent(),
+                Value<int> chatId = const Value.absent(),
+                Value<String?> sentAtUtc = const Value.absent(),
+                Value<String> monthKey = const Value.absent(),
+              }) => GlobalMessageIndexCompanion(
+                ordinal: ordinal,
+                messageId: messageId,
+                chatId: chatId,
+                sentAtUtc: sentAtUtc,
+                monthKey: monthKey,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> ordinal = const Value.absent(),
+                required int messageId,
+                required int chatId,
+                Value<String?> sentAtUtc = const Value.absent(),
+                required String monthKey,
+              }) => GlobalMessageIndexCompanion.insert(
+                ordinal: ordinal,
+                messageId: messageId,
+                chatId: chatId,
+                sentAtUtc: sentAtUtc,
+                monthKey: monthKey,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$GlobalMessageIndexTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({messageId = false, chatId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (messageId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.messageId,
+                                referencedTable:
+                                    $$GlobalMessageIndexTableReferences
+                                        ._messageIdTable(db),
+                                referencedColumn:
+                                    $$GlobalMessageIndexTableReferences
+                                        ._messageIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chatId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chatId,
+                                referencedTable:
+                                    $$GlobalMessageIndexTableReferences
+                                        ._chatIdTable(db),
+                                referencedColumn:
+                                    $$GlobalMessageIndexTableReferences
+                                        ._chatIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GlobalMessageIndexTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $GlobalMessageIndexTable,
+      GlobalMessageIndexData,
+      $$GlobalMessageIndexTableFilterComposer,
+      $$GlobalMessageIndexTableOrderingComposer,
+      $$GlobalMessageIndexTableAnnotationComposer,
+      $$GlobalMessageIndexTableCreateCompanionBuilder,
+      $$GlobalMessageIndexTableUpdateCompanionBuilder,
+      (GlobalMessageIndexData, $$GlobalMessageIndexTableReferences),
+      GlobalMessageIndexData,
+      PrefetchHooks Function({bool messageId, bool chatId})
     >;
 typedef $$MessageIndexTableCreateCompanionBuilder =
     MessageIndexCompanion Function({
@@ -19481,6 +20491,8 @@ class $WorkingDatabaseManager {
       $$ChatToHandleTableTableManager(_db, _db.chatToHandle);
   $$WorkingMessagesTableTableManager get workingMessages =>
       $$WorkingMessagesTableTableManager(_db, _db.workingMessages);
+  $$GlobalMessageIndexTableTableManager get globalMessageIndex =>
+      $$GlobalMessageIndexTableTableManager(_db, _db.globalMessageIndex);
   $$MessageIndexTableTableManager get messageIndex =>
       $$MessageIndexTableTableManager(_db, _db.messageIndex);
   $$ContactMessageIndexTableTableManager get contactMessageIndex =>
