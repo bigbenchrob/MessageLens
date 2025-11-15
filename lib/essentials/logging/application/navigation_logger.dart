@@ -59,6 +59,7 @@ class NavigationLogEntry {
               'scrollToDate': scrollToDate.toIso8601String(),
           },
           recent: (limit) => {'variant': 'recent', 'limit': limit},
+          globalTimeline: () => {'variant': 'globalTimeline'},
           forHandle: (handleId) => {
             'variant': 'forHandle',
             'handleId': handleId,

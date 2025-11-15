@@ -7,7 +7,7 @@ part of 'global_timeline_view_builder_provider.dart';
 // **************************************************************************
 
 String _$globalTimelineViewBuilderHash() =>
-    r'9562479c0d5b14127383cac9ff6cb5f57c56e2ca';
+    r'1150595f8e9ff675901fdada905193f82a38b33f';
 
 /// See also [globalTimelineViewBuilder].
 @ProviderFor(globalTimelineViewBuilder)

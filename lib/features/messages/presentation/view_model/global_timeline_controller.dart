@@ -17,12 +17,12 @@ class GlobalTimelineState {
   });
 
   const GlobalTimelineState.empty()
-      : items = const [],
-        totalCount = 0,
-        hasMoreBefore = false,
-        hasMoreAfter = false,
-        isLoadingBefore = false,
-        isLoadingAfter = false;
+    : items = const [],
+      totalCount = 0,
+      hasMoreBefore = false,
+      hasMoreAfter = false,
+      isLoadingBefore = false,
+      isLoadingAfter = false;
 
   factory GlobalTimelineState.fromPage(GlobalMessageTimelinePage page) {
     if (page.totalCount == 0) {
@@ -105,6 +105,43 @@ class GlobalTimelineController extends _$GlobalTimelineController {
     });
   }
 
+  Future<void> jumpToNewest() async {
+    final current = state.valueOrNull;
+    if (current == null) {
+      await refresh();
+      return;
+    }
+    await _replaceWithPageFrom(endBeforeOrdinal: current.totalCount);
+  }
+
+  Future<void> jumpToOldest() async {
+    await refresh();
+  }
+
+  Future<bool> jumpToDate(DateTime date) async {
+    final ordinal = await ref.read(
+      globalTimelineOrdinalForDateProvider(date).future,
+    );
+    if (ordinal == null) {
+      return false;
+    }
+
+    final totalCount = state.valueOrNull?.totalCount;
+    if (totalCount != null && totalCount > 0) {
+      final tailThreshold = totalCount - (_pageSize ~/ 2);
+      if (ordinal >= tailThreshold) {
+        await _replaceWithPageFrom(endBeforeOrdinal: totalCount);
+        return true;
+      }
+    }
+
+    final startCandidate = ordinal - (_pageSize ~/ 2);
+    final startAfterOrdinal = startCandidate <= 0 ? null : startCandidate - 1;
+
+    await _replaceWithPageFrom(startAfterOrdinal: startAfterOrdinal);
+    return true;
+  }
+
   Future<void> loadMoreAfter() async {
     final current = state.valueOrNull;
     if (current == null || !current.hasMoreAfter || current.isLoadingAfter) {
@@ -184,6 +221,20 @@ class GlobalTimelineController extends _$GlobalTimelineController {
         pageSize: _pageSize,
       ).future,
     );
+  }
+
+  Future<void> _replaceWithPageFrom({
+    int? startAfterOrdinal,
+    int? endBeforeOrdinal,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final page = await _fetchPage(
+        startAfterOrdinal: startAfterOrdinal,
+        endBeforeOrdinal: endBeforeOrdinal,
+      );
+      return GlobalTimelineState.fromPage(page);
+    });
   }
 
   List<GlobalMessageTimelineItem> _mergeAfter(

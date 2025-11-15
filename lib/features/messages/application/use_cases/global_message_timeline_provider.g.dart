@@ -6,8 +6,28 @@ part of 'global_message_timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$globalMessageTimelineHash() =>
-    r'9a04026c1999b829a0a952623f730ffed863f155';
+String _$globalTimelineBoundsHash() =>
+    r'b0a3864dd08c557de0c601d8f0192c6444cac6e8';
+
+/// See also [globalTimelineBounds].
+@ProviderFor(globalTimelineBounds)
+final globalTimelineBoundsProvider =
+    AutoDisposeFutureProvider<GlobalTimelineBounds>.internal(
+      globalTimelineBounds,
+      name: r'globalTimelineBoundsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$globalTimelineBoundsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GlobalTimelineBoundsRef =
+    AutoDisposeFutureProviderRef<GlobalTimelineBounds>;
+String _$globalTimelineOrdinalForDateHash() =>
+    r'75d5b4ffc576f996e39a20f6f1aa1f25f165d230';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,6 +49,132 @@ class _SystemHash {
     return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
   }
 }
+
+/// See also [globalTimelineOrdinalForDate].
+@ProviderFor(globalTimelineOrdinalForDate)
+const globalTimelineOrdinalForDateProvider =
+    GlobalTimelineOrdinalForDateFamily();
+
+/// See also [globalTimelineOrdinalForDate].
+class GlobalTimelineOrdinalForDateFamily extends Family<AsyncValue<int?>> {
+  /// See also [globalTimelineOrdinalForDate].
+  const GlobalTimelineOrdinalForDateFamily();
+
+  /// See also [globalTimelineOrdinalForDate].
+  GlobalTimelineOrdinalForDateProvider call(DateTime date) {
+    return GlobalTimelineOrdinalForDateProvider(date);
+  }
+
+  @override
+  GlobalTimelineOrdinalForDateProvider getProviderOverride(
+    covariant GlobalTimelineOrdinalForDateProvider provider,
+  ) {
+    return call(provider.date);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'globalTimelineOrdinalForDateProvider';
+}
+
+/// See also [globalTimelineOrdinalForDate].
+class GlobalTimelineOrdinalForDateProvider
+    extends AutoDisposeFutureProvider<int?> {
+  /// See also [globalTimelineOrdinalForDate].
+  GlobalTimelineOrdinalForDateProvider(DateTime date)
+    : this._internal(
+        (ref) => globalTimelineOrdinalForDate(
+          ref as GlobalTimelineOrdinalForDateRef,
+          date,
+        ),
+        from: globalTimelineOrdinalForDateProvider,
+        name: r'globalTimelineOrdinalForDateProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$globalTimelineOrdinalForDateHash,
+        dependencies: GlobalTimelineOrdinalForDateFamily._dependencies,
+        allTransitiveDependencies:
+            GlobalTimelineOrdinalForDateFamily._allTransitiveDependencies,
+        date: date,
+      );
+
+  GlobalTimelineOrdinalForDateProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.date,
+  }) : super.internal();
+
+  final DateTime date;
+
+  @override
+  Override overrideWith(
+    FutureOr<int?> Function(GlobalTimelineOrdinalForDateRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: GlobalTimelineOrdinalForDateProvider._internal(
+        (ref) => create(ref as GlobalTimelineOrdinalForDateRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        date: date,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<int?> createElement() {
+    return _GlobalTimelineOrdinalForDateProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GlobalTimelineOrdinalForDateProvider && other.date == date;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, date.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin GlobalTimelineOrdinalForDateRef on AutoDisposeFutureProviderRef<int?> {
+  /// The parameter `date` of this provider.
+  DateTime get date;
+}
+
+class _GlobalTimelineOrdinalForDateProviderElement
+    extends AutoDisposeFutureProviderElement<int?>
+    with GlobalTimelineOrdinalForDateRef {
+  _GlobalTimelineOrdinalForDateProviderElement(super.provider);
+
+  @override
+  DateTime get date => (origin as GlobalTimelineOrdinalForDateProvider).date;
+}
+
+String _$globalMessageTimelineHash() =>
+    r'9a04026c1999b829a0a952623f730ffed863f155';
 
 abstract class _$GlobalMessageTimeline
     extends BuildlessAutoDisposeAsyncNotifier<GlobalMessageTimelinePage> {

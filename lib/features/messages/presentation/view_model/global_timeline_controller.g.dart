@@ -7,7 +7,7 @@ part of 'global_timeline_controller.dart';
 // **************************************************************************
 
 String _$globalTimelineControllerHash() =>
-    r'a64053c08311ae9f07c2c4c9f024e016e161175f';
+    r'9ef2855aac524d4b432cd31ae049aa434b41ceba';
 
 /// Copied from Dart SDK
 class _SystemHash {

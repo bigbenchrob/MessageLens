@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../../../features/search/search_feature_providers.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
@@ -207,6 +208,9 @@ class HandlesMigrationService {
 
       // Now create the triggers AFTER indexes are built
       await workingDatabase.createMessageIndexTriggers();
+
+      final searchIndexOrchestrator = ref.read(searchIndexOrchestratorProvider);
+      await searchIndexOrchestrator.rebuildAll();
 
       await _restoreHandleOverrides(workingDatabase, overrides);
       await _restoreHandleToParticipantOverrides(

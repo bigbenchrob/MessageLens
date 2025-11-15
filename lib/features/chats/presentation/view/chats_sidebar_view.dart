@@ -106,6 +106,7 @@ class ChatsSidebarView extends HookConsumerWidget {
             },
             forContact: (_, __) {},
             recent: (_) {},
+            globalTimeline: () {},
             forHandle: (_) {},
             forChatInDateRange: (chatId, _, __) {
               selectedChatId = chatId;

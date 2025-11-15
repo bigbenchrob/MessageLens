@@ -7,7 +7,7 @@ part of 'contact_message_search_provider.dart';
 // **************************************************************************
 
 String _$contactMessageSearchResultsHash() =>
-    r'3ba3691652bb7ba423a4da6d51dc274a25b3dda2';
+    r'5fc0f45e74af308d2e105448aacfc8c5df48b7b7';
 
 /// Copied from Dart SDK
 class _SystemHash {

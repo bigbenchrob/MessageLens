@@ -1,0 +1,31 @@
+• Here’s how to exercise the new modular search stack end-to-end:
+
+  1. Prep the database
+      - Run a fresh import/migration so working.db is populated, or reuse an existing projection.
+      - From a Flutter shell / dev console, call ref.read(searchIndexOrchestratorProvider).rebuildAll() once. This
+        rebuilds the SimpleLexical validation (no-op) plus the FTS table from scratch; expect a short pause while the
+        console logs “Starting/Completed rebuildAll”.
+  2. Check legacy fallback (FTS OFF)
+      - Ensure useFtsSearchByDefault remains false (it is off by default). You can confirm via
+        ref.read(useFtsSearchByDefaultProvider) in dev tools.
+      - In the macOS app, run the existing chat/contact search UI (single-term queries) and check that results match
+        the pre-FTS behavior in content and ordering.
+  3. Enable FTS for manual validation
+      - Temporarily override the flag in code (e.g., via a debug toggle or hardcode useFtsSearchByDefault to true).
+      - Restart the app, run the orchestrator once more if desired, and repeat the same searches using multi-term
+        queries like “hello world modular”.
+      - Expect results ranked by term count + recency: messages matching more tokens (or newer messages) should surface
+        first.
+  4. Partial rebuild smoke test
+      - In a dev console, edit a message row directly (e.g., update messages.text for a known ID).
+      - Call ref.read(searchIndexOrchestratorProvider).rebuildForMessages({targetId});.
+      - Re-run the same search query with the FTS flag on and confirm the updated text is searchable.
+  5. Concurrency sanity check
+      - Start the macOS app and run a few searches while simultaneously invoking rebuildAll() from the console.
+      - You should see searches continue to return results (falling back to LIKE if FTS is temporarily empty) without
+        crashes.
+  6. Final verification
+      - Toggle the flag off again to make sure fallback still behaves as expected.
+      - Capture any observations (run times, UI hiccups) in _AGENT_INSTRUCTIONS/.../TESTS.md when you’re done.
+
+  Let me know if you need scripts for triggering the orchestrator or toggling the flag in dev builds.

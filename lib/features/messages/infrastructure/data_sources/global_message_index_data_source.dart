@@ -97,4 +97,20 @@ class GlobalMessageIndexDataSource {
       monthKey: row.monthKey,
     );
   }
+
+  Future<int?> firstOrdinalOnOrAfter(DateTime date) async {
+    final isoString = date.toUtc().toIso8601String();
+    final row =
+        await (_db.select(_db.globalMessageIndex)
+              ..where(
+                (t) =>
+                    t.sentAtUtc.isNotNull() &
+                    t.sentAtUtc.isBiggerOrEqualValue(isoString),
+              )
+              ..orderBy([(t) => OrderingTerm.asc(t.sentAtUtc)])
+              ..limit(1))
+            .getSingleOrNull();
+
+    return row?.ordinal;
+  }
 }

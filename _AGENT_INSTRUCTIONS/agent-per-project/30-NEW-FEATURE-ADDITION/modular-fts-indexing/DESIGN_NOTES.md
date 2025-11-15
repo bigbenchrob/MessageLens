@@ -25,6 +25,7 @@ SearchIndexOrchestrator
   - `validateAll()`
 - Integrate with post-migration flow (e.g., `HandlesMigrationService`) and optionally expose manual triggers (CLI command, debug panel).
 - Maintain lightweight metrics (duration per indexer, error counts) and persist baseline state per indexer (`last_rebuild_started_at`, `last_rebuild_finished_at`, `last_rebuild_status`, optional `last_rebuild_message_count`). This can be a single logging utility or a small telemetry table and should be updated after each orchestrated run.
+- Implementation detail (Step 1): the orchestrator currently persists run metadata via `SearchIndexMetricsRepository` (backed by `SharedPreferences`) and is invoked once per migration cycle immediately after the canonical indexes are rebuilt, ensuring SimpleLexical validation runs on freshly imported data.
 
 ## Indexer Contracts
 ```dart
@@ -44,15 +45,17 @@ abstract class SearchIndexer {
 - Implementation notes:
   - `rebuildAll()` and `rebuildForMessages()` are no-ops; there is nothing to materialize.
   - Validation runs sample `LIKE` queries against `working_messages`, confirms essential columns exist, and ensures the legacy search path can still service requests.
+- Step 1 extraction routed existing Riverpod providers through a dedicated `SearchService` so that future indexers can be introduced without rewriting UI hooks.
 - Search usage: acts as a fallback plan or compatibility layer when FTS-based indexers are disabled or degraded.
 
 ## FtsMultiTermIndexer
 - Purpose: own the physical FTS index (`messages_fts`) that powers ranked multi-term lexical search.
 - Responsibilities:
   - Ensure `messages_fts` schema and triggers exist and match expectations.
-  - `rebuildAll`: truncate and repopulate `messages_fts` using batched inserts from `working_messages`. In normal operation triggers keep the table fresh; this hook is reserved for bootstrap or full resets.
-  - `rebuildForMessages`: delete rows matching message IDs (via rowid) and reinsert fresh content. Documented as an escape hatch for resyncing known-bad subsets when triggers are temporarily disabled or suspect.
-  - `validate`: sample row counts, verify triggers fire after message insert/update/delete, and execute smoke-test queries to confirm index health.
+- `rebuildAll`: truncate and repopulate `messages_fts` using batched inserts from `working_messages`. In normal operation triggers keep the table fresh; this hook is reserved for bootstrap or full resets.
+- `rebuildForMessages`: delete rows matching message IDs (via rowid) and reinsert fresh content. Documented as an escape hatch for resyncing known-bad subsets when triggers are temporarily disabled or suspect.
+- `validate`: sample row counts, verify triggers fire after message insert/update/delete, and execute smoke-test queries to confirm index health.
+- Step 2 implementation batches inserts in slices of 10k rows to keep rebuild times predictable and uses `SharedPreferences` metrics to capture per-run timestamps alongside SimpleLexical stats.
 - Query building and ranking logic (token normalization, AND/OR semantics, bm25 + recency blending) lives in `SearchQueryParser` / `SearchService`, keeping the indexer focused on maintenance.
 - Integration plan:
   - Update search service to favor FTS results when the indexer is active and to combine bm25 scores with a lightweight recency boost (e.g., `finalScore = bm25 + λ * recencyBoost`, 0 ≤ λ ≤ 0.2).
@@ -65,6 +68,8 @@ abstract class SearchIndexer {
 4. Combine bm25 scores with a lightweight recency boost (e.g., `finalScore = bm25 + λ * recencyBoost`).
 5. Apply existing joins to hydrate `ChatMessageListItem` results.
 6. If FTS unavailable, fall back to SimpleLexicalIndexer path.
+- Current implementation (Step 2) tokenizes on whitespace, sanitizes punctuation, and constructs a `token* AND token*` `MATCH` string. The ranking formula in `SearchService` is `score = (-bm25) + 0.15 * recencyBoost` where `recencyBoost = 1 / (1 + ageHours / 24)`. Results are hydrated via the existing `ChatMessageRowMapper` to keep formatting consistent with the legacy path.
+- Feature flag `useFtsSearchByDefault` remains `false` by default; tests override it to exercise the multi-term path while legacy LIKE queries act as fallback whenever the flag is disabled or FTS returns no candidates.
 
 ## Testing Strategy
 - Unit tests for orchestrator verifying:

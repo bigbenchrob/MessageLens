@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -134,4 +135,47 @@ class GlobalMessageTimeline extends _$GlobalMessageTimeline {
 
     return dataSource.fetchFirstPage(limit);
   }
+}
+
+class GlobalTimelineBounds {
+  const GlobalTimelineBounds({this.earliest, this.latest});
+
+  final DateTime? earliest;
+  final DateTime? latest;
+}
+
+@riverpod
+Future<GlobalTimelineBounds> globalTimelineBounds(
+  GlobalTimelineBoundsRef ref,
+) async {
+  final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final sentAtMin = db.globalMessageIndex.sentAtUtc.min();
+  final sentAtMax = db.globalMessageIndex.sentAtUtc.max();
+
+  final result = await (db.selectOnly(
+    db.globalMessageIndex,
+  )..addColumns([sentAtMin, sentAtMax])).getSingleOrNull();
+
+  DateTime? parse(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final parsed = DateTime.tryParse(value);
+    return parsed?.toLocal();
+  }
+
+  return GlobalTimelineBounds(
+    earliest: parse(result?.read(sentAtMin)),
+    latest: parse(result?.read(sentAtMax)),
+  );
+}
+
+@riverpod
+Future<int?> globalTimelineOrdinalForDate(
+  GlobalTimelineOrdinalForDateRef ref,
+  DateTime date,
+) async {
+  final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final dataSource = GlobalMessageIndexDataSource(db);
+  return dataSource.firstOrdinalOnOrAfter(date);
 }

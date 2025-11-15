@@ -56,12 +56,12 @@
 ## Phase 5: Timeline UI Implementation
 - **Goal:** Build the macOS timeline view with virtualization and jump controls.
 - **Steps:**
-  - Create timeline widget leveraging the new providers.
-  - Implement virtual scrolling with lazy hydration triggers.
-  - Add jump affordances (first/last/date) and contextual metadata.
-  - Cover UI with widget tests where practical.
+  - [x] Create timeline widget leveraging the new providers.
+  - [x] Implement virtual scrolling with lazy hydration triggers.
+  - [x] Add jump affordances (first/last/date) and contextual metadata.
+  - [x] Cover UI with widget tests where practical.
 - **Success Criteria:** Manual runs show smooth scrolling on large datasets; widget tests pass.
-- **Status:** Pending
+- **Status:** In Progress
 
 ## Phase 6: Polish & Final Review
 - **Goal:** Stabilize the feature and get sign-off before release.

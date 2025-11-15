@@ -128,4 +128,50 @@ void main() {
     expect(state?.items.length, 2);
     expect(state?.hasMoreAfter, isFalse);
   });
+
+  test('jumpToNewest loads most recent ordinals', () async {
+    await seedMessages(6);
+
+    final provider = globalTimelineControllerProvider(pageSize: 2);
+    await container.read(provider.future);
+
+    final notifier = container.read(provider.notifier);
+    await notifier.jumpToNewest();
+
+    final state = container.read(provider).value;
+    expect(state?.items.length, 2);
+    expect(state?.items.first.ordinal, 4);
+    expect(state?.hasMoreAfter, isFalse);
+    expect(state?.hasMoreBefore, isTrue);
+  });
+
+  test('jumpToDate positions window near requested date', () async {
+    await seedMessages(10);
+
+    final provider = globalTimelineControllerProvider(pageSize: 4);
+    await container.read(provider.future);
+
+    final notifier = container.read(provider.notifier);
+    final jumped = await notifier.jumpToDate(DateTime.utc(2024, 1, 1, 4));
+    expect(jumped, isTrue);
+
+    final state = container.read(provider).value;
+    expect(state?.items.first.ordinal, inInclusiveRange(1, 3));
+    expect(
+      state?.items.any((item) => item.ordinal == 4),
+      isTrue,
+      reason: 'window should include matched ordinal',
+    );
+  });
+
+  test('jumpToDate returns false when no subsequent messages exist', () async {
+    await seedMessages(3);
+
+    final provider = globalTimelineControllerProvider(pageSize: 2);
+    await container.read(provider.future);
+
+    final notifier = container.read(provider.notifier);
+    final jumped = await notifier.jumpToDate(DateTime.utc(2030, 1, 1));
+    expect(jumped, isFalse);
+  });
 }
