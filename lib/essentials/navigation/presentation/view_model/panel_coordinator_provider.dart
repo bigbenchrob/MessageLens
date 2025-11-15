@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../features/chats/presentation/view/chats_center_panel_view.dart';
 import '../../../../features/chats/presentation/view/chats_sidebar_view.dart';
 import '../../../../features/contacts/presentation/view/contacts_sidebar_view.dart';
 import '../../../../features/contacts/presentation/view/unmatched_handles_sidebar_view.dart';
@@ -66,7 +65,7 @@ class PanelCoordinator extends _$PanelCoordinator {
           .read(messagesCoordinatorProvider.notifier)
           .buildForSpec(messagesSpec),
       chats: (chatsSpec) {
-        // Use center panel view for forParticipant, sidebar view for others
+        // All chat specs render via the sidebar treatment.
         return chatsSpec.when(
           list: () => ChatsSidebarView(spec: chatsSpec),
           forContact: (_) => ChatsSidebarView(spec: chatsSpec),
@@ -74,7 +73,7 @@ class PanelCoordinator extends _$PanelCoordinator {
           byAgeOldest: (_) => ChatsSidebarView(spec: chatsSpec),
           byAgeNewest: (_) => ChatsSidebarView(spec: chatsSpec),
           unmatched: (_) => ChatsSidebarView(spec: chatsSpec),
-          forParticipant: (_) => ChatsCenterPanelView(spec: chatsSpec),
+          forParticipant: (_) => ChatsSidebarView(spec: chatsSpec),
         );
       },
       contacts: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),
