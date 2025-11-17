@@ -24,7 +24,7 @@ final searchServiceProvider = AutoDisposeProvider<SearchService>.internal(
 // ignore: unused_element
 typedef SearchServiceRef = AutoDisposeProviderRef<SearchService>;
 String _$searchIndexMetricsRepositoryHash() =>
-    r'01e2b336d4eecaec3e9c2654a67bf2b3c5df98ba';
+    r'd1a58e1e5c01199184a1bc5fa65f07078dfdd032';
 
 /// See also [searchIndexMetricsRepository].
 @ProviderFor(searchIndexMetricsRepository)

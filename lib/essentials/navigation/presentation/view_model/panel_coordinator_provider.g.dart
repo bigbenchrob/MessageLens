@@ -6,7 +6,7 @@ part of 'panel_coordinator_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panelCoordinatorHash() => r'57cb31007ce57d1112b8389fd7ccbd9a3cd07ada';
+String _$panelCoordinatorHash() => r'a017bebc882f148e8468c204a54f7f0aa44a4c0d';
 
 /// Coordinator that maps panel ViewSpecs to rendered widgets
 ///

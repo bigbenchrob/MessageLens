@@ -228,7 +228,9 @@ lib/essentials/navigation/
 │   │       └── messages_spec.dart            # MessagesSpec sealed class
 │   └── navigation_constants.dart             # WindowPanel enum
 ├── application/
-│   └── panels_view_state_provider.dart       # State management
+│   └── presentation/
+│       └── view_model/
+│           └── panels_view_state_provider.dart   # State management
 └── presentation/
     ├── view_model/
     │   ├── panel_coordinator_provider.dart    # ViewSpec → Widget coordination
