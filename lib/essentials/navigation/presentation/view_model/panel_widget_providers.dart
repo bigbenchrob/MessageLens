@@ -9,20 +9,6 @@ import 'panel_coordinator_provider.dart';
 
 part 'panel_widget_providers.g.dart';
 
-/// Widget provider for left panel
-@riverpod
-Widget leftPanelWidget(Ref ref) {
-  final stack = ref.watch(
-    /// Only rebuild when the left panel stack changes (.select)
-    panelsViewStateProvider.select(
-      (stacks) => stacks[WindowPanel.left] ?? const PanelStack.empty(),
-    ),
-  );
-  return ref
-      .read(panelCoordinatorProvider.notifier)
-      .buildPanelSurface(WindowPanel.left, stack);
-}
-
 /// Widget provider for center panel
 @riverpod
 Widget centerPanelWidget(Ref ref) {

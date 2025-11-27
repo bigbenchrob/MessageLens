@@ -55,7 +55,7 @@ extension ViewSpecPatterns on ViewSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewChats value)?  chats,TResult Function( _ViewContacts value)?  contacts,TResult Function( _ViewImport value)?  import,TResult Function( _ViewSettings value)?  settings,TResult Function( _ViewWorkbench value)?  workbench,TResult Function( _ViewSidebar value)?  sidebar,TResult Function( _BuildSidebarFromRoot value)?  sidebarRoot,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewChats value)?  chats,TResult Function( _ViewContacts value)?  contacts,TResult Function( _ViewImport value)?  import,TResult Function( _ViewSettings value)?  settings,TResult Function( _ViewWorkbench value)?  workbench,TResult Function( _ViewSidebar value)?  sidebar,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
@@ -65,8 +65,7 @@ return contacts(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewSettings() when settings != null:
 return settings(_that);case _ViewWorkbench() when workbench != null:
 return workbench(_that);case _ViewSidebar() when sidebar != null:
-return sidebar(_that);case _BuildSidebarFromRoot() when sidebarRoot != null:
-return sidebarRoot(_that);case _:
+return sidebar(_that);case _:
   return orElse();
 
 }
@@ -84,7 +83,7 @@ return sidebarRoot(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewChats value)  chats,required TResult Function( _ViewContacts value)  contacts,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewSettings value)  settings,required TResult Function( _ViewWorkbench value)  workbench,required TResult Function( _ViewSidebar value)  sidebar,required TResult Function( _BuildSidebarFromRoot value)  sidebarRoot,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewChats value)  chats,required TResult Function( _ViewContacts value)  contacts,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewSettings value)  settings,required TResult Function( _ViewWorkbench value)  workbench,required TResult Function( _ViewSidebar value)  sidebar,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages():
@@ -94,8 +93,7 @@ return contacts(_that);case _ViewImport():
 return import(_that);case _ViewSettings():
 return settings(_that);case _ViewWorkbench():
 return workbench(_that);case _ViewSidebar():
-return sidebar(_that);case _BuildSidebarFromRoot():
-return sidebarRoot(_that);case _:
+return sidebar(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -112,7 +110,7 @@ return sidebarRoot(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewChats value)?  chats,TResult? Function( _ViewContacts value)?  contacts,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewSettings value)?  settings,TResult? Function( _ViewWorkbench value)?  workbench,TResult? Function( _ViewSidebar value)?  sidebar,TResult? Function( _BuildSidebarFromRoot value)?  sidebarRoot,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewChats value)?  chats,TResult? Function( _ViewContacts value)?  contacts,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewSettings value)?  settings,TResult? Function( _ViewWorkbench value)?  workbench,TResult? Function( _ViewSidebar value)?  sidebar,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
@@ -122,8 +120,7 @@ return contacts(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewSettings() when settings != null:
 return settings(_that);case _ViewWorkbench() when workbench != null:
 return workbench(_that);case _ViewSidebar() when sidebar != null:
-return sidebar(_that);case _BuildSidebarFromRoot() when sidebarRoot != null:
-return sidebarRoot(_that);case _:
+return sidebar(_that);case _:
   return null;
 
 }
@@ -140,7 +137,7 @@ return sidebarRoot(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ChatsSpec spec)?  chats,TResult Function( ContactsSpec spec)?  contacts,TResult Function( ImportSpec spec)?  import,TResult Function( SettingsSpec spec)?  settings,TResult Function( WorkbenchSpec spec)?  workbench,TResult Function( SidebarSpec spec)?  sidebar,TResult Function( SidebarRootSpec spec)?  sidebarRoot,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ChatsSpec spec)?  chats,TResult Function( ContactsSpec spec)?  contacts,TResult Function( ImportSpec spec)?  import,TResult Function( SettingsSpec spec)?  settings,TResult Function( WorkbenchSpec spec)?  workbench,TResult Function( SidebarSpec spec)?  sidebar,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that.spec);case _ViewChats() when chats != null:
@@ -149,8 +146,7 @@ return contacts(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewSettings() when settings != null:
 return settings(_that.spec);case _ViewWorkbench() when workbench != null:
 return workbench(_that.spec);case _ViewSidebar() when sidebar != null:
-return sidebar(_that.spec);case _BuildSidebarFromRoot() when sidebarRoot != null:
-return sidebarRoot(_that.spec);case _:
+return sidebar(_that.spec);case _:
   return orElse();
 
 }
@@ -168,7 +164,7 @@ return sidebarRoot(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ChatsSpec spec)  chats,required TResult Function( ContactsSpec spec)  contacts,required TResult Function( ImportSpec spec)  import,required TResult Function( SettingsSpec spec)  settings,required TResult Function( WorkbenchSpec spec)  workbench,required TResult Function( SidebarSpec spec)  sidebar,required TResult Function( SidebarRootSpec spec)  sidebarRoot,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ChatsSpec spec)  chats,required TResult Function( ContactsSpec spec)  contacts,required TResult Function( ImportSpec spec)  import,required TResult Function( SettingsSpec spec)  settings,required TResult Function( WorkbenchSpec spec)  workbench,required TResult Function( SidebarSpec spec)  sidebar,}) {final _that = this;
 switch (_that) {
 case _ViewMessages():
 return messages(_that.spec);case _ViewChats():
@@ -177,8 +173,7 @@ return contacts(_that.spec);case _ViewImport():
 return import(_that.spec);case _ViewSettings():
 return settings(_that.spec);case _ViewWorkbench():
 return workbench(_that.spec);case _ViewSidebar():
-return sidebar(_that.spec);case _BuildSidebarFromRoot():
-return sidebarRoot(_that.spec);case _:
+return sidebar(_that.spec);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,7 +190,7 @@ return sidebarRoot(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ChatsSpec spec)?  chats,TResult? Function( ContactsSpec spec)?  contacts,TResult? Function( ImportSpec spec)?  import,TResult? Function( SettingsSpec spec)?  settings,TResult? Function( WorkbenchSpec spec)?  workbench,TResult? Function( SidebarSpec spec)?  sidebar,TResult? Function( SidebarRootSpec spec)?  sidebarRoot,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ChatsSpec spec)?  chats,TResult? Function( ContactsSpec spec)?  contacts,TResult? Function( ImportSpec spec)?  import,TResult? Function( SettingsSpec spec)?  settings,TResult? Function( WorkbenchSpec spec)?  workbench,TResult? Function( SidebarSpec spec)?  sidebar,}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that.spec);case _ViewChats() when chats != null:
@@ -204,8 +199,7 @@ return contacts(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewSettings() when settings != null:
 return settings(_that.spec);case _ViewWorkbench() when workbench != null:
 return workbench(_that.spec);case _ViewSidebar() when sidebar != null:
-return sidebar(_that.spec);case _BuildSidebarFromRoot() when sidebarRoot != null:
-return sidebarRoot(_that.spec);case _:
+return sidebar(_that.spec);case _:
   return null;
 
 }
@@ -733,81 +727,6 @@ as SidebarSpec,
 $SidebarSpecCopyWith<$Res> get spec {
   
   return $SidebarSpecCopyWith<$Res>(_self.spec, (value) {
-    return _then(_self.copyWith(spec: value));
-  });
-}
-}
-
-/// @nodoc
-
-
-class _BuildSidebarFromRoot implements ViewSpec {
-  const _BuildSidebarFromRoot(this.spec);
-  
-
-@override final  SidebarRootSpec spec;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$BuildSidebarFromRootCopyWith<_BuildSidebarFromRoot> get copyWith => __$BuildSidebarFromRootCopyWithImpl<_BuildSidebarFromRoot>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildSidebarFromRoot&&(identical(other.spec, spec) || other.spec == spec));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,spec);
-
-@override
-String toString() {
-  return 'ViewSpec.sidebarRoot(spec: $spec)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$BuildSidebarFromRootCopyWith<$Res> implements $ViewSpecCopyWith<$Res> {
-  factory _$BuildSidebarFromRootCopyWith(_BuildSidebarFromRoot value, $Res Function(_BuildSidebarFromRoot) _then) = __$BuildSidebarFromRootCopyWithImpl;
-@useResult
-$Res call({
- SidebarRootSpec spec
-});
-
-
-$SidebarRootSpecCopyWith<$Res> get spec;
-
-}
-/// @nodoc
-class __$BuildSidebarFromRootCopyWithImpl<$Res>
-    implements _$BuildSidebarFromRootCopyWith<$Res> {
-  __$BuildSidebarFromRootCopyWithImpl(this._self, this._then);
-
-  final _BuildSidebarFromRoot _self;
-  final $Res Function(_BuildSidebarFromRoot) _then;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
-  return _then(_BuildSidebarFromRoot(
-null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as SidebarRootSpec,
-  ));
-}
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$SidebarRootSpecCopyWith<$Res> get spec {
-  
-  return $SidebarRootSpecCopyWith<$Res>(_self.spec, (value) {
     return _then(_self.copyWith(spec: value));
   });
 }

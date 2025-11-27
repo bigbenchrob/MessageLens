@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-
 import '../../../../essentials/navigation/domain/entities/features/chat_view_mode.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/handles_list_spec.dart';
@@ -47,7 +46,7 @@ class ContactsSidebarView extends ConsumerWidget {
       ref
           .read(panelsViewStateProvider.notifier)
           .show(
-            panel: WindowPanel.left,
+            panel: WindowPanel.center,
             spec: ViewSpec.sidebar(
               SidebarSpec.contacts(
                 listMode: listMode,
@@ -108,7 +107,7 @@ class ContactsSidebarView extends ConsumerWidget {
                       ref
                           .read(panelsViewStateProvider.notifier)
                           .show(
-                            panel: WindowPanel.left,
+                            panel: WindowPanel.center,
                             spec: const ViewSpec.sidebar(
                               SidebarSpec.unmatchedHandles(
                                 listMode: HandlesListSpec.phones(
@@ -170,8 +169,7 @@ class ContactsSidebarView extends ConsumerWidget {
                                 onLozengeTap: () {
                                   scrollController.animateTo(
                                     0,
-                                    duration:
-                                        const Duration(milliseconds: 250),
+                                    duration: const Duration(milliseconds: 250),
                                     curve: Curves.easeOut,
                                   );
                                 },
@@ -256,7 +254,6 @@ class _ContactMenuError extends StatelessWidget {
   }
 }
 
-
 class _SmartPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _SmartPickerHeaderDelegate({
     required this.contacts,
@@ -290,8 +287,7 @@ class _SmartPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final collapseThreshold = (maxExtent - minExtent) * 0.6;
-    final isCollapsed =
-        enableCollapse && shrinkOffset >= collapseThreshold;
+    final isCollapsed = enableCollapse && shrinkOffset >= collapseThreshold;
 
     return ColoredBox(
       color: MacosTheme.of(context).canvasColor,
@@ -323,7 +319,6 @@ double _calculatePickerHeight(int letterCount) {
   final base = letterCount * 18;
   return base.clamp(200, 360).toDouble();
 }
-
 
 /// Widget that displays the list of chats for a selected contact
 class _ChatsListForContact extends HookConsumerWidget {
@@ -423,7 +418,7 @@ class _ChatsListForContact extends HookConsumerWidget {
                             ref
                                 .read(panelsViewStateProvider.notifier)
                                 .show(
-                                  panel: WindowPanel.left,
+                                  panel: WindowPanel.center,
                                   spec: ViewSpec.sidebar(
                                     SidebarSpec.contacts(
                                       listMode: contactsSpec,

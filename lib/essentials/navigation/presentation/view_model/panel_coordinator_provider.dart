@@ -8,6 +8,7 @@ import '../../../../features/messages/feature_level_providers.dart';
 import '../../../../features/settings/presentation/view/settings_panel_view.dart';
 import '../../../db_importers/presentation/view/db_import_control_panel.dart';
 import '../../../db_importers/presentation/view_model/db_import_control_provider.dart';
+
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
@@ -61,33 +62,6 @@ class PanelCoordinator extends _$PanelCoordinator {
 
   Widget buildForSpec(ViewSpec spec) {
     return spec.when(
-      sidebarRoot: (sidebarRootSpec) {
-        /// By default, PanelsViewState[WindowPanel.left] starts with a single-page steck
-        /// with this PanelPage:  spec: const ViewSpec.sidebarRoot(SidebarRootSpec.contacts()),
-        ///
-        /// The UI Mac os window sidebar calls:  return ref.watch(leftPanelWidgetProvider);
-        ///
-        /// The LeftPanelWidget provider grabs this stack and sends it here:
-        ///   return [panelCoordinatorProvider].buildPanelSurface(WindowPanel.left, stack);
-        /// ...which sends this logic to BuildPanelSurface (a dumb UI builder that doesn't
-        /// know anything about ViewSpecs or features or anything else).
-        ///
-        ///
-        return const Text(
-          'Sidebar Root View - should not be rendered directly',
-        );
-        // return sidebarRootSpec.when(
-        //   contacts: () => ContactsSidebarView(
-        //     spec: SidebarSpec.contacts(listMode: ContactsListSpec.all()),
-        //   ),
-        //   unmatched: () => UnmatchedHandlesSidebarView(
-        //     spec: SidebarSpec.unmatchedHandles(listMode: HandlesListSpec.all()),
-        //   ),
-        //   allMessages: () => ref
-        //       .read(messagesCoordinatorProvider.notifier)
-        //       .buildForSpec(MessagesSpec.allMessages()),
-        // );
-      },
       messages: (messagesSpec) => ref
           .read(messagesCoordinatorProvider.notifier)
           .buildForSpec(messagesSpec),

@@ -1,1 +1,1 @@
-enum WindowPanel { left, center, right }
+enum WindowPanel { center, right }

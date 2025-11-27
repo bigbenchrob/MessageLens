@@ -170,7 +170,8 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         minWidth: 120,
         startWidth: _sidebarWidth ?? 320,
         builder: (context, scrollController) {
-          return ref.watch(leftPanelWidgetProvider);
+          return const Text('Left sidebar content removed');
+          // return ref.watch(leftPanelWidgetProvider);
         },
       ),
       endSidebar: Sidebar(
@@ -257,14 +258,14 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     .read(navigationLoggerProvider.notifier)
                     .logToolbarClick(
                       buttonLabel: 'Chats',
-                      targetPanel: WindowPanel.left,
+                      targetPanel: WindowPanel.center,
                       viewSpec: spec,
                     );
 
                 // Perform the navigation
                 ref
                     .read(panelsViewStateProvider.notifier)
-                    .show(panel: WindowPanel.left, spec: spec);
+                    .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
             ),

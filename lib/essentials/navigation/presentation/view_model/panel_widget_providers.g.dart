@@ -6,25 +6,6 @@ part of 'panel_widget_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$leftPanelWidgetHash() => r'94b504d4f2a392c0db27d2edf7c0ed3568f1b912';
-
-/// Widget provider for left panel
-///
-/// Copied from [leftPanelWidget].
-@ProviderFor(leftPanelWidget)
-final leftPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
-  leftPanelWidget,
-  name: r'leftPanelWidgetProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$leftPanelWidgetHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LeftPanelWidgetRef = AutoDisposeProviderRef<Widget>;
 String _$centerPanelWidgetHash() => r'490f73f985216098de2f7a992bdbf166c216393b';
 
 /// Widget provider for center panel
