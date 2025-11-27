@@ -1,0 +1,15 @@
+Rather than mapping out different regions of the sidebar, what about allowing the sidebar to a column that builds itself from the top down according to logic supplied by each component as it is added:
+
+-- top component is assigned according to the current ViewSpec system: ViewSpec.sidebar(SidebarSpec.topMenu) (but it could be something else entirely to start the chain!)
+
+-- Top menu choice dictates the next  component below. If it is Contacts, then the next component is ContactsSpec.chooser. The contacts coordinator will decide, based on the number of contacts, whether to build a flat menu or an enhanced contacts picker with scrolling list and jump bar.
+
+-- As soon as a Contact is chosen, the contacts chooser dictates that MessagesSpec.allContactMessages(required contactId) is added below.
+
+-- MessagesSpec.allContactMessages is "sticky": it always ask for ChatsSpec.viewModePicker(no id required). Chats coordinator builds a menu item with ViewMode > recent activity, popular, ...
+
+-- Choosing the first mode from view mode calls for the next component to be added underneath: ChatsSpec.recentChatsList(required contactId)
+
+A whole different chain would have been assembled if the top menu choice were different. As soon as the top menu choice (or any menu choice down the list) is made, the items below are not allowed to be there, and the list gets rebuilt from that point.
+
+Advantages: Any mix of feature-specific components can be assembled. There needs to be no centralized tracking system, as each component carries the intelligence of what  it wants to see below it. As soon as a choice is made anywhere along the column, all the subsequent components are assembled in the correct order automatically!
