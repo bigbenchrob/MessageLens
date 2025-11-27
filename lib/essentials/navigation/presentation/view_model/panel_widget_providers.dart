@@ -13,6 +13,7 @@ part 'panel_widget_providers.g.dart';
 @riverpod
 Widget leftPanelWidget(Ref ref) {
   final stack = ref.watch(
+    /// Only rebuild when the left panel stack changes (.select)
     panelsViewStateProvider.select(
       (stacks) => stacks[WindowPanel.left] ?? const PanelStack.empty(),
     ),

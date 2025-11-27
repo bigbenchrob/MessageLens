@@ -21,7 +21,15 @@
 # Enable all rules by default
 include: all_lint_rules.yaml
 
+custom_lint:
+  rules:
+    # Explicitly disable one lint rule
+    #- missing_provider_scope: false
+
 analyzer:
+  plugins:
+    - custom_lint
+
   language:
     strict-casts: true
     #strict-raw-types: true
@@ -44,7 +52,6 @@ analyzer:
     # TODO(ianh): https://github.com/flutter/flutter/issues/74381
     # Clean up existing unnecessary imports, and remove line to ignore.
     unnecessary_import: ignore
-    avoid_redundant_argument_values: ignore
     # Turned off until null-safe rollout is complete.
     # unnecessary_null_comparison: ignore
   exclude:
@@ -55,7 +62,6 @@ analyzer:
     - "lib/**/*.freezed.dart"
     - "lib/**/*.g.dart"
     - "lib/**/*.gr.dart"
-    - "_third_party_tmp/**"
 
 enable-experiment:
   - records
@@ -90,6 +96,9 @@ linter:
 
     # we prefer having typedef (discussion in https://github.com/flutter/flutter/pull/16356)
     avoid_private_typedef_functions: false
+
+    # what's the harm?
+    avoid_redundant_argument_values: false
 
     # there are enough valid reasons to return `this` that this lint ends up with too many false positives
     avoid_returning_this: false

@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/entities/features/contacts_list_spec.dart';
-import '../../domain/entities/features/sidebar_spec.dart';
+import '../../domain/entities/features/sidebar_root_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
@@ -19,9 +18,10 @@ class PanelsViewState extends _$PanelsViewState {
       WindowPanel.left: PanelStack(
         pages: <PanelPage>[
           _createPage(
-            spec: const ViewSpec.sidebar(
-              SidebarSpec.contacts(listMode: ContactsListSpec.all()),
-            ),
+            // spec: const ViewSpec.sidebar(
+            //   SidebarSpec.contacts(listMode: ContactsListSpec.all()),
+            // ),
+            spec: const ViewSpec.sidebarRoot(SidebarRootSpec.contacts()),
             title: 'Contacts',
             isClosable: false,
           ),
@@ -121,6 +121,7 @@ class PanelsViewState extends _$PanelsViewState {
       settings: (_) => 'Settings',
       workbench: (_) => 'Workbench',
       sidebar: (_) => 'Sidebar',
+      sidebarRoot: (_) => 'Sidebar',
     );
   }
 }
