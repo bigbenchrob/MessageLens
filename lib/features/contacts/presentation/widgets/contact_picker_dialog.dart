@@ -4,7 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../application/participants_for_picker_provider.dart';
+import '../../application_pre_cassette/participants_for_picker_provider.dart';
 
 /// Dialog for picking a contact/participant to assign to a handle
 ///

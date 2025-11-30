@@ -13,9 +13,9 @@ import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../chats/presentation/widgets/calendar_heatmap_timeline_widget.dart';
 import '../../../chats/presentation/widgets/enhanced_chat_card.dart';
-import '../../application/contact_timeline_provider.dart';
-import '../../application/contacts_list_provider.dart';
-import '../../application/sorted_chats_for_participant_provider.dart';
+import '../../application_pre_cassette/contact_timeline_provider.dart';
+import '../../application_pre_cassette/contacts_list_provider.dart';
+import '../../application_pre_cassette/sorted_chats_for_participant_provider.dart';
 import '../widgets/grouped_contact_selector.dart';
 
 class ContactsSidebarView extends ConsumerWidget {

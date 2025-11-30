@@ -7,7 +7,7 @@ import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import 'package:remember_this_text/essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import 'package:remember_this_text/features/contacts/application/contacts_list_provider.dart';
+import 'package:remember_this_text/features/contacts/application_pre_cassette/contacts_list_provider.dart';
 import 'package:remember_this_text/features/contacts/domain/participant_origin.dart';
 
 String buildCompoundIdentifier({

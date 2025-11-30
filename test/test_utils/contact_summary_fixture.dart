@@ -1,4 +1,4 @@
-import 'package:remember_this_text/features/contacts/application/contacts_list_provider.dart';
+import 'package:remember_this_text/features/contacts/application_pre_cassette/contacts_list_provider.dart';
 import 'package:remember_this_text/features/contacts/domain/participant_origin.dart';
 
 ContactSummary buildContactSummary({

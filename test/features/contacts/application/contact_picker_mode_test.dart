@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:remember_this_text/constants/domain/contact_constants.dart';
-import 'package:remember_this_text/features/contacts/application/contact_picker_mode.dart';
+import 'package:remember_this_text/features/contacts/application_pre_cassette/contact_picker_mode.dart';
 
 void main() {
   group('resolveContactPickerConfig', () {

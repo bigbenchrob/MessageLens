@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../application/contacts_list_provider.dart';
+import '../../application_pre_cassette/contacts_list_provider.dart';
 
 // NEW: contact picker mode - flat list widget
 class FlatContactsList extends StatelessWidget {
@@ -39,9 +39,9 @@ class FlatContactsList extends StatelessWidget {
         children: [
           Text(
             'Contacts (flat view)',
-            style: MacosTheme.of(context).typography.caption1.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: MacosTheme.of(
+              context,
+            ).typography.caption1.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           ConstrainedBox(

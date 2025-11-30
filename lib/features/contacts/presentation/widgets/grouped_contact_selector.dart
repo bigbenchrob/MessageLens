@@ -6,8 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../../application/contacts_list_provider.dart';
-import '../../application/grouped_contacts_provider.dart';
+import '../../application_pre_cassette/contacts_list_provider.dart';
+import '../../application_pre_cassette/grouped_contacts_provider.dart';
 
 /// Smart header that can show either the full picker or the compact lozenge.
 class SmartContactPickerHeader extends ConsumerWidget {
