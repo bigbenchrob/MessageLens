@@ -5,6 +5,6 @@ part 'sidebar_utility_cassette_spec.freezed.dart';
 @freezed
 abstract class SidebarUtilityCassetteSpec with _$SidebarUtilityCassetteSpec {
   const factory SidebarUtilityCassetteSpec.topChatMenu({
-    @Default(1) int chosenMenuIndex,
+    @Default(0) int chosenMenuIndex,
   }) = _SidebarUtilityCassetteSpec;
 }
