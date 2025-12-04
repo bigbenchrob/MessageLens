@@ -44,5 +44,28 @@ final rightPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RightPanelWidgetRef = AutoDisposeProviderRef<Widget>;
+String _$leftPanelWidgetHash() => r'9c28472f69680e3416ff5b74bb88fe35ff9b5db9';
+
+/// Widget provider for left panel (sidebar).
+///
+/// This provider builds the left panel by reading the current list of
+/// cassette widgets from [CassetteWidgetCoordinator].  The resulting list
+/// is wrapped in a [Column] so that the cassettes are laid out vertically.
+///
+/// Copied from [leftPanelWidget].
+@ProviderFor(leftPanelWidget)
+final leftPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
+  leftPanelWidget,
+  name: r'leftPanelWidgetProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$leftPanelWidgetHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LeftPanelWidgetRef = AutoDisposeProviderRef<Widget>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

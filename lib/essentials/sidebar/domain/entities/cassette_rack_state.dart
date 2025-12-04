@@ -2,7 +2,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'cassette_spec.dart';
-import 'features/sidebar_widget_cassette_spec.dart';
+import 'features/sidebar_utility_cassette_spec.dart';
 
 part 'cassette_rack_state.freezed.dart';
 
@@ -30,8 +30,8 @@ abstract class CassetteRack with _$CassetteRack {
   factory CassetteRack.initialTopChatMenu() {
     return CassetteRack(
       cassettes: List<CassetteSpec>.unmodifiable([
-        const CassetteSpec.sidebarWidget(
-          SidebarWidgetCassetteSpec.topChatMenu(),
+        const CassetteSpec.sidebarUtility(
+          SidebarUtilityCassetteSpec.topChatMenu(),
         ),
       ]),
     );

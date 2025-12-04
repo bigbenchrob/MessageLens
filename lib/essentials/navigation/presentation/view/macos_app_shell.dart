@@ -170,8 +170,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         minWidth: 120,
         startWidth: _sidebarWidth ?? 320,
         builder: (context, scrollController) {
-          return const Text('Left sidebar content removed');
-          // return ref.watch(leftPanelWidgetProvider);
+          return ref.watch(leftPanelWidgetProvider);
         },
       ),
       endSidebar: Sidebar(

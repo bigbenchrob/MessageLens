@@ -55,11 +55,11 @@ extension CassetteSpecPatterns on CassetteSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _CassetteSidebarWidget value)?  sidebarWidget,TResult Function( _CasetteContacts value)?  contacts,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _CassetteSidebarWidget value)?  sidebarUtility,TResult Function( _CasetteContacts value)?  contacts,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _CassetteSidebarWidget() when sidebarWidget != null:
-return sidebarWidget(_that);case _CasetteContacts() when contacts != null:
+case _CassetteSidebarWidget() when sidebarUtility != null:
+return sidebarUtility(_that);case _CasetteContacts() when contacts != null:
 return contacts(_that);case _:
   return orElse();
 
@@ -78,11 +78,11 @@ return contacts(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _CassetteSidebarWidget value)  sidebarWidget,required TResult Function( _CasetteContacts value)  contacts,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _CassetteSidebarWidget value)  sidebarUtility,required TResult Function( _CasetteContacts value)  contacts,}){
 final _that = this;
 switch (_that) {
 case _CassetteSidebarWidget():
-return sidebarWidget(_that);case _CasetteContacts():
+return sidebarUtility(_that);case _CasetteContacts():
 return contacts(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -100,11 +100,11 @@ return contacts(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _CassetteSidebarWidget value)?  sidebarWidget,TResult? Function( _CasetteContacts value)?  contacts,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _CassetteSidebarWidget value)?  sidebarUtility,TResult? Function( _CasetteContacts value)?  contacts,}){
 final _that = this;
 switch (_that) {
-case _CassetteSidebarWidget() when sidebarWidget != null:
-return sidebarWidget(_that);case _CasetteContacts() when contacts != null:
+case _CassetteSidebarWidget() when sidebarUtility != null:
+return sidebarUtility(_that);case _CasetteContacts() when contacts != null:
 return contacts(_that);case _:
   return null;
 
@@ -122,10 +122,10 @@ return contacts(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SidebarWidgetCassetteSpec spec)?  sidebarWidget,TResult Function( ContactsCassetteSpec spec)?  contacts,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SidebarUtilityCassetteSpec spec)?  sidebarUtility,TResult Function( ContactsCassetteSpec spec)?  contacts,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _CassetteSidebarWidget() when sidebarWidget != null:
-return sidebarWidget(_that.spec);case _CasetteContacts() when contacts != null:
+case _CassetteSidebarWidget() when sidebarUtility != null:
+return sidebarUtility(_that.spec);case _CasetteContacts() when contacts != null:
 return contacts(_that.spec);case _:
   return orElse();
 
@@ -144,10 +144,10 @@ return contacts(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SidebarWidgetCassetteSpec spec)  sidebarWidget,required TResult Function( ContactsCassetteSpec spec)  contacts,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SidebarUtilityCassetteSpec spec)  sidebarUtility,required TResult Function( ContactsCassetteSpec spec)  contacts,}) {final _that = this;
 switch (_that) {
 case _CassetteSidebarWidget():
-return sidebarWidget(_that.spec);case _CasetteContacts():
+return sidebarUtility(_that.spec);case _CasetteContacts():
 return contacts(_that.spec);case _:
   throw StateError('Unexpected subclass');
 
@@ -165,10 +165,10 @@ return contacts(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SidebarWidgetCassetteSpec spec)?  sidebarWidget,TResult? Function( ContactsCassetteSpec spec)?  contacts,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SidebarUtilityCassetteSpec spec)?  sidebarUtility,TResult? Function( ContactsCassetteSpec spec)?  contacts,}) {final _that = this;
 switch (_that) {
-case _CassetteSidebarWidget() when sidebarWidget != null:
-return sidebarWidget(_that.spec);case _CasetteContacts() when contacts != null:
+case _CassetteSidebarWidget() when sidebarUtility != null:
+return sidebarUtility(_that.spec);case _CasetteContacts() when contacts != null:
 return contacts(_that.spec);case _:
   return null;
 
@@ -184,7 +184,7 @@ class _CassetteSidebarWidget implements CassetteSpec {
   const _CassetteSidebarWidget(this.spec);
   
 
-@override final  SidebarWidgetCassetteSpec spec;
+@override final  SidebarUtilityCassetteSpec spec;
 
 /// Create a copy of CassetteSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -205,7 +205,7 @@ int get hashCode => Object.hash(runtimeType,spec);
 
 @override
 String toString() {
-  return 'CassetteSpec.sidebarWidget(spec: $spec)';
+  return 'CassetteSpec.sidebarUtility(spec: $spec)';
 }
 
 
@@ -216,11 +216,11 @@ abstract mixin class _$CassetteSidebarWidgetCopyWith<$Res> implements $CassetteS
   factory _$CassetteSidebarWidgetCopyWith(_CassetteSidebarWidget value, $Res Function(_CassetteSidebarWidget) _then) = __$CassetteSidebarWidgetCopyWithImpl;
 @useResult
 $Res call({
- SidebarWidgetCassetteSpec spec
+ SidebarUtilityCassetteSpec spec
 });
 
 
-$SidebarWidgetCassetteSpecCopyWith<$Res> get spec;
+$SidebarUtilityCassetteSpecCopyWith<$Res> get spec;
 
 }
 /// @nodoc
@@ -236,7 +236,7 @@ class __$CassetteSidebarWidgetCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
   return _then(_CassetteSidebarWidget(
 null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as SidebarWidgetCassetteSpec,
+as SidebarUtilityCassetteSpec,
   ));
 }
 
@@ -244,9 +244,9 @@ as SidebarWidgetCassetteSpec,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$SidebarWidgetCassetteSpecCopyWith<$Res> get spec {
+$SidebarUtilityCassetteSpecCopyWith<$Res> get spec {
   
-  return $SidebarWidgetCassetteSpecCopyWith<$Res>(_self.spec, (value) {
+  return $SidebarUtilityCassetteSpecCopyWith<$Res>(_self.spec, (value) {
     return _then(_self.copyWith(spec: value));
   });
 }
