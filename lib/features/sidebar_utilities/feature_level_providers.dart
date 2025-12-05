@@ -19,7 +19,7 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
   /// appropriate builders.
   Widget buildForSpec(SidebarUtilityCassetteSpec spec) {
     return spec.when(
-      topChatMenu: (chosenMenuIndex) {
+      topChatMenu: (selectedChoice) {
         // Use the top chat menu builder to create the widget.  Note that
         // the builder expects the full spec; we pass it directly.
         return ref.read(topChatMenuBuilderProvider(spec));

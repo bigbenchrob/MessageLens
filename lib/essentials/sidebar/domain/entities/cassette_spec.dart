@@ -1,6 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import 'features/contacts_cassette_spec.dart';
+import 'features/handles_cassette_spec.dart';
+import 'features/messages_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
 
 part 'cassette_spec.freezed.dart';
@@ -11,4 +14,69 @@ abstract class CassetteSpec with _$CassetteSpec {
       _CassetteSidebarWidget;
   const factory CassetteSpec.contacts(ContactsCassetteSpec spec) =
       _CasetteContacts;
+  const factory CassetteSpec.handles(HandlesCassetteSpec spec) =
+      _CasetteHandles;
+  const factory CassetteSpec.messages(MessagesCassetteSpec spec) =
+      _CassetteMessages;
+}
+
+extension CassetteSpecX on CassetteSpec {
+  /// Resolve the child cassette spec for this cassette, if any.
+  CassetteSpec? childSpec() {
+    return when(
+      sidebarUtility: (sidebarSpec) => sidebarSpec.childSpec(),
+      contacts: (contactsSpec) => contactsSpec.childSpec(),
+      handles: (handlesSpec) => handlesSpec.childSpec(),
+      messages: (messagesSpec) => messagesSpec.childSpec(),
+    );
+  }
+}
+
+extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
+  /// Determine the next cassette to show beneath this sidebar utility.
+  CassetteSpec? childSpec() {
+    return when(
+      topChatMenu: (selectedChoice) {
+        switch (selectedChoice) {
+          case TopChatMenuChoice.contacts:
+            return const CassetteSpec.contacts(
+              ContactsCassetteSpec.contactPicker(),
+            );
+
+          case TopChatMenuChoice.unmatchedHandles:
+            // Placeholder – adjust to your real cassette type
+            return const CassetteSpec.handles(
+              HandlesCassetteSpec.unmatchedHandlesList(),
+            );
+
+          case TopChatMenuChoice.allMessages:
+            // Placeholder – adjust to your real cassette type
+            return const CassetteSpec.messages(MessagesCassetteSpec.heatMap());
+        }
+      },
+
+      // other variants...
+    );
+  }
+}
+
+extension ContactsCassetteSpecX on ContactsCassetteSpec {
+  /// Contacts cassettes currently have no children.
+  CassetteSpec? childSpec() {
+    return when(contactsFlatMenu: (_) => null, contactPicker: (_) => null);
+  }
+}
+
+extension HandlesCassetteSpecX on HandlesCassetteSpec {
+  /// Handles cassettes currently have no children.
+  CassetteSpec? childSpec() {
+    return when(unmatchedHandlesList: (_) => null);
+  }
+}
+
+extension MessagesCassetteSpecX on MessagesCassetteSpec {
+  /// Handles cassettes currently have no children.
+  CassetteSpec? childSpec() {
+    return when(heatMap: () => null);
+  }
 }

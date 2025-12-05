@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 
 // Import the cassette rack state provider and spec definitions so the menu can notify the rack
 import '../../../../essentials/sidebar/feature_level_providers.dart';
+import '../../domain/sidebar_utilities_constants.dart';
 
 /// A widget representing the top menu of the sidebar.  This menu allows
 /// users to switch between the core sidebar utility views: Contacts,
 /// Unmatched phone numbers and emails, and All messages.  Instead of a
-/// vertical list, a dropdown menu is used.  The selection state is
+/// vertical list, a macOS-style popup menu is used.  The selection state is
 /// embedded in the [SidebarUtilityCassetteSpec] provided to this widget.
 /// When a user selects a new menu entry, the widget constructs a new
 /// sidebar spec and notifies the cassette rack state provider with
@@ -15,7 +17,7 @@ import '../../../../essentials/sidebar/feature_level_providers.dart';
 /// variants).
 class TopChatMenu extends ConsumerWidget {
   /// The sidebar utility specification representing this top menu.  The
-  /// spec contains the currently selected menu index.  It must be a
+  /// spec contains the currently selected menu choice.  It must be a
   /// [SidebarUtilityCassetteSpec.topChatMenu] variant.
   final SidebarUtilityCassetteSpec spec;
 
@@ -32,47 +34,78 @@ class TopChatMenu extends ConsumerWidget {
         'TopChatMenu requires a SidebarUtilityCassetteSpec.topChatMenu variant.',
       );
 
-  static const _menuItems = [
-    'Contacts',
-    'Unmatched phone numbers and emails',
-    'All messages',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The selected index is stored on the sidebar spec.  We assume the
-    // spec is the topChatMenu variant; if other variants are added
-    // later, this will need to be updated.
-    final selectedIndex = spec.when(
-      topChatMenu: (chosenMenuIndex) => chosenMenuIndex,
-    );
+    const choices = TopChatMenuChoice.values;
+    // The selected enum value is stored on the sidebar spec.  We assume the
+    // spec is the topChatMenu variant; if other variants are added later, this
+    // will need to be updated.
+    final selectedChoice = spec.when(topChatMenu: (choice) => choice);
 
-    return DropdownButton<int>(
-      value: selectedIndex,
-      onChanged: (int? newIndex) {
-        if (newIndex == null) {
-          return;
-        }
-        // Create an updated sidebar spec with the new index.
-        final updatedSidebarSpec = spec.when(
-          topChatMenu: (chosenMenuIndex) =>
-              SidebarUtilityCassetteSpec.topChatMenu(chosenMenuIndex: newIndex),
-        );
-        // Wrap the old and new sidebar specs into CasetteSpec.sidebar so
-        // that the rack update method can identify the cassette in the
-        // stack and update it.  The oldSpec uses the current spec, and
-        // the newSpec uses the updatedSidebarSpec.
-        final oldCasetteSpec = CassetteSpec.sidebarUtility(spec);
-        final newCasetteSpec = CassetteSpec.sidebarUtility(updatedSidebarSpec);
-        // Notify the rack state provider of the change.
-        ref
-            .read(cassetteRackStateProvider.notifier)
-            .updateSpecAndChild(oldCasetteSpec, newCasetteSpec);
-      },
-      items: List<DropdownMenuItem<int>>.generate(
-        _menuItems.length,
-        (index) =>
-            DropdownMenuItem<int>(value: index, child: Text(_menuItems[index])),
+    void handleSelectionChange(TopChatMenuChoice newChoice) {
+      final updatedSidebarSpec = spec.when(
+        topChatMenu: (_) =>
+            SidebarUtilityCassetteSpec.topChatMenu(selectedChoice: newChoice),
+      );
+      final oldCassetteSpec = CassetteSpec.sidebarUtility(spec);
+      final newCassetteSpec = CassetteSpec.sidebarUtility(updatedSidebarSpec);
+      ref
+          .read(cassetteRackStateProvider.notifier)
+          .updateSpecAndChild(oldCassetteSpec, newCassetteSpec);
+    }
+
+    final theme = MacosTheme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Show messages from', style: theme.typography.title2),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: MacosPopupButton<TopChatMenuChoice>(
+              value: selectedChoice,
+              alignment: AlignmentDirectional.centerStart,
+              onChanged: (TopChatMenuChoice? newChoice) {
+                if (newChoice == null) {
+                  return;
+                }
+                handleSelectionChange(newChoice);
+              },
+              items: [
+                for (final choice in choices)
+                  MacosPopupMenuItem<TopChatMenuChoice>(
+                    value: choice,
+                    child: Text(
+                      choice.label,
+                      style: theme.typography.callout,
+                      softWrap: true,
+                    ),
+                  ),
+              ],
+              selectedItemBuilder: (BuildContext context) {
+                return [
+                  for (final choice in choices)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        choice.label,
+                        style: theme.typography.callout.copyWith(
+                          fontWeight: selectedChoice == choice
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                        softWrap: true,
+                      ),
+                    ),
+                ];
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

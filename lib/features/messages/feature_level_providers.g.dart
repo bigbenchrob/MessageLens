@@ -25,6 +25,25 @@ final messageRepositoryProvider =
     );
 
 typedef _$MessageRepository = AutoDisposeNotifier<SqliteMessagesRepository>;
+String _$messagesCassetteCoordinatorHash() =>
+    r'2f5773afed0b759551d89b9d3e9f0a2625e1e1ba';
+
+/// Coordinator that maps [MessagesCassetteSpec] to rendered cassette widgets for the sidebar.
+///
+/// Copied from [MessagesCassetteCoordinator].
+@ProviderFor(MessagesCassetteCoordinator)
+final messagesCassetteCoordinatorProvider =
+    AutoDisposeNotifierProvider<MessagesCassetteCoordinator, void>.internal(
+      MessagesCassetteCoordinator.new,
+      name: r'messagesCassetteCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$messagesCassetteCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$MessagesCassetteCoordinator = AutoDisposeNotifier<void>;
 String _$messagesCoordinatorHash() =>
     r'69eb47485bcbc9820c46eb9f9a49d5136bd66f5f';
 

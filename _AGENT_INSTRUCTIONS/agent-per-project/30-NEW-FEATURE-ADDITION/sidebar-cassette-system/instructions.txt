@@ -1,0 +1,28 @@
+Step 1: Child spec logic
+	1.	Add an extension method (e.g. childSpec()) on each feature’s spec type.
+	•	For SidebarUtilityCassetteSpec.topChatMenu, return the next CassetteSpec based on the selected menu index (e.g. return a contacts spec when “Contacts” is selected, an unmatched‑handles spec when that item is chosen, and null for “All messages”).
+	•	Leave other variants returning null until implemented.
+	2.	Once coded, run your tests or a hot reload to ensure no compilation errors, then let me know; I’ll confirm before we move on.
+
+Step 2: Update the rack notifier
+	1.	Implement updateSpecAndChild(oldSpec, newSpec) in CassetteRackStateNotifier to replace oldSpec with newSpec, truncate any specs below that index, and push newSpec.childSpec() if it isn’t null.
+	2.	Ensure the helper method findLatestContactId() remains available for later features.
+	3.	Rebuild and verify that selecting a different menu item in the top chat menu updates the rack appropriately (e.g. pushes the appropriate child spec).
+	4.	Report back with any issues or confirm success before proceeding.
+
+Step 3: Enhance the cassette widget coordinator
+	1.	Modify CassetteWidgetCoordinator so that, after rendering all specs currently in the rack, it repeatedly calls childSpec() on the last rendered spec.
+	2.	For each non‑null child spec, delegate to the appropriate feature coordinator to build its widget and wrap it in SideBarCassetteCard.  Append these widgets until childSpec() returns null.
+	3.	Test that the sidebar now shows both the top chat menu and its automatically generated child cassette.
+	4.	Pause here and let me know if the behaviour matches expectations before implementing further cassettes.
+
+Step 4: Clean up unused providers
+	1.	Remove the old SidebarMenuChoice provider and any unused imports or state providers that stored cassette‑related state outside of specs.
+	2.	Confirm that state is now exclusively held on the spec objects and that the app still builds and runs cleanly.
+
+Step 5: Implement additional coordinators and specs as needed
+	1.	Create coordinators and childSpec() logic for other features (e.g. contacts picker, messages list).
+	2.	Each new spec should follow the same pattern: carry its own state, compute its child via childSpec(), and be built by a feature‑level coordinator.
+	3.	When adding these, pause after each to confirm behaviour before continuing.
+
+Let me know once you’ve completed each step and I’ll help you with the next one.

@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// Import the sidebar utilities feature coordinator to build widgets for
-// sidebar utility cassette specs.  We import this with an alias to
-// clearly scope the coordinator within the sidebar utilities feature.
+import '../../../features/contacts/feature_level_providers.dart'
+    as contacts_feature;
+import '../../../features/handles/feature_level_providers.dart'
+    as handles_feature;
+import '../../../features/messages/feature_level_providers.dart'
+    as messages_feature;
 import '../../../features/sidebar_utilities/feature_level_providers.dart'
     as sidebar_utilities;
+
+/// barrel file import to expose cassette spec and feature cassette spec definitions
 import '../feature_level_providers.dart';
+
+/// utility widget to wrap each cassette in a card
+import '../presentation/view/widgets/sidebar_cassette_card.dart';
 
 part 'cassette_widget_coordinator_provider.g.dart';
 
@@ -32,22 +40,47 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
   List<Widget> build() {
     final rack = ref.watch(cassetteRackStateProvider);
     final widgets = <Widget>[];
-    for (final spec in rack.cassettes) {
-      spec.when(
+
+    Widget buildForSpec(CassetteSpec spec) {
+      return spec.when(
         sidebarUtility: (sidebarSpec) {
-          // Delegate building to the sidebar utilities feature coordinator.
           final coordinator = ref.read(
             sidebar_utilities.utilityCassetteCoordinatorProvider.notifier,
           );
-          widgets.add(coordinator.buildForSpec(sidebarSpec));
+          return coordinator.buildForSpec(sidebarSpec);
         },
         contacts: (contactsSpec) {
-          // Contacts cassette builder not yet implemented.  For now insert
-          // an empty placeholder.  Replace this with a real builder once
-          // contact cassettes are implemented.
-          widgets.add(const SizedBox.shrink());
+          final coordinator = ref.read(
+            contacts_feature.contactsCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildForSpec(contactsSpec);
+        },
+        handles: (handlesSpec) {
+          final coordinator = ref.read(
+            handles_feature.handlesCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildForSpec(handlesSpec);
+        },
+        messages: (messagesSpec) {
+          final coordinator = ref.read(
+            messages_feature.messagesCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildForSpec(messagesSpec);
         },
       );
+    }
+
+    for (final spec in rack.cassettes) {
+      widgets.add(SidebarCassetteCard(child: buildForSpec(spec)));
+    }
+
+    var childSpec = rack.cassettes.isNotEmpty
+        ? rack.cassettes.last.childSpec()
+        : null;
+
+    while (childSpec != null) {
+      widgets.add(SidebarCassetteCard(child: buildForSpec(childSpec)));
+      childSpec = childSpec.childSpec();
     }
     return widgets;
   }

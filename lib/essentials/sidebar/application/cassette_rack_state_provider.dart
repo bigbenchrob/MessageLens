@@ -6,6 +6,16 @@ import '../feature_level_providers.dart';
 part 'cassette_rack_state_provider.freezed.dart';
 part 'cassette_rack_state_provider.g.dart';
 
+List<CassetteSpec> _cascadeFromSpec(CassetteSpec root) {
+  final chain = <CassetteSpec>[root];
+  var next = root.childSpec();
+  while (next != null) {
+    chain.add(next);
+    next = next.childSpec();
+  }
+  return List<CassetteSpec>.unmodifiable(chain);
+}
+
 /// A value object representing the current stack of cassettes in the sidebar.
 ///
 /// It uses the `freezed` package to generate the immutable data class
@@ -29,13 +39,10 @@ abstract class CassetteRack with _$CassetteRack {
   /// cassette.  This is the initial tracer‑bullet state used by
   /// [CassetteRackState.build].
   factory CassetteRack.initial() {
-    return CassetteRack(
-      cassettes: List<CassetteSpec>.unmodifiable([
-        const CassetteSpec.sidebarUtility(
-          SidebarUtilityCassetteSpec.topChatMenu(),
-        ),
-      ]),
+    const topMenu = CassetteSpec.sidebarUtility(
+      SidebarUtilityCassetteSpec.topChatMenu(),
     );
+    return CassetteRack(cassettes: _cascadeFromSpec(topMenu));
   }
 }
 
@@ -70,7 +77,9 @@ class CassetteRackState extends _$CassetteRackState {
   /// existing ones).  This corresponds to adding a deeper level to the
   /// sidebar’s hierarchy when the user drills down into a feature.
   void pushCassette(CassetteSpec spec) {
-    state = state.copyWith(cassettes: [...state.cassettes, spec]);
+    state = state.copyWith(
+      cassettes: [...state.cassettes, ..._cascadeFromSpec(spec)],
+    );
   }
 
   /// Replace the cassette at [index], without modifying the rest of the stack.
@@ -117,21 +126,16 @@ class CassetteRackState extends _$CassetteRackState {
   /// [chosenMenuIndex] parameter determines which option is selected; if null
   /// it defaults to whatever the factory uses by default.  This is used by
   /// UI interactions in the tracer‑bullet phase.
-  void setTopChatMenu({int? chosenMenuIndex}) {
-    final topMenu = CassetteSpec.sidebarUtility(
-      SidebarUtilityCassetteSpec.topChatMenu(
-        chosenMenuIndex:
-            chosenMenuIndex ??
-            const SidebarUtilityCassetteSpec.topChatMenu().chosenMenuIndex,
-      ),
-    );
-    if (state.cassettes.isEmpty) {
-      state = state.copyWith(cassettes: [topMenu]);
-    } else {
-      final rest = state.cassettes.skip(1).toList();
-      state = state.copyWith(cassettes: [topMenu, ...rest]);
-    }
-  }
+  // void setTopChatMenu({TopChatMenuChoice chosenTopMenuChoice}) {
+  //   final topMenu = const CassetteSpec.sidebarUtility(
+  //     SidebarUtilityCassetteSpec.topChatMenu(
+  //       selectedChoice:
+  //           selectedChoice ??
+  //           SidebarUtilityCassetteSpec.topChatMenu().chosenMenuIndex,
+  //     ),
+  //   );
+  //   state = state.copyWith(cassettes: _cascadeFromSpec(topMenu));
+  // }
 
   /// Update a cassette at its current position by matching the old spec,
   /// and optionally append a child cassette based on the new spec.  This
@@ -143,47 +147,11 @@ class CassetteRackState extends _$CassetteRackState {
     if (index < 0) {
       return;
     }
-    // Replace the spec at the found index.
-    final updatedList = [...state.cassettes];
-    updatedList[index] = newSpec;
-    // Determine a child spec based on the new spec.  If the new spec is
-    // a top chat menu, we look at the selected menu index to decide what
-    // comes next.  Currently only the Contacts menu (index 0) pushes a
-    // new cassette.  Other selections clear deeper cassettes.
-    CassetteSpec? childSpec;
-    newSpec.when(
-      sidebarUtility: (sidebarSpec) {
-        sidebarSpec.when(
-          topChatMenu: (chosenMenuIndex) {
-            if (chosenMenuIndex == 0) {
-              // If “Contacts” is selected, push a contacts cassette.
-              childSpec = const CassetteSpec.contacts(
-                ContactsCassetteSpec.contactPicker(),
-              );
-            } else {
-              // For other menu entries, no child spec is defined yet.
-              childSpec = null;
-            }
-          },
-        );
-      },
-      contacts: (_) {
-        // A contacts cassette currently has no child.
-        childSpec = null;
-      },
+    final preserved = state.cassettes.take(index).toList(growable: false);
+    final cascaded = _cascadeFromSpec(newSpec);
+    state = state.copyWith(
+      cassettes: List<CassetteSpec>.unmodifiable([...preserved, ...cascaded]),
     );
-    // Update the state: keep cassettes only up to and including the
-    // updated index, then append the child spec if it exists.
-    final truncated = updatedList.sublist(0, index + 1);
-    if (childSpec != null) {
-      state = state.copyWith(
-        cassettes: List<CassetteSpec>.unmodifiable([...truncated, childSpec]),
-      );
-    } else {
-      state = state.copyWith(
-        cassettes: List<CassetteSpec>.unmodifiable(truncated),
-      );
-    }
   }
 
   /// Find the most recently selected contact ID in the cassette stack.
@@ -205,6 +173,8 @@ class CassetteRackState extends _$CassetteRackState {
             contactPicker: (chosenContactId) => chosenContactId,
           );
         },
+        handles: (_) => null,
+        messages: (_) => null,
       );
       if (result != null) {
         return result;

@@ -6,24 +6,22 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$utilityCassetteCoordinatorHash() =>
-    r'88c57078a2c2bd2e2fb3a7bb5960fb6c883e1681';
+String _$handlesCassetteCoordinatorHash() =>
+    r'4933d20a07949a63cdd4cb6053b62f90b0a77b16';
 
-/// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
-///
-/// Copied from [UtilityCassetteCoordinator].
-@ProviderFor(UtilityCassetteCoordinator)
-final utilityCassetteCoordinatorProvider =
-    AutoDisposeNotifierProvider<UtilityCassetteCoordinator, void>.internal(
-      UtilityCassetteCoordinator.new,
-      name: r'utilityCassetteCoordinatorProvider',
+/// See also [HandlesCassetteCoordinator].
+@ProviderFor(HandlesCassetteCoordinator)
+final handlesCassetteCoordinatorProvider =
+    AutoDisposeNotifierProvider<HandlesCassetteCoordinator, void>.internal(
+      HandlesCassetteCoordinator.new,
+      name: r'handlesCassetteCoordinatorProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$utilityCassetteCoordinatorHash,
+          : _$handlesCassetteCoordinatorHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$UtilityCassetteCoordinator = AutoDisposeNotifier<void>;
+typedef _$HandlesCassetteCoordinator = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
