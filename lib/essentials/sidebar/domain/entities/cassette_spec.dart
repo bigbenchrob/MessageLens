@@ -50,8 +50,9 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
             );
 
           case TopChatMenuChoice.allMessages:
-            // Placeholder – adjust to your real cassette type
-            return const CassetteSpec.messages(MessagesCassetteSpec.heatMap());
+            return const CassetteSpec.messages(
+              MessagesCassetteSpec.heatMap(contactId: null),
+            );
         }
       },
 
@@ -61,9 +62,31 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
 }
 
 extension ContactsCassetteSpecX on ContactsCassetteSpec {
-  /// Contacts cassettes currently have no children.
+  /// Contacts cascade into a messages heatmap when a contact is selected.
   CassetteSpec? childSpec() {
-    return when(contactsFlatMenu: (_) => null, contactPicker: (_) => null);
+    return when(
+      contactsFlatMenu: (chosenContactId) {
+        if (chosenContactId == null) {
+          return null;
+        }
+        return CassetteSpec.messages(
+          MessagesCassetteSpec.heatMap(contactId: chosenContactId),
+        );
+      },
+      contactPicker: (chosenContactId) {
+        if (chosenContactId == null) {
+          return null;
+        }
+        return CassetteSpec.messages(
+          MessagesCassetteSpec.heatMap(contactId: chosenContactId),
+        );
+      },
+      chosenContact: (chosenContactId) {
+        return CassetteSpec.contacts(
+          ContactsCassetteSpec.chosenContact(chosenContactId: chosenContactId),
+        );
+      },
+    );
   }
 }
 
@@ -77,6 +100,6 @@ extension HandlesCassetteSpecX on HandlesCassetteSpec {
 extension MessagesCassetteSpecX on MessagesCassetteSpec {
   /// Handles cassettes currently have no children.
   CassetteSpec? childSpec() {
-    return when(heatMap: () => null);
+    return when(heatMap: (_) => null);
   }
 }

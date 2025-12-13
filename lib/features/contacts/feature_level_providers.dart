@@ -1,8 +1,8 @@
-import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
 import 'presentation/cassettes/contacts_chooser.dart';
 
 part 'feature_level_providers.g.dart';
@@ -15,7 +15,12 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
     // Stateless coordinator
   }
 
-  Widget buildForSpec(ContactsCassetteSpec spec) {
-    return ContactsChooser(spec: spec);
+  CassetteCardView buildForSpec(ContactsCassetteSpec spec) {
+    return CassetteCardView(
+      title: 'Select a contact',
+      subtitle:
+          'The choice is stored on this cassette so deeper panes can react.',
+      child: ContactsChooser(spec: spec),
+    );
   }
 }

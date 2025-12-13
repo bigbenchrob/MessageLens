@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/sidebar_utility_cassette_spec.dart';
+import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
 import './application/cassette_builders/top_chat_menu_builder_provider.dart';
 
 part 'feature_level_providers.g.dart';
@@ -17,12 +17,15 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
   /// Build a widget for the given [spec].  This method pattern‑matches
   /// on the variant of [SidebarUtilityCassetteSpec] and delegates to
   /// appropriate builders.
-  Widget buildForSpec(SidebarUtilityCassetteSpec spec) {
+  CassetteCardView buildForSpec(SidebarUtilityCassetteSpec spec) {
     return spec.when(
       topChatMenu: (selectedChoice) {
-        // Use the top chat menu builder to create the widget.  Note that
-        // the builder expects the full spec; we pass it directly.
-        return ref.read(topChatMenuBuilderProvider(spec));
+        final content = ref.read(topChatMenuBuilderProvider(spec));
+        return CassetteCardView(
+          title: 'Show messages from',
+          subtitle: 'Choose which conversations populate the sidebar.',
+          child: content,
+        );
       },
     );
   }

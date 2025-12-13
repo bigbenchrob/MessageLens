@@ -56,56 +56,45 @@ class TopChatMenu extends ConsumerWidget {
 
     final theme = MacosTheme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Show messages from', style: theme.typography.title2),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: MacosPopupButton<TopChatMenuChoice>(
-              value: selectedChoice,
-              alignment: AlignmentDirectional.centerStart,
-              onChanged: (TopChatMenuChoice? newChoice) {
-                if (newChoice == null) {
-                  return;
-                }
-                handleSelectionChange(newChoice);
-              },
-              items: [
-                for (final choice in choices)
-                  MacosPopupMenuItem<TopChatMenuChoice>(
-                    value: choice,
-                    child: Text(
-                      choice.label,
-                      style: theme.typography.callout,
-                      softWrap: true,
-                    ),
-                  ),
-              ],
-              selectedItemBuilder: (BuildContext context) {
-                return [
-                  for (final choice in choices)
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        choice.label,
-                        style: theme.typography.callout.copyWith(
-                          fontWeight: selectedChoice == choice
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                        softWrap: true,
-                      ),
-                    ),
-                ];
-              },
+    return SizedBox(
+      width: double.infinity,
+      child: MacosPopupButton<TopChatMenuChoice>(
+        value: selectedChoice,
+        alignment: AlignmentDirectional.centerStart,
+        onChanged: (TopChatMenuChoice? newChoice) {
+          if (newChoice == null) {
+            return;
+          }
+          handleSelectionChange(newChoice);
+        },
+        items: [
+          for (final choice in choices)
+            MacosPopupMenuItem<TopChatMenuChoice>(
+              value: choice,
+              child: Text(
+                choice.label,
+                style: theme.typography.callout,
+                softWrap: true,
+              ),
             ),
-          ),
         ],
+        selectedItemBuilder: (BuildContext context) {
+          return [
+            for (final choice in choices)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  choice.label,
+                  style: theme.typography.callout.copyWith(
+                    fontWeight: selectedChoice == choice
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+          ];
+        },
       ),
     );
   }

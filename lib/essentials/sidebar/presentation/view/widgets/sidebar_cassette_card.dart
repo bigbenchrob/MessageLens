@@ -12,6 +12,12 @@ class SidebarCassetteCard extends StatelessWidget {
   /// The child widget to display inside the card.
   final Widget child;
 
+  /// Title shown at the top of the card.
+  final String title;
+
+  /// Optional descriptive subtitle displayed under the title.
+  final String? subtitle;
+
   /// Padding inside the card around the child.
   final EdgeInsetsGeometry padding;
 
@@ -24,7 +30,9 @@ class SidebarCassetteCard extends StatelessWidget {
   const SidebarCassetteCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(12.0),
+    required this.title,
+    this.subtitle,
+    this.padding = const EdgeInsets.all(16.0),
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.borderRadius = 8.0,
   });
@@ -57,7 +65,6 @@ class SidebarCassetteCard extends StatelessWidget {
 
     return Container(
       margin: margin,
-      padding: padding,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
@@ -70,7 +77,32 @@ class SidebarCassetteCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: Padding(
+        padding: padding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: MacosTheme.of(
+                context,
+              ).typography.title2.copyWith(fontWeight: FontWeight.w700),
+            ),
+            if (subtitle != null && subtitle!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                subtitle!,
+                style: MacosTheme.of(context).typography.body.copyWith(
+                  color: MacosColors.secondaryLabelColor,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }

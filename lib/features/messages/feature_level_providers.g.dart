@@ -26,7 +26,7 @@ final messageRepositoryProvider =
 
 typedef _$MessageRepository = AutoDisposeNotifier<SqliteMessagesRepository>;
 String _$messagesCassetteCoordinatorHash() =>
-    r'2f5773afed0b759551d89b9d3e9f0a2625e1e1ba';
+    r'a093080077fb96289347d62a4dd0a984fb0078fb';
 
 /// Coordinator that maps [MessagesCassetteSpec] to rendered cassette widgets for the sidebar.
 ///

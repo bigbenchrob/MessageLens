@@ -22,9 +22,10 @@ class ContactsChooser extends ConsumerWidget {
       contactsListProvider(spec: const ContactsListSpec.alphabetical()),
     );
 
-    final selectedContactId = spec.when(
+    final selectedContactId = spec.maybeWhen(
       contactsFlatMenu: (chosenContactId) => chosenContactId,
       contactPicker: (chosenContactId) => chosenContactId,
+      orElse: () => null,
     );
 
     ContactSummary? findContact(int? participantId, List<ContactSummary> pool) {
@@ -51,25 +52,12 @@ class ContactsChooser extends ConsumerWidget {
 
     return contactsAsync.when(
       data: (contacts) {
-        final typography = MacosTheme.of(context).typography;
         final selectedContact = findContact(selectedContactId, contacts);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Select a contact',
-              style: typography.title3.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'The choice is stored on this cassette so deeper panes can react.',
-              style: typography.caption1.copyWith(
-                color: MacosColors.secondaryLabelColor,
-              ),
-            ),
-            const SizedBox(height: 12),
             spec.when(
               contactsFlatMenu: (_) {
                 return FlatContactsList(
@@ -97,6 +85,12 @@ class ContactsChooser extends ConsumerWidget {
                     ],
                   ],
                 );
+              },
+              chosenContact: (_) {
+                if (selectedContact == null) {
+                  return const Text('Selected contact not found.');
+                }
+                return _SelectedContactSummary(contact: selectedContact);
               },
             ),
             if (selectedContactId != null) ...[

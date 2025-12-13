@@ -1,16 +1,16 @@
 import 'package:flutter/widgets.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/messages_cassette_spec.dart';
+import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
 import 'application/use_cases/global_timeline_view_builder_provider.dart';
 import 'application/use_cases/messages_for_chat_view_builder_provider.dart';
 import 'application/use_cases/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
+import 'presentation/cassettes/messages_heatmap_cassette.dart';
 import 'presentation/view/messages_for_chat_view.dart';
 import 'presentation/view/messages_for_contact_view.dart';
-import 'presentation/cassettes/messages_heatmap_cassette.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -35,8 +35,21 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
     // Stateless coordinator
   }
 
-  Widget buildForSpec(MessagesCassetteSpec spec) {
-    return spec.when(heatMap: () => const MessagesHeatmapCassette());
+  CassetteCardView buildForSpec(MessagesCassetteSpec spec) {
+    return spec.when(
+      heatMap: (contactId) {
+        final isContactScoped = contactId != null;
+        return CassetteCardView(
+          title: isContactScoped
+              ? 'Contact message heatmap'
+              : 'All messages heatmap',
+          subtitle: isContactScoped
+              ? 'Track monthly activity with the selected contact.'
+              : 'Discover peaks and gaps across your entire archive.',
+          child: MessagesHeatmapCassette(contactId: contactId),
+        );
+      },
+    );
   }
 }
 

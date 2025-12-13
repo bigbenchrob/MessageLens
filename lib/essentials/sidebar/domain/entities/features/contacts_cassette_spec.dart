@@ -20,4 +20,10 @@ abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
   /// contacts or when a richer UI is needed to select a contact.
   const factory ContactsCassetteSpec.contactPicker({int? chosenContactId}) =
       _ContactPickerSpec;
+
+  /// A more elaborate contacts picker.  Use this when there are many
+  /// contacts or when a richer UI is needed to select a contact.
+  const factory ContactsCassetteSpec.chosenContact({
+    required int chosenContactId,
+  }) = _ChosenContactSpec;
 }

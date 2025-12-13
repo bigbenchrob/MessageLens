@@ -14,6 +14,7 @@ import '../../../features/sidebar_utilities/feature_level_providers.dart'
 import '../feature_level_providers.dart';
 
 /// utility widget to wrap each cassette in a card
+import '../presentation/models/cassette_card_view.dart';
 import '../presentation/view/widgets/sidebar_cassette_card.dart';
 
 part 'cassette_widget_coordinator_provider.g.dart';
@@ -41,7 +42,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     final rack = ref.watch(cassetteRackStateProvider);
     final widgets = <Widget>[];
 
-    Widget buildForSpec(CassetteSpec spec) {
+    CassetteCardView buildViewForSpec(CassetteSpec spec) {
       return spec.when(
         sidebarUtility: (sidebarSpec) {
           final coordinator = ref.read(
@@ -70,18 +71,28 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
       );
     }
 
-    for (final spec in rack.cassettes) {
-      widgets.add(SidebarCassetteCard(child: buildForSpec(spec)));
+    void addCassette(CassetteSpec spec) {
+      final view = buildViewForSpec(spec);
+      widgets.add(
+        SidebarCassetteCard(
+          title: view.title,
+          subtitle: view.subtitle,
+          child: view.child,
+        ),
+      );
     }
+
+    rack.cassettes.forEach(addCassette);
 
     var childSpec = rack.cassettes.isNotEmpty
         ? rack.cassettes.last.childSpec()
         : null;
 
     while (childSpec != null) {
-      widgets.add(SidebarCassetteCard(child: buildForSpec(childSpec)));
+      addCassette(childSpec);
       childSpec = childSpec.childSpec();
     }
+
     return widgets;
   }
 }

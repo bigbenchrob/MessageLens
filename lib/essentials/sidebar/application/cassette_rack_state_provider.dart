@@ -171,6 +171,7 @@ class CassetteRackState extends _$CassetteRackState {
           return contactsSpec.when(
             contactsFlatMenu: (chosenContactId) => chosenContactId,
             contactPicker: (chosenContactId) => chosenContactId,
+            chosenContact: (chosenContactId) => chosenContactId,
           );
         },
         handles: (_) => null,
