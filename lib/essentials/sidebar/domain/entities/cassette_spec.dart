@@ -40,7 +40,7 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
         switch (selectedChoice) {
           case TopChatMenuChoice.contacts:
             return const CassetteSpec.contacts(
-              ContactsCassetteSpec.contactPicker(),
+              ContactsCassetteSpec.contactsEnhancedPicker(),
             );
 
           case TopChatMenuChoice.unmatchedHandles:
@@ -73,7 +73,7 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
           MessagesCassetteSpec.heatMap(contactId: chosenContactId),
         );
       },
-      contactPicker: (chosenContactId) {
+      contactsEnhancedPicker: (chosenContactId) {
         if (chosenContactId == null) {
           return null;
         }
@@ -81,9 +81,9 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
           MessagesCassetteSpec.heatMap(contactId: chosenContactId),
         );
       },
-      chosenContact: (chosenContactId) {
-        return CassetteSpec.contacts(
-          ContactsCassetteSpec.chosenContact(chosenContactId: chosenContactId),
+      contactHeroSummary: (chosenContactId) {
+        return CassetteSpec.messages(
+          MessagesCassetteSpec.heatMap(contactId: chosenContactId),
         );
       },
     );

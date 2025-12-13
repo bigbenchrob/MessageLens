@@ -86,13 +86,13 @@ extension ContactsCassetteSpecPatterns on ContactsCassetteSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ContactMenuSpec value)?  contactsFlatMenu,TResult Function( _ContactPickerSpec value)?  contactPicker,TResult Function( _ChosenContactSpec value)?  chosenContact,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ContactMenuSpec value)?  contactsFlatMenu,TResult Function( _ContactPickerSpec value)?  contactsEnhancedPicker,TResult Function( _ChosenContactSpec value)?  contactHeroSummary,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ContactMenuSpec() when contactsFlatMenu != null:
-return contactsFlatMenu(_that);case _ContactPickerSpec() when contactPicker != null:
-return contactPicker(_that);case _ChosenContactSpec() when chosenContact != null:
-return chosenContact(_that);case _:
+return contactsFlatMenu(_that);case _ContactPickerSpec() when contactsEnhancedPicker != null:
+return contactsEnhancedPicker(_that);case _ChosenContactSpec() when contactHeroSummary != null:
+return contactHeroSummary(_that);case _:
   return orElse();
 
 }
@@ -110,13 +110,13 @@ return chosenContact(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ContactMenuSpec value)  contactsFlatMenu,required TResult Function( _ContactPickerSpec value)  contactPicker,required TResult Function( _ChosenContactSpec value)  chosenContact,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ContactMenuSpec value)  contactsFlatMenu,required TResult Function( _ContactPickerSpec value)  contactsEnhancedPicker,required TResult Function( _ChosenContactSpec value)  contactHeroSummary,}){
 final _that = this;
 switch (_that) {
 case _ContactMenuSpec():
 return contactsFlatMenu(_that);case _ContactPickerSpec():
-return contactPicker(_that);case _ChosenContactSpec():
-return chosenContact(_that);case _:
+return contactsEnhancedPicker(_that);case _ChosenContactSpec():
+return contactHeroSummary(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -133,13 +133,13 @@ return chosenContact(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ContactMenuSpec value)?  contactsFlatMenu,TResult? Function( _ContactPickerSpec value)?  contactPicker,TResult? Function( _ChosenContactSpec value)?  chosenContact,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ContactMenuSpec value)?  contactsFlatMenu,TResult? Function( _ContactPickerSpec value)?  contactsEnhancedPicker,TResult? Function( _ChosenContactSpec value)?  contactHeroSummary,}){
 final _that = this;
 switch (_that) {
 case _ContactMenuSpec() when contactsFlatMenu != null:
-return contactsFlatMenu(_that);case _ContactPickerSpec() when contactPicker != null:
-return contactPicker(_that);case _ChosenContactSpec() when chosenContact != null:
-return chosenContact(_that);case _:
+return contactsFlatMenu(_that);case _ContactPickerSpec() when contactsEnhancedPicker != null:
+return contactsEnhancedPicker(_that);case _ChosenContactSpec() when contactHeroSummary != null:
+return contactHeroSummary(_that);case _:
   return null;
 
 }
@@ -156,12 +156,12 @@ return chosenContact(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  contactsFlatMenu,TResult Function( int? chosenContactId)?  contactPicker,TResult Function( int chosenContactId)?  chosenContact,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  contactsFlatMenu,TResult Function( int? chosenContactId)?  contactsEnhancedPicker,TResult Function( int chosenContactId)?  contactHeroSummary,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ContactMenuSpec() when contactsFlatMenu != null:
-return contactsFlatMenu(_that.chosenContactId);case _ContactPickerSpec() when contactPicker != null:
-return contactPicker(_that.chosenContactId);case _ChosenContactSpec() when chosenContact != null:
-return chosenContact(_that.chosenContactId);case _:
+return contactsFlatMenu(_that.chosenContactId);case _ContactPickerSpec() when contactsEnhancedPicker != null:
+return contactsEnhancedPicker(_that.chosenContactId);case _ChosenContactSpec() when contactHeroSummary != null:
+return contactHeroSummary(_that.chosenContactId);case _:
   return orElse();
 
 }
@@ -179,12 +179,12 @@ return chosenContact(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  contactsFlatMenu,required TResult Function( int? chosenContactId)  contactPicker,required TResult Function( int chosenContactId)  chosenContact,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  contactsFlatMenu,required TResult Function( int? chosenContactId)  contactsEnhancedPicker,required TResult Function( int chosenContactId)  contactHeroSummary,}) {final _that = this;
 switch (_that) {
 case _ContactMenuSpec():
 return contactsFlatMenu(_that.chosenContactId);case _ContactPickerSpec():
-return contactPicker(_that.chosenContactId);case _ChosenContactSpec():
-return chosenContact(_that.chosenContactId);case _:
+return contactsEnhancedPicker(_that.chosenContactId);case _ChosenContactSpec():
+return contactHeroSummary(_that.chosenContactId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,12 +201,12 @@ return chosenContact(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  contactsFlatMenu,TResult? Function( int? chosenContactId)?  contactPicker,TResult? Function( int chosenContactId)?  chosenContact,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  contactsFlatMenu,TResult? Function( int? chosenContactId)?  contactsEnhancedPicker,TResult? Function( int chosenContactId)?  contactHeroSummary,}) {final _that = this;
 switch (_that) {
 case _ContactMenuSpec() when contactsFlatMenu != null:
-return contactsFlatMenu(_that.chosenContactId);case _ContactPickerSpec() when contactPicker != null:
-return contactPicker(_that.chosenContactId);case _ChosenContactSpec() when chosenContact != null:
-return chosenContact(_that.chosenContactId);case _:
+return contactsFlatMenu(_that.chosenContactId);case _ContactPickerSpec() when contactsEnhancedPicker != null:
+return contactsEnhancedPicker(_that.chosenContactId);case _ChosenContactSpec() when contactHeroSummary != null:
+return contactHeroSummary(_that.chosenContactId);case _:
   return null;
 
 }
@@ -308,7 +308,7 @@ int get hashCode => Object.hash(runtimeType,chosenContactId);
 
 @override
 String toString() {
-  return 'ContactsCassetteSpec.contactPicker(chosenContactId: $chosenContactId)';
+  return 'ContactsCassetteSpec.contactsEnhancedPicker(chosenContactId: $chosenContactId)';
 }
 
 
@@ -374,7 +374,7 @@ int get hashCode => Object.hash(runtimeType,chosenContactId);
 
 @override
 String toString() {
-  return 'ContactsCassetteSpec.chosenContact(chosenContactId: $chosenContactId)';
+  return 'ContactsCassetteSpec.contactHeroSummary(chosenContactId: $chosenContactId)';
 }
 
 

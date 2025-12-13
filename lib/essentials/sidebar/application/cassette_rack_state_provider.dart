@@ -160,8 +160,9 @@ class CassetteRackState extends _$CassetteRackState {
   /// looking for a [CassetteSpec.contacts] variant.  Once found, it
   /// examines the underlying [ContactsCassetteSpec] and returns the
   /// `chosenContactId`, regardless of whether the spec is a
-  /// [ContactsCassetteSpec.contactsFlatMenu] or
-  /// [ContactsCassetteSpec.contactPicker].  If no contact has been
+  /// [ContactsCassetteSpec.contactsFlatMenu],
+  /// [ContactsCassetteSpec.contactsEnhancedPicker], or
+  /// [ContactsCassetteSpec.contactHeroSummary]. If no contact has been
   /// selected yet, it returns null.
   int? findLatestContactId() {
     for (final spec in state.cassettes.reversed) {
@@ -170,8 +171,8 @@ class CassetteRackState extends _$CassetteRackState {
         contacts: (contactsSpec) {
           return contactsSpec.when(
             contactsFlatMenu: (chosenContactId) => chosenContactId,
-            contactPicker: (chosenContactId) => chosenContactId,
-            chosenContact: (chosenContactId) => chosenContactId,
+            contactsEnhancedPicker: (chosenContactId) => chosenContactId,
+            contactHeroSummary: (chosenContactId) => chosenContactId,
           );
         },
         handles: (_) => null,
