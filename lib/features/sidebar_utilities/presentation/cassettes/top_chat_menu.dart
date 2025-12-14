@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -15,7 +16,7 @@ import '../../domain/sidebar_utilities_constants.dart';
 /// sidebar spec and notifies the cassette rack state provider with
 /// both the old and updated specs (wrapped back into [CasetteSpec]
 /// variants).
-class TopChatMenu extends ConsumerWidget {
+class TopChatMenu extends ConsumerStatefulWidget {
   /// The sidebar utility specification representing this top menu.  The
   /// spec contains the currently selected menu choice.  It must be a
   /// [SidebarUtilityCassetteSpec.topChatMenu] variant.
@@ -35,11 +36,35 @@ class TopChatMenu extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TopChatMenu> createState() => _TopChatMenuState();
+}
+
+class _TopChatMenuState extends ConsumerState<TopChatMenu>
+    with SingleTickerProviderStateMixin {
+  bool _isOpen = false;
+
+  void _toggleOpen() {
+    setState(() {
+      _isOpen = !_isOpen;
+    });
+  }
+
+  void _close() {
+    if (!_isOpen) {
+      return;
+    }
+    setState(() {
+      _isOpen = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     const choices = TopChatMenuChoice.values;
     // The selected enum value is stored on the sidebar spec.  We assume the
     // spec is the topChatMenu variant; if other variants are added later, this
     // will need to be updated.
+    final spec = widget.spec;
     final selectedChoice = spec.when(topChatMenu: (choice) => choice);
 
     void handleSelectionChange(TopChatMenuChoice newChoice) {
@@ -52,49 +77,186 @@ class TopChatMenu extends ConsumerWidget {
       ref
           .read(cassetteRackStateProvider.notifier)
           .updateSpecAndChild(oldCassetteSpec, newCassetteSpec);
+      _close();
     }
 
     final theme = MacosTheme.of(context);
+    final brightness = theme.brightness;
+
+    final controlFill = brightness.resolve(
+      const Color(0xFFF3F3F4),
+      const Color(0xFF2A2A2E),
+    );
+    final panelFill = brightness.resolve(
+      const Color(0xFFF8F8F9),
+      const Color(0xFF232327),
+    );
+    final dividerColor = MacosDynamicColor.resolve(
+      MacosColors.separatorColor,
+      context,
+    );
+    final borderColor = MacosDynamicColor.resolve(
+      MacosColors.quaternaryLabelColor,
+      context,
+    );
+    final labelColor = MacosDynamicColor.resolve(
+      MacosColors.labelColor,
+      context,
+    );
+
+    Widget buildTrigger() {
+      return FocusableActionDetector(
+        onShowFocusHighlight: (_) {},
+        mouseCursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _toggleOpen,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: controlFill,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: borderColor),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+              child: Row(
+                children: [
+                  Text(
+                    'Show:',
+                    style: theme.typography.callout.copyWith(
+                      color: labelColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      selectedChoice.label,
+                      style: theme.typography.callout.copyWith(color: labelColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isOpen ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                    size: 14,
+                    color: labelColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildPanel() {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6.0, right: 18.0),
+        child: SizedBox(
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: panelFill,
+              borderRadius: BorderRadius.circular(10.0),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final choice in choices) ...[
+                  _MenuRow(
+                    label: choice.label,
+                    isSelected: choice == selectedChoice,
+                    onTap: () {
+                      handleSelectionChange(choice);
+                    },
+                  ),
+                  if (choice != choices.last)
+                    Divider(height: 1, thickness: 1, color: dividerColor),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return SizedBox(
       width: double.infinity,
-      child: MacosPopupButton<TopChatMenuChoice>(
-        value: selectedChoice,
-        alignment: AlignmentDirectional.centerStart,
-        onChanged: (TopChatMenuChoice? newChoice) {
-          if (newChoice == null) {
-            return;
-          }
-          handleSelectionChange(newChoice);
-        },
-        items: [
-          for (final choice in choices)
-            MacosPopupMenuItem<TopChatMenuChoice>(
-              value: choice,
-              child: Text(
-                choice.label,
-                style: theme.typography.callout,
-                softWrap: true,
-              ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildTrigger(),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: _isOpen ? buildPanel() : const SizedBox.shrink(),
             ),
-        ],
-        selectedItemBuilder: (BuildContext context) {
-          return [
-            for (final choice in choices)
-              Align(
-                alignment: AlignmentDirectional.centerStart,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MenuRow({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = MacosTheme.of(context);
+    final labelColor = MacosDynamicColor.resolve(
+      MacosColors.labelColor,
+      context,
+    );
+    final selectedFill = MacosDynamicColor.resolve(
+      MacosColors.controlAccentColor,
+      context,
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isSelected ? selectedFill.withValues(alpha: 0.16) : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+          child: Row(
+            children: [
+              Expanded(
                 child: Text(
-                  choice.label,
+                  label,
                   style: theme.typography.callout.copyWith(
-                    fontWeight: selectedChoice == choice
-                        ? FontWeight.w600
-                        : FontWeight.w400,
+                    color: labelColor,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
-                  softWrap: true,
                 ),
               ),
-          ];
-        },
+              if (isSelected)
+                Icon(
+                  CupertinoIcons.check_mark,
+                  size: 14,
+                  color: labelColor,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

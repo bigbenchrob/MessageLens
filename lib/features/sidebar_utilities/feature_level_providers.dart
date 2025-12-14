@@ -21,11 +21,7 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
     return spec.when(
       topChatMenu: (selectedChoice) {
         final content = ref.read(topChatMenuBuilderProvider(spec));
-        return CassetteCardView(
-          title: 'Show messages from',
-          subtitle: 'Choose which conversations populate the sidebar.',
-          child: content,
-        );
+        return CassetteCardView(title: '', child: content, isControl: true);
       },
     );
   }

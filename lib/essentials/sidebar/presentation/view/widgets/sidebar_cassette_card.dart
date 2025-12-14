@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 // Pull in macOS‑specific colors for a more subtle border.
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../../config/theme.dart';
+
 /// A reusable card container for sidebar cassette widgets.
 ///
 /// This card applies a Mac‑like aesthetic with a light background,
@@ -27,6 +29,10 @@ class SidebarCassetteCard extends StatelessWidget {
   /// The border radius applied to the card’s corners.
   final double borderRadius;
 
+  /// Whether this cassette is primarily a control surface (vs content).
+  /// Control cassettes are visually de-emphasized to clarify hierarchy.
+  final bool isControl;
+
   const SidebarCassetteCard({
     super.key,
     required this.child,
@@ -35,6 +41,7 @@ class SidebarCassetteCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.borderRadius = 8.0,
+    this.isControl = false,
   });
 
   @override
@@ -46,6 +53,11 @@ class SidebarCassetteCard extends StatelessWidget {
     // components without relying on the Material colour scheme.
     final backgroundColor = MacosDynamicColor.resolve(
       MacosColors.controlBackgroundColor,
+      context,
+    );
+
+    final sidebarBackgroundColor = MacosDynamicColor.resolve(
+      MacosColors.windowBackgroundColor,
       context,
     );
 
@@ -63,42 +75,64 @@ class SidebarCassetteCard extends StatelessWidget {
       context,
     );
 
+    final controlBackgroundColor = Color.alphaBlend(
+      MacosDynamicColor.resolve(
+        MacosColors.controlColor,
+        context,
+      ).withValues(alpha: 0.12),
+      sidebarBackgroundColor,
+    );
+
+    final effectiveBackgroundColor = isControl
+        ? controlBackgroundColor
+        : backgroundColor;
+    final effectiveMargin = isControl
+        ? const EdgeInsets.only(left: 12.0, right: 12.0, top: 8.0, bottom: 4.0)
+        : margin;
+    final effectivePadding = isControl
+        ? const EdgeInsets.fromLTRB(12.0, 10.0, 12.0, 10.0)
+        : padding;
+    final effectiveBorderRadius = isControl ? 10.0 : borderRadius;
+    final effectiveBorderColor = borderColor;
+
+    final hasTitle = title.trim().isNotEmpty;
+    final hasSubtitle = subtitle != null && subtitle!.trim().isNotEmpty;
+    final showHeader = hasTitle || hasSubtitle;
+
     return Container(
-      margin: margin,
+      margin: effectiveMargin,
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x29000000), // subtle shadow
-            blurRadius: 4.0,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: effectiveBackgroundColor,
+        borderRadius: BorderRadius.circular(effectiveBorderRadius),
+        border: isControl ? null : Border.all(color: effectiveBorderColor),
+        boxShadow: isControl
+            ? const []
+            : const [
+                BoxShadow(
+                  color: Color(0x29000000), // subtle shadow
+                  blurRadius: 4.0,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Padding(
-        padding: padding,
+        padding: effectivePadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              title,
-              style: MacosTheme.of(
-                context,
-              ).typography.title2.copyWith(fontWeight: FontWeight.w700),
-            ),
-            if (subtitle != null && subtitle!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                subtitle!,
-                style: MacosTheme.of(context).typography.body.copyWith(
-                  color: MacosColors.secondaryLabelColor,
+            if (showHeader) ...[
+              if (hasTitle)
+                Text(title, style: AppTheme.cassetteHeaderTitleStyle(context)),
+              if (hasSubtitle) ...[
+                if (hasTitle) const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  style: AppTheme.cassetteHeaderSubtitleStyle(context),
                 ),
-              ),
+              ],
+              const SizedBox(height: 12),
             ],
-            const SizedBox(height: 12),
             child,
           ],
         ),

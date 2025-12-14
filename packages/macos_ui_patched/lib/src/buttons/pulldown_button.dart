@@ -199,11 +199,11 @@ class _MacosPulldownMenuState extends State<_MacosPulldownMenu> {
         namesRoute: true,
         explicitChildNodes: true,
         child: IntrinsicWidth(
-          child: MacosOverlayFilter(
-            color: MacosPulldownButtonTheme.of(context)
-                .pulldownColor
-                ?.withValues(alpha: 0.25),
-            borderRadius: _kBorderRadius,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: MacosPulldownButtonTheme.of(context).pulldownColor,
+              borderRadius: _kBorderRadius,
+            ),
             child: Padding(
               padding: const EdgeInsets.all(6.0),
               child: Column(

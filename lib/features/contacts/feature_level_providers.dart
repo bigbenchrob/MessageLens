@@ -25,13 +25,13 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
         child: ContactsFlatMenuCassette(spec: flat),
       ),
       contactsEnhancedPicker: (picker) => CassetteCardView(
-        title: 'Browse contacts',
+        title: 'Select a contact',
         subtitle: 'Scroll or jump by letter to find the right person.',
         child: ContactsEnhancedPickerCassette(spec: picker),
       ),
       contactHeroSummary: (hero) => CassetteCardView(
-        title: 'Selected contact',
-        subtitle: 'Downstream panes read from this contact summary.',
+        title: '',
+        subtitle: null,
         child: ContactHeroSummaryCassette(spec: hero),
       ),
     );

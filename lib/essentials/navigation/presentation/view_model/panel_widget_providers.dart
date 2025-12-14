@@ -52,10 +52,12 @@ Widget leftPanelWidget(Ref ref) {
   // cassette rack changes (e.g. due to menu selections), the coordinator
   // updates this list, causing the left panel to rebuild.
   final cassetteWidgets = ref.watch(cassetteWidgetCoordinatorProvider);
-  return Material(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: cassetteWidgets,
+  return MouseRegion(
+    child: Material(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: cassetteWidgets,
+      ),
     ),
   );
 }

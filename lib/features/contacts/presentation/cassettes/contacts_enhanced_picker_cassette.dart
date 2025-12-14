@@ -21,53 +21,69 @@ class ContactsEnhancedPickerCassette extends ConsumerWidget {
       contactsListProvider(spec: const ContactsListSpec.alphabetical()),
     );
 
-    final selectedContactId = spec.chosenContactId;
+    // Invariant: this cassette is only shown when no contact is selected.
+    // Selection swaps the cassette spec to the hero summary.
+    const int? selectedContactId = null;
 
     return contactsAsync.when(
       data: (contacts) {
-        final selectedContact = findContact(
-          contacts: contacts,
-          participantId: selectedContactId,
-        );
+        final selectedId = ref.watch(_pendingSelectionProvider);
+
+        if (selectedId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(_pendingSelectionProvider.notifier).state = null;
+          });
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            FullContactPicker(
-              selectedParticipantId: selectedContactId,
-              onContactSelected: (contactId) {
-                ref
-                    .read(cassetteRackStateProvider.notifier)
-                    .updateSpecAndChild(
-                      CassetteSpec.contacts(spec),
-                      CassetteSpec.contacts(
-                        ContactsCassetteSpec.contactHeroSummary(
-                          chosenContactId: contactId,
-                        ),
-                      ),
-                    );
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                return SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: -1,
+                  child: FadeTransition(opacity: animation, child: child),
+                );
               },
-              maxHeight: 380,
+              child: selectedId == null
+                  ? FullContactPicker(
+                      key: const ValueKey('contactsPicker'),
+                      selectedParticipantId: selectedContactId,
+                      onContactSelected: (contactId) async {
+                        ref.read(_pendingSelectionProvider.notifier).state =
+                            contactId;
+
+                        await Future<void>.delayed(
+                          const Duration(milliseconds: 120),
+                        );
+
+                        if (!context.mounted) {
+                          return;
+                        }
+
+                        ref
+                            .read(cassetteRackStateProvider.notifier)
+                            .updateSpecAndChild(
+                              CassetteSpec.contacts(spec),
+                              CassetteSpec.contacts(
+                                ContactsCassetteSpec.contactHeroSummary(
+                                  chosenContactId: contactId,
+                                ),
+                              ),
+                            );
+                      },
+                      maxHeight: 380,
+                    )
+                  : Container(
+                      key: const ValueKey('contactsPickerPlaceholder'),
+                      constraints: const BoxConstraints(minHeight: 44),
+                    ),
             ),
-            if (selectedContact != null) ...[
-              const SizedBox(height: 10),
-              SelectedContactSummary(contact: selectedContact),
-            ],
-            if (selectedContactId != null) ...[
-              const SizedBox(height: 8),
-              PushButton(
-                controlSize: ControlSize.small,
-                onPressed: () {
-                  updateContactSelection(
-                    ref: ref,
-                    currentSpec: spec,
-                    nextContactId: null,
-                  );
-                },
-                child: const Text('Clear selection'),
-              ),
-            ],
           ],
         );
       },
@@ -83,3 +99,5 @@ class ContactsEnhancedPickerCassette extends ConsumerWidget {
     );
   }
 }
+
+final _pendingSelectionProvider = StateProvider<int?>((ref) => null);

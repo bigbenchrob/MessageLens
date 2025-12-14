@@ -77,6 +77,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         SidebarCassetteCard(
           title: view.title,
           subtitle: view.subtitle,
+          isControl: view.isControl,
           child: view.child,
         ),
       );
