@@ -88,6 +88,29 @@ class IsDarkMode extends _$IsDarkMode {
   }
 }
 
+/// Temporary override for app theme mode while iterating on theming.
+///
+/// Defaults to `ThemeMode.system`, and can be toggled by UI (toolbar button).
+@riverpod
+class SwitchableDarkMode extends _$SwitchableDarkMode {
+  @override
+  ThemeMode build() {
+    return ThemeMode.system;
+  }
+
+  void setMode(ThemeMode mode) {
+    state = mode;
+  }
+
+  void cycle() {
+    state = switch (state) {
+      ThemeMode.system => ThemeMode.light,
+      ThemeMode.light => ThemeMode.dark,
+      ThemeMode.dark => ThemeMode.system,
+    };
+  }
+}
+
 @riverpod
 bool darkModeRefresher(Ref ref) {
   return ref.watch(isDarkModeProvider);

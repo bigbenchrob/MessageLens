@@ -3,22 +3,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import 'package:remember_this_text/features/contacts/application/grouped_contacts_provider.dart';
+import 'package:remember_this_text/features/contacts/application_pre_cassette/grouped_contacts_provider.dart';
 import 'package:remember_this_text/features/contacts/presentation/widgets/grouped_contact_selector.dart';
 
 import '../../../../test_utils/contact_summary_fixture.dart';
 
 void main() {
-  testWidgets('smart picker header renders full picker when expanded',
-      (tester) async {
+  testWidgets('smart picker header renders full picker when expanded', (
+    tester,
+  ) async {
     final grouped = GroupedContacts(
       groups: {
-        'A': [
-          buildContactSummary(participantId: 1, displayName: 'Alice'),
-        ],
-        'B': [
-          buildContactSummary(participantId: 2, displayName: 'Bob'),
-        ],
+        'A': [buildContactSummary(participantId: 1, displayName: 'Alice')],
+        'B': [buildContactSummary(participantId: 2, displayName: 'Bob')],
       },
       letterCounts: const {'A': 1, 'B': 1},
       availableLetters: const ['A', 'B'],

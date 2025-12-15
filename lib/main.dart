@@ -146,12 +146,13 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
     ref.watch(chatDbChangeMonitorProvider);
+    final themeMode = ref.watch(switchableDarkModeProvider);
 
     return MacosApp.router(
       title: 'remember_that_text',
       theme: MacosThemeData.light().copyWith(),
       darkTheme: MacosThemeData.dark().copyWith(),
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

@@ -146,6 +146,27 @@ final isDarkModeProvider =
     );
 
 typedef _$IsDarkMode = AutoDisposeNotifier<bool>;
+String _$switchableDarkModeHash() =>
+    r'a6a6949ba4e7cfc5d9aaf03151601a351b7373c8';
+
+/// Temporary override for app theme mode while iterating on theming.
+///
+/// Defaults to `ThemeMode.system`, and can be toggled by UI (toolbar button).
+///
+/// Copied from [SwitchableDarkMode].
+@ProviderFor(SwitchableDarkMode)
+final switchableDarkModeProvider =
+    AutoDisposeNotifierProvider<SwitchableDarkMode, ThemeMode>.internal(
+      SwitchableDarkMode.new,
+      name: r'switchableDarkModeProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$switchableDarkModeHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$SwitchableDarkMode = AutoDisposeNotifier<ThemeMode>;
 String _$colorWatcherHash() => r'bdb6660517426c40c71112b3874c3b07c7955325';
 
 /// See also [ColorWatcher].

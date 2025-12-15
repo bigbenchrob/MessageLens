@@ -6,8 +6,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../../application/contacts_list_provider.dart';
-import '../../application/grouped_contacts_provider.dart';
+import '../../application_pre_cassette/contacts_list_provider.dart';
+import '../../application_pre_cassette/grouped_contacts_provider.dart';
+import 'contact_highlight_row.dart';
 
 /// Smart header that can show either the full picker or the compact lozenge.
 class SmartContactPickerHeader extends ConsumerWidget {
@@ -113,23 +114,7 @@ class FullContactPicker extends ConsumerWidget {
 
         final column = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: CupertinoColors.secondaryLabel.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Select a contact',
-                style: theme.typography.title3.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            buildPicker(pickerContent),
-          ],
+          children: [buildPicker(pickerContent)],
         );
 
         final decorated = Container(
@@ -237,7 +222,7 @@ class ContactLozenge extends StatelessWidget {
                       const MacosIcon(
                         CupertinoIcons.person_crop_circle,
                         size: 16,
-                        color: CupertinoColors.secondaryLabel,
+                        color: MacosColors.secondaryLabelColor,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -476,7 +461,7 @@ class _GroupedEmptyState extends StatelessWidget {
     return const Center(
       child: Text(
         'No contacts available',
-        style: TextStyle(color: CupertinoColors.secondaryLabel, fontSize: 13),
+        style: TextStyle(color: MacosColors.secondaryLabelColor, fontSize: 13),
       ),
     );
   }
@@ -660,7 +645,7 @@ class _GroupedSelectorError extends StatelessWidget {
         Text(
           message,
           style: typography.caption2.copyWith(
-            color: CupertinoColors.secondaryLabel,
+            color: MacosColors.secondaryLabelColor,
           ),
           textAlign: TextAlign.center,
         ),
@@ -713,7 +698,7 @@ class _ContactGroupSection extends StatelessWidget {
               child: Text(
                 'No contacts for $letter',
                 style: theme.typography.caption2.copyWith(
-                  color: CupertinoColors.secondaryLabel,
+                  color: MacosColors.secondaryLabelColor,
                 ),
               ),
             ),
@@ -752,46 +737,48 @@ class _ContactListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = MacosTheme.of(context);
+    return _HoverHighlight(
+      radius: 10,
+      builder: (context, {required isHovered}) {
+        return ContactHighlightRow(
+          displayName: contact.displayName,
+          shortName: contact.shortName,
+          isHighlighted: selected || isHovered,
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.primaryColor.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    contact.displayName,
-                    style: theme.typography.headline.copyWith(fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (contact.shortName != contact.displayName)
-                    Text(
-                      contact.shortName,
-                      style: theme.typography.caption2.copyWith(
-                        color: CupertinoColors.secondaryLabel,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+class _HoverHighlight extends StatefulWidget {
+  const _HoverHighlight({required this.builder, required this.radius});
+
+  final Widget Function(BuildContext context, {required bool isHovered})
+  builder;
+  final double radius;
+
+  @override
+  State<_HoverHighlight> createState() => _HoverHighlightState();
+}
+
+class _HoverHighlightState extends State<_HoverHighlight> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          _isHovered = true;
+        });
+      },
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+        });
+      },
+      child: widget.builder(context, isHovered: _isHovered),
     );
   }
 }

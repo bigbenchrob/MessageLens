@@ -115,7 +115,7 @@ class NavigationLogEntry {
         'type': 'workbench',
         'spec': workbenchSpec.when(panel: () => {'variant': 'panel'}),
       },
-      sidebarRoot: (workbenchSpec) => {'type': 'sidebarRoot', 'spec': null},
+
       sidebar: (sidebarSpec) => {
         'type': 'sidebar',
         'spec': sidebarSpec.when(

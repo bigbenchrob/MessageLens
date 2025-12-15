@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme.dart';
+import '../../../../providers.dart';
+
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../domain/entities/features/chats_spec.dart';
@@ -167,8 +170,12 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         });
       },
       sidebar: Sidebar(
-        minWidth: 120,
+        isResizable: false,
+        minWidth: 320,
         startWidth: _sidebarWidth ?? 320,
+        decoration: BoxDecoration(
+          color: AppTheme.bbc(context).bbcSidebarBackground,
+        ),
         builder: (context, scrollController) {
           return ref.watch(leftPanelWidgetProvider);
         },
@@ -176,6 +183,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       endSidebar: Sidebar(
         minWidth: 120,
         startWidth: _endSidebarWidth ?? 280,
+        decoration: BoxDecoration(
+          color: AppTheme.bbc(context).bbcSidebarBackground,
+        ),
         builder: (context, scrollController) {
           return ref.watch(rightPanelWidgetProvider);
         },
@@ -222,6 +232,34 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             ),
           ),
           actions: [
+            () {
+              final themeMode = ref.watch(switchableDarkModeProvider);
+
+              final (IconData icon, String tooltip) = switch (themeMode) {
+                ThemeMode.system => (
+                  CupertinoIcons.circle_lefthalf_fill,
+                  'Theme: System (click to switch to Light)',
+                ),
+                ThemeMode.light => (
+                  CupertinoIcons.sun_max_fill,
+                  'Theme: Light (click to switch to Dark)',
+                ),
+                ThemeMode.dark => (
+                  CupertinoIcons.moon_stars_fill,
+                  'Theme: Dark (click to switch to System)',
+                ),
+              };
+
+              return ToolBarIconButton(
+                label: 'Theme',
+                icon: MacosIcon(icon),
+                onPressed: () {
+                  ref.read(switchableDarkModeProvider.notifier).cycle();
+                },
+                showLabel: false,
+                tooltipMessage: tooltip,
+              );
+            }(),
             ToolBarIconButton(
               label: 'Messages',
               icon: const MacosIcon(CupertinoIcons.chat_bubble),
@@ -257,14 +295,14 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     .read(navigationLoggerProvider.notifier)
                     .logToolbarClick(
                       buttonLabel: 'Chats',
-                      targetPanel: WindowPanel.left,
+                      targetPanel: WindowPanel.center,
                       viewSpec: spec,
                     );
 
                 // Perform the navigation
                 ref
                     .read(panelsViewStateProvider.notifier)
-                    .show(panel: WindowPanel.left, spec: spec);
+                    .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
             ),

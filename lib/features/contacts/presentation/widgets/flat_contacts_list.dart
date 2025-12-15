@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../application/contacts_list_provider.dart';
+import '../../../../config/theme.dart';
+
+import '../../application_pre_cassette/contacts_list_provider.dart';
 
 // NEW: contact picker mode - flat list widget
 class FlatContactsList extends StatelessWidget {
@@ -23,25 +25,24 @@ class FlatContactsList extends StatelessWidget {
       return const _EmptyState();
     }
 
+    final bbc = AppTheme.bbc(context);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).canvasColor,
+        color: bbc.bbcCardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: MacosTheme.of(context).dividerColor.withValues(alpha: 0.6),
-          width: 0.5,
-        ),
+        border: Border.all(color: bbc.bbcBorderSubtle, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Contacts (flat view)',
-            style: MacosTheme.of(context).typography.caption1.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: MacosTheme.of(
+              context,
+            ).typography.caption1.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           ConstrainedBox(
@@ -83,6 +84,7 @@ class _FlatContactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
+    final bbc = AppTheme.bbc(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -90,9 +92,7 @@ class _FlatContactRow extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: selected
-              ? theme.primaryColor.withValues(alpha: 0.12)
-              : Colors.transparent,
+          color: selected ? bbc.bbcPrimaryOne.withValues(alpha: 0.12) : null,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -110,7 +110,7 @@ class _FlatContactRow extends StatelessWidget {
                     Text(
                       contact.shortName,
                       style: theme.typography.caption2.copyWith(
-                        color: CupertinoColors.secondaryLabel,
+                        color: bbc.bbcSubheadText,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -136,19 +136,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bbc = AppTheme.bbc(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: MacosTheme.of(context).dividerColor.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: bbc.bbcBorderSubtle),
       ),
-      child: const Center(
+      child: Center(
         child: Text(
           'No contacts available',
-          style: TextStyle(color: CupertinoColors.secondaryLabel),
+          style: TextStyle(color: bbc.bbcSubheadText),
         ),
       ),
     );

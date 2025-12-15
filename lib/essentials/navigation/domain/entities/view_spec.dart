@@ -5,7 +5,6 @@ import 'features/contacts_spec.dart';
 import 'features/import_spec.dart';
 import 'features/messages_spec.dart';
 import 'features/settings_spec.dart';
-import 'features/sidebar_root_spec.dart';
 import 'features/sidebar_spec.dart';
 import 'features/workbench_spec.dart';
 
@@ -20,6 +19,4 @@ abstract class ViewSpec with _$ViewSpec {
   const factory ViewSpec.settings(SettingsSpec spec) = _ViewSettings;
   const factory ViewSpec.workbench(WorkbenchSpec spec) = _ViewWorkbench;
   const factory ViewSpec.sidebar(SidebarSpec spec) = _ViewSidebar;
-  const factory ViewSpec.sidebarRoot(SidebarRootSpec spec) =
-      _BuildSidebarFromRoot;
 }

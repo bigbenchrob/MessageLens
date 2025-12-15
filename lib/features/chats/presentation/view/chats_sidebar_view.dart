@@ -119,7 +119,6 @@ class ChatsSidebarView extends HookConsumerWidget {
         settings: (_) {},
         workbench: (_) {},
         sidebar: (_) {},
-        sidebarRoot: (_) {},
       );
     }
 
@@ -568,6 +567,7 @@ class _SenderFilter extends HookConsumerWidget {
       forParticipant: (_) => null,
     );
 
+    // ignore: unused_local_variable
     final newSpec = switch (mode) {
       'recent' => ChatsSpec.recent(limit: limit),
       'oldest' => ChatsSpec.byAgeOldest(limit: limit),
@@ -576,9 +576,9 @@ class _SenderFilter extends HookConsumerWidget {
       _ => ChatsSpec.recent(limit: limit),
     };
 
-    ref
-        .read(panelsViewStateProvider.notifier)
-        .show(panel: WindowPanel.left, spec: ViewSpec.chats(newSpec));
+    // ref
+    //     .read(panelsViewStateProvider.notifier)
+    //     .show(panel: WindowPanel.left, spec: ViewSpec.chats(newSpec));
   }
 
   static String _formatMessageCount(int value) {

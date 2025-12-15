@@ -13,7 +13,7 @@ import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../settings/presentation/view_model/manual_linking_provider.dart';
-import '../../application/unmatched_handles_provider.dart';
+import '../../application_pre_cassette/unmatched_handles_provider.dart';
 import '../widgets/contact_picker_dialog.dart';
 
 class UnmatchedHandlesSidebarView extends HookConsumerWidget {
@@ -87,7 +87,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                       ref
                           .read(panelsViewStateProvider.notifier)
                           .show(
-                            panel: WindowPanel.left,
+                            panel: WindowPanel.center,
                             spec: const ViewSpec.sidebar(
                               SidebarSpec.contacts(
                                 listMode: ContactsListSpec.all(),
@@ -171,7 +171,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                             panelsViewStateProvider.notifier,
                                           )
                                           .show(
-                                            panel: WindowPanel.left,
+                                            panel: WindowPanel.center,
                                             spec: const ViewSpec.sidebar(
                                               SidebarSpec.unmatchedHandles(
                                                 listMode:
@@ -204,7 +204,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                             panelsViewStateProvider.notifier,
                                           )
                                           .show(
-                                            panel: WindowPanel.left,
+                                            panel: WindowPanel.center,
                                             spec: const ViewSpec.sidebar(
                                               SidebarSpec.unmatchedHandles(
                                                 listMode:
@@ -251,7 +251,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                               panelsViewStateProvider.notifier,
                                             )
                                             .show(
-                                              panel: WindowPanel.left,
+                                              panel: WindowPanel.center,
                                               spec: const ViewSpec.sidebar(
                                                 SidebarSpec.unmatchedHandles(
                                                   listMode:
@@ -281,7 +281,7 @@ class UnmatchedHandlesSidebarView extends HookConsumerWidget {
                                               panelsViewStateProvider.notifier,
                                             )
                                             .show(
-                                              panel: WindowPanel.left,
+                                              panel: WindowPanel.center,
                                               spec: const ViewSpec.sidebar(
                                                 SidebarSpec.unmatchedHandles(
                                                   listMode:

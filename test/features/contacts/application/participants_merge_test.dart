@@ -6,7 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import 'package:remember_this_text/features/contacts/application/participants_for_picker_provider.dart';
+import 'package:remember_this_text/features/contacts/application_pre_cassette/participants_for_picker_provider.dart';
 import 'package:remember_this_text/features/contacts/domain/participant_origin.dart';
 
 String buildCompoundIdentifier({

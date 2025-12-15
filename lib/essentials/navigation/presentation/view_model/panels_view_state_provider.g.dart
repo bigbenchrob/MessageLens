@@ -6,7 +6,7 @@ part of 'panels_view_state_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panelsViewStateHash() => r'd547fa09b505d1b7df4ddc9f99693e0e126d66ba';
+String _$panelsViewStateHash() => r'ae7ad13c1cc8e32a9296ea0878f75ec11fd80482';
 
 /// See also [PanelsViewState].
 @ProviderFor(PanelsViewState)

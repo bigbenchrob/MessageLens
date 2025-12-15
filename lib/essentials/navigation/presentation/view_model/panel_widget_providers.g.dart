@@ -6,25 +6,6 @@ part of 'panel_widget_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$leftPanelWidgetHash() => r'94b504d4f2a392c0db27d2edf7c0ed3568f1b912';
-
-/// Widget provider for left panel
-///
-/// Copied from [leftPanelWidget].
-@ProviderFor(leftPanelWidget)
-final leftPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
-  leftPanelWidget,
-  name: r'leftPanelWidgetProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$leftPanelWidgetHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LeftPanelWidgetRef = AutoDisposeProviderRef<Widget>;
 String _$centerPanelWidgetHash() => r'490f73f985216098de2f7a992bdbf166c216393b';
 
 /// Widget provider for center panel
@@ -63,5 +44,28 @@ final rightPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RightPanelWidgetRef = AutoDisposeProviderRef<Widget>;
+String _$leftPanelWidgetHash() => r'39bb743f2756bfafca4822d5fe87a824db6453e9';
+
+/// Widget provider for left panel (sidebar).
+///
+/// This provider builds the left panel by reading the current list of
+/// cassette widgets from [CassetteWidgetCoordinator].  The resulting list
+/// is wrapped in a [Column] so that the cassettes are laid out vertically.
+///
+/// Copied from [leftPanelWidget].
+@ProviderFor(leftPanelWidget)
+final leftPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
+  leftPanelWidget,
+  name: r'leftPanelWidgetProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$leftPanelWidgetHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LeftPanelWidgetRef = AutoDisposeProviderRef<Widget>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
