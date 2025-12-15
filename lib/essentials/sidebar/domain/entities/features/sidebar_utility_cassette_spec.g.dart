@@ -27,4 +27,5 @@ const _$TopChatMenuChoiceEnumMap = {
   TopChatMenuChoice.contacts: 'contacts',
   TopChatMenuChoice.unmatchedHandles: 'unmatchedHandles',
   TopChatMenuChoice.allMessages: 'allMessages',
+  TopChatMenuChoice.themePlayground: 'themePlayground',
 };

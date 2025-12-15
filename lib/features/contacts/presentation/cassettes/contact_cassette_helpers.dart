@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
@@ -59,25 +60,36 @@ class SelectedContactSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typography = MacosTheme.of(context).typography;
-    const mutedColor = MacosColors.secondaryLabelColor;
+    final bbc = AppTheme.bbc(context);
+    final mutedColor = bbc.bbcSubheadText;
+
+    final backgroundColor = MacosDynamicColor.resolve(
+      MacosColors.controlBackgroundColor,
+      context,
+    );
+    final borderColor = MacosDynamicColor.resolve(
+      MacosColors.quaternaryLabelColor,
+      context,
+    );
+    final accentColor = MacosTheme.of(context).primaryColor;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).canvasColor,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: MacosColors.quaternaryLabelColor),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 CupertinoIcons.person_crop_circle,
                 size: 20,
-                color: CupertinoColors.activeBlue,
+                color: MacosDynamicColor.resolve(accentColor, context),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -130,6 +142,7 @@ class ContactCassetteError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typography = MacosTheme.of(context).typography;
+    final bbc = AppTheme.bbc(context);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -139,7 +152,7 @@ class ContactCassetteError extends StatelessWidget {
           children: [
             const Icon(
               CupertinoIcons.exclamationmark_triangle,
-              color: CupertinoColors.systemRed,
+              color: MacosColors.systemRedColor,
               size: 16,
             ),
             const SizedBox(width: 8),
@@ -147,7 +160,7 @@ class ContactCassetteError extends StatelessWidget {
               child: Text(
                 'Unable to load contacts',
                 style: typography.caption1.copyWith(
-                  color: CupertinoColors.systemRed,
+                  color: MacosColors.systemRedColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -162,9 +175,7 @@ class ContactCassetteError extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           message,
-          style: typography.caption2.copyWith(
-            color: MacosColors.secondaryLabelColor,
-          ),
+          style: typography.caption2.copyWith(color: bbc.bbcSubheadText),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),

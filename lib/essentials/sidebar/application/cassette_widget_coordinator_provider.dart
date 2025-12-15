@@ -9,8 +9,10 @@ import '../../../features/messages/feature_level_providers.dart'
     as messages_feature;
 import '../../../features/sidebar_utilities/feature_level_providers.dart'
     as sidebar_utilities;
+import '../../../features/sidebar_utilities/presentation/cassettes/theme_playground_cassette.dart';
 
 /// barrel file import to expose cassette spec and feature cassette spec definitions
+import '../domain/entities/features/presentation_cassette_spec.dart';
 import '../feature_level_providers.dart';
 
 /// utility widget to wrap each cassette in a card
@@ -49,6 +51,17 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
             sidebar_utilities.utilityCassetteCoordinatorProvider.notifier,
           );
           return coordinator.buildForSpec(sidebarSpec);
+        },
+        presentation: (presentationSpec) {
+          return presentationSpec.map(
+            themePlayground: (_) {
+              return const CassetteCardView(
+                title: 'Theme playground',
+                subtitle: 'Verify theme reacts to system appearance changes.',
+                child: ThemePlaygroundCassette(),
+              );
+            },
+          );
         },
         contacts: (contactsSpec) {
           final coordinator = ref.read(

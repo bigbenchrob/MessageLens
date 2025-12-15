@@ -4,13 +4,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 // Import the cassette rack state provider and spec definitions so the menu can notify the rack
+import '../../../../config/theme.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 
 /// A widget representing the top menu of the sidebar.  This menu allows
 /// users to switch between the core sidebar utility views: Contacts,
 /// Unmatched phone numbers and emails, and All messages.  Instead of a
-/// vertical list, a macOS-style popup menu is used.  The selection state is
+/// vertical list, an in-cassette expandable menu is used.  The selection state is
 /// embedded in the [SidebarUtilityCassetteSpec] provided to this widget.
 /// When a user selects a new menu entry, the widget constructs a new
 /// sidebar spec and notifies the cassette rack state provider with
@@ -39,8 +40,7 @@ class TopChatMenu extends ConsumerStatefulWidget {
   ConsumerState<TopChatMenu> createState() => _TopChatMenuState();
 }
 
-class _TopChatMenuState extends ConsumerState<TopChatMenu>
-    with SingleTickerProviderStateMixin {
+class _TopChatMenuState extends ConsumerState<TopChatMenu> {
   bool _isOpen = false;
 
   void _toggleOpen() {
@@ -81,28 +81,13 @@ class _TopChatMenuState extends ConsumerState<TopChatMenu>
     }
 
     final theme = MacosTheme.of(context);
-    final brightness = theme.brightness;
+    final bbc = AppTheme.bbc(context);
 
-    final controlFill = brightness.resolve(
-      const Color(0xFFF3F3F4),
-      const Color(0xFF2A2A2E),
-    );
-    final panelFill = brightness.resolve(
-      const Color(0xFFF8F8F9),
-      const Color(0xFF232327),
-    );
-    final dividerColor = MacosDynamicColor.resolve(
-      MacosColors.separatorColor,
-      context,
-    );
-    final borderColor = MacosDynamicColor.resolve(
-      MacosColors.quaternaryLabelColor,
-      context,
-    );
-    final labelColor = MacosDynamicColor.resolve(
-      MacosColors.labelColor,
-      context,
-    );
+    final controlFill = bbc.bbcControlSurface;
+    final panelFill = bbc.bbcControlPanelSurface;
+    final dividerColor = bbc.bbcDivider;
+    final borderColor = bbc.bbcBorderSubtle;
+    final labelColor = bbc.bbcControlText;
 
     Widget buildTrigger() {
       return FocusableActionDetector(
@@ -118,7 +103,10 @@ class _TopChatMenuState extends ConsumerState<TopChatMenu>
               border: Border.all(color: borderColor),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 10.0,
+              ),
               child: Row(
                 children: [
                   Text(
@@ -132,14 +120,18 @@ class _TopChatMenuState extends ConsumerState<TopChatMenu>
                   Expanded(
                     child: Text(
                       selectedChoice.label,
-                      style: theme.typography.callout.copyWith(color: labelColor),
+                      style: theme.typography.callout.copyWith(
+                        color: labelColor,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
-                    _isOpen ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                    _isOpen
+                        ? CupertinoIcons.chevron_up
+                        : CupertinoIcons.chevron_down,
                     size: 14,
                     color: labelColor,
                   ),
@@ -219,14 +211,9 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
-    final labelColor = MacosDynamicColor.resolve(
-      MacosColors.labelColor,
-      context,
-    );
-    final selectedFill = MacosDynamicColor.resolve(
-      MacosColors.controlAccentColor,
-      context,
-    );
+    final bbc = AppTheme.bbc(context);
+    final labelColor = bbc.bbcControlText;
+    final selectedFill = bbc.bbcPrimaryOne;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -249,11 +236,7 @@ class _MenuRow extends StatelessWidget {
                 ),
               ),
               if (isSelected)
-                Icon(
-                  CupertinoIcons.check_mark,
-                  size: 14,
-                  color: labelColor,
-                ),
+                Icon(CupertinoIcons.check_mark, size: 14, color: labelColor),
             ],
           ),
         ),

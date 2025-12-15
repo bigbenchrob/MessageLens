@@ -7,7 +7,7 @@ part of 'cassette_widget_coordinator_provider.dart';
 // **************************************************************************
 
 String _$cassetteWidgetCoordinatorHash() =>
-    r'7fba19db9c1d240e14e83c5826f86ff70779f153';
+    r'306267804bc565eacb50932d5f80104d6f7454ba';
 
 /// Coordinates the construction of sidebar utility cassettes.
 ///

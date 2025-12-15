@@ -44,7 +44,7 @@ final rightPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RightPanelWidgetRef = AutoDisposeProviderRef<Widget>;
-String _$leftPanelWidgetHash() => r'9c28472f69680e3416ff5b74bb88fe35ff9b5db9';
+String _$leftPanelWidgetHash() => r'39bb743f2756bfafca4822d5fe87a824db6453e9';
 
 /// Widget provider for left panel (sidebar).
 ///

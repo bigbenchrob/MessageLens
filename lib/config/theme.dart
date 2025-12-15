@@ -20,6 +20,22 @@ abstract class AppTheme {
   // Colors
   // --------------------------------------------------------------------------
 
+  /// Big Bench colors.
+  ///
+  /// This is a small, opinionated palette layer on top of `macos_ui` that
+  /// provides:
+  /// - a numeric grayscale ramp (`bbcOne`..`bbcSix`) that flips meaningfully
+  ///   between light and dark mode
+  /// - a semantic palette (`bbcHeaderText`, `bbcCardBackground`, etc.) that we
+  ///   try to use by default inside the app UI.
+  ///
+  /// All values are either `CupertinoDynamicColor` from `MacosColors` or are
+  /// computed by resolving/blending dynamic colors against the current
+  /// `BuildContext`, so they respond to system dark mode automatically.
+  static BbcColors bbc(BuildContext context) {
+    return BbcColors._(context);
+  }
+
   static Color primaryColor(BuildContext context) {
     return MacosTheme.of(context).primaryColor;
   }
@@ -108,6 +124,151 @@ abstract class AppTheme {
         child: Padding(padding: padding, child: child),
       ),
     );
+  }
+}
+
+/// A context-bound palette so callers can't forget to resolve dynamic colors.
+class BbcColors {
+  BbcColors._(this._context);
+
+  final BuildContext _context;
+
+  Color _resolve(Color color) {
+    return MacosDynamicColor.resolve(color, _context);
+  }
+
+  // --------------------------------------------------------------------------
+  // Numeric grayscale (bbcOne..bbcSix)
+  //
+  // Goal: In light mode, bbcOne is darkest and bbcSix is lightest.
+  // In dark mode, the ramp flips to keep "one" meaningfully strong.
+  // --------------------------------------------------------------------------
+
+  /// Strongest text / darkest gray in light mode; brightest gray in dark mode.
+  Color get bbcOne => _resolve(MacosColors.labelColor);
+
+  /// Primary body text / secondary-strong.
+  Color get bbcTwo => _resolve(MacosColors.controlTextColor);
+
+  /// Secondary text.
+  Color get bbcThree => _resolve(MacosColors.secondaryLabelColor);
+
+  /// Tertiary/disabled-ish text and subtle accents.
+  Color get bbcFour => _resolve(MacosColors.tertiaryLabelColor);
+
+  /// Hairlines/borders.
+  Color get bbcFive => _resolve(MacosColors.quaternaryLabelColor);
+
+  /// Lightest surface in light mode; deepest surface in dark mode.
+  Color get bbcSix => _resolve(MacosColors.controlBackgroundColor);
+
+  /// Primary sidebar surface.
+  ///
+  /// Important: this should resolve to the standard macOS sidebar backdrop,
+  /// not the app window background. In dark mode, `windowBackgroundColor` can
+  /// resolve very light depending on material/elevation, which makes the
+  /// sidebar appear white.
+  Color get bbcSidebarBackground {
+    // Use the macOS control background dynamic color (sidebar-like surface).
+    return _resolve(MacosColors.controlBackgroundColor);
+  }
+
+  /// Baseline background for non-sidebar panels.
+  ///
+  /// This should match the `MacosWindow` background/canvas used by the center
+  /// and right panels.
+  Color get bbcPanelBackground => _resolve(MacosTheme.of(_context).canvasColor);
+
+  // --------------------------------------------------------------------------
+  // Semantic palette
+  // --------------------------------------------------------------------------
+
+  /// Preferred primary accent.
+  Color get bbcPrimaryOne => _resolve(MacosTheme.of(_context).primaryColor);
+
+  /// Alternate accent for highlights/warnings.
+  Color get bbcPrimaryTwo => _resolve(MacosColors.systemOrangeColor);
+
+  Color get bbcHeaderText => bbcOne;
+  Color get bbcBodyText => bbcTwo;
+  Color get bbcSubheadText => bbcThree;
+  Color get bbcHintText => bbcFour;
+
+  Color get bbcDivider => _resolve(MacosColors.separatorColor);
+  Color get bbcBorderSubtle => bbcFive;
+
+  Color get bbcCardBackground => bbcSix;
+
+  /// Foreground color for control chrome rendered on dark control surfaces.
+  ///
+  /// Some `MacosColors.*LabelColor` values can resolve unexpectedly dark in
+  /// certain macOS sidebar/material stacks. This token provides a reliable,
+  /// high-contrast foreground for control menus.
+  Color get bbcControlText {
+    final isDark = MacosTheme.of(_context).brightness.isDark;
+    return isDark ? _resolve(MacosColors.controlTextColor) : bbcBodyText;
+  }
+
+  /// A slightly lifted surface for “control” chrome in dark mode.
+  ///
+  /// In dark mode, `controlBackgroundColor` can read as near-black in some
+  /// sidebar contexts. This token provides a consistent, slightly lifted
+  /// surface for top-level controls without stealing focus from content.
+  Color get bbcControlSurface {
+    final isDark = MacosTheme.of(_context).brightness.isDark;
+    final base = bbcSidebarBackground;
+
+    if (!isDark) {
+      return base;
+    }
+
+    // In dark mode, create a “lifted” control surface by blending a neutral
+    // control tint over the window background (not over controlBackgroundColor,
+    // which can be nearly black in sidebar contexts).
+    return Color.alphaBlend(
+      _resolve(MacosColors.controlColor).withValues(alpha: 0.28),
+      base,
+    );
+  }
+
+  /// Surface used for expandable control panels (e.g. the TopChatMenu list).
+  ///
+  /// Slightly lighter than `bbcControlSurface` in dark mode so the panel reads
+  /// as a distinct element instead of a “black slab”.
+  Color get bbcControlPanelSurface {
+    final isDark = MacosTheme.of(_context).brightness.isDark;
+
+    if (!isDark) {
+      return bbcCardBackgroundTinted;
+    }
+
+    return Color.alphaBlend(
+      _resolve(MacosColors.controlColor).withValues(alpha: 0.16),
+      bbcSidebarBackground,
+    );
+  }
+
+  /// A slightly tinted surface for nested panels/menus.
+  Color get bbcCardBackgroundTinted {
+    return Color.alphaBlend(
+      _resolve(MacosColors.controlColor).withValues(alpha: 0.10),
+      bbcCardBackground,
+    );
+  }
+
+  /// Shadow optimized for the active brightness.
+  ///
+  /// Keep it very subtle; macOS dark mode wants less blur/opacity.
+  List<BoxShadow> get bbcCardShadow {
+    final isDark = MacosTheme.of(_context).brightness.isDark;
+    return [
+      BoxShadow(
+        color: (isDark ? const Color(0xFF000000) : const Color(0xFF000000))
+            .withValues(alpha: isDark ? 0.20 : 0.12),
+        blurRadius: isDark ? 3.0 : 4.0,
+        offset: const Offset(0, 2),
+      ),
+    ];
   }
 }
 

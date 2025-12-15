@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme.dart';
+
 /// Placeholder cassette for unmatched phone numbers and emails.
 class UnmatchedHandlesCassette extends StatelessWidget {
   const UnmatchedHandlesCassette({super.key});
@@ -9,23 +11,16 @@ class UnmatchedHandlesCassette extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typography = MacosTheme.of(context).typography;
-    final badgeColor = MacosTheme.of(context).primaryColor;
+    final bbc = AppTheme.bbc(context);
+    final badgeColor = bbc.bbcPrimaryOne;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MacosDynamicColor.resolve(
-          MacosColors.controlBackgroundColor,
-          context,
-        ),
+        color: bbc.bbcCardBackground,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: MacosDynamicColor.resolve(
-            MacosColors.quaternaryLabelColor,
-            context,
-          ),
-        ),
+        border: Border.all(color: bbc.bbcBorderSubtle),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +46,7 @@ class UnmatchedHandlesCassette extends StatelessWidget {
                 Text(
                   'A filtered list of unmatched handles will appear here.',
                   style: typography.caption1.copyWith(
-                    color: MacosColors.secondaryLabelColor,
+                    color: bbc.bbcSubheadText,
                   ),
                 ),
               ],

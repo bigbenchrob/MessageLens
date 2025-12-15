@@ -4,6 +4,7 @@ import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constant
 import 'features/contacts_cassette_spec.dart';
 import 'features/handles_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
+import 'features/presentation_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
 
 part 'cassette_spec.freezed.dart';
@@ -12,6 +13,8 @@ part 'cassette_spec.freezed.dart';
 abstract class CassetteSpec with _$CassetteSpec {
   const factory CassetteSpec.sidebarUtility(SidebarUtilityCassetteSpec spec) =
       _CassetteSidebarWidget;
+  const factory CassetteSpec.presentation(PresentationCassetteSpec spec) =
+      _CassettePresentation;
   const factory CassetteSpec.contacts(ContactsCassetteSpec spec) =
       _CasetteContacts;
   const factory CassetteSpec.handles(HandlesCassetteSpec spec) =
@@ -25,6 +28,7 @@ extension CassetteSpecX on CassetteSpec {
   CassetteSpec? childSpec() {
     return when(
       sidebarUtility: (sidebarSpec) => sidebarSpec.childSpec(),
+      presentation: (spec) => spec.childSpec(),
       contacts: (contactsSpec) => contactsSpec.childSpec(),
       handles: (handlesSpec) => handlesSpec.childSpec(),
       messages: (messagesSpec) => messagesSpec.childSpec(),
@@ -52,6 +56,11 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
           case TopChatMenuChoice.allMessages:
             return const CassetteSpec.messages(
               MessagesCassetteSpec.heatMap(contactId: null),
+            );
+
+          case TopChatMenuChoice.themePlayground:
+            return const CassetteSpec.presentation(
+              PresentationCassetteSpec.themePlayground(),
             );
         }
       },

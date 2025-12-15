@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../../../config/theme.dart';
 
 // Import the sidebar cassette widget coordinator to build the left panel.
 // The provider defined there (cassetteWidgetCoordinatorProvider) exposes the list
@@ -53,11 +54,24 @@ Widget leftPanelWidget(Ref ref) {
   // updates this list, causing the left panel to rebuild.
   final cassetteWidgets = ref.watch(cassetteWidgetCoordinatorProvider);
   return MouseRegion(
-    child: Material(
+    child: _LeftSidebarSurface(cassetteWidgets: cassetteWidgets),
+  );
+}
+
+class _LeftSidebarSurface extends ConsumerWidget {
+  const _LeftSidebarSurface({required this.cassetteWidgets});
+
+  final List<Widget> cassetteWidgets;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bbc = AppTheme.bbc(context);
+    return ColoredBox(
+      color: bbc.bbcPanelBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: cassetteWidgets,
       ),
-    ),
-  );
+    );
+  }
 }

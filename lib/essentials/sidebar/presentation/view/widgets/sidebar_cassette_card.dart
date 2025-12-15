@@ -46,6 +46,7 @@ class SidebarCassetteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bbc = AppTheme.bbc(context);
     // Resolve a macOS control colour for the card background.  The control
     // colour is used by Apple to paint surfaces of controls and has a subtle
     // translucency (10% black on light mode, 25% white on dark mode).  Using
@@ -56,10 +57,7 @@ class SidebarCassetteCard extends StatelessWidget {
       context,
     );
 
-    final sidebarBackgroundColor = MacosDynamicColor.resolve(
-      MacosColors.windowBackgroundColor,
-      context,
-    );
+    final sidebarBackgroundColor = bbc.bbcSidebarBackground;
 
     // Use a lighter, macOS‑style separator colour for the card border.  If the
     // current theme is dark, use the dark variant of the separator colour;
@@ -105,15 +103,7 @@ class SidebarCassetteCard extends StatelessWidget {
         color: effectiveBackgroundColor,
         borderRadius: BorderRadius.circular(effectiveBorderRadius),
         border: isControl ? null : Border.all(color: effectiveBorderColor),
-        boxShadow: isControl
-            ? const []
-            : const [
-                BoxShadow(
-                  color: Color(0x29000000), // subtle shadow
-                  blurRadius: 4.0,
-                  offset: Offset(0, 2),
-                ),
-              ],
+        boxShadow: isControl ? const [] : bbc.bbcCardShadow,
       ),
       child: Padding(
         padding: effectivePadding,

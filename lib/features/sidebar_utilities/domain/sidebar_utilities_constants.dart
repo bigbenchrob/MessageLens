@@ -8,7 +8,8 @@ enum TopChatMenuChoice {
     id: 'unmatched_handles',
     label: 'Unmatched phone numbers and emails',
   ),
-  allMessages(id: 'all_messages', label: 'All messages');
+  allMessages(id: 'all_messages', label: 'All messages'),
+  themePlayground(id: 'theme_playground', label: 'Theme playground');
 
   const TopChatMenuChoice({required this.id, required this.label});
 
