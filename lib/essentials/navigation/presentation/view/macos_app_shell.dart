@@ -16,7 +16,6 @@ import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/features/messages_spec.dart';
 import '../../domain/entities/features/settings_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
-import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
 import '../../feature_level_providers.dart';
@@ -31,12 +30,8 @@ class MacosAppShell extends ConsumerStatefulWidget {
 }
 
 class _MacosAppShellState extends ConsumerState<MacosAppShell> {
-  double? _sidebarWidth;
-  double? _endSidebarWidth;
-  double? _savedEndSidebarWidth; // Remember width when collapsed
-  bool _endSidebarVisible = false;
+  static const double _navigationColumnWidth = 320;
   bool _initialized = false;
-  Timer? _debounceTimer;
   Timer? _windowFrameDebounce;
   DateTime _lastFrameSave = DateTime.fromMillisecondsSinceEpoch(0);
   bool _pendingTrailingFrameSave = false;
@@ -50,12 +45,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
   Future<void> _restore() async {
     try {
       final svc = ref.read(windowStateServiceProvider);
-      final state = await svc.loadWindowState();
+      await svc.loadWindowState();
       if (mounted) {
         setState(() {
-          _sidebarWidth = state.sidebarWidth;
-          _endSidebarWidth = state.endSidebarWidth;
-          _savedEndSidebarWidth = state.endSidebarWidth; // Remember last width
           _initialized = true;
         });
       }
@@ -68,40 +60,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     }
   }
 
-  void _debounceSave(Future<void> Function() op) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 120), () {
-      op();
-    });
-  }
-
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     _windowFrameDebounce?.cancel();
     super.dispose();
-  }
-
-  void _handleEndSidebarContentChange(bool hasContent) {
-    if (hasContent && !_endSidebarVisible) {
-      // Restore sidebar to saved width
-      setState(() {
-        _endSidebarVisible = true;
-        _endSidebarWidth = _savedEndSidebarWidth ?? 280.0;
-      });
-    } else if (!hasContent && _endSidebarVisible) {
-      // Remember current width before collapsing
-      setState(() {
-        _savedEndSidebarWidth = _endSidebarWidth;
-        _endSidebarVisible = false;
-        _endSidebarWidth = 0.0;
-      });
-      // Save the collapsed state
-      final windowSvc = ref.read(windowStateServiceProvider);
-      _debounceSave(() async {
-        await windowSvc.saveSidebarWidths(endSidebarWidth: 0.0);
-      });
-    }
   }
 
   @override
@@ -140,56 +102,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       }
     });
 
-    // Watch for right panel content changes and auto-show/hide sidebar
-    ref.listen<Map<WindowPanel, PanelStack>>(panelsViewStateProvider, (
-      previous,
-      next,
-    ) {
-      final stack = next[WindowPanel.right];
-      final hasContent = stack != null && !stack.isEmpty;
-      _handleEndSidebarContentChange(hasContent);
-    });
-
     return MacosWindow(
-      onSidebarWidthChanged: (w) {
-        final width = w < 0.0 ? 0.0 : w;
-        setState(() {
-          _sidebarWidth = width;
-        });
-        _debounceSave(() async {
-          await windowSvc.saveSidebarWidths(sidebarWidth: width);
-        });
-      },
-      onEndSidebarWidthChanged: (w) {
-        final width = w < 0.0 ? 0.0 : w;
-        setState(() {
-          _endSidebarWidth = width;
-        });
-        _debounceSave(() async {
-          await windowSvc.saveSidebarWidths(endSidebarWidth: width);
-        });
-      },
-      sidebar: Sidebar(
-        isResizable: false,
-        minWidth: 320,
-        startWidth: _sidebarWidth ?? 320,
-        decoration: BoxDecoration(
-          color: AppTheme.bbc(context).bbcSidebarBackground,
-        ),
-        builder: (context, scrollController) {
-          return ref.watch(leftPanelWidgetProvider);
-        },
-      ),
-      endSidebar: Sidebar(
-        minWidth: 120,
-        startWidth: _endSidebarWidth ?? 280,
-        decoration: BoxDecoration(
-          color: AppTheme.bbc(context).bbcSidebarBackground,
-        ),
-        builder: (context, scrollController) {
-          return ref.watch(rightPanelWidgetProvider);
-        },
-      ),
       child: MacosScaffold(
         toolBar: ToolBar(
           title: const Text('Remember This Text'),
@@ -375,7 +288,20 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         children: [
           ContentArea(
             builder: (context, scrollController) {
-              return ref.watch(centerPanelWidgetProvider);
+              final theme = AppTheme.bbc(context);
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: _navigationColumnWidth,
+                    child: ColoredBox(
+                      color: theme.bbcSidebarBackground,
+                      child: ref.watch(leftPanelWidgetProvider),
+                    ),
+                  ),
+                  Expanded(child: ref.watch(centerPanelWidgetProvider)),
+                ],
+              );
             },
           ),
         ],
