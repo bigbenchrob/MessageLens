@@ -6,10 +6,10 @@
 - [ ] Audit existing ViewSpec / cassette flows for sidebar dependencies.
 
 ## Implementation
-- [ ] Introduce layout scaffolding that replaces `MacosWindow` sidebars with a fixed left column surface.
-- [ ] Update navigation providers to target the new layout container.
-- [ ] Ensure toolbar configuration spans full window width and maintains existing actions.
-- [ ] Wire theme tokens for the navigation column in both light and dark modes.
+- [x] Introduce layout scaffolding that replaces `MacosWindow` sidebars with a fixed left column surface.
+- [x] Update navigation providers to target the new layout container.
+- [x] Ensure toolbar configuration spans full window width and maintains existing actions.
+- [x] Wire theme tokens for the navigation column in both light and dark modes.
 - [ ] Remove dead code related to right sidebar orchestration.
 
 ## Verification

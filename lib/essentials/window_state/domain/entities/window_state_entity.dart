@@ -11,7 +11,6 @@ abstract class WindowStateEntity with _$WindowStateEntity {
     required double y,
     required bool isMinimized,
     required double sidebarWidth,
-    required double endSidebarWidth,
   }) = _WindowStateEntity;
 
   factory WindowStateEntity.defaultState() => const WindowStateEntity(
@@ -21,6 +20,5 @@ abstract class WindowStateEntity with _$WindowStateEntity {
     y: 100.0,
     isMinimized: false,
     sidebarWidth: 320.0,
-    endSidebarWidth: 280.0,
   );
 }

@@ -2,8 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../config/theme.dart';
-
 // Import the sidebar cassette widget coordinator to build the left panel.
 // The provider defined there (cassetteWidgetCoordinatorProvider) exposes the list
 // of cassette widgets that compose the sidebar.  We wrap these in a
@@ -29,19 +27,6 @@ Widget centerPanelWidget(Ref ref) {
       .buildPanelSurface(WindowPanel.center, stack);
 }
 
-/// Widget provider for right panel
-@riverpod
-Widget rightPanelWidget(Ref ref) {
-  final stack = ref.watch(
-    panelsViewStateProvider.select(
-      (stacks) => stacks[WindowPanel.right] ?? const PanelStack.empty(),
-    ),
-  );
-  return ref
-      .read(panelCoordinatorProvider.notifier)
-      .buildPanelSurface(WindowPanel.right, stack);
-}
-
 /// Widget provider for left panel (sidebar).
 ///
 /// This provider builds the left panel by reading the current list of
@@ -58,20 +43,16 @@ Widget leftPanelWidget(Ref ref) {
   );
 }
 
-class _LeftSidebarSurface extends ConsumerWidget {
+class _LeftSidebarSurface extends StatelessWidget {
   const _LeftSidebarSurface({required this.cassetteWidgets});
 
   final List<Widget> cassetteWidgets;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bbc = AppTheme.bbc(context);
-    return ColoredBox(
-      color: bbc.bbcPanelBackground,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: cassetteWidgets,
-      ),
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: cassetteWidgets,
     );
   }
 }

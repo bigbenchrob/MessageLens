@@ -21,7 +21,7 @@ import '../../domain/navigation_constants.dart';
 import '../../feature_level_providers.dart';
 import '../view_model/panel_widget_providers.dart';
 
-/// Basic macOS window with two sidebars
+/// macOS window with a fixed navigation column and primary content canvas.
 class MacosAppShell extends ConsumerStatefulWidget {
   const MacosAppShell({super.key});
 
@@ -31,6 +31,8 @@ class MacosAppShell extends ConsumerStatefulWidget {
 
 class _MacosAppShellState extends ConsumerState<MacosAppShell> {
   static const double _navigationColumnWidth = 320;
+  static const double _toolbarHorizontalPadding = 8.0;
+  static const double _toolbarVerticalPadding = 4.0;
   bool _initialized = false;
   Timer? _windowFrameDebounce;
   DateTime _lastFrameSave = DateTime.fromMillisecondsSinceEpoch(0);
@@ -105,6 +107,14 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     return MacosWindow(
       child: MacosScaffold(
         toolBar: ToolBar(
+          // Offset toolbar contents so controls align with the center panel
+          // while the background stretches across the full window width.
+          padding: const EdgeInsets.only(
+            left: _navigationColumnWidth + _toolbarHorizontalPadding,
+            right: _toolbarHorizontalPadding,
+            top: _toolbarVerticalPadding,
+            bottom: _toolbarVerticalPadding,
+          ),
           title: const Text('Remember This Text'),
           centerTitle: true,
           leading: MacosTooltip(
@@ -252,14 +262,14 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     .read(navigationLoggerProvider.notifier)
                     .logToolbarClick(
                       buttonLabel: 'Import',
-                      targetPanel: WindowPanel.right,
+                      targetPanel: WindowPanel.center,
                       viewSpec: spec,
                     );
 
                 // Perform the navigation
                 ref
                     .read(panelsViewStateProvider.notifier)
-                    .show(panel: WindowPanel.right, spec: spec);
+                    .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
             ),
@@ -288,14 +298,22 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         children: [
           ContentArea(
             builder: (context, scrollController) {
-              final theme = AppTheme.bbc(context);
+              final colors = AppTheme.bbc(context);
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
                     width: _navigationColumnWidth,
-                    child: ColoredBox(
-                      color: theme.bbcSidebarBackground,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.bbcNavigationColumnBackground,
+                        border: Border(
+                          right: BorderSide(
+                            color: colors.bbcNavigationColumnDivider,
+                            width: 1,
+                          ),
+                        ),
+                      ),
                       child: ref.watch(leftPanelWidgetProvider),
                     ),
                   ),

@@ -159,7 +159,3 @@ class SelectedScreenTag extends _$SelectedScreenTag {
     state = tag;
   }
 }
-
-/// Feature flag to enable/disable the end (right) sidebar content
-@riverpod
-bool endSidebarEnabled(Ref ref) => true;

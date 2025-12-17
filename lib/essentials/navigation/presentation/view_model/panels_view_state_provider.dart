@@ -10,13 +10,12 @@ part 'panels_view_state_provider.g.dart';
 class PanelsViewState extends _$PanelsViewState {
   int _pageIdSeed = 0;
 
-  /// Map from WindowPanel -> stack of pages to render.
+  /// Map from WindowPanel -> stack of pages to render. Currently only the
+  /// center panel participates in the layout, but we keep the map structure so
+  /// future multi-panel scenarios can reuse this state without breaking APIs.
   @override
   Map<WindowPanel, PanelStack> build() {
-    return {
-      WindowPanel.center: const PanelStack.empty(),
-      WindowPanel.right: const PanelStack.empty(),
-    };
+    return {WindowPanel.center: const PanelStack.empty()};
   }
 
   // Show a new panel stack with a single page, replacing any existing stack.
