@@ -2,6 +2,8 @@
 
 This file serves as the master index for all critical documentation that AI agents MUST reference when working on this project. **EVERY AGENT MUST READ THIS FILE AND THE REFERENCED DOCUMENTATION BEFORE MAKING CODE CHANGES.**
 
+> Start with `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md` before following any other instructions listed here. The guardrails define the required planning, approval, and scope controls for both Copilot and Codex agents.
+
 ## 🚨 CRITICAL READING ORDER 🚨
 
 **READ THESE FILES IN THIS EXACT ORDER:**

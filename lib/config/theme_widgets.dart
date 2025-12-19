@@ -179,7 +179,8 @@ class _DropdownBorderPainter extends CustomPainter {
 
       paint.color = colors[index];
 
-      final rect = Offset(offset, offset) &
+      final rect =
+          Offset(offset, offset) &
           Size(size.width - offset * 2, size.height - offset * 2);
       final rrect = _insetBorderRadius(borderRadius, offset).toRRect(rect);
 
@@ -479,6 +480,7 @@ class _AppDropdownMenuState<T> extends State<_AppDropdownMenu<T>>
       final isSelected = _equals(option, widget.selectedOption);
       final optionLabel = widget.optionLabelBuilder(option);
       final selectedFill = bbc.bbcPrimaryOne;
+      final selectedTextColor = bbc.bbcPrimaryOne;
 
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -487,7 +489,7 @@ class _AppDropdownMenuState<T> extends State<_AppDropdownMenu<T>>
         },
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: isSelected ? selectedFill : null,
+            color: isSelected ? selectedFill.withValues(alpha: 0.16) : null,
           ),
           child: Padding(
             padding: widget.itemPadding,
@@ -497,7 +499,7 @@ class _AppDropdownMenuState<T> extends State<_AppDropdownMenu<T>>
                   child: Text(
                     optionLabel,
                     style: typography.callout.copyWith(
-                      color: labelColor,
+                      color: isSelected ? selectedTextColor : labelColor,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w400,
@@ -505,7 +507,11 @@ class _AppDropdownMenuState<T> extends State<_AppDropdownMenu<T>>
                   ),
                 ),
                 if (isSelected && widget.showSelectionCheckmark)
-                  Icon(CupertinoIcons.check_mark, size: 14, color: labelColor),
+                  Icon(
+                    CupertinoIcons.check_mark,
+                    size: 14,
+                    color: selectedTextColor,
+                  ),
               ],
             ),
           ),

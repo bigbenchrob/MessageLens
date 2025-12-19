@@ -14,6 +14,8 @@ tests: []
 
 This directory captures Remember Every Text–specific documentation that complements the shared rules in `agent-instructions-shared/`. Start here before modifying the app or its data pipelines.
 
+> ⚠️ Read `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md` before using this index. The guardrails define planning, approval, and diff-scope rules for all agents.
+
 ## Canonical Map
 
 | Folder | Purpose | Canonical docs |
@@ -28,7 +30,7 @@ This directory captures Remember Every Text–specific documentation that comple
 
 ## Workflow Expectations
 
-1. **Read shared standards first.** `_AGENT_INSTRUCTIONS/agent-instructions-shared/INDEX.md` lists mandatory lint, Riverpod, and architecture rules.
+1. **Read shared standards first.** Start with the guardrails in `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md`, then follow `_AGENT_INSTRUCTIONS/agent-instructions-shared/INDEX.md` for lint, Riverpod, and architecture rules.
 2. **Use these docs when planning work.** Every feature proposal, migration, or provider change should reference the relevant per-project doc before editing code.
 3. **Keep metadata current.** Update the `last_reviewed` field whenever a document is edited and ensure links stay valid when files move.
 4. **Retire `_agent-per-project_old/` references.** If you find a pointer back to the legacy tree, migrate the content or update the link in this structure.

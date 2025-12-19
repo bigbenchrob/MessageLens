@@ -107,29 +107,28 @@ class BbcColors {
   // --------------------------------------------------------------------------
 
   /// Strongest text / darkest gray in light mode; brightest gray in dark mode.
-    Color get bbcOne =>
-      _isDark ? _darkText : _resolve(MacosColors.labelColor);
+  Color get bbcOne => _isDark ? _darkText : _resolve(MacosColors.labelColor);
 
   /// Primary body text / secondary-strong.
-    Color get bbcTwo =>
+  Color get bbcTwo =>
       _isDark ? _darkText : _resolve(MacosColors.controlTextColor);
 
   /// Secondary text.
-    Color get bbcThree => _isDark
+  Color get bbcThree => _isDark
       ? Color.lerp(_darkText, _black, 0.35)!
       : _resolve(MacosColors.secondaryLabelColor);
 
   /// Tertiary/disabled-ish text and subtle accents.
-    Color get bbcFour => _isDark
+  Color get bbcFour => _isDark
       ? Color.lerp(_darkText, _black, 0.55)!
       : _resolve(MacosColors.tertiaryLabelColor);
 
   /// Hairlines/borders.
-    Color get bbcFive =>
+  Color get bbcFive =>
       _isDark ? _darkDivider : _resolve(MacosColors.quaternaryLabelColor);
 
   /// Lightest surface in light mode; deepest surface in dark mode.
-    Color get bbcSix => _isDark
+  Color get bbcSix => _isDark
       ? _darkControlBackground
       : _resolve(MacosColors.controlBackgroundColor);
 
@@ -172,19 +171,19 @@ class BbcColors {
   ///
   /// This should match the `MacosWindow` background/canvas used by the center
   /// and right panels.
-  Color get bbcPanelBackground =>
-      _isDark ? _darkControlBackground : _resolve(MacosTheme.of(_context).canvasColor);
+  Color get bbcPanelBackground => _isDark
+      ? _darkControlBackground
+      : _resolve(MacosTheme.of(_context).canvasColor);
 
   // --------------------------------------------------------------------------
   // Semantic palette
   // --------------------------------------------------------------------------
 
   /// Preferred primary accent.
-    Color get bbcPrimaryOne =>
-      _isDark ? _darkHighlight : _resolve(MacosTheme.of(_context).primaryColor);
+  Color get bbcPrimaryOne => _isDark ? _darkHighlight : _darkHighlight;
 
   /// Alternate accent for highlights/warnings.
-    Color get bbcPrimaryTwo =>
+  Color get bbcPrimaryTwo =>
       _isDark ? _darkHighlight : _resolve(MacosColors.systemOrangeColor);
 
   Color get bbcHeaderText => bbcOne;
@@ -257,8 +256,7 @@ class BbcColors {
   List<BoxShadow> get bbcCardShadow {
     return [
       BoxShadow(
-        color: const Color(0xFF000000)
-            .withValues(alpha: _isDark ? 0.20 : 0.12),
+        color: const Color(0xFF000000).withValues(alpha: _isDark ? 0.20 : 0.12),
         blurRadius: _isDark ? 3.0 : 4.0,
         offset: const Offset(0, 2),
       ),

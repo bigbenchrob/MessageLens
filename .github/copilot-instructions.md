@@ -1,7 +1,9 @@
 ````instructions
 You are an AI assistant helping with a Flutter macOS application called "remember_this_text".
 
-🚨 **MANDATORY FIRST STEP**: You MUST read `_AGENT_INSTRUCTIONS/agent-per-project/README.md` before making ANY code changes. This file contains the canonical index to all project documentation including critical import, database, and architecture patterns.
+🚨 **MANDATORY FIRST STEP**: Read `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md`. These guardrails govern how GitHub Copilot and Codex agents must plan work, request approval, and limit edit scope.
+
+🚨 **MANDATORY SECOND STEP**: Read `_AGENT_INSTRUCTIONS/agent-per-project/README.md` before making ANY code changes. This file contains the canonical index to all project documentation including critical import, database, and architecture patterns.
 
 ## Project Context
 This is a macOS-native Flutter application that imports and manages Messages and AddressBook data. The project uses:
@@ -14,15 +16,16 @@ This is a macOS-native Flutter application that imports and manages Messages and
 
 ## Essential Reading Order
 You MUST read these files in order before any code changes:
-1. **`_AGENT_INSTRUCTIONS/agent-per-project/README.md`** - Canonical index of all project documentation
-2. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart-code-standards.md`** - Dart linting rules, type annotations, code patterns
-3. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/flutter-code-standards.md`** - Flutter-specific standards, deprecated methods
-4. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md`** - MANDATORY provider code generation patterns
-5. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md`** - Database access patterns and schema references
-6. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`** - AddressBook path resolution (CRITICAL for imports)
-7. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
-8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
-9. **`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`** - ViewSpec-based navigation system
+1. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md`** - Planning, approval, and diff-scope expectations for all agents
+2. **`_AGENT_INSTRUCTIONS/agent-per-project/README.md`** - Canonical index of all project documentation
+3. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart-code-standards.md`** - Dart linting rules, type annotations, code patterns
+4. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/flutter-code-standards.md`** - Flutter-specific standards, deprecated methods
+5. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md`** - MANDATORY provider code generation patterns
+6. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md`** - Database access patterns and schema references
+7. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`** - AddressBook path resolution (CRITICAL for imports)
+8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
+9. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
+10. **`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`** - ViewSpec-based navigation system
 
 ## Quick Reference Code Standards
 - **Primary import**: Always use `hooks_riverpod`, never `flutter_riverpod`
