@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 // Import the cassette rack state provider and spec definitions so the menu can notify the rack
-import '../../../../config/theme.dart';
+import '../../../../config/theme/theme.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 

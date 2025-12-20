@@ -4,7 +4,7 @@ library config.theme;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-export 'theme_widgets.dart';
+export 'widgets/theme_widgets.dart';
 
 /// Centralized theme helpers for the app.
 ///
