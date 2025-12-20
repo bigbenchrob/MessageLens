@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme.dart';
+import '../../../../config/theme/theme.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';

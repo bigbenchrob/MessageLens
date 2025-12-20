@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 // Pull in macOS‑specific colors for a more subtle border.
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../../config/theme.dart';
+import '../../../../../config/theme/theme.dart';
 
 /// A reusable card container for sidebar cassette widgets.
 ///

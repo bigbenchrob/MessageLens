@@ -89,25 +89,6 @@ final darkModeRefresherProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DarkModeRefresherRef = AutoDisposeProviderRef<bool>;
-String _$endSidebarEnabledHash() => r'28b22cb5135f517a927d8973f5293887ee8ffa31';
-
-/// Feature flag to enable/disable the end (right) sidebar content
-///
-/// Copied from [endSidebarEnabled].
-@ProviderFor(endSidebarEnabled)
-final endSidebarEnabledProvider = AutoDisposeProvider<bool>.internal(
-  endSidebarEnabled,
-  name: r'endSidebarEnabledProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$endSidebarEnabledHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef EndSidebarEnabledRef = AutoDisposeProviderRef<bool>;
 String _$selectedPageIndexHash() => r'bc30c0eceb040c96c3ea8a896d47b53a9a8cd951';
 
 /// Cache the index of the page selected in the sidebar

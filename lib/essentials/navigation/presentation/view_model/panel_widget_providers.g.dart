@@ -25,25 +25,6 @@ final centerPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CenterPanelWidgetRef = AutoDisposeProviderRef<Widget>;
-String _$rightPanelWidgetHash() => r'8be6dc057c9b8db35debc1fe7c2a9e18ab1b4b5a';
-
-/// Widget provider for right panel
-///
-/// Copied from [rightPanelWidget].
-@ProviderFor(rightPanelWidget)
-final rightPanelWidgetProvider = AutoDisposeProvider<Widget>.internal(
-  rightPanelWidget,
-  name: r'rightPanelWidgetProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$rightPanelWidgetHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef RightPanelWidgetRef = AutoDisposeProviderRef<Widget>;
 String _$leftPanelWidgetHash() => r'39bb743f2756bfafca4822d5fe87a824db6453e9';
 
 /// Widget provider for left panel (sidebar).

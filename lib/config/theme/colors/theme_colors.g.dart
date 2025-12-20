@@ -1,28 +1,26 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'panel_coordinator_provider.dart';
+part of 'theme_colors.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panelCoordinatorHash() => r'f842191b279b3be7b632bbfd12039d3b827993d5';
+String _$themeColorsHash() => r'8e973f54e2f72f6efe6e34648f3b7aca21d5c412';
 
-/// Coordinator that maps panel ViewSpecs to rendered widgets
-///
-/// Copied from [PanelCoordinator].
-@ProviderFor(PanelCoordinator)
-final panelCoordinatorProvider =
-    AutoDisposeNotifierProvider<PanelCoordinator, void>.internal(
-      PanelCoordinator.new,
-      name: r'panelCoordinatorProvider',
+/// See also [ThemeColors].
+@ProviderFor(ThemeColors)
+final themeColorsProvider =
+    AutoDisposeNotifierProvider<ThemeColors, Brightness>.internal(
+      ThemeColors.new,
+      name: r'themeColorsProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$panelCoordinatorHash,
+          : _$themeColorsHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$PanelCoordinator = AutoDisposeNotifier<void>;
+typedef _$ThemeColors = AutoDisposeNotifier<Brightness>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

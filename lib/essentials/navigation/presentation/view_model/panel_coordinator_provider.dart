@@ -30,7 +30,7 @@ class PanelCoordinator extends _$PanelCoordinator {
       previous,
       next,
     ) {
-      final nextStack = next[WindowPanel.right];
+      final nextStack = next[WindowPanel.center];
       final nextSpec = nextStack?.activePage?.spec;
       if (nextSpec == null) {
         return;

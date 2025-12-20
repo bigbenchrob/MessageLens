@@ -10,7 +10,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
   static const String _keyY = 'window_y';
   static const String _keyIsMinimized = 'window_is_minimized';
   static const String _keySidebarWidth = 'sidebar_width';
-  static const String _keyEndSidebarWidth = 'end_sidebar_width';
 
   @override
   Future<WindowStateEntity?> loadWindowState() async {
@@ -23,7 +22,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
       final y = prefs.getDouble(_keyY);
       final isMinimized = prefs.getBool(_keyIsMinimized);
       final sidebarWidth = prefs.getDouble(_keySidebarWidth);
-      final endSidebarWidth = prefs.getDouble(_keyEndSidebarWidth);
 
       // Only return state if we have valid window dimensions
       if (width != null && height != null && x != null && y != null) {
@@ -40,7 +38,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
             y: y,
             isMinimized: isMinimized ?? false,
             sidebarWidth: sidebarWidth ?? 320.0,
-            endSidebarWidth: endSidebarWidth ?? 280.0,
           );
           return state;
         } else {
@@ -70,7 +67,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
       await prefs.setDouble(_keyY, state.y);
       await prefs.setBool(_keyIsMinimized, state.isMinimized);
       await prefs.setDouble(_keySidebarWidth, state.sidebarWidth);
-      await prefs.setDouble(_keyEndSidebarWidth, state.endSidebarWidth);
     } catch (e) {
       // Fail silently - not critical
     }
@@ -88,7 +84,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
         prefs.remove(_keyY),
         prefs.remove(_keyIsMinimized),
         prefs.remove(_keySidebarWidth),
-        prefs.remove(_keyEndSidebarWidth),
       ]);
     } catch (e) {
       // Silently fail

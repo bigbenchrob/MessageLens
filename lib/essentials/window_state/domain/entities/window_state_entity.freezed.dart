@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WindowStateEntity {
 
- double get width; double get height; double get x; double get y; bool get isMinimized; double get sidebarWidth; double get endSidebarWidth;
+ double get width; double get height; double get x; double get y; bool get isMinimized; double get sidebarWidth;
 /// Create a copy of WindowStateEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $WindowStateEntityCopyWith<WindowStateEntity> get copyWith => _$WindowStateEntit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WindowStateEntity&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.isMinimized, isMinimized) || other.isMinimized == isMinimized)&&(identical(other.sidebarWidth, sidebarWidth) || other.sidebarWidth == sidebarWidth)&&(identical(other.endSidebarWidth, endSidebarWidth) || other.endSidebarWidth == endSidebarWidth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WindowStateEntity&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.isMinimized, isMinimized) || other.isMinimized == isMinimized)&&(identical(other.sidebarWidth, sidebarWidth) || other.sidebarWidth == sidebarWidth));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,width,height,x,y,isMinimized,sidebarWidth,endSidebarWidth);
+int get hashCode => Object.hash(runtimeType,width,height,x,y,isMinimized,sidebarWidth);
 
 @override
 String toString() {
-  return 'WindowStateEntity(width: $width, height: $height, x: $x, y: $y, isMinimized: $isMinimized, sidebarWidth: $sidebarWidth, endSidebarWidth: $endSidebarWidth)';
+  return 'WindowStateEntity(width: $width, height: $height, x: $x, y: $y, isMinimized: $isMinimized, sidebarWidth: $sidebarWidth)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $WindowStateEntityCopyWith<$Res>  {
   factory $WindowStateEntityCopyWith(WindowStateEntity value, $Res Function(WindowStateEntity) _then) = _$WindowStateEntityCopyWithImpl;
 @useResult
 $Res call({
- double width, double height, double x, double y, bool isMinimized, double sidebarWidth, double endSidebarWidth
+ double width, double height, double x, double y, bool isMinimized, double sidebarWidth
 });
 
 
@@ -62,7 +62,7 @@ class _$WindowStateEntityCopyWithImpl<$Res>
 
 /// Create a copy of WindowStateEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? width = null,Object? height = null,Object? x = null,Object? y = null,Object? isMinimized = null,Object? sidebarWidth = null,Object? endSidebarWidth = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? width = null,Object? height = null,Object? x = null,Object? y = null,Object? isMinimized = null,Object? sidebarWidth = null,}) {
   return _then(_self.copyWith(
 width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
 as double,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
@@ -70,7 +70,6 @@ as double,x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
 as double,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
 as double,isMinimized: null == isMinimized ? _self.isMinimized : isMinimized // ignore: cast_nullable_to_non_nullable
 as bool,sidebarWidth: null == sidebarWidth ? _self.sidebarWidth : sidebarWidth // ignore: cast_nullable_to_non_nullable
-as double,endSidebarWidth: null == endSidebarWidth ? _self.endSidebarWidth : endSidebarWidth // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }
@@ -156,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth,  double endSidebarWidth)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WindowStateEntity() when $default != null:
-return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth,_that.endSidebarWidth);case _:
+return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth);case _:
   return orElse();
 
 }
@@ -177,10 +176,10 @@ return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth,  double endSidebarWidth)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth)  $default,) {final _that = this;
 switch (_that) {
 case _WindowStateEntity():
-return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth,_that.endSidebarWidth);case _:
+return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +196,10 @@ return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth,  double endSidebarWidth)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double width,  double height,  double x,  double y,  bool isMinimized,  double sidebarWidth)?  $default,) {final _that = this;
 switch (_that) {
 case _WindowStateEntity() when $default != null:
-return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth,_that.endSidebarWidth);case _:
+return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that.sidebarWidth);case _:
   return null;
 
 }
@@ -212,7 +211,7 @@ return $default(_that.width,_that.height,_that.x,_that.y,_that.isMinimized,_that
 
 
 class _WindowStateEntity implements WindowStateEntity {
-  const _WindowStateEntity({required this.width, required this.height, required this.x, required this.y, required this.isMinimized, required this.sidebarWidth, required this.endSidebarWidth});
+  const _WindowStateEntity({required this.width, required this.height, required this.x, required this.y, required this.isMinimized, required this.sidebarWidth});
   
 
 @override final  double width;
@@ -221,7 +220,6 @@ class _WindowStateEntity implements WindowStateEntity {
 @override final  double y;
 @override final  bool isMinimized;
 @override final  double sidebarWidth;
-@override final  double endSidebarWidth;
 
 /// Create a copy of WindowStateEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +231,16 @@ _$WindowStateEntityCopyWith<_WindowStateEntity> get copyWith => __$WindowStateEn
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WindowStateEntity&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.isMinimized, isMinimized) || other.isMinimized == isMinimized)&&(identical(other.sidebarWidth, sidebarWidth) || other.sidebarWidth == sidebarWidth)&&(identical(other.endSidebarWidth, endSidebarWidth) || other.endSidebarWidth == endSidebarWidth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WindowStateEntity&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.isMinimized, isMinimized) || other.isMinimized == isMinimized)&&(identical(other.sidebarWidth, sidebarWidth) || other.sidebarWidth == sidebarWidth));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,width,height,x,y,isMinimized,sidebarWidth,endSidebarWidth);
+int get hashCode => Object.hash(runtimeType,width,height,x,y,isMinimized,sidebarWidth);
 
 @override
 String toString() {
-  return 'WindowStateEntity(width: $width, height: $height, x: $x, y: $y, isMinimized: $isMinimized, sidebarWidth: $sidebarWidth, endSidebarWidth: $endSidebarWidth)';
+  return 'WindowStateEntity(width: $width, height: $height, x: $x, y: $y, isMinimized: $isMinimized, sidebarWidth: $sidebarWidth)';
 }
 
 
@@ -253,7 +251,7 @@ abstract mixin class _$WindowStateEntityCopyWith<$Res> implements $WindowStateEn
   factory _$WindowStateEntityCopyWith(_WindowStateEntity value, $Res Function(_WindowStateEntity) _then) = __$WindowStateEntityCopyWithImpl;
 @override @useResult
 $Res call({
- double width, double height, double x, double y, bool isMinimized, double sidebarWidth, double endSidebarWidth
+ double width, double height, double x, double y, bool isMinimized, double sidebarWidth
 });
 
 
@@ -270,7 +268,7 @@ class __$WindowStateEntityCopyWithImpl<$Res>
 
 /// Create a copy of WindowStateEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? width = null,Object? height = null,Object? x = null,Object? y = null,Object? isMinimized = null,Object? sidebarWidth = null,Object? endSidebarWidth = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? width = null,Object? height = null,Object? x = null,Object? y = null,Object? isMinimized = null,Object? sidebarWidth = null,}) {
   return _then(_WindowStateEntity(
 width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
 as double,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
@@ -278,7 +276,6 @@ as double,x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
 as double,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
 as double,isMinimized: null == isMinimized ? _self.isMinimized : isMinimized // ignore: cast_nullable_to_non_nullable
 as bool,sidebarWidth: null == sidebarWidth ? _self.sidebarWidth : sidebarWidth // ignore: cast_nullable_to_non_nullable
-as double,endSidebarWidth: null == endSidebarWidth ? _self.endSidebarWidth : endSidebarWidth // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

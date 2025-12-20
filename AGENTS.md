@@ -4,7 +4,9 @@
 
 ## Quick Start for AI Agents
 
-🚨 **MANDATORY FIRST STEP**: Read [`_AGENT_INSTRUCTIONS/agent-per-project/README.md`](_AGENT_INSTRUCTIONS/agent-per-project/README.md) before making ANY code changes.
+🚨 **MANDATORY FIRST STEP**: Read [`_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md). These global guardrails control how agents plan work, request approval, and constrain edit scope.
+
+🚨 **MANDATORY SECOND STEP**: Read [`_AGENT_INSTRUCTIONS/agent-per-project/README.md`](_AGENT_INSTRUCTIONS/agent-per-project/README.md) before making ANY code changes.
 
 This README contains the canonical index to all project documentation including:
 - Critical import patterns and database access rules
@@ -16,12 +18,13 @@ This README contains the canonical index to all project documentation including:
 ## Essential Documentation
 
 ### Must-Read Before Coding
-1. **[Project README](_AGENT_INSTRUCTIONS/agent-per-project/README.md)** - Start here (canonical index)
-2. **[Dart Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart.md)** - Language rules, async patterns, null-safety expectations
-3. **[Flutter Widget Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/widgets.md)** - Composition, navigation, and state management rules
-4. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
-5. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
-6. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
+1. **[Agent Guardrails](_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md)** - Global planning and change-control rules
+2. **[Project README](_AGENT_INSTRUCTIONS/agent-per-project/README.md)** - Canonical index
+3. **[Dart Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart.md)** - Language rules, async patterns, null-safety expectations
+4. **[Flutter Widget Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/widgets.md)** - Composition, navigation, and state management rules
+5. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
+6. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
+7. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
 
 ### Quick Reference
 - **Lint Antipatterns**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md) - One-stop list of analyzer tripwires

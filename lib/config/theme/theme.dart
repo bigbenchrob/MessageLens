@@ -4,6 +4,8 @@ library config.theme;
 import 'package:flutter/widgets.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+export 'widgets/theme_widgets.dart';
+
 /// Centralized theme helpers for the app.
 ///
 /// This file intentionally keeps theme concerns in one place so UI elements can
@@ -76,55 +78,6 @@ abstract class AppTheme {
   static TextStyle cassetteHeroTitleStyle(BuildContext context) {
     return cassetteHeaderTitleStyle(context);
   }
-
-  // --------------------------------------------------------------------------
-  // Components: Buttons
-  // --------------------------------------------------------------------------
-
-  /// Primary action button used throughout the app.
-  ///
-  /// Mirrors the style used by the “Choose new contact” button in the contacts
-  /// hero cassette: regular control size, padded label, and the app primary
-  /// color.
-  static Widget primaryButton({
-    required BuildContext context,
-    required String label,
-    required VoidCallback? onPressed,
-    ControlSize controlSize = ControlSize.regular,
-    EdgeInsetsGeometry padding = const EdgeInsets.only(
-      left: 14,
-      right: 14,
-      top: 7,
-      bottom: 9,
-    ),
-    Widget? leading,
-  }) {
-    final textStyle = typography(context).body.copyWith(
-      color: onPrimaryColor(context),
-      fontWeight: FontWeight.w600,
-      fontSize: 15,
-    );
-
-    final child = leading == null
-        ? Text(label, style: textStyle)
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              leading,
-              const SizedBox(width: 8),
-              Text(label, style: textStyle),
-            ],
-          );
-
-    return AppPrimaryButton(
-      controlSize: controlSize,
-      onPressed: onPressed,
-      child: DefaultTextStyle.merge(
-        style: textStyle,
-        child: Padding(padding: padding, child: child),
-      ),
-    );
-  }
 }
 
 /// A context-bound palette so callers can't forget to resolve dynamic colors.
@@ -132,6 +85,15 @@ class BbcColors {
   BbcColors._(this._context);
 
   final BuildContext _context;
+
+  static const Color _darkControlBackground = Color(0xFF2E3233);
+  static const Color _darkDivider = Color(0xFF424647);
+  static const Color _darkHighlight = Color(0xFFB98F36);
+  static const Color _darkText = Color(0xFFE0E1E1);
+  static const Color _black = Color(0xFF000000);
+  static const Color _white = Color(0xFFFFFFFF);
+
+  bool get _isDark => MacosTheme.of(_context).brightness.isDark;
 
   Color _resolve(Color color) {
     return MacosDynamicColor.resolve(color, _context);
@@ -145,22 +107,30 @@ class BbcColors {
   // --------------------------------------------------------------------------
 
   /// Strongest text / darkest gray in light mode; brightest gray in dark mode.
-  Color get bbcOne => _resolve(MacosColors.labelColor);
+  Color get bbcOne => _isDark ? _darkText : _resolve(MacosColors.labelColor);
 
   /// Primary body text / secondary-strong.
-  Color get bbcTwo => _resolve(MacosColors.controlTextColor);
+  Color get bbcTwo =>
+      _isDark ? _darkText : _resolve(MacosColors.controlTextColor);
 
   /// Secondary text.
-  Color get bbcThree => _resolve(MacosColors.secondaryLabelColor);
+  Color get bbcThree => _isDark
+      ? Color.lerp(_darkText, _black, 0.35)!
+      : _resolve(MacosColors.secondaryLabelColor);
 
   /// Tertiary/disabled-ish text and subtle accents.
-  Color get bbcFour => _resolve(MacosColors.tertiaryLabelColor);
+  Color get bbcFour => _isDark
+      ? Color.lerp(_darkText, _black, 0.55)!
+      : _resolve(MacosColors.tertiaryLabelColor);
 
   /// Hairlines/borders.
-  Color get bbcFive => _resolve(MacosColors.quaternaryLabelColor);
+  Color get bbcFive =>
+      _isDark ? _darkDivider : _resolve(MacosColors.quaternaryLabelColor);
 
   /// Lightest surface in light mode; deepest surface in dark mode.
-  Color get bbcSix => _resolve(MacosColors.controlBackgroundColor);
+  Color get bbcSix => _isDark
+      ? _darkControlBackground
+      : _resolve(MacosColors.controlBackgroundColor);
 
   /// Primary sidebar surface.
   ///
@@ -169,33 +139,61 @@ class BbcColors {
   /// resolve very light depending on material/elevation, which makes the
   /// sidebar appear white.
   Color get bbcSidebarBackground {
+    if (_isDark) {
+      return _darkControlBackground;
+    }
+
     // Use the macOS control background dynamic color (sidebar-like surface).
     return _resolve(MacosColors.controlBackgroundColor);
+  }
+
+  /// Background tint for the fixed navigation column surface.
+  ///
+  /// Blends a subtle control tint over the standard sidebar background so
+  /// the column reads as a separate surface in both light and dark modes.
+  Color get bbcNavigationColumnBackground {
+    final base = bbcSidebarBackground;
+    final tint = _resolve(MacosColors.controlColor);
+    final alpha = _isDark ? 0.18 : 0.08;
+    return Color.alphaBlend(tint.withValues(alpha: alpha), base);
+  }
+
+  /// Divider color separating the navigation column from the content canvas.
+  Color get bbcNavigationColumnDivider {
+    if (_isDark) {
+      return _darkDivider;
+    }
+    final divider = _resolve(MacosColors.separatorColor);
+    return divider.withValues(alpha: 0.18);
   }
 
   /// Baseline background for non-sidebar panels.
   ///
   /// This should match the `MacosWindow` background/canvas used by the center
   /// and right panels.
-  Color get bbcPanelBackground => _resolve(MacosTheme.of(_context).canvasColor);
+  Color get bbcPanelBackground => _isDark
+      ? _darkControlBackground
+      : _resolve(MacosTheme.of(_context).canvasColor);
 
   // --------------------------------------------------------------------------
   // Semantic palette
   // --------------------------------------------------------------------------
 
   /// Preferred primary accent.
-  Color get bbcPrimaryOne => _resolve(MacosTheme.of(_context).primaryColor);
+  Color get bbcPrimaryOne => _isDark ? _darkHighlight : _darkHighlight;
 
   /// Alternate accent for highlights/warnings.
-  Color get bbcPrimaryTwo => _resolve(MacosColors.systemOrangeColor);
+  Color get bbcPrimaryTwo =>
+      _isDark ? _darkHighlight : _resolve(MacosColors.systemOrangeColor);
 
   Color get bbcHeaderText => bbcOne;
   Color get bbcBodyText => bbcTwo;
   Color get bbcSubheadText => bbcThree;
   Color get bbcHintText => bbcFour;
 
-  Color get bbcDivider => _resolve(MacosColors.separatorColor);
-  Color get bbcBorderSubtle => bbcFive;
+  Color get bbcDivider =>
+      _isDark ? _darkDivider : _resolve(MacosColors.separatorColor);
+  Color get bbcBorderSubtle => _isDark ? _darkDivider : bbcFive;
 
   Color get bbcCardBackground => bbcSix;
 
@@ -205,8 +203,7 @@ class BbcColors {
   /// certain macOS sidebar/material stacks. This token provides a reliable,
   /// high-contrast foreground for control menus.
   Color get bbcControlText {
-    final isDark = MacosTheme.of(_context).brightness.isDark;
-    return isDark ? _resolve(MacosColors.controlTextColor) : bbcBodyText;
+    return _isDark ? _darkText : bbcBodyText;
   }
 
   /// A slightly lifted surface for “control” chrome in dark mode.
@@ -215,18 +212,13 @@ class BbcColors {
   /// sidebar contexts. This token provides a consistent, slightly lifted
   /// surface for top-level controls without stealing focus from content.
   Color get bbcControlSurface {
-    final isDark = MacosTheme.of(_context).brightness.isDark;
-    final base = bbcSidebarBackground;
-
-    if (!isDark) {
-      return base;
+    if (_isDark) {
+      return _darkHighlight;
     }
 
-    // In dark mode, create a “lifted” control surface by blending a neutral
-    // control tint over the window background (not over controlBackgroundColor,
-    // which can be nearly black in sidebar contexts).
+    final base = bbcSidebarBackground;
     return Color.alphaBlend(
-      _resolve(MacosColors.controlColor).withValues(alpha: 0.28),
+      _resolve(MacosColors.controlColor).withValues(alpha: 0.18),
       base,
     );
   }
@@ -236,20 +228,22 @@ class BbcColors {
   /// Slightly lighter than `bbcControlSurface` in dark mode so the panel reads
   /// as a distinct element instead of a “black slab”.
   Color get bbcControlPanelSurface {
-    final isDark = MacosTheme.of(_context).brightness.isDark;
-
-    if (!isDark) {
-      return bbcCardBackgroundTinted;
+    if (_isDark) {
+      return _darkControlBackground;
     }
 
-    return Color.alphaBlend(
-      _resolve(MacosColors.controlColor).withValues(alpha: 0.16),
-      bbcSidebarBackground,
-    );
+    return bbcCardBackgroundTinted;
   }
 
   /// A slightly tinted surface for nested panels/menus.
   Color get bbcCardBackgroundTinted {
+    if (_isDark) {
+      return Color.alphaBlend(
+        _darkHighlight.withValues(alpha: 0.08),
+        _darkControlBackground,
+      );
+    }
+
     return Color.alphaBlend(
       _resolve(MacosColors.controlColor).withValues(alpha: 0.10),
       bbcCardBackground,
@@ -260,117 +254,31 @@ class BbcColors {
   ///
   /// Keep it very subtle; macOS dark mode wants less blur/opacity.
   List<BoxShadow> get bbcCardShadow {
-    final isDark = MacosTheme.of(_context).brightness.isDark;
     return [
       BoxShadow(
-        color: (isDark ? const Color(0xFF000000) : const Color(0xFF000000))
-            .withValues(alpha: isDark ? 0.20 : 0.12),
-        blurRadius: isDark ? 3.0 : 4.0,
+        color: const Color(0xFF000000).withValues(alpha: _isDark ? 0.20 : 0.12),
+        blurRadius: _isDark ? 3.0 : 4.0,
         offset: const Offset(0, 2),
       ),
     ];
   }
-}
 
-class AppPrimaryButton extends StatefulWidget {
-  const AppPrimaryButton({
-    required this.child,
-    required this.onPressed,
-    this.controlSize = ControlSize.regular,
-    super.key,
-  });
+  List<Color> get dropdownBorderLayers {
+    if (_isDark) {
+      return [
+        Color.lerp(_darkControlBackground, _black, 0.65)!,
+        Color.lerp(_darkControlBackground, _black, 0.35)!,
+        Color.lerp(_darkControlBackground, _white, 0.12)!,
+        Color.lerp(_darkControlBackground, _black, 0.20)!,
+      ];
+    }
 
-  final Widget child;
-  final VoidCallback? onPressed;
-  final ControlSize controlSize;
-
-  @override
-  State<AppPrimaryButton> createState() => _AppPrimaryButtonState();
-}
-
-class _AppPrimaryButtonState extends State<AppPrimaryButton> {
-  bool _isHovered = false;
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = widget.onPressed != null;
-
-    final baseColor = AppTheme.primaryButtonFillColor(context);
-    final fillColor = !enabled
-        ? baseColor.withValues(alpha: 0.45)
-        : _isPressed
-        ? baseColor.withValues(alpha: 0.82)
-        : _isHovered
-        ? baseColor.withValues(alpha: 0.92)
-        : baseColor;
-
-    final height = switch (widget.controlSize) {
-      ControlSize.large => 32.0,
-      ControlSize.regular => 34.0,
-      ControlSize.small => 24.0,
-      ControlSize.mini => 20.0,
-    };
-
-    return MouseRegion(
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onEnter: (_) {
-        if (!enabled) {
-          return;
-        }
-        setState(() {
-          _isHovered = true;
-        });
-      },
-      onExit: (_) {
-        setState(() {
-          _isHovered = false;
-          _isPressed = false;
-        });
-      },
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        onTapDown: enabled
-            ? (_) {
-                setState(() {
-                  _isPressed = true;
-                });
-              }
-            : null,
-        onTapUp: enabled
-            ? (_) {
-                setState(() {
-                  _isPressed = false;
-                });
-              }
-            : null,
-        onTapCancel: () {
-          setState(() {
-            _isPressed = false;
-          });
-        },
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOut,
-          height: height,
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: enabled
-                ? const [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          alignment: Alignment.center,
-          child: widget.child,
-        ),
-      ),
-    );
+    final base = _resolve(MacosColors.separatorColor);
+    return [
+      Color.lerp(base, _white, 0.18)!,
+      Color.lerp(base, _white, 0.08)!,
+      Color.lerp(base, _black, 0.12)!,
+      Color.lerp(base, _black, 0.24)!,
+    ];
   }
 }
