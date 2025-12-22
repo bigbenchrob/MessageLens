@@ -66,7 +66,10 @@ abstract class AppTheme {
   // --------------------------------------------------------------------------
 
   static TextStyle cassetteHeaderTitleStyle(BuildContext context) {
-    return typography(context).title2.copyWith(fontWeight: FontWeight.w700);
+    return typography(context).callout.copyWith(
+      fontWeight: FontWeight.w500,
+      color: MacosColors.tertiaryLabelColor,
+    );
   }
 
   static TextStyle cassetteHeaderSubtitleStyle(BuildContext context) {

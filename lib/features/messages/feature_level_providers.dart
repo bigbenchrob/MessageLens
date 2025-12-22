@@ -41,10 +41,10 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
         final isContactScoped = contactId != null;
         return CassetteCardView(
           title: isContactScoped
-              ? 'Contact message heatmap'
+              ? 'Click on a square to see messages for that month'
               : 'All messages heatmap',
           subtitle: isContactScoped
-              ? 'Track monthly activity with the selected contact.'
+              ? null
               : 'Discover peaks and gaps across your entire archive.',
           child: MessagesHeatmapCassette(contactId: contactId),
         );

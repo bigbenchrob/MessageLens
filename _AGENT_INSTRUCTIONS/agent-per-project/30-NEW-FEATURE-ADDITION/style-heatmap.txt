@@ -1,0 +1,110 @@
+Got it. In this cassette, the “competing text” isn’t a title/subtitle — it’s the stats tiles (stat.value / stat.label) plus the button label, all currently styled off macosTheme.typography.*.
+
+To make this cassette obey your new hierarchy, you want it to consume your semantic tokens (ThemeTypography) the same way everything else consumes ThemeColorsNotifier.
+
+1) Wire in ThemeTypography using the same notifier pattern
+
+In _ContactHeatmapContent.build, grab both notifiers:
+
+import '../../../../config/theme_colors.dart';
+import '../../../../config/theme_typography.dart';
+
+// ...
+
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+  final colors = ref.watch(themeColorsProvider.notifier);
+  final t = ref.watch(themeTypographyProvider); // returns ThemeTypography(colors-notifier)
+  // ...
+
+  2) Pass typography into _buildStats and stop using macosTheme.typography.*
+
+Change the call:
+
+final stats = _buildStats(
+  macosTheme: macosTheme,
+  typography: t,
+  colors: colors,
+  stats: [
+    // ...
+  ],
+);
+
+Update the function signature:
+
+Widget _buildStats({
+  required MacosThemeData macosTheme,
+  required ThemeTypography typography,
+  required ThemeColorsNotifier colors,
+  required List<_HeatmapStat> stats,
+}) {
+  // ...
+}
+
+Then inside _buildStats, replace the two Text styles (and icon color):
+
+Icon(
+  stat.icon,
+  size: 14,
+  color: colors.content.textSecondary,
+),
+
+// value (the number / date range)
+Text(
+  stat.value,
+  style: typography.vizMeta, // tabular + secondary emphasis
+),
+
+const SizedBox(height: 2),
+
+// label (“Total messages”, “Archive span”)
+Text(
+  stat.label,
+  style: typography.caption, // tertiary, small, consistent
+),
+
+That single swap does a lot:
+	•	Keeps “Total messages / Archive span” from reading like headings
+	•	Makes the numbers/date range readable but not “hero competing”
+	•	Forces the whole stats block into the “viz/meta” lane of your hierarchy
+
+3) Fix the “Open full timeline” button label
+
+Right now it’s const Text(...) so it can’t pick up your tokens. Make it non-const and apply a token:
+
+child: Text(
+  'Open full timeline',
+  style: t.body.copyWith(
+    fontSize: 13, // optional: keep compact in sidebar
+    fontWeight: FontWeight.w600,
+  ),
+),
+
+(If you later add a sidebarAction token, use that instead.)
+
+⸻
+
+4) Where the “Click a month…” instruction actually lives
+
+Your screenshot’s instruction text is not in this cassette; it’s almost certainly inside CalendarHeatmapTimelineWidget.
+
+Two good options:
+
+Option A (best): let the cassette supply the style
+
+Add an optional TextStyle? instructionStyle param to CalendarHeatmapTimelineWidget, then pass:
+
+CalendarHeatmapTimelineWidget(
+  data: timeline,
+  monthSize: 12,
+  monthSpacing: 2,
+  instructionStyle: t.vizInstruction,
+  // ...
+)
+
+Option B: have the widget watch your typography provider itself
+
+If that widget is already a ConsumerWidget, just do
+
+final t = ref.watch(themeTypographyProvider);
+Text('Click a month to view messages.', style: t.vizInstruction);
