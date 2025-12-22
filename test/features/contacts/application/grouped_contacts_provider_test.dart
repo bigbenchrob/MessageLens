@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import 'package:remember_this_text/features/contacts/application_pre_cassette/contacts_list_provider.dart';
 import 'package:remember_this_text/features/contacts/application_pre_cassette/grouped_contacts_provider.dart';
+import 'package:remember_this_text/features/contacts/infrastructure/repositories/contacts_list_repository.dart';
 
 import '../../../test_utils/contact_summary_fixture.dart';
 
@@ -14,7 +14,7 @@ void main() {
     setUp(() {
       container = ProviderContainer(
         overrides: [
-          contactsListProvider(
+          contactsListRepositoryProvider(
             spec: const ContactsListSpec.alphabetical(),
           ).overrideWith(
             (ref) async => [

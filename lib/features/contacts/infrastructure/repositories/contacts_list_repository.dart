@@ -3,15 +3,15 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../domain/participant_origin.dart';
-import 'participant_merge_utils.dart';
-import 'virtual_participants_provider.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
+import '../../application_pre_cassette/participant_merge_utils.dart';
+import '../../application_pre_cassette/virtual_participants_provider.dart';
+import '../../domain/participant_origin.dart';
 
-part 'contacts_list_provider.freezed.dart';
-part 'contacts_list_provider.g.dart';
+part 'contacts_list_repository.freezed.dart';
+part 'contacts_list_repository.g.dart';
 
 @freezed
 abstract class ContactSummary with _$ContactSummary {
@@ -32,7 +32,7 @@ abstract class ContactSummary with _$ContactSummary {
 }
 
 @riverpod
-Future<List<ContactSummary>> contactsList(
+Future<List<ContactSummary>> contactsListRepository(
   Ref ref, {
   required ContactsListSpec spec,
 }) async {
@@ -46,9 +46,6 @@ Future<List<ContactSummary>> contactsList(
   final participantOverrides = await participantOverridesById(overlayDb);
   final overlayHandleCounts = await overlayHandleCountsByParticipant(overlayDb);
 
-  // Query participants who have at least one handle
-  // Join chain: participants → handle_to_participant → handles → chat_to_handle → chats
-
   final participantsQuery = workingDb.select(workingDb.workingParticipants)
     ..where(
       (tbl) => drift.existsQuery(
@@ -57,24 +54,18 @@ Future<List<ContactSummary>> contactsList(
       ),
     );
 
-  // Apply ordering based on spec variant
   spec.when(
     all: () {
-      // Default ordering by last message date
-      // Note: This requires a subquery, for now use display name
       participantsQuery.orderBy([
         (tbl) => drift.OrderingTerm(expression: tbl.displayName),
       ]);
     },
     alphabetical: () {
-      // Alphabetical ordering
       participantsQuery.orderBy([
         (tbl) => drift.OrderingTerm(expression: tbl.displayName),
       ]);
     },
     favorites: () {
-      // TODO: Filter by favorite status once implemented in database
-      // For now, just show all contacts alphabetically
       participantsQuery.orderBy([
         (tbl) => drift.OrderingTerm(expression: tbl.displayName),
       ]);
@@ -90,7 +81,6 @@ Future<List<ContactSummary>> contactsList(
   final workingSummaries = <ContactSummary>[];
 
   for (final participant in participants) {
-    // Get all handles for this participant
     final handlesQuery =
         workingDb.select(workingDb.handlesCanonical).join([
           drift.innerJoin(
@@ -229,10 +219,11 @@ Future<_ParticipantMetrics> _calculateMetrics(
     db.workingMessages.sentAtUtc.max(),
   );
 
-  DateTime? lastMessageDate;
-  if (lastMessageUtc != null && lastMessageUtc.isNotEmpty) {
-    lastMessageDate = DateTime.tryParse(lastMessageUtc)?.toLocal();
-  }
+  final lastMessageDate = switch (lastMessageUtc) {
+    null => null,
+    '' => null,
+    final String value => DateTime.tryParse(value)?.toLocal(),
+  };
 
   return _ParticipantMetrics(
     totalChats: totalChats,

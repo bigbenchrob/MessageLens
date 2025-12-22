@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../features/chats/presentation/view/chats_sidebar_view.dart';
-import '../../../../features/contacts/presentation/view/contacts_sidebar_view.dart';
-import '../../../../features/contacts/presentation/view/unmatched_handles_sidebar_view.dart';
 import '../../../../features/messages/feature_level_providers.dart';
 import '../../../../features/settings/presentation/view/settings_panel_view.dart';
 import '../../../db_importers/presentation/view/db_import_control_panel.dart';
@@ -12,7 +10,6 @@ import '../../../db_importers/presentation/view_model/db_import_control_provider
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
-import '../../domain/entities/features/sidebar_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
@@ -82,11 +79,7 @@ class PanelCoordinator extends _$PanelCoordinator {
       settings: (_) => const SettingsPanelView(),
       workbench: (_) => const WorkbenchPanelView(),
       sidebar: (sidebarSpec) {
-        if (sidebarSpec is SidebarSpecContacts) {
-          return ContactsSidebarView(spec: sidebarSpec);
-        } else {
-          return UnmatchedHandlesSidebarView(spec: sidebarSpec);
-        }
+        return _buildEmptyPanelPlaceholder(WindowPanel.center);
       },
     );
   }

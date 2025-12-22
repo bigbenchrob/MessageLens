@@ -3,8 +3,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
+import '../infrastructure/repositories/contacts_list_repository.dart';
 import 'contact_group_key.dart';
-import 'contacts_list_provider.dart';
 
 part 'grouped_contacts_provider.freezed.dart';
 part 'grouped_contacts_provider.g.dart';
@@ -52,7 +52,9 @@ const _alphabet = [
 @riverpod
 Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
   final contacts = await ref.watch(
-    contactsListProvider(spec: const ContactsListSpec.alphabetical()).future,
+    contactsListRepositoryProvider(
+      spec: const ContactsListSpec.alphabetical(),
+    ).future,
   );
 
   final grouped = <String, List<ContactSummary>>{};
@@ -64,15 +66,13 @@ Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
 
   // Ensure determinism: sort each bucket by display name then short name.
   for (final entry in grouped.entries) {
-    entry.value.sort(
-      (a, b) {
-        final nameCompare = compareAsciiLowerCase(a.displayName, b.displayName);
-        if (nameCompare != 0) {
-          return nameCompare;
-        }
-        return compareAsciiLowerCase(a.shortName, b.shortName);
-      },
-    );
+    entry.value.sort((a, b) {
+      final nameCompare = compareAsciiLowerCase(a.displayName, b.displayName);
+      if (nameCompare != 0) {
+        return nameCompare;
+      }
+      return compareAsciiLowerCase(a.shortName, b.shortName);
+    });
   }
 
   final availableLetters = _alphabet
@@ -80,9 +80,7 @@ Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
       .toList(growable: false);
 
   final letterCounts = Map<String, int>.fromEntries(
-    grouped.entries.map(
-      (entry) => MapEntry(entry.key, entry.value.length),
-    ),
+    grouped.entries.map((entry) => MapEntry(entry.key, entry.value.length)),
   );
 
   return GroupedContacts(

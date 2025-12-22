@@ -1,28 +1,26 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'panel_coordinator_provider.dart';
+part of 'cassette_view_model.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panelCoordinatorHash() => r'ec8968bd46cddaf734095823ff09fc6bb89c6b0e';
+String _$cassetteViewModelHash() => r'99d0a2eb79c276871ffcb9f8d7cbe7856f44e2d3';
 
-/// Coordinator that maps panel ViewSpecs to rendered widgets
-///
-/// Copied from [PanelCoordinator].
-@ProviderFor(PanelCoordinator)
-final panelCoordinatorProvider =
-    AutoDisposeNotifierProvider<PanelCoordinator, void>.internal(
-      PanelCoordinator.new,
-      name: r'panelCoordinatorProvider',
+/// See also [CassetteViewModel].
+@ProviderFor(CassetteViewModel)
+final cassetteViewModelProvider =
+    AutoDisposeNotifierProvider<CassetteViewModel, void>.internal(
+      CassetteViewModel.new,
+      name: r'cassetteViewModelProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$panelCoordinatorHash,
+          : _$cassetteViewModelHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$PanelCoordinator = AutoDisposeNotifier<void>;
+typedef _$CassetteViewModel = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

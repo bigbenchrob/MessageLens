@@ -127,14 +127,10 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
     super.key,
     required this.displayName,
     required this.shortName,
-    required this.summaryLine,
-    required this.onChange,
   });
 
   final String displayName;
   final String shortName;
-  final String summaryLine;
-  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -145,8 +141,6 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
 
     final tint = colors.accents.primary.withValues(alpha: 0.10);
     final accent = colors.accents.primary.withValues(alpha: 0.75);
-    final linkColor = colors.accents.primary;
-    final linkBaseStyle = theme.typography.body.copyWith(color: linkColor);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 64),
@@ -186,12 +180,6 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        _HoverLink(
-                          label: 'change…',
-                          baseStyle: linkBaseStyle,
-                          onTap: onChange,
-                        ),
                       ],
                     ),
                     if (shortName != displayName)
@@ -202,90 +190,11 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                    const SizedBox(height: 4),
-                    Text(
-                      summaryLine,
-                      style: theme.typography.caption1.copyWith(
-                        color: colors.content.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ],
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HoverLink extends StatefulWidget {
-  const _HoverLink({
-    required this.label,
-    required this.baseStyle,
-    required this.onTap,
-  });
-
-  final String label;
-  final TextStyle baseStyle;
-  final VoidCallback onTap;
-
-  @override
-  State<_HoverLink> createState() => _HoverLinkState();
-}
-
-class _HoverLinkState extends State<_HoverLink> {
-  bool _isHovering = false;
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final baseColor = widget.baseStyle.color;
-    final hoverColor = baseColor?.withValues(alpha: 0.85);
-    final active = _isHovering || _isPressed;
-    final style = widget.baseStyle.copyWith(
-      color: active ? hoverColor : baseColor,
-      decoration: active ? TextDecoration.underline : TextDecoration.none,
-    );
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Listener(
-        onPointerDown: (_) {
-          setState(() {
-            _isPressed = true;
-          });
-        },
-        onPointerUp: (_) {
-          setState(() {
-            _isPressed = false;
-          });
-        },
-        onPointerCancel: (_) {
-          setState(() {
-            _isPressed = false;
-          });
-        },
-        child: InkWell(
-          onTap: widget.onTap,
-          onHover: (isHovering) {
-            if (_isHovering == isHovering) {
-              return;
-            }
-            setState(() {
-              _isHovering = isHovering;
-            });
-          },
-          hoverColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          splashColor: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-            child: Text(widget.label, style: style),
-          ),
         ),
       ),
     );

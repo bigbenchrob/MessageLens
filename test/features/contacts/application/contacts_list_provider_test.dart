@@ -7,8 +7,8 @@ import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import 'package:remember_this_text/essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import 'package:remember_this_text/features/contacts/application_pre_cassette/contacts_list_provider.dart';
 import 'package:remember_this_text/features/contacts/domain/participant_origin.dart';
+import 'package:remember_this_text/features/contacts/infrastructure/repositories/contacts_list_repository.dart';
 
 String buildCompoundIdentifier({
   required String normalizedIdentifier,
@@ -19,7 +19,7 @@ String buildCompoundIdentifier({
 }
 
 void main() {
-  group('contactsListProvider', () {
+  group('contactsListRepositoryProvider', () {
     late OverlayDatabase overlayDb;
     late WorkingDatabase workingDb;
     late ProviderContainer container;
@@ -125,7 +125,9 @@ void main() {
       await overlayDb.setHandleOverride(virtualHandleId, virtualParticipant.id);
 
       final results = await container.read(
-        contactsListProvider(spec: const ContactsListSpec.all()).future,
+        contactsListRepositoryProvider(
+          spec: const ContactsListSpec.all(),
+        ).future,
       );
 
       expect(results.length, equals(2));

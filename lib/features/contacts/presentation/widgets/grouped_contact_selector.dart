@@ -8,8 +8,8 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 
-import '../../application_pre_cassette/contacts_list_provider.dart';
 import '../../application_pre_cassette/grouped_contacts_provider.dart';
+import '../../infrastructure/repositories/contacts_list_repository.dart';
 import 'contact_highlight_row.dart';
 
 /// Smart header that can show either the full picker or the compact lozenge.

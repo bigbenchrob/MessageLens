@@ -1,12 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'contacts_list_provider.dart';
+part of 'contacts_list_repository.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactsListHash() => r'3e5166d4913e155cc179aff238e796c4e7133397';
+String _$contactsListRepositoryHash() =>
+    r'22ca86ac4ebcb00f58ad263b4175fd961c830fb9';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,23 +30,24 @@ class _SystemHash {
   }
 }
 
-/// See also [contactsList].
-@ProviderFor(contactsList)
-const contactsListProvider = ContactsListFamily();
+/// See also [contactsListRepository].
+@ProviderFor(contactsListRepository)
+const contactsListRepositoryProvider = ContactsListRepositoryFamily();
 
-/// See also [contactsList].
-class ContactsListFamily extends Family<AsyncValue<List<ContactSummary>>> {
-  /// See also [contactsList].
-  const ContactsListFamily();
+/// See also [contactsListRepository].
+class ContactsListRepositoryFamily
+    extends Family<AsyncValue<List<ContactSummary>>> {
+  /// See also [contactsListRepository].
+  const ContactsListRepositoryFamily();
 
-  /// See also [contactsList].
-  ContactsListProvider call({required ContactsListSpec spec}) {
-    return ContactsListProvider(spec: spec);
+  /// See also [contactsListRepository].
+  ContactsListRepositoryProvider call({required ContactsListSpec spec}) {
+    return ContactsListRepositoryProvider(spec: spec);
   }
 
   @override
-  ContactsListProvider getProviderOverride(
-    covariant ContactsListProvider provider,
+  ContactsListRepositoryProvider getProviderOverride(
+    covariant ContactsListRepositoryProvider provider,
   ) {
     return call(spec: provider.spec);
   }
@@ -62,28 +64,31 @@ class ContactsListFamily extends Family<AsyncValue<List<ContactSummary>>> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'contactsListProvider';
+  String? get name => r'contactsListRepositoryProvider';
 }
 
-/// See also [contactsList].
-class ContactsListProvider
+/// See also [contactsListRepository].
+class ContactsListRepositoryProvider
     extends AutoDisposeFutureProvider<List<ContactSummary>> {
-  /// See also [contactsList].
-  ContactsListProvider({required ContactsListSpec spec})
+  /// See also [contactsListRepository].
+  ContactsListRepositoryProvider({required ContactsListSpec spec})
     : this._internal(
-        (ref) => contactsList(ref as ContactsListRef, spec: spec),
-        from: contactsListProvider,
-        name: r'contactsListProvider',
+        (ref) => contactsListRepository(
+          ref as ContactsListRepositoryRef,
+          spec: spec,
+        ),
+        from: contactsListRepositoryProvider,
+        name: r'contactsListRepositoryProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$contactsListHash,
-        dependencies: ContactsListFamily._dependencies,
+            : _$contactsListRepositoryHash,
+        dependencies: ContactsListRepositoryFamily._dependencies,
         allTransitiveDependencies:
-            ContactsListFamily._allTransitiveDependencies,
+            ContactsListRepositoryFamily._allTransitiveDependencies,
         spec: spec,
       );
 
-  ContactsListProvider._internal(
+  ContactsListRepositoryProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -97,12 +102,13 @@ class ContactsListProvider
 
   @override
   Override overrideWith(
-    FutureOr<List<ContactSummary>> Function(ContactsListRef provider) create,
+    FutureOr<List<ContactSummary>> Function(ContactsListRepositoryRef provider)
+    create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: ContactsListProvider._internal(
-        (ref) => create(ref as ContactsListRef),
+      override: ContactsListRepositoryProvider._internal(
+        (ref) => create(ref as ContactsListRepositoryRef),
         from: from,
         name: null,
         dependencies: null,
@@ -115,12 +121,12 @@ class ContactsListProvider
 
   @override
   AutoDisposeFutureProviderElement<List<ContactSummary>> createElement() {
-    return _ContactsListProviderElement(this);
+    return _ContactsListRepositoryProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ContactsListProvider && other.spec == spec;
+    return other is ContactsListRepositoryProvider && other.spec == spec;
   }
 
   @override
@@ -134,18 +140,19 @@ class ContactsListProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ContactsListRef on AutoDisposeFutureProviderRef<List<ContactSummary>> {
+mixin ContactsListRepositoryRef
+    on AutoDisposeFutureProviderRef<List<ContactSummary>> {
   /// The parameter `spec` of this provider.
   ContactsListSpec get spec;
 }
 
-class _ContactsListProviderElement
+class _ContactsListRepositoryProviderElement
     extends AutoDisposeFutureProviderElement<List<ContactSummary>>
-    with ContactsListRef {
-  _ContactsListProviderElement(super.provider);
+    with ContactsListRepositoryRef {
+  _ContactsListRepositoryProviderElement(super.provider);
 
   @override
-  ContactsListSpec get spec => (origin as ContactsListProvider).spec;
+  ContactsListSpec get spec => (origin as ContactsListRepositoryProvider).spec;
 }
 
 // ignore_for_file: type=lint

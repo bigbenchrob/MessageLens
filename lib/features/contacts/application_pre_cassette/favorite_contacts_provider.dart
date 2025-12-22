@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import 'contacts_list_provider.dart';
+import '../infrastructure/repositories/contacts_list_repository.dart';
 import 'favorite_contacts_repository_provider.dart';
 
 part 'favorite_contacts_provider.freezed.dart';
@@ -31,7 +31,9 @@ Future<List<FavoriteContactEntry>> favoriteContacts(
   }
 
   final contacts = await ref.watch(
-    contactsListProvider(spec: const ContactsListSpec.alphabetical()).future,
+    contactsListRepositoryProvider(
+      spec: const ContactsListSpec.alphabetical(),
+    ).future,
   );
   final contactsById = {
     for (final contact in contacts) contact.participantId: contact,

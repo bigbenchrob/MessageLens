@@ -7,7 +7,7 @@ part of 'contact_chooser_view_builder_provider.dart';
 // **************************************************************************
 
 String _$contactChooserViewBuilderHash() =>
-    r'08ee6947e0c38ff8a498a560b59c900b71fca2f8';
+    r'c52104eab2b62ac8878266610e4f9b057a27faeb';
 
 /// Copied from Dart SDK
 class _SystemHash {
