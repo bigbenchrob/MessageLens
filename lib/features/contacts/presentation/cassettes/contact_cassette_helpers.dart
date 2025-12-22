@@ -15,18 +15,9 @@ void updateContactSelection({
   required ContactsCassetteSpec currentSpec,
   required int? nextContactId,
 }) {
-  final updatedSpec = currentSpec.map(
-    contactsFlatMenu: (_) =>
-        ContactsCassetteSpec.contactsFlatMenu(chosenContactId: nextContactId),
-    contactsEnhancedPicker: (_) => ContactsCassetteSpec.contactsEnhancedPicker(
-      chosenContactId: nextContactId,
-    ),
-    contactHeroSummary: (_) => nextContactId == null
-        ? const ContactsCassetteSpec.contactsEnhancedPicker()
-        : ContactsCassetteSpec.contactHeroSummary(
-            chosenContactId: nextContactId,
-          ),
-  );
+  final updatedSpec = nextContactId == null
+      ? const ContactsCassetteSpec.contactChooser()
+      : ContactsCassetteSpec.contactHeroSummary(chosenContactId: nextContactId);
 
   ref
       .read(cassetteRackStateProvider.notifier)

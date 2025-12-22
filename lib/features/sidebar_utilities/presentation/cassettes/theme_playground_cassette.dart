@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
 
-class ThemePlaygroundCassette extends StatelessWidget {
+class ThemePlaygroundCassette extends ConsumerWidget {
   const ThemePlaygroundCassette({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final bbc = AppTheme.bbc(context);
-    final isDark = MacosTheme.of(context).brightness.isDark;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = ref.watch(themeColorsProvider.notifier);
+    final isDark = colors.isDark;
 
     Widget swatch({required String label, required Color color}) {
       return Row(
@@ -17,8 +18,8 @@ class ThemePlaygroundCassette extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: MacosTheme.of(context).typography.caption1.copyWith(
-                color: bbc.bbcSubheadText,
+              style: AppTheme.typography(context).caption1.copyWith(
+                color: colors.content.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -28,7 +29,7 @@ class ThemePlaygroundCassette extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: bbc.bbcBorderSubtle),
+              border: Border.all(color: colors.lines.borderSubtle),
             ),
             child: const SizedBox(width: 44, height: 20),
           ),
@@ -42,58 +43,64 @@ class ThemePlaygroundCassette extends StatelessWidget {
       children: [
         Text(
           isDark ? 'Dark mode' : 'Light mode',
-          style: MacosTheme.of(context).typography.headline.copyWith(
-            color: bbc.bbcHeaderText,
+          style: AppTheme.typography(context).headline.copyWith(
+            color: colors.content.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'This cassette is a theme playground. Values should update live when switching system appearance.',
-          style: MacosTheme.of(
+          style: AppTheme.typography(
             context,
-          ).typography.callout.copyWith(color: bbc.bbcSubheadText),
+          ).callout.copyWith(color: colors.content.textSecondary),
         ),
         const SizedBox(height: 14),
         // Surfaces
-        swatch(label: 'bbcSidebarBackground', color: bbc.bbcSidebarBackground),
+        swatch(label: 'surfaces.panel', color: colors.surfaces.panel),
         const SizedBox(height: 8),
-        swatch(label: 'bbcCardBackground', color: bbc.bbcCardBackground),
+        swatch(label: 'surfaces.surface', color: colors.surfaces.surface),
         const SizedBox(height: 8),
-        swatch(label: 'bbcControlSurface', color: bbc.bbcControlSurface),
+        swatch(label: 'surfaces.control', color: colors.surfaces.control),
         const SizedBox(height: 8),
         swatch(
-          label: 'bbcControlPanelSurface',
-          color: bbc.bbcControlPanelSurface,
+          label: 'surfaces.surfaceRaised',
+          color: colors.surfaces.surfaceRaised,
         ),
         const SizedBox(height: 12),
         // Text
-        swatch(label: 'bbcHeaderText', color: bbc.bbcHeaderText),
+        swatch(label: 'content.textPrimary', color: colors.content.textPrimary),
         const SizedBox(height: 8),
-        swatch(label: 'bbcBodyText', color: bbc.bbcBodyText),
+        swatch(
+          label: 'content.textSecondary',
+          color: colors.content.textSecondary,
+        ),
         const SizedBox(height: 8),
-        swatch(label: 'bbcControlText', color: bbc.bbcControlText),
+        swatch(
+          label: 'content.textTertiary',
+          color: colors.content.textTertiary,
+        ),
         const SizedBox(height: 14),
         Text(
           'Header text sample',
-          style: MacosTheme.of(context).typography.title2.copyWith(
-            color: bbc.bbcHeaderText,
+          style: AppTheme.typography(context).title2.copyWith(
+            color: colors.content.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Body text sample — The quick brown fox jumps over the lazy dog.',
-          style: MacosTheme.of(
+          style: AppTheme.typography(
             context,
-          ).typography.body.copyWith(color: bbc.bbcBodyText),
+          ).body.copyWith(color: colors.content.textPrimary),
         ),
         const SizedBox(height: 6),
         Text(
           'Subhead text sample — Secondary labels should remain readable.',
-          style: MacosTheme.of(
+          style: AppTheme.typography(
             context,
-          ).typography.callout.copyWith(color: bbc.bbcSubheadText),
+          ).callout.copyWith(color: colors.content.textSecondary),
         ),
       ],
     );

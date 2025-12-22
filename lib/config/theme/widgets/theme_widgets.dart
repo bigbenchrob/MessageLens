@@ -47,6 +47,9 @@ abstract class AppThemeWidgets {
     IconData closedIcon = CupertinoIcons.chevron_down,
     IconData openIcon = CupertinoIcons.chevron_up,
     ValueChanged<bool>? onMenuVisibilityChanged,
+    FontWeight? leadingLabelWeight,
+    FontWeight? selectedValueWeight,
+    Color? chevronColor,
   }) {
     return AppDropdownMenu<T>(
       options: options,
@@ -71,6 +74,9 @@ abstract class AppThemeWidgets {
       closedIcon: closedIcon,
       openIcon: openIcon,
       onMenuVisibilityChanged: onMenuVisibilityChanged,
+      leadingLabelWeight: leadingLabelWeight,
+      selectedValueWeight: selectedValueWeight,
+      chevronColor: chevronColor,
     );
   }
 

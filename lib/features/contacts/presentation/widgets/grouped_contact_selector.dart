@@ -6,6 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+
 import '../../application_pre_cassette/contacts_list_provider.dart';
 import '../../application_pre_cassette/grouped_contacts_provider.dart';
 import 'contact_highlight_row.dart';
@@ -52,7 +54,7 @@ class SmartContactPickerHeader extends ConsumerWidget {
   }
 }
 
-/// Full picker surface with header + grouped list.
+/// Full picker surface with grouped list.
 class FullContactPicker extends ConsumerWidget {
   const FullContactPicker({
     super.key,
@@ -68,7 +70,9 @@ class FullContactPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groupedAsync = ref.watch(groupedContactsProvider);
-    final theme = MacosTheme.of(context);
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -83,7 +87,7 @@ class FullContactPicker extends ConsumerWidget {
               600.0,
             );
             return Expanded(
-              child: SizedBox(height: height - _headerHeight, child: child),
+              child: SizedBox(height: height, child: child),
             );
           }
           return Expanded(child: child);
@@ -120,12 +124,9 @@ class FullContactPicker extends ConsumerWidget {
         final decorated = Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: theme.canvasColor,
+            color: colors.surfaces.control,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.6),
-              width: 0.5,
-            ),
+            border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
           ),
           child: column,
         );
@@ -150,15 +151,18 @@ class FullContactPicker extends ConsumerWidget {
 }
 
 /// Compact lozenge shown when the header is collapsed.
-class ContactLozenge extends StatelessWidget {
+class ContactLozenge extends ConsumerWidget {
   const ContactLozenge({super.key, required this.label, this.onTap});
 
   final String label;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     const radius = 12.0;
 
     // Slightly smaller horizontal margin prevents the halo from clipping
@@ -173,21 +177,21 @@ class ContactLozenge extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // 1) Soft white halo + drop shadow (creates the "floating" feel)
+            // 1) Soft halo + drop shadow (creates the "floating" feel)
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(radius + 2),
                   boxShadow: [
-                    // White outer glow/halo so busy content never touches edges
+                    // Halo glow - uses surface color so busy content never touches edges
                     BoxShadow(
-                      color: const Color(0xFFFFFFFF).withValues(alpha: 0.85),
+                      color: colors.surfaces.panel.withValues(alpha: 0.85),
                       blurRadius: 6,
                       spreadRadius: 1.5,
                     ),
                     // Natural shadow for elevation
                     BoxShadow(
-                      color: const Color(0xFF000000).withValues(alpha: 0.18),
+                      color: colors.overlays.shadow.withValues(alpha: 0.18),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -207,22 +211,20 @@ class ContactLozenge extends StatelessWidget {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFFFFFFFF,
-                    ).withValues(alpha: 0.70), // frosted
+                    color: colors.surfaces.surfaceRaised.withValues(
+                      alpha: 0.70,
+                    ),
                     borderRadius: BorderRadius.circular(radius),
                     border: Border.all(
-                      color: const Color(
-                        0xFF000000,
-                      ).withValues(alpha: 0.08), // hairline
+                      color: colors.lines.borderSubtle.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const MacosIcon(
+                      MacosIcon(
                         CupertinoIcons.person_crop_circle,
                         size: 16,
-                        color: MacosColors.secondaryLabelColor,
+                        color: colors.content.textSecondary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -232,6 +234,7 @@ class ContactLozenge extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: theme.typography.body.copyWith(
                             fontWeight: FontWeight.w600,
+                            color: colors.content.textPrimary,
                           ),
                         ),
                       ),
@@ -310,10 +313,9 @@ const double _kLetterSlotHeight = 18;
 const double _kPickerMinHeight = 160;
 const double _kPickerMaxHeight = 360;
 const double _kJumpBarWidth = 24;
-const double _headerHeight = 60;
 
 // NEW: integrated jump bar
-class GroupedContactsPicker extends StatefulWidget {
+class GroupedContactsPicker extends ConsumerStatefulWidget {
   const GroupedContactsPicker({
     super.key,
     required this.grouped,
@@ -326,10 +328,11 @@ class GroupedContactsPicker extends StatefulWidget {
   final ValueChanged<int> onContactSelected;
 
   @override
-  State<GroupedContactsPicker> createState() => _GroupedContactsPickerState();
+  ConsumerState<GroupedContactsPicker> createState() =>
+      _GroupedContactsPickerState();
 }
 
-class _GroupedContactsPickerState extends State<GroupedContactsPicker> {
+class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
@@ -391,6 +394,10 @@ class _GroupedContactsPickerState extends State<GroupedContactsPicker> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final hasBoundedHeight = constraints.maxHeight.isFinite;
@@ -420,7 +427,10 @@ class _GroupedContactsPickerState extends State<GroupedContactsPicker> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: list,
+                  child: ColoredBox(
+                    color: colors.surfaces.control,
+                    child: list,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -453,21 +463,24 @@ double _calculatePickerHeight(int letterCount) {
   return clamped.toDouble();
 }
 
-class _GroupedEmptyState extends StatelessWidget {
+class _GroupedEmptyState extends ConsumerWidget {
   const _GroupedEmptyState();
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    return Center(
       child: Text(
         'No contacts available',
-        style: TextStyle(color: MacosColors.secondaryLabelColor, fontSize: 13),
+        style: TextStyle(color: colors.content.textSecondary, fontSize: 13),
       ),
     );
   }
 }
 
-class _GroupedContactsList extends StatelessWidget {
+class _GroupedContactsList extends StatefulWidget {
   const _GroupedContactsList({
     required this.grouped,
     required this.selectedParticipantId,
@@ -483,31 +496,36 @@ class _GroupedContactsList extends StatelessWidget {
   final ItemPositionsListener positionsListener;
 
   @override
-  Widget build(BuildContext context) {
-    final letters = grouped.availableLetters;
+  State<_GroupedContactsList> createState() => _GroupedContactsListState();
+}
 
-    return ScrollablePositionedList.builder(
-      itemScrollController: controller,
-      itemPositionsListener: positionsListener,
-      itemCount: letters.length,
-      itemBuilder: (context, index) {
-        final letter = letters[index];
-        final contacts = grouped.groups[letter] ?? const [];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: _ContactGroupSection(
+class _GroupedContactsListState extends State<_GroupedContactsList> {
+  @override
+  Widget build(BuildContext context) {
+    final letters = widget.grouped.availableLetters;
+
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: ScrollablePositionedList.builder(
+        itemCount: letters.length,
+        itemScrollController: widget.controller,
+        itemPositionsListener: widget.positionsListener,
+        itemBuilder: (context, index) {
+          final letter = letters[index];
+          final contacts = widget.grouped.groups[letter] ?? const [];
+          return _ContactGroupSection(
             letter: letter,
             contacts: contacts,
-            selectedParticipantId: selectedParticipantId,
-            onContactSelected: onContactSelected,
-          ),
-        );
-      },
+            selectedParticipantId: widget.selectedParticipantId,
+            onContactSelected: widget.onContactSelected,
+          );
+        },
+      ),
     );
   }
 }
 
-class _JumpBar extends StatefulWidget {
+class _JumpBar extends ConsumerStatefulWidget {
   const _JumpBar({
     required this.letters,
     required this.activeLetter,
@@ -519,10 +537,10 @@ class _JumpBar extends StatefulWidget {
   final ValueChanged<String> onLetterTap;
 
   @override
-  State<_JumpBar> createState() => _JumpBarState();
+  ConsumerState<_JumpBar> createState() => _JumpBarState();
 }
 
-class _JumpBarState extends State<_JumpBar> {
+class _JumpBarState extends ConsumerState<_JumpBar> {
   String? _hoveredLetter;
 
   @override
@@ -532,7 +550,9 @@ class _JumpBarState extends State<_JumpBar> {
     }
 
     final typography = MacosTheme.of(context).typography;
-    const baseBackground = Color(0xFF3A3A3A);
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -541,95 +561,82 @@ class _JumpBarState extends State<_JumpBar> {
             : _calculatePickerHeight(widget.letters.length);
         final letterHeight = height / widget.letters.length;
 
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: baseBackground,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < widget.letters.length; i++)
-                MouseRegion(
-                  key: ValueKey('jumpBarLetter_${widget.letters[i]}'),
-                  onEnter: (_) => setState(() {
-                    _hoveredLetter = widget.letters[i];
-                  }),
-                  onExit: (_) => setState(() {
-                    if (_hoveredLetter == widget.letters[i]) {
-                      _hoveredLetter = null;
-                    }
-                  }),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => widget.onLetterTap(widget.letters[i]),
-                    child: Container(
-                      height: letterHeight,
-                      alignment: Alignment.center,
-                      decoration: _letterDecoration(
-                        context,
-                        letter: widget.letters[i],
-                        isFirst: i == 0,
-                        isLast: i == widget.letters.length - 1,
-                      ),
-                      child: Text(
-                        widget.letters[i],
-                        style: typography.caption1.copyWith(
-                          color: widget.letters[i] == widget.activeLetter
-                              ? Colors.white
-                              : Colors.white.withValues(
-                                  alpha: widget.letters[i] == _hoveredLetter
-                                      ? 0.95
-                                      : 0.75,
-                                ),
-                          fontWeight: widget.letters[i] == widget.activeLetter
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
+        return Column(
+          children: [
+            for (var i = 0; i < widget.letters.length; i++)
+              MouseRegion(
+                key: ValueKey('jumpBarLetter_${widget.letters[i]}'),
+                onEnter: (_) => setState(() {
+                  _hoveredLetter = widget.letters[i];
+                }),
+                onExit: (_) => setState(() {
+                  if (_hoveredLetter == widget.letters[i]) {
+                    _hoveredLetter = null;
+                  }
+                }),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => widget.onLetterTap(widget.letters[i]),
+                  child: Container(
+                    height: letterHeight,
+                    alignment: Alignment.center,
+                    decoration: _letterDecoration(
+                      colors: colors,
+                      letter: widget.letters[i],
+                      activeLetter: widget.activeLetter,
+                      hoveredLetter: _hoveredLetter,
+                    ),
+                    child: Text(
+                      widget.letters[i],
+                      style: typography.caption1.copyWith(
+                        color: widget.letters[i] == widget.activeLetter
+                            ? Colors.white
+                            : colors.content.textSecondary,
+                        fontWeight: widget.letters[i] == widget.activeLetter
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         );
       },
     );
   }
 }
 
-BoxDecoration _letterDecoration(
-  BuildContext context, {
+BoxDecoration _letterDecoration({
+  required ThemeColors colors,
   required String letter,
-  required bool isFirst,
-  required bool isLast,
+  required String? activeLetter,
+  required String? hoveredLetter,
 }) {
-  final state = context.findAncestorStateOfType<_JumpBarState>();
-  final isActive = letter == state?.widget.activeLetter;
-  final isHovered = letter == state?._hoveredLetter;
+  final isActive = letter == activeLetter;
+  final isHovered = letter == hoveredLetter;
 
   final color = isActive
-      ? MacosTheme.of(context).primaryColor.withValues(alpha: 0.9)
+      ? colors.accents.primary.withValues(alpha: 0.85)
       : isHovered
-      ? Colors.white.withValues(alpha: 0.15)
+      ? colors.surfaces.hover
       : Colors.transparent;
 
-  final radius = BorderRadius.vertical(
-    top: isActive && isFirst ? const Radius.circular(12) : Radius.zero,
-    bottom: isActive && isLast ? const Radius.circular(12) : Radius.zero,
-  );
-
-  return BoxDecoration(color: color, borderRadius: radius);
+  return BoxDecoration(color: color, borderRadius: BorderRadius.circular(4));
 }
 
-class _GroupedSelectorError extends StatelessWidget {
+class _GroupedSelectorError extends ConsumerWidget {
   const _GroupedSelectorError({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final typography = MacosTheme.of(context).typography;
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -645,7 +652,7 @@ class _GroupedSelectorError extends StatelessWidget {
         Text(
           message,
           style: typography.caption2.copyWith(
-            color: MacosColors.secondaryLabelColor,
+            color: colors.content.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
@@ -660,7 +667,7 @@ class _GroupedSelectorError extends StatelessWidget {
   }
 }
 
-class _ContactGroupSection extends StatelessWidget {
+class _ContactGroupSection extends ConsumerWidget {
   const _ContactGroupSection({
     required this.letter,
     required this.contacts,
@@ -674,52 +681,39 @@ class _ContactGroupSection extends StatelessWidget {
   final ValueChanged<int> onContactSelected;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = MacosTheme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = MacosTheme.of(context).typography;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ContactSectionHeader(letter: letter),
-          const SizedBox(height: 4),
-          ...contacts.map(
-            (contact) => _ContactListItem(
-              contact: contact,
-              selected: contact.participantId == selectedParticipantId,
-              onTap: () => onContactSelected(contact.participantId),
-            ),
-          ),
-          if (contacts.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'No contacts for $letter',
-                style: theme.typography.caption2.copyWith(
-                  color: MacosColors.secondaryLabelColor,
-                ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
+              letter,
+              style: typography.title3.copyWith(
+                fontSize: 14,
+                color: colors.content.textSecondary,
               ),
             ),
-          const SizedBox(height: 8),
+          ),
+          const SizedBox(height: 4),
+          ...contacts.map(
+            (contact) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: _ContactListItem(
+                contact: contact,
+                selected: contact.participantId == selectedParticipantId,
+                onTap: () => onContactSelected(contact.participantId),
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _ContactSectionHeader extends StatelessWidget {
-  const _ContactSectionHeader({required this.letter});
-
-  final String letter;
-
-  @override
-  Widget build(BuildContext context) {
-    final typography = MacosTheme.of(context).typography;
-
-    return Row(
-      children: [Text(letter, style: typography.title3.copyWith(fontSize: 14))],
     );
   }
 }
@@ -737,48 +731,10 @@ class _ContactListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _HoverHighlight(
-      radius: 10,
-      builder: (context, {required isHovered}) {
-        return ContactHighlightRow(
-          displayName: contact.displayName,
-          shortName: contact.shortName,
-          isHighlighted: selected || isHovered,
-          onTap: onTap,
-        );
-      },
-    );
-  }
-}
-
-class _HoverHighlight extends StatefulWidget {
-  const _HoverHighlight({required this.builder, required this.radius});
-
-  final Widget Function(BuildContext context, {required bool isHovered})
-  builder;
-  final double radius;
-
-  @override
-  State<_HoverHighlight> createState() => _HoverHighlightState();
-}
-
-class _HoverHighlightState extends State<_HoverHighlight> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() {
-          _isHovered = true;
-        });
-      },
-      onExit: (_) {
-        setState(() {
-          _isHovered = false;
-        });
-      },
-      child: widget.builder(context, isHovered: _isHovered),
+    return ContactHighlightRow(
+      displayName: contact.displayName,
+      shortName: contact.shortName,
+      onTap: onTap,
     );
   }
 }

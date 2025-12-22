@@ -1,10 +1,10 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
-import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
-import 'application/use_cases/contact_chooser_view_builder_provider.dart';
-import 'presentation/cassettes/contact_hero_summary_cassette.dart';
+import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import '../cassettes/contact_hero_summary_cassette.dart';
+import '../cassettes/contacts_enhanced_picker_cassette.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -12,14 +12,16 @@ part 'feature_level_providers.g.dart';
 @riverpod
 class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
   @override
-  void build() {}
+  void build() {
+    // Stateless coordinator
+  }
 
-  CassetteCardView buildForSpec(Ref ref, ContactsCassetteSpec spec) {
+  CassetteCardView buildForSpec(ContactsCassetteSpec spec) {
     return spec.map(
       contactChooser: (chooser) => CassetteCardView(
         title: '',
         subtitle: null,
-        child: ref.watch(contactChooserViewBuilderProvider(chooser)),
+        child: ContactsEnhancedPickerCassette(spec: chooser),
       ),
       contactHeroSummary: (hero) => CassetteCardView(
         title: '',

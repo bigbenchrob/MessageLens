@@ -152,6 +152,12 @@ When viewing messages for an unmatched handle in the center panel, provide UI to
 
 ## Implementation Notes
 
+## Cassette Content Control (Canonical Doc)
+
+This folder is deprecated; do not rely on it for cassette architecture.
+
+See `_AGENT_INSTRUCTIONS/agent-per-project/70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md` for the canonical “cassette choice flow” and separation of responsibilities.
+
 ### Key Files:
 
 - **Sidebar Views**:

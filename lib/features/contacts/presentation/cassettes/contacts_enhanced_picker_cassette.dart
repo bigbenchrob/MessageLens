@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../constants/domain/contact_constants.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../application_pre_cassette/contacts_list_provider.dart';
+import '../widgets/flat_contacts_list.dart';
 import '../widgets/grouped_contact_selector.dart';
 import 'contact_cassette_helpers.dart';
 
@@ -35,6 +37,29 @@ class ContactsEnhancedPickerCassette extends ConsumerWidget {
           });
         }
 
+        // Decide which widget to show based on contact count
+        final useFlatPicker = contacts.length < kContactPickerGroupingThreshold;
+
+        if (useFlatPicker) {
+          // Simple flat list for few contacts
+          return FlatContactsList(
+            contacts: contacts,
+            selectedParticipantId: selectedContactId,
+            onContactSelected: (contactId) async {
+              ref.read(_pendingSelectionProvider.notifier).state = contactId;
+
+              await Future<void>.delayed(const Duration(milliseconds: 160));
+
+              updateContactSelection(
+                ref: ref,
+                currentSpec: spec,
+                nextContactId: contactId,
+              );
+            },
+          );
+        }
+
+        // Full grouped picker for many contacts
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

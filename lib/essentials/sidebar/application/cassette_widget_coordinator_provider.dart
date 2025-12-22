@@ -67,7 +67,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           final coordinator = ref.read(
             contacts_feature.contactsCassetteCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(contactsSpec);
+          return coordinator.buildForSpec(ref, contactsSpec);
         },
         handles: (handlesSpec) {
           final coordinator = ref.read(

@@ -11,10 +11,39 @@ part 'theme_colors.g.dart';
 /// Organized collection of theme color tokens.
 /// Each token is defined as an immutable light/dark pair ([ColorPair]).
 /// The [ThemeColors] provider resolves tokens based on the current brightness.
-/// Usage:
-/// final colors = ref.watch(themeColorsProvider);
-/// final bg = colors.surfaces.canvas;
-/// final gray1 = colors.globals.gray.one;
+///
+/// **CRITICAL: Correct Usage Pattern for Reactive Rebuilds**
+///
+/// To ensure widgets rebuild when the theme changes (light/dark mode switch),
+/// you MUST watch the provider's state, then read the notifier:
+///
+/// ```dart
+/// @override
+/// Widget build(BuildContext context, WidgetRef ref) {
+///   // Watch the Brightness state - triggers rebuilds on theme changes
+///   ref.watch(themeColorsProvider);
+///   // Read the notifier instance - provides access to color methods
+///   final colors = ref.read(themeColorsProvider.notifier);
+///
+///   // Now use colors.surfaces.canvas, colors.globals.gray.one, etc.
+/// }
+/// ```
+///
+/// **Why this pattern is required:**
+/// - `ref.watch(themeColorsProvider.notifier)` watches the notifier INSTANCE,
+///   which never changes - this will NOT trigger rebuilds on theme changes.
+/// - `ref.watch(themeColorsProvider)` watches the STATE (Brightness), which
+///   DOES change and triggers rebuilds.
+/// - `ref.read(themeColorsProvider.notifier)` then provides access to the
+///   ThemeColors instance with all its color resolution methods.
+///
+/// **DO NOT USE** (this will not rebuild on theme changes):
+/// ```dart
+/// final colors = ref.watch(themeColorsProvider.notifier); // ❌ Wrong!
+/// ```
+///
+/// The provider's state is [Brightness], which triggers rebuilds when light/dark
+/// mode changes. The notifier provides the color resolution API.
 
 /// Immutable light/dark pair.
 class ColorPair {
@@ -100,6 +129,14 @@ class Surfaces {
   /// Sidebar / inspector panel background.
   Color get panel => _r(const ColorPair(Color(0xFFF6F7F8), Color(0xFF232627)));
 
+  /// Content control panel background (left column holding cassette rack).
+  ///
+  /// Holds a dynamic hierarchy of widgets (cassette rack) that respond to user
+  /// inputs by offering new options for displaying content in the central area.
+  /// Slightly different from [panel] to visually separate this control surface.
+  Color get contentControl =>
+      _r(const ColorPair(Color(0xFFF2F4F6), Color(0xFF2A2D2F)));
+
   /// Default surface for grouped content (cards, groups).
   Color get surface =>
       _r(const ColorPair(Color(0xFFFFFFFF), Color(0xFF2A2D2E)));
@@ -158,6 +195,10 @@ class Lines {
   Color get border => _base().withValues(alpha: _t.isDark ? 0.65 : 0.70);
   Color get borderStrong =>
       _t.globals.gray.four.withValues(alpha: _t.isDark ? 0.85 : 0.85);
+
+  /// Vertical divider for content control panel (more subtle than standard divider).
+  Color get contentControlDivider =>
+      _base().withValues(alpha: _t.isDark ? 0.40 : 0.18);
 
   /// A "layered" border recipe often useful for dropdowns/popovers.
   BorderLayers get dropdown => BorderLayers(outer: border, inner: borderSubtle);

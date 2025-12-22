@@ -6,7 +6,7 @@ part of 'cassette_rack_state_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cassetteRackStateHash() => r'd0d1e8c2ea6bab3608cbb364aa239c48138ad779';
+String _$cassetteRackStateHash() => r'3966f36fb8c2072d7f5f6d036f2c44b2cdfe10cd';
 
 /// A Riverpod notifier managing the current [CassetteRack].
 ///

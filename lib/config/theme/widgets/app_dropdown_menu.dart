@@ -5,10 +5,25 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../colors/theme_colors.dart';
 import '../theme.dart';
 
 typedef AppDropdownItemBuilder<T> =
     Widget Function(BuildContext context, T value, {required bool isSelected});
+
+/// Styling notes:
+/// - The trigger uses the control surface color as its background.
+/// - The dropdown panel uses the surfaceRaised color as its background.
+/// - The border uses the dropdown border layers from the theme.
+/// - Dividers use the divider line color from the theme.
+/// - Selected item highlight uses the primary accent color with 16% opacity.
+/// - Selected item text uses the primary accent color.
+/// - Unselected item text uses the primary text color.
+/// - The leading label (if any) uses the primary text color and a semi-bold weight.
+/// - The selected item label uses the primary text color.
+/// - The dropdown icon uses the primary text color.
+///
+/// Only the root content control menu receives accent emphasis. All other menus remain neutral.
 
 class AppDropdownMenu<T> extends HookConsumerWidget {
   const AppDropdownMenu({
@@ -34,6 +49,9 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
     required this.closedIcon,
     required this.openIcon,
     this.onMenuVisibilityChanged,
+    this.leadingLabelWeight,
+    this.selectedValueWeight,
+    this.chevronColor,
     super.key,
   }) : assert(
          options.length > 0,
@@ -63,6 +81,15 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
   final IconData openIcon;
   final ValueChanged<bool>? onMenuVisibilityChanged;
 
+  /// Font weight for the leading label (e.g., "Show:").
+  final FontWeight? leadingLabelWeight;
+
+  /// Font weight for the selected value (e.g., "Contacts").
+  final FontWeight? selectedValueWeight;
+
+  /// Custom color for the chevron icon. If null, uses default text color.
+  final Color? chevronColor;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOpen = useState(false);
@@ -87,15 +114,15 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
       setOpen(false);
     }, [onSelected, setOpen]);
 
-    final bbc = AppTheme.bbc(context);
+    final colors = ref.watch(themeColorsProvider.notifier);
     final typography = AppTheme.typography(context);
 
-    final controlFill = bbc.bbcControlSurface;
-    final panelFill = bbc.bbcControlPanelSurface;
-    final dividerColor = bbc.bbcDivider;
-    final borderColor = bbc.bbcBorderSubtle;
-    final borderLayers = bbc.dropdownBorderLayers;
-    final labelColor = bbc.bbcControlText;
+    final controlFill = colors.surfaces.control;
+    final panelFill = colors.surfaces.surfaceRaised;
+    final dividerColor = colors.lines.divider;
+    final borderColor = colors.lines.borderSubtle;
+    final borderLayers = colors.lines.dropdown;
+    final labelColor = colors.content.textPrimary;
 
     final selectedLabel = optionLabelBuilder(selectedOption);
 
@@ -120,8 +147,8 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                   Text(
                     leadingLabel!,
                     style: typography.callout.copyWith(
-                      color: labelColor,
-                      fontWeight: FontWeight.w600,
+                      color: colors.content.textTertiary,
+                      fontWeight: leadingLabelWeight ?? FontWeight.w400,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -129,7 +156,10 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                 Expanded(
                   child: Text(
                     selectedLabel,
-                    style: typography.callout.copyWith(color: labelColor),
+                    style: typography.callout.copyWith(
+                      color: labelColor,
+                      fontWeight: selectedValueWeight ?? FontWeight.w400,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -138,7 +168,7 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                 Icon(
                   isOpen.value ? openIcon : closedIcon,
                   size: trailingIconSize,
-                  color: labelColor,
+                  color: chevronColor ?? labelColor,
                 ),
               ],
             ),
@@ -150,8 +180,8 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
     Widget buildDefaultRow(T option, bool Function(T, T) equals) {
       final isSelected = equals(option, selectedOption);
       final optionLabel = optionLabelBuilder(option);
-      final selectedFill = bbc.bbcPrimaryOne;
-      final selectedTextColor = bbc.bbcPrimaryOne;
+      final selectedFill = colors.accents.primary;
+      final selectedTextColor = colors.accents.primary;
 
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -190,7 +220,7 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
       );
     }
 
-    Widget _buildItemRow(
+    Widget buildItemRow(
       BuildContext context,
       T option,
       bool Function(T, T) equals,
@@ -211,7 +241,7 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
     }
 
     Widget buildItem(T option) {
-      return _buildItemRow(context, option, equals);
+      return buildItemRow(context, option, equals);
     }
 
     Widget buildPanel() {
@@ -278,7 +308,7 @@ class _DropdownPanelDecoration extends StatelessWidget {
   final Widget child;
   final BorderRadius borderRadius;
   final Color backgroundColor;
-  final List<Color> borderLayers;
+  final BorderLayers borderLayers;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +317,7 @@ class _DropdownPanelDecoration extends StatelessWidget {
       child: CustomPaint(
         painter: _DropdownBorderPainter(
           borderRadius: borderRadius,
-          colors: borderLayers,
+          colors: [borderLayers.outer, borderLayers.inner],
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(color: backgroundColor),

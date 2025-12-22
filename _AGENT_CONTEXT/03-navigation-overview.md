@@ -51,6 +51,8 @@ The system uses a chain of providers that automatically resolve ViewSpecs to wid
 ViewSpec → Feature Coordinators → Widget Builders → UI Components
 ```
 
+Related: Sidebar cassettes follow the same separation of responsibilities. See `_AGENT_INSTRUCTIONS/agent-per-project/70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md`.
+
 ## Implementation Layers
 
 ### Layer 1: Widget Builders (Leaf Level)

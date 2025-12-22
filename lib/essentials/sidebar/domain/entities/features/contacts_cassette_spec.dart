@@ -11,20 +11,14 @@ part 'contacts_cassette_spec.freezed.dart';
 /// will live alongside this file after running build_runner.
 @freezed
 abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
-  /// A flat menu of contacts.  This variant is used when there are few
-  /// contacts and they can be presented as a simple list.
-  const factory ContactsCassetteSpec.contactsFlatMenu({int? chosenContactId}) =
-      _ContactMenuSpec;
+  /// A contact chooser that adapts its UI based on contact count.
+  /// The contacts feature decides whether to show a flat list or grouped
+  /// picker based on the number of contacts.
+  const factory ContactsCassetteSpec.contactChooser({int? chosenContactId}) =
+      _ContactChooserSpec;
 
-  /// A more elaborate contacts picker.  Use this when there are many
-  /// contacts or when a richer UI is needed to select a contact.
-  const factory ContactsCassetteSpec.contactsEnhancedPicker({
-    int? chosenContactId,
-  }) = _ContactPickerSpec;
-
-  /// A more elaborate contacts picker.  Use this when there are many
-  /// contacts or when a richer UI is needed to select a contact.
+  /// A detailed summary view for a selected contact.
   const factory ContactsCassetteSpec.contactHeroSummary({
     required int chosenContactId,
-  }) = _ChosenContactSpec;
+  }) = _ContactHeroSummarySpec;
 }

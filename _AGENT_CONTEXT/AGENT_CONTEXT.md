@@ -1,3 +1,19 @@
+# DEPRECATED: _AGENT_CONTEXT (DO NOT USE)
+
+This folder is **deprecated** and retained only as a safety net in case older
+documentation was mistakenly added here.
+
+**Agents must NOT read or rely on `_AGENT_CONTEXT/` for guidance.**
+
+✅ **Source of truth**: `_AGENT_INSTRUCTIONS/`
+- Start at `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md`
+- Then use `_AGENT_INSTRUCTIONS/agent-per-project/README.md` as the canonical index
+
+If you find useful content in `_AGENT_CONTEXT/`, migrate it into
+`_AGENT_INSTRUCTIONS/agent-per-project/` and update links accordingly.
+
+---
+
 # Agent Context - Master Documentation Index
 
 This file serves as the master index for all critical documentation that AI agents MUST reference when working on this project. **EVERY AGENT MUST READ THIS FILE AND THE REFERENCED DOCUMENTATION BEFORE MAKING CODE CHANGES.**

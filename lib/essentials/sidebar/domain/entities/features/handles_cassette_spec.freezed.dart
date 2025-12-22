@@ -14,61 +14,30 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HandlesCassetteSpec {
 
- int? get chosenContactId;
-/// Create a copy of HandlesCassetteSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$HandlesCassetteSpecCopyWith<HandlesCassetteSpec> get copyWith => _$HandlesCassetteSpecCopyWithImpl<HandlesCassetteSpec>(this as HandlesCassetteSpec, _$identity);
+
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HandlesCassetteSpec&&(identical(other.chosenContactId, chosenContactId) || other.chosenContactId == chosenContactId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HandlesCassetteSpec);
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,chosenContactId);
+int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'HandlesCassetteSpec(chosenContactId: $chosenContactId)';
+  return 'HandlesCassetteSpec()';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $HandlesCassetteSpecCopyWith<$Res>  {
-  factory $HandlesCassetteSpecCopyWith(HandlesCassetteSpec value, $Res Function(HandlesCassetteSpec) _then) = _$HandlesCassetteSpecCopyWithImpl;
-@useResult
-$Res call({
- int? chosenContactId
-});
-
-
-
-
-}
-/// @nodoc
-class _$HandlesCassetteSpecCopyWithImpl<$Res>
-    implements $HandlesCassetteSpecCopyWith<$Res> {
-  _$HandlesCassetteSpecCopyWithImpl(this._self, this._then);
-
-  final HandlesCassetteSpec _self;
-  final $Res Function(HandlesCassetteSpec) _then;
-
-/// Create a copy of HandlesCassetteSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? chosenContactId = freezed,}) {
-  return _then(_self.copyWith(
-chosenContactId: freezed == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
-as int?,
-  ));
-}
-
+class $HandlesCassetteSpecCopyWith<$Res>  {
+$HandlesCassetteSpecCopyWith(HandlesCassetteSpec _, $Res Function(HandlesCassetteSpec) __);
 }
 
 
@@ -86,11 +55,13 @@ extension HandlesCassetteSpecPatterns on HandlesCassetteSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _HandlesListUnmatchedSpec value)?  unmatchedHandlesList,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _HandlesListUnmatchedSpec value)?  unmatchedHandlesList,TResult Function( _HandlesStrayPhoneNumbersSpec value)?  strayPhoneNumbers,TResult Function( _HandlesStrayEmailsSpec value)?  strayEmails,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec() when unmatchedHandlesList != null:
-return unmatchedHandlesList(_that);case _:
+return unmatchedHandlesList(_that);case _HandlesStrayPhoneNumbersSpec() when strayPhoneNumbers != null:
+return strayPhoneNumbers(_that);case _HandlesStrayEmailsSpec() when strayEmails != null:
+return strayEmails(_that);case _:
   return orElse();
 
 }
@@ -108,11 +79,13 @@ return unmatchedHandlesList(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _HandlesListUnmatchedSpec value)  unmatchedHandlesList,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _HandlesListUnmatchedSpec value)  unmatchedHandlesList,required TResult Function( _HandlesStrayPhoneNumbersSpec value)  strayPhoneNumbers,required TResult Function( _HandlesStrayEmailsSpec value)  strayEmails,}){
 final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec():
-return unmatchedHandlesList(_that);case _:
+return unmatchedHandlesList(_that);case _HandlesStrayPhoneNumbersSpec():
+return strayPhoneNumbers(_that);case _HandlesStrayEmailsSpec():
+return strayEmails(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -129,11 +102,13 @@ return unmatchedHandlesList(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _HandlesListUnmatchedSpec value)?  unmatchedHandlesList,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _HandlesListUnmatchedSpec value)?  unmatchedHandlesList,TResult? Function( _HandlesStrayPhoneNumbersSpec value)?  strayPhoneNumbers,TResult? Function( _HandlesStrayEmailsSpec value)?  strayEmails,}){
 final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec() when unmatchedHandlesList != null:
-return unmatchedHandlesList(_that);case _:
+return unmatchedHandlesList(_that);case _HandlesStrayPhoneNumbersSpec() when strayPhoneNumbers != null:
+return strayPhoneNumbers(_that);case _HandlesStrayEmailsSpec() when strayEmails != null:
+return strayEmails(_that);case _:
   return null;
 
 }
@@ -150,10 +125,12 @@ return unmatchedHandlesList(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  unmatchedHandlesList,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  unmatchedHandlesList,TResult Function()?  strayPhoneNumbers,TResult Function()?  strayEmails,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec() when unmatchedHandlesList != null:
-return unmatchedHandlesList(_that.chosenContactId);case _:
+return unmatchedHandlesList(_that.chosenContactId);case _HandlesStrayPhoneNumbersSpec() when strayPhoneNumbers != null:
+return strayPhoneNumbers();case _HandlesStrayEmailsSpec() when strayEmails != null:
+return strayEmails();case _:
   return orElse();
 
 }
@@ -171,10 +148,12 @@ return unmatchedHandlesList(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  unmatchedHandlesList,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  unmatchedHandlesList,required TResult Function()  strayPhoneNumbers,required TResult Function()  strayEmails,}) {final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec():
-return unmatchedHandlesList(_that.chosenContactId);case _:
+return unmatchedHandlesList(_that.chosenContactId);case _HandlesStrayPhoneNumbersSpec():
+return strayPhoneNumbers();case _HandlesStrayEmailsSpec():
+return strayEmails();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -191,10 +170,12 @@ return unmatchedHandlesList(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  unmatchedHandlesList,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  unmatchedHandlesList,TResult? Function()?  strayPhoneNumbers,TResult? Function()?  strayEmails,}) {final _that = this;
 switch (_that) {
 case _HandlesListUnmatchedSpec() when unmatchedHandlesList != null:
-return unmatchedHandlesList(_that.chosenContactId);case _:
+return unmatchedHandlesList(_that.chosenContactId);case _HandlesStrayPhoneNumbersSpec() when strayPhoneNumbers != null:
+return strayPhoneNumbers();case _HandlesStrayEmailsSpec() when strayEmails != null:
+return strayEmails();case _:
   return null;
 
 }
@@ -209,11 +190,11 @@ class _HandlesListUnmatchedSpec implements HandlesCassetteSpec {
   const _HandlesListUnmatchedSpec({this.chosenContactId});
   
 
-@override final  int? chosenContactId;
+ final  int? chosenContactId;
 
 /// Create a copy of HandlesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
+@JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 _$HandlesListUnmatchedSpecCopyWith<_HandlesListUnmatchedSpec> get copyWith => __$HandlesListUnmatchedSpecCopyWithImpl<_HandlesListUnmatchedSpec>(this, _$identity);
 
@@ -239,7 +220,7 @@ String toString() {
 /// @nodoc
 abstract mixin class _$HandlesListUnmatchedSpecCopyWith<$Res> implements $HandlesCassetteSpecCopyWith<$Res> {
   factory _$HandlesListUnmatchedSpecCopyWith(_HandlesListUnmatchedSpec value, $Res Function(_HandlesListUnmatchedSpec) _then) = __$HandlesListUnmatchedSpecCopyWithImpl;
-@override @useResult
+@useResult
 $Res call({
  int? chosenContactId
 });
@@ -258,7 +239,7 @@ class __$HandlesListUnmatchedSpecCopyWithImpl<$Res>
 
 /// Create a copy of HandlesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? chosenContactId = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? chosenContactId = freezed,}) {
   return _then(_HandlesListUnmatchedSpec(
 chosenContactId: freezed == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
 as int?,
@@ -267,5 +248,69 @@ as int?,
 
 
 }
+
+/// @nodoc
+
+
+class _HandlesStrayPhoneNumbersSpec implements HandlesCassetteSpec {
+  const _HandlesStrayPhoneNumbersSpec();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HandlesStrayPhoneNumbersSpec);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'HandlesCassetteSpec.strayPhoneNumbers()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _HandlesStrayEmailsSpec implements HandlesCassetteSpec {
+  const _HandlesStrayEmailsSpec();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HandlesStrayEmailsSpec);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'HandlesCassetteSpec.strayEmails()';
+}
+
+
+}
+
+
+
 
 // dart format on

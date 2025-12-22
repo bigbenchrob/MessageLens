@@ -3,12 +3,19 @@
 /// (2) interpreting the user's choice, and (3) serializing the choice in the feature
 /// cassette spec.
 enum TopChatMenuChoice {
+  /// Contacts list
   contacts(id: 'contacts', label: 'Contacts'),
-  unmatchedHandles(
-    id: 'unmatched_handles',
-    label: 'Unmatched phone numbers and emails',
-  ),
+
+  /// All messages in the database
   allMessages(id: 'all_messages', label: 'All messages'),
+
+  /// Phone numbers not matched to any contact
+  strayPhoneNumbers(id: 'stray_phone_numbers', label: 'Stray phone numbers'),
+
+  /// Email addresses not matched to any contact
+  strayEmails(id: 'stray_emails', label: 'Stray emails'),
+
+  /// Theme playground (for development)
   themePlayground(id: 'theme_playground', label: 'Theme playground');
 
   const TopChatMenuChoice({required this.id, required this.label});

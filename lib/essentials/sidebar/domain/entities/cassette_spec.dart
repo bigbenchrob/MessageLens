@@ -44,13 +44,17 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
         switch (selectedChoice) {
           case TopChatMenuChoice.contacts:
             return const CassetteSpec.contacts(
-              ContactsCassetteSpec.contactsEnhancedPicker(),
+              ContactsCassetteSpec.contactChooser(),
             );
 
-          case TopChatMenuChoice.unmatchedHandles:
-            // Placeholder – adjust to your real cassette type
+          case TopChatMenuChoice.strayPhoneNumbers:
             return const CassetteSpec.handles(
-              HandlesCassetteSpec.unmatchedHandlesList(),
+              HandlesCassetteSpec.strayPhoneNumbers(),
+            );
+
+          case TopChatMenuChoice.strayEmails:
+            return const CassetteSpec.handles(
+              HandlesCassetteSpec.strayEmails(),
             );
 
           case TopChatMenuChoice.allMessages:
@@ -74,15 +78,7 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
   /// Contacts cascade into a messages heatmap when a contact is selected.
   CassetteSpec? childSpec() {
     return when(
-      contactsFlatMenu: (chosenContactId) {
-        if (chosenContactId == null) {
-          return null;
-        }
-        return CassetteSpec.messages(
-          MessagesCassetteSpec.heatMap(contactId: chosenContactId),
-        );
-      },
-      contactsEnhancedPicker: (chosenContactId) {
+      contactChooser: (chosenContactId) {
         if (chosenContactId == null) {
           return null;
         }
@@ -102,7 +98,11 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
 extension HandlesCassetteSpecX on HandlesCassetteSpec {
   /// Handles cassettes currently have no children.
   CassetteSpec? childSpec() {
-    return when(unmatchedHandlesList: (_) => null);
+    return when(
+      unmatchedHandlesList: (_) => null,
+      strayPhoneNumbers: () => null,
+      strayEmails: () => null,
+    );
   }
 }
 

@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$contactsCassetteCoordinatorHash() =>
-    r'3990e152437d4c3172214721710135778e8c6b38';
+    r'21ca913b92d10941a86deaa8e6a589b9b30ef5ce';
 
 /// Coordinator that maps [ContactsCassetteSpec] to cassette widgets.
 ///

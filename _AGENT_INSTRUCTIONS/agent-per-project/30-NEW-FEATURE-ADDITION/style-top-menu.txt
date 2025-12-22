@@ -1,0 +1,193 @@
+
+
+
+How do we add emphasis without breaking the grammar you’ve just established?
+
+I’ll do this in three passes:
+	1.	Review what’s working (so we don’t undo it)
+	2.	State exactly what kind of emphasis this menu deserves
+	3.	Give you concrete, minimal tweaks (ranked from safest → strongest)
+
+⸻
+
+1. Review: what’s already working (keep all of this)
+
+Across light & dark, open & closed:
+
+✅ Structural correctness
+	•	Menu sits on a raised surface when open
+	•	Closed state reads as a control on a surface
+	•	Content below does not compete visually
+
+✅ Color discipline
+	•	No brand fill abuse
+	•	Neutral surfaces dominate
+	•	Selection highlight is restrained
+	•	Dark mode values are not inverted incorrectly (very common mistake)
+
+✅ Hierarchy is already present
+
+Even now, the eye naturally goes:
+
+
+menu → section title → list content
+So you are not starting from zero.
+
+⸻
+
+2. What kind of emphasis this menu needs (and does NOT need)
+
+This is critical.
+
+This menu is:
+	•	Root of the content control chain
+	•	Mode-setting
+	•	Semantically upstream of everything below
+
+This menu is NOT:
+	•	A call-to-action
+	•	A warning
+	•	A button users must click repeatedly
+	•	A “selected item” in the normal sense
+
+Therefore the emphasis must communicate:
+
+“This defines the scope of what follows.”
+
+Not:
+
+“Click me!” or “I’m active!”
+
+That distinction determines the treatment.
+
+⸻
+
+3. How to add emphasis (minimal, correct changes)
+
+🔹 Guiding rule
+
+Add one signal of authority, not multiple signals of excitement.
+
+Below are the changes I recommend, in priority order.
+
+⸻
+
+4. Primary recommendation (do this first)
+
+Promote the label, not the container
+
+Right now:
+
+Show: Contacts
+
+The emphasis is mostly on the container.
+
+Instead, make the value (“Contacts”) authoritative.
+
+Change:
+	•	Show: → tertiary text
+	•	Contacts → primary text + slightly heavier weight
+
+Example intent (not code):
+	•	Show: → content.textTertiary
+	•	Contacts → content.textPrimary, FontWeight.w600
+
+This does three things:
+	1.	Establishes hierarchy inside the control
+	2.	Signals “this value matters”
+	3.	Requires no color changes
+
+This is exactly how Apple often elevates scope selectors.
+
+⸻
+
+5. Secondary recommendation (very safe, very effective)
+
+Accent only the chevron — but persistently
+
+You already noticed Pages does this only when open.
+
+You can justify doing it always for this control because it is root-level.
+
+Change:
+	•	Chevron uses accents.primary
+	•	Everything else stays neutral
+
+This says:
+
+“This control governs the system.”
+
+without shouting.
+
+⚠️ Important:
+	•	Do not tint the text
+	•	Do not tint the background
+	•	Do not tint the menu items beyond normal selection
+
+Chevron-only is the right amount.
+
+⸻
+
+6. Optional structural emphasis (pick ONE if needed)
+
+If after the above it still feels too quiet, choose one of these — not both.
+
+Option A: Section framing
+
+Add a subtle divider below the menu (not around it):
+	•	1px lines.divider
+	•	Full width of the panel content
+
+This visually says:
+
+“Everything below is downstream.”
+
+Option B: Slightly different surface
+
+If the menu currently uses surfaces.control, consider:
+	•	closed state → surfaces.surface
+	•	open state → surfaces.surfaceRaised
+
+This makes it feel structural, not button-like.
+
+⸻
+
+7. What NOT to do (seriously)
+
+Avoid these — they will undo your careful system work:
+
+❌ Full brand background
+❌ Blue text for “Contacts”
+❌ Larger padding than surrounding controls
+❌ Making it visually louder than section headers
+❌ Adding a glow or shadow only to this control
+
+If it starts competing with “Select a contact”, you’ve gone too far.
+
+⸻
+
+8. How this plays out in your screenshots
+
+Looking at your attached images:
+	•	Light mode open state → already excellent
+	•	Dark mode open state → especially good restraint
+	•	Selection highlight → appropriate, not overpowering
+
+With the tweaks above:
+	•	The menu will read as the root selector
+	•	The rest of the panel will feel properly subordinate
+	•	You won’t need any new tokens
+
+⸻
+
+9. Final recommendation summary (do these in order)
+	1.	Typography hierarchy inside the control (most important)
+	2.	Accent-colored chevron, always
+	3.	(Optional) divider below the control
+
+Stop there.
+
+If you want, next we can:
+	•	write a short doc comment for this control so future styling doesn’t drift, or
+	•	walk through keyboard focus + hover states to ensure the emphasis survives accessibility navigation, or
+	•	sanity-check contrast ratios now that emphasis is adde

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../providers.dart';
 
 import '../../../logging/application/navigation_logger.dart';
@@ -117,72 +117,91 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
           ),
           title: const Text('Remember This Text'),
           centerTitle: true,
-          leading: MacosTooltip(
-            message: 'Settings',
-            useMousePosition: false,
-            child: MacosIconButton(
-              icon: MacosIcon(
-                CupertinoIcons.gear_alt,
-                color: MacosTheme.brightnessOf(context).resolve(
-                  const Color.fromRGBO(0, 0, 0, 0.65),
-                  const Color.fromRGBO(255, 255, 255, 0.75),
-                ),
-                size: 18,
-              ),
-              boxConstraints: const BoxConstraints(
-                minHeight: 20,
-                minWidth: 20,
-                maxWidth: 48,
-                maxHeight: 38,
-              ),
-              onPressed: () {
-                const spec = ViewSpec.settings(
-                  SettingsSpec.contactShortNames(),
-                );
-
-                ref
-                    .read(navigationLoggerProvider.notifier)
-                    .logToolbarClick(
-                      buttonLabel: 'Settings',
-                      targetPanel: WindowPanel.center,
-                      viewSpec: spec,
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MacosTooltip(
+                message: 'Settings',
+                useMousePosition: false,
+                child: MacosIconButton(
+                  icon: MacosIcon(
+                    CupertinoIcons.gear_alt,
+                    color: MacosTheme.brightnessOf(context).resolve(
+                      const Color.fromRGBO(0, 0, 0, 0.65),
+                      const Color.fromRGBO(255, 255, 255, 0.75),
+                    ),
+                    size: 18,
+                  ),
+                  boxConstraints: const BoxConstraints(
+                    minHeight: 20,
+                    minWidth: 20,
+                    maxWidth: 48,
+                    maxHeight: 38,
+                  ),
+                  onPressed: () {
+                    const spec = ViewSpec.settings(
+                      SettingsSpec.contactShortNames(),
                     );
 
-                ref
-                    .read(panelsViewStateProvider.notifier)
-                    .show(panel: WindowPanel.center, spec: spec);
-              },
-            ),
+                    ref
+                        .read(navigationLoggerProvider.notifier)
+                        .logToolbarClick(
+                          buttonLabel: 'Settings',
+                          targetPanel: WindowPanel.center,
+                          viewSpec: spec,
+                        );
+
+                    ref
+                        .read(panelsViewStateProvider.notifier)
+                        .show(panel: WindowPanel.center, spec: spec);
+                  },
+                ),
+              ),
+              () {
+                final themeMode = ref.watch(switchableDarkModeProvider);
+
+                final (IconData icon, String tooltip) = switch (themeMode) {
+                  ThemeMode.system => (
+                    CupertinoIcons.circle_lefthalf_fill,
+                    'Theme: System (click to switch to Light)',
+                  ),
+                  ThemeMode.light => (
+                    CupertinoIcons.sun_max_fill,
+                    'Theme: Light (click to switch to Dark)',
+                  ),
+                  ThemeMode.dark => (
+                    CupertinoIcons.moon_stars_fill,
+                    'Theme: Dark (click to switch to System)',
+                  ),
+                };
+
+                return MacosTooltip(
+                  message: tooltip,
+                  useMousePosition: false,
+                  child: MacosIconButton(
+                    icon: MacosIcon(
+                      icon,
+                      color: MacosTheme.brightnessOf(context).resolve(
+                        const Color.fromRGBO(0, 0, 0, 0.65),
+                        const Color.fromRGBO(255, 255, 255, 0.75),
+                      ),
+                      size: 18,
+                    ),
+                    boxConstraints: const BoxConstraints(
+                      minHeight: 20,
+                      minWidth: 20,
+                      maxWidth: 48,
+                      maxHeight: 38,
+                    ),
+                    onPressed: () {
+                      ref.read(switchableDarkModeProvider.notifier).cycle();
+                    },
+                  ),
+                );
+              }(),
+            ],
           ),
           actions: [
-            () {
-              final themeMode = ref.watch(switchableDarkModeProvider);
-
-              final (IconData icon, String tooltip) = switch (themeMode) {
-                ThemeMode.system => (
-                  CupertinoIcons.circle_lefthalf_fill,
-                  'Theme: System (click to switch to Light)',
-                ),
-                ThemeMode.light => (
-                  CupertinoIcons.sun_max_fill,
-                  'Theme: Light (click to switch to Dark)',
-                ),
-                ThemeMode.dark => (
-                  CupertinoIcons.moon_stars_fill,
-                  'Theme: Dark (click to switch to System)',
-                ),
-              };
-
-              return ToolBarIconButton(
-                label: 'Theme',
-                icon: MacosIcon(icon),
-                onPressed: () {
-                  ref.read(switchableDarkModeProvider.notifier).cycle();
-                },
-                showLabel: false,
-                tooltipMessage: tooltip,
-              );
-            }(),
             ToolBarIconButton(
               label: 'Messages',
               icon: const MacosIcon(CupertinoIcons.chat_bubble),
@@ -298,7 +317,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         children: [
           ContentArea(
             builder: (context, scrollController) {
-              final colors = AppTheme.bbc(context);
+              final colors = ref.watch(themeColorsProvider.notifier);
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -306,10 +325,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     width: _navigationColumnWidth,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: colors.bbcNavigationColumnBackground,
+                        color: colors.surfaces.contentControl,
                         border: Border(
                           right: BorderSide(
-                            color: colors.bbcNavigationColumnDivider,
+                            color: colors.lines.contentControlDivider,
                             width: 1,
                           ),
                         ),
@@ -317,12 +336,67 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                       child: ref.watch(leftPanelWidgetProvider),
                     ),
                   ),
-                  Expanded(child: ref.watch(centerPanelWidgetProvider)),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        ref.watch(centerPanelWidgetProvider),
+                        Positioned(
+                          top: 100,
+                          left: 50,
+                          child: _SimpleHoverTest(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               );
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SimpleHoverTest extends StatefulWidget {
+  @override
+  State<_SimpleHoverTest> createState() => _SimpleHoverTestState();
+}
+
+class _SimpleHoverTestState extends State<_SimpleHoverTest> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          print('🔥 SHELL TEST: Tapped');
+        },
+        onHover: (hovering) {
+          print('🔥 SHELL TEST InkWell: onHover=$hovering');
+          setState(() {
+            _isHovered = hovering;
+          });
+        },
+        child: Container(
+          width: 300,
+          height: 60,
+          decoration: BoxDecoration(
+            color: _isHovered ? Colors.red : Colors.yellow,
+            border: Border.all(color: Colors.black, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            _isHovered ? 'HOVERING IN SHELL!' : 'Hover over me (InkWell test)',
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
       ),
     );
   }

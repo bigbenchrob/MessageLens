@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import 'presentation/cassettes/stray_emails_cassette.dart';
+import 'presentation/cassettes/stray_phone_numbers_cassette.dart';
 import 'presentation/cassettes/unmatched_handles_cassette.dart';
 
 part 'feature_level_providers.g.dart';
@@ -21,6 +23,18 @@ class HandlesCassetteCoordinator extends _$HandlesCassetteCoordinator {
         subtitle:
             'Link stray handles to contacts to keep conversations organized.',
         child: UnmatchedHandlesCassette(),
+      ),
+      strayPhoneNumbers: () => const CassetteCardView(
+        title: 'Stray phone numbers',
+        subtitle:
+            'Phone numbers not linked to any contact in your address book.',
+        child: StrayPhoneNumbersCassette(),
+      ),
+      strayEmails: () => const CassetteCardView(
+        title: 'Stray emails',
+        subtitle:
+            'Email addresses not linked to any contact in your address book.',
+        child: StrayEmailsCassette(),
       ),
     );
   }
