@@ -338,14 +338,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                   ),
                   Expanded(
                     child: Stack(
-                      children: [
-                        ref.watch(centerPanelWidgetProvider),
-                        Positioned(
-                          top: 100,
-                          left: 50,
-                          child: _SimpleHoverTest(),
-                        ),
-                      ],
+                      children: [ref.watch(centerPanelWidgetProvider)],
                     ),
                   ),
                 ],

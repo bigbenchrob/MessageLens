@@ -2,7 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
-import '../../chats/domain/calendar_heatmap_timeline_data.dart';
+import '../../messages/domain/calendar_heatmap_timeline_data.dart';
 import 'contact_timeline_calculator.dart';
 
 part 'contact_timeline_provider.g.dart';

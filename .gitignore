@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Prevent accidental re-creation of the old maintenance lock provider location.
+lib/essentials/db/db_maintenance_lock_provider.dart
+lib/essentials/db/db_maintenance_lock_provider.g.dart
 # IntelliJ related
 *.iml
 *.ipr

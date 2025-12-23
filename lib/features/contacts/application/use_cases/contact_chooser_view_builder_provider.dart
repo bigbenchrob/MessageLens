@@ -5,6 +5,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../constants/domain/contact_constants.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../application_pre_cassette/contact_picker_mode.dart';
@@ -25,6 +26,12 @@ const bool _forceFlatContactChooser = false;
 /// by checking the total contact count against [kContactPickerGroupingThreshold].
 @riverpod
 Widget contactChooserViewBuilder(Ref ref, ContactsCassetteSpec spec) {
+  final maintenanceLocked = ref.watch(dbMaintenanceLockProvider);
+  if (maintenanceLocked) {
+    debugPrint('ContactChooser: maintenance lock active (skipping load)');
+    return const Center(child: ProgressCircle());
+  }
+
   final asyncContacts = ref.watch(
     contactsListRepositoryProvider(spec: const ContactsListSpec.alphabetical()),
   );

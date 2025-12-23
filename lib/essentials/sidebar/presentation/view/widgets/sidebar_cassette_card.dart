@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 // Pull in macOS‑specific colors for a more subtle border.
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../config/theme/theme.dart';
+import '../../../../../config/theme/theme_typography.dart';
 
 /// A reusable card container for sidebar cassette widgets.
 ///
@@ -10,7 +12,7 @@ import '../../../../../config/theme/theme.dart';
 /// subtle border and rounded corners, and a gentle shadow.  Wrap any
 /// cassette widget in this card to visually separate it from other
 /// components in the sidebar.
-class SidebarCassetteCard extends StatelessWidget {
+class SidebarCassetteCard extends ConsumerWidget {
   /// The child widget to display inside the card.
   final Widget child;
 
@@ -45,7 +47,8 @@ class SidebarCassetteCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
     final bbc = AppTheme.bbc(context);
     // Resolve a macOS control colour for the card background.  The control
     // colour is used by Apple to paint surfaces of controls and has a subtle
@@ -112,8 +115,7 @@ class SidebarCassetteCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (showHeader) ...[
-              if (hasTitle)
-                Text(title, style: AppTheme.cassetteHeaderTitleStyle(context)),
+              if (hasTitle) Text(title, style: typography.vizInstruction),
               if (hasSubtitle) ...[
                 if (hasTitle) const SizedBox(height: 6),
                 Text(

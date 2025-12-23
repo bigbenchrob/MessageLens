@@ -36,6 +36,11 @@ Future<List<ContactSummary>> contactsListRepository(
   Ref ref, {
   required ContactsListSpec spec,
 }) async {
+  final maintenanceLocked = ref.watch(dbMaintenanceLockProvider);
+  if (maintenanceLocked) {
+    return const <ContactSummary>[];
+  }
+
   final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
   final overlayDb = await ref.watch(overlayDatabaseProvider.future);
   final virtualContacts = await ref.watch(virtualParticipantsProvider.future);

@@ -4,6 +4,7 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/theme_typography.dart';
 
 class ContactHighlightRow extends StatefulWidget {
   const ContactHighlightRow({
@@ -134,10 +135,10 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     final tint = colors.accents.primary.withValues(alpha: 0.10);
     final accent = colors.accents.primary.withValues(alpha: 0.75);
@@ -175,8 +176,8 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            displayName,
-                            style: AppTheme.cassetteHeroTitleStyle(context),
+                            shortName,
+                            style: typography.heroTitle,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -184,10 +185,8 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
                     ),
                     if (shortName != displayName)
                       Text(
-                        shortName,
-                        style: theme.typography.caption2.copyWith(
-                          color: colors.content.textSecondary,
-                        ),
+                        displayName,
+                        style: typography.heroSubtitle,
                         overflow: TextOverflow.ellipsis,
                       ),
                   ],

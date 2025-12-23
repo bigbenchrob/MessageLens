@@ -50,6 +50,9 @@ abstract class AppThemeWidgets {
     FontWeight? leadingLabelWeight,
     FontWeight? selectedValueWeight,
     Color? chevronColor,
+    Color? chevronBackgroundColor,
+    TextStyle? leadingLabelStyle,
+    TextStyle? selectedValueStyle,
   }) {
     return AppDropdownMenu<T>(
       options: options,
@@ -77,6 +80,9 @@ abstract class AppThemeWidgets {
       leadingLabelWeight: leadingLabelWeight,
       selectedValueWeight: selectedValueWeight,
       chevronColor: chevronColor,
+      chevronBackgroundColor: chevronBackgroundColor,
+      leadingLabelStyle: leadingLabelStyle,
+      selectedValueStyle: selectedValueStyle,
     );
   }
 

@@ -411,8 +411,8 @@ class _ContactOrdinalMessageRow extends ConsumerWidget {
         }
         return buildMessage(message);
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      loading: () => const SizedBox(
+        height: 60.0,
         child: Center(
           child: SizedBox(
             width: 24,

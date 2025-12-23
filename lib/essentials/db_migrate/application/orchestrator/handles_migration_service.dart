@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
@@ -51,35 +52,6 @@ class HandlesMigrationService {
       MessageReadMarksMigrator();
   static const ReadStateMigrator _readStateMigrator = ReadStateMigrator();
 
-  Future<void> clearWorkingProjection() async {
-    final workingDatabase = await ref.watch(
-      driftWorkingDatabaseProvider.future,
-    );
-
-    const tables = <String>[
-      'reaction_counts',
-      'reactions',
-      'attachments',
-      'messages',
-      'message_read_marks',
-      'read_state',
-      'chat_to_handle',
-      'handle_to_participant',
-      'participants',
-      'chats',
-      'handles',
-      'projection_state',
-      'supabase_sync_state',
-      'supabase_sync_logs',
-    ];
-
-    await workingDatabase.transaction(() async {
-      for (final table in tables) {
-        await workingDatabase.customStatement('DELETE FROM $table');
-      }
-    });
-  }
-
   Future<DbMigrationResult> run({
     void Function(DbMigrationProgress progress)? onProgress,
     TableMigrationProgressCallback? onTableProgress,
@@ -129,6 +101,7 @@ class HandlesMigrationService {
       for (final entry in basePhaseWeights.entries)
         entry.key: entry.value / migrators.length,
     };
+
     var completedWeight = 0.15; // after preparation/clearing
 
     void emitProgress(DbMigrationStage stage, double progress, String message) {
@@ -164,11 +137,9 @@ class HandlesMigrationService {
           progressValue = completedWeight;
           break;
         case TableMigrationStatus.failed:
-          // Keep progress at current level to signal stall.
           break;
       }
 
-      // Reserve final 10% for override restoration and summary.
       final normalized = min(progressValue, 0.9);
       return DbMigrationProgress(
         stage: resolvedStage,

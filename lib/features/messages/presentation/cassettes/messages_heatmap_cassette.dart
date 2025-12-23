@@ -6,18 +6,18 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
-import '../../../chats/domain/calendar_heatmap_timeline_data.dart';
-import '../../../chats/presentation/widgets/calendar_heatmap_timeline_widget.dart';
 import '../../../contacts/application_pre_cassette/contact_profile_provider.dart';
 import '../../../contacts/application_pre_cassette/contact_timeline_provider.dart';
 import '../../application/use_cases/global_messages_heatmap_provider.dart';
+import '../../domain/calendar_heatmap_timeline_data.dart';
 import '../view_model/global_timeline_controller.dart';
-import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme_typography.dart';
+import '../widgets/calendar_heatmap_timeline_widget.dart';
 
 class MessagesHeatmapCassette extends ConsumerWidget {
   const MessagesHeatmapCassette({this.contactId, super.key});
@@ -88,8 +88,12 @@ class _GlobalHeatmapContent extends ConsumerWidget {
 
     final timeline = data!;
     final macosTheme = MacosTheme.of(context);
+    final colors = ref.watch(themeColorsProvider.notifier);
+    final t = ref.watch(themeTypographyProvider);
     final stats = _buildStats(
       macosTheme: macosTheme,
+      typography: t,
+      colors: colors,
       stats: [
         _HeatmapStat(
           icon: CupertinoIcons.bolt_circle,
@@ -145,7 +149,10 @@ class _GlobalHeatmapContent extends ConsumerWidget {
                   spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
                 );
           },
-          child: const Text('Open full timeline'),
+          child: Text(
+            'Open full timeline',
+            style: t.body.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );
@@ -173,7 +180,7 @@ class _ContactHeatmapContent extends ConsumerWidget {
     }
 
     final timeline = data!;
-    final macosTheme = MacosTheme.of(context);
+    final t = ref.watch(themeTypographyProvider);
 
     final summaryText =
         '${NumberFormat.decimalPattern().format(timeline.totalMessages)} '
@@ -205,12 +212,7 @@ class _ContactHeatmapContent extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 12),
-        Text(
-          summaryText,
-          style: macosTheme.typography.caption1.copyWith(
-            color: macosTheme.typography.caption1.color?.withValues(alpha: 0.8),
-          ),
-        ),
+        Text(summaryText, style: t.vizMeta),
       ],
     );
   }
@@ -334,6 +336,8 @@ class _HeatmapStat {
 
 Widget _buildStats({
   required MacosThemeData macosTheme,
+  required ThemeTypography typography,
+  required ThemeColors colors,
   required List<_HeatmapStat> stats,
 }) {
   return Wrap(
@@ -354,24 +358,15 @@ Widget _buildStats({
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  stat.icon,
-                  size: 14,
-                  color: macosTheme.typography.body.color,
-                ),
+                Icon(stat.icon, size: 14, color: colors.content.textSecondary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        stat.value,
-                        style: macosTheme.typography.caption1.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Text(stat.value, style: typography.vizMeta),
                       const SizedBox(height: 2),
-                      Text(stat.label, style: macosTheme.typography.caption2),
+                      Text(stat.label, style: typography.caption),
                     ],
                   ),
                 ),

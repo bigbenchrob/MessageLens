@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../chats/domain/calendar_heatmap_timeline_data.dart';
+import '../../messages/domain/calendar_heatmap_timeline_data.dart';
 
 /// Calculate calendar heatmap timeline data for all messages with a contact
 /// across all their chats/handles.

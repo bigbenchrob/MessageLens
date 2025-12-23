@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 
@@ -44,6 +45,7 @@ class TopChatMenu extends ConsumerWidget {
 
     // Get accent color for chevron emphasis
     final colors = ref.watch(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     void handleSelectionChange(TopChatMenuChoice newChoice) {
       final updatedSidebarSpec = spec.when(
@@ -63,13 +65,14 @@ class TopChatMenu extends ConsumerWidget {
       onSelected: handleSelectionChange,
       optionLabelBuilder: (choice) => choice.label,
       leadingLabel: 'Show:',
-      // Emphasis styling for root-level control:
-      // - Tertiary weight for "Show:" label (de-emphasized)
-      // - Semibold weight for selected value (emphasized)
-      // - Accent color chevron (signals authority)
-      leadingLabelWeight: FontWeight.w400,
-      selectedValueWeight: FontWeight.w600,
+      // Typography tokens for control header hierarchy:
+      // - controlLabel for "Show:" (small, tertiary, uppercase-ready)
+      // - controlValue for selected option (confident, primary)
+      // - Brand-tinted chevron background for intentional feel
+      leadingLabelStyle: typography.controlLabel,
+      selectedValueStyle: typography.controlValue,
       chevronColor: colors.accents.primary,
+      chevronBackgroundColor: colors.accents.primary.withValues(alpha: 0.12),
     );
   }
 }

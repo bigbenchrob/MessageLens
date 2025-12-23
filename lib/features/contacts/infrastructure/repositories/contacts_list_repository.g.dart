@@ -7,7 +7,7 @@ part of 'contacts_list_repository.dart';
 // **************************************************************************
 
 String _$contactsListRepositoryHash() =>
-    r'22ca86ac4ebcb00f58ad263b4175fd961c830fb9';
+    r'3930a5ed3e2864b489bb96cefad1866e56c7dc84';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -52,6 +52,9 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
     this.leadingLabelWeight,
     this.selectedValueWeight,
     this.chevronColor,
+    this.chevronBackgroundColor,
+    this.leadingLabelStyle,
+    this.selectedValueStyle,
     super.key,
   }) : assert(
          options.length > 0,
@@ -82,13 +85,26 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
   final ValueChanged<bool>? onMenuVisibilityChanged;
 
   /// Font weight for the leading label (e.g., "Show:").
+  /// DEPRECATED: Use [leadingLabelStyle] instead.
   final FontWeight? leadingLabelWeight;
 
   /// Font weight for the selected value (e.g., "Contacts").
+  /// DEPRECATED: Use [selectedValueStyle] instead.
   final FontWeight? selectedValueWeight;
 
   /// Custom color for the chevron icon. If null, uses default text color.
   final Color? chevronColor;
+
+  /// Custom background color for the chevron icon area.
+  final Color? chevronBackgroundColor;
+
+  /// Full style for the leading label (e.g., "Show:").
+  /// If provided, this takes precedence over [leadingLabelWeight].
+  final TextStyle? leadingLabelStyle;
+
+  /// Full style for the selected value (e.g., "Contacts").
+  /// If provided, this takes precedence over [selectedValueWeight].
+  final TextStyle? selectedValueStyle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -146,29 +162,44 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                 if (leadingLabel != null) ...[
                   Text(
                     leadingLabel!,
-                    style: typography.callout.copyWith(
-                      color: colors.content.textTertiary,
-                      fontWeight: leadingLabelWeight ?? FontWeight.w400,
-                    ),
+                    style:
+                        leadingLabelStyle ??
+                        typography.callout.copyWith(
+                          color: colors.content.textTertiary,
+                          fontWeight: leadingLabelWeight ?? FontWeight.w400,
+                        ),
                   ),
                   const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: Text(
                     selectedLabel,
-                    style: typography.callout.copyWith(
-                      color: labelColor,
-                      fontWeight: selectedValueWeight ?? FontWeight.w400,
-                    ),
+                    style:
+                        selectedValueStyle ??
+                        typography.callout.copyWith(
+                          color: labelColor,
+                          fontWeight: selectedValueWeight ?? FontWeight.w400,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(
-                  isOpen.value ? openIcon : closedIcon,
-                  size: trailingIconSize,
-                  color: chevronColor ?? labelColor,
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: chevronBackgroundColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Padding(
+                    padding: chevronBackgroundColor != null
+                        ? const EdgeInsets.all(4)
+                        : EdgeInsets.zero,
+                    child: Icon(
+                      isOpen.value ? openIcon : closedIcon,
+                      size: trailingIconSize,
+                      color: chevronColor ?? labelColor,
+                    ),
+                  ),
                 ),
               ],
             ),

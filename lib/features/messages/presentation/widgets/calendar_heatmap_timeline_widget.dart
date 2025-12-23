@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
@@ -118,6 +119,8 @@ class _SingleYearRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final typography = ref.watch(themeTypographyProvider);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -127,11 +130,7 @@ class _SingleYearRow extends StatelessWidget {
           width: 32,
           child: Text(
             yearRow.year.toString(),
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF999999),
-              fontWeight: FontWeight.w500,
-            ),
+            style: typography.vizAxisLabel.copyWith(fontSize: 10),
           ),
         ),
         SizedBox(width: monthSpacing * 2),

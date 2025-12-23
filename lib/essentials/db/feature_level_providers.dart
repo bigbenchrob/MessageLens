@@ -14,6 +14,8 @@ import 'infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import 'infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'infrastructure/data_sources/local/working/working_database.dart';
 
+export 'feature_level_providers/db_maintenance_lock_provider.dart';
+
 part 'feature_level_providers.g.dart';
 
 const _databaseDirectoryPath = '/Users/rob/sqlite_rmc/remember_every_text/';
@@ -55,6 +57,9 @@ Future<WorkingDatabase> driftWorkingDatabase(
   await _ensureDatabaseDirectoryExists();
   final dbPath = path.join(_databaseDirectoryPath, 'working.db');
 
+  // ignore: avoid_print
+  print('[WorkingDbProvider] opening working.db at $dbPath');
+
   final database = WorkingDatabase(
     NativeDatabase.createInBackground(File(dbPath)),
   );
@@ -64,8 +69,13 @@ Future<WorkingDatabase> driftWorkingDatabase(
   });
 
   ref.onDispose(() async {
+    // ignore: avoid_print
+    print('[WorkingDbProvider] disposing WorkingDatabase for $dbPath');
     await database.close();
   });
+
+  // ignore: avoid_print
+  print('[WorkingDbProvider] WorkingDatabase ready for $dbPath');
 
   return database;
 }

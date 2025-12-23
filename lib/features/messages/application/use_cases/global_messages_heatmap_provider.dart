@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../chats/domain/calendar_heatmap_timeline_data.dart';
+import '../../domain/calendar_heatmap_timeline_data.dart';
 
 part 'global_messages_heatmap_provider.g.dart';
 
