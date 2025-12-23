@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,12 +5,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../new_display_widgets.dart';
 import '../view_model/attachment_info.dart';
-import '../view_model/contact_message_search_provider.dart';
-import '../view_model/contact_messages_ordinal_provider.dart';
-import '../view_model/message_by_contact_ordinal_provider.dart';
+import '../view_model/contact_messages/contact_messages_view_model.dart';
 import '../view_model/messages_for_chat_provider.dart';
+import '../view_model/new_display_widgets.dart';
 import '../widgets/message_link_preview_card.dart';
 
 /// View showing all messages with a specific contact across all chats/handles.
@@ -29,75 +25,41 @@ class MessagesForContactView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ordinalAsync = ref.watch(
-      contactMessagesOrdinalProvider(contactId: contactId),
+    final vm = ref.watch(
+      contactMessagesViewModelProvider(contactId: contactId),
     );
+    final ordinalAsync = vm.ordinal;
 
-    // Search state management
+    // Keeps scroll state stable while changing search query.
     final searchScrollController = useScrollController();
-    final searchController = useTextEditingController();
-    final searchQuery = useState('');
-    final debouncedQuery = useState('');
 
-    // Jump to specific month when scrollToDate is provided
+    // Initial positioning: default to latest, unless a scroll target is provided.
+    // Kept out of list config to avoid list rebuild quirks.
     useEffect(() {
-      if (scrollToDate == null) {
-        return null;
-      }
-
-      final normalized = DateTime(scrollToDate!.year, scrollToDate!.month);
-      final monthKey =
-          '${normalized.year.toString().padLeft(4, '0')}-${normalized.month.toString().padLeft(2, '0')}';
-
-      Future.microtask(() async {
-        final ordinalState = ref.read(
-          contactMessagesOrdinalProvider(contactId: contactId),
-        );
-        if (ordinalState.hasValue) {
-          await ref
-              .read(
-                contactMessagesOrdinalProvider(contactId: contactId).notifier,
-              )
-              .jumpToMonth(monthKey);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) {
+          return;
         }
+
+        Future.microtask(() async {
+          final notifier = ref.read(
+            contactMessagesViewModelProvider(contactId: contactId).notifier,
+          );
+
+          if (scrollToDate != null) {
+            await notifier.jumpToMonthForDate(scrollToDate!);
+          } else {
+            await notifier.jumpToLatest();
+          }
+        });
       });
 
       return null;
     }, [contactId, scrollToDate]);
 
-    // Search controller listener
-    useEffect(() {
-      void listener() {
-        searchQuery.value = searchController.text;
-      }
-
-      searchController.addListener(listener);
-      return () => searchController.removeListener(listener);
-    }, [searchController]);
-
-    // Debounce search query
-    useEffect(() {
-      final timer = Timer(const Duration(milliseconds: 250), () {
-        final trimmed = searchQuery.value.trim();
-        if (debouncedQuery.value != trimmed) {
-          debouncedQuery.value = trimmed;
-        }
-      });
-      return timer.cancel;
-    }, [searchQuery.value]);
-
-    final isSearching = debouncedQuery.value.isNotEmpty;
-
-    final searchAsync = isSearching
-        ? ref.watch(
-            contactMessageSearchResultsProvider(
-              contactId: contactId,
-              query: debouncedQuery.value,
-            ),
-          )
-        : const AsyncValue<List<ChatMessageListItem>>.data(
-            <ChatMessageListItem>[],
-          );
+    // VM-managed debounce/search results.
+    final isSearching = vm.isSearching;
+    final searchAsync = vm.searchResults;
 
     final messageListBody = ordinalAsync.when<Widget>(
       data: (state) {
@@ -117,13 +79,8 @@ class MessagesForContactView extends HookConsumerWidget {
           );
         }
 
-        // Start at the last (most recent) message, unless scrollToDate is specified
-        final initialIndex = scrollToDate == null && state.totalCount > 0
-            ? state.totalCount - 1
-            : 0;
-
         return ScrollablePositionedList.builder(
-          initialScrollIndex: initialIndex,
+          initialScrollIndex: 0,
           itemScrollController: state.itemScrollController,
           itemPositionsListener: state.itemPositionsListener,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -160,7 +117,7 @@ class MessagesForContactView extends HookConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'No matches for "${debouncedQuery.value}".',
+                'No matches for "${vm.debouncedQuery}".',
                 style: const TextStyle(color: Color(0xFF7A7A7F)),
                 textAlign: TextAlign.center,
               ),
@@ -235,7 +192,7 @@ class MessagesForContactView extends HookConsumerWidget {
               const EdgeInsets.fromLTRB(0, 12, 0, 8),
             ),
             child: MacosSearchField<String>(
-              controller: searchController,
+              controller: vm.searchController,
               placeholder: 'Search messages with this contact',
               results: const [],
             ),

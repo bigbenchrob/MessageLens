@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../new_display_widgets.dart';
 import '../view_model/messages_for_chat_provider.dart';
+import '../view_model/new_display_widgets.dart';
 import 'url_preview_widget.dart';
 
 class MessageLinkPreviewCard extends StatelessWidget {

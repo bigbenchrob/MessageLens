@@ -10,12 +10,12 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../infrastructure/data_sources/message_index_data_source.dart';
-import '../new_display_widgets.dart';
 import '../view_model/attachment_info.dart';
 import '../view_model/chat_header_info_provider.dart';
 import '../view_model/chat_message_search_provider.dart';
 import '../view_model/chat_messages_ordinal_provider.dart';
 import '../view_model/messages_for_chat_provider.dart';
+import '../view_model/new_display_widgets.dart';
 import '../widgets/message_link_preview_card.dart';
 import '../widgets/ordinal_message_row.dart';
 

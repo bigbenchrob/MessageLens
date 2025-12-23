@@ -1,13 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'contact_messages_ordinal_provider.dart';
+part of 'contact_messages_view_model.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactMessagesOrdinalHash() =>
-    r'bcdf74d4fd9da5a990a0792ae6d3c307372e83a4';
+String _$contactMessagesViewModelHash() =>
+    r'737095b5f80cffbf0f1fcb0171d6b94b61e68ea0';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -30,31 +30,31 @@ class _SystemHash {
   }
 }
 
-abstract class _$ContactMessagesOrdinal
-    extends BuildlessAutoDisposeAsyncNotifier<ContactMessagesOrdinalState> {
+abstract class _$ContactMessagesViewModel
+    extends BuildlessAutoDisposeNotifier<ContactMessagesViewModelState> {
   late final int contactId;
 
-  FutureOr<ContactMessagesOrdinalState> build({required int contactId});
+  ContactMessagesViewModelState build({required int contactId});
 }
 
-/// See also [ContactMessagesOrdinal].
-@ProviderFor(ContactMessagesOrdinal)
-const contactMessagesOrdinalProvider = ContactMessagesOrdinalFamily();
+/// See also [ContactMessagesViewModel].
+@ProviderFor(ContactMessagesViewModel)
+const contactMessagesViewModelProvider = ContactMessagesViewModelFamily();
 
-/// See also [ContactMessagesOrdinal].
-class ContactMessagesOrdinalFamily
-    extends Family<AsyncValue<ContactMessagesOrdinalState>> {
-  /// See also [ContactMessagesOrdinal].
-  const ContactMessagesOrdinalFamily();
+/// See also [ContactMessagesViewModel].
+class ContactMessagesViewModelFamily
+    extends Family<ContactMessagesViewModelState> {
+  /// See also [ContactMessagesViewModel].
+  const ContactMessagesViewModelFamily();
 
-  /// See also [ContactMessagesOrdinal].
-  ContactMessagesOrdinalProvider call({required int contactId}) {
-    return ContactMessagesOrdinalProvider(contactId: contactId);
+  /// See also [ContactMessagesViewModel].
+  ContactMessagesViewModelProvider call({required int contactId}) {
+    return ContactMessagesViewModelProvider(contactId: contactId);
   }
 
   @override
-  ContactMessagesOrdinalProvider getProviderOverride(
-    covariant ContactMessagesOrdinalProvider provider,
+  ContactMessagesViewModelProvider getProviderOverride(
+    covariant ContactMessagesViewModelProvider provider,
   ) {
     return call(contactId: provider.contactId);
   }
@@ -71,32 +71,32 @@ class ContactMessagesOrdinalFamily
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'contactMessagesOrdinalProvider';
+  String? get name => r'contactMessagesViewModelProvider';
 }
 
-/// See also [ContactMessagesOrdinal].
-class ContactMessagesOrdinalProvider
+/// See also [ContactMessagesViewModel].
+class ContactMessagesViewModelProvider
     extends
-        AutoDisposeAsyncNotifierProviderImpl<
-          ContactMessagesOrdinal,
-          ContactMessagesOrdinalState
+        AutoDisposeNotifierProviderImpl<
+          ContactMessagesViewModel,
+          ContactMessagesViewModelState
         > {
-  /// See also [ContactMessagesOrdinal].
-  ContactMessagesOrdinalProvider({required int contactId})
+  /// See also [ContactMessagesViewModel].
+  ContactMessagesViewModelProvider({required int contactId})
     : this._internal(
-        () => ContactMessagesOrdinal()..contactId = contactId,
-        from: contactMessagesOrdinalProvider,
-        name: r'contactMessagesOrdinalProvider',
+        () => ContactMessagesViewModel()..contactId = contactId,
+        from: contactMessagesViewModelProvider,
+        name: r'contactMessagesViewModelProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$contactMessagesOrdinalHash,
-        dependencies: ContactMessagesOrdinalFamily._dependencies,
+            : _$contactMessagesViewModelHash,
+        dependencies: ContactMessagesViewModelFamily._dependencies,
         allTransitiveDependencies:
-            ContactMessagesOrdinalFamily._allTransitiveDependencies,
+            ContactMessagesViewModelFamily._allTransitiveDependencies,
         contactId: contactId,
       );
 
-  ContactMessagesOrdinalProvider._internal(
+  ContactMessagesViewModelProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -109,17 +109,17 @@ class ContactMessagesOrdinalProvider
   final int contactId;
 
   @override
-  FutureOr<ContactMessagesOrdinalState> runNotifierBuild(
-    covariant ContactMessagesOrdinal notifier,
+  ContactMessagesViewModelState runNotifierBuild(
+    covariant ContactMessagesViewModel notifier,
   ) {
     return notifier.build(contactId: contactId);
   }
 
   @override
-  Override overrideWith(ContactMessagesOrdinal Function() create) {
+  Override overrideWith(ContactMessagesViewModel Function() create) {
     return ProviderOverride(
       origin: this,
-      override: ContactMessagesOrdinalProvider._internal(
+      override: ContactMessagesViewModelProvider._internal(
         () => create()..contactId = contactId,
         from: from,
         name: null,
@@ -132,17 +132,17 @@ class ContactMessagesOrdinalProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<
-    ContactMessagesOrdinal,
-    ContactMessagesOrdinalState
+  AutoDisposeNotifierProviderElement<
+    ContactMessagesViewModel,
+    ContactMessagesViewModelState
   >
   createElement() {
-    return _ContactMessagesOrdinalProviderElement(this);
+    return _ContactMessagesViewModelProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ContactMessagesOrdinalProvider &&
+    return other is ContactMessagesViewModelProvider &&
         other.contactId == contactId;
   }
 
@@ -157,23 +157,23 @@ class ContactMessagesOrdinalProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ContactMessagesOrdinalRef
-    on AutoDisposeAsyncNotifierProviderRef<ContactMessagesOrdinalState> {
+mixin ContactMessagesViewModelRef
+    on AutoDisposeNotifierProviderRef<ContactMessagesViewModelState> {
   /// The parameter `contactId` of this provider.
   int get contactId;
 }
 
-class _ContactMessagesOrdinalProviderElement
+class _ContactMessagesViewModelProviderElement
     extends
-        AutoDisposeAsyncNotifierProviderElement<
-          ContactMessagesOrdinal,
-          ContactMessagesOrdinalState
+        AutoDisposeNotifierProviderElement<
+          ContactMessagesViewModel,
+          ContactMessagesViewModelState
         >
-    with ContactMessagesOrdinalRef {
-  _ContactMessagesOrdinalProviderElement(super.provider);
+    with ContactMessagesViewModelRef {
+  _ContactMessagesViewModelProviderElement(super.provider);
 
   @override
-  int get contactId => (origin as ContactMessagesOrdinalProvider).contactId;
+  int get contactId => (origin as ContactMessagesViewModelProvider).contactId;
 }
 
 // ignore_for_file: type=lint
