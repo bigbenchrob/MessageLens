@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../infrastructure/data_sources/contact_message_index_data_source.dart';
-import '../../chat_message_row_mapper.dart';
+import '../../message_row_mapper.dart';
 import '../../messages_for_chat_provider.dart';
 
 part 'message_by_contact_ordinal_provider.g.dart';
@@ -51,7 +51,7 @@ Future<ChatMessageListItem?> messageByContactOrdinal(
     return null;
   }
 
-  final mapper = ChatMessageRowMapper(db);
+  final mapper = MessageRowMapper(db);
   final messages = await mapper.mapRows([row]);
 
   return messages.isEmpty ? null : messages.first;

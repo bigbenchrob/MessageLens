@@ -5,11 +5,9 @@ import '../../essentials/navigation/domain/entities/features/messages_spec.dart'
 import '../../essentials/sidebar/domain/entities/features/messages_cassette_spec.dart';
 import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
 import 'application/cassette_builders/global_timeline_view_builder_provider.dart';
-import 'application/cassette_builders/messages_for_chat_view_builder_provider.dart';
 import 'application/cassette_builders/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
 import 'presentation/cassettes/messages_heatmap_cassette.dart';
-import 'presentation/view/messages_for_chat_view.dart';
 import 'presentation/view/messages_for_contact_view.dart';
 
 part 'feature_level_providers.g.dart';
@@ -63,7 +61,8 @@ class MessagesCoordinator extends _$MessagesCoordinator {
 
   Widget buildForSpec(MessagesSpec spec) {
     return spec.when(
-      forChat: (chatId) => ref.read(messagesForChatViewBuilderProvider(chatId)),
+      forChat: (chatId) =>
+          _buildComingSoon('Messages for chat ($chatId) view is coming soon.'),
       forContact: (contactId, scrollToDate) => MessagesForContactView(
         contactId: contactId,
         scrollToDate: scrollToDate,
@@ -74,8 +73,9 @@ class MessagesCoordinator extends _$MessagesCoordinator {
       forHandle: (handleId) =>
           ref.read(messagesForHandleViewBuilderProvider(handleId)),
       forChatInDateRange: (chatId, startDate, endDate) {
-        // Directly construct widget to allow scrollToDate changes without full rebuild
-        return MessagesForChatView(chatId: chatId, scrollToDate: startDate);
+        return _buildComingSoon(
+          'Messages for chat ($chatId) in date range view is coming soon.',
+        );
       },
     );
   }

@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../infrastructure/data_sources/message_index_data_source.dart';
-import 'chat_message_row_mapper.dart';
+import 'message_row_mapper.dart';
 import 'messages_for_chat_provider.dart';
 
 part 'message_by_ordinal_provider.g.dart';
@@ -53,7 +53,7 @@ Future<ChatMessageListItem?> messageByOrdinal(
   }
 
   // Use existing mapper to convert row to ChatMessageListItem
-  final mapper = ChatMessageRowMapper(db);
+  final mapper = MessageRowMapper(db);
   final messages = await mapper.mapRows([row]);
 
   return messages.isEmpty ? null : messages.first;

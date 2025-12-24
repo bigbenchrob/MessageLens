@@ -10,33 +10,37 @@ tests: []
 feature: messages
 doc_type: charter
 status: draft
-last_updated: 2025-11-06
+last_updated: 2025-12-23
 ---
 
 # Feature Charter — Messages
 
 ## Mission
-- Manage the message aggregate, including ingestion, projection, and UI presentation of message timelines.
-- Provide reliable foundations for reactions, attachments, and delivery status updates.
+- Provide a fast, stable, contact-scoped message timeline UI (“Messages for Contact”).
+- Keep the presentation pipeline deterministic and resilient to database maintenance/reset.
+- Enable search and timeline jumps without coupling UI widgets to data-fetching details.
 
 ## Primary Outcomes
-- Accurate, ordered timelines per chat with performant paging.
-- Robust handling of message mutations (edits, deletions, reactions).
-- Coherent APIs for other features (search, exports) to access message data.
+- Contact-scoped timeline: ordered across all chats/handles for a given contact.
+- Ordinal skeleton + per-row hydration: fast first paint, stable scroll, minimal churn.
+- “Jump” behavior: jump to latest and jump to month (heatmap-driven) without requiring the view to know index math.
+- Search: debounced, provider-driven search results list.
 
 ## Success Metrics
-- Timeline render latency within target bounds.
-- Message import retries/resilience metrics trending green.
-- Reliable reaction/attachment synchronization across re-imports.
+- Timeline opens quickly even with large histories (ordinal skeleton computation is bounded and cache-friendly).
+- No UI lockups during destructive DB maintenance (providers short-circuit rather than hanging).
+- No scroll jitter during hydration (placeholders are fixed-height).
 
 ## Non-Goals
-- Navigation shell management.
-- Contact display logic beyond resolving participant metadata.
+- Chat-specific timeline UI (intentionally removed until needed).
+- Global timeline UI (exists, but this doc set focuses on the contact-scoped pipeline).
+- Direct widget-driven database access.
 
 ## Stakeholders & Dependencies
-- Depends on chat context, handle canonicalization, and attachment services.
-- Feeds search indexing, analytics, and UI experiences.
+- Depends on `working.db` projection tables and the `contact_message_index` mapping.
+- Depends on centralized DB providers (`driftWorkingDatabaseProvider`) and maintenance lock (`dbMaintenanceLockProvider`).
+- Consumed by: contact messages center panel, search feature (for contact search).
 
 ## Open Questions
-- Strategy for handling large attachment payloads in the timeline.
-- Offline caching expectations for macOS desktop builds.
+- Attachment hydration strategy for contact timeline (currently minimal in ordinal hydration path; attachments come from `ChatMessageListItem`).
+- Whether month jump should be animated vs. instantaneous for large jumps.

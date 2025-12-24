@@ -13,7 +13,6 @@ import '../../../window_state/feature_level_providers.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
-import '../../domain/entities/features/messages_spec.dart';
 import '../../domain/entities/features/settings_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
@@ -202,30 +201,6 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             ],
           ),
           actions: [
-            ToolBarIconButton(
-              label: 'Messages',
-              icon: const MacosIcon(CupertinoIcons.chat_bubble),
-              onPressed: () {
-                const spec = ViewSpec.messages(
-                  MessagesSpec.forChat(chatId: 42),
-                );
-
-                // Log the navigation action
-                ref
-                    .read(navigationLoggerProvider.notifier)
-                    .logToolbarClick(
-                      buttonLabel: 'Messages',
-                      targetPanel: WindowPanel.center,
-                      viewSpec: spec,
-                    );
-
-                // Perform the navigation
-                ref
-                    .read(panelsViewStateProvider.notifier)
-                    .show(panel: WindowPanel.center, spec: spec);
-              },
-              showLabel: false,
-            ),
             ToolBarIconButton(
               label: 'Chats',
               icon: const MacosIcon(CupertinoIcons.chat_bubble_2),

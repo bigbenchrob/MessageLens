@@ -7,7 +7,7 @@ part of 'message_by_contact_ordinal_provider.dart';
 // **************************************************************************
 
 String _$messageByContactOrdinalHash() =>
-    r'21d59f7967b57d879b7731cbc7778876ac0aeda2';
+    r'162020462d91b23946e1bab128a5a2a45a205267';
 
 /// Copied from Dart SDK
 class _SystemHash {

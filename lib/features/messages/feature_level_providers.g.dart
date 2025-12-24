@@ -45,7 +45,7 @@ final messagesCassetteCoordinatorProvider =
 
 typedef _$MessagesCassetteCoordinator = AutoDisposeNotifier<void>;
 String _$messagesCoordinatorHash() =>
-    r'69eb47485bcbc9820c46eb9f9a49d5136bd66f5f';
+    r'b91a4e3e6b8877af3a6aa63e841bf83edc7db8b0';
 
 /// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
 ///

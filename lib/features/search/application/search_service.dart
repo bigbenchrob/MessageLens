@@ -6,7 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../messages/presentation/view_model/chat_message_row_mapper.dart';
+import '../../messages/presentation/view_model/message_row_mapper.dart';
 import '../../messages/presentation/view_model/messages_for_chat_provider.dart';
 import '../search_feature_providers.dart';
 
@@ -78,7 +78,7 @@ class SearchService {
     required String query,
   }) async {
     final db = await ref.read(driftWorkingDatabaseProvider.future);
-    final mapper = ChatMessageRowMapper(db);
+    final mapper = MessageRowMapper(db);
     final lowerQuery = query.toLowerCase();
     final pattern = '%$lowerQuery%';
 
@@ -107,7 +107,7 @@ class SearchService {
     required String query,
   }) async {
     final db = await ref.read(driftWorkingDatabaseProvider.future);
-    final mapper = ChatMessageRowMapper(db);
+    final mapper = MessageRowMapper(db);
     final lowerQuery = query.toLowerCase();
     final pattern = '%$lowerQuery%';
 
@@ -237,7 +237,7 @@ WHERE messages_fts MATCH ?
       return const [];
     }
     final db = await ref.read(driftWorkingDatabaseProvider.future);
-    final mapper = ChatMessageRowMapper(db);
+    final mapper = MessageRowMapper(db);
     final baseQuery = _baseMessageJoin(db)
       ..where(db.workingMessages.id.isIn(messageIds));
     final rows = await baseQuery.get();
