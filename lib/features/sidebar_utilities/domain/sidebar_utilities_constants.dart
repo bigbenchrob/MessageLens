@@ -6,6 +6,9 @@ enum TopChatMenuChoice {
   /// Contacts list
   contacts(id: 'contacts', label: 'Contacts'),
 
+  /// New global timeline experience (V2)
+  globalTimeline(id: 'global_timeline', label: 'Global timeline'),
+
   /// All messages in the database
   allMessages(id: 'all_messages', label: 'All messages'),
 

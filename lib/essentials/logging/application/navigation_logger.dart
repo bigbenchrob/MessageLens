@@ -60,6 +60,7 @@ class NavigationLogEntry {
           },
           recent: (limit) => {'variant': 'recent', 'limit': limit},
           globalTimeline: () => {'variant': 'globalTimeline'},
+          globalTimelineV2: () => {'variant': 'globalTimelineV2'},
           forHandle: (handleId) => {
             'variant': 'forHandle',
             'handleId': handleId,

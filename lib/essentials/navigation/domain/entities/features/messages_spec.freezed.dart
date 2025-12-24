@@ -55,14 +55,15 @@ extension MessagesSpecPatterns on MessagesSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,TResult Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult Function( _MessagesForHandle value)?  forHandle,TResult Function( _MessagesForChatInDateRange value)?  forChatInDateRange,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _RecentMessages value)?  recent,TResult Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult Function( _MessagesGlobalTimelineV2 value)?  globalTimelineV2,TResult Function( _MessagesForHandle value)?  forHandle,TResult Function( _MessagesForChatInDateRange value)?  forChatInDateRange,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
 return recent(_that);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline(_that);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that);case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
+return globalTimelineV2(_that);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that);case _:
   return orElse();
@@ -82,14 +83,15 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,required TResult Function( _MessagesGlobalTimeline value)  globalTimeline,required TResult Function( _MessagesForHandle value)  forHandle,required TResult Function( _MessagesForChatInDateRange value)  forChatInDateRange,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _RecentMessages value)  recent,required TResult Function( _MessagesGlobalTimeline value)  globalTimeline,required TResult Function( _MessagesGlobalTimelineV2 value)  globalTimelineV2,required TResult Function( _MessagesForHandle value)  forHandle,required TResult Function( _MessagesForChatInDateRange value)  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that);case _MessagesForContact():
 return forContact(_that);case _RecentMessages():
 return recent(_that);case _MessagesGlobalTimeline():
-return globalTimeline(_that);case _MessagesForHandle():
+return globalTimeline(_that);case _MessagesGlobalTimelineV2():
+return globalTimelineV2(_that);case _MessagesForHandle():
 return forHandle(_that);case _MessagesForChatInDateRange():
 return forChatInDateRange(_that);case _:
   throw StateError('Unexpected subclass');
@@ -108,14 +110,15 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,TResult? Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult? Function( _MessagesForHandle value)?  forHandle,TResult? Function( _MessagesForChatInDateRange value)?  forChatInDateRange,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _RecentMessages value)?  recent,TResult? Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult? Function( _MessagesGlobalTimelineV2 value)?  globalTimelineV2,TResult? Function( _MessagesForHandle value)?  forHandle,TResult? Function( _MessagesForChatInDateRange value)?  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _RecentMessages() when recent != null:
 return recent(_that);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline(_that);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that);case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
+return globalTimelineV2(_that);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that);case _:
   return null;
@@ -134,13 +137,14 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( int limit)?  recent,TResult Function()?  globalTimeline,TResult Function( int handleId)?  forHandle,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( int limit)?  recent,TResult Function()?  globalTimeline,TResult Function()?  globalTimelineV2,TResult Function( int handleId)?  forHandle,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline();case _MessagesForHandle() when forHandle != null:
+return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
+return globalTimelineV2();case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return orElse();
@@ -160,13 +164,14 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( int limit)  recent,required TResult Function()  globalTimeline,required TResult Function( int handleId)  forHandle,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( int limit)  recent,required TResult Function()  globalTimeline,required TResult Function()  globalTimelineV2,required TResult Function( int handleId)  forHandle,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages():
 return recent(_that.limit);case _MessagesGlobalTimeline():
-return globalTimeline();case _MessagesForHandle():
+return globalTimeline();case _MessagesGlobalTimelineV2():
+return globalTimelineV2();case _MessagesForHandle():
 return forHandle(_that.handleId);case _MessagesForChatInDateRange():
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   throw StateError('Unexpected subclass');
@@ -185,13 +190,14 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( int limit)?  recent,TResult? Function()?  globalTimeline,TResult? Function( int handleId)?  forHandle,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( int limit)?  recent,TResult? Function()?  globalTimeline,TResult? Function()?  globalTimelineV2,TResult? Function( int handleId)?  forHandle,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline();case _MessagesForHandle() when forHandle != null:
+return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
+return globalTimelineV2();case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return null;
@@ -425,6 +431,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'MessagesSpec.globalTimeline()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _MessagesGlobalTimelineV2 implements MessagesSpec {
+  const _MessagesGlobalTimelineV2();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimelineV2);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'MessagesSpec.globalTimelineV2()';
 }
 
 

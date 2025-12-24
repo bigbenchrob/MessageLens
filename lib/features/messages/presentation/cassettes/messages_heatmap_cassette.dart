@@ -129,7 +129,9 @@ class _GlobalHeatmapContent extends ConsumerWidget {
                 .read(panelsViewStateProvider.notifier)
                 .show(
                   panel: WindowPanel.center,
-                  spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
+                  spec: const ViewSpec.messages(
+                    MessagesSpec.globalTimelineV2(),
+                  ),
                 );
             unawaited(
               ref
@@ -146,7 +148,9 @@ class _GlobalHeatmapContent extends ConsumerWidget {
                 .read(panelsViewStateProvider.notifier)
                 .show(
                   panel: WindowPanel.center,
-                  spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
+                  spec: const ViewSpec.messages(
+                    MessagesSpec.globalTimelineV2(),
+                  ),
                 );
           },
           child: Text(

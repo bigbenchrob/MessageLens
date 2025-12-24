@@ -47,6 +47,11 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
               ContactsCassetteSpec.contactChooser(),
             );
 
+          case TopChatMenuChoice.globalTimeline:
+            return const CassetteSpec.messages(
+              MessagesCassetteSpec.heatMap(contactId: null),
+            );
+
           case TopChatMenuChoice.strayPhoneNumbers:
             return const CassetteSpec.handles(
               HandlesCassetteSpec.strayPhoneNumbers(),

@@ -16,6 +16,11 @@ class MessagesSpec with _$MessagesSpec {
   /// Show every message across all chats ordered by the global ordinal index.
   const factory MessagesSpec.globalTimeline() = _MessagesGlobalTimeline;
 
+  /// New global timeline implementation (VM + jump + hydration).
+  ///
+  /// Keep `globalTimeline()` as the legacy/reference path for now.
+  const factory MessagesSpec.globalTimelineV2() = _MessagesGlobalTimelineV2;
+
   /// Show ALL messages from a handle across all chats chronologically
   const factory MessagesSpec.forHandle({required int handleId}) =
       _MessagesForHandle;

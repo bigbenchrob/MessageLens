@@ -25,6 +25,7 @@ Map<String, dynamic> _$SidebarUtilityCassetteSpecTopChatMenuToJson(
 
 const _$TopChatMenuChoiceEnumMap = {
   TopChatMenuChoice.contacts: 'contacts',
+  TopChatMenuChoice.globalTimeline: 'globalTimeline',
   TopChatMenuChoice.allMessages: 'allMessages',
   TopChatMenuChoice.strayPhoneNumbers: 'strayPhoneNumbers',
   TopChatMenuChoice.strayEmails: 'strayEmails',
