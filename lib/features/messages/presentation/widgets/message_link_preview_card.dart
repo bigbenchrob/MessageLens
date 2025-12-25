@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../view_model/messages_for_chat_provider.dart';
-import '../view_model/new_display_widgets.dart';
+import '../view_model/shared/display_widgets/new_display_widgets.dart';
+import '../view_model/shared/hydration/messages_for_handle_provider.dart';
 import 'url_preview_widget.dart';
 
 class MessageLinkPreviewCard extends StatelessWidget {
@@ -11,7 +11,7 @@ class MessageLinkPreviewCard extends StatelessWidget {
     this.maxWidth = 420,
   });
 
-  final ChatMessageListItem message;
+  final MessageListItem message;
   final double maxWidth;
 
   @override
@@ -23,7 +23,7 @@ class MessageLinkPreviewCard extends StatelessWidget {
 class _LinkPreviewContent extends StatelessWidget {
   const _LinkPreviewContent({required this.message, required this.maxWidth});
 
-  final ChatMessageListItem message;
+  final MessageListItem message;
   final double maxWidth;
 
   @override

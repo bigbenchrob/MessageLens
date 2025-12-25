@@ -52,7 +52,7 @@
 //     return null;
 //   }
 
-//   // Use existing mapper to convert row to ChatMessageListItem
+//   // Use existing mapper to convert row to MessageListItem
 //   final mapper = MessageRowMapper(db);
 //   final messages = await mapper.mapRows([row]);
 

@@ -8,8 +8,8 @@ import 'application/cassette_builders/global_timeline_view_builder_provider.dart
 import 'application/cassette_builders/messages_for_handle_view_builder_provider.dart';
 import 'infrastructure/repositories/sqlite_messages_repository.dart';
 import 'presentation/cassettes/messages_heatmap_cassette.dart';
-import 'presentation/view/messages_for_contact_view.dart';
 import 'presentation/view/global_timeline_v2_view.dart';
+import 'presentation/view/messages_for_contact_view.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -36,7 +36,7 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
 
   CassetteCardView buildForSpec(MessagesCassetteSpec spec) {
     return spec.when(
-      heatMap: (contactId) {
+      heatMap: (contactId, useV2Timeline) {
         final isContactScoped = contactId != null;
         return CassetteCardView(
           title: isContactScoped
@@ -45,7 +45,10 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
           subtitle: isContactScoped
               ? null
               : 'Discover peaks and gaps across your entire archive.',
-          child: MessagesHeatmapCassette(contactId: contactId),
+          child: MessagesHeatmapCassette(
+            contactId: contactId,
+            useV2Timeline: useV2Timeline,
+          ),
         );
       },
     );
@@ -78,7 +81,8 @@ class MessagesCoordinator extends _$MessagesCoordinator {
           'Messages for chat ($chatId) in date range view is coming soon.',
         );
       },
-      globalTimelineV2: () => const GlobalTimelineV2View(),
+      globalTimelineV2: (scrollToDate) =>
+          GlobalTimelineV2View(scrollToDate: scrollToDate),
     );
   }
 

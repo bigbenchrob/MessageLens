@@ -60,7 +60,11 @@ class NavigationLogEntry {
           },
           recent: (limit) => {'variant': 'recent', 'limit': limit},
           globalTimeline: () => {'variant': 'globalTimeline'},
-          globalTimelineV2: () => {'variant': 'globalTimelineV2'},
+          globalTimelineV2: (scrollToDate) => {
+            'variant': 'globalTimelineV2',
+            if (scrollToDate != null)
+              'scrollToDate': scrollToDate.toIso8601String(),
+          },
           forHandle: (handleId) => {
             'variant': 'forHandle',
             'handleId': handleId,

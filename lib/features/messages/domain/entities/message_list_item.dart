@@ -1,4 +1,4 @@
-import '../../presentation/view_model/attachment_info.dart';
+import '../../presentation/view_model/shared/hydration/attachment_info.dart';
 
 /// Lightweight view model representing a message row rendered in the UI.
 class MessageListItem {

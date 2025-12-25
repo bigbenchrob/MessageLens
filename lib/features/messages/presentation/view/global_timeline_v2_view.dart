@@ -1,20 +1,57 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:macos_ui/macos_ui.dart' as macos_ui;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../view_model/global_messages/global_messages_view_model.dart';
-import '../view_model/global_messages/hydration/message_by_global_ordinal_provider.dart';
+import '../view_model/view_model_global/global_messages_view_model_provider.dart';
+import '../view_model/view_model_global/hydration/message_by_global_ordinal_provider.dart';
+import '../widgets/message_card.dart';
 
 class GlobalTimelineV2View extends HookConsumerWidget {
-  const GlobalTimelineV2View({super.key});
+  const GlobalTimelineV2View({this.scrollToDate, super.key});
+
+  final DateTime? scrollToDate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
     final vm = ref.watch(globalMessagesViewModelProvider);
+    final ordinalAsync = vm.ordinal;
+
+    // Jump to month on initial load if scrollToDate provided
+    // Otherwise jump to latest messages
+    useEffect(() {
+      if (scrollToDate != null && ordinalAsync.hasValue) {
+        debugPrint(
+          '🎯 GlobalTimelineV2View: scrollToDate provided: $scrollToDate, ordinal ready',
+        );
+        // Wait for next frame to ensure UI is fully built
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          debugPrint('🎯 GlobalTimelineV2View: Calling jumpToMonth');
+          await ref
+              .read(globalMessagesViewModelProvider.notifier)
+              .jumpToMonth(scrollToDate!);
+        });
+      } else if (scrollToDate == null && ordinalAsync.hasValue) {
+        debugPrint(
+          '🎯 GlobalTimelineV2View: No scrollToDate, jumping to latest',
+        );
+        // Jump to latest messages on initial load
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await ref
+              .read(globalMessagesViewModelProvider.notifier)
+              .jumpToLatest();
+        });
+      } else if (scrollToDate != null) {
+        debugPrint(
+          '🎯 GlobalTimelineV2View: scrollToDate provided but ordinal not ready yet',
+        );
+      }
+      return null;
+    }, [scrollToDate, ordinalAsync.hasValue]);
 
     return MacosScaffold(
       toolBar: ToolBar(
@@ -136,40 +173,18 @@ class _GlobalTimelineV2Row extends ConsumerWidget {
       messageByGlobalOrdinalProvider(ordinal: ordinal),
     );
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: itemAsync.when(
-        data: (item) {
-          if (item == null) {
-            return _SkeletonRow(theme: theme);
-          }
+    return itemAsync.when(
+      data: (item) {
+        if (item == null) {
+          return _SkeletonRow(theme: theme);
+        }
 
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.canvasColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: theme.dividerColor.withValues(alpha: 0.6),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.senderName,
-                  style: theme.typography.title3.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(item.text, style: theme.typography.body),
-              ],
-            ),
-          );
-        },
-        loading: () => _SkeletonRow(theme: theme),
-        error: (error, _) => Text('Row $ordinal failed: $error'),
+        return MessageCard(message: item, emphasizeSender: true);
+      },
+      loading: () => _SkeletonRow(theme: theme),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Row $ordinal failed: $error'),
       ),
     );
   }

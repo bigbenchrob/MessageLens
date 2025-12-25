@@ -3,7 +3,7 @@
 // import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 // import '../../../presentation/domain/entities/message_list_item.dart';
 // import '../../../presentation/presentation/view_model/attachment_info.dart';
-// import '../../../presentation/view_model/contact_messages/process_message_list/load_attachments_for_messages.dart';
+// import '../../../presentation/view_model/view_model_contact/process_message_list/load_attachments_for_messages.dart';
 
 // class MessageRowMapper {
 //   MessageRowMapper(this._db);

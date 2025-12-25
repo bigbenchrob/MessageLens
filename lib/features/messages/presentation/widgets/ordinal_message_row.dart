@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../view_model/message_by_ordinal_provider.dart';
-import '../view_model/messages_for_chat_provider.dart';
+import '../view_model/shared/hydration/message_by_ordinal_provider.dart';
+import '../view_model/shared/hydration/messages_for_handle_provider.dart';
 
 /// Renders a message at a specific ordinal position within a chat.
 /// Shows loading skeleton while fetching, then full message when loaded.
@@ -16,7 +16,7 @@ class OrdinalMessageRow extends ConsumerWidget {
 
   final int chatId;
   final int ordinal;
-  final Widget Function(ChatMessageListItem message) buildMessage;
+  final Widget Function(MessageListItem message) buildMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

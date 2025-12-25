@@ -49,7 +49,10 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
 
           case TopChatMenuChoice.globalTimeline:
             return const CassetteSpec.messages(
-              MessagesCassetteSpec.heatMap(contactId: null),
+              MessagesCassetteSpec.heatMap(
+                contactId: null,
+                useV2Timeline: true,
+              ),
             );
 
           case TopChatMenuChoice.strayPhoneNumbers:
@@ -64,7 +67,10 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
 
           case TopChatMenuChoice.allMessages:
             return const CassetteSpec.messages(
-              MessagesCassetteSpec.heatMap(contactId: null),
+              MessagesCassetteSpec.heatMap(
+                contactId: null,
+                useV2Timeline: false,
+              ),
             );
 
           case TopChatMenuChoice.themePlayground:
@@ -114,6 +120,6 @@ extension HandlesCassetteSpecX on HandlesCassetteSpec {
 extension MessagesCassetteSpecX on MessagesCassetteSpec {
   /// Handles cassettes currently have no children.
   CassetteSpec? childSpec() {
-    return when(heatMap: (_) => null);
+    return when(heatMap: (_, __) => null);
   }
 }

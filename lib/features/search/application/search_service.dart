@@ -6,8 +6,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../messages/presentation/view_model/message_row_mapper.dart';
-import '../../messages/presentation/view_model/messages_for_chat_provider.dart';
+import '../../messages/presentation/view_model/deprecated/message_row_mapper.dart';
+import '../../messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
 import '../search_feature_providers.dart';
 
 const _searchResultLimit = 100;
@@ -18,7 +18,7 @@ class SearchService {
 
   final Ref ref;
 
-  Future<List<ChatMessageListItem>> searchChatMessages({
+  Future<List<MessageListItem>> searchChatMessages({
     required int chatId,
     required String query,
   }) async {
@@ -42,7 +42,7 @@ class SearchService {
     return _legacyChatSearch(chatId: chatId, query: trimmed);
   }
 
-  Future<List<ChatMessageListItem>> searchContactMessages({
+  Future<List<MessageListItem>> searchContactMessages({
     required int contactId,
     required String query,
   }) async {
@@ -73,7 +73,7 @@ class SearchService {
     return tokens.isNotEmpty;
   }
 
-  Future<List<ChatMessageListItem>> _legacyChatSearch({
+  Future<List<MessageListItem>> _legacyChatSearch({
     required int chatId,
     required String query,
   }) async {
@@ -102,7 +102,7 @@ class SearchService {
     return mapper.mapRows(rows);
   }
 
-  Future<List<ChatMessageListItem>> _legacyContactSearch({
+  Future<List<MessageListItem>> _legacyContactSearch({
     required int contactId,
     required String query,
   }) async {
@@ -165,7 +165,7 @@ class SearchService {
     ]);
   }
 
-  Future<List<ChatMessageListItem>> _ftsSearch({
+  Future<List<MessageListItem>> _ftsSearch({
     required List<String> tokens,
     required int? chatId,
     required int? contactId,
@@ -229,7 +229,7 @@ WHERE messages_fts MATCH ?
     return _hydrateRankedMessages(ranked);
   }
 
-  Future<List<ChatMessageListItem>> _hydrateRankedMessages(
+  Future<List<MessageListItem>> _hydrateRankedMessages(
     List<_RankedMessage> ranked,
   ) async {
     final messageIds = ranked.map((e) => e.messageId).toSet().toList();
@@ -250,7 +250,7 @@ WHERE messages_fts MATCH ?
 
     return ranked
         .map((entry) => byId[entry.messageId])
-        .whereType<ChatMessageListItem>()
+        .whereType<MessageListItem>()
         .toList();
   }
 }

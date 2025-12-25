@@ -19,7 +19,8 @@ class MessagesSpec with _$MessagesSpec {
   /// New global timeline implementation (VM + jump + hydration).
   ///
   /// Keep `globalTimeline()` as the legacy/reference path for now.
-  const factory MessagesSpec.globalTimelineV2() = _MessagesGlobalTimelineV2;
+  const factory MessagesSpec.globalTimelineV2({DateTime? scrollToDate}) =
+      _MessagesGlobalTimelineV2;
 
   /// Show ALL messages from a handle across all chats chronologically
   const factory MessagesSpec.forHandle({required int handleId}) =

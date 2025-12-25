@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -16,13 +17,18 @@ import '../../../contacts/application_pre_cassette/contact_profile_provider.dart
 import '../../../contacts/application_pre_cassette/contact_timeline_provider.dart';
 import '../../application/use_cases/global_messages_heatmap_provider.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
-import '../view_model/global_timeline_controller.dart';
+import '../view_model/view_model_global/global_timeline_controller.dart';
 import '../widgets/calendar_heatmap_timeline_widget.dart';
 
 class MessagesHeatmapCassette extends ConsumerWidget {
-  const MessagesHeatmapCassette({this.contactId, super.key});
+  const MessagesHeatmapCassette({
+    this.contactId,
+    this.useV2Timeline = false,
+    super.key,
+  });
 
   final int? contactId;
+  final bool useV2Timeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,19 +49,19 @@ class MessagesHeatmapCassette extends ConsumerWidget {
               profile: profile,
               data: timeline,
             ),
-            loading: () => _ContactHeatmapContent(
-              contactId: contactId!,
-              profile: null,
-              data: timeline,
-            ),
-            error: (error, _) => _ContactHeatmapContent(
-              contactId: contactId!,
-              profile: null,
-              data: timeline,
+            loading: () => const _HeatmapLoadingCard(),
+            error: (error, _) => _HeatmapErrorCard(
+              message: 'Unable to load profile. $error',
+              onRetry: () {
+                ref.invalidate(contactProfileProvider(contactId: contactId!));
+              },
             ),
           );
         }
-        return _GlobalHeatmapContent(data: timeline);
+        return _GlobalHeatmapContent(
+          data: timeline,
+          useV2Timeline: useV2Timeline,
+        );
       },
       loading: () => const _HeatmapLoadingCard(),
       error: (error, _) => _HeatmapErrorCard(
@@ -72,13 +78,36 @@ class MessagesHeatmapCassette extends ConsumerWidget {
   }
 }
 
-class _GlobalHeatmapContent extends ConsumerWidget {
-  const _GlobalHeatmapContent({required this.data});
+class _GlobalHeatmapContent extends HookConsumerWidget {
+  const _GlobalHeatmapContent({
+    required this.data,
+    required this.useV2Timeline,
+  });
 
   final CalendarHeatmapTimelineData? data;
+  final bool useV2Timeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Auto-open timeline view on first load
+    useEffect(() {
+      if (data != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref
+              .read(panelsViewStateProvider.notifier)
+              .show(
+                panel: WindowPanel.center,
+                spec: ViewSpec.messages(
+                  useV2Timeline
+                      ? const MessagesSpec.globalTimelineV2()
+                      : const MessagesSpec.globalTimeline(),
+                ),
+              );
+        });
+      }
+      return null;
+    }, [data != null]);
+
     if (data == null) {
       return const _EmptyHeatmapCard(
         message: 'Import messages to see how your conversations ebb and flow.',
@@ -129,8 +158,10 @@ class _GlobalHeatmapContent extends ConsumerWidget {
                 .read(panelsViewStateProvider.notifier)
                 .show(
                   panel: WindowPanel.center,
-                  spec: const ViewSpec.messages(
-                    MessagesSpec.globalTimelineV2(),
+                  spec: ViewSpec.messages(
+                    useV2Timeline
+                        ? MessagesSpec.globalTimelineV2(scrollToDate: startDate)
+                        : const MessagesSpec.globalTimeline(),
                   ),
                 );
             unawaited(
@@ -148,8 +179,10 @@ class _GlobalHeatmapContent extends ConsumerWidget {
                 .read(panelsViewStateProvider.notifier)
                 .show(
                   panel: WindowPanel.center,
-                  spec: const ViewSpec.messages(
-                    MessagesSpec.globalTimelineV2(),
+                  spec: ViewSpec.messages(
+                    useV2Timeline
+                        ? const MessagesSpec.globalTimelineV2()
+                        : const MessagesSpec.globalTimeline(),
                   ),
                 );
           },
@@ -163,7 +196,7 @@ class _GlobalHeatmapContent extends ConsumerWidget {
   }
 }
 
-class _ContactHeatmapContent extends ConsumerWidget {
+class _ContactHeatmapContent extends HookConsumerWidget {
   const _ContactHeatmapContent({
     required this.contactId,
     required this.profile,
@@ -176,6 +209,26 @@ class _ContactHeatmapContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Auto-open contact messages view on first load
+    useEffect(() {
+      if (data != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref
+              .read(panelsViewStateProvider.notifier)
+              .show(
+                panel: WindowPanel.center,
+                spec: ViewSpec.messages(
+                  MessagesSpec.forContact(
+                    contactId: contactId,
+                    scrollToDate: null,
+                  ),
+                ),
+              );
+        });
+      }
+      return null;
+    }, [data != null]);
+
     if (data == null) {
       return const _EmptyHeatmapCard(
         message: 'Select a contact or choose one with messages to plot.',

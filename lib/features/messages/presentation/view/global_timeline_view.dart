@@ -10,11 +10,11 @@ import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../application/use_cases/global_message_timeline_provider.dart';
-import '../view_model/attachment_info.dart';
-import '../view_model/global_timeline_controller.dart';
-import '../view_model/message_by_id_provider.dart';
-import '../view_model/messages_for_chat_provider.dart';
-import '../view_model/new_display_widgets.dart';
+import '../view_model/shared/display_widgets/new_display_widgets.dart';
+import '../view_model/shared/hydration/attachment_info.dart';
+import '../view_model/shared/hydration/message_by_id_provider.dart';
+import '../view_model/shared/hydration/messages_for_handle_provider.dart';
+import '../view_model/view_model_global/global_timeline_controller.dart';
 import '../widgets/message_link_preview_card.dart';
 
 class GlobalTimelineView extends HookConsumerWidget {
@@ -358,7 +358,7 @@ class _TimelineMessageCard extends ConsumerWidget {
   const _TimelineMessageCard({required this.item, required this.message});
 
   final GlobalMessageTimelineItem item;
-  final ChatMessageListItem message;
+  final MessageListItem message;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -425,7 +425,7 @@ class _TimelineMessageCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildMessageTile(ChatMessageListItem message) {
+  Widget _buildMessageTile(MessageListItem message) {
     final urls = _extractUrls(message.text);
     final isPureUrlMessage =
         urls.length == 1 && message.text.trim() == urls.first;

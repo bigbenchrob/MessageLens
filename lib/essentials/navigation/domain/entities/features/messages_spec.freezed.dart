@@ -137,14 +137,14 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( int limit)?  recent,TResult Function()?  globalTimeline,TResult Function()?  globalTimelineV2,TResult Function( int handleId)?  forHandle,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( int limit)?  recent,TResult Function()?  globalTimeline,TResult Function( DateTime? scrollToDate)?  globalTimelineV2,TResult Function( int handleId)?  forHandle,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesGlobalTimeline() when globalTimeline != null:
 return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2();case _MessagesForHandle() when forHandle != null:
+return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return orElse();
@@ -164,14 +164,14 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( int limit)  recent,required TResult Function()  globalTimeline,required TResult Function()  globalTimelineV2,required TResult Function( int handleId)  forHandle,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( int limit)  recent,required TResult Function()  globalTimeline,required TResult Function( DateTime? scrollToDate)  globalTimelineV2,required TResult Function( int handleId)  forHandle,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages():
 return recent(_that.limit);case _MessagesGlobalTimeline():
 return globalTimeline();case _MessagesGlobalTimelineV2():
-return globalTimelineV2();case _MessagesForHandle():
+return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle():
 return forHandle(_that.handleId);case _MessagesForChatInDateRange():
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   throw StateError('Unexpected subclass');
@@ -190,14 +190,14 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( int limit)?  recent,TResult? Function()?  globalTimeline,TResult? Function()?  globalTimelineV2,TResult? Function( int handleId)?  forHandle,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( int limit)?  recent,TResult? Function()?  globalTimeline,TResult? Function( DateTime? scrollToDate)?  globalTimelineV2,TResult? Function( int handleId)?  forHandle,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _RecentMessages() when recent != null:
 return recent(_that.limit);case _MessagesGlobalTimeline() when globalTimeline != null:
 return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2();case _MessagesForHandle() when forHandle != null:
+return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
   return null;
@@ -443,33 +443,67 @@ String toString() {
 
 
 class _MessagesGlobalTimelineV2 implements MessagesSpec {
-  const _MessagesGlobalTimelineV2();
+  const _MessagesGlobalTimelineV2({this.scrollToDate});
   
 
+ final  DateTime? scrollToDate;
 
-
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MessagesGlobalTimelineV2CopyWith<_MessagesGlobalTimelineV2> get copyWith => __$MessagesGlobalTimelineV2CopyWithImpl<_MessagesGlobalTimelineV2>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimelineV2);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimelineV2&&(identical(other.scrollToDate, scrollToDate) || other.scrollToDate == scrollToDate));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,scrollToDate);
 
 @override
 String toString() {
-  return 'MessagesSpec.globalTimelineV2()';
+  return 'MessagesSpec.globalTimelineV2(scrollToDate: $scrollToDate)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class _$MessagesGlobalTimelineV2CopyWith<$Res> implements $MessagesSpecCopyWith<$Res> {
+  factory _$MessagesGlobalTimelineV2CopyWith(_MessagesGlobalTimelineV2 value, $Res Function(_MessagesGlobalTimelineV2) _then) = __$MessagesGlobalTimelineV2CopyWithImpl;
+@useResult
+$Res call({
+ DateTime? scrollToDate
+});
 
 
+
+
+}
+/// @nodoc
+class __$MessagesGlobalTimelineV2CopyWithImpl<$Res>
+    implements _$MessagesGlobalTimelineV2CopyWith<$Res> {
+  __$MessagesGlobalTimelineV2CopyWithImpl(this._self, this._then);
+
+  final _MessagesGlobalTimelineV2 _self;
+  final $Res Function(_MessagesGlobalTimelineV2) _then;
+
+/// Create a copy of MessagesSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? scrollToDate = freezed,}) {
+  return _then(_MessagesGlobalTimelineV2(
+scrollToDate: freezed == scrollToDate ? _self.scrollToDate : scrollToDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

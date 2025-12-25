@@ -26,7 +26,7 @@ final messageRepositoryProvider =
 
 typedef _$MessageRepository = AutoDisposeNotifier<SqliteMessagesRepository>;
 String _$messagesCassetteCoordinatorHash() =>
-    r'9c5c154d694338cae87652748e0c43f1d1182111';
+    r'be29ba90abc4ae6433bd8c61fa1909bf472a6f4a';
 
 /// Coordinator that maps [MessagesCassetteSpec] to rendered cassette widgets for the sidebar.
 ///
@@ -45,7 +45,7 @@ final messagesCassetteCoordinatorProvider =
 
 typedef _$MessagesCassetteCoordinator = AutoDisposeNotifier<void>;
 String _$messagesCoordinatorHash() =>
-    r'd680559b72335c7c2a624ded3d82847d5a2d3027';
+    r'a9e14c49ddc507ee91c53e0a152d5416ec804f88';
 
 /// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
 ///

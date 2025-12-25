@@ -13,6 +13,11 @@ part 'messages_cassette_spec.freezed.dart';
 abstract class MessagesCassetteSpec with _$MessagesCassetteSpec {
   /// Heat map cassette for messages. When [contactId] is provided the heatmap
   /// is scoped to that contact; otherwise it visualises the entire archive.
-  const factory MessagesCassetteSpec.heatMap({int? contactId}) =
-      _MessagesHeatMapSpec;
+  ///
+  /// [useV2Timeline]: if true, month-tap and "Open full timeline" navigate to
+  /// the new Global Timeline V2; if false, use legacy global timeline.
+  const factory MessagesCassetteSpec.heatMap({
+    int? contactId,
+    @Default(false) bool useV2Timeline,
+  }) = _MessagesHeatMapSpec;
 }

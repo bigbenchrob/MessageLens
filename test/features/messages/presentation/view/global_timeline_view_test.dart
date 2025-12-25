@@ -3,13 +3,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:remember_this_text/features/messages/application/use_cases/global_message_timeline_provider.dart';
 import 'package:remember_this_text/features/messages/presentation/view/global_timeline_view.dart';
-import 'package:remember_this_text/features/messages/presentation/view_model/global_timeline_controller.dart';
-import 'package:remember_this_text/features/messages/presentation/view_model/message_by_id_provider.dart';
-import 'package:remember_this_text/features/messages/presentation/view_model/messages_for_chat_provider.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/shared/hydration/message_by_id_provider.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/view_model_global/global_timeline_controller.dart';
 
 void main() {
   late GlobalTimelineState sampleState;
-  late Map<int, ChatMessageListItem> messageFixtures;
+  late Map<int, MessageListItem> messageFixtures;
 
   setUp(() {
     final items = [
@@ -38,7 +38,7 @@ void main() {
 
     messageFixtures = {
       for (final item in items)
-        item.messageId: ChatMessageListItem(
+        item.messageId: MessageListItem(
           id: item.messageId,
           guid: 'guid-${item.messageId}',
           isFromMe: item.messageId.isEven,

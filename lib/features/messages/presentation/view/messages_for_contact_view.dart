@@ -5,11 +5,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../view_model/attachment_info.dart';
-import '../view_model/contact_messages/contact_messages_view_model.dart';
-import '../view_model/messages_for_chat_provider.dart';
-import '../view_model/new_display_widgets.dart';
-import '../widgets/message_link_preview_card.dart';
+import '../view_model/shared/display_widgets/new_display_widgets.dart';
+import '../view_model/shared/hydration/messages_for_handle_provider.dart';
+import '../view_model/view_model_contact/contact_messages_view_model_provider.dart';
+import '../widgets/message_card.dart';
 
 /// View showing all messages with a specific contact across all chats/handles.
 /// Messages are displayed in chronological order regardless of which conversation they came from.
@@ -36,26 +35,36 @@ class MessagesForContactView extends HookConsumerWidget {
     // Initial positioning: default to latest, unless a scroll target is provided.
     // Kept out of list config to avoid list rebuild quirks.
     useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!context.mounted) {
-          return;
-        }
-
-        Future.microtask(() async {
-          final notifier = ref.read(
-            contactMessagesViewModelProvider(contactId: contactId).notifier,
-          );
-
-          if (scrollToDate != null) {
-            await notifier.jumpToMonthForDate(scrollToDate!);
-          } else {
-            await notifier.jumpToLatest();
+      if (scrollToDate != null && ordinalAsync.hasValue) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) {
+            return;
           }
+
+          Future.microtask(() async {
+            final notifier = ref.read(
+              contactMessagesViewModelProvider(contactId: contactId).notifier,
+            );
+            await notifier.jumpToMonthForDate(scrollToDate!);
+          });
         });
-      });
+      } else if (scrollToDate == null && ordinalAsync.hasValue) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) {
+            return;
+          }
+
+          Future.microtask(() async {
+            final notifier = ref.read(
+              contactMessagesViewModelProvider(contactId: contactId).notifier,
+            );
+            await notifier.jumpToLatest();
+          });
+        });
+      }
 
       return null;
-    }, [contactId, scrollToDate]);
+    }, [contactId, scrollToDate, ordinalAsync.hasValue]);
 
     // VM-managed debounce/search results.
     final isSearching = vm.isSearching;
@@ -86,13 +95,12 @@ class MessagesForContactView extends HookConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: state.totalCount,
           itemBuilder: (context, ordinal) {
-            final isLast = ordinal == state.totalCount - 1;
             return _ContactOrdinalMessageRow(
               key: ValueKey('contact-msg-ordinal-$ordinal'),
               contactId: contactId,
               ordinal: ordinal,
               buildMessage: (message) =>
-                  _buildMessageEntry(context, message, isLast: isLast),
+                  MessageCard(message: message, emphasizeSender: false),
             );
           },
         );
@@ -151,15 +159,7 @@ class MessagesForContactView extends HookConsumerWidget {
             }
 
             final message = results[index - 1];
-            return Padding(
-              padding: MsgTheme.convoHPad(),
-              child: Column(
-                children: [
-                  _buildMessageTile(message),
-                  if (index < itemCount - 1) MsgTheme.gapMD,
-                ],
-              ),
-            );
+            return MessageCard(message: message, emphasizeSender: false);
           },
         );
       },
@@ -203,82 +203,6 @@ class MessagesForContactView extends HookConsumerWidget {
         ],
       ),
     );
-  }
-
-  Widget _buildMessageEntry(
-    BuildContext context,
-    ChatMessageListItem message, {
-    required bool isLast,
-  }) {
-    return Padding(
-      padding: MsgTheme.convoHPad(),
-      child: Column(
-        children: [_buildMessageTile(message), if (!isLast) MsgTheme.gapMD],
-      ),
-    );
-  }
-
-  Widget _buildMessageTile(ChatMessageListItem message) {
-    final urls = _extractUrls(message.text);
-    final isPureUrlMessage =
-        urls.length == 1 && message.text.trim() == urls.first;
-
-    final urlPreviewAttachment = message.attachments
-        .cast<AttachmentInfo?>()
-        .firstWhere((attachment) {
-          return attachment != null &&
-              attachment.isUrlPreview &&
-              attachment.localPath != null;
-        }, orElse: () => null);
-
-    final imageAttachments = message.attachments.where(
-      (attachment) => attachment.isImage && attachment.localPath != null,
-    );
-    final videoAttachments = message.attachments.where(
-      (attachment) => attachment.isVideo && attachment.localPath != null,
-    );
-
-    if (urlPreviewAttachment != null || isPureUrlMessage) {
-      return MessageLinkPreviewCard(
-        message: message,
-        maxWidth: MsgTheme.maxBubbleWidth,
-      );
-    }
-
-    if (imageAttachments.isNotEmpty) {
-      final attachment = imageAttachments.first;
-      return ImageMessageTile(
-        isMe: message.isFromMe,
-        attachment: attachment,
-        sender: message.senderName,
-        sentAt: message.sentAt ?? DateTime.now(),
-        messageId: message.id,
-      );
-    }
-
-    if (videoAttachments.isNotEmpty) {
-      final attachment = videoAttachments.first;
-      return VideoMessageTile(
-        isMe: message.isFromMe,
-        attachment: attachment,
-        sender: message.senderName,
-        sentAt: message.sentAt ?? DateTime.now(),
-        messageId: message.id,
-      );
-    }
-
-    return TextMessageTile(
-      isMe: message.isFromMe,
-      text: message.text,
-      sender: message.senderName,
-      sentAt: message.sentAt ?? DateTime.now(),
-      messageId: message.id,
-    );
-  }
-
-  List<String> _extractUrls(String text) {
-    final urlRegex = RegExp(r'https?://[^\s]+', caseSensitive: false);
-    return urlRegex.allMatches(text).map((m) => m.group(0)!).toList();
   }
 }
 
@@ -352,7 +276,7 @@ class _ContactOrdinalMessageRow extends ConsumerWidget {
 
   final int contactId;
   final int ordinal;
-  final Widget Function(ChatMessageListItem) buildMessage;
+  final Widget Function(MessageListItem) buildMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
