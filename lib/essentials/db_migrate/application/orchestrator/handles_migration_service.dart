@@ -26,6 +26,7 @@ import '../../infrastructure/sqlite/migrators/participants_migrator.dart';
 import '../../infrastructure/sqlite/migrators/reaction_counts_migrator.dart';
 import '../../infrastructure/sqlite/migrators/reactions_migrator.dart';
 import '../../infrastructure/sqlite/migrators/read_state_migrator.dart';
+import '../diagnostics/migration_diagnostics.dart';
 import '../services/base_table_migrator.dart';
 import './migration_orchestrator.dart';
 
@@ -154,6 +155,17 @@ class HandlesMigrationService {
         0.05,
         'Preparing identity + message migration',
       );
+
+      // Run diagnostics before migration to help troubleshoot issues
+      if (debugSettings.logProgress == print) {
+        const diagnostics = MigrationDiagnostics();
+        final report = await diagnostics.diagnose(
+          importDb: importDatabase,
+          workingDb: workingDatabase,
+        );
+        final formatted = diagnostics.formatReport(report);
+        debugSettings.logProgress('\n$formatted');
+      }
 
       emitProgress(
         DbMigrationStage.clearingWorking,
