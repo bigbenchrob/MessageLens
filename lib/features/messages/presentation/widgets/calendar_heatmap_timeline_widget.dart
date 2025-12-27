@@ -27,6 +27,7 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
     this.monthSize = 14.0,
     this.monthSpacing = 2.0,
     this.onMonthTap,
+    this.selectedMonthKey,
     super.key,
   });
 
@@ -37,6 +38,9 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
   /// Optional custom tap handler. If not provided, uses default chat navigation.
   /// Parameters: (year, month, messageCount)
   final void Function(int year, int month, int messageCount)? onMonthTap;
+
+  /// Currently selected/visible month in format "YYYY-MM"
+  final String? selectedMonthKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,6 +61,7 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
             monthSize: monthSize,
             monthSpacing: monthSpacing,
             onMonthTap: onMonthTap,
+            selectedMonthKey: selectedMonthKey,
             ref: ref,
           ),
       ],
@@ -72,6 +77,7 @@ class _YearRowsGroup extends StatelessWidget {
     required this.monthSpacing,
     required this.ref,
     this.onMonthTap,
+    this.selectedMonthKey,
   });
 
   final List<YearRow> yearRows;
@@ -79,6 +85,7 @@ class _YearRowsGroup extends StatelessWidget {
   final double monthSpacing;
   final WidgetRef ref;
   final void Function(int year, int month, int messageCount)? onMonthTap;
+  final String? selectedMonthKey;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +99,7 @@ class _YearRowsGroup extends StatelessWidget {
             monthSize: monthSize,
             monthSpacing: monthSpacing,
             onMonthTap: onMonthTap,
+            selectedMonthKey: selectedMonthKey,
             ref: ref,
           ),
           SizedBox(height: monthSpacing * 2),
@@ -109,6 +117,7 @@ class _SingleYearRow extends StatelessWidget {
     required this.monthSpacing,
     required this.ref,
     this.onMonthTap,
+    this.selectedMonthKey,
   });
 
   final YearRow yearRow;
@@ -116,6 +125,7 @@ class _SingleYearRow extends StatelessWidget {
   final double monthSpacing;
   final WidgetRef ref;
   final void Function(int year, int month, int messageCount)? onMonthTap;
+  final String? selectedMonthKey;
 
   @override
   Widget build(BuildContext context) {
@@ -142,11 +152,20 @@ class _SingleYearRow extends StatelessWidget {
             monthData: yearRow.months[i],
             size: monthSize,
             onMonthTap: onMonthTap,
+            isSelected: _isMonthSelected(yearRow.months[i]),
             ref: ref,
           ),
         ],
       ],
     );
+  }
+
+  bool _isMonthSelected(MonthData month) {
+    if (selectedMonthKey == null) {
+      return false;
+    }
+    final monthKey = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    return monthKey == selectedMonthKey;
   }
 }
 
@@ -157,12 +176,14 @@ class _MonthCell extends StatelessWidget {
     required this.size,
     required this.ref,
     this.onMonthTap,
+    this.isSelected = false,
   });
 
   final MonthData monthData;
   final double size;
   final WidgetRef ref;
   final void Function(int year, int month, int messageCount)? onMonthTap;
+  final bool isSelected;
 
   void _handleTap() {
     // Don't navigate for notYetStarted or empty months
@@ -241,6 +262,22 @@ class _MonthCell extends StatelessWidget {
           color: _getColor(monthData.intensity),
           borderRadius: BorderRadius.circular(2),
         ),
+      );
+    }
+
+    // Add pink border if selected
+    if (isSelected) {
+      cellContent = Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: const Color(0xFFFF1493), // Deep pink
+            width: 2.0,
+          ),
+          borderRadius: BorderRadius.circular(2),
+        ),
+        child: cellContent,
       );
     }
 

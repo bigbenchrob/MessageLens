@@ -17,6 +17,8 @@ import '../../../contacts/application_pre_cassette/contact_profile_provider.dart
 import '../../../contacts/application_pre_cassette/contact_timeline_provider.dart';
 import '../../application/use_cases/global_messages_heatmap_provider.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
+import '../view_model/view_model_contact/current_visible_month_for_contact_provider.dart';
+import '../view_model/view_model_global/current_visible_month_provider.dart';
 import '../view_model/view_model_global/global_timeline_controller.dart';
 import '../widgets/calendar_heatmap_timeline_widget.dart';
 
@@ -119,6 +121,11 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     final macosTheme = MacosTheme.of(context);
     final colors = ref.watch(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
+
+    // Watch the currently visible month
+    final selectedMonthAsync = ref.watch(currentVisibleMonthProvider);
+    final selectedMonth = selectedMonthAsync.valueOrNull;
+
     final stats = _buildStats(
       macosTheme: macosTheme,
       typography: t,
@@ -149,6 +156,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
           data: timeline,
           monthSize: 12,
           monthSpacing: 2,
+          selectedMonthKey: selectedMonth,
           onMonthTap: (year, month, count) {
             if (count <= 0) {
               return;
@@ -239,6 +247,12 @@ class _ContactHeatmapContent extends HookConsumerWidget {
     final timeline = data!;
     final t = ref.watch(themeTypographyProvider);
 
+    // Watch the currently visible month for this contact
+    final selectedMonthAsync = ref.watch(
+      currentVisibleMonthForContactProvider(contactId: contactId),
+    );
+    final selectedMonth = selectedMonthAsync.valueOrNull;
+
     final summaryText =
         '${NumberFormat.decimalPattern().format(timeline.totalMessages)} '
         'Messages • ${_formatDateRange(timeline.firstMessageDate, timeline.lastMessageDate)}';
@@ -250,6 +264,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
           data: timeline,
           monthSize: 12,
           monthSpacing: 2,
+          selectedMonthKey: selectedMonth,
           onMonthTap: (year, month, count) {
             if (count <= 0) {
               return;

@@ -99,8 +99,7 @@ class MessagesForContactView extends HookConsumerWidget {
               key: ValueKey('contact-msg-ordinal-$ordinal'),
               contactId: contactId,
               ordinal: ordinal,
-              buildMessage: (message) =>
-                  MessageCard(message: message, emphasizeSender: false),
+              buildMessage: (message) => MessageCard(message: message),
             );
           },
         );
@@ -159,7 +158,7 @@ class MessagesForContactView extends HookConsumerWidget {
             }
 
             final message = results[index - 1];
-            return MessageCard(message: message, emphasizeSender: false);
+            return MessageCard(message: message);
           },
         );
       },
@@ -176,8 +175,12 @@ class MessagesForContactView extends HookConsumerWidget {
       ),
     );
 
+    final theme = MacosTheme.of(context);
+
     return Material(
-      color: Colors.white,
+      color: theme.brightness == Brightness.dark
+          ? const Color(0xFF1C1C1E)
+          : const Color(0xFFF2F2F7),
       child: Column(
         children: [
           // Header
@@ -219,7 +222,9 @@ class _ContactMessagesHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = MacosTheme.brightnessOf(context) == Brightness.dark;
-    final headerBackground = isDark ? const Color(0xFF1F1F24) : Colors.white;
+    final headerBackground = isDark
+        ? const Color(0xFF1C1C1E)
+        : const Color(0xFFF2F2F7);
     final dividerColor = isDark
         ? const Color(0xFF38383D)
         : const Color(0xFFE5E5EA);

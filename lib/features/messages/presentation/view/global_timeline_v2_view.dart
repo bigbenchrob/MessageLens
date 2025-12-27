@@ -70,57 +70,64 @@ class GlobalTimelineV2View extends HookConsumerWidget {
       children: [
         ContentArea(
           builder: (context, _) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: MacosTextField(
-                          controller: vm.searchController,
-                          placeholder: 'Search all messages',
-                          clearButtonMode:
-                              macos_ui.OverlayVisibilityMode.editing,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      _SearchModeToggle(mode: vm.searchMode),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: vm.ordinal.when(
-                    data: (ordinalState) {
-                      if (ordinalState.totalCount == 0) {
-                        return Center(
-                          child: Text(
-                            'No messages indexed yet.',
-                            style: theme.typography.title3,
+            final contentBg = theme.brightness == Brightness.dark
+                ? const Color(0xFF1C1C1E)
+                : const Color(0xFFF2F2F7);
+            return ColoredBox(
+              color: contentBg,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: MacosTextField(
+                            controller: vm.searchController,
+                            placeholder: 'Search all messages',
+                            clearButtonMode:
+                                macos_ui.OverlayVisibilityMode.editing,
                           ),
-                        );
-                      }
+                        ),
+                        const SizedBox(width: 12),
+                        _SearchModeToggle(mode: vm.searchMode),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: vm.ordinal.when(
+                      data: (ordinalState) {
+                        if (ordinalState.totalCount == 0) {
+                          return Center(
+                            child: Text(
+                              'No messages indexed yet.',
+                              style: theme.typography.title3,
+                            ),
+                          );
+                        }
 
-                      return ScrollablePositionedList.builder(
-                        itemScrollController: ordinalState.itemScrollController,
-                        itemPositionsListener:
-                            ordinalState.itemPositionsListener,
-                        itemCount: ordinalState.totalCount,
-                        itemBuilder: (context, index) {
-                          return _GlobalTimelineV2Row(ordinal: index);
-                        },
-                      );
-                    },
-                    loading: () => const Center(child: ProgressCircle()),
-                    error: (error, _) => Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text('Unable to load timeline: $error'),
+                        return ScrollablePositionedList.builder(
+                          itemScrollController:
+                              ordinalState.itemScrollController,
+                          itemPositionsListener:
+                              ordinalState.itemPositionsListener,
+                          itemCount: ordinalState.totalCount,
+                          itemBuilder: (context, index) {
+                            return _GlobalTimelineV2Row(ordinal: index);
+                          },
+                        );
+                      },
+                      loading: () => const Center(child: ProgressCircle()),
+                      error: (error, _) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('Unable to load timeline: $error'),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -179,7 +186,7 @@ class _GlobalTimelineV2Row extends ConsumerWidget {
           return _SkeletonRow(theme: theme);
         }
 
-        return MessageCard(message: item, emphasizeSender: true);
+        return MessageCard(message: item);
       },
       loading: () => _SkeletonRow(theme: theme),
       error: (error, _) => Padding(
