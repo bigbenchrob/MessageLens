@@ -97,6 +97,11 @@ class MigrationOrchestrator {
 
     await ctx.workingDb.customStatement('PRAGMA foreign_keys = ON');
 
+    if (ctx.incrementalMode) {
+      ctx.log('Incremental mode: skipping table truncation.');
+      return;
+    }
+
     final tables = <String>{};
     for (final migrator in ordered) {
       if (migrator is BaseTableMigrator) {

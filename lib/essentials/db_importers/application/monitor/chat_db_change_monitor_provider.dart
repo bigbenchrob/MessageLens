@@ -259,7 +259,23 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
     );
 
     try {
-      final result = await ref.read(handlesMigrationServiceProvider).run();
+      // Use incremental mode when there's already data in working database
+      final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
+      final existingMessageCount = await workingDb.customSelect(
+        'SELECT COUNT(*) as count FROM messages',
+      ).getSingle();
+      final count = existingMessageCount.data['count'] as int? ?? 0;
+      final useIncremental = count > 0;
+
+      if (useIncremental) {
+        stderr.writeln(
+          'Running INCREMENTAL migration (existing messages: $count)',
+        );
+      }
+
+      final result = await ref.read(handlesMigrationServiceProvider).run(
+            incrementalMode: useIncremental,
+          );
 
       state = state.copyWith(lastMigrationResult: result, clearError: true);
 

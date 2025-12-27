@@ -17,6 +17,7 @@ class MigrationContext {
   final SqfliteImportDatabase importDb;
   final WorkingDatabase workingDb;
   final bool dryRun;
+  final bool incrementalMode;
   final void Function(String msg) log;
   final Map<int, int> handleIdCanonicalMap;
   final Map<int, CanonicalHandleInfo> canonicalHandleInfo;
@@ -24,6 +25,7 @@ class MigrationContext {
     required this.importDb,
     required this.workingDb,
     this.dryRun = false,
+    this.incrementalMode = false,
     required this.log,
     Map<int, int>? handleIdCanonicalMap,
     Map<int, CanonicalHandleInfo>? canonicalHandleInfo,

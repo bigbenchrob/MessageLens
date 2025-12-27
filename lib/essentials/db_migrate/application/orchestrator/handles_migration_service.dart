@@ -56,6 +56,7 @@ class HandlesMigrationService {
   Future<DbMigrationResult> run({
     void Function(DbMigrationProgress progress)? onProgress,
     TableMigrationProgressCallback? onTableProgress,
+    bool incrementalMode = false,
   }) async {
     final debugSettings = ref.watch(importDebugSettingsProvider);
     final importDatabase = await ref.watch(
@@ -69,6 +70,7 @@ class HandlesMigrationService {
       importDb: importDatabase,
       workingDb: workingDatabase,
       log: debugSettings.logProgress,
+      incrementalMode: incrementalMode,
     );
 
     final migrators = <BaseTableMigrator>[
@@ -170,7 +172,9 @@ class HandlesMigrationService {
       emitProgress(
         DbMigrationStage.clearingWorking,
         0.15,
-        'Clearing identity/message projections',
+        incrementalMode
+            ? 'Preparing incremental migration'
+            : 'Clearing identity/message projections',
       );
 
       await orchestrator.run(
