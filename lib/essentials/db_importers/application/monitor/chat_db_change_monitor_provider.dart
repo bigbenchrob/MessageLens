@@ -1,58 +1,33 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:watcher/watcher.dart';
 
 import '../../../../providers.dart';
-import '../../../db/feature_level_providers.dart';
-import '../../../db_migrate/domain/entities/db_migration_result.dart';
-import '../../../db_migrate/feature_level_providers.dart';
-import '../../domain/entities/db_import_result.dart';
-import '../../feature_level_providers.dart';
 
 part 'chat_db_change_monitor_provider.g.dart';
 
 class ChatDbChangeMonitorState {
   const ChatDbChangeMonitorState({
-    this.lastDataVersion,
-    this.isImporting = false,
-    this.isMigrating = false,
-    this.lastImportResult,
-    this.lastMigrationResult,
+    this.lastMaxRowId,
+    this.lastChangeDetected,
     this.lastError,
   });
 
-  final int? lastDataVersion;
-  final bool isImporting;
-  final bool isMigrating;
-  final DbImportResult? lastImportResult;
-  final DbMigrationResult? lastMigrationResult;
+  final int? lastMaxRowId;
+  final DateTime? lastChangeDetected;
   final String? lastError;
 
   ChatDbChangeMonitorState copyWith({
-    int? lastDataVersion,
-    bool? isImporting,
-    bool? isMigrating,
-    DbImportResult? lastImportResult,
-    DbMigrationResult? lastMigrationResult,
-    bool clearImportResult = false,
-    bool clearMigrationResult = false,
+    int? lastMaxRowId,
+    DateTime? lastChangeDetected,
     String? lastError,
     bool clearError = false,
   }) {
     return ChatDbChangeMonitorState(
-      lastDataVersion: lastDataVersion ?? this.lastDataVersion,
-      isImporting: isImporting ?? this.isImporting,
-      isMigrating: isMigrating ?? this.isMigrating,
-      lastImportResult: clearImportResult
-          ? null
-          : lastImportResult ?? this.lastImportResult,
-      lastMigrationResult: clearMigrationResult
-          ? null
-          : lastMigrationResult ?? this.lastMigrationResult,
+      lastMaxRowId: lastMaxRowId ?? this.lastMaxRowId,
+      lastChangeDetected: lastChangeDetected ?? this.lastChangeDetected,
       lastError: clearError ? null : lastError ?? this.lastError,
     );
   }
@@ -60,11 +35,9 @@ class ChatDbChangeMonitorState {
 
 @Riverpod(keepAlive: true)
 class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
-  DirectoryWatcher? _directoryWatcher;
-  StreamSubscription<WatchEvent>? _watcherSubscription;
   Timer? _debounceTimer;
+  Timer? _pollingTimer;
   bool _importInFlight = false;
-  bool _migrationInFlight = false;
   bool _pendingProbe = false;
   String? _chatDbPath;
 
@@ -78,8 +51,7 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
     ref.onDispose(() {
       _debounceTimer?.cancel();
-      _watcherSubscription?.cancel();
-      _directoryWatcher = null;
+      _pollingTimer?.cancel();
     });
 
     return const ChatDbChangeMonitorState();
@@ -91,47 +63,35 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
       final chatDbPath = pathsHelper.chatDBPath;
       _chatDbPath = chatDbPath;
 
-      await _primeDataVersion(chatDbPath);
-      await _startWatching(chatDbPath);
+      await _primeMaxRowId(chatDbPath);
+      _startPolling(chatDbPath);
     } catch (error, stackTrace) {
       _handleError('Failed to initialize chat.db monitor: $error', stackTrace);
     }
   }
 
-  Future<void> _primeDataVersion(String chatDbPath) async {
+  Future<void> _primeMaxRowId(String chatDbPath) async {
     try {
-      final dataVersion = _readDataVersion(chatDbPath);
-      state = state.copyWith(
-        lastDataVersion: dataVersion,
-        clearError: true,
-        clearImportResult: true,
-      );
+      final maxRowId = _readMaxRowId(chatDbPath);
+      state = state.copyWith(lastMaxRowId: maxRowId, clearError: true);
     } catch (error, stackTrace) {
-      _handleError('Unable to prime data version: $error', stackTrace);
+      _handleError('Unable to prime MAX(ROWID): $error', stackTrace);
     }
   }
 
-  Future<void> _startWatching(String chatDbPath) async {
-    final directoryPath = p.dirname(chatDbPath);
+  void _startPolling(String chatDbPath) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      try {
+        final currentMaxRowId = _readMaxRowId(chatDbPath);
+        final previousMaxRowId = state.lastMaxRowId;
 
-    final directoryExists = Directory(directoryPath).existsSync();
-    if (!directoryExists) {
-      _handleError('Messages directory not found: $directoryPath', null);
-      return;
-    }
-
-    _directoryWatcher = DirectoryWatcher(directoryPath);
-    _watcherSubscription = _directoryWatcher!.events.listen(
-      (event) {
-        final fileName = p.basename(event.path);
-        if (fileName == 'chat.db' || fileName == 'chat.db-wal') {
+        if (previousMaxRowId != null && currentMaxRowId > previousMaxRowId) {
           _scheduleProbe();
         }
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        _handleError('Watcher error: $error', stackTrace);
-      },
-    );
+      } catch (error) {
+        // Silently continue on polling errors
+      }
+    });
   }
 
   void _scheduleProbe() {
@@ -153,57 +113,43 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
       return;
     }
 
-    if (_migrationInFlight) {
-      await _waitForMigrationToComplete();
-      if (!_pendingProbe) {
-        return;
-      }
-    }
-
     _importInFlight = true;
-    var migrationNeeded = false;
-    state = state.copyWith(
-      isImporting: true,
-      clearError: true,
-      clearImportResult: true,
-    );
 
     try {
       while (_pendingProbe) {
         _pendingProbe = false;
 
-        final currentVersion = _readDataVersion(chatDbPath);
-        final previousVersion = state.lastDataVersion;
-        if (previousVersion != null && currentVersion == previousVersion) {
+        final currentMaxRowId = _readMaxRowId(chatDbPath);
+        final previousMaxRowId = state.lastMaxRowId;
+
+        if (previousMaxRowId != null && currentMaxRowId <= previousMaxRowId) {
           continue;
         }
 
-        state = state.copyWith(lastDataVersion: currentVersion);
+        final now = DateTime.now();
+        final newMessageCount = previousMaxRowId != null
+            ? currentMaxRowId - previousMaxRowId
+            : 0;
 
-        final result = await ref
-            .read(orchestratedLedgerImportServiceProvider)
-            .runImport();
+        state = state.copyWith(
+          lastMaxRowId: currentMaxRowId,
+          lastChangeDetected: now,
+        );
 
-        state = state.copyWith(lastImportResult: result, clearError: true);
+        print(
+          'New message(s) detected in Messages database: $newMessageCount message(s), MAX(ROWID): $previousMaxRowId → $currentMaxRowId',
+        );
 
-        if (!result.success) {
-          final message =
-              result.error ?? 'Automatic import failed for an unknown reason';
-          _handleError('Automatic import failed: $message', null);
-          continue;
-        }
-
-        migrationNeeded = true;
-      }
-
-      if (migrationNeeded) {
-        await _runMigration();
+        // Schedule import/migration for later to avoid disrupting active UI
+        // TODO: Show notification to user or run during app idle time
+        print(
+          'Incremental import/migration deferred - trigger manually or implement idle-time scheduling',
+        );
       }
     } catch (error, stackTrace) {
-      _handleError('Automatic import failed: $error', stackTrace);
+      _handleError('Change detection failed: $error', stackTrace);
     } finally {
       _importInFlight = false;
-      state = state.copyWith(isImporting: false);
 
       if (_pendingProbe) {
         unawaited(_processPendingChanges());
@@ -211,17 +157,22 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
     }
   }
 
-  int _readDataVersion(String chatDbPath) {
+  int _readMaxRowId(String chatDbPath) {
     try {
       final db = sqlite3.open(chatDbPath, mode: OpenMode.readOnly);
       try {
         db.execute('PRAGMA query_only = ON;');
         db.execute('PRAGMA busy_timeout = 3000;');
-        final result = db.select('PRAGMA data_version;');
+        final result = db.select(
+          'SELECT MAX(ROWID) as max_rowid FROM message;',
+        );
         if (result.isEmpty || result.first.values.isEmpty) {
-          throw const FormatException('PRAGMA data_version returned no rows');
+          throw const FormatException('MAX(ROWID) query returned no rows');
         }
         final value = result.first.values.first;
+        if (value == null) {
+          return 0; // Empty table
+        }
         if (value is int) {
           return value;
         }
@@ -243,61 +194,6 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
       stderr.writeln('$message\n$stackTrace');
     } else {
       stderr.writeln(message);
-    }
-  }
-
-  Future<void> _runMigration() async {
-    if (_migrationInFlight) {
-      return;
-    }
-
-    _migrationInFlight = true;
-    state = state.copyWith(
-      isMigrating: true,
-      clearError: true,
-      clearMigrationResult: true,
-    );
-
-    try {
-      // Use incremental mode when there's already data in working database
-      final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
-      final existingMessageCount = await workingDb.customSelect(
-        'SELECT COUNT(*) as count FROM messages',
-      ).getSingle();
-      final count = existingMessageCount.data['count'] as int? ?? 0;
-      final useIncremental = count > 0;
-
-      if (useIncremental) {
-        stderr.writeln(
-          'Running INCREMENTAL migration (existing messages: $count)',
-        );
-      }
-
-      final result = await ref.read(handlesMigrationServiceProvider).run(
-            incrementalMode: useIncremental,
-          );
-
-      state = state.copyWith(lastMigrationResult: result, clearError: true);
-
-      if (!result.success) {
-        final message =
-            result.error ?? 'Automatic migration failed for an unknown reason';
-        _handleError('Automatic migration failed: $message', null);
-        return;
-      }
-
-      ref.invalidate(driftWorkingDatabaseProvider);
-    } catch (error, stackTrace) {
-      _handleError('Automatic migration failed: $error', stackTrace);
-    } finally {
-      _migrationInFlight = false;
-      state = state.copyWith(isMigrating: false);
-    }
-  }
-
-  Future<void> _waitForMigrationToComplete() async {
-    while (_migrationInFlight) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
   }
 }

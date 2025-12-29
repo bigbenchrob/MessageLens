@@ -10,6 +10,7 @@ import '../../../db_migrate/domain/states/db_migration_progress.dart';
 import '../../../db_migrate/domain/states/table_migration_progress.dart';
 import '../../../db_migrate/domain/value_objects/db_migration_stage.dart';
 import '../../../db_migrate/feature_level_providers.dart';
+import '../../application/services/import_status_checker.dart';
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/states/db_import_progress.dart';
 import '../../domain/states/table_import_progress.dart';
@@ -610,6 +611,41 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
   }
 
   Future<void> startMigration() async {
+    // Check if there's unimported data in macOS chat.db
+    try {
+      final importDb = await ref.read(sqfliteImportDatabaseProvider.future);
+
+      // macOS Messages database is always at this location
+      final homeDir = Platform.environment['HOME'];
+      if (homeDir == null) {
+        throw Exception('Could not determine home directory');
+      }
+      final macOsChatDbPath = '$homeDir/Library/Messages/chat.db';
+
+      const checker = ImportStatusChecker();
+      final status = await checker.checkStatus(
+        macOsChatDbPath: macOsChatDbPath,
+        importDb: importDb,
+      );
+
+      // If there's unimported data, run import first
+      if (status.hasUnimportedData) {
+        state = state.copyWith(
+          statusMessage:
+              'Found ${status.unimportedMessageCount} unimported messages. Running import first...',
+        );
+
+        await runImportAndMigration();
+        return;
+      }
+    } catch (error) {
+      // Log but continue with migration - don't fail if we can't check status
+      print('Warning: Could not check import status: $error');
+    }
+
+    // Check if working DB has existing data BEFORE closing the connection
+    final useIncrementalMode = await _hasExistingMessages();
+
     final stages = _migrationStageTemplate(stageOrder: _handlesMigrationStages);
 
     state = state.copyWith(
@@ -650,6 +686,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
             onTableProgress: (TableMigrationProgressEvent event) {
               _handleTableMigrationProgress(event);
             },
+            incrementalMode: useIncrementalMode,
           );
 
       final updatedStages = result.success
@@ -705,6 +742,21 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     }
 
     unawaited(pipeline());
+  }
+
+  /// Check if working.db has existing messages to determine if incremental mode should be used
+  Future<bool> _hasExistingMessages() async {
+    try {
+      final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
+      final result = await workingDb
+          .customSelect('SELECT COUNT(*) as count FROM messages')
+          .getSingle();
+      final count = result.read<int>('count');
+      return count > 0;
+    } catch (_) {
+      // If we can't determine, default to false (full migration)
+      return false;
+    }
   }
 
   String _mapDatabaseError(String prefix, Object error) {

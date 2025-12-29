@@ -57,9 +57,6 @@ Future<WorkingDatabase> driftWorkingDatabase(
   await _ensureDatabaseDirectoryExists();
   final dbPath = path.join(_databaseDirectoryPath, 'working.db');
 
-  // ignore: avoid_print
-  print('[WorkingDbProvider] opening working.db at $dbPath');
-
   final database = WorkingDatabase(
     NativeDatabase.createInBackground(File(dbPath)),
   );
@@ -73,9 +70,6 @@ Future<WorkingDatabase> driftWorkingDatabase(
     print('[WorkingDbProvider] disposing WorkingDatabase for $dbPath');
     await database.close();
   });
-
-  // ignore: avoid_print
-  print('[WorkingDbProvider] WorkingDatabase ready for $dbPath');
 
   return database;
 }

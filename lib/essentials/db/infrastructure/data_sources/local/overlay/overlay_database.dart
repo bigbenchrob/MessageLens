@@ -47,10 +47,7 @@ class OverlayDatabase extends _$OverlayDatabase {
           'ALTER TABLE favorite_contacts '
           'RENAME COLUMN pinned_at_utc TO created_at_utc;',
         );
-        await m.addColumn(
-          favoriteContacts,
-          favoriteContacts.updatedAtUtc,
-        );
+        await m.addColumn(favoriteContacts, favoriteContacts.updatedAtUtc);
         await customStatement(
           'UPDATE favorite_contacts '
           'SET updated_at_utc = created_at_utc '
@@ -525,17 +522,16 @@ class OverlayDatabase extends _$OverlayDatabase {
 
   /// Get all favorite contacts ordered by last interaction (most recent first)
   Future<List<FavoriteContact>> getAllFavorites() async {
-    return (select(favoriteContacts)
-          ..orderBy([
-            (tbl) => OrderingTerm(
-                  expression: tbl.lastInteractionUtc,
-                  mode: OrderingMode.desc,
-                ),
-            (tbl) => OrderingTerm(
-                  expression: tbl.createdAtUtc,
-                  mode: OrderingMode.desc,
-                ),
-          ]))
+    return (select(favoriteContacts)..orderBy([
+          (tbl) => OrderingTerm(
+            expression: tbl.lastInteractionUtc,
+            mode: OrderingMode.desc,
+          ),
+          (tbl) => OrderingTerm(
+            expression: tbl.createdAtUtc,
+            mode: OrderingMode.desc,
+          ),
+        ]))
         .get();
   }
 
@@ -597,11 +593,9 @@ class OverlayDatabase extends _$OverlayDatabase {
       sortOrder: sortOrder != null ? Value(sortOrder) : const Value.absent(),
     );
 
-    await (update(
-      favoriteContacts,
-    )..where((tbl) => tbl.participantId.equals(participantId))).write(
-      companion,
-    );
+    await (update(favoriteContacts)
+          ..where((tbl) => tbl.participantId.equals(participantId)))
+        .write(companion);
   }
 
   /// Bulk reorder favorites by setting sort_order
@@ -609,12 +603,42 @@ class OverlayDatabase extends _$OverlayDatabase {
   Future<void> reorderFavorites(List<int> participantIds) async {
     await transaction(() async {
       for (var i = 0; i < participantIds.length; i++) {
-        await updateFavorite(
-          participantId: participantIds[i],
-          sortOrder: i,
-        );
+        await updateFavorite(participantId: participantIds[i], sortOrder: i);
       }
     });
+  }
+
+  /// Track that a contact was recently accessed.
+  /// This creates or updates a favorite entry with current timestamp,
+  /// allowing us to show "recent contacts" in the UI.
+  Future<void> trackContactAccess(int participantId) async {
+    final now = DateTime.now().toUtc();
+    final existing = await isFavorite(participantId);
+
+    if (existing) {
+      // Update existing entry's last interaction time
+      await updateFavorite(
+        participantId: participantId,
+        lastInteractionUtc: now,
+      );
+    } else {
+      // Create new entry (auto-tracked as "recently accessed")
+      await addFavorite(participantId, now);
+    }
+  }
+
+  /// Get recently accessed contacts (top N by lastInteractionUtc).
+  /// This returns all contacts that have been accessed, sorted by recency.
+  Future<List<FavoriteContact>> getRecentContacts({int limit = 10}) async {
+    return (select(favoriteContacts)
+          ..orderBy([
+            (tbl) => OrderingTerm(
+              expression: tbl.lastInteractionUtc,
+              mode: OrderingMode.desc,
+            ),
+          ])
+          ..limit(limit))
+        .get();
   }
 }
 

@@ -1,0 +1,126 @@
+You’re describing a really common (and solvable) tension in search-heavy UIs:
+	•	Search results want “list focus” (keep your place, refine filters, scan quickly).
+	•	Context wants “thread focus” (read around the hit, maybe pivot to a participant/chat).
+
+The trick is to treat “diving into context” as a temporary side quest that doesn’t destroy the current search state.
+
+Here are a few layouts that tend to work well, ordered from “fits your current mental model” to “more ambitious”.
+
+⸻
+
+Option A (my top pick): Right sidebar = “Focus Tray” (pins / vignettes)
+
+Keep the main area as the results list (and/or the global timeline list), and use the right sidebar as a persistent, user-curated collection of “things I want to come back to”.
+
+How it works
+	•	Each search hit row gets two actions:
+	1.	Peek (quick context preview, non-destructive)
+	2.	Pin / Focus in (creates a vignette card in the right sidebar)
+	•	The right sidebar shows a vertical list of Focus Cards:
+	•	Search summary snapshot (criteria + maybe result rank)
+	•	Message snippet + metadata (date, handle/contact, chat, attachment badges)
+	•	“Open in context” button
+	•	Tags (user-added + system-suggested)
+	•	Optional “Save as collection” / “Add note”
+
+Why it fits your architecture
+	•	It preserves your clean left controls / center content separation.
+	•	It aligns with your “controls can be anything” cassette approach:
+	•	Left = search controls / filters
+	•	Center = results list or context viewer
+	•	Right = stateful working set (pins) across navigation
+
+Key UX rule
+
+Opening a pinned card never destroys the search.
+	•	When you click “Open in context”, center view can switch to a context mode, but the search results state remains intact and you can return with one click.
+
+Think of the right sidebar as a workspace shelf: “I’m collecting evidence”.
+
+⸻
+
+Option B: “Peek” as an in-place, collapsible context panel (no right sidebar required)
+
+If you want to stay even simpler:
+	•	Clicking a result expands an inline context preview under the row (like email clients or log viewers).
+	•	It shows a small thread window: N messages before/after, with “Jump to full thread”.
+
+This is great for lightweight verification (“is this the receipt?”) without changing panes at all.
+
+Then combine with a smaller “Pin” concept:
+	•	“Pin” still sends a vignette somewhere (right sidebar or a bottom tray).
+
+⸻
+
+Option C: Bottom “Filmstrip” tray for vignettes (less visually heavy than right sidebar)
+
+A bottom tray can work if:
+	•	Your center area is often a long message list and you don’t want to shrink its width.
+
+Pattern:
+	•	Bottom tray collapsed by default (just shows pinned count and maybe thumbnails).
+	•	Expands upward to show cards (horizontally scrollable “filmstrip”).
+	•	Clicking a card opens context in center.
+
+This can feel very “desktop app” and keeps the right side free.
+
+⸻
+
+What to store in a vignette (to avoid re-searching)
+
+You’re already thinking the right way: store enough that the vignette is useful even months later.
+
+I’d make each vignette contain:
+	1.	Anchor
+
+	•	messageId (or stable composite key)
+	•	chatId / thread identity (if you have it)
+	•	timestamp
+
+	2.	Snapshot
+
+	•	the exact search criteria at the time you pinned it
+	•	the snippet as displayed then (so if later re-indexing changes text extraction, the user still remembers why they pinned it)
+
+	3.	User intent layer
+
+	•	tags
+	•	optional note (“this is the receipt Rob sent me”)
+	•	optional “collection” membership (like a named folder)
+
+This turns vignettes into durable “research artifacts”, not just UI crumbs.
+
+⸻
+
+One more thing that will save you: “Saved searches” + “Working set”
+
+What you’re calling “keywords to pull up vignettes” is good, but you’ll get a big UX win by supporting both:
+	•	Saved search (re-runnable query definition: air fryer + receipt + has attachment)
+	•	Working set (the pinned results you curated from executing that search)
+
+They solve different problems:
+	•	Saved search: “help me reproduce the funnel”
+	•	Working set: “help me keep the needles I already found”
+
+⸻
+
+Recommended interaction flow (concrete)
+	1.	User runs global search: air fryer + receipt + has:attachment
+	2.	Results list shows hits
+	3.	User taps a hit → Peek opens inline (or quick side preview)
+	4.	User hits Pin → Focus card appears in right sidebar
+	5.	User continues scanning, pinning 2–5 candidates
+	6.	User clicks a pinned card → center switches to Context View anchored on that message
+	7.	A single “Back to results” returns them to the same scroll position + same filters
+
+That “back to results” reliability is the whole game.
+
+⸻
+
+If you want the cleanest placement answer
+
+Given your stated preference (“simplicity of sidebar/main content area layout”) and your desire for a persistent, recallable set of vignettes:
+
+Put vignettes in the right sidebar as a “Focus Tray”, searchable by tag and optionally grouped into named collections.
+
+It’s the most natural place for “persistent but secondary” objects, and it lets your center pane remain either results or context without becoming a permanent three-pane mail client.

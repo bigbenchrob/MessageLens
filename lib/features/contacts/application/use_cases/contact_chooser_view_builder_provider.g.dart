@@ -7,7 +7,7 @@ part of 'contact_chooser_view_builder_provider.dart';
 // **************************************************************************
 
 String _$contactChooserViewBuilderHash() =>
-    r'9eb76703fb1f5dd6fb9797c4b45f999d0866e50f';
+    r'df840922e72fd224907df2396def8d39edd3b657';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -34,6 +34,7 @@ class _SystemHash {
 ///
 /// This provider determines whether to show a flat list or grouped picker
 /// by checking the total contact count against [kContactPickerGroupingThreshold].
+/// Recent contacts (max 6) are always shown at the top if any exist.
 ///
 /// Copied from [contactChooserViewBuilder].
 @ProviderFor(contactChooserViewBuilder)
@@ -43,6 +44,7 @@ const contactChooserViewBuilderProvider = ContactChooserViewBuilderFamily();
 ///
 /// This provider determines whether to show a flat list or grouped picker
 /// by checking the total contact count against [kContactPickerGroupingThreshold].
+/// Recent contacts (max 6) are always shown at the top if any exist.
 ///
 /// Copied from [contactChooserViewBuilder].
 class ContactChooserViewBuilderFamily extends Family<Widget> {
@@ -50,6 +52,7 @@ class ContactChooserViewBuilderFamily extends Family<Widget> {
   ///
   /// This provider determines whether to show a flat list or grouped picker
   /// by checking the total contact count against [kContactPickerGroupingThreshold].
+  /// Recent contacts (max 6) are always shown at the top if any exist.
   ///
   /// Copied from [contactChooserViewBuilder].
   const ContactChooserViewBuilderFamily();
@@ -58,6 +61,7 @@ class ContactChooserViewBuilderFamily extends Family<Widget> {
   ///
   /// This provider determines whether to show a flat list or grouped picker
   /// by checking the total contact count against [kContactPickerGroupingThreshold].
+  /// Recent contacts (max 6) are always shown at the top if any exist.
   ///
   /// Copied from [contactChooserViewBuilder].
   ContactChooserViewBuilderProvider call(ContactsCassetteSpec spec) {
@@ -90,6 +94,7 @@ class ContactChooserViewBuilderFamily extends Family<Widget> {
 ///
 /// This provider determines whether to show a flat list or grouped picker
 /// by checking the total contact count against [kContactPickerGroupingThreshold].
+/// Recent contacts (max 6) are always shown at the top if any exist.
 ///
 /// Copied from [contactChooserViewBuilder].
 class ContactChooserViewBuilderProvider extends AutoDisposeProvider<Widget> {
@@ -97,6 +102,7 @@ class ContactChooserViewBuilderProvider extends AutoDisposeProvider<Widget> {
   ///
   /// This provider determines whether to show a flat list or grouped picker
   /// by checking the total contact count against [kContactPickerGroupingThreshold].
+  /// Recent contacts (max 6) are always shown at the top if any exist.
   ///
   /// Copied from [contactChooserViewBuilder].
   ContactChooserViewBuilderProvider(ContactsCassetteSpec spec)

@@ -98,8 +98,14 @@ class MessagesMigrator extends BaseTableMigrator {
         );
       }
 
+      // Use INSERT OR IGNORE in incremental mode to avoid expensive REPLACE
+      // operations on existing rows (which would trigger cascading FK checks)
+      final insertClause = ctx.incrementalMode
+          ? 'INSERT OR IGNORE'
+          : 'INSERT OR REPLACE';
+
       await ctx.workingDb.customStatement('''
-        INSERT OR REPLACE INTO messages (
+        $insertClause INTO messages (
           id,
           guid,
           chat_id,
@@ -278,11 +284,22 @@ class MessagesMigrator extends BaseTableMigrator {
       return;
     }
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'MESSAGES_ROW_MISMATCH',
-      message: 'messages: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      // In incremental mode, projected should be >= expected (existing + new)
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'MESSAGES_INCREMENTAL_UNDERCOUNT',
+        message:
+            'messages: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      // In full mode, counts must match exactly
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'MESSAGES_ROW_MISMATCH',
+        message: 'messages: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countJoinableMessages(MigrationContext ctx) async {

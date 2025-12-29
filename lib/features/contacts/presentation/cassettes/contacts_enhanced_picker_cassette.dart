@@ -36,7 +36,7 @@ class ContactsEnhancedPickerCassette extends ConsumerWidget {
                   nextContactId: contactId,
                 );
           },
-          maxHeight: 380,
+          maxHeight: null, // Use all available height
         );
       },
       loading: () => const Center(child: ProgressCircle()),

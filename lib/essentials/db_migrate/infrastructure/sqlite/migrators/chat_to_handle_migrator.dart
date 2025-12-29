@@ -139,12 +139,21 @@ class ChatToHandleMigrator extends BaseTableMigrator {
     final projected = await count(ctx.workingDb, 'chat_to_handle');
     ctx.log('[chat_to_handle] expected=$expected projected=$projected');
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'CHAT_TO_HANDLE_ROW_MISMATCH',
-      message:
-          'chat_to_handle: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'CHAT_TO_HANDLE_INCREMENTAL_UNDERCOUNT',
+        message:
+            'chat_to_handle: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'CHAT_TO_HANDLE_ROW_MISMATCH',
+        message:
+            'chat_to_handle: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countImportLinks(MigrationContext ctx) async {

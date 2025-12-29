@@ -22,6 +22,7 @@ class ContactsFlatMenuCassette extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Extract chosenContactId using pattern matching
     final selectedContactId = spec.when(
+      recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
     );
@@ -33,8 +34,7 @@ class ContactsFlatMenuCassette extends ConsumerWidget {
     final bbc = AppTheme.bbc(context);
     final typography = MacosTheme.of(context).typography;
 
-    return Container(
-      constraints: const BoxConstraints(minHeight: 50),
+    return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

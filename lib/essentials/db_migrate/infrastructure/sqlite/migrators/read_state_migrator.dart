@@ -52,11 +52,21 @@ class ReadStateMigrator extends BaseTableMigrator {
     final projected = await count(ctx.workingDb, 'read_state');
     ctx.log('[read_state] expected=$expected projected=$projected');
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'READ_STATE_ROW_MISMATCH',
-      message: 'read_state: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'READ_STATE_INCREMENTAL_UNDERCOUNT',
+        message:
+            'read_state: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'READ_STATE_ROW_MISMATCH',
+        message:
+            'read_state: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   int _extractCount(List<dynamic> rows, String key) {

@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart' as drift;
 
 import '../../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../shared/hydration/attachment_info.dart';
+import '../shared/hydration/attachment_info_loader.dart';
 import '../shared/hydration/messages_for_handle_provider.dart';
 
 class MessageRowMapper {
@@ -19,6 +21,11 @@ class MessageRowMapper {
       final message = row.readTable(_db.workingMessages);
       final participant = row.readTableOrNull(_db.workingParticipants);
 
+      // Fetch attachments for this message if it has any
+      final attachments = message.hasAttachments
+          ? await loadAttachmentsForMessage(_db, message.guid)
+          : <AttachmentInfo>[];
+
       results.add(
         MessageListItem(
           id: message.id,
@@ -31,7 +38,7 @@ class MessageRowMapper {
           text: message.textContent ?? '',
           sentAt: _parseUtc(message.sentAtUtc),
           hasAttachments: message.hasAttachments,
-          attachments: const [],
+          attachments: attachments,
         ),
       );
     }

@@ -6,7 +6,7 @@ part of 'cassette_view_model.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cassetteViewModelHash() => r'b31830511f850d7399fd53299f4775d9efcfeb4c';
+String _$cassetteViewModelHash() => r'65e5953458a595738deb062a0730b30ca0663663';
 
 /// See also [CassetteViewModel].
 @ProviderFor(CassetteViewModel)

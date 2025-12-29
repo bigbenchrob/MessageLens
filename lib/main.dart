@@ -86,12 +86,24 @@ class _MyDelegate extends NSWindowDelegate {
 }
 
 void main() async {
+  print('🎯 APP STARTING - main() called');
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize sqflite FFI for desktop platforms
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+    // Suppress sqflite warning about changing default factory
+    runZoned(
+      () => databaseFactory = databaseFactoryFfi,
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) {
+          if (!line.contains('sqflite warning')) {
+            parent.print(zone, line);
+          }
+        },
+      ),
+    );
   }
 
   // Initialize Rust library for URL preview parsing

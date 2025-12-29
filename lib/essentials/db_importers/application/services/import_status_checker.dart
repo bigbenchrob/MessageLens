@@ -26,8 +26,8 @@ class ImportStatusChecker {
 
       // Get max imported source_rowid from import database
       final importedMaxMessageRowId = await importDb.maxMessageSourceRowId();
-      final importedMaxAttachmentRowId =
-          await importDb.maxAttachmentSourceRowId();
+      final importedMaxAttachmentRowId = await importDb
+          .maxAttachmentSourceRowId();
 
       // Calculate differences
       final unimportedMessages =
@@ -41,8 +41,9 @@ class ImportStatusChecker {
         unimportedMessageCount: unimportedMessages > 0 ? unimportedMessages : 0,
         macOsAttachmentCount: macOsMaxAttachmentRowId,
         importedAttachmentCount: importedMaxAttachmentRowId ?? 0,
-        unimportedAttachmentCount:
-            unimportedAttachments > 0 ? unimportedAttachments : 0,
+        unimportedAttachmentCount: unimportedAttachments > 0
+            ? unimportedAttachments
+            : 0,
       );
     } catch (e) {
       throw Exception('Failed to check import status: $e');

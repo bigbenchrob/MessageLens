@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
@@ -20,10 +21,10 @@ class CassetteViewModel extends _$CassetteViewModel {
     // Intent-only notifier: no local state.
   }
 
-  void updateContactSelection({
+  Future<void> updateContactSelection({
     required ContactsCassetteSpec currentSpec,
     required int? nextContactId,
-  }) {
+  }) async {
     final updatedSpec = nextContactId == null
         ? const ContactsCassetteSpec.contactChooser()
         : ContactsCassetteSpec.contactHeroSummary(
@@ -38,9 +39,13 @@ class CassetteViewModel extends _$CassetteViewModel {
           CassetteSpec.contacts(updatedSpec),
         );
 
-    // When a contact is selected, show their messages in the center panel
-    // scrolled to the most recent (scrollToDate: null means scroll to bottom)
+    // Track this contact as recently accessed (for Recent Contacts feature)
     if (nextContactId != null) {
+      final overlayDb = await ref.read(overlayDatabaseProvider.future);
+      await overlayDb.trackContactAccess(nextContactId);
+
+      // Show their messages in the center panel
+      // scrolled to the most recent (scrollToDate: null means scroll to bottom)
       ref
           .read(panelsViewStateProvider.notifier)
           .show(

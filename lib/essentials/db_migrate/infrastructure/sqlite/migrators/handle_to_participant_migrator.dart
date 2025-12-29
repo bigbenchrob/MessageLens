@@ -204,12 +204,21 @@ class HandleToParticipantMigrator extends BaseTableMigrator {
       return;
     }
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'HANDLE_LINKS_ROW_MISMATCH',
-      message:
-          'handle_to_participant: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'HANDLE_LINKS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'handle_to_participant: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'HANDLE_LINKS_ROW_MISMATCH',
+        message:
+            'handle_to_participant: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countJoinableImportLinks(MigrationContext ctx) async {

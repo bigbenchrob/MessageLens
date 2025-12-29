@@ -24,7 +24,12 @@ class ReactionCountsMigrator extends BaseTableMigrator {
     }
 
     await ctx.workingDb.transaction(() async {
-      await ctx.workingDb.customStatement('DELETE FROM reaction_counts');
+      // Skip DELETE in incremental mode to avoid clearing existing counts
+      if (!ctx.incrementalMode) {
+        await ctx.workingDb.customStatement('DELETE FROM reaction_counts');
+      }
+
+      // Use INSERT OR REPLACE to update counts (this is needed for aggregation)
       await ctx.workingDb.customStatement('''
         INSERT OR REPLACE INTO reaction_counts (
           message_guid,

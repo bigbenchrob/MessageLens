@@ -53,12 +53,21 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
     final projected = await count(ctx.workingDb, 'message_read_marks');
     ctx.log('[message_read_marks] expected=$expected projected=$projected');
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'MESSAGE_READ_MARKS_ROW_MISMATCH',
-      message:
-          'message_read_marks: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'MESSAGE_READ_MARKS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'message_read_marks: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'MESSAGE_READ_MARKS_ROW_MISMATCH',
+        message:
+            'message_read_marks: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   int _extractCount(List<dynamic> rows, String key) {

@@ -16,10 +16,15 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
 
   CassetteCardView buildForSpec(Ref ref, ContactsCassetteSpec spec) {
     return spec.map(
+      recentContacts: (recent) => CassetteCardView(
+        title: '',
+        subtitle: null,
+        child: contactChooserViewBuilder(ref, recent),
+      ),
       contactChooser: (chooser) => CassetteCardView(
         title: '',
         subtitle: null,
-        child: ref.watch(contactChooserViewBuilderProvider(chooser)),
+        child: contactChooserViewBuilder(ref, chooser),
       ),
       contactHeroSummary: (hero) => CassetteCardView(
         title: '',

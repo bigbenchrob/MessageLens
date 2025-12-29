@@ -11,6 +11,11 @@ part 'contacts_cassette_spec.freezed.dart';
 /// will live alongside this file after running build_runner.
 @freezed
 abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
+  /// Shows recently accessed contacts with "More..." button to open full chooser.
+  /// Displays up to 10 contacts ordered by last access time.
+  const factory ContactsCassetteSpec.recentContacts({int? chosenContactId}) =
+      _RecentContactsSpec;
+
   /// A contact chooser that adapts its UI based on contact count.
   /// The contacts feature decides whether to show a flat list or grouped
   /// picker based on the number of contacts.

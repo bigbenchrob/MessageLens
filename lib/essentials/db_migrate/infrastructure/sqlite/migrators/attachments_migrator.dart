@@ -116,12 +116,23 @@ class AttachmentsMigrator extends BaseTableMigrator {
       return;
     }
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'ATTACHMENTS_ROW_MISMATCH',
-      message:
-          'attachments: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      // In incremental mode, projected should be >= expected (existing + new)
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'ATTACHMENTS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'attachments: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      // In full mode, counts must match exactly
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'ATTACHMENTS_ROW_MISMATCH',
+        message:
+            'attachments: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countJoinableAttachments(MigrationContext ctx) async {

@@ -75,8 +75,13 @@ COALESCE(
     }
 
     final inserted = await _withAttachedImport(ctx, () async {
+      // Use INSERT OR IGNORE in incremental mode to avoid expensive REPLACE
+      final insertClause = ctx.incrementalMode
+          ? 'INSERT OR IGNORE'
+          : 'INSERT OR REPLACE';
+
       await ctx.workingDb.customStatement('''
-        INSERT OR REPLACE INTO participants (
+        $insertClause INTO participants (
           id,
           original_name,
           display_name,
@@ -137,12 +142,23 @@ COALESCE(
       return;
     }
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'PARTICIPANTS_ROW_MISMATCH',
-      message:
-          'participants: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      // In incremental mode, projected should be >= expected
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'PARTICIPANTS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'participants: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      // In full mode, counts must match exactly
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'PARTICIPANTS_ROW_MISMATCH',
+        message:
+            'participants: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countImportContacts(MigrationContext ctx) async {

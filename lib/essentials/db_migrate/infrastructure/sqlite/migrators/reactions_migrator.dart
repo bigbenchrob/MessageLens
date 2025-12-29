@@ -65,8 +65,13 @@ class ReactionsMigrator extends BaseTableMigrator {
         );
       }
 
+      // Use INSERT OR IGNORE in incremental mode to avoid expensive REPLACE
+      final insertClause = ctx.incrementalMode
+          ? 'INSERT OR IGNORE'
+          : 'INSERT OR REPLACE';
+
       await ctx.workingDb.customStatement('''
-        INSERT OR REPLACE INTO reactions (
+        $insertClause INTO reactions (
           id,
           message_guid,
           kind,
@@ -123,11 +128,23 @@ class ReactionsMigrator extends BaseTableMigrator {
       return;
     }
 
-    await expectTrueOrThrow(
-      ok: projected == expected,
-      errorCode: 'REACTIONS_ROW_MISMATCH',
-      message: 'reactions: working has $projected rows but expected $expected',
-    );
+    if (ctx.incrementalMode) {
+      // In incremental mode, projected should be >= expected
+      await expectTrueOrThrow(
+        ok: projected >= expected,
+        errorCode: 'REACTIONS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'reactions: working has $projected rows but expected >= $expected',
+      );
+    } else {
+      // In full mode, counts must match exactly
+      await expectTrueOrThrow(
+        ok: projected == expected,
+        errorCode: 'REACTIONS_ROW_MISMATCH',
+        message:
+            'reactions: working has $projected rows but expected $expected',
+      );
+    }
   }
 
   Future<int> _countJoinableReactions(MigrationContext ctx) async {

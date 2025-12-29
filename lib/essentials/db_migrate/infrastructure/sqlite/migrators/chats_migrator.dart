@@ -38,8 +38,14 @@ class ChatsMigrator extends BaseTableMigrator {
     );
 
     try {
+      // Use INSERT OR IGNORE in incremental mode to avoid expensive REPLACE
+      // on existing rows with foreign key constraints (messages reference chats)
+      final insertClause = ctx.incrementalMode
+          ? 'INSERT OR IGNORE'
+          : 'INSERT OR REPLACE';
+
       await ctx.workingDb.customStatement('''
-        INSERT OR REPLACE INTO chats (
+        $insertClause INTO chats (
           id,
           guid,
           service,
@@ -69,11 +75,23 @@ class ChatsMigrator extends BaseTableMigrator {
     final src = await _countImportRowsWithGuid(ctx);
     final dst = await count(ctx.workingDb, 'chats');
     ctx.log('[chats] src=$src dst=$dst');
-    await expectTrueOrThrow(
-      ok: dst == src,
-      errorCode: 'CHATS_ROW_MISMATCH',
-      message: 'chats: working has $dst rows but import has $src',
-    );
+
+    if (ctx.incrementalMode) {
+      // In incremental mode, dst should be >= src (existing + new rows)
+      await expectTrueOrThrow(
+        ok: dst >= src,
+        errorCode: 'CHATS_INCREMENTAL_UNDERCOUNT',
+        message:
+            'chats: working has $dst rows but import has $src (expected dst >= src)',
+      );
+    } else {
+      // In full mode, counts must match exactly
+      await expectTrueOrThrow(
+        ok: dst == src,
+        errorCode: 'CHATS_ROW_MISMATCH',
+        message: 'chats: working has $dst rows but import has $src',
+      );
+    }
   }
 
   Future<int> _countImportRowsWithGuid(MigrationContext ctx) async {

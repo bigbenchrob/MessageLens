@@ -89,6 +89,14 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
   /// Contacts cascade into a messages heatmap when a contact is selected.
   CassetteSpec? childSpec() {
     return when(
+      recentContacts: (chosenContactId) {
+        if (chosenContactId == null) {
+          return null;
+        }
+        return CassetteSpec.messages(
+          MessagesCassetteSpec.heatMap(contactId: chosenContactId),
+        );
+      },
       contactChooser: (chosenContactId) {
         if (chosenContactId == null) {
           return null;
