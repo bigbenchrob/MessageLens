@@ -161,7 +161,14 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
             if (count <= 0) {
               return;
             }
-            final startDate = DateTime(year, month, 1);
+
+            // If this is the last month, treat it as a "jump to latest" action
+            // by passing null as the date.
+            final isLastMonth =
+                year == timeline.lastMessageDate.year &&
+                month == timeline.lastMessageDate.month;
+            final startDate = isLastMonth ? null : DateTime(year, month, 1);
+
             ref
                 .read(panelsViewStateProvider.notifier)
                 .show(
@@ -172,11 +179,14 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
                         : const MessagesSpec.globalTimeline(),
                   ),
                 );
-            unawaited(
-              ref
-                  .read(globalTimelineControllerProvider().notifier)
-                  .jumpToDate(startDate),
-            );
+
+            if (startDate != null) {
+              unawaited(
+                ref
+                    .read(globalTimelineControllerProvider().notifier)
+                    .jumpToDate(startDate),
+              );
+            }
           },
         ),
         const SizedBox(height: 12),
@@ -269,7 +279,14 @@ class _ContactHeatmapContent extends HookConsumerWidget {
             if (count <= 0) {
               return;
             }
-            final startDate = DateTime(year, month, 1);
+
+            // If this is the last month, treat it as a "jump to latest" action
+            // by passing null as the date.
+            final isLastMonth =
+                year == timeline.lastMessageDate.year &&
+                month == timeline.lastMessageDate.month;
+            final startDate = isLastMonth ? null : DateTime(year, month, 1);
+
             ref
                 .read(panelsViewStateProvider.notifier)
                 .show(

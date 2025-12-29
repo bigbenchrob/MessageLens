@@ -11,8 +11,10 @@ class WindowStateService {
   static const double _shrinkRatioThreshold = 0.75;
   static const double _autoShrinkWidthThreshold = 520.0;
   static const double _autoShrinkHeightThreshold = 420.0;
-  static const double _fallbackMinWidth = 320.0;
-  static const double _fallbackMinHeight = 240.0;
+  static const double _minWidth = 900.0;
+  static const double _minHeight = 720.0;
+  static const double _fallbackMinWidth = 900.0;
+  static const double _fallbackMinHeight = 720.0;
 
   WindowStateService({
     required WindowStoragePort storage,
@@ -45,6 +47,11 @@ class WindowStateService {
   /// Apply window state to the actual window
   Future<void> applyWindowState(WindowStateEntity state) async {
     try {
+      await _windowManager.setWindowMinSize(
+        width: _minWidth,
+        height: _minHeight,
+      );
+
       await _windowManager.setWindowFrame(
         x: state.x,
         y: state.y,
@@ -160,10 +167,10 @@ class WindowStateService {
 
       final minWidth = savedState.width > _fallbackMinWidth
           ? savedState.width
-          : _fallbackMinWidth;
+          : _minWidth;
       final minHeight = savedState.height > _fallbackMinHeight
           ? savedState.height
-          : _fallbackMinHeight;
+          : _minHeight;
 
       await _windowManager.setWindowMinSize(width: minWidth, height: minHeight);
 
@@ -181,8 +188,8 @@ class WindowStateService {
       final reconciledFrame = await _windowManager.getWindowFrame();
 
       await _windowManager.setWindowMinSize(
-        width: _fallbackMinWidth,
-        height: _fallbackMinHeight,
+        width: _minWidth,
+        height: _minHeight,
       );
 
       final actualWidth = reconciledFrame['width'] ?? savedState.width;
@@ -207,6 +214,37 @@ class WindowStateService {
       await saveWindowState(updatedState);
     } catch (e) {
       // Silently ignore reconciliation failures.
+    }
+  }
+
+  /// Ensure the runtime window cannot shrink below the configured minimum.
+  /// If the current frame is already below the threshold, bump it up.
+  Future<void> enforceMinSize() async {
+    try {
+      await _windowManager.setWindowMinSize(
+        width: _minWidth,
+        height: _minHeight,
+      );
+
+      final frame = await _windowManager.getWindowFrame();
+      final width = frame['width'] ?? _minWidth;
+      final height = frame['height'] ?? _minHeight;
+      final x = frame['x'] ?? 0.0;
+      final y = frame['y'] ?? 0.0;
+
+      final targetWidth = width < _minWidth ? _minWidth : width;
+      final targetHeight = height < _minHeight ? _minHeight : height;
+
+      if (targetWidth != width || targetHeight != height) {
+        await _windowManager.setWindowFrame(
+          x: x,
+          y: y,
+          width: targetWidth,
+          height: targetHeight,
+        );
+      }
+    } catch (_) {
+      // Silently ignore; sizing not critical.
     }
   }
 }

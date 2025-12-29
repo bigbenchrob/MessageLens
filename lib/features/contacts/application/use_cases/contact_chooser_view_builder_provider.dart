@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
 import '../../../../constants/domain/contact_constants.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
@@ -63,19 +64,33 @@ Widget contactChooserViewBuilder(Ref ref, ContactsCassetteSpec spec) {
       }
 
       // Wrap with recent contacts section if any exist
-      return asyncRecents.when(
-        data: (recents) {
-          if (recents.isEmpty) {
-            return mainPicker;
-          }
-          return _CombinedContactPicker(
-            spec: spec,
-            recents: recents,
-            mainPicker: mainPicker,
+      // Use LayoutBuilder to provide proper constraints for responsive height
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final child = asyncRecents.when(
+            data: (recents) {
+              if (recents.isEmpty) {
+                return mainPicker;
+              }
+              return _CombinedContactPicker(
+                spec: spec,
+                recents: recents,
+                mainPicker: mainPicker,
+              );
+            },
+            loading: () => mainPicker, // Show main picker while recents load
+            error: (_, __) => mainPicker, // Show main picker if recents fail
           );
+
+          if (constraints.hasBoundedHeight) {
+            return SizedBox(height: constraints.maxHeight, child: child);
+          }
+
+          // If the parent doesn't provide a bounded height (e.g. inside a
+          // scrollable), give the picker a reasonable fixed height so internal
+          // Expanded widgets receive constraints.
+          return SizedBox(height: 400, child: child);
         },
-        loading: () => mainPicker, // Show main picker while recents load
-        error: (_, __) => mainPicker, // Show main picker if recents fail
       );
     },
     loading: () {
@@ -109,7 +124,6 @@ class _CombinedContactPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bbc = AppTheme.bbc(context);
-    final typography = MacosTheme.of(context).typography;
 
     final selectedContactId = spec.when(
       recentContacts: (id) => id,
@@ -117,25 +131,16 @@ class _CombinedContactPicker extends ConsumerWidget {
       contactHeroSummary: (id) => id,
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate height for each recent contact row (padding + text)
-        const recentRowHeight = 41.0; // 10 vertical padding * 2 + text height
-        const dividerHeight = 8.0;
-        final recentsHeight = recents.length * recentRowHeight;
-        final totalRecentsHeight = recentsHeight + 
-            (recents.isNotEmpty ? dividerHeight : 0);
-        
-        // Calculate remaining height for main picker
-        final availableHeight = constraints.maxHeight;
-        final mainPickerHeight = availableHeight - totalRecentsHeight;
-
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Recent contacts section (always visible, no collapsing)
-            ...recents.map((recent) {
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Recent contacts section (always visible, no collapsing)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: recents.map((recent) {
               final isSelected = recent.participantId == selectedContactId;
               return _RecentContactRow(
                 displayName: recent.displayName,
@@ -149,82 +154,104 @@ class _CombinedContactPicker extends ConsumerWidget {
                         nextContactId: recent.participantId,
                       );
                 },
-                typography: typography,
-                colors: bbc,
               );
-            }),
+            }).toList(),
+          ),
+        ),
 
-            // Divider between recent and all contacts
-            if (recents.isNotEmpty)
-              Container(
-                height: dividerHeight,
-                color: bbc.bbcBorderSubtle.withValues(alpha: 0.3),
-              ),
+        // Divider between recent and all contacts: subtle theme line
+        Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 14),
+          child: Container(
+            height: 1,
+            color: bbc.bbcBorderSubtle.withValues(alpha: 0.8),
+          ),
+        ),
 
-            // Full contact picker below - expands to fill remaining space
-            SizedBox(
-              height: mainPickerHeight,
-              child: mainPicker,
-            ),
-          ],
-        );
-      },
+        // Full contact picker below - fills remaining height
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: mainPicker,
+          ),
+        ),
+      ],
     );
   }
 }
 
 /// Row widget for a recent contact in the combined picker.
-class _RecentContactRow extends StatelessWidget {
+class _RecentContactRow extends ConsumerStatefulWidget {
   const _RecentContactRow({
     required this.displayName,
     required this.participantId,
     required this.isSelected,
     required this.onTap,
-    required this.typography,
-    required this.colors,
   });
 
   final String displayName;
   final int participantId;
   final bool isSelected;
   final VoidCallback onTap;
-  final MacosTypography typography;
-  final BbcColors colors;
+
+  @override
+  ConsumerState<_RecentContactRow> createState() => _RecentContactRowState();
+}
+
+class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colors.bbcPrimaryOne.withValues(alpha: 0.12)
-              : Colors.transparent,
-          border: Border(
-            bottom: BorderSide(color: colors.bbcBorderSubtle, width: 0.5),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                displayName,
-                style: typography.body.copyWith(
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+    final theme = MacosTheme.of(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final bbc = AppTheme.bbc(context);
+
+    final hoverColor = colors.accents.primary.withValues(alpha: 0.15);
+    final selectedColor = bbc.bbcPrimaryOne.withValues(alpha: 0.12);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? selectedColor
+                : _isHovered
+                ? hoverColor
+                : Colors.transparent,
+            border: Border(
+              bottom: BorderSide(color: bbc.bbcBorderSubtle, width: 0.5),
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Icon(
-                CupertinoIcons.checkmark_alt,
-                size: 14,
-                color: colors.bbcPrimaryOne,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.displayName,
+                  style: theme.typography.body.copyWith(
+                    fontWeight: widget.isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              if (widget.isSelected) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  CupertinoIcons.checkmark_alt,
+                  size: 14,
+                  color: bbc.bbcPrimaryOne,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

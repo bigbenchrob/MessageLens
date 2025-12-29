@@ -7,7 +7,8 @@ class CassetteCardView {
     this.subtitle,
     required this.child,
     this.isControl = false,
-  });
+    bool? shouldExpand,
+  }) : shouldExpand = shouldExpand ?? !isControl;
 
   /// Display title shown in the sidebar card header.
   final String title;
@@ -21,4 +22,8 @@ class CassetteCardView {
   /// Whether this cassette is primarily a control surface (vs content).
   /// Control cassettes should be visually de-emphasized in the sidebar.
   final bool isControl;
+
+  /// Whether this cassette should expand to fill available vertical space.
+  /// Defaults to true for content cassettes, false for control cassettes.
+  final bool shouldExpand;
 }

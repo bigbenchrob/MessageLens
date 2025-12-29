@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // of cassette widgets that compose the sidebar.  We wrap these in a
 // Column to produce the left panel surface.
 import '../../../sidebar/application/cassette_widget_coordinator_provider.dart';
+import '../../../sidebar/presentation/view/widgets/sidebar_cassette_card.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/navigation_constants.dart';
 import '../../feature_level_providers.dart';
@@ -50,9 +51,59 @@ class _LeftSidebarSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final controls = <Widget>[];
+        final content = <({Widget widget, bool shouldExpand})>[];
+
+        for (final widget in cassetteWidgets) {
+          final constrained = ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+            child: widget,
+          );
+
+          if (widget is SidebarCassetteCard && widget.isControl) {
+            controls.add(constrained);
+          } else {
+            final shouldExpand = widget is SidebarCassetteCard
+                ? widget.shouldExpand
+                : true;
+            content.add((widget: constrained, shouldExpand: shouldExpand));
+          }
+        }
+
+        return CustomScrollView(
+          slivers: [
+            for (final control in controls) SliverToBoxAdapter(child: control),
+            if (content.isNotEmpty)
+              SliverFillRemaining(
+                hasScrollBody: true,
+                child: _ContentFillColumn(children: content),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ContentFillColumn extends StatelessWidget {
+  const _ContentFillColumn({required this.children});
+
+  final List<({Widget widget, bool shouldExpand})> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (children.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: cassetteWidgets,
+      children: [
+        for (final item in children)
+          if (item.shouldExpand) Expanded(child: item.widget) else item.widget,
+      ],
     );
   }
 }

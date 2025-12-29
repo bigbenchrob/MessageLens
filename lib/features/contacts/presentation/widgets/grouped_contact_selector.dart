@@ -82,15 +82,10 @@ class FullContactPicker extends ConsumerWidget {
 
         Widget buildPicker(Widget child) {
           if (hasBoundedHeight) {
-            final height = (maxHeightOverride ?? constraints.maxHeight).clamp(
-              220.0,
-              600.0,
-            );
-            return Expanded(
-              child: SizedBox(height: height, child: child),
-            );
+            final height = maxHeightOverride ?? constraints.maxHeight;
+            return SizedBox(height: height, child: child);
           }
-          return Expanded(child: child);
+          return child;
         }
 
         final pickerContent = groupedAsync.when(
@@ -116,11 +111,6 @@ class FullContactPicker extends ConsumerWidget {
           ),
         );
 
-        final column = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [buildPicker(pickerContent)],
-        );
-
         final decorated = Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -128,23 +118,18 @@ class FullContactPicker extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
           ),
-          child: column,
+          child: buildPicker(pickerContent),
         );
 
-        final withMargin = Container(
+        return Container(
           margin: const EdgeInsets.symmetric(horizontal: 12),
-          child: decorated,
+          child: hasBoundedHeight
+              ? SizedBox(
+                  height: maxHeightOverride ?? constraints.maxHeight,
+                  child: decorated,
+                )
+              : decorated,
         );
-
-        if (hasBoundedHeight) {
-          final height = (maxHeightOverride ?? constraints.maxHeight).clamp(
-            220.0,
-            600.0,
-          );
-          return SizedBox(height: height, child: withMargin);
-        }
-
-        return withMargin;
       },
     );
   }

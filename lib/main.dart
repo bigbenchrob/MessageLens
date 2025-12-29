@@ -143,6 +143,11 @@ void main() async {
     debugPrint('Failed to restore window state: $e');
   }
 
+  // Reassert minimum window size after the first frame when the NSWindow exists.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    container.read(windowStateServiceProvider).enforceMinSize();
+  });
+
   ///todo: remove
   /// Slow down scrolling so jumps are observable during debugging
   //sched.timeDilation = 5.0;

@@ -140,60 +140,42 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
-    final tint = colors.accents.primary.withValues(alpha: 0.10);
-    final accent = colors.accents.primary.withValues(alpha: 0.75);
+    // Match the hover/selection style from the contact picker
+    final backgroundColor = colors.accents.primary.withValues(alpha: 0.15);
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 64),
+    return SizedBox(
+      height: 64,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: tint,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-              child: const SizedBox(width: 4),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            shortName,
-                            style: typography.heroTitle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      shortName,
+                      style: typography.heroTitle,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (shortName != displayName)
-                      Text(
-                        displayName,
-                        style: typography.heroSubtitle,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              if (shortName != displayName)
+                Text(
+                  displayName,
+                  style: typography.heroSubtitle,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
         ),
       ),
     );

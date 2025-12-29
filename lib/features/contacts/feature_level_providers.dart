@@ -29,6 +29,7 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
       contactHeroSummary: (hero) => CassetteCardView(
         title: '',
         subtitle: null,
+        shouldExpand: false,
         child: ContactHeroSummaryCassette(spec: hero),
       ),
     );

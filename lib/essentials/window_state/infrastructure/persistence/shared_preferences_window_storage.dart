@@ -4,6 +4,10 @@ import '../../domain/ports/window_storage_port.dart';
 
 /// SharedPreferences implementation of window state storage
 class SharedPreferencesWindowStorage implements WindowStoragePort {
+  static const double _minWidth = 900.0;
+  static const double _minHeight = 720.0;
+  static const double _maxWidth = 5000.0;
+  static const double _maxHeight = 3000.0;
   static const String _keyWidth = 'window_width';
   static const String _keyHeight = 'window_height';
   static const String _keyX = 'window_x';
@@ -25,29 +29,25 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
 
       // Only return state if we have valid window dimensions
       if (width != null && height != null && x != null && y != null) {
-        // Safety check: ensure window dimensions are reasonable
-        // Min window size: 800x600, max: 5000x3000
-        if (width >= 800.0 &&
-            width <= 5000.0 &&
-            height >= 600.0 &&
-            height <= 3000.0) {
-          final state = WindowStateEntity(
-            width: width,
-            height: height,
-            x: x,
-            y: y,
-            isMinimized: isMinimized ?? false,
-            sidebarWidth: sidebarWidth ?? 320.0,
-          );
-          return state;
-        } else {
-          // Invalid dimensions detected - clear the corrupted state
+        final clampedWidth = width.clamp(_minWidth, _maxWidth);
+        final clampedHeight = height.clamp(_minHeight, _maxHeight);
+
+        final state = WindowStateEntity(
+          width: clampedWidth,
+          height: clampedHeight,
+          x: x,
+          y: y,
+          isMinimized: isMinimized ?? false,
+          sidebarWidth: sidebarWidth ?? 320.0,
+        );
+
+        if (clampedWidth != width || clampedHeight != height) {
           print(
-            '🚨 Invalid window dimensions detected: ${width}x$height. Clearing corrupted window state.',
+            '🚨 Window dimensions out of range: ${width}x$height. Clamped to ${clampedWidth}x$clampedHeight.',
           );
-          await clearWindowState();
-          return null;
         }
+
+        return state;
       }
 
       return null;

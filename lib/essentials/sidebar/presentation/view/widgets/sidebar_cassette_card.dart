@@ -35,6 +35,9 @@ class SidebarCassetteCard extends ConsumerWidget {
   /// Control cassettes are visually de-emphasized to clarify hierarchy.
   final bool isControl;
 
+  /// Whether this cassette should expand to fill available vertical space.
+  final bool shouldExpand;
+
   const SidebarCassetteCard({
     super.key,
     required this.child,
@@ -44,6 +47,7 @@ class SidebarCassetteCard extends ConsumerWidget {
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.borderRadius = 8.0,
     this.isControl = false,
+    this.shouldExpand = true,
   });
 
   @override
@@ -100,35 +104,44 @@ class SidebarCassetteCard extends ConsumerWidget {
     final hasSubtitle = subtitle != null && subtitle!.trim().isNotEmpty;
     final showHeader = hasTitle || hasSubtitle;
 
-    return Container(
-      margin: effectiveMargin,
-      decoration: BoxDecoration(
-        color: effectiveBackgroundColor,
-        borderRadius: BorderRadius.circular(effectiveBorderRadius),
-        border: isControl ? null : Border.all(color: effectiveBorderColor),
-        boxShadow: isControl ? const [] : bbc.bbcCardShadow,
-      ),
-      child: Padding(
-        padding: effectivePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showHeader) ...[
-              if (hasTitle) Text(title, style: typography.vizInstruction),
-              if (hasSubtitle) ...[
-                if (hasTitle) const SizedBox(height: 6),
-                Text(
-                  subtitle!,
-                  style: AppTheme.cassetteHeaderSubtitleStyle(context),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasBoundedHeight = constraints.maxHeight.isFinite;
+
+        return Container(
+          margin: effectiveMargin,
+          decoration: BoxDecoration(
+            color: effectiveBackgroundColor,
+            borderRadius: BorderRadius.circular(effectiveBorderRadius),
+            border: isControl ? null : Border.all(color: effectiveBorderColor),
+            boxShadow: isControl ? const [] : bbc.bbcCardShadow,
+          ),
+          child: Padding(
+            padding: effectivePadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                if (showHeader) ...[
+                  if (hasTitle) Text(title, style: typography.vizInstruction),
+                  if (hasSubtitle) ...[
+                    if (hasTitle) const SizedBox(height: 6),
+                    Text(
+                      subtitle!,
+                      style: AppTheme.cassetteHeaderSubtitleStyle(context),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                ],
+                if (hasBoundedHeight && shouldExpand)
+                  Expanded(child: child)
+                else
+                  child,
               ],
-              const SizedBox(height: 12),
-            ],
-            child,
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

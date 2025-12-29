@@ -21,6 +21,7 @@ CassetteCardView messagesHeatmapCassetteBuilder(
     subtitle: isContactScoped
         ? null
         : 'Discover peaks and gaps across your entire archive.',
+    shouldExpand: false,
     child: MessagesHeatmapCassette(
       contactId: contactId,
       useV2Timeline: useV2Timeline,

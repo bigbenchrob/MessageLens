@@ -5,6 +5,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../../../providers.dart';
+import '../../../db/feature_level_providers.dart';
+import '../../../db_migrate/feature_level_providers.dart';
+import '../../feature_level_providers.dart';
 
 part 'chat_db_change_monitor_provider.g.dart';
 
@@ -140,11 +143,35 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
           'New message(s) detected in Messages database: $newMessageCount message(s), MAX(ROWID): $previousMaxRowId → $currentMaxRowId',
         );
 
-        // Schedule import/migration for later to avoid disrupting active UI
-        // TODO: Show notification to user or run during app idle time
-        print(
-          'Incremental import/migration deferred - trigger manually or implement idle-time scheduling',
-        );
+        // Trigger incremental import and migration
+        print('Triggering incremental import and migration...');
+
+        final importService = ref.read(orchestratedLedgerImportServiceProvider);
+        final importResult = await importService.runImport();
+
+        if (importResult.success) {
+          print('Incremental import successful. Triggering migration...');
+          final migrationService = ref.read(handlesMigrationServiceProvider);
+          final migrationResult = await migrationService.run(
+            incrementalMode: true,
+          );
+
+          if (migrationResult.success) {
+            print('Incremental migration successful.');
+            // Invalidate the working database provider to force UI refresh
+            ref.invalidate(driftWorkingDatabaseProvider);
+          } else {
+            _handleError(
+              'Incremental migration failed: ${migrationResult.error}',
+              null,
+            );
+          }
+        } else {
+          _handleError(
+            'Incremental import failed: ${importResult.error}',
+            null,
+          );
+        }
       }
     } catch (error, stackTrace) {
       _handleError('Change detection failed: $error', stackTrace);

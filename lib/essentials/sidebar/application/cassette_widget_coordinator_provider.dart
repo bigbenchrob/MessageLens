@@ -91,6 +91,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           title: view.title,
           subtitle: view.subtitle,
           isControl: view.isControl,
+          shouldExpand: view.shouldExpand,
           child: view.child,
         ),
       );
