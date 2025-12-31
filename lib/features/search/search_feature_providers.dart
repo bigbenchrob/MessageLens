@@ -27,14 +27,11 @@ SearchIndexMetricsRepository searchIndexMetricsRepository(
 
 @riverpod
 List<SearchIndexer> searchIndexers(SearchIndexersRef ref) {
-  return [
-    SimpleLexicalIndexer(),
-    FtsMultiTermIndexer(),
-  ];
+  return [SimpleLexicalIndexer(), FtsMultiTermIndexer()];
 }
 
 @riverpod
-bool useFtsSearchByDefault(UseFtsSearchByDefaultRef ref) => false;
+bool useFtsSearchByDefault(UseFtsSearchByDefaultRef ref) => true;
 
 @riverpod
 SearchIndexOrchestrator searchIndexOrchestrator(

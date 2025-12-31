@@ -7,7 +7,7 @@ part of 'messages_heatmap_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$messagesHeatmapCassetteBuilderHash() =>
-    r'33b6dca86f853863fe924476dad6e16c38a35393';
+    r'71835bb1d6ac7cfbf62cea8361e56d0c6b96f20d';
 
 /// Copied from Dart SDK
 class _SystemHash {

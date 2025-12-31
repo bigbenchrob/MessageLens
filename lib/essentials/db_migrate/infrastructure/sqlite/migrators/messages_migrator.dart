@@ -87,7 +87,7 @@ class MessagesMigrator extends BaseTableMigrator {
           AND NOT EXISTS (
             SELECT 1
             FROM handles_canonical_to_alias map
-            JOIN handles h ON h.id = map.canonical_handle_id
+            JOIN handles_canonical h ON h.id = map.canonical_handle_id
             WHERE map.source_handle_id = m.sender_handle_id
           );
       ''').get();
@@ -180,7 +180,6 @@ class MessagesMigrator extends BaseTableMigrator {
         JOIN chats c ON c.id = m.chat_id
         LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = m.sender_handle_id
-        LEFT JOIN handles h ON h.id = map.canonical_handle_id
         WHERE m.guid IS NOT NULL AND LENGTH(TRIM(m.guid)) > 0;
       ''');
 
@@ -188,6 +187,27 @@ class MessagesMigrator extends BaseTableMigrator {
           .customSelect('SELECT changes() AS c')
           .get();
       final insertedCount = _extractCount(rows, 'c');
+
+      // Repair missing sender_handle_id for messages that now have a mapping
+      // This fixes rows that were skipped by INSERT OR IGNORE in previous runs
+      // but had NULL sender_handle_id due to missing mappings at that time.
+      await ctx.workingDb.customStatement('''
+        UPDATE messages
+        SET sender_handle_id = (
+          SELECT map.canonical_handle_id
+          FROM $_attachAlias.messages m
+          JOIN handles_canonical_to_alias map ON map.source_handle_id = m.sender_handle_id
+          WHERE m.guid = messages.guid
+        )
+        WHERE sender_handle_id IS NULL 
+          AND is_from_me = 0
+          AND EXISTS (
+            SELECT 1
+            FROM $_attachAlias.messages m
+            JOIN handles_canonical_to_alias map ON map.source_handle_id = m.sender_handle_id
+            WHERE m.guid = messages.guid
+          );
+      ''');
 
       await ctx.workingDb.customStatement('''
         WITH candidate AS (

@@ -13,6 +13,8 @@ import '../search_feature_providers.dart';
 const _searchResultLimit = 100;
 const _recencyWeight = 0.15;
 
+enum SearchMode { allTerms, anyTerm }
+
 class SearchService {
   SearchService({required this.ref});
 
@@ -64,6 +66,31 @@ class SearchService {
     }
 
     return _legacyContactSearch(contactId: contactId, query: trimmed);
+  }
+
+  Future<List<MessageListItem>> searchGlobalMessages({
+    required String query,
+    SearchMode mode = SearchMode.allTerms,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return const [];
+    }
+
+    final tokens = _tokenize(trimmed);
+    if (_shouldUseFts(tokens)) {
+      final ftsResults = await _ftsSearch(
+        tokens: tokens,
+        chatId: null,
+        contactId: null,
+        mode: mode,
+      );
+      if (ftsResults.isNotEmpty) {
+        return ftsResults;
+      }
+    }
+
+    return _legacyGlobalSearch(query: trimmed);
   }
 
   bool _shouldUseFts(List<String> tokens) {
@@ -142,6 +169,33 @@ class SearchService {
     return mapper.mapRows(rows);
   }
 
+  Future<List<MessageListItem>> _legacyGlobalSearch({
+    required String query,
+  }) async {
+    final db = await ref.read(driftWorkingDatabaseProvider.future);
+    final mapper = MessageRowMapper(db);
+    final lowerQuery = query.toLowerCase();
+    final pattern = '%$lowerQuery%';
+
+    final queryBuilder = _baseMessageJoin(db)
+      ..where(db.workingMessages.textContent.isNotNull())
+      ..where(db.workingMessages.textContent.lower().like(pattern))
+      ..orderBy([
+        drift.OrderingTerm(
+          expression: db.workingMessages.id,
+          mode: drift.OrderingMode.desc,
+        ),
+      ])
+      ..limit(_searchResultLimit);
+
+    final rows = await queryBuilder.get();
+    if (rows.isEmpty) {
+      return const [];
+    }
+
+    return mapper.mapRows(rows);
+  }
+
   drift.JoinedSelectStatement _baseMessageJoin(
     WorkingDatabase db, {
     List<drift.Join> extraJoins = const [],
@@ -169,8 +223,9 @@ class SearchService {
     required List<String> tokens,
     required int? chatId,
     required int? contactId,
+    SearchMode mode = SearchMode.allTerms,
   }) async {
-    final matchQuery = _buildMatchExpression(tokens);
+    final matchQuery = _buildMatchExpression(tokens, mode);
     if (matchQuery == null) {
       return const [];
     }
@@ -263,7 +318,7 @@ List<String> _tokenize(String input) {
       .toList(growable: false);
 }
 
-String? _buildMatchExpression(List<String> tokens) {
+String? _buildMatchExpression(List<String> tokens, SearchMode mode) {
   final sanitized = tokens
       .map((token) => token.replaceAll("'", ''))
       .where((token) => token.isNotEmpty)
@@ -271,7 +326,8 @@ String? _buildMatchExpression(List<String> tokens) {
   if (sanitized.isEmpty) {
     return null;
   }
-  return sanitized.map((token) => '$token*').join(' AND ');
+  final operator = mode == SearchMode.allTerms ? ' AND ' : ' OR ';
+  return sanitized.map((token) => '$token*').join(operator);
 }
 
 DateTime? _parseUtc(String? value) {

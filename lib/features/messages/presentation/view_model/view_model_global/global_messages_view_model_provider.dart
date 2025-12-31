@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/db/feature_level_providers.dart';
+import 'package:remember_this_text/features/search/application/search_service.dart';
+import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import '../../../infrastructure/data_sources/global_message_index_data_source.dart';
 import '../shared/hydration/messages_for_handle_provider.dart';
 import 'jump/global_messages_ordinal_provider.dart';
+import 'search/global_message_search_provider.dart';
 
 part 'global_messages_view_model_provider.g.dart';
 
@@ -164,12 +166,91 @@ class GlobalMessagesViewModel extends _$GlobalMessagesViewModel {
         ),
         ordinal: state.ordinal,
       );
+      return;
     }
 
-    // TODO(Ftr.global): wire real global search providers + helpers.
+    state = GlobalMessagesViewModelState(
+      searchController: state.searchController,
+      searchQuery: state.searchQuery,
+      debouncedQuery: state.debouncedQuery,
+      searchMode: state.searchMode,
+      filters: state.filters,
+      searchResults: const AsyncValue<List<MessageListItem>>.loading(),
+      ordinal: state.ordinal,
+    );
+
+    try {
+      // We don't await here to avoid blocking the UI thread, but we do want to
+      // capture the future to update state when it completes.
+      // However, since we are in a void method, we can't await.
+      // But wait, this method is void. We should probably make it async or use .then().
+      // Actually, the pattern in ContactMessagesViewModel is async.
+      // Let's change this method to async.
+      _executeSearch(trimmed);
+    } catch (error, stackTrace) {
+      state = GlobalMessagesViewModelState(
+        searchController: state.searchController,
+        searchQuery: state.searchQuery,
+        debouncedQuery: state.debouncedQuery,
+        searchMode: state.searchMode,
+        filters: state.filters,
+        searchResults: AsyncValue<List<MessageListItem>>.error(
+          error,
+          stackTrace,
+        ),
+        ordinal: state.ordinal,
+      );
+    }
+  }
+
+  Future<void> _executeSearch(String query) async {
+    try {
+      final mode = state.searchMode == GlobalMessagesSearchMode.allTerms
+          ? SearchMode.allTerms
+          : SearchMode.anyTerm;
+
+      final results = await ref.read(
+        globalMessageSearchResultsProvider(query: query, mode: mode).future,
+      );
+
+      // Check if the query is still relevant
+      if (state.debouncedQuery != query) {
+        return;
+      }
+
+      state = GlobalMessagesViewModelState(
+        searchController: state.searchController,
+        searchQuery: state.searchQuery,
+        debouncedQuery: state.debouncedQuery,
+        searchMode: state.searchMode,
+        filters: state.filters,
+        searchResults: AsyncValue<List<MessageListItem>>.data(results),
+        ordinal: state.ordinal,
+      );
+    } catch (error, stackTrace) {
+      if (state.debouncedQuery != query) {
+        return;
+      }
+      state = GlobalMessagesViewModelState(
+        searchController: state.searchController,
+        searchQuery: state.searchQuery,
+        debouncedQuery: state.debouncedQuery,
+        searchMode: state.searchMode,
+        filters: state.filters,
+        searchResults: AsyncValue<List<MessageListItem>>.error(
+          error,
+          stackTrace,
+        ),
+        ordinal: state.ordinal,
+      );
+    }
   }
 
   void setSearchMode(GlobalMessagesSearchMode mode) {
+    if (state.searchMode == mode) {
+      return;
+    }
+
     state = GlobalMessagesViewModelState(
       searchController: state.searchController,
       searchQuery: state.searchQuery,
@@ -180,7 +261,18 @@ class GlobalMessagesViewModel extends _$GlobalMessagesViewModel {
       ordinal: state.ordinal,
     );
 
-    // TODO(Ftr.global): re-run search if needed.
+    if (state.debouncedQuery.isNotEmpty) {
+      state = GlobalMessagesViewModelState(
+        searchController: state.searchController,
+        searchQuery: state.searchQuery,
+        debouncedQuery: state.debouncedQuery,
+        searchMode: state.searchMode,
+        filters: state.filters,
+        searchResults: const AsyncValue<List<MessageListItem>>.loading(),
+        ordinal: state.ordinal,
+      );
+      _executeSearch(state.debouncedQuery);
+    }
   }
 
   void setFilters(GlobalMessagesFilters filters) {

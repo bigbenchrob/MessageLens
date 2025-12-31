@@ -7,7 +7,7 @@ part of 'global_messages_view_model_provider.dart';
 // **************************************************************************
 
 String _$globalMessagesViewModelHash() =>
-    r'bff577dd760ed9ec43be0e088f57b8fc8b1d782d';
+    r'd9c8ebc38d80d2e0396261db3fccd3944a3c3efe';
 
 /// See also [GlobalMessagesViewModel].
 @ProviderFor(GlobalMessagesViewModel)

@@ -95,36 +95,39 @@ class GlobalTimelineV2View extends HookConsumerWidget {
                     ),
                   ),
                   Expanded(
-                    child: vm.ordinal.when(
-                      data: (ordinalState) {
-                        if (ordinalState.totalCount == 0) {
-                          return Center(
-                            child: Text(
-                              'No messages indexed yet.',
-                              style: theme.typography.title3,
-                            ),
-                          );
-                        }
+                    child: vm.isSearching
+                        ? _SearchResultsList(vm: vm)
+                        : vm.ordinal.when(
+                            data: (ordinalState) {
+                              if (ordinalState.totalCount == 0) {
+                                return Center(
+                                  child: Text(
+                                    'No messages indexed yet.',
+                                    style: theme.typography.title3,
+                                  ),
+                                );
+                              }
 
-                        return ScrollablePositionedList.builder(
-                          itemScrollController:
-                              ordinalState.itemScrollController,
-                          itemPositionsListener:
-                              ordinalState.itemPositionsListener,
-                          itemCount: ordinalState.totalCount,
-                          itemBuilder: (context, index) {
-                            return _GlobalTimelineV2Row(ordinal: index);
-                          },
-                        );
-                      },
-                      loading: () => const Center(child: ProgressCircle()),
-                      error: (error, _) => Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text('Unable to load timeline: $error'),
-                        ),
-                      ),
-                    ),
+                              return ScrollablePositionedList.builder(
+                                itemScrollController:
+                                    ordinalState.itemScrollController,
+                                itemPositionsListener:
+                                    ordinalState.itemPositionsListener,
+                                itemCount: ordinalState.totalCount,
+                                itemBuilder: (context, index) {
+                                  return _GlobalTimelineV2Row(ordinal: index);
+                                },
+                              );
+                            },
+                            loading: () =>
+                                const Center(child: ProgressCircle()),
+                            error: (error, _) => Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text('Unable to load timeline: $error'),
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -218,6 +221,33 @@ class _SkeletonRow extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
+    );
+  }
+}
+
+class _SearchResultsList extends StatelessWidget {
+  const _SearchResultsList({required this.vm});
+
+  final GlobalMessagesViewModelState vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return vm.searchResults.when(
+      data: (results) {
+        if (results.isEmpty) {
+          return Center(
+            child: Text('No matches found for "${vm.debouncedQuery}"'),
+          );
+        }
+        return ListView.builder(
+          itemCount: results.length,
+          itemBuilder: (context, index) {
+            return MessageCard(message: results[index]);
+          },
+        );
+      },
+      loading: () => const Center(child: ProgressCircle()),
+      error: (error, _) => Center(child: Text('Search failed: $error')),
     );
   }
 }

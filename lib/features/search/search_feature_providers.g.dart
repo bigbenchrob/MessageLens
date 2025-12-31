@@ -62,7 +62,7 @@ final searchIndexersProvider =
 // ignore: unused_element
 typedef SearchIndexersRef = AutoDisposeProviderRef<List<SearchIndexer>>;
 String _$useFtsSearchByDefaultHash() =>
-    r'd2dcb9972bf7425c10b8c669b437ce85b7048a4a';
+    r'd0ea74625aee5e00de9a43a3ad7668d7266f7625';
 
 /// See also [useFtsSearchByDefault].
 @ProviderFor(useFtsSearchByDefault)
