@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-The Settings system will leverage the existing "Cassette" architecture used for the Sidebar. Instead of creating parallel state trees, we will use a **Mode-Based Orchestration** approach. This ensures the `CassetteRackState` remains the single source of truth for what is currently displayed in the sidebar, while a higher-level orchestrator manages the context switching between "Messages" and "Settings".
+The Settings system will leverage the existing "Cassette" architecture used for the Sidebar, but instantiated in a separate "Mode" to ensure state isolation. This allows the user to toggle between "Messages" (the main app) and "Settings" without losing their context (scroll position, selection, navigation history) in either mode.
 
 ### 1. State Management: The "Mode" Concept
 
@@ -14,73 +14,68 @@ enum SidebarMode {
 }
 ```
 
-We will introduce a `SidebarModeOrchestrator` (Notifier) that manages the active mode and handles the transitions.
+To support independent navigation stacks and cassette racks for each mode, we will convert key providers into **Family Providers** keyed by `SidebarMode`.
 
-*   **`activeSidebarModeProvider`**: Exposes the current `SidebarMode`.
-*   **Transition Logic (Messages → Settings)**:
-    1.  Snapshot the current `CassetteRackState` (Messages context) and store it in memory within the orchestrator.
-    2.  Clear the `CassetteRackState`.
-    3.  Push the `SettingsRootCassetteSpec` into the `CassetteRackState`.
-    4.  (Optional) Snapshot Center Panel state if needed, though `IndexedStack` in the shell might handle the view persistence better.
-*   **Transition Logic (Settings → Messages)**:
-    1.  Clear the `CassetteRackState` (Settings context).
-    2.  Restore the snapshotted `CassetteRackState` (Messages context).
+*   **`panelsViewStateProvider`** → `panelsViewStateProvider(SidebarMode)`
+    *   Stores the `PanelStack` (navigation history) for the Center Panel.
+    *   `messages` mode: Stores the chat/contact navigation.
+    *   `settings` mode: Stores the settings drill-down history.
+
+*   **`cassetteRackStateProvider`** → `cassetteRackStateProvider(SidebarMode)`
+    *   Stores the list of active cassettes in the Sidebar.
+    *   `messages` mode: Stores Search, Recent Chats, etc.
+    *   `settings` mode: Stores the Settings Root and subsequent drill-down cassettes.
+
+*   **`cassetteWidgetCoordinatorProvider`** → `cassetteWidgetCoordinatorProvider(SidebarMode)`
+    *   Builds the widget tree for the sidebar based on the rack state of the given mode.
 
 ### 2. UI Structure: `MacosAppShell`
 
-The `MacosAppShell` will use an `IndexedStack` for the **Center Panel** content to preserve the heavy widget trees (Message List, etc.) when switching modes.
-
-The **Sidebar** will remain a single widget tree driven by `CassetteWidgetCoordinator`, but its appearance will react to `activeSidebarModeProvider` (e.g., background tint).
+The `MacosAppShell` will be refactored to use an `IndexedStack` to preserve the widget tree (and thus scroll offsets/input state) of both modes.
 
 ```dart
-// Simplified Shell Structure
-Row(
+IndexedStack(
+  index: currentMode.index,
   children: [
-    // Sidebar (Shared, content changes via Rack State)
-    Container(
-      color: mode == settings ? tintedColor : defaultColor,
-      child: LeftPanelWidget(), 
-    ),
-    // Center Panel (IndexedStack for state preservation)
-    Expanded(
-      child: IndexedStack(
-        index: mode.index,
-        children: [
-          MessagesCenterPanel(),
-          SettingsCenterPanel(), // Likely empty or specific detail view
-        ],
-      ),
-    ),
+    // Mode: Messages
+    WorkspaceLayout(mode: SidebarMode.messages),
+    // Mode: Settings
+    WorkspaceLayout(mode: SidebarMode.settings),
   ],
 )
 ```
 
+The `WorkspaceLayout` widget will be a reusable component that consumes the family providers for its assigned mode to build the Left Panel (Sidebar) and Center Panel.
+
 ### 3. Settings Module Structure (`lib/essentials/settings/`)
 
 *   **`domain/`**:
-    *   `SettingsSpec`: A sealed class hierarchy defining the navigation targets.
+    *   `SettingsSpec`: A sealed class hierarchy defining the navigation targets (e.g., `SettingsSpec.root()`, `SettingsSpec.appearance()`, `SettingsSpec.data()`).
 *   **`presentation/`**:
     *   `SettingsCassette`: Widgets for the sidebar cassettes.
+    *   `SettingsPanel`: Widgets for the center panel (if settings require a detail view).
 *   **`application/`**:
     *   `SettingsCassetteCoordinator`: Logic to map `SettingsSpec` to widgets.
-    *   `SidebarModeOrchestrator`: Manages mode switching and state snapshotting.
 
 ### 4. Navigation Logic
 
 *   **Toolbar Toggle**:
-    *   Clicking "Settings" calls `ref.read(sidebarModeOrchestratorProvider.notifier).toggle(SidebarMode.settings)`.
-    *   Clicking "Messages" calls `ref.read(sidebarModeOrchestratorProvider.notifier).toggle(SidebarMode.messages)`.
+    *   Clicking "Settings" switches `activeSidebarModeProvider` to `settings`.
+    *   Clicking "Messages" switches `activeSidebarModeProvider` to `messages`.
 *   **Drill-down**:
-    *   Works exactly like existing cassettes: `ref.read(cassetteRackStateProvider.notifier).push(newSpec)`.
+    *   Clicking an item in a Settings Cassette (e.g., "Appearance") pushes a new `SettingsSpec` to the `cassetteRackStateProvider(SidebarMode.settings)`.
+    *   This mimics the "drill-down" behavior of the Messages sidebar.
 
 ## Migration Strategy
 
-1.  **Define Mode**: Create `SidebarMode` enum.
-2.  **Create Orchestrator**: Implement `SidebarModeOrchestrator` to handle snapshot/restore of the rack.
-3.  **Update Shell**: Implement `IndexedStack` for the center panel and connect the Toolbar.
-4.  **Implement Settings**: Create the `SettingsSpec` and Root Cassette.
+1.  **Refactor Providers**: Update `PanelsViewState` and `CassetteRackState` to be families.
+2.  **Update Call Sites**: Fix all compilation errors by passing `SidebarMode.messages` to existing calls.
+3.  **Implement Shell**: Update `MacosAppShell` to support the mode toggle and `IndexedStack`.
+4.  **Implement Settings**: Create the basic `SettingsSpec` and Root Cassette.
 
 ## Risks & Mitigations
 
-*   **Risk**: `CassetteRackState` snapshotting might miss ephemeral state (e.g., scroll position *within* a sidebar cassette).
-    *   *Mitigation*: Accept this for V1. The primary context users care about preserving is the *Center Panel* (Message List scroll/selection), which `IndexedStack` handles perfectly. Sidebar navigation depth is restored by the snapshot, but exact scroll pixel offset in the sidebar might reset.
+*   **Risk**: Refactoring core providers (Family) touches many files.
+    *   *Mitigation*: Use `dart fix` or bulk edits carefully. Ensure `build_runner` is run frequently.
+*   **Risk**: State loss if `IndexedStack` isn't used correctly.
+    *   *Mitigation*: Verify scroll position persistence early in the implementation.
