@@ -13,6 +13,12 @@ class HandlesMigrator extends BaseTableMigrator {
   String get name => 'handles';
 
   @override
+  List<String> get targetTables => const [
+    'handles_canonical',
+    'handles_canonical_to_alias',
+  ];
+
+  @override
   List<String> get dependsOn => const [];
 
   @override
@@ -193,25 +199,6 @@ class HandlesMigrator extends BaseTableMigrator {
 
       await ctx.workingDb.batch((batch) {
         for (final handle in canonicalHandles) {
-          // OLD TABLE - Commented out to verify nothing uses it
-          // batch.insert(
-          //   ctx.workingDb.workingHandles,
-          //   WorkingHandlesCompanion.insert(
-          //     id: Value(handle.id),
-          //     rawIdentifier: handle.rawIdentifier,
-          //     displayName: handle.displayName,
-          //     compoundIdentifier: handle.compoundIdentifier,
-          //     service: Value(handle.service),
-          //     isIgnored: Value(handle.isIgnored),
-          //     isVisible: Value(!handle.isIgnored),
-          //     isBlacklisted: const Value(false),
-          //     country: Value(handle.country),
-          //     lastSeenUtc: Value(handle.lastSeenUtc),
-          //     batchId: Value(handle.batchId),
-          //   ),
-          //   mode: InsertMode.insertOrReplace,
-          // );
-
           // NEW TABLE - Only populate this one
           batch.insert(
             ctx.workingDb.handlesCanonical,
@@ -296,13 +283,11 @@ class HandlesMigrator extends BaseTableMigrator {
   @override
   Future<void> postValidate(MigrationContext ctx) async {
     final src = await count(ctx.importDb, 'handles');
-    final dst = await count(ctx.workingDb, 'handles');
+    // 'handles' table is removed in v17, so we only check handles_canonical
     final dstNew = await count(ctx.workingDb, 'handles_canonical');
     final canonical = ctx.handleIdCanonicalMap.values.toSet().length;
     final mapped = ctx.handleIdCanonicalMap.length;
-    ctx.log(
-      '[handles] src=$src canonical=$canonical projected=$dst new_table=$dstNew',
-    );
+    ctx.log('[handles] src=$src canonical=$canonical new_table=$dstNew');
 
     await expectTrueOrThrow(
       ok: mapped == src,
@@ -310,14 +295,6 @@ class HandlesMigrator extends BaseTableMigrator {
       message:
           'handles: canonical map has $mapped entries but import has $src rows',
     );
-
-    // OLD TABLE VALIDATION - Commented out since we're no longer populating handles table
-    // await expectTrueOrThrow(
-    //   ok: dst == canonical,
-    //   errorCode: 'HANDLES_ROW_MISMATCH',
-    //   message:
-    //       'handles: working has $dst rows but expected $canonical canonical rows',
-    // );
 
     // Verify new table has expected canonical count
     await expectTrueOrThrow(

@@ -213,7 +213,7 @@ class HandlesMigrationService {
 
       final handlesCount = await _handlesMigrator.count(
         context.workingDb,
-        'handles',
+        'handles_canonical',
       );
       final chatsCount = await _chatsMigrator.count(context.workingDb, 'chats');
       final chatMembershipCount = await _chatToHandleMigrator.count(
@@ -302,8 +302,11 @@ class HandlesMigrationService {
   Future<Map<int, _HandleOverride>> _snapshotHandleOverrides(
     WorkingDatabase db,
   ) async {
+    // Read from handles_canonical (was 'handles' before v17)
     final rows = await db
-        .customSelect('SELECT id, is_visible, is_blacklisted FROM handles')
+        .customSelect(
+          'SELECT id, is_visible, is_blacklisted FROM handles_canonical',
+        )
         .get();
     if (rows.isEmpty) {
       return const <int, _HandleOverride>{};
@@ -337,7 +340,7 @@ class HandlesMigrationService {
       overrides.forEach((id, override) {
         batch.update(
           db.handlesCanonical,
-          WorkingHandlesCompanion(
+          HandlesCanonicalCompanion(
             isVisible: Value(override.isVisible),
             isBlacklisted: Value(override.isBlacklisted),
           ),

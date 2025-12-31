@@ -10,7 +10,7 @@ part 'working_database.g.dart';
     WorkingSchemaMigrations,
     ProjectionState,
     AppSettings,
-    WorkingHandles,
+    // WorkingHandles, // Removed in v17
     HandlesCanonical, // New table - will replace WorkingHandles
     WorkingParticipants,
     HandleToParticipant,
@@ -34,7 +34,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +88,9 @@ class WorkingDatabase extends _$WorkingDatabase {
       if (from < 16) {
         await _addGlobalMessageIndexTable(m);
       }
+      if (from < 17) {
+        await customStatement('DROP TABLE IF EXISTS handles');
+      }
       // Note: contact_message_index population deferred to HandlesMigrationService
       // to avoid O(N²) trigger overhead during bulk message insert
       await _createIndexes();
@@ -140,23 +143,13 @@ class WorkingDatabase extends _$WorkingDatabase {
   }
 
   Future<void> _alignWithLedgerSchema(Migrator migrator) async {
-    // Handles metadata
-    await migrator.addColumn(
-      workingHandles,
-      workingHandles.isIgnored as GeneratedColumn,
+    // Handles metadata - Replaced with raw SQL since WorkingHandles is removed
+    await customStatement(
+      'ALTER TABLE handles ADD COLUMN is_ignored INTEGER DEFAULT 0',
     );
-    await migrator.addColumn(
-      workingHandles,
-      workingHandles.country as GeneratedColumn,
-    );
-    await migrator.addColumn(
-      workingHandles,
-      workingHandles.lastSeenUtc as GeneratedColumn,
-    );
-    await migrator.addColumn(
-      workingHandles,
-      workingHandles.batchId as GeneratedColumn,
-    );
+    await customStatement('ALTER TABLE handles ADD COLUMN country TEXT');
+    await customStatement('ALTER TABLE handles ADD COLUMN last_seen_utc TEXT');
+    await customStatement('ALTER TABLE handles ADD COLUMN batch_id INTEGER');
 
     // Participant metadata
     await migrator.addColumn(
@@ -336,9 +329,9 @@ class WorkingDatabase extends _$WorkingDatabase {
     }
 
     if (!hasCompound) {
-      await migrator.addColumn(
-        workingHandles,
-        workingHandles.compoundIdentifier as GeneratedColumn,
+      // Replaced with raw SQL since WorkingHandles is removed
+      await customStatement(
+        'ALTER TABLE handles ADD COLUMN compound_identifier TEXT',
       );
     }
 
@@ -375,56 +368,9 @@ class WorkingDatabase extends _$WorkingDatabase {
   }
 
   Future<void> _removeNormalizedIdentifierColumn(Migrator migrator) async {
-    final columns = await customSelect("PRAGMA table_info('handles')").get();
-    var hasNormalized = false;
-
-    for (final row in columns) {
-      final name = row.data['name'] as String?;
-      if (name == 'normalized_identifier') {
-        hasNormalized = true;
-        break;
-      }
-    }
-
-    if (!hasNormalized) {
-      return;
-    }
-
-    await customStatement('ALTER TABLE handles RENAME TO handles_old');
-    await migrator.createTable(workingHandles);
-    await customStatement('''
-      INSERT INTO handles (
-        id,
-        raw_identifier,
-        display_name,
-        compound_identifier,
-        service,
-        is_ignored,
-        is_visible,
-        is_blacklisted,
-        country,
-        last_seen_utc,
-        batch_id
-      )
-      SELECT
-        id,
-        raw_identifier,
-        CASE
-          WHEN TRIM(raw_identifier) <> '' THEN TRIM(raw_identifier)
-          WHEN TRIM(compound_identifier) <> '' THEN TRIM(compound_identifier)
-          ELSE 'Unknown Contact'
-        END AS display_name,
-        compound_identifier,
-        service,
-        is_ignored,
-        is_visible,
-        is_blacklisted,
-        country,
-        last_seen_utc,
-        batch_id
-      FROM handles_old
-      ''');
-    await customStatement('DROP TABLE handles_old');
+    // This migration step is skipped because 'handles' table is dropped in v17 anyway.
+    // Recreating the table here would require defining the schema which we are deleting.
+    return;
   }
 
   Future<void> _addHandleDisplayNameColumn(Migrator migrator) async {
@@ -440,10 +386,8 @@ class WorkingDatabase extends _$WorkingDatabase {
     }
 
     if (!hasDisplayColumn) {
-      await migrator.addColumn(
-        workingHandles,
-        workingHandles.displayName as GeneratedColumn,
-      );
+      // Replaced with raw SQL since WorkingHandles is removed
+      await customStatement('ALTER TABLE handles ADD COLUMN display_name TEXT');
     }
 
     // Read all handles and format phone numbers for display_name
@@ -1045,38 +989,39 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-class WorkingHandles extends Table {
-  @override
-  String get tableName => 'handles';
-
-  IntColumn get id => integer().named('id')();
-  TextColumn get rawIdentifier => text().named('raw_identifier')();
-  TextColumn get displayName => text().named('display_name')();
-  TextColumn get compoundIdentifier => text().named('compound_identifier')();
-  TextColumn get service => text()
-      .named('service')
-      .customConstraint(
-        "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
-      )();
-  BoolColumn get isIgnored =>
-      boolean().named('is_ignored').withDefault(const Constant(false))();
-  BoolColumn get isVisible =>
-      boolean().named('is_visible').withDefault(const Constant(true))();
-  BoolColumn get isBlacklisted =>
-      boolean().named('is_blacklisted').withDefault(const Constant(false))();
-  TextColumn get country => text().named('country').nullable()();
-  TextColumn get lastSeenUtc => text().named('last_seen_utc').nullable()();
-  IntColumn get batchId => integer().named('batch_id').nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-
-  @override
-  List<Set<Column>> get uniqueKeys => [
-    {compoundIdentifier},
-    {rawIdentifier, service},
-  ];
-}
+// WorkingHandles table removed in v17
+// class WorkingHandles extends Table {
+//   @override
+//   String get tableName => 'handles';
+//
+//   IntColumn get id => integer().named('id')();
+//   TextColumn get rawIdentifier => text().named('raw_identifier')();
+//   TextColumn get displayName => text().named('display_name')();
+//   TextColumn get compoundIdentifier => text().named('compound_identifier')();
+//   TextColumn get service => text()
+//       .named('service')
+//       .customConstraint(
+//         "NOT NULL DEFAULT 'Unknown' CHECK(service IN ('iMessage','iMessageLite','SMS','RCS','Unknown'))",
+//       )();
+//   BoolColumn get isIgnored =>
+//       boolean().named('is_ignored').withDefault(const Constant(false))();
+//   BoolColumn get isVisible =>
+//       boolean().named('is_visible').withDefault(const Constant(true))();
+//   BoolColumn get isBlacklisted =>
+//       boolean().named('is_blacklisted').withDefault(const Constant(false))();
+//   TextColumn get country => text().named('country').nullable()();
+//   TextColumn get lastSeenUtc => text().named('last_seen_utc').nullable()();
+//   IntColumn get batchId => integer().named('batch_id').nullable()();
+//
+//   @override
+//   Set<Column> get primaryKey => {id};
+//
+//   @override
+//   List<Set<Column>> get uniqueKeys => [
+//     {compoundIdentifier},
+//     {rawIdentifier, service},
+//   ];
+// }
 
 /// New canonical handles table - will replace WorkingHandles
 /// This table stores only canonical handles (one per real-world communication endpoint)
