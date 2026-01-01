@@ -10,6 +10,7 @@ import '../../../features/messages/feature_level_providers.dart'
 import '../../../features/sidebar_utilities/feature_level_providers.dart'
     as sidebar_utilities;
 import '../../../features/sidebar_utilities/presentation/cassettes/theme_playground_cassette.dart';
+import '../../navigation/domain/sidebar_mode.dart';
 
 /// barrel file import to expose cassette spec and feature cassette spec definitions
 import '../domain/entities/features/presentation_cassette_spec.dart';
@@ -40,8 +41,8 @@ part 'cassette_widget_coordinator_provider.g.dart';
 @riverpod
 class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
   @override
-  List<Widget> build() {
-    final rack = ref.watch(cassetteRackStateProvider);
+  List<Widget> build(SidebarMode mode) {
+    final rack = ref.watch(cassetteRackStateProvider(mode));
     final widgets = <Widget>[];
 
     CassetteCardView buildViewForSpec(CassetteSpec spec) {

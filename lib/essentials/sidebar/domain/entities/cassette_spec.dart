@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import 'features/contacts_cassette_spec.dart';
+import 'features/contacts_settings_spec.dart';
 import 'features/handles_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
@@ -79,8 +80,18 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
             );
         }
       },
-
-      // other variants...
+      settingsMenu: (selectedChoice) {
+        switch (selectedChoice) {
+          case SettingsMenuChoice.general:
+            return null;
+          case SettingsMenuChoice.appearance:
+            return null;
+          case SettingsMenuChoice.contactShortNames:
+            return const CassetteSpec.contacts(
+              ContactsCassetteSpec.settings(ContactsSettingsSpec.shortNames()),
+            );
+        }
+      },
     );
   }
 }
@@ -110,6 +121,7 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
           MessagesCassetteSpec.heatMap(contactId: chosenContactId),
         );
       },
+      settings: (_) => null,
     );
   }
 }

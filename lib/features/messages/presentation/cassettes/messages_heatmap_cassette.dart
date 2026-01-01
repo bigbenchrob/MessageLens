@@ -12,6 +12,7 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../contacts/application_pre_cassette/contact_profile_provider.dart';
 import '../../../contacts/application_pre_cassette/contact_timeline_provider.dart';
@@ -96,7 +97,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
       if (data != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref
-              .read(panelsViewStateProvider.notifier)
+              .read(panelsViewStateProvider(SidebarMode.messages).notifier)
               .show(
                 panel: WindowPanel.center,
                 spec: ViewSpec.messages(
@@ -170,7 +171,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
             final startDate = isLastMonth ? null : DateTime(year, month, 1);
 
             ref
-                .read(panelsViewStateProvider.notifier)
+                .read(panelsViewStateProvider(SidebarMode.messages).notifier)
                 .show(
                   panel: WindowPanel.center,
                   spec: ViewSpec.messages(
@@ -194,7 +195,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
           controlSize: ControlSize.small,
           onPressed: () {
             ref
-                .read(panelsViewStateProvider.notifier)
+                .read(panelsViewStateProvider(SidebarMode.messages).notifier)
                 .show(
                   panel: WindowPanel.center,
                   spec: ViewSpec.messages(
@@ -232,7 +233,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
       if (data != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref
-              .read(panelsViewStateProvider.notifier)
+              .read(panelsViewStateProvider(SidebarMode.messages).notifier)
               .show(
                 panel: WindowPanel.center,
                 spec: ViewSpec.messages(
@@ -288,7 +289,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
             final startDate = isLastMonth ? null : DateTime(year, month, 1);
 
             ref
-                .read(panelsViewStateProvider.notifier)
+                .read(panelsViewStateProvider(SidebarMode.messages).notifier)
                 .show(
                   panel: WindowPanel.center,
                   spec: ViewSpec.messages(

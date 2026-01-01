@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
@@ -20,14 +22,16 @@ class RecentContactsCassette extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recentAsync = ref.watch(recentContactsProvider);
-    final bbc = AppTheme.bbc(context);
-    final typography = MacosTheme.of(context).typography;
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     // Extract chosenContactId using pattern matching
     final selectedContactId = spec.when(
       recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
+      settings: (_) => null,
     );
 
     return recentAsync.when(
@@ -42,7 +46,11 @@ class RecentContactsCassette extends ConsumerWidget {
               _MoreButton(
                 onTap: () {
                   ref
-                      .read(cassetteRackStateProvider.notifier)
+                      .read(
+                        cassetteRackStateProvider(
+                          SidebarMode.messages,
+                        ).notifier,
+                      )
                       .updateSpecAndChild(
                         CassetteSpec.contacts(spec),
                         const CassetteSpec.contacts(
@@ -50,7 +58,7 @@ class RecentContactsCassette extends ConsumerWidget {
                         ),
                       );
                 },
-                colors: bbc,
+                colors: colors,
                 typography: typography,
               ),
             ],
@@ -78,7 +86,7 @@ class RecentContactsCassette extends ConsumerWidget {
                       );
                 },
                 typography: typography,
-                colors: bbc,
+                colors: colors,
               );
             }),
 
@@ -87,7 +95,9 @@ class RecentContactsCassette extends ConsumerWidget {
               onTap: () {
                 // Replace recent contacts with full chooser
                 ref
-                    .read(cassetteRackStateProvider.notifier)
+                    .read(
+                      cassetteRackStateProvider(SidebarMode.messages).notifier,
+                    )
                     .updateSpecAndChild(
                       CassetteSpec.contacts(spec),
                       const CassetteSpec.contacts(
@@ -95,7 +105,7 @@ class RecentContactsCassette extends ConsumerWidget {
                       ),
                     );
               },
-              colors: bbc,
+              colors: colors,
               typography: typography,
             ),
           ],
@@ -103,11 +113,11 @@ class RecentContactsCassette extends ConsumerWidget {
       },
       loading: () => const _LoadingState(),
       error: (_, __) => _ErrorState(
-        colors: bbc,
+        colors: colors,
         typography: typography,
         onRetry: () {
           ref
-              .read(cassetteRackStateProvider.notifier)
+              .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
               .updateSpecAndChild(
                 CassetteSpec.contacts(spec),
                 const CassetteSpec.contacts(
@@ -134,8 +144,8 @@ class _RecentContactRow extends StatelessWidget {
   final int participantId;
   final bool isSelected;
   final VoidCallback onTap;
-  final MacosTypography typography;
-  final BbcColors colors;
+  final ThemeTypography typography;
+  final ThemeColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +155,10 @@ class _RecentContactRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? colors.bbcPrimaryOne.withValues(alpha: 0.12)
+              ? colors.accents.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           border: Border(
-            bottom: BorderSide(color: colors.bbcBorderSubtle, width: 0.5),
+            bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
           ),
         ),
         child: Row(
@@ -167,7 +177,7 @@ class _RecentContactRow extends StatelessWidget {
               Icon(
                 CupertinoIcons.checkmark_alt,
                 size: 14,
-                color: colors.bbcPrimaryOne,
+                color: colors.accents.primary,
               ),
             ],
           ],
@@ -185,8 +195,8 @@ class _MoreButton extends StatelessWidget {
   });
 
   final VoidCallback onTap;
-  final BbcColors colors;
-  final MacosTypography typography;
+  final ThemeColors colors;
+  final ThemeTypography typography;
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +206,7 @@ class _MoreButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: colors.bbcBorderSubtle, width: 0.5),
+            bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
           ),
         ),
         child: Row(
@@ -205,7 +215,7 @@ class _MoreButton extends StatelessWidget {
               child: Text(
                 'All contacts...',
                 style: typography.body.copyWith(
-                  color: colors.bbcPrimaryOne,
+                  color: colors.accents.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -213,7 +223,7 @@ class _MoreButton extends StatelessWidget {
             Icon(
               CupertinoIcons.chevron_right,
               size: 14,
-              color: colors.bbcPrimaryOne,
+              color: colors.accents.primary,
             ),
           ],
         ),
@@ -265,8 +275,8 @@ class _ErrorState extends StatelessWidget {
     required this.onRetry,
   });
 
-  final BbcColors colors;
-  final MacosTypography typography;
+  final ThemeColors colors;
+  final ThemeTypography typography;
   final VoidCallback onRetry;
 
   @override
@@ -286,7 +296,7 @@ class _ErrorState extends StatelessWidget {
             child: Text(
               'View all contacts',
               style: typography.body.copyWith(
-                color: colors.bbcPrimaryOne,
+                color: colors.accents.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),

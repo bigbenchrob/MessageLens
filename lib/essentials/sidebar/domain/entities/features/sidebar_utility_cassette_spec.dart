@@ -11,7 +11,9 @@ abstract class SidebarUtilityCassetteSpec with _$SidebarUtilityCassetteSpec {
     @Default(TopChatMenuChoice.contacts) TopChatMenuChoice selectedChoice,
   }) = _SidebarUtilityCassetteSpecTopChatMenu;
 
-  // other variants...
+  const factory SidebarUtilityCassetteSpec.settingsMenu({
+    @Default(SettingsMenuChoice.general) SettingsMenuChoice selectedChoice,
+  }) = _SidebarUtilityCassetteSpecSettingsMenu;
 
   factory SidebarUtilityCassetteSpec.fromJson(Map<String, dynamic> json) =>
       _$SidebarUtilityCassetteSpecFromJson(json);

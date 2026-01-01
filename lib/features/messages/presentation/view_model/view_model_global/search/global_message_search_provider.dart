@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:remember_this_text/features/search/application/search_service.dart';
-import 'package:remember_this_text/features/search/search_feature_providers.dart';
+import '../../../../../search/application/search_service.dart';
+import '../../../../../search/search_feature_providers.dart';
 import '../../shared/hydration/messages_for_handle_provider.dart';
 
 part 'global_message_search_provider.g.dart';

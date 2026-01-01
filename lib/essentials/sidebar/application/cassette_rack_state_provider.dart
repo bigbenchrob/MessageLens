@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../navigation/domain/sidebar_mode.dart';
 import '../feature_level_providers.dart';
 
 part 'cassette_rack_state_provider.freezed.dart';
@@ -44,6 +45,15 @@ abstract class CassetteRack with _$CassetteRack {
     );
     return CassetteRack(cassettes: _cascadeFromSpec(topMenu));
   }
+
+  /// Returns a fresh [CassetteRack] containing a single settings menu
+  /// cassette.
+  factory CassetteRack.settingsInitial() {
+    const settingsMenu = CassetteSpec.sidebarUtility(
+      SidebarUtilityCassetteSpec.settingsMenu(),
+    );
+    return CassetteRack(cassettes: _cascadeFromSpec(settingsMenu));
+  }
 }
 
 /// A Riverpod notifier managing the current [CassetteRack].
@@ -56,14 +66,23 @@ abstract class CassetteRack with _$CassetteRack {
 @riverpod
 class CassetteRackState extends _$CassetteRackState {
   @override
-  CassetteRack build() {
-    // Start with the default tracer‑bullet rack: a single top chat menu.
-    return CassetteRack.initial();
+  CassetteRack build(SidebarMode mode) {
+    switch (mode) {
+      case SidebarMode.messages:
+        return CassetteRack.initial();
+      case SidebarMode.settings:
+        return CassetteRack.settingsInitial();
+    }
   }
 
   /// Reset to the simple single top‑menu tracer bullet state.
   void resetToInitial() {
-    state = CassetteRack.initial();
+    switch (mode) {
+      case SidebarMode.messages:
+        state = CassetteRack.initial();
+      case SidebarMode.settings:
+        state = CassetteRack.settingsInitial();
+    }
   }
 
   /// Replace the entire rack at once.
@@ -174,6 +193,7 @@ class CassetteRackState extends _$CassetteRackState {
             recentContacts: (chosenContactId) => chosenContactId,
             contactChooser: (chosenContactId) => chosenContactId,
             contactHeroSummary: (chosenContactId) => chosenContactId,
+            settings: (_) => null,
           );
         },
         handles: (_) => null,

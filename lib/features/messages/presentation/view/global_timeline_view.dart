@@ -8,6 +8,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../application/use_cases/global_message_timeline_provider.dart';
 import '../view_model/shared/display_widgets/new_display_widgets.dart';
@@ -367,7 +368,7 @@ class _TimelineMessageCard extends ConsumerWidget {
 
     void openChat() {
       ref
-          .read(panelsViewStateProvider.notifier)
+          .read(panelsViewStateProvider(SidebarMode.messages).notifier)
           .show(
             panel: WindowPanel.center,
             spec: ViewSpec.messages(MessagesSpec.forChat(chatId: item.chatId)),

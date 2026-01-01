@@ -89,6 +89,24 @@ class WorkingDatabase extends _$WorkingDatabase {
         await _addGlobalMessageIndexTable(m);
       }
       if (from < 17) {
+        // Create new canonical handles tables
+        await m.createTable(handlesCanonical);
+        await m.createTable(handlesCanonicalToAlias);
+
+        // Migrate existing handles to canonical table
+        // Note: We assume schema compatibility as previous migrations (v6-v11)
+        // have aligned 'handles' with 'handles_canonical' structure.
+        await customStatement('''
+          INSERT INTO handles_canonical (
+            id, raw_identifier, display_name, compound_identifier, service,
+            is_ignored, is_visible, is_blacklisted, country, last_seen_utc, batch_id
+          )
+          SELECT 
+            id, raw_identifier, display_name, compound_identifier, service,
+            is_ignored, is_visible, is_blacklisted, country, last_seen_utc, batch_id
+          FROM handles
+        ''');
+
         await customStatement('DROP TABLE IF EXISTS handles');
       }
       // Note: contact_message_index population deferred to HandlesMigrationService
@@ -669,9 +687,9 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_reactions_carrier ON reactions(carrier_message_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_handle ON handle_to_participant(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_handle_to_participant_participant ON handle_to_participant(participant_id)',
-  'CREATE INDEX IF NOT EXISTS idx_handles_compound ON handles(compound_identifier)',
-  'CREATE INDEX IF NOT EXISTS idx_handles_blacklist ON handles(is_blacklisted, service)',
-  'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles(batch_id)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_compound ON handles_canonical(compound_identifier)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_blacklist ON handles_canonical(is_blacklisted, service)',
+  'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles_canonical(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_chat_to_handle_handle ON chat_to_handle(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_handles_canonical_to_alias_canonical ON handles_canonical_to_alias(canonical_handle_id)',
 ];
@@ -740,7 +758,7 @@ const List<String> _workingVirtualAndTriggerStatements = [
     p.display_name AS sender_name,
     rc.love, rc.like, rc.dislike, rc.laugh, rc.emphasize, rc.question
   FROM messages m
-  LEFT JOIN handles h ON h.id = m.sender_handle_id
+  LEFT JOIN handles_canonical h ON h.id = m.sender_handle_id
   LEFT JOIN handle_to_participant htp ON htp.handle_id = m.sender_handle_id
   LEFT JOIN participants p ON p.id = htp.participant_id
   LEFT JOIN reaction_counts rc ON rc.message_guid = m.guid;

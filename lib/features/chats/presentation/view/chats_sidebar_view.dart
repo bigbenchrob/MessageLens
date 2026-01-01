@@ -12,6 +12,7 @@ import '../../../../essentials/navigation/domain/entities/features/chats_spec.da
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../application/chats_by_age_provider.dart';
 import '../view_model/chat_list_header_provider.dart';
@@ -91,7 +92,7 @@ class ChatsSidebarView extends HookConsumerWidget {
     );
 
     // Watch the center panel to determine which chat is currently selected
-    final panelState = ref.watch(panelsViewStateProvider);
+    final panelState = ref.watch(panelsViewStateProvider(SidebarMode.messages));
     final centerStack = panelState[WindowPanel.center];
     final centerSpec = centerStack?.activePage?.spec;
 

@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/sidebar_utility_cassette_spec.dart';
 import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import '../../features/settings/presentation/cassettes/settings_menu_cassette.dart';
 import './application/cassette_builders/top_chat_menu_builder_provider.dart';
 
 part 'feature_level_providers.g.dart';
@@ -22,6 +23,13 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
       topChatMenu: (selectedChoice) {
         final content = ref.read(topChatMenuBuilderProvider(spec));
         return CassetteCardView(title: '', child: content, isControl: true);
+      },
+      settingsMenu: (selectedChoice) {
+        return CassetteCardView(
+          title: 'Settings',
+          child: SettingsMenuCassette(spec: spec),
+          isControl: true,
+        );
       },
     );
   }

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../../domain/sidebar_mode.dart';
 
 part 'panels_view_state_provider.g.dart';
 
@@ -14,7 +15,7 @@ class PanelsViewState extends _$PanelsViewState {
   /// center panel participates in the layout, but we keep the map structure so
   /// future multi-panel scenarios can reuse this state without breaking APIs.
   @override
-  Map<WindowPanel, PanelStack> build() {
+  Map<WindowPanel, PanelStack> build(SidebarMode mode) {
     return {WindowPanel.center: const PanelStack.empty()};
   }
 

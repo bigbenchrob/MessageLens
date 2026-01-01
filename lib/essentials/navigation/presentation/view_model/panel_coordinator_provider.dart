@@ -6,13 +6,13 @@ import '../../../../features/messages/feature_level_providers.dart';
 import '../../../../features/settings/presentation/view/settings_panel_view.dart';
 import '../../../db_importers/presentation/view/db_import_control_panel.dart';
 import '../../../db_importers/presentation/view_model/db_import_control_provider.dart';
-
 import '../../../workbench/presentation/view/workbench_panel_view.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../../domain/sidebar_mode.dart';
 import '../../feature_level_providers.dart';
 import '../view/panel_stack_surface.dart';
 
@@ -22,8 +22,8 @@ part 'panel_coordinator_provider.g.dart';
 @riverpod
 class PanelCoordinator extends _$PanelCoordinator {
   @override
-  void build() {
-    ref.listen<Map<WindowPanel, PanelStack>>(panelsViewStateProvider, (
+  void build(SidebarMode mode) {
+    ref.listen<Map<WindowPanel, PanelStack>>(panelsViewStateProvider(mode), (
       previous,
       next,
     ) {

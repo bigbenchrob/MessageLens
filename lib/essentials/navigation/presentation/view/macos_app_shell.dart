@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../providers.dart';
 
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
+import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
@@ -17,8 +17,9 @@ import '../../domain/entities/features/settings_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
+import '../../domain/sidebar_mode.dart';
 import '../../feature_level_providers.dart';
-import '../view_model/panel_widget_providers.dart';
+import 'workspace_layout.dart';
 
 /// macOS window with a fixed navigation column and primary content canvas.
 class MacosAppShell extends ConsumerStatefulWidget {
@@ -120,15 +121,19 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             mainAxisSize: MainAxisSize.min,
             children: [
               MacosTooltip(
-                message: 'Settings',
+                message: 'Messages',
                 useMousePosition: false,
                 child: MacosIconButton(
                   icon: MacosIcon(
-                    CupertinoIcons.gear_alt,
-                    color: MacosTheme.brightnessOf(context).resolve(
-                      const Color.fromRGBO(0, 0, 0, 0.65),
-                      const Color.fromRGBO(255, 255, 255, 0.75),
-                    ),
+                    CupertinoIcons.bubble_left_bubble_right,
+                    color:
+                        ref.watch(activeSidebarModeProvider) ==
+                            SidebarMode.messages
+                        ? MacosTheme.of(context).primaryColor
+                        : MacosTheme.brightnessOf(context).resolve(
+                            const Color.fromRGBO(0, 0, 0, 0.65),
+                            const Color.fromRGBO(255, 255, 255, 0.75),
+                          ),
                     size: 18,
                   ),
                   boxConstraints: const BoxConstraints(
@@ -138,6 +143,39 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     maxHeight: 38,
                   ),
                   onPressed: () {
+                    ref
+                        .read(activeSidebarModeProvider.notifier)
+                        .setMode(SidebarMode.messages);
+                  },
+                ),
+              ),
+              MacosTooltip(
+                message: 'Settings',
+                useMousePosition: false,
+                child: MacosIconButton(
+                  icon: MacosIcon(
+                    CupertinoIcons.gear_alt,
+                    color:
+                        ref.watch(activeSidebarModeProvider) ==
+                            SidebarMode.settings
+                        ? MacosTheme.of(context).primaryColor
+                        : MacosTheme.brightnessOf(context).resolve(
+                            const Color.fromRGBO(0, 0, 0, 0.65),
+                            const Color.fromRGBO(255, 255, 255, 0.75),
+                          ),
+                    size: 18,
+                  ),
+                  boxConstraints: const BoxConstraints(
+                    minHeight: 20,
+                    minWidth: 20,
+                    maxWidth: 48,
+                    maxHeight: 38,
+                  ),
+                  onPressed: () {
+                    ref
+                        .read(activeSidebarModeProvider.notifier)
+                        .setMode(SidebarMode.settings);
+
                     const spec = ViewSpec.settings(
                       SettingsSpec.contactShortNames(),
                     );
@@ -151,7 +189,11 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                         );
 
                     ref
-                        .read(panelsViewStateProvider.notifier)
+                        .read(
+                          panelsViewStateProvider(
+                            SidebarMode.settings,
+                          ).notifier,
+                        )
                         .show(panel: WindowPanel.center, spec: spec);
                   },
                 ),
@@ -205,6 +247,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               label: 'Chats',
               icon: const MacosIcon(CupertinoIcons.chat_bubble_2),
               onPressed: () {
+                ref
+                    .read(activeSidebarModeProvider.notifier)
+                    .setMode(SidebarMode.messages);
+
                 const spec = ViewSpec.chats(ChatsSpec.recent(limit: null));
 
                 // Log the navigation action
@@ -218,7 +264,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
                 // Perform the navigation
                 ref
-                    .read(panelsViewStateProvider.notifier)
+                    .read(
+                      panelsViewStateProvider(SidebarMode.messages).notifier,
+                    )
                     .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
@@ -227,6 +275,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               label: 'Contacts',
               icon: const MacosIcon(CupertinoIcons.person_2),
               onPressed: () {
+                ref
+                    .read(activeSidebarModeProvider.notifier)
+                    .setMode(SidebarMode.messages);
+
                 const spec = ViewSpec.contacts(ContactsSpec.list());
 
                 // Log the navigation action
@@ -240,7 +292,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
                 // Perform the navigation
                 ref
-                    .read(panelsViewStateProvider.notifier)
+                    .read(
+                      panelsViewStateProvider(SidebarMode.messages).notifier,
+                    )
                     .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
@@ -249,6 +303,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               label: 'Import',
               icon: const MacosIcon(CupertinoIcons.square_arrow_down),
               onPressed: () {
+                ref
+                    .read(activeSidebarModeProvider.notifier)
+                    .setMode(SidebarMode.messages);
+
                 const spec = ViewSpec.import(ImportSpec.forImport());
 
                 // Log the navigation action
@@ -262,7 +320,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
                 // Perform the navigation
                 ref
-                    .read(panelsViewStateProvider.notifier)
+                    .read(
+                      panelsViewStateProvider(SidebarMode.messages).notifier,
+                    )
                     .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
@@ -271,6 +331,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               label: 'Workbench',
               icon: const MacosIcon(CupertinoIcons.hammer),
               onPressed: () {
+                ref
+                    .read(activeSidebarModeProvider.notifier)
+                    .setMode(SidebarMode.messages);
+
                 const spec = ViewSpec.workbench(WorkbenchSpec.panel());
 
                 ref
@@ -282,7 +346,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                     );
 
                 ref
-                    .read(panelsViewStateProvider.notifier)
+                    .read(
+                      panelsViewStateProvider(SidebarMode.messages).notifier,
+                    )
                     .show(panel: WindowPanel.center, spec: spec);
               },
               showLabel: false,
@@ -292,30 +358,12 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         children: [
           ContentArea(
             builder: (context, scrollController) {
-              final colors = ref.watch(themeColorsProvider.notifier);
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: _navigationColumnWidth,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: colors.surfaces.contentControl,
-                        border: Border(
-                          right: BorderSide(
-                            color: colors.lines.contentControlDivider,
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: ref.watch(leftPanelWidgetProvider),
-                    ),
-                  ),
-                  Expanded(
-                    child: Stack(
-                      children: [ref.watch(centerPanelWidgetProvider)],
-                    ),
-                  ),
+              final activeMode = ref.watch(activeSidebarModeProvider);
+              return IndexedStack(
+                index: activeMode == SidebarMode.messages ? 0 : 1,
+                children: const [
+                  WorkspaceLayout(mode: SidebarMode.messages),
+                  WorkspaceLayout(mode: SidebarMode.settings),
                 ],
               );
             },

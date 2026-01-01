@@ -1,4 +1,3 @@
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
@@ -6,6 +5,7 @@ import '../../../../essentials/navigation/domain/entities/features/contacts_list
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
@@ -33,7 +33,7 @@ class CassetteViewModel extends _$CassetteViewModel {
 
     // Update sidebar cassette stack
     ref
-        .read(cassetteRackStateProvider.notifier)
+        .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
         .updateSpecAndChild(
           CassetteSpec.contacts(currentSpec),
           CassetteSpec.contacts(updatedSpec),
@@ -47,7 +47,7 @@ class CassetteViewModel extends _$CassetteViewModel {
       // Show their messages in the center panel
       // scrolled to the most recent (scrollToDate: null means scroll to bottom)
       ref
-          .read(panelsViewStateProvider.notifier)
+          .read(panelsViewStateProvider(SidebarMode.messages).notifier)
           .show(
             panel: WindowPanel.center,
             spec: ViewSpec.messages(

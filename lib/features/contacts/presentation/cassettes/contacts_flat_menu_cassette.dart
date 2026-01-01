@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart';
 import '../view_model/cassette_view_model.dart';
@@ -25,14 +25,16 @@ class ContactsFlatMenuCassette extends ConsumerWidget {
       recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
+      settings: (_) => null,
     );
 
     if (contacts.isEmpty) {
       return const _EmptyState();
     }
 
-    final bbc = AppTheme.bbc(context);
-    final typography = MacosTheme.of(context).typography;
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -53,7 +55,7 @@ class ContactsFlatMenuCassette extends ConsumerWidget {
                   );
             },
             typography: typography,
-            colors: bbc,
+            colors: colors,
           );
         }).toList(),
       ),
@@ -73,8 +75,8 @@ class _FlatContactRow extends StatelessWidget {
   final ContactSummary contact;
   final bool isSelected;
   final VoidCallback onTap;
-  final MacosTypography typography;
-  final BbcColors colors;
+  final ThemeTypography typography;
+  final ThemeColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -84,10 +86,10 @@ class _FlatContactRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? colors.bbcPrimaryOne.withValues(alpha: 0.12)
+              ? colors.accents.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           border: Border(
-            bottom: BorderSide(color: colors.bbcBorderSubtle, width: 0.5),
+            bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
           ),
         ),
         child: Row(
@@ -106,7 +108,7 @@ class _FlatContactRow extends StatelessWidget {
               Icon(
                 CupertinoIcons.checkmark_alt,
                 size: 14,
-                color: colors.bbcPrimaryOne,
+                color: colors.accents.primary,
               ),
             ],
           ],
@@ -116,20 +118,21 @@ class _FlatContactRow extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends ConsumerWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) {
-    final bbc = AppTheme.bbc(context);
-    final typography = MacosTheme.of(context).typography;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: Center(
         child: Text(
           'No contacts available',
-          style: typography.body.copyWith(color: bbc.bbcSubheadText),
+          style: typography.body.copyWith(color: colors.content.textTertiary),
         ),
       ),
     );

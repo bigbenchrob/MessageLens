@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:remember_this_text/features/search/application/search_service.dart';
-import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
+import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../search/application/search_service.dart';
 import '../../../infrastructure/data_sources/global_message_index_data_source.dart';
 import '../shared/hydration/messages_for_handle_provider.dart';
 import 'jump/global_messages_ordinal_provider.dart';

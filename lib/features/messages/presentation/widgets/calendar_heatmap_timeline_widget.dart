@@ -5,6 +5,7 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
 
@@ -217,7 +218,7 @@ class _MonthCell extends StatelessWidget {
     // Always navigate with forChatInDateRange
     // The view will detect if it's the same chat and just scroll instead of reloading
     ref
-        .read(panelsViewStateProvider.notifier)
+        .read(panelsViewStateProvider(SidebarMode.messages).notifier)
         .show(
           panel: WindowPanel.center,
           spec: ViewSpec.messages(

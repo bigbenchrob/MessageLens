@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-// Pull in macOS‑specific colors for a more subtle border.
-import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../../config/theme/theme.dart';
+
+import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/theme_typography.dart';
 
 /// A reusable card container for sidebar cassette widgets.
@@ -53,18 +52,17 @@ class SidebarCassetteCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final typography = ref.watch(themeTypographyProvider);
-    final bbc = AppTheme.bbc(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     // Resolve a macOS control colour for the card background.  The control
     // colour is used by Apple to paint surfaces of controls and has a subtle
     // translucency (10% black on light mode, 25% white on dark mode).  Using
     // this as the card background keeps the look consistent with macOS
     // components without relying on the Material colour scheme.
-    final backgroundColor = MacosDynamicColor.resolve(
-      MacosColors.controlBackgroundColor,
-      context,
-    );
+    final backgroundColor = colors.cassetteCard(CassetteCard.background);
 
-    final sidebarBackgroundColor = bbc.bbcSidebarBackground;
+    final sidebarBackgroundColor = colors.surfaces.contentControl;
 
     // Use a lighter, macOS‑style separator colour for the card border.  If the
     // current theme is dark, use the dark variant of the separator colour;
@@ -75,16 +73,10 @@ class SidebarCassetteCard extends ConsumerWidget {
     // separator colour, making the border far less prominent.  We resolve
     // it against the current context to pick the appropriate light/dark
     // variant automatically.
-    final borderColor = MacosDynamicColor.resolve(
-      MacosColors.quaternaryLabelColor,
-      context,
-    );
+    final borderColor = colors.lines.borderSubtle;
 
     final controlBackgroundColor = Color.alphaBlend(
-      MacosDynamicColor.resolve(
-        MacosColors.controlColor,
-        context,
-      ).withValues(alpha: 0.12),
+      colors.surfaces.control.withValues(alpha: 0.12),
       sidebarBackgroundColor,
     );
 
@@ -114,7 +106,15 @@ class SidebarCassetteCard extends ConsumerWidget {
             color: effectiveBackgroundColor,
             borderRadius: BorderRadius.circular(effectiveBorderRadius),
             border: isControl ? null : Border.all(color: effectiveBorderColor),
-            boxShadow: isControl ? const [] : bbc.bbcCardShadow,
+            boxShadow: isControl
+                ? const []
+                : [
+                    BoxShadow(
+                      color: colors.cassetteCard(CassetteCard.shadow),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Padding(
             padding: effectivePadding,
@@ -126,10 +126,7 @@ class SidebarCassetteCard extends ConsumerWidget {
                   if (hasTitle) Text(title, style: typography.vizInstruction),
                   if (hasSubtitle) ...[
                     if (hasTitle) const SizedBox(height: 6),
-                    Text(
-                      subtitle!,
-                      style: AppTheme.cassetteHeaderSubtitleStyle(context),
-                    ),
+                    Text(subtitle!, style: typography.caption),
                   ],
                   const SizedBox(height: 12),
                 ],

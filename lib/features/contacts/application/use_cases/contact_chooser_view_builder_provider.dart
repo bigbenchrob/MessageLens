@@ -6,7 +6,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../../../constants/domain/contact_constants.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
@@ -123,12 +123,14 @@ class _CombinedContactPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bbc = AppTheme.bbc(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     final selectedContactId = spec.when(
       recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
+      settings: (_) => null,
     );
 
     return Column(
@@ -164,7 +166,7 @@ class _CombinedContactPicker extends ConsumerWidget {
           padding: const EdgeInsets.only(top: 2, bottom: 14),
           child: Container(
             height: 1,
-            color: bbc.bbcBorderSubtle.withValues(alpha: 0.8),
+            color: colors.lines.borderSubtle.withValues(alpha: 0.8),
           ),
         ),
 
@@ -203,13 +205,12 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = MacosTheme.of(context);
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
-    final bbc = AppTheme.bbc(context);
+    final typography = ref.watch(themeTypographyProvider);
 
     final hoverColor = colors.accents.primary.withValues(alpha: 0.15);
-    final selectedColor = bbc.bbcPrimaryOne.withValues(alpha: 0.12);
+    final selectedColor = colors.accents.primary.withValues(alpha: 0.12);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -226,7 +227,7 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
                 ? hoverColor
                 : Colors.transparent,
             border: Border(
-              bottom: BorderSide(color: bbc.bbcBorderSubtle, width: 0.5),
+              bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
             ),
           ),
           child: Row(
@@ -234,7 +235,7 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
               Expanded(
                 child: Text(
                   widget.displayName,
-                  style: theme.typography.body.copyWith(
+                  style: typography.body.copyWith(
                     fontWeight: widget.isSelected
                         ? FontWeight.w600
                         : FontWeight.w400,
@@ -247,7 +248,7 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
                 Icon(
                   CupertinoIcons.checkmark_alt,
                   size: 14,
-                  color: bbc.bbcPrimaryOne,
+                  color: colors.accents.primary,
                 ),
               ],
             ],

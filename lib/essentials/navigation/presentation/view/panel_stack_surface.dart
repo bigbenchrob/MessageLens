@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/navigation_constants.dart';
 import '../../feature_level_providers.dart';
@@ -69,6 +70,7 @@ class _PanelTabStrip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final tabs = stack.pages;
+    final mode = ref.watch(activeSidebarModeProvider);
 
     return Material(
       color: theme.colorScheme.surface,
@@ -87,13 +89,13 @@ class _PanelTabStrip extends ConsumerWidget {
               closable: page.isClosable,
               onSelect: () {
                 ref
-                    .read(panelsViewStateProvider.notifier)
+                    .read(panelsViewStateProvider(mode).notifier)
                     .activate(panel: panel, index: index);
               },
               onClose: page.isClosable
                   ? () {
                       ref
-                          .read(panelsViewStateProvider.notifier)
+                          .read(panelsViewStateProvider(mode).notifier)
                           .closeAt(panel: panel, index: index);
                     }
                   : null,

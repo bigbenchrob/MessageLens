@@ -1,0 +1,42 @@
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../domain/sidebar_mode.dart';
+import '../view_model/panel_widget_providers.dart';
+
+class WorkspaceLayout extends ConsumerWidget {
+  const WorkspaceLayout({super.key, required this.mode});
+
+  final SidebarMode mode;
+
+  static const double _navigationColumnWidth = 320;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = ref.watch(themeColorsProvider.notifier);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: _navigationColumnWidth,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.surfaces.contentControl,
+              border: Border(
+                right: BorderSide(
+                  color: colors.lines.contentControlDivider,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: ref.watch(leftPanelWidgetProvider(mode)),
+          ),
+        ),
+        Expanded(
+          child: Stack(children: [ref.watch(centerPanelWidgetProvider(mode))]),
+        ),
+      ],
+    );
+  }
+}

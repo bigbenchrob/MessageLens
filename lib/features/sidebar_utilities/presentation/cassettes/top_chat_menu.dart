@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
 import '../../../../config/theme/theme_typography.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 
@@ -41,7 +42,10 @@ class TopChatMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const choices = TopChatMenuChoice.values;
     final spec = this.spec;
-    final selectedChoice = spec.when(topChatMenu: (choice) => choice);
+    final selectedChoice = spec.when(
+      topChatMenu: (choice) => choice,
+      settingsMenu: (_) => TopChatMenuChoice.contacts, // Should not happen
+    );
 
     // Get accent color for chevron emphasis
     final colors = ref.watch(themeColorsProvider.notifier);
@@ -51,11 +55,12 @@ class TopChatMenu extends ConsumerWidget {
       final updatedSidebarSpec = spec.when(
         topChatMenu: (_) =>
             SidebarUtilityCassetteSpec.topChatMenu(selectedChoice: newChoice),
+        settingsMenu: (_) => spec, // No-op
       );
       final oldCassetteSpec = CassetteSpec.sidebarUtility(spec);
       final newCassetteSpec = CassetteSpec.sidebarUtility(updatedSidebarSpec);
       ref
-          .read(cassetteRackStateProvider.notifier)
+          .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
           .updateSpecAndChild(oldCassetteSpec, newCassetteSpec);
     }
 
