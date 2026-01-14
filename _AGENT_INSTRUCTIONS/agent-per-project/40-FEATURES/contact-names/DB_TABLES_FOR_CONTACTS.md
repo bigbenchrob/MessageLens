@@ -22,11 +22,13 @@ This database stores the "source of truth" data projected from macOS AddressBook
 This database stores user-specific customizations that persist across imports. This is where user-modifiable names should live.
 
 ### Table: `participant_overrides` (`ParticipantOverrides`)
-*   **Purpose:** Stores user edits that override the system data.
+*   **Purpose:** Stores user edits that override the system data (naming preferences, custom labels).
 *   **Key Columns:**
     *   `participantId` (PK): Foreign key to `working.participants.id`.
-    *   `shortName`: Currently stores a user-defined short name.
-    *   **Note:** There is currently **no** `displayName` column in this table. To support custom display names, a `displayName` column would need to be added here.
+    *   `nameMode`: Nullable; when null the participant inherits global naming defaults, otherwise the stored enum value drives display.
+    *   `nickname`: User-provided short form name. If present it is used for every “short name” lookup; otherwise the UI falls back to the working projection’s auto-derived short name so users still get initials without extra setup.
+    *   `displayNameOverride`: Optional full display name override (e.g. “Dad (Mobile)”).
+    *   `createdAtUtc` / `updatedAtUtc`: ISO8601 audit fields maintained by `insertOnConflictUpdate` helpers.
 
 ### Table: `virtual_participants` (`VirtualParticipants`)
 *   **Purpose:** Contacts created manually by the user (not in AddressBook).
@@ -38,16 +40,18 @@ This database stores user-specific customizations that persist across imports. T
 
 These functions are located in `OverlayDatabase` (`lib/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart`).
 
-### Existing Functions (for `shortName`)
+### Existing Functions (for naming overrides)
 
-*   **`setParticipantShortName(int participantId, String? shortName)`**
-    *   **Action:** Inserts or updates a row in `participant_overrides`.
-    *   **Logic:** Uses `insertOnConflictUpdate` to handle both creation and modification.
-    *   **Timestamping:** Automatically sets `createdAtUtc` and `updatedAtUtc`.
-
-*   **`getAllShortNamesByKey()`**
-    *   **Action:** Retrieves all overrides to be merged with working data in memory.
-    *   **Return:** `Map<String, String>` (Key: `participant:<id>`, Value: `shortName`).
+*   **`setParticipantNickname(int participantId, String? nickname)`**
+    *   **Action:** Inserts or updates `participant_overrides` with the user’s preferred short name.
+    *   **Logic:** Uses `insertOnConflictUpdate` so timestamps stay current and null clears the nickname.
+*   **`setParticipantDisplayNameOverride(int participantId, String? displayName)`**
+    *   **Action:** Persists a full-name override while keeping the row sparse when cleared.
+*   **`setParticipantNameMode(int participantId, ParticipantNameMode? mode)`**
+    *   **Action:** Controls whether a participant follows global name rules or a custom mode.
+*   **`getAllNicknamesByKey()`**
+    *   **Action:** Retrieves all stored nicknames for fast overlay/working merge.
+    *   **Return:** `Map<String, String>` (Key: `participant:<id>`, Value: `nickname`).
 
 ### For Virtual Participants
 

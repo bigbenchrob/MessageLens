@@ -26,7 +26,7 @@ final contactsCassetteCoordinatorProvider =
 
 typedef _$ContactsCassetteCoordinator = AutoDisposeNotifier<void>;
 String _$contactsSettingsCassetteCoordinatorHash() =>
-    r'8b3d82191ae3ca4d7078524fa28157db7e606230';
+    r'08156a20d2d607ffb489490b8b1ef57064fc4ca7';
 
 /// Coordinator that maps [ContactsSettingsSpec] to cassette widgets.
 ///

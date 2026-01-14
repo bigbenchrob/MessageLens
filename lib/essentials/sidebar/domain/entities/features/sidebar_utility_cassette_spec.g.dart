@@ -42,7 +42,7 @@ _$SidebarUtilityCassetteSpecSettingsMenuFromJson(Map<String, dynamic> json) =>
             _$SettingsMenuChoiceEnumMap,
             json['selectedChoice'],
           ) ??
-          SettingsMenuChoice.general,
+          SettingsMenuChoice.contacts,
       $type: json['runtimeType'] as String?,
     );
 
@@ -53,8 +53,4 @@ Map<String, dynamic> _$SidebarUtilityCassetteSpecSettingsMenuToJson(
   'runtimeType': instance.$type,
 };
 
-const _$SettingsMenuChoiceEnumMap = {
-  SettingsMenuChoice.general: 'general',
-  SettingsMenuChoice.appearance: 'appearance',
-  SettingsMenuChoice.contactShortNames: 'contactShortNames',
-};
+const _$SettingsMenuChoiceEnumMap = {SettingsMenuChoice.contacts: 'contacts'};

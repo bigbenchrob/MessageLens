@@ -39,8 +39,9 @@ Future<ContactProfileSummary?> contactProfile(
     )..where((tbl) => tbl.participantId.equals(contactId))).getSingleOrNull();
 
     final displayName = participantRow.displayName;
-    final shortName = (overrideRow?.shortName?.trim().isNotEmpty ?? false)
-        ? overrideRow!.shortName!.trim()
+    final nickname = overrideRow?.nickname?.trim();
+    final shortName = (nickname?.isNotEmpty ?? false)
+        ? nickname!
         : participantRow.shortName.trim().isEmpty
         ? participantRow.displayName
         : participantRow.shortName;

@@ -4,9 +4,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
 import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import 'application/cassette_builders/contact_short_names_cassette_builder_provider.dart';
 import 'application/use_cases/contact_chooser_view_builder_provider.dart';
 import 'presentation/cassettes/contact_hero_summary_cassette.dart';
-import 'presentation/cassettes/settings/contact_short_names_settings_cassette.dart';
+
+export 'application/settings/contact_name_mode_provider.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -53,11 +55,7 @@ class ContactsSettingsCassetteCoordinator
 
   CassetteCardView buildForSpec(ContactsSettingsSpec spec) {
     return spec.when(
-      shortNames: () => const CassetteCardView(
-        title: 'Short Names',
-        subtitle: 'Configure how contact names are displayed.',
-        child: ContactShortNamesSettingsCassette(),
-      ),
+      shortNames: () => ref.read(contactShortNamesCassetteBuilderProvider),
     );
   }
 }

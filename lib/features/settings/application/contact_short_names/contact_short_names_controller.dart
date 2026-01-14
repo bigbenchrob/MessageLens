@@ -10,7 +10,7 @@ class ContactShortNames extends _$ContactShortNames {
   @override
   Future<Map<String, String>> build() async {
     final overlayDb = await ref.watch(overlayDatabaseProvider.future);
-    return overlayDb.getAllShortNamesByKey();
+    return overlayDb.getAllNicknamesByKey();
   }
 
   Future<void> setShortName({
@@ -38,18 +38,18 @@ class ContactShortNames extends _$ContactShortNames {
     if (trimmed == null || trimmed.isEmpty) {
       await overlayDb.deleteParticipantOverride(participantId);
     } else {
-      await overlayDb.setParticipantShortName(participantId, trimmed);
+      await overlayDb.setParticipantNickname(participantId, trimmed);
     }
 
     // Reload state from database
-    final updated = await overlayDb.getAllShortNamesByKey();
+    final updated = await overlayDb.getAllNicknamesByKey();
     state = AsyncData(updated);
   }
 
   Future<void> refresh() async {
     final overlayDb = await ref.watch(overlayDatabaseProvider.future);
     state = const AsyncLoading<Map<String, String>>().copyWithPrevious(state);
-    final latest = await overlayDb.getAllShortNamesByKey();
+    final latest = await overlayDb.getAllNicknamesByKey();
     state = AsyncData(latest);
   }
 }

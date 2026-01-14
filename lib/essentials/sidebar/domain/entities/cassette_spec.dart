@@ -82,11 +82,7 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
       },
       settingsMenu: (selectedChoice) {
         switch (selectedChoice) {
-          case SettingsMenuChoice.general:
-            return null;
-          case SettingsMenuChoice.appearance:
-            return null;
-          case SettingsMenuChoice.contactShortNames:
+          case SettingsMenuChoice.contacts:
             return const CassetteSpec.contacts(
               ContactsCassetteSpec.settings(ContactsSettingsSpec.shortNames()),
             );

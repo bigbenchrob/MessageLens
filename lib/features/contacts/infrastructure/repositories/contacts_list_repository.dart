@@ -121,6 +121,26 @@ Future<List<ContactSummary>> contactsListRepository(
 
     final override = participantOverrides[participant.id];
 
+    final displayName = () {
+      final custom = override?.displayNameOverride?.trim();
+      if (custom != null && custom.isNotEmpty) {
+        return custom;
+      }
+      return participant.displayName;
+    }();
+
+    final shortName = () {
+      final nickname = override?.nickname?.trim();
+      if (nickname != null && nickname.isNotEmpty) {
+        return nickname;
+      }
+      final derived = participant.shortName.trim();
+      if (derived.isNotEmpty) {
+        return derived;
+      }
+      return displayName;
+    }();
+
     final origin =
         override != null ||
             (overlayHandleIds != null && overlayHandleIds.isNotEmpty)
@@ -130,8 +150,8 @@ Future<List<ContactSummary>> contactsListRepository(
     workingSummaries.add(
       ContactSummary(
         participantId: participant.id,
-        displayName: participant.displayName,
-        shortName: override?.shortName ?? participant.shortName,
+        displayName: displayName,
+        shortName: shortName,
         totalChats: metrics.totalChats,
         totalMessages: metrics.totalMessages,
         lastMessageDate: metrics.lastMessageDate,

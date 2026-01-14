@@ -62,13 +62,31 @@ Future<List<ParticipantForPicker>> participantsForPicker(
   final participantOverrides = await participantOverridesById(overlayDb);
 
   final workingEntries = sanitizedWorkingParticipants
-      .map(
-        (participant) => ParticipantForPicker(
+      .map((participant) {
+        final override = participantOverrides[participant.id];
+        final displayName = () {
+          final custom = override?.displayNameOverride?.trim();
+          if (custom != null && custom.isNotEmpty) {
+            return custom;
+          }
+          return participant.displayName;
+        }();
+        final shortName = () {
+          final nickname = override?.nickname?.trim();
+          if (nickname != null && nickname.isNotEmpty) {
+            return nickname;
+          }
+          final derived = participant.shortName.trim();
+          if (derived.isNotEmpty) {
+            return derived;
+          }
+          return displayName;
+        }();
+
+        return ParticipantForPicker(
           id: participant.id,
-          displayName: participant.displayName,
-          shortName:
-              participantOverrides[participant.id]?.shortName ??
-              participant.shortName,
+          displayName: displayName,
+          shortName: shortName,
           handleCount: workingHandleCounts[participant.id] ?? 0,
           origin:
               participantOverrides.containsKey(participant.id) ||
@@ -76,8 +94,8 @@ Future<List<ParticipantForPicker>> participantsForPicker(
                       false)
               ? ParticipantOrigin.overlayOverride
               : ParticipantOrigin.working,
-        ),
-      )
+        );
+      })
       .toList(growable: false);
 
   final virtualEntries =

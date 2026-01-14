@@ -280,7 +280,7 @@ as TopChatMenuChoice,
 @JsonSerializable()
 
 class _SidebarUtilityCassetteSpecSettingsMenu implements SidebarUtilityCassetteSpec {
-  const _SidebarUtilityCassetteSpecSettingsMenu({this.selectedChoice = SettingsMenuChoice.general, final  String? $type}): $type = $type ?? 'settingsMenu';
+  const _SidebarUtilityCassetteSpecSettingsMenu({this.selectedChoice = SettingsMenuChoice.contacts, final  String? $type}): $type = $type ?? 'settingsMenu';
   factory _SidebarUtilityCassetteSpecSettingsMenu.fromJson(Map<String, dynamic> json) => _$SidebarUtilityCassetteSpecSettingsMenuFromJson(json);
 
 @override@JsonKey() final  SettingsMenuChoice selectedChoice;

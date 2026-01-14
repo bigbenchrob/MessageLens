@@ -5,6 +5,8 @@ class CassetteCardView {
   const CassetteCardView({
     required this.title,
     this.subtitle,
+    this.sectionTitle,
+    this.footerText,
     required this.child,
     this.isControl = false,
     bool? shouldExpand,
@@ -15,6 +17,9 @@ class CassetteCardView {
 
   /// Optional descriptive text shown below the title.
   final String? subtitle;
+
+  final String? sectionTitle;
+  final String? footerText;
 
   /// The cassette content widget rendered inside the card.
   final Widget child;

@@ -80,7 +80,7 @@ void main() {
               ),
             );
 
-        await overlayDb.setParticipantShortName(
+        await overlayDb.setParticipantNickname(
           workingParticipantId,
           'Preferred Existing',
         );

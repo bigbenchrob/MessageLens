@@ -43,7 +43,7 @@ void main() {
     expect(stored['participant:123'], 'Claire');
 
     // Verify in database by querying participant overrides
-    final allShortNames = await testDb.getAllShortNamesByKey();
+    final allShortNames = await testDb.getAllNicknamesByKey();
     expect(allShortNames['participant:123'], 'Claire');
 
     // Clear by setting to empty string
@@ -54,7 +54,7 @@ void main() {
 
   test('refresh re-reads values from storage', () async {
     // Add short name directly to database
-    await testDb.setParticipantShortName(1, 'CJ');
+    await testDb.setParticipantNickname(1, 'CJ');
 
     final notifier = container.read(contactShortNamesProvider.notifier);
     await notifier.refresh();

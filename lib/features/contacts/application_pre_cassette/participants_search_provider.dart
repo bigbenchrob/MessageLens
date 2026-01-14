@@ -65,11 +65,29 @@ Future<List<ParticipantSearchResult>> participantsSearch(
           .map((participant) {
             final override = participantOverrides[participant.id];
             final overlayHandles = overlayHandlesByParticipant[participant.id];
+            final displayName = () {
+              final custom = override?.displayNameOverride?.trim();
+              if (custom != null && custom.isNotEmpty) {
+                return custom;
+              }
+              return participant.displayName;
+            }();
+            final shortName = () {
+              final nickname = override?.nickname?.trim();
+              if (nickname != null && nickname.isNotEmpty) {
+                return nickname;
+              }
+              final derived = participant.shortName.trim();
+              if (derived.isNotEmpty) {
+                return derived;
+              }
+              return displayName;
+            }();
 
             return ParticipantSearchResult(
               id: participant.id,
-              displayName: participant.displayName,
-              shortName: override?.shortName ?? participant.shortName,
+              displayName: displayName,
+              shortName: shortName,
               origin: override != null || (overlayHandles?.isNotEmpty ?? false)
                   ? ParticipantOrigin.overlayOverride
                   : ParticipantOrigin.working,

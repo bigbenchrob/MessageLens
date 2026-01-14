@@ -27,7 +27,7 @@ This directory captures Remember Every Text–specific documentation that comple
 | `40-FEATURES/` | Shipped feature documentation with reusable templates | [`README.md`](40-FEATURES/README.md), `*/CHARTER.md`, `*/DOMAIN_AND_DATA_MAP.md`, `*/STATE_AND_PROVIDER_INVENTORY.md`, `*/INTERACTIONS_AND_NAVIGATION.md`, `*/TESTING_AND_MONITORING.md`, `*/WORK_LOG.md` |
 | `50-USE-CASE-ILLUSTRATIONS/` | Narrative walkthroughs of cross-layer behaviour | [`README.md`](50-USE-CASE-ILLUSTRATIONS/README.md), [`manual-handle-to-contact-linking.md`](50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md) |
 | `60-NAVIGATION/` | ViewSpec-based navigation patterns and panel coordination | [`navigation-overview.md`](60-NAVIGATION/navigation-overview.md) |
-| `70-CASSETTE-CONTENT-CONTROL/` | Where UI cassette choices are decided (responsibility boundaries) | [`00-cassette-choice-flow-and-responsibilities.md`](70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md) |
+| `70-CASSETTE-CONTENT-CONTROL/` | Where UI cassette choices are decided (responsibility boundaries) | [`00-cassette-choice-flow-and-responsibilities.md`](70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md), [`03-cassette-card-design-guidelines.md`](70-CASSETTE-CONTENT-CONTROL/03-cassette-card-design-guidelines.md) |
 
 ## Workflow Expectations
 

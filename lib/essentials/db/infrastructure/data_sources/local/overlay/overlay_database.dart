@@ -1,6 +1,8 @@
 import 'package:characters/characters.dart';
 import 'package:drift/drift.dart';
 
+import '../../../../domain/overlay_db_constants.dart';
+
 part 'overlay_database.g.dart';
 
 /// Overlay database for user preferences and customizations (user_overlays.db).
@@ -28,65 +30,105 @@ class OverlayDatabase extends _$OverlayDatabase {
     onCreate: (Migrator m) async {
       await m.createAll();
     },
-    onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 2) {
-        await m.createTable(virtualParticipants);
-        await m.createTable(overlaySettings);
-      }
-      if (from < 3) {
-        await m.createTable(favoriteContacts);
-        // Create index for efficient ordering
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_favorite_contacts_last_interaction '
-          'ON favorite_contacts(last_interaction_utc DESC);',
-        );
-      }
-      if (from >= 3 && from < 4) {
-        // Align pinned_at_utc with our created/updated timestamp conventions.
-        await customStatement(
-          'ALTER TABLE favorite_contacts '
-          'RENAME COLUMN pinned_at_utc TO created_at_utc;',
-        );
-        await m.addColumn(favoriteContacts, favoriteContacts.updatedAtUtc);
-        await customStatement(
-          'UPDATE favorite_contacts '
-          'SET updated_at_utc = created_at_utc '
-          'WHERE updated_at_utc IS NULL;',
-        );
-      }
-    },
   );
 
   // Helper methods for participant overrides
 
-  /// Get all short names as a map (contact key -> short name)
-  Future<Map<String, String>> getAllShortNamesByKey() async {
-    final overrides = await select(participantOverrides).get();
+  // ────────────────────────────────────────────────────────────────────────────
+  // Participant naming overrides
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /// Fetch a participant override row (or null if none exists).
+  Future<ParticipantOverride?> getParticipantOverride(int participantId) {
+    return (select(
+      participantOverrides,
+    )..where((t) => t.participantId.equals(participantId))).getSingleOrNull();
+  }
+
+  /// Get all nicknames as a map (contact key -> nickname).
+  /// Useful for fast in-memory merge (similar to your prior shortName flow).
+  Future<Map<String, String>> getAllNicknamesByKey() async {
+    final rows = await select(participantOverrides).get();
     return {
-      for (final override in overrides)
-        if (override.shortName != null)
-          'participant:${override.participantId}': override.shortName!,
+      for (final row in rows)
+        if (row.nickname != null)
+          'participant:${row.participantId}': row.nickname!,
     };
   }
 
-  /// Set short name for a participant
-  Future<void> setParticipantShortName(
-    int participantId,
-    String? shortName,
-  ) async {
+  /// Upsert helper used by all setters.
+  ///
+  /// - Writes createdAtUtc only when creating a new row
+  /// - Always updates updatedAtUtc
+  Future<void> _upsertParticipantOverride({
+    required int participantId,
+    Value<int?>? nameMode,
+    Value<String?>? nickname,
+    Value<String?>? displayNameOverride,
+  }) async {
     final now = DateTime.now().toUtc().toIso8601String();
 
+    final existing = await (select(
+      participantOverrides,
+    )..where((t) => t.participantId.equals(participantId))).getSingleOrNull();
+
+    final createdAt = existing?.createdAtUtc ?? now;
+
     await into(participantOverrides).insertOnConflictUpdate(
-      ParticipantOverridesCompanion.insert(
+      ParticipantOverridesCompanion(
         participantId: Value(participantId),
-        shortName: Value(shortName),
-        createdAtUtc: now,
-        updatedAtUtc: now,
+        nameMode: nameMode ?? const Value.absent(),
+        nickname: nickname ?? const Value.absent(),
+        displayNameOverride: displayNameOverride ?? const Value.absent(),
+        createdAtUtc: Value(createdAt),
+        updatedAtUtc: Value(now),
       ),
     );
   }
 
-  /// Delete participant override
+  /// Set per-contact name mode. Pass null to "inherit global default".
+  Future<void> setParticipantNameMode(
+    int participantId,
+    ParticipantNameMode? mode,
+  ) async {
+    // Store null for inherit to keep the DB sparse.
+    final dbValue = (mode == null || mode == ParticipantNameMode.inherit)
+        ? null
+        : mode.dbValue;
+
+    await _upsertParticipantOverride(
+      participantId: participantId,
+      nameMode: Value(dbValue),
+    );
+  }
+
+  /// Set nickname (aka “short name”). Pass null to clear.
+  Future<void> setParticipantNickname(
+    int participantId,
+    String? nickname,
+  ) async {
+    final trimmed = nickname?.trim();
+    await _upsertParticipantOverride(
+      participantId: participantId,
+      nickname: Value((trimmed == null || trimmed.isEmpty) ? null : trimmed),
+    );
+  }
+
+  /// Set custom display name override. Pass null to clear.
+  Future<void> setParticipantDisplayNameOverride(
+    int participantId,
+    String? displayName,
+  ) async {
+    final trimmed = displayName?.trim();
+    await _upsertParticipantOverride(
+      participantId: participantId,
+      displayNameOverride: Value(
+        (trimmed == null || trimmed.isEmpty) ? null : trimmed,
+      ),
+    );
+  }
+
+  /// Convenience: clear all naming overrides for a participant (deletes the row).
   Future<void> deleteParticipantOverride(int participantId) async {
     await (delete(
       participantOverrides,
@@ -452,6 +494,8 @@ class OverlayDatabase extends _$OverlayDatabase {
     )..where((tbl) => tbl.id.equals(id))).go();
   }
 
+  static const _defaultParticipantNameModeKey = 'contacts.name_mode.default';
+
   Future<int> _nextVirtualParticipantId() async {
     final existingSetting =
         await (select(overlaySettings)
@@ -516,6 +560,31 @@ class OverlayDatabase extends _$OverlayDatabase {
       return null;
     }
     return iterator.current;
+  }
+
+  Future<ParticipantNameMode> getDefaultParticipantNameMode() async {
+    final row =
+        await (select(overlaySettings)
+              ..where((tbl) => tbl.key.equals(_defaultParticipantNameModeKey)))
+            .getSingleOrNull();
+
+    if (row == null) {
+      return ParticipantNameMode.firstNameOnly;
+    }
+
+    final parsed = int.tryParse(row.value);
+    final mode = ParticipantNameMode.fromDb(parsed);
+
+    return mode ?? ParticipantNameMode.firstNameOnly;
+  }
+
+  Future<void> setDefaultParticipantNameMode(ParticipantNameMode mode) async {
+    await into(overlaySettings).insertOnConflictUpdate(
+      OverlaySettingsCompanion.insert(
+        key: _defaultParticipantNameModeKey,
+        value: mode.dbValue.toString(),
+      ),
+    );
   }
 
   // Helper methods for favorite contacts
@@ -643,6 +712,11 @@ class OverlayDatabase extends _$OverlayDatabase {
 }
 
 /// User-defined short names and preferences for participants
+/// User-defined naming overrides for participants.
+///
+/// Naming is intentionally kept separate from the working.db projection.
+/// If a column is null, the UI resolver should fall back to global settings
+/// and/or working participant fields.
 class ParticipantOverrides extends Table {
   @override
   String get tableName => 'participant_overrides';
@@ -650,15 +724,18 @@ class ParticipantOverrides extends Table {
   /// Matches working.participants.id
   IntColumn get participantId => integer().named('participant_id')();
 
-  /// User's custom short name for this participant
-  TextColumn get shortName => text().named('short_name').nullable()();
+  /// Nullable: when null, this participant inherits global default.
+  ///
+  /// Stored values map to ParticipantNameMode.dbValue (except we recommend
+  /// storing null for inherit).
+  IntColumn get nameMode => integer().named('name_mode').nullable()();
 
-  /// Whether user has muted this participant
-  BoolColumn get isMuted =>
-      boolean().named('is_muted').withDefault(const Constant(false))();
+  /// User's nickname, e.g. "Westy"
+  TextColumn get nickname => text().named('nickname').nullable()();
 
-  /// User's custom notes about this participant
-  TextColumn get notes => text().named('notes').nullable()();
+  /// User's custom display name override, e.g. "Dad (Mobile)"
+  TextColumn get displayNameOverride =>
+      text().named('display_name_override').nullable()();
 
   TextColumn get createdAtUtc => text().named('created_at_utc')();
   TextColumn get updatedAtUtc => text().named('updated_at_utc')();

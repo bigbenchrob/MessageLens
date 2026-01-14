@@ -20,41 +20,39 @@ class $ParticipantOverridesTable extends ParticipantOverrides
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _shortNameMeta = const VerificationMeta(
-    'shortName',
+  static const VerificationMeta _nameModeMeta = const VerificationMeta(
+    'nameMode',
   );
   @override
-  late final GeneratedColumn<String> shortName = GeneratedColumn<String>(
-    'short_name',
+  late final GeneratedColumn<int> nameMode = GeneratedColumn<int>(
+    'name_mode',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nicknameMeta = const VerificationMeta(
+    'nickname',
+  );
+  @override
+  late final GeneratedColumn<String> nickname = GeneratedColumn<String>(
+    'nickname',
     aliasedName,
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _isMutedMeta = const VerificationMeta(
-    'isMuted',
-  );
+  static const VerificationMeta _displayNameOverrideMeta =
+      const VerificationMeta('displayNameOverride');
   @override
-  late final GeneratedColumn<bool> isMuted = GeneratedColumn<bool>(
-    'is_muted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_muted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
-  @override
-  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
-    'notes',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
+  late final GeneratedColumn<String> displayNameOverride =
+      GeneratedColumn<String>(
+        'display_name_override',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
   );
@@ -80,9 +78,9 @@ class $ParticipantOverridesTable extends ParticipantOverrides
   @override
   List<GeneratedColumn> get $columns => [
     participantId,
-    shortName,
-    isMuted,
-    notes,
+    nameMode,
+    nickname,
+    displayNameOverride,
     createdAtUtc,
     updatedAtUtc,
   ];
@@ -107,22 +105,25 @@ class $ParticipantOverridesTable extends ParticipantOverrides
         ),
       );
     }
-    if (data.containsKey('short_name')) {
+    if (data.containsKey('name_mode')) {
       context.handle(
-        _shortNameMeta,
-        shortName.isAcceptableOrUnknown(data['short_name']!, _shortNameMeta),
+        _nameModeMeta,
+        nameMode.isAcceptableOrUnknown(data['name_mode']!, _nameModeMeta),
       );
     }
-    if (data.containsKey('is_muted')) {
+    if (data.containsKey('nickname')) {
       context.handle(
-        _isMutedMeta,
-        isMuted.isAcceptableOrUnknown(data['is_muted']!, _isMutedMeta),
+        _nicknameMeta,
+        nickname.isAcceptableOrUnknown(data['nickname']!, _nicknameMeta),
       );
     }
-    if (data.containsKey('notes')) {
+    if (data.containsKey('display_name_override')) {
       context.handle(
-        _notesMeta,
-        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+        _displayNameOverrideMeta,
+        displayNameOverride.isAcceptableOrUnknown(
+          data['display_name_override']!,
+          _displayNameOverrideMeta,
+        ),
       );
     }
     if (data.containsKey('created_at_utc')) {
@@ -160,17 +161,17 @@ class $ParticipantOverridesTable extends ParticipantOverrides
         DriftSqlType.int,
         data['${effectivePrefix}participant_id'],
       )!,
-      shortName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}short_name'],
+      nameMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}name_mode'],
       ),
-      isMuted: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_muted'],
-      )!,
-      notes: attachedDatabase.typeMapping.read(
+      nickname: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}notes'],
+        data['${effectivePrefix}nickname'],
+      ),
+      displayNameOverride: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name_override'],
       ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -194,21 +195,24 @@ class ParticipantOverride extends DataClass
   /// Matches working.participants.id
   final int participantId;
 
-  /// User's custom short name for this participant
-  final String? shortName;
+  /// Nullable: when null, this participant inherits global default.
+  ///
+  /// Stored values map to ParticipantNameMode.dbValue (except we recommend
+  /// storing null for inherit).
+  final int? nameMode;
 
-  /// Whether user has muted this participant
-  final bool isMuted;
+  /// User's nickname, e.g. "Westy"
+  final String? nickname;
 
-  /// User's custom notes about this participant
-  final String? notes;
+  /// User's custom display name override, e.g. "Dad (Mobile)"
+  final String? displayNameOverride;
   final String createdAtUtc;
   final String updatedAtUtc;
   const ParticipantOverride({
     required this.participantId,
-    this.shortName,
-    required this.isMuted,
-    this.notes,
+    this.nameMode,
+    this.nickname,
+    this.displayNameOverride,
     required this.createdAtUtc,
     required this.updatedAtUtc,
   });
@@ -216,12 +220,14 @@ class ParticipantOverride extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['participant_id'] = Variable<int>(participantId);
-    if (!nullToAbsent || shortName != null) {
-      map['short_name'] = Variable<String>(shortName);
+    if (!nullToAbsent || nameMode != null) {
+      map['name_mode'] = Variable<int>(nameMode);
     }
-    map['is_muted'] = Variable<bool>(isMuted);
-    if (!nullToAbsent || notes != null) {
-      map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || nickname != null) {
+      map['nickname'] = Variable<String>(nickname);
+    }
+    if (!nullToAbsent || displayNameOverride != null) {
+      map['display_name_override'] = Variable<String>(displayNameOverride);
     }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     map['updated_at_utc'] = Variable<String>(updatedAtUtc);
@@ -231,13 +237,15 @@ class ParticipantOverride extends DataClass
   ParticipantOverridesCompanion toCompanion(bool nullToAbsent) {
     return ParticipantOverridesCompanion(
       participantId: Value(participantId),
-      shortName: shortName == null && nullToAbsent
+      nameMode: nameMode == null && nullToAbsent
           ? const Value.absent()
-          : Value(shortName),
-      isMuted: Value(isMuted),
-      notes: notes == null && nullToAbsent
+          : Value(nameMode),
+      nickname: nickname == null && nullToAbsent
           ? const Value.absent()
-          : Value(notes),
+          : Value(nickname),
+      displayNameOverride: displayNameOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(displayNameOverride),
       createdAtUtc: Value(createdAtUtc),
       updatedAtUtc: Value(updatedAtUtc),
     );
@@ -250,9 +258,11 @@ class ParticipantOverride extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ParticipantOverride(
       participantId: serializer.fromJson<int>(json['participantId']),
-      shortName: serializer.fromJson<String?>(json['shortName']),
-      isMuted: serializer.fromJson<bool>(json['isMuted']),
-      notes: serializer.fromJson<String?>(json['notes']),
+      nameMode: serializer.fromJson<int?>(json['nameMode']),
+      nickname: serializer.fromJson<String?>(json['nickname']),
+      displayNameOverride: serializer.fromJson<String?>(
+        json['displayNameOverride'],
+      ),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
     );
@@ -262,9 +272,9 @@ class ParticipantOverride extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'participantId': serializer.toJson<int>(participantId),
-      'shortName': serializer.toJson<String?>(shortName),
-      'isMuted': serializer.toJson<bool>(isMuted),
-      'notes': serializer.toJson<String?>(notes),
+      'nameMode': serializer.toJson<int?>(nameMode),
+      'nickname': serializer.toJson<String?>(nickname),
+      'displayNameOverride': serializer.toJson<String?>(displayNameOverride),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
     };
@@ -272,16 +282,18 @@ class ParticipantOverride extends DataClass
 
   ParticipantOverride copyWith({
     int? participantId,
-    Value<String?> shortName = const Value.absent(),
-    bool? isMuted,
-    Value<String?> notes = const Value.absent(),
+    Value<int?> nameMode = const Value.absent(),
+    Value<String?> nickname = const Value.absent(),
+    Value<String?> displayNameOverride = const Value.absent(),
     String? createdAtUtc,
     String? updatedAtUtc,
   }) => ParticipantOverride(
     participantId: participantId ?? this.participantId,
-    shortName: shortName.present ? shortName.value : this.shortName,
-    isMuted: isMuted ?? this.isMuted,
-    notes: notes.present ? notes.value : this.notes,
+    nameMode: nameMode.present ? nameMode.value : this.nameMode,
+    nickname: nickname.present ? nickname.value : this.nickname,
+    displayNameOverride: displayNameOverride.present
+        ? displayNameOverride.value
+        : this.displayNameOverride,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
   );
@@ -290,9 +302,11 @@ class ParticipantOverride extends DataClass
       participantId: data.participantId.present
           ? data.participantId.value
           : this.participantId,
-      shortName: data.shortName.present ? data.shortName.value : this.shortName,
-      isMuted: data.isMuted.present ? data.isMuted.value : this.isMuted,
-      notes: data.notes.present ? data.notes.value : this.notes,
+      nameMode: data.nameMode.present ? data.nameMode.value : this.nameMode,
+      nickname: data.nickname.present ? data.nickname.value : this.nickname,
+      displayNameOverride: data.displayNameOverride.present
+          ? data.displayNameOverride.value
+          : this.displayNameOverride,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -306,9 +320,9 @@ class ParticipantOverride extends DataClass
   String toString() {
     return (StringBuffer('ParticipantOverride(')
           ..write('participantId: $participantId, ')
-          ..write('shortName: $shortName, ')
-          ..write('isMuted: $isMuted, ')
-          ..write('notes: $notes, ')
+          ..write('nameMode: $nameMode, ')
+          ..write('nickname: $nickname, ')
+          ..write('displayNameOverride: $displayNameOverride, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -318,9 +332,9 @@ class ParticipantOverride extends DataClass
   @override
   int get hashCode => Object.hash(
     participantId,
-    shortName,
-    isMuted,
-    notes,
+    nameMode,
+    nickname,
+    displayNameOverride,
     createdAtUtc,
     updatedAtUtc,
   );
@@ -329,9 +343,9 @@ class ParticipantOverride extends DataClass
       identical(this, other) ||
       (other is ParticipantOverride &&
           other.participantId == this.participantId &&
-          other.shortName == this.shortName &&
-          other.isMuted == this.isMuted &&
-          other.notes == this.notes &&
+          other.nameMode == this.nameMode &&
+          other.nickname == this.nickname &&
+          other.displayNameOverride == this.displayNameOverride &&
           other.createdAtUtc == this.createdAtUtc &&
           other.updatedAtUtc == this.updatedAtUtc);
 }
@@ -339,41 +353,42 @@ class ParticipantOverride extends DataClass
 class ParticipantOverridesCompanion
     extends UpdateCompanion<ParticipantOverride> {
   final Value<int> participantId;
-  final Value<String?> shortName;
-  final Value<bool> isMuted;
-  final Value<String?> notes;
+  final Value<int?> nameMode;
+  final Value<String?> nickname;
+  final Value<String?> displayNameOverride;
   final Value<String> createdAtUtc;
   final Value<String> updatedAtUtc;
   const ParticipantOverridesCompanion({
     this.participantId = const Value.absent(),
-    this.shortName = const Value.absent(),
-    this.isMuted = const Value.absent(),
-    this.notes = const Value.absent(),
+    this.nameMode = const Value.absent(),
+    this.nickname = const Value.absent(),
+    this.displayNameOverride = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
   });
   ParticipantOverridesCompanion.insert({
     this.participantId = const Value.absent(),
-    this.shortName = const Value.absent(),
-    this.isMuted = const Value.absent(),
-    this.notes = const Value.absent(),
+    this.nameMode = const Value.absent(),
+    this.nickname = const Value.absent(),
+    this.displayNameOverride = const Value.absent(),
     required String createdAtUtc,
     required String updatedAtUtc,
   }) : createdAtUtc = Value(createdAtUtc),
        updatedAtUtc = Value(updatedAtUtc);
   static Insertable<ParticipantOverride> custom({
     Expression<int>? participantId,
-    Expression<String>? shortName,
-    Expression<bool>? isMuted,
-    Expression<String>? notes,
+    Expression<int>? nameMode,
+    Expression<String>? nickname,
+    Expression<String>? displayNameOverride,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
   }) {
     return RawValuesInsertable({
       if (participantId != null) 'participant_id': participantId,
-      if (shortName != null) 'short_name': shortName,
-      if (isMuted != null) 'is_muted': isMuted,
-      if (notes != null) 'notes': notes,
+      if (nameMode != null) 'name_mode': nameMode,
+      if (nickname != null) 'nickname': nickname,
+      if (displayNameOverride != null)
+        'display_name_override': displayNameOverride,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
     });
@@ -381,17 +396,17 @@ class ParticipantOverridesCompanion
 
   ParticipantOverridesCompanion copyWith({
     Value<int>? participantId,
-    Value<String?>? shortName,
-    Value<bool>? isMuted,
-    Value<String?>? notes,
+    Value<int?>? nameMode,
+    Value<String?>? nickname,
+    Value<String?>? displayNameOverride,
     Value<String>? createdAtUtc,
     Value<String>? updatedAtUtc,
   }) {
     return ParticipantOverridesCompanion(
       participantId: participantId ?? this.participantId,
-      shortName: shortName ?? this.shortName,
-      isMuted: isMuted ?? this.isMuted,
-      notes: notes ?? this.notes,
+      nameMode: nameMode ?? this.nameMode,
+      nickname: nickname ?? this.nickname,
+      displayNameOverride: displayNameOverride ?? this.displayNameOverride,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
     );
@@ -403,14 +418,16 @@ class ParticipantOverridesCompanion
     if (participantId.present) {
       map['participant_id'] = Variable<int>(participantId.value);
     }
-    if (shortName.present) {
-      map['short_name'] = Variable<String>(shortName.value);
+    if (nameMode.present) {
+      map['name_mode'] = Variable<int>(nameMode.value);
     }
-    if (isMuted.present) {
-      map['is_muted'] = Variable<bool>(isMuted.value);
+    if (nickname.present) {
+      map['nickname'] = Variable<String>(nickname.value);
     }
-    if (notes.present) {
-      map['notes'] = Variable<String>(notes.value);
+    if (displayNameOverride.present) {
+      map['display_name_override'] = Variable<String>(
+        displayNameOverride.value,
+      );
     }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
@@ -425,9 +442,9 @@ class ParticipantOverridesCompanion
   String toString() {
     return (StringBuffer('ParticipantOverridesCompanion(')
           ..write('participantId: $participantId, ')
-          ..write('shortName: $shortName, ')
-          ..write('isMuted: $isMuted, ')
-          ..write('notes: $notes, ')
+          ..write('nameMode: $nameMode, ')
+          ..write('nickname: $nickname, ')
+          ..write('displayNameOverride: $displayNameOverride, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -2931,18 +2948,18 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
 typedef $$ParticipantOverridesTableCreateCompanionBuilder =
     ParticipantOverridesCompanion Function({
       Value<int> participantId,
-      Value<String?> shortName,
-      Value<bool> isMuted,
-      Value<String?> notes,
+      Value<int?> nameMode,
+      Value<String?> nickname,
+      Value<String?> displayNameOverride,
       required String createdAtUtc,
       required String updatedAtUtc,
     });
 typedef $$ParticipantOverridesTableUpdateCompanionBuilder =
     ParticipantOverridesCompanion Function({
       Value<int> participantId,
-      Value<String?> shortName,
-      Value<bool> isMuted,
-      Value<String?> notes,
+      Value<int?> nameMode,
+      Value<String?> nickname,
+      Value<String?> displayNameOverride,
       Value<String> createdAtUtc,
       Value<String> updatedAtUtc,
     });
@@ -2961,18 +2978,18 @@ class $$ParticipantOverridesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get shortName => $composableBuilder(
-    column: $table.shortName,
+  ColumnFilters<int> get nameMode => $composableBuilder(
+    column: $table.nameMode,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isMuted => $composableBuilder(
-    column: $table.isMuted,
+  ColumnFilters<String> get nickname => $composableBuilder(
+    column: $table.nickname,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get notes => $composableBuilder(
-    column: $table.notes,
+  ColumnFilters<String> get displayNameOverride => $composableBuilder(
+    column: $table.displayNameOverride,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3001,18 +3018,18 @@ class $$ParticipantOverridesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get shortName => $composableBuilder(
-    column: $table.shortName,
+  ColumnOrderings<int> get nameMode => $composableBuilder(
+    column: $table.nameMode,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isMuted => $composableBuilder(
-    column: $table.isMuted,
+  ColumnOrderings<String> get nickname => $composableBuilder(
+    column: $table.nickname,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get notes => $composableBuilder(
-    column: $table.notes,
+  ColumnOrderings<String> get displayNameOverride => $composableBuilder(
+    column: $table.displayNameOverride,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3041,14 +3058,16 @@ class $$ParticipantOverridesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get shortName =>
-      $composableBuilder(column: $table.shortName, builder: (column) => column);
+  GeneratedColumn<int> get nameMode =>
+      $composableBuilder(column: $table.nameMode, builder: (column) => column);
 
-  GeneratedColumn<bool> get isMuted =>
-      $composableBuilder(column: $table.isMuted, builder: (column) => column);
+  GeneratedColumn<String> get nickname =>
+      $composableBuilder(column: $table.nickname, builder: (column) => column);
 
-  GeneratedColumn<String> get notes =>
-      $composableBuilder(column: $table.notes, builder: (column) => column);
+  GeneratedColumn<String> get displayNameOverride => $composableBuilder(
+    column: $table.displayNameOverride,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get createdAtUtc => $composableBuilder(
     column: $table.createdAtUtc,
@@ -3105,32 +3124,32 @@ class $$ParticipantOverridesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> participantId = const Value.absent(),
-                Value<String?> shortName = const Value.absent(),
-                Value<bool> isMuted = const Value.absent(),
-                Value<String?> notes = const Value.absent(),
+                Value<int?> nameMode = const Value.absent(),
+                Value<String?> nickname = const Value.absent(),
+                Value<String?> displayNameOverride = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<String> updatedAtUtc = const Value.absent(),
               }) => ParticipantOverridesCompanion(
                 participantId: participantId,
-                shortName: shortName,
-                isMuted: isMuted,
-                notes: notes,
+                nameMode: nameMode,
+                nickname: nickname,
+                displayNameOverride: displayNameOverride,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
               ),
           createCompanionCallback:
               ({
                 Value<int> participantId = const Value.absent(),
-                Value<String?> shortName = const Value.absent(),
-                Value<bool> isMuted = const Value.absent(),
-                Value<String?> notes = const Value.absent(),
+                Value<int?> nameMode = const Value.absent(),
+                Value<String?> nickname = const Value.absent(),
+                Value<String?> displayNameOverride = const Value.absent(),
                 required String createdAtUtc,
                 required String updatedAtUtc,
               }) => ParticipantOverridesCompanion.insert(
                 participantId: participantId,
-                shortName: shortName,
-                isMuted: isMuted,
-                notes: notes,
+                nameMode: nameMode,
+                nickname: nickname,
+                displayNameOverride: displayNameOverride,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
               ),

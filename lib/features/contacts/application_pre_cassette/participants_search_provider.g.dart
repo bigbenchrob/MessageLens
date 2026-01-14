@@ -7,7 +7,7 @@ part of 'participants_search_provider.dart';
 // **************************************************************************
 
 String _$participantsSearchHash() =>
-    r'9a1947670de729e44ef89cd14cc8d2ffbdeb9513';
+    r'a31863cc0ba0f9df11dfa336a95d471fbb548b1c';
 
 /// Copied from Dart SDK
 class _SystemHash {

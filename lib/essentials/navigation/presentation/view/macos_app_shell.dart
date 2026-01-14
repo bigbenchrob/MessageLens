@@ -176,16 +176,17 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                         .read(activeSidebarModeProvider.notifier)
                         .setMode(SidebarMode.settings);
 
-                    const spec = ViewSpec.settings(
-                      SettingsSpec.contactShortNames(),
-                    );
-
+                    // Record the navigation intent for auditing while
+                    // keeping the center panel clear until a settings
+                    // cassette explicitly requests content.
                     ref
                         .read(navigationLoggerProvider.notifier)
                         .logToolbarClick(
                           buttonLabel: 'Settings',
                           targetPanel: WindowPanel.center,
-                          viewSpec: spec,
+                          viewSpec: const ViewSpec.settings(
+                            SettingsSpec.contactShortNames(),
+                          ),
                         );
 
                     ref
@@ -194,7 +195,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                             SidebarMode.settings,
                           ).notifier,
                         )
-                        .show(panel: WindowPanel.center, spec: spec);
+                        .clear(panel: WindowPanel.center);
                   },
                 ),
               ),

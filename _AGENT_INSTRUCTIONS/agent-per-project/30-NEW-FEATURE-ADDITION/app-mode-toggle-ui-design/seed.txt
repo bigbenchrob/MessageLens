@@ -1,0 +1,150 @@
+question: This screen shot shows the radio buttons (red square) that toggle the state of the app between "messages" and "settings". (The light dark icon is for my own use right now and will be moved to a settings panel). I need to highlight the binary nature of this pair of buttons, i.e. the app is either in Settings Mode or in Messages Mode and make the current mode unequivocally apparent to the user. How can I do this?
+
+answer: Great question—and this is exactly the right instinct. Right now those two icons look like two unrelated actions, not a global mode switch. Users won’t naturally infer “the app is in one of two mutually exclusive modes.”
+
+Below are design patterns that strongly signal binary mode on macOS, ordered from most explicit to most subtle. I’ll also call out what works especially well given your existing cassette-rack + inspector mental model.
+
+⸻
+
+1. Use a segmented control (best, most explicit)
+
+This is the canonical macOS solution for “exactly one of two modes.”
+
+Why it works
+	•	Segmented controls encode mutual exclusivity
+	•	They communicate state, not action
+	•	macOS users instantly understand them as a mode selector
+
+How it might look
+
+Instead of two standalone icons:
+
+[ Messages | Settings ]
+
+	•	One segment is filled / selected
+	•	The other is clearly inactive
+	•	Optional icons + text for clarity:
+	•	💬 Messages
+	•	⚙️ Settings
+
+Design guidance
+	•	Place it where it is now (top right is fine)
+	•	Keep it persistent across the app
+	•	Do not animate it like a toggle button—this is a mode latch
+
+If you do only one thing: this is the one
+
+⸻
+
+2. Reinforce mode with a global surface change
+
+Once you introduce modes, something else should change besides the icon.
+
+Subtle but powerful cues
+	•	Background tint shift (very subtle)
+	•	Messages mode → neutral / warm
+	•	Settings mode → slightly cooler or flatter
+	•	Title bar / toolbar accent changes
+	•	Sidebar card chrome changes (e.g. flatter, less “content-like” in settings)
+
+This doesn’t have to scream—just enough that users subconsciously notice:
+
+“Ah. I’m somewhere different.”
+
+⸻
+
+3. Add a mode label in the chrome (low cost, high clarity)
+
+This can coexist with the segmented control.
+
+Examples:
+	•	Title bar text:
+	•	Messages
+	•	Settings
+	•	Or a small uppercase label:
+
+  MODE · MESSAGES
+
+    This is especially useful for:
+	•	Keyboard users
+	•	First-time users
+	•	Debugging while you iterate (you can later soften/remove it)
+
+⸻
+
+4. Make the inactive mode visibly unreachable
+
+Right now both icons look equally tappable.
+
+To emphasize “you are in a mode”:
+
+For the active mode
+	•	Filled background
+	•	Stronger icon weight
+	•	Accent color
+
+For the inactive mode
+	•	Outline only
+	•	Lower contrast
+	•	No hover glow until pointer enters
+
+The goal:
+
+One looks latched, the other looks available
+
+⸻
+
+5. Change interaction semantics (important)
+
+A subtle but crucial point:
+	•	Buttons imply actions
+	•	Mode selectors imply state
+
+If you keep them as icon buttons:
+	•	Remove “press” affordances
+	•	Avoid click animations that imply a momentary action
+	•	Make them feel sticky
+
+Segmented controls do this automatically, which is another reason they’re ideal.
+
+⸻
+
+6. Align mental model with your architecture (very you)
+
+Given your DDD / ViewSpec / CassetteRack architecture:
+
+You can think of this as:
+
+AppMode {
+  messages,
+  settings,
+}
+
+…and the UI should feel like:
+
+“I am in Messages Mode”
+not:
+“I clicked the messages button”
+
+That conceptual clarity should leak into the visuals.
+
+⸻
+
+My strong recommendation (TL;DR)
+
+Use a segmented control with labels, and reinforce it with at least one secondary cue.
+
+Minimum viable improvement
+	1.	Replace the two icons with:
+
+    [ Messages | Settings ]
+
+    2.	Highlight the selected segment
+	3.	Slightly change the sidebar / surface tone in Settings mode
+
+This will immediately:
+	•	Eliminate ambiguity
+	•	Reduce cognitive load
+	•	Match macOS conventions
+	•	Scale well if you ever add a third global mode
+    

@@ -12,7 +12,7 @@ abstract class SidebarUtilityCassetteSpec with _$SidebarUtilityCassetteSpec {
   }) = _SidebarUtilityCassetteSpecTopChatMenu;
 
   const factory SidebarUtilityCassetteSpec.settingsMenu({
-    @Default(SettingsMenuChoice.general) SettingsMenuChoice selectedChoice,
+    @Default(SettingsMenuChoice.contacts) SettingsMenuChoice selectedChoice,
   }) = _SidebarUtilityCassetteSpecSettingsMenu;
 
   factory SidebarUtilityCassetteSpec.fromJson(Map<String, dynamic> json) =>

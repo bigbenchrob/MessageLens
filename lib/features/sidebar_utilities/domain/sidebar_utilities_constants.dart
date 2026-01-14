@@ -41,14 +41,8 @@ enum TopChatMenuChoice {
 /// For the "Settings" menu in the sidebar (SidebarUtilityCassetteSpec.settingsMenu).
 /// Defines the possible choices for the menu.
 enum SettingsMenuChoice {
-  /// General settings
-  general(id: 'general', label: 'General'),
-
-  /// Appearance settings
-  appearance(id: 'appearance', label: 'Appearance'),
-
-  /// Contact short names settings
-  contactShortNames(id: 'contact_short_names', label: 'Contact Short Names');
+  /// Contacts-related settings
+  contacts(id: 'contacts', label: 'Contacts');
 
   const SettingsMenuChoice({required this.id, required this.label});
 
@@ -62,7 +56,7 @@ enum SettingsMenuChoice {
   static SettingsMenuChoice fromId(String id) {
     return SettingsMenuChoice.values.firstWhere(
       (c) => c.id == id,
-      orElse: () => SettingsMenuChoice.general,
+      orElse: () => SettingsMenuChoice.contacts,
     );
   }
 }

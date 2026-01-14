@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-
 import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/theme_typography.dart';
 
@@ -12,29 +11,21 @@ import '../../../../../config/theme/theme_typography.dart';
 /// cassette widget in this card to visually separate it from other
 /// components in the sidebar.
 class SidebarCassetteCard extends ConsumerWidget {
-  /// The child widget to display inside the card.
   final Widget child;
 
-  /// Title shown at the top of the card.
   final String title;
-
-  /// Optional descriptive subtitle displayed under the title.
   final String? subtitle;
 
-  /// Padding inside the card around the child.
+  /// NEW: Optional section label rendered by the card (not the feature).
+  final String? sectionTitle;
+
+  /// NEW: Optional footer/helper text rendered by the card (not the feature).
+  final String? footerText;
+
   final EdgeInsetsGeometry padding;
-
-  /// Margin around the card relative to its parent.
   final EdgeInsetsGeometry margin;
-
-  /// The border radius applied to the card’s corners.
   final double borderRadius;
-
-  /// Whether this cassette is primarily a control surface (vs content).
-  /// Control cassettes are visually de-emphasized to clarify hierarchy.
   final bool isControl;
-
-  /// Whether this cassette should expand to fill available vertical space.
   final bool shouldExpand;
 
   const SidebarCassetteCard({
@@ -42,6 +33,8 @@ class SidebarCassetteCard extends ConsumerWidget {
     required this.child,
     required this.title,
     this.subtitle,
+    this.sectionTitle, // NEW
+    this.footerText, // NEW
     this.padding = const EdgeInsets.all(16.0),
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.borderRadius = 8.0,
@@ -55,24 +48,8 @@ class SidebarCassetteCard extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
 
-    // Resolve a macOS control colour for the card background.  The control
-    // colour is used by Apple to paint surfaces of controls and has a subtle
-    // translucency (10% black on light mode, 25% white on dark mode).  Using
-    // this as the card background keeps the look consistent with macOS
-    // components without relying on the Material colour scheme.
     final backgroundColor = colors.cassetteCard(CassetteCard.background);
-
     final sidebarBackgroundColor = colors.surfaces.contentControl;
-
-    // Use a lighter, macOS‑style separator colour for the card border.  If the
-    // current theme is dark, use the dark variant of the separator colour;
-    // otherwise use the light variant.  This yields a less prominent border
-    // than the default Material divider colour.
-    // Resolve a very subtle macOS label colour for the card border.  The
-    // quaternaryLabelColor has only 10% opacity and is much lighter than the
-    // separator colour, making the border far less prominent.  We resolve
-    // it against the current context to pick the appropriate light/dark
-    // variant automatically.
     final borderColor = colors.lines.borderSubtle;
 
     final controlBackgroundColor = Color.alphaBlend(
@@ -90,22 +67,85 @@ class SidebarCassetteCard extends ConsumerWidget {
         ? const EdgeInsets.fromLTRB(12.0, 10.0, 12.0, 10.0)
         : padding;
     final effectiveBorderRadius = isControl ? 10.0 : borderRadius;
-    final effectiveBorderColor = borderColor;
 
     final hasTitle = title.trim().isNotEmpty;
     final hasSubtitle = subtitle != null && subtitle!.trim().isNotEmpty;
+    final hasSectionTitle =
+        sectionTitle != null && sectionTitle!.trim().isNotEmpty;
+    final hasFooter = footerText != null && footerText!.trim().isNotEmpty;
+
     final showHeader = hasTitle || hasSubtitle;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final hasBoundedHeight = constraints.maxHeight.isFinite;
 
+        final body = child;
+
+        // If the card is expanding, keep the child flexible inside the available space.
+        // But note: sectionTitle/footer belong OUTSIDE the Expanded region.
+        final content = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            if (showHeader) ...[
+              if (hasTitle)
+                Text(
+                  title,
+                  style: typography.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colors.content.textPrimary,
+                  ),
+                ),
+              if (hasSubtitle) ...[
+                if (hasTitle) const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  style: typography.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.content.textTertiary.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 22),
+            ],
+
+            if (hasSectionTitle) ...[
+              Text(
+                sectionTitle!,
+                style: typography.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.content.textSecondary,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            if (hasBoundedHeight && shouldExpand)
+              Expanded(child: body)
+            else
+              body,
+
+            if (hasFooter) ...[
+              const SizedBox(height: 12),
+              Text(
+                footerText!,
+                style: typography.caption.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colors.content.textTertiary.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
+          ],
+        );
+
         return Container(
           margin: effectiveMargin,
           decoration: BoxDecoration(
             color: effectiveBackgroundColor,
             borderRadius: BorderRadius.circular(effectiveBorderRadius),
-            border: isControl ? null : Border.all(color: effectiveBorderColor),
+            border: isControl ? null : Border.all(color: borderColor),
             boxShadow: isControl
                 ? const []
                 : [
@@ -116,27 +156,7 @@ class SidebarCassetteCard extends ConsumerWidget {
                     ),
                   ],
           ),
-          child: Padding(
-            padding: effectivePadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                if (showHeader) ...[
-                  if (hasTitle) Text(title, style: typography.vizInstruction),
-                  if (hasSubtitle) ...[
-                    if (hasTitle) const SizedBox(height: 6),
-                    Text(subtitle!, style: typography.caption),
-                  ],
-                  const SizedBox(height: 12),
-                ],
-                if (hasBoundedHeight && shouldExpand)
-                  Expanded(child: child)
-                else
-                  child,
-              ],
-            ),
-          ),
+          child: Padding(padding: effectivePadding, child: content),
         );
       },
     );
