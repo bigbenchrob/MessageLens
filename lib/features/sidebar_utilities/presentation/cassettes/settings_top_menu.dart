@@ -6,7 +6,7 @@ import '../../../../config/theme/theme.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../../sidebar_utilities/domain/sidebar_utilities_constants.dart';
+import '../../domain/sidebar_utilities_constants.dart';
 
 class SettingsTopMenu extends ConsumerWidget {
   final SidebarUtilityCassetteSpec spec;

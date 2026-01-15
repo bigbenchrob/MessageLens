@@ -35,9 +35,9 @@ part 'cassette_widget_coordinator_provider.g.dart';
 /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
 /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
 /// into a concrete [Widget] by delegating to the appropriate builder.
-/// Currently only the top chat menu is supported.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) should be handled here as
-/// they are implemented.
+/// The top chat or settings menu are present by default.  Additional cassette
+/// variants (e.g. unmatched handles, all messages) are added depending on user
+/// actions and application state.
 @riverpod
 class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
   @override
@@ -45,7 +45,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     final rack = ref.watch(cassetteRackStateProvider(mode));
     final widgets = <Widget>[];
 
-    SidebarCassetteCardViewModel buildViewForSpec(CassetteSpec spec) {
+    SidebarCassetteCardViewModel buildViewModelForSpec(CassetteSpec spec) {
       return spec.when(
         sidebarUtility: (sidebarSpec) {
           final coordinator = ref.read(
@@ -86,17 +86,17 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     }
 
     void addCassette(CassetteSpec spec) {
-      final view = buildViewForSpec(spec);
+      final viewModel = buildViewModelForSpec(spec);
       widgets.add(
         SidebarCassetteCard(
-          title: view.title,
-          subtitle: view.subtitle,
-          sectionTitle: view.sectionTitle, // NEW
-          footerText: view.footerText,
-          isControl: view.isControl,
-          isNaked: view.isNaked,
-          shouldExpand: view.shouldExpand,
-          child: view.child,
+          title: viewModel.title,
+          subtitle: viewModel.subtitle,
+          sectionTitle: viewModel.sectionTitle, // NEW
+          footerText: viewModel.footerText,
+          isControl: viewModel.isControl,
+          isNaked: viewModel.isNaked,
+          shouldExpand: viewModel.shouldExpand,
+          child: viewModel.child,
         ),
       );
     }

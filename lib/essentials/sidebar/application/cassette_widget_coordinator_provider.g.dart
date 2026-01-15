@@ -7,7 +7,7 @@ part of 'cassette_widget_coordinator_provider.dart';
 // **************************************************************************
 
 String _$cassetteWidgetCoordinatorHash() =>
-    r'9cdcbd7c5fe90a61c64bb8f8db5bda46a61c8dd1';
+    r'743842af84a5671fd5005e3430706f1c4872ce83';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -50,9 +50,9 @@ abstract class _$CassetteWidgetCoordinator
 /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
 /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
 /// into a concrete [Widget] by delegating to the appropriate builder.
-/// Currently only the top chat menu is supported.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) should be handled here as
-/// they are implemented.
+/// The top chat or settings menu are present by default.  Additional cassette
+/// variants (e.g. unmatched handles, all messages) are added depending on user
+/// actions and application state.
 ///
 /// Copied from [CassetteWidgetCoordinator].
 @ProviderFor(CassetteWidgetCoordinator)
@@ -71,9 +71,9 @@ const cassetteWidgetCoordinatorProvider = CassetteWidgetCoordinatorFamily();
 /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
 /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
 /// into a concrete [Widget] by delegating to the appropriate builder.
-/// Currently only the top chat menu is supported.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) should be handled here as
-/// they are implemented.
+/// The top chat or settings menu are present by default.  Additional cassette
+/// variants (e.g. unmatched handles, all messages) are added depending on user
+/// actions and application state.
 ///
 /// Copied from [CassetteWidgetCoordinator].
 class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
@@ -90,9 +90,9 @@ class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
   /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
   /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
   /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// Currently only the top chat menu is supported.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) should be handled here as
-  /// they are implemented.
+  /// The top chat or settings menu are present by default.  Additional cassette
+  /// variants (e.g. unmatched handles, all messages) are added depending on user
+  /// actions and application state.
   ///
   /// Copied from [CassetteWidgetCoordinator].
   const CassetteWidgetCoordinatorFamily();
@@ -110,9 +110,9 @@ class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
   /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
   /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
   /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// Currently only the top chat menu is supported.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) should be handled here as
-  /// they are implemented.
+  /// The top chat or settings menu are present by default.  Additional cassette
+  /// variants (e.g. unmatched handles, all messages) are added depending on user
+  /// actions and application state.
   ///
   /// Copied from [CassetteWidgetCoordinator].
   CassetteWidgetCoordinatorProvider call(SidebarMode mode) {
@@ -154,9 +154,9 @@ class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
 /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
 /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
 /// into a concrete [Widget] by delegating to the appropriate builder.
-/// Currently only the top chat menu is supported.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) should be handled here as
-/// they are implemented.
+/// The top chat or settings menu are present by default.  Additional cassette
+/// variants (e.g. unmatched handles, all messages) are added depending on user
+/// actions and application state.
 ///
 /// Copied from [CassetteWidgetCoordinator].
 class CassetteWidgetCoordinatorProvider
@@ -178,9 +178,9 @@ class CassetteWidgetCoordinatorProvider
   /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
   /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
   /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// Currently only the top chat menu is supported.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) should be handled here as
-  /// they are implemented.
+  /// The top chat or settings menu are present by default.  Additional cassette
+  /// variants (e.g. unmatched handles, all messages) are added depending on user
+  /// actions and application state.
   ///
   /// Copied from [CassetteWidgetCoordinator].
   CassetteWidgetCoordinatorProvider(SidebarMode mode)

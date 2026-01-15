@@ -61,6 +61,7 @@ class SidebarCassetteCard extends ConsumerWidget {
     //   would be unnecessarily heavy since Container checks for and potentially
     //    creates multiple internal widgets (for margin, padding, decoration,
     //     constraints, transforms, etc.) even when you're only using one feature.
+    // 7550398a-eb91-4d07-865b-945ce5286379  cf248e04-f47d-4e25-8af9-c83fb4c5a9ad
     if (isNaked) {
       return Padding(
         padding: const EdgeInsets.only(
@@ -105,6 +106,7 @@ class SidebarCassetteCard extends ConsumerWidget {
 
     final showHeader = hasTitle || hasSubtitle;
 
+    /// Use layout builder to detect bounded height for expansion logic.
     return LayoutBuilder(
       builder: (context, constraints) {
         final hasBoundedHeight = constraints.maxHeight.isFinite;
