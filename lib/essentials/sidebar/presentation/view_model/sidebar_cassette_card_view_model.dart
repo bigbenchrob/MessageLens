@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 /// Presentation data for rendering a cassette inside the sidebar card shell.
-class CassetteCardView {
-  const CassetteCardView({
+class SidebarCassetteCardViewModel {
+  const SidebarCassetteCardViewModel({
     required this.title,
     this.subtitle,
     this.sectionTitle,

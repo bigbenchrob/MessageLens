@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$handlesCassetteCoordinatorHash() =>
-    r'bf722c2a8752b4b7b1b1478851e1c399ef826b94';
+    r'15db031cafb2f65ab212332f68ef6f17e71f5436';
 
 /// See also [HandlesCassetteCoordinator].
 @ProviderFor(HandlesCassetteCoordinator)

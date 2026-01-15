@@ -30,7 +30,6 @@ class MacosAppShell extends ConsumerStatefulWidget {
 }
 
 class _MacosAppShellState extends ConsumerState<MacosAppShell> {
-  static const double _navigationColumnWidth = 320;
   static const double _toolbarHorizontalPadding = 8.0;
   static const double _toolbarVerticalPadding = 4.0;
   bool _initialized = false;

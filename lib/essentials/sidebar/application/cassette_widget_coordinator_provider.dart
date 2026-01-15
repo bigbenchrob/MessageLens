@@ -17,8 +17,8 @@ import '../domain/entities/features/presentation_cassette_spec.dart';
 import '../feature_level_providers.dart';
 
 /// utility widget to wrap each cassette in a card
-import '../presentation/models/cassette_card_view.dart';
-import '../presentation/view/widgets/sidebar_cassette_card.dart';
+import '../presentation/view/sidebar_cassette_card.dart';
+import '../presentation/view_model/sidebar_cassette_card_view_model.dart';
 
 part 'cassette_widget_coordinator_provider.g.dart';
 
@@ -45,7 +45,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     final rack = ref.watch(cassetteRackStateProvider(mode));
     final widgets = <Widget>[];
 
-    CassetteCardView buildViewForSpec(CassetteSpec spec) {
+    SidebarCassetteCardViewModel buildViewForSpec(CassetteSpec spec) {
       return spec.when(
         sidebarUtility: (sidebarSpec) {
           final coordinator = ref.read(
@@ -56,7 +56,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         presentation: (presentationSpec) {
           return presentationSpec.map(
             themePlayground: (_) {
-              return const CassetteCardView(
+              return const SidebarCassetteCardViewModel(
                 title: 'Theme playground',
                 subtitle: 'Verify theme reacts to system appearance changes.',
                 child: ThemePlaygroundCassette(),

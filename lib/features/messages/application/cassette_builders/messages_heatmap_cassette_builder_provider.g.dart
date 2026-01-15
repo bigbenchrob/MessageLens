@@ -7,7 +7,7 @@ part of 'messages_heatmap_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$messagesHeatmapCassetteBuilderHash() =>
-    r'71835bb1d6ac7cfbf62cea8361e56d0c6b96f20d';
+    r'f58b1be15c44140cbbb95a1e04650293f45471ff';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -36,7 +36,8 @@ const messagesHeatmapCassetteBuilderProvider =
     MessagesHeatmapCassetteBuilderFamily();
 
 /// See also [messagesHeatmapCassetteBuilder].
-class MessagesHeatmapCassetteBuilderFamily extends Family<CassetteCardView> {
+class MessagesHeatmapCassetteBuilderFamily
+    extends Family<SidebarCassetteCardViewModel> {
   /// See also [messagesHeatmapCassetteBuilder].
   const MessagesHeatmapCassetteBuilderFamily();
 
@@ -78,7 +79,7 @@ class MessagesHeatmapCassetteBuilderFamily extends Family<CassetteCardView> {
 
 /// See also [messagesHeatmapCassetteBuilder].
 class MessagesHeatmapCassetteBuilderProvider
-    extends AutoDisposeProvider<CassetteCardView> {
+    extends AutoDisposeProvider<SidebarCassetteCardViewModel> {
   /// See also [messagesHeatmapCassetteBuilder].
   MessagesHeatmapCassetteBuilderProvider({
     required int? contactId,
@@ -117,7 +118,9 @@ class MessagesHeatmapCassetteBuilderProvider
 
   @override
   Override overrideWith(
-    CassetteCardView Function(MessagesHeatmapCassetteBuilderRef provider)
+    SidebarCassetteCardViewModel Function(
+      MessagesHeatmapCassetteBuilderRef provider,
+    )
     create,
   ) {
     return ProviderOverride(
@@ -136,7 +139,7 @@ class MessagesHeatmapCassetteBuilderProvider
   }
 
   @override
-  AutoDisposeProviderElement<CassetteCardView> createElement() {
+  AutoDisposeProviderElement<SidebarCassetteCardViewModel> createElement() {
     return _MessagesHeatmapCassetteBuilderProviderElement(this);
   }
 
@@ -160,7 +163,7 @@ class MessagesHeatmapCassetteBuilderProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin MessagesHeatmapCassetteBuilderRef
-    on AutoDisposeProviderRef<CassetteCardView> {
+    on AutoDisposeProviderRef<SidebarCassetteCardViewModel> {
   /// The parameter `contactId` of this provider.
   int? get contactId;
 
@@ -169,7 +172,7 @@ mixin MessagesHeatmapCassetteBuilderRef
 }
 
 class _MessagesHeatmapCassetteBuilderProviderElement
-    extends AutoDisposeProviderElement<CassetteCardView>
+    extends AutoDisposeProviderElement<SidebarCassetteCardViewModel>
     with MessagesHeatmapCassetteBuilderRef {
   _MessagesHeatmapCassetteBuilderProviderElement(super.provider);
 

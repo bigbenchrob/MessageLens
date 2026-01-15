@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
-import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import 'application/cassette_builders/contact_short_names_cassette_builder_provider.dart';
 import 'application/use_cases/contact_chooser_view_builder_provider.dart';
 import 'presentation/cassettes/contact_hero_summary_cassette.dart';
@@ -18,19 +18,22 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
   @override
   void build() {}
 
-  CassetteCardView buildForSpec(Ref ref, ContactsCassetteSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(
+    Ref ref,
+    ContactsCassetteSpec spec,
+  ) {
     return spec.map(
-      recentContacts: (recent) => CassetteCardView(
+      recentContacts: (recent) => SidebarCassetteCardViewModel(
         title: '',
         subtitle: null,
         child: contactChooserViewBuilder(ref, recent),
       ),
-      contactChooser: (chooser) => CassetteCardView(
+      contactChooser: (chooser) => SidebarCassetteCardViewModel(
         title: '',
         subtitle: null,
         child: contactChooserViewBuilder(ref, chooser),
       ),
-      contactHeroSummary: (hero) => CassetteCardView(
+      contactHeroSummary: (hero) => SidebarCassetteCardViewModel(
         title: '',
         subtitle: null,
         shouldExpand: false,
@@ -53,7 +56,7 @@ class ContactsSettingsCassetteCoordinator
   @override
   void build() {}
 
-  CassetteCardView buildForSpec(ContactsSettingsSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(ContactsSettingsSpec spec) {
     return spec.when(
       shortNames: () => ref.read(contactShortNamesCassetteBuilderProvider),
     );

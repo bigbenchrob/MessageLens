@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/sidebar_utility_cassette_spec.dart';
-import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import './application/cassette_builders/settings_top_menu_builder_provider.dart';
 import './application/cassette_builders/top_chat_menu_builder_provider.dart';
 
@@ -18,15 +18,23 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
   /// Build a widget for the given [spec].  This method pattern‑matches
   /// on the variant of [SidebarUtilityCassetteSpec] and delegates to
   /// appropriate builders.
-  CassetteCardView buildForSpec(SidebarUtilityCassetteSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(SidebarUtilityCassetteSpec spec) {
     return spec.when(
       topChatMenu: (selectedChoice) {
         final content = ref.read(topChatMenuBuilderProvider(spec));
-        return CassetteCardView(title: '', child: content, isNaked: true);
+        return SidebarCassetteCardViewModel(
+          title: '',
+          child: content,
+          isNaked: true,
+        );
       },
       settingsMenu: (selectedChoice) {
         final content = ref.read(settingsTopMenuBuilderProvider(spec));
-        return CassetteCardView(title: '', child: content, isNaked: true);
+        return SidebarCassetteCardViewModel(
+          title: '',
+          child: content,
+          isNaked: true,
+        );
       },
     );
   }

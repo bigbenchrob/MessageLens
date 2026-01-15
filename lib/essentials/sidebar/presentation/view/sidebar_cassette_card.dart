@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../../config/theme/colors/theme_colors.dart';
-import '../../../../../config/theme/theme_typography.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 
 /// A reusable card container for sidebar cassette widgets.
 ///
@@ -54,6 +54,13 @@ class SidebarCassetteCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Naked mode: minimal wrapper with only horizontal margin for edge alignment
     // Vertical padding: small top, matches card margin bottom for proper spacing
+
+    // In the naked mode, we only need spacing - no background, border, shadow,
+    //  or other decoration. So a simple Padding widget is the most direct and
+    //  efficient choice. Using Container there would work identically, but it
+    //   would be unnecessarily heavy since Container checks for and potentially
+    //    creates multiple internal widgets (for margin, padding, decoration,
+    //     constraints, transforms, etc.) even when you're only using one feature.
     if (isNaked) {
       return Padding(
         padding: const EdgeInsets.only(

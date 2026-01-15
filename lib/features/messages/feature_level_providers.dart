@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/messages_cassette_spec.dart';
-import '../../essentials/sidebar/presentation/models/cassette_card_view.dart';
+import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import 'application/cassette_builders/global_timeline_view_builder_provider.dart';
 import 'application/cassette_builders/messages_for_handle_view_builder_provider.dart';
 import 'application/cassette_builders/messages_heatmap_cassette_builder_provider.dart';
@@ -34,7 +34,7 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
     // Stateless coordinator
   }
 
-  CassetteCardView buildForSpec(MessagesCassetteSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(MessagesCassetteSpec spec) {
     return spec.when(
       heatMap: (contactId, useV2Timeline) => ref.read(
         messagesHeatmapCassetteBuilderProvider(

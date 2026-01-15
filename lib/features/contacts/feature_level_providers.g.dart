@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$contactsCassetteCoordinatorHash() =>
-    r'ff4cb17cb4dad9207bbc954f86bbc74b6995a28b';
+    r'27e75fa16c9a0284fbff76f27e7acde4a0615b88';
 
 /// Coordinator that maps [ContactsCassetteSpec] to cassette widgets.
 ///
@@ -26,7 +26,7 @@ final contactsCassetteCoordinatorProvider =
 
 typedef _$ContactsCassetteCoordinator = AutoDisposeNotifier<void>;
 String _$contactsSettingsCassetteCoordinatorHash() =>
-    r'08156a20d2d607ffb489490b8b1ef57064fc4ca7';
+    r'5800e6395e3bbe2cf12b8ad4a357c979cfefe8bf';
 
 /// Coordinator that maps [ContactsSettingsSpec] to cassette widgets.
 ///

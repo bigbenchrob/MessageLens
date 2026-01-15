@@ -7,7 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // of cassette widgets that compose the sidebar.  We wrap these in a
 // Column to produce the left panel surface.
 import '../../../sidebar/application/cassette_widget_coordinator_provider.dart';
-import '../../../sidebar/presentation/view/widgets/sidebar_cassette_card.dart';
+import '../../../sidebar/presentation/view/sidebar_cassette_card.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/navigation_constants.dart';
 import '../../domain/sidebar_mode.dart';
