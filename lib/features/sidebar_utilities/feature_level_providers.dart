@@ -22,15 +22,11 @@ class UtilityCassetteCoordinator extends _$UtilityCassetteCoordinator {
     return spec.when(
       topChatMenu: (selectedChoice) {
         final content = ref.read(topChatMenuBuilderProvider(spec));
-        return CassetteCardView(title: '', child: content, isControl: true);
+        return CassetteCardView(title: '', child: content, isNaked: true);
       },
       settingsMenu: (selectedChoice) {
         final content = ref.read(settingsTopMenuBuilderProvider(spec));
-        return CassetteCardView(
-          title: 'Settings',
-          child: content,
-          isControl: true,
-        );
+        return CassetteCardView(title: '', child: content, isNaked: true);
       },
     );
   }

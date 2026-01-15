@@ -69,12 +69,18 @@ class TopChatMenu extends ConsumerWidget {
       selectedOption: selectedChoice,
       onSelected: handleSelectionChange,
       optionLabelBuilder: (choice) => choice.label,
-      leadingLabel: 'Show:',
+      // Naked card wrapper provides 12px horizontal margin
+      outerPadding: EdgeInsets.zero,
+      // Match card internal padding: 12px left for text alignment
+      triggerPadding: const EdgeInsets.only(
+        left: 12.0,
+        right: 16.0,
+        top: 10.0,
+        bottom: 10.0,
+      ),
       // Typography tokens for control header hierarchy:
-      // - controlLabel for "Show:" (small, tertiary, uppercase-ready)
       // - controlValue for selected option (confident, primary)
       // - Brand-tinted chevron background for intentional feel
-      leadingLabelStyle: typography.controlLabel,
       selectedValueStyle: typography.controlValue,
       chevronColor: colors.accents.primary,
       chevronBackgroundColor: colors.accents.primary.withValues(alpha: 0.12),

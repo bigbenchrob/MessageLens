@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../essentials/navigation/application/sidebar_mode_provider.dart';
+import '../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../providers.dart'
     show platformBrightnessProvider, switchableDarkModeProvider;
 
 part 'theme_colors.g.dart';
+
+/// Compound state type for ThemeColors: (brightness, sidebar mode).
+typedef ThemeColorsState = (Brightness, SidebarMode);
 
 /// Organized collection of theme color tokens.
 /// Each token is defined as an immutable light/dark pair ([ColorPair]).
@@ -129,13 +134,23 @@ class Surfaces {
   /// Sidebar / inspector panel background.
   Color get panel => _r(const ColorPair(Color(0xFFF6F7F8), Color(0xFF232627)));
 
+  // -- Mode-aware content control surfaces --
+
+  /// Messages mode: neutral gray-ish background.
+  Color get _messagesContentControl =>
+      _r(const ColorPair(Color(0xFFF2F4F6), Color(0xFF2A2D2F)));
+
+  /// Settings mode: slightly cooler/blue-gray tint to distinguish context.
+  Color get _settingsContentControl =>
+      _r(const ColorPair(Color(0xFFEEF1F4), Color(0xFF282C2E)));
+
   /// Content control panel background (left column holding cassette rack).
   ///
   /// Holds a dynamic hierarchy of widgets (cassette rack) that respond to user
   /// inputs by offering new options for displaying content in the central area.
-  /// Slightly different from [panel] to visually separate this control surface.
+  /// Automatically adjusts tint based on sidebar mode (messages vs settings).
   Color get contentControl =>
-      _r(const ColorPair(Color(0xFFF2F4F6), Color(0xFF2A2D2F)));
+      _t.isSettingsMode ? _settingsContentControl : _messagesContentControl;
 
   /// Default surface for grouped content (cards, groups).
   Color get surface =>
@@ -174,6 +189,7 @@ class ContentColors {
 
   Color get textPrimary => _t.globals.gray.one;
   Color get textSecondary => _t.globals.gray.three;
+  Color get textSecondaryQuiet => textSecondary.withValues(alpha: 0.55);
   Color get textTertiary => _t.globals.gray.four;
   Color get textDisabled =>
       _t.globals.gray.five.withValues(alpha: _t.isDark ? 0.65 : 0.7);
@@ -191,6 +207,10 @@ class Lines {
   Color _base() => _t.globals.gray.five;
 
   Color get divider => _base().withValues(alpha: _t.isDark ? 0.55 : 0.6);
+
+  /// Quieter divider for subtle UI elements (e.g., inactive mode toggle outline).
+  Color get dividerQuiet => _base().withValues(alpha: _t.isDark ? 0.40 : 0.55);
+
   Color get borderSubtle => _base().withValues(alpha: _t.isDark ? 0.40 : 0.45);
   Color get border => _base().withValues(alpha: _t.isDark ? 0.65 : 0.70);
   Color get borderStrong =>
@@ -299,13 +319,21 @@ enum CassetteCard {
 @riverpod
 class ThemeColors extends _$ThemeColors {
   @override
-  Brightness build() {
-    return _resolveBrightness();
+  ThemeColorsState build() {
+    final brightness = _resolveBrightness();
+    final mode = ref.watch(activeSidebarModeProvider);
+    return (brightness, mode);
   }
 
-  Color gray(GrayTone tone) => tone.pair.resolve(state);
-  Color brandHighlight(BrandHighlight tone) => tone.pair.resolve(state);
-  Color cassetteCard(CassetteCard tone) => tone.pair.resolve(state);
+  /// Current brightness (light or dark).
+  Brightness get brightness => state.$1;
+
+  /// Current sidebar mode (messages or settings).
+  SidebarMode get sidebarMode => state.$2;
+
+  Color gray(GrayTone tone) => tone.pair.resolve(brightness);
+  Color brandHighlight(BrandHighlight tone) => tone.pair.resolve(brightness);
+  Color cassetteCard(CassetteCard tone) => tone.pair.resolve(brightness);
 
   // Convenience getters for gray tones
   Color get grayOne => gray(GrayTone.one);
@@ -316,10 +344,16 @@ class ThemeColors extends _$ThemeColors {
   Color get graySix => gray(GrayTone.six);
 
   /// Resolve a raw [ColorPair] pair against the current brightness.
-  Color resolvePair(ColorPair pair) => pair.resolve(state);
+  Color resolvePair(ColorPair pair) => pair.resolve(brightness);
 
   /// True when the current brightness is dark.
-  bool get isDark => state == Brightness.dark;
+  bool get isDark => brightness == Brightness.dark;
+
+  /// True when the sidebar is in settings mode.
+  bool get isSettingsMode => sidebarMode == SidebarMode.settings;
+
+  /// True when the sidebar is in messages mode.
+  bool get isMessagesMode => sidebarMode == SidebarMode.messages;
 
   // -------------------------------------------------------------------------
   // Shared semantic color groups (preferred API)

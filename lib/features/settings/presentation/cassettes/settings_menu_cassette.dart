@@ -46,8 +46,15 @@ class SettingsTopMenu extends ConsumerWidget {
       selectedOption: selectedChoice,
       onSelected: handleSelection,
       optionLabelBuilder: (choice) => choice.label,
-      leadingLabel: 'Settings:',
-      leadingLabelStyle: typography.controlLabel,
+      // Naked card wrapper provides 12px horizontal margin
+      outerPadding: EdgeInsets.zero,
+      // Match card internal padding: 12px left for text alignment
+      triggerPadding: const EdgeInsets.only(
+        left: 12.0,
+        right: 16.0,
+        top: 10.0,
+        bottom: 10.0,
+      ),
       selectedValueStyle: typography.controlValue,
       chevronColor: colors.accents.primary,
       chevronBackgroundColor: colors.accents.primary.withValues(alpha: 0.12),

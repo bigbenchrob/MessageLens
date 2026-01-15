@@ -14,7 +14,10 @@ class WorkspaceLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = ref.watch(themeColorsProvider.notifier);
+    // Watch the state to trigger rebuilds on theme/mode changes.
+    ref.watch(themeColorsProvider);
+    // Read the notifier to access color methods.
+    final colors = ref.read(themeColorsProvider.notifier);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -26,6 +26,7 @@ class SidebarCassetteCard extends ConsumerWidget {
   final EdgeInsetsGeometry margin;
   final double borderRadius;
   final bool isControl;
+  final bool isNaked;
   final bool shouldExpand;
 
   const SidebarCassetteCard({
@@ -35,15 +36,36 @@ class SidebarCassetteCard extends ConsumerWidget {
     this.subtitle,
     this.sectionTitle, // NEW
     this.footerText, // NEW
-    this.padding = const EdgeInsets.all(16.0),
+    // Left padding reduced to 12px to align title with naked dropdown text
+    this.padding = const EdgeInsets.only(
+      left: 12.0,
+      top: 16.0,
+      right: 16.0,
+      bottom: 16.0,
+    ),
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.borderRadius = 8.0,
     this.isControl = false,
+    this.isNaked = false,
     this.shouldExpand = true,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Naked mode: minimal wrapper with only horizontal margin for edge alignment
+    // Vertical padding: small top, matches card margin bottom for proper spacing
+    if (isNaked) {
+      return Padding(
+        padding: const EdgeInsets.only(
+          left: 12.0,
+          right: 12.0,
+          top: 4.0,
+          bottom: 4.0,
+        ),
+        child: child,
+      );
+    }
+
     final typography = ref.watch(themeTypographyProvider);
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);

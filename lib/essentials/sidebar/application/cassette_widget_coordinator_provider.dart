@@ -94,6 +94,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           sectionTitle: view.sectionTitle, // NEW
           footerText: view.footerText,
           isControl: view.isControl,
+          isNaked: view.isNaked,
           shouldExpand: view.shouldExpand,
           child: view.child,
         ),

@@ -13,12 +13,12 @@ import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
-import '../../domain/entities/features/settings_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
 import '../../domain/sidebar_mode.dart';
 import '../../feature_level_providers.dart';
+import '../widgets/app_mode_toggle.dart';
 import 'workspace_layout.dart';
 
 /// macOS window with a fixed navigation column and primary content canvas.
@@ -107,142 +107,16 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     return MacosWindow(
       child: MacosScaffold(
         toolBar: ToolBar(
-          // Offset toolbar contents so controls align with the center panel
-          // while the background stretches across the full window width.
+          // Position mode toggle above sidebar, other controls above center panel.
           padding: const EdgeInsets.only(
-            left: _navigationColumnWidth + _toolbarHorizontalPadding,
+            left: _toolbarHorizontalPadding,
             right: _toolbarHorizontalPadding,
             top: _toolbarVerticalPadding,
             bottom: _toolbarVerticalPadding,
           ),
           title: const Text('Remember This Text'),
           centerTitle: true,
-          leading: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              MacosTooltip(
-                message: 'Messages',
-                useMousePosition: false,
-                child: MacosIconButton(
-                  icon: MacosIcon(
-                    CupertinoIcons.bubble_left_bubble_right,
-                    color:
-                        ref.watch(activeSidebarModeProvider) ==
-                            SidebarMode.messages
-                        ? MacosTheme.of(context).primaryColor
-                        : MacosTheme.brightnessOf(context).resolve(
-                            const Color.fromRGBO(0, 0, 0, 0.65),
-                            const Color.fromRGBO(255, 255, 255, 0.75),
-                          ),
-                    size: 18,
-                  ),
-                  boxConstraints: const BoxConstraints(
-                    minHeight: 20,
-                    minWidth: 20,
-                    maxWidth: 48,
-                    maxHeight: 38,
-                  ),
-                  onPressed: () {
-                    ref
-                        .read(activeSidebarModeProvider.notifier)
-                        .setMode(SidebarMode.messages);
-                  },
-                ),
-              ),
-              MacosTooltip(
-                message: 'Settings',
-                useMousePosition: false,
-                child: MacosIconButton(
-                  icon: MacosIcon(
-                    CupertinoIcons.gear_alt,
-                    color:
-                        ref.watch(activeSidebarModeProvider) ==
-                            SidebarMode.settings
-                        ? MacosTheme.of(context).primaryColor
-                        : MacosTheme.brightnessOf(context).resolve(
-                            const Color.fromRGBO(0, 0, 0, 0.65),
-                            const Color.fromRGBO(255, 255, 255, 0.75),
-                          ),
-                    size: 18,
-                  ),
-                  boxConstraints: const BoxConstraints(
-                    minHeight: 20,
-                    minWidth: 20,
-                    maxWidth: 48,
-                    maxHeight: 38,
-                  ),
-                  onPressed: () {
-                    ref
-                        .read(activeSidebarModeProvider.notifier)
-                        .setMode(SidebarMode.settings);
-
-                    // Record the navigation intent for auditing while
-                    // keeping the center panel clear until a settings
-                    // cassette explicitly requests content.
-                    ref
-                        .read(navigationLoggerProvider.notifier)
-                        .logToolbarClick(
-                          buttonLabel: 'Settings',
-                          targetPanel: WindowPanel.center,
-                          viewSpec: const ViewSpec.settings(
-                            SettingsSpec.contactShortNames(),
-                          ),
-                        );
-
-                    ref
-                        .read(
-                          panelsViewStateProvider(
-                            SidebarMode.settings,
-                          ).notifier,
-                        )
-                        .clear(panel: WindowPanel.center);
-                  },
-                ),
-              ),
-              () {
-                final themeMode = ref.watch(switchableDarkModeProvider);
-
-                final (IconData icon, String tooltip) = switch (themeMode) {
-                  ThemeMode.system => (
-                    CupertinoIcons.circle_lefthalf_fill,
-                    'Theme: System (click to switch to Light)',
-                  ),
-                  ThemeMode.light => (
-                    CupertinoIcons.sun_max_fill,
-                    'Theme: Light (click to switch to Dark)',
-                  ),
-                  ThemeMode.dark => (
-                    CupertinoIcons.moon_stars_fill,
-                    'Theme: Dark (click to switch to System)',
-                  ),
-                };
-
-                return MacosTooltip(
-                  message: tooltip,
-                  useMousePosition: false,
-                  child: MacosIconButton(
-                    icon: MacosIcon(
-                      icon,
-                      color: MacosTheme.brightnessOf(context).resolve(
-                        const Color.fromRGBO(0, 0, 0, 0.65),
-                        const Color.fromRGBO(255, 255, 255, 0.75),
-                      ),
-                      size: 18,
-                    ),
-                    boxConstraints: const BoxConstraints(
-                      minHeight: 20,
-                      minWidth: 20,
-                      maxWidth: 48,
-                      maxHeight: 38,
-                    ),
-                    onPressed: () {
-                      ref.read(switchableDarkModeProvider.notifier).cycle();
-                    },
-                  ),
-                );
-              }(),
-            ],
-          ),
+          leading: const AppModeToggle(),
           actions: [
             ToolBarIconButton(
               label: 'Chats',
@@ -354,6 +228,31 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               },
               showLabel: false,
             ),
+            () {
+              final themeMode = ref.watch(switchableDarkModeProvider);
+              final (IconData icon, String tooltip) = switch (themeMode) {
+                ThemeMode.system => (
+                  CupertinoIcons.circle_lefthalf_fill,
+                  'Theme: System (click to switch to Light)',
+                ),
+                ThemeMode.light => (
+                  CupertinoIcons.sun_max_fill,
+                  'Theme: Light (click to switch to Dark)',
+                ),
+                ThemeMode.dark => (
+                  CupertinoIcons.moon_stars_fill,
+                  'Theme: Dark (click to switch to System)',
+                ),
+              };
+              return ToolBarIconButton(
+                label: tooltip,
+                icon: MacosIcon(icon),
+                onPressed: () {
+                  ref.read(switchableDarkModeProvider.notifier).cycle();
+                },
+                showLabel: false,
+              );
+            }(),
           ],
         ),
         children: [

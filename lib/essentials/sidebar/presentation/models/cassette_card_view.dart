@@ -9,6 +9,7 @@ class CassetteCardView {
     this.footerText,
     required this.child,
     this.isControl = false,
+    this.isNaked = false,
     bool? shouldExpand,
   }) : shouldExpand = shouldExpand ?? !isControl;
 
@@ -27,6 +28,12 @@ class CassetteCardView {
   /// Whether this cassette is primarily a control surface (vs content).
   /// Control cassettes should be visually de-emphasized in the sidebar.
   final bool isControl;
+
+  /// Whether this cassette should render "naked" - with only horizontal margin
+  /// to align edges with cards, but no padding, border, background, or shadow.
+  /// Use for dropdown menus and other controls that should align flush with
+  /// cassette card edges.
+  final bool isNaked;
 
   /// Whether this cassette should expand to fill available vertical space.
   /// Defaults to true for content cassettes, false for control cassettes.

@@ -63,7 +63,9 @@ class _LeftSidebarSurface extends StatelessWidget {
             child: widget,
           );
 
-          if (widget is SidebarCassetteCard && widget.isControl) {
+          // Control and naked cards go at the top, don't expand
+          if (widget is SidebarCassetteCard &&
+              (widget.isControl || widget.isNaked)) {
             controls.add(constrained);
           } else {
             final shouldExpand =

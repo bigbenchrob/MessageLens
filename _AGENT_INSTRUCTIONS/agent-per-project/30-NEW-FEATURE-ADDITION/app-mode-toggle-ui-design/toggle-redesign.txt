@@ -1,0 +1,60 @@
+Copilot instructions: AppModeToggle emphasis + hover affordance
+
+File: lib/essentials/navigation/presentation/widgets/app_mode_toggle.dart
+
+1) Increase the toggle text size slightly and harmonize with toolbar/title weight
+
+In _LatchSegmentState.build, in the TextStyle for the label, change:
+	•	fontSize: 13 → fontSize: 14 (or 15 if you want it to clearly outrank “Contacts”)
+	•	Keep active weight w600.
+	•	Keep inactive weight w400 (or w500 if it becomes too wispy after your alpha reduction).
+
+So the style should be conceptually:
+	•	Active: size 14, w600
+	•	Inactive: size 14, w400, muted color
+
+2) Increase padding to match the new size and improve hierarchy
+
+Change the AnimatedContainer padding from:
+	•	EdgeInsets.symmetric(horizontal: 12, vertical: 4)
+
+to something like:
+	•	EdgeInsets.symmetric(horizontal: 14, vertical: 6)
+
+This helps it read as a “header control,” not a small inline chip.
+
+3) Ensure a minimum hit target height (even though it looks like text)
+
+Wrap the AnimatedContainer with:
+	•	ConstrainedBox(constraints: BoxConstraints(minHeight: 28))
+
+This preserves the minimal look but makes it easy to click.
+
+4) Keep inactive mode from looking “active”: no border at rest
+
+You already have the right logic:
+	•	inactive at rest: borderColor = null, backgroundColor = transparent
+	•	inactive hovered: show border + subtle tint
+
+Tell Copilot explicitly:
+	•	Do not render any outline/border when inactive and not hovered.
+
+5) Add a subtle hover tint (reassurance)
+
+In the _isHovered branch (inactive + hovered):
+	•	set backgroundColor = colors.surfaces.hover (you already do)
+	•	set borderColor = colors.lines.dividerQuiet (you already do)
+
+But keep the hover text not too strong:
+	•	Change hover text color from textPrimary to something slightly less assertive if needed, e.g.:
+	•	colors.content.textSecondary or textPrimary.withAlpha(...)
+
+If it currently jumps too much, instruct Copilot:
+	•	Hover should not make Settings darker than Messages.
+	•	Hover should read: “clickable”, not “selected”.
+
+6) Tighten the relationship to the sidebar
+
+You already moved it above the sidebar. If you want a bit more “this controls the sidebar” clarity without extra chrome:
+	•	Put the toggle inside the same horizontal bounds as the sidebar (left aligned to sidebar content).
+	•	Optional: add a tiny “Mode” label on the left in secondary text (but only if needed).
