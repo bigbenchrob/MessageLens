@@ -114,4 +114,82 @@ class ThemeTypography {
     fontWeight: FontWeight.w600,
     color: _colors.content.textTertiary,
   );
+
+  // ---------------------------------------------------------------------------
+  // Cassette card typography
+  // ---------------------------------------------------------------------------
+  // Hierarchy (highest to lowest emphasis):
+  // 1. cassetteCardTitle – card title (e.g., "Short Names")
+  // 2. cassetteCardSectionHeader – section header (e.g., "Display format")
+  // 3. cassetteCardSubtitle – card description text
+  // 4. cassetteCardFooter – footer/helper text
+
+  /// Card title – heaviest element in the cassette card.
+  /// Example: "Short Names"
+  TextStyle get cassetteCardTitle => _base.copyWith(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: _colors.content.textPrimary,
+  );
+
+  /// Card subtitle/description – secondary to title, provides context.
+  /// Example: "How contact names appear throughout the app"
+  TextStyle get cassetteCardSubtitle => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: _colors.content.textTertiary,
+  );
+
+  /// Section header – defines scope of options beneath it.
+  /// Must visually dominate the options, but be subordinate to card title.
+  /// Example: "Display format"
+  TextStyle get cassetteCardSectionHeader => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.2,
+    color: _colors.content.textSecondary,
+  );
+
+  /// Footer text – lowest emphasis, explanatory.
+  /// Example: "Nicknames override imported contact names..."
+  TextStyle get cassetteCardFooter => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: _colors.content.textTertiary,
+  );
+
+  // ---------------------------------------------------------------------------
+  // Option list typography (radio buttons, toggles, menu choices)
+  // ---------------------------------------------------------------------------
+  // Used for vertical lists of selectable options. Reusable across cassette
+  // cards, settings panels, and anywhere radio/toggle groups appear.
+  //
+  // Hierarchy:
+  // - Selected option: emphasized, stable, obvious at a glance
+  // - Unselected options: readable but visually quieter
+  // - Helper text: smallest, lowest contrast
+
+  /// Selected option label – emphasized via weight and color.
+  /// Should feel "settled and stable" per guidelines.
+  TextStyle get optionListLabelSelected => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: _colors.content.textPrimary,
+  );
+
+  /// Unselected option label – recedes via lighter weight and reduced contrast.
+  /// Remains readable but doesn't compete for attention.
+  TextStyle get optionListLabelUnselected => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textSecondary,
+  );
+
+  /// Per-option helper text – explains behavior, lowest emphasis.
+  /// Example: "Uses a custom name you set per contact"
+  TextStyle get optionListHelper => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textTertiary,
+  );
 }

@@ -123,33 +123,33 @@ class _OptionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = Icon(
       isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
-      size: 18,
+      size: 16,
       color: isSelected ? colors.accents.primary : colors.lines.border,
     );
+
+    // Use semantic typography: selected emphasized, unselected recedes
+    final labelStyle = isSelected
+        ? typography.optionListLabelSelected
+        : typography.optionListLabelUnselected;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(padding: const EdgeInsets.only(top: 2), child: icon),
-            const SizedBox(width: 10),
+            Padding(padding: const EdgeInsets.only(top: 1), child: icon),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: typography.body),
+                  Text(label, style: labelStyle),
                   if (helper != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      helper!,
-                      style: typography.caption.copyWith(
-                        color: colors.content.textSecondary,
-                      ),
-                    ),
+                    const SizedBox(height: 3),
+                    Text(helper!, style: typography.optionListHelper),
                   ],
                 ],
               ),

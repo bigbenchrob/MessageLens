@@ -120,36 +120,16 @@ class SidebarCassetteCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.max,
           children: [
             if (showHeader) ...[
-              if (hasTitle)
-                Text(
-                  title,
-                  style: typography.body.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colors.content.textPrimary,
-                  ),
-                ),
+              if (hasTitle) Text(title, style: typography.cassetteCardTitle),
               if (hasSubtitle) ...[
                 if (hasTitle) const SizedBox(height: 6),
-                Text(
-                  subtitle!,
-                  style: typography.caption.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colors.content.textTertiary.withValues(alpha: 0.75),
-                  ),
-                ),
+                Text(subtitle!, style: typography.cassetteCardSubtitle),
               ],
               const SizedBox(height: 22),
             ],
 
             if (hasSectionTitle) ...[
-              Text(
-                sectionTitle!,
-                style: typography.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colors.content.textSecondary,
-                  letterSpacing: 0.2,
-                ),
-              ),
+              Text(sectionTitle!, style: typography.cassetteCardSectionHeader),
               const SizedBox(height: 8),
             ],
 
@@ -160,13 +140,7 @@ class SidebarCassetteCard extends ConsumerWidget {
 
             if (hasFooter) ...[
               const SizedBox(height: 12),
-              Text(
-                footerText!,
-                style: typography.caption.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colors.content.textTertiary.withValues(alpha: 0.75),
-                ),
-              ),
+              Text(footerText!, style: typography.cassetteCardFooter),
             ],
           ],
         );
