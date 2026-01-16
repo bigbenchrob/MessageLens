@@ -5,17 +5,14 @@ import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
+import '../../../../essentials/sidebar/domain/entities/features/sidebar_utility_settings_spec.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 
 class SettingsTopMenu extends ConsumerWidget {
-  final SidebarUtilityCassetteSpec spec;
+  final SidebarUtilitySettingsSpec spec;
 
-  SettingsTopMenu({super.key, required this.spec})
-    : assert(
-        spec.maybeWhen(settingsMenu: (_) => true, orElse: () => false),
-        'SettingsTopMenu requires a SidebarUtilityCassetteSpec.settingsMenu variant.',
-      );
+  const SettingsTopMenu({super.key, required this.spec});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,17 +21,14 @@ class SettingsTopMenu extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
 
     const choices = SettingsMenuChoice.values;
-    final selectedChoice = spec.when(
-      settingsMenu: (choice) => choice,
-      topChatMenu: (_) => SettingsMenuChoice.contacts, // Should not happen
-    );
+    final selectedChoice = spec.when(settingsMenu: (choice) => choice);
 
     void handleSelection(SettingsMenuChoice choice) {
-      final updatedSpec = SidebarUtilityCassetteSpec.settingsMenu(
+      final updatedSpec = SidebarUtilitySettingsSpec.settingsMenu(
         selectedChoice: choice,
       );
-      final oldCassetteSpec = CassetteSpec.sidebarUtility(spec);
-      final newCassetteSpec = CassetteSpec.sidebarUtility(updatedSpec);
+      final oldCassetteSpec = CassetteSpec.sidebarUtilitySettings(spec);
+      final newCassetteSpec = CassetteSpec.sidebarUtilitySettings(updatedSpec);
 
       ref
           .read(cassetteRackStateProvider(SidebarMode.settings).notifier)

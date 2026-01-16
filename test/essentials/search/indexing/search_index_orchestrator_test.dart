@@ -1,9 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import 'package:remember_this_text/features/search/indexing/search_index_metrics_repository.dart';
-import 'package:remember_this_text/features/search/indexing/search_index_orchestrator.dart';
-import 'package:remember_this_text/features/search/indexing/search_indexer.dart';
+import 'package:remember_this_text/essentials/search/indexing/search_index_metrics_repository.dart';
+import 'package:remember_this_text/essentials/search/indexing/search_index_orchestrator.dart';
+import 'package:remember_this_text/essentials/search/indexing/search_indexer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

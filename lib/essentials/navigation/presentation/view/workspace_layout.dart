@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
+import '../../application/panel_widget_providers.dart';
 import '../../domain/sidebar_mode.dart';
-import '../view_model/panel_widget_providers.dart';
 
 class WorkspaceLayout extends ConsumerWidget {
   const WorkspaceLayout({super.key, required this.mode});

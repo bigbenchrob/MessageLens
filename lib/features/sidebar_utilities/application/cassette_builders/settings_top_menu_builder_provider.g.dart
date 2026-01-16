@@ -7,7 +7,7 @@ part of 'settings_top_menu_builder_provider.dart';
 // **************************************************************************
 
 String _$settingsTopMenuBuilderHash() =>
-    r'2f39325c346bf28839e2b41a2062984cbc64eb73';
+    r'd0d62b5de086c63d778b13b7820a574b7bcfacec';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -32,44 +32,42 @@ class _SystemHash {
 
 abstract class _$SettingsTopMenuBuilder
     extends BuildlessAutoDisposeNotifier<Widget> {
-  late final SidebarUtilityCassetteSpec sidebarUtilityCassetteSpec;
+  late final SidebarUtilitySettingsSpec spec;
 
-  Widget build(SidebarUtilityCassetteSpec sidebarUtilityCassetteSpec);
+  Widget build(SidebarUtilitySettingsSpec spec);
 }
 
-/// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+/// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
 /// drop-down style settings top menu widget.
 ///
 /// Copied from [SettingsTopMenuBuilder].
 @ProviderFor(SettingsTopMenuBuilder)
 const settingsTopMenuBuilderProvider = SettingsTopMenuBuilderFamily();
 
-/// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+/// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
 /// drop-down style settings top menu widget.
 ///
 /// Copied from [SettingsTopMenuBuilder].
 class SettingsTopMenuBuilderFamily extends Family<Widget> {
-  /// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+  /// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
   /// drop-down style settings top menu widget.
   ///
   /// Copied from [SettingsTopMenuBuilder].
   const SettingsTopMenuBuilderFamily();
 
-  /// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+  /// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
   /// drop-down style settings top menu widget.
   ///
   /// Copied from [SettingsTopMenuBuilder].
-  SettingsTopMenuBuilderProvider call(
-    SidebarUtilityCassetteSpec sidebarUtilityCassetteSpec,
-  ) {
-    return SettingsTopMenuBuilderProvider(sidebarUtilityCassetteSpec);
+  SettingsTopMenuBuilderProvider call(SidebarUtilitySettingsSpec spec) {
+    return SettingsTopMenuBuilderProvider(spec);
   }
 
   @override
   SettingsTopMenuBuilderProvider getProviderOverride(
     covariant SettingsTopMenuBuilderProvider provider,
   ) {
-    return call(provider.sidebarUtilityCassetteSpec);
+    return call(provider.spec);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -87,22 +85,19 @@ class SettingsTopMenuBuilderFamily extends Family<Widget> {
   String? get name => r'settingsTopMenuBuilderProvider';
 }
 
-/// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+/// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
 /// drop-down style settings top menu widget.
 ///
 /// Copied from [SettingsTopMenuBuilder].
 class SettingsTopMenuBuilderProvider
     extends AutoDisposeNotifierProviderImpl<SettingsTopMenuBuilder, Widget> {
-  /// Builder that converts a [SidebarUtilityCassetteSpec.settingsMenu] into the
+  /// Builder that converts a [SidebarUtilitySettingsSpec.settingsMenu] into the
   /// drop-down style settings top menu widget.
   ///
   /// Copied from [SettingsTopMenuBuilder].
-  SettingsTopMenuBuilderProvider(
-    SidebarUtilityCassetteSpec sidebarUtilityCassetteSpec,
-  ) : this._internal(
-        () =>
-            SettingsTopMenuBuilder()
-              ..sidebarUtilityCassetteSpec = sidebarUtilityCassetteSpec,
+  SettingsTopMenuBuilderProvider(SidebarUtilitySettingsSpec spec)
+    : this._internal(
+        () => SettingsTopMenuBuilder()..spec = spec,
         from: settingsTopMenuBuilderProvider,
         name: r'settingsTopMenuBuilderProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -111,7 +106,7 @@ class SettingsTopMenuBuilderProvider
         dependencies: SettingsTopMenuBuilderFamily._dependencies,
         allTransitiveDependencies:
             SettingsTopMenuBuilderFamily._allTransitiveDependencies,
-        sidebarUtilityCassetteSpec: sidebarUtilityCassetteSpec,
+        spec: spec,
       );
 
   SettingsTopMenuBuilderProvider._internal(
@@ -121,14 +116,14 @@ class SettingsTopMenuBuilderProvider
     required super.allTransitiveDependencies,
     required super.debugGetCreateSourceHash,
     required super.from,
-    required this.sidebarUtilityCassetteSpec,
+    required this.spec,
   }) : super.internal();
 
-  final SidebarUtilityCassetteSpec sidebarUtilityCassetteSpec;
+  final SidebarUtilitySettingsSpec spec;
 
   @override
   Widget runNotifierBuild(covariant SettingsTopMenuBuilder notifier) {
-    return notifier.build(sidebarUtilityCassetteSpec);
+    return notifier.build(spec);
   }
 
   @override
@@ -136,13 +131,13 @@ class SettingsTopMenuBuilderProvider
     return ProviderOverride(
       origin: this,
       override: SettingsTopMenuBuilderProvider._internal(
-        () => create()..sidebarUtilityCassetteSpec = sidebarUtilityCassetteSpec,
+        () => create()..spec = spec,
         from: from,
         name: null,
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
-        sidebarUtilityCassetteSpec: sidebarUtilityCassetteSpec,
+        spec: spec,
       ),
     );
   }
@@ -155,14 +150,13 @@ class SettingsTopMenuBuilderProvider
 
   @override
   bool operator ==(Object other) {
-    return other is SettingsTopMenuBuilderProvider &&
-        other.sidebarUtilityCassetteSpec == sidebarUtilityCassetteSpec;
+    return other is SettingsTopMenuBuilderProvider && other.spec == spec;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, sidebarUtilityCassetteSpec.hashCode);
+    hash = _SystemHash.combine(hash, spec.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -171,8 +165,8 @@ class SettingsTopMenuBuilderProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin SettingsTopMenuBuilderRef on AutoDisposeNotifierProviderRef<Widget> {
-  /// The parameter `sidebarUtilityCassetteSpec` of this provider.
-  SidebarUtilityCassetteSpec get sidebarUtilityCassetteSpec;
+  /// The parameter `spec` of this provider.
+  SidebarUtilitySettingsSpec get spec;
 }
 
 class _SettingsTopMenuBuilderProviderElement
@@ -181,8 +175,8 @@ class _SettingsTopMenuBuilderProviderElement
   _SettingsTopMenuBuilderProviderElement(super.provider);
 
   @override
-  SidebarUtilityCassetteSpec get sidebarUtilityCassetteSpec =>
-      (origin as SettingsTopMenuBuilderProvider).sidebarUtilityCassetteSpec;
+  SidebarUtilitySettingsSpec get spec =>
+      (origin as SettingsTopMenuBuilderProvider).spec;
 }
 
 // ignore_for_file: type=lint

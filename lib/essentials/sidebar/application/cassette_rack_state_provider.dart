@@ -49,8 +49,8 @@ abstract class CassetteRack with _$CassetteRack {
   /// Returns a fresh [CassetteRack] containing a single settings menu
   /// cassette.
   factory CassetteRack.settingsInitial() {
-    const settingsMenu = CassetteSpec.sidebarUtility(
-      SidebarUtilityCassetteSpec.settingsMenu(),
+    const settingsMenu = CassetteSpec.sidebarUtilitySettings(
+      SidebarUtilitySettingsSpec.settingsMenu(),
     );
     return CassetteRack(cassettes: _cascadeFromSpec(settingsMenu));
   }
@@ -187,15 +187,16 @@ class CassetteRackState extends _$CassetteRackState {
     for (final spec in state.cassettes.reversed) {
       final result = spec.when(
         sidebarUtility: (_) => null,
+        sidebarUtilitySettings: (_) => null,
         presentation: (_) => null,
         contacts: (contactsSpec) {
           return contactsSpec.when(
             recentContacts: (chosenContactId) => chosenContactId,
             contactChooser: (chosenContactId) => chosenContactId,
             contactHeroSummary: (chosenContactId) => chosenContactId,
-            settings: (_) => null,
           );
         },
+        contactsSettings: (_) => null,
         handles: (_) => null,
         messages: (_) => null,
       );

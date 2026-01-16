@@ -1,59 +1,89 @@
-///***************************************************************** */
-///* The entry point for dependency injection for the feature.
-///***************************************************************** */
+import 'package:flutter/widgets.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// import 'package:example/config/providers.dart';
-// import 'package:example/features/auth/auth_provider.dart';
-// import 'package:example/features/organization/application/organization_create_controller.dart';
-// import 'package:example/features/organization/application/organization_view_controller.dart';
-// import 'package:example/features/organization/application/organizations_list_controller.dart';
-// import 'package:example/features/organization/domain/entities/organization_entity.dart';
-// import 'package:example/features/organization/infrastructure/repositories/organization_repository.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 
-// ///
-// /// Infrastructure dependencies
-// ///
+part 'feature_level_providers.g.dart';
 
-// final organizationRepositoryProvider = Provider<OrganizationRepository?>((ref) {
-//   final user = ref.watch(authRepositoryProvider.select((v) => v.currentUser));
-//   if (user == null) return null;
-//   return OrganizationRepository(
-//     client: ref.watch(supabaseClientProvider),
-//     user: user,
-//   );
-// }); provider
+// =============================================================================
+// PLACEHOLDER SPECS - Replace with actual Freezed specs when implemented
+// =============================================================================
 
-// ///
-// /// Application dependencies
-// ///
-// final organizationListProvider = StateNotifierProvider<
-//     OrganizationListController, AsyncValue<List<OrganizationEntity>>>((ref) {
-//   final repo = ref.watch(organizationRepositoryProvider);
-//   return OrganizationListController(repo);
-// });
+/// Placeholder for AttachmentsSpec (ViewSpec for center panel).
+/// Replace with: import '../../essentials/navigation/domain/entities/features/attachments_spec.dart';
+typedef AttachmentsSpec = void;
 
-// /// Keeps selected by user organization
-// final currentOrganizationProvider = StateProvider<OrganizationEntity?>((ref) {
-//   return null;
-// });
+/// Placeholder for AttachmentsCassetteSpec (sidebar cassettes in messages mode).
+/// Replace with: import '../../essentials/sidebar/domain/entities/features/attachments_cassette_spec.dart';
+typedef AttachmentsCassetteSpec = void;
 
-// ///
-// final organizationCreateProvider = StateNotifierProvider<
-//     OrganizationCreateController, AsyncValue<OrganizationEntity?>>((ref) {
-//   final repo = ref.watch(organizationRepositoryProvider);
+/// Placeholder for AttachmentsSettingsSpec (sidebar cassettes in settings mode).
+/// Replace with: import '../../essentials/sidebar/domain/entities/features/attachments_settings_spec.dart';
+typedef AttachmentsSettingsSpec = void;
 
-//   return OrganizationCreateController(repo);
-// });
+// =============================================================================
+// COORDINATORS
+// =============================================================================
 
-// ///
-// final organizationViewProvider = StateNotifierProvider.family<
-//     OrganizationViewController,
-//     AsyncValue<OrganizationEntity>,
-//     String>((ref, id) {
-//   return OrganizationViewController(
-//     ref.read(organizationRepositoryProvider)!,
-//     id,
-//     ref.read,
-//   );
-// });
+/// Coordinator that maps [AttachmentsSpec] to rendered widgets for the center panel.
+@riverpod
+class ViewSpecCoordinator extends _$ViewSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a widget for the given [AttachmentsSpec].
+  Widget buildForSpec(AttachmentsSpec spec) {
+    // TODO: Implement when AttachmentsSpec is defined
+    return _buildPlaceholder('Attachments view coming soon');
+  }
+
+  Widget _buildPlaceholder(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(message, textAlign: TextAlign.center),
+      ),
+    );
+  }
+}
+
+/// Coordinator that maps [AttachmentsCassetteSpec] to cassette widgets.
+@riverpod
+class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a cassette view model for the given [AttachmentsCassetteSpec].
+  SidebarCassetteCardViewModel buildForSpec(AttachmentsCassetteSpec spec) {
+    // TODO: Implement when AttachmentsCassetteSpec is defined
+    return const SidebarCassetteCardViewModel(
+      title: 'Attachments',
+      subtitle: 'Coming soon',
+      child: SizedBox.shrink(),
+    );
+  }
+}
+
+/// Coordinator that maps [AttachmentsSettingsSpec] to cassette widgets.
+@riverpod
+class SettingsCassetteSpecCoordinator
+    extends _$SettingsCassetteSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a cassette view model for the given [AttachmentsSettingsSpec].
+  SidebarCassetteCardViewModel buildForSpec(AttachmentsSettingsSpec spec) {
+    // TODO: Implement when AttachmentsSettingsSpec is defined
+    return const SidebarCassetteCardViewModel(
+      title: 'Attachment Settings',
+      subtitle: 'Coming soon',
+      child: SizedBox.shrink(),
+    );
+  }
+}

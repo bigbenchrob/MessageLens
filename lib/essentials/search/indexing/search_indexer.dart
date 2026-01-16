@@ -1,4 +1,4 @@
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../db/infrastructure/data_sources/local/working/working_database.dart';
 
 class SearchIndexerRunRecord {
   const SearchIndexerRunRecord({

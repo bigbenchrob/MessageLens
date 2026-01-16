@@ -7,6 +7,7 @@ import 'features/handles_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
+import 'features/sidebar_utility_settings_spec.dart';
 
 part 'cassette_spec.freezed.dart';
 
@@ -14,12 +15,17 @@ part 'cassette_spec.freezed.dart';
 abstract class CassetteSpec with _$CassetteSpec {
   const factory CassetteSpec.sidebarUtility(SidebarUtilityCassetteSpec spec) =
       _CassetteSidebarWidget;
+  const factory CassetteSpec.sidebarUtilitySettings(
+    SidebarUtilitySettingsSpec spec,
+  ) = _CassetteSidebarUtilitySettings;
   const factory CassetteSpec.presentation(PresentationCassetteSpec spec) =
       _CassettePresentation;
   const factory CassetteSpec.contacts(ContactsCassetteSpec spec) =
-      _CasetteContacts;
+      _CassetteContacts;
+  const factory CassetteSpec.contactsSettings(ContactsSettingsSpec spec) =
+      _CassetteContactsSettings;
   const factory CassetteSpec.handles(HandlesCassetteSpec spec) =
-      _CasetteHandles;
+      _CassetteHandles;
   const factory CassetteSpec.messages(MessagesCassetteSpec spec) =
       _CassetteMessages;
 }
@@ -29,8 +35,10 @@ extension CassetteSpecX on CassetteSpec {
   CassetteSpec? childSpec() {
     return when(
       sidebarUtility: (sidebarSpec) => sidebarSpec.childSpec(),
+      sidebarUtilitySettings: (settingsSpec) => settingsSpec.childSpec(),
       presentation: (spec) => spec.childSpec(),
       contacts: (contactsSpec) => contactsSpec.childSpec(),
+      contactsSettings: (settingsSpec) => settingsSpec.childSpec(),
       handles: (handlesSpec) => handlesSpec.childSpec(),
       messages: (messagesSpec) => messagesSpec.childSpec(),
     );
@@ -80,11 +88,19 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
             );
         }
       },
+    );
+  }
+}
+
+extension SidebarUtilitySettingsSpecX on SidebarUtilitySettingsSpec {
+  /// Determine the next cassette to show beneath this settings utility.
+  CassetteSpec? childSpec() {
+    return when(
       settingsMenu: (selectedChoice) {
         switch (selectedChoice) {
           case SettingsMenuChoice.contacts:
-            return const CassetteSpec.contacts(
-              ContactsCassetteSpec.settings(ContactsSettingsSpec.shortNames()),
+            return const CassetteSpec.contactsSettings(
+              ContactsSettingsSpec.shortNames(),
             );
         }
       },
@@ -117,7 +133,6 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
           MessagesCassetteSpec.heatMap(contactId: chosenContactId),
         );
       },
-      settings: (_) => null,
     );
   }
 }
@@ -137,5 +152,12 @@ extension MessagesCassetteSpecX on MessagesCassetteSpec {
   /// Handles cassettes currently have no children.
   CassetteSpec? childSpec() {
     return when(heatMap: (_, __) => null);
+  }
+}
+
+extension ContactsSettingsSpecX on ContactsSettingsSpec {
+  /// Settings specs currently have no children.
+  CassetteSpec? childSpec() {
+    return when(shortNames: () => null);
   }
 }

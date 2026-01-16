@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../essentials/db/feature_level_providers.dart';
-import '../../essentials/logging/application/message_logger.dart';
 import '../../providers.dart';
+import '../db/feature_level_providers.dart';
+import '../logging/application/message_logger.dart';
 import 'application/search_service.dart';
 import 'indexing/fts_multi_term_indexer.dart';
 import 'indexing/search_index_metrics_repository.dart';
@@ -10,7 +10,7 @@ import 'indexing/search_index_orchestrator.dart';
 import 'indexing/search_indexer.dart';
 import 'indexing/simple_lexical_indexer.dart';
 
-part 'search_feature_providers.g.dart';
+part 'feature_level_providers.g.dart';
 
 @riverpod
 SearchService searchService(SearchServiceRef ref) {

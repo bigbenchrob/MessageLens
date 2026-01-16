@@ -6,11 +6,29 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$featureCassetteSpecCoordinatorHash() =>
-    r'4a1c621244db00d3328b8d7462e9447d749de165';
+String _$viewSpecCoordinatorHash() =>
+    r'60e7a85cc8cd9e7093431b4a5283a0917126cb78';
 
-/// Coordinator that maps [SidebarUtilityCassetteSpec] to cassette widgets
-/// for messages mode (topChatMenu).
+/// Coordinator that maps [AttachmentsSpec] to rendered widgets for the center panel.
+///
+/// Copied from [ViewSpecCoordinator].
+@ProviderFor(ViewSpecCoordinator)
+final viewSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<ViewSpecCoordinator, void>.internal(
+      ViewSpecCoordinator.new,
+      name: r'viewSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$viewSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$ViewSpecCoordinator = AutoDisposeNotifier<void>;
+String _$featureCassetteSpecCoordinatorHash() =>
+    r'1894aa38a4ea1ff2a979c16f0fe850fedea2dd76';
+
+/// Coordinator that maps [AttachmentsCassetteSpec] to cassette widgets.
 ///
 /// Copied from [FeatureCassetteSpecCoordinator].
 @ProviderFor(FeatureCassetteSpecCoordinator)
@@ -27,10 +45,9 @@ final featureCassetteSpecCoordinatorProvider =
 
 typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 String _$settingsCassetteSpecCoordinatorHash() =>
-    r'a9914398d387374c5ae554958435a63363e4c36c';
+    r'9c7fff2fdfb23d882c2ef595dd2c569e9bd5d02a';
 
-/// Coordinator that maps [SidebarUtilitySettingsSpec] to cassette widgets
-/// for settings mode.
+/// Coordinator that maps [AttachmentsSettingsSpec] to cassette widgets.
 ///
 /// Copied from [SettingsCassetteSpecCoordinator].
 @ProviderFor(SettingsCassetteSpecCoordinator)

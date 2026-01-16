@@ -49,7 +49,13 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
       return spec.when(
         sidebarUtility: (sidebarSpec) {
           final coordinator = ref.read(
-            sidebar_utilities.utilityCassetteCoordinatorProvider.notifier,
+            sidebar_utilities.featureCassetteSpecCoordinatorProvider.notifier,
+          );
+          return coordinator.buildForSpec(sidebarSpec);
+        },
+        sidebarUtilitySettings: (sidebarSpec) {
+          final coordinator = ref.read(
+            sidebar_utilities.settingsCassetteSpecCoordinatorProvider.notifier,
           );
           return coordinator.buildForSpec(sidebarSpec);
         },
@@ -66,19 +72,25 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         },
         contacts: (contactsSpec) {
           final coordinator = ref.read(
-            contacts_feature.contactsCassetteCoordinatorProvider.notifier,
+            contacts_feature.featureCassetteSpecCoordinatorProvider.notifier,
           );
           return coordinator.buildForSpec(ref, contactsSpec);
         },
+        contactsSettings: (settingsSpec) {
+          final coordinator = ref.read(
+            contacts_feature.settingsCassetteSpecCoordinatorProvider.notifier,
+          );
+          return coordinator.buildForSpec(settingsSpec);
+        },
         handles: (handlesSpec) {
           final coordinator = ref.read(
-            handles_feature.handlesCassetteCoordinatorProvider.notifier,
+            handles_feature.featureCassetteSpecCoordinatorProvider.notifier,
           );
           return coordinator.buildForSpec(handlesSpec);
         },
         messages: (messagesSpec) {
           final coordinator = ref.read(
-            messages_feature.messagesCassetteCoordinatorProvider.notifier,
+            messages_feature.featureCassetteSpecCoordinatorProvider.notifier,
           );
           return coordinator.buildForSpec(messagesSpec);
         },

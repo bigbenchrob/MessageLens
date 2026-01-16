@@ -4,11 +4,11 @@ import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../messages/presentation/view_model/deprecated/message_row_mapper.dart';
-import '../../messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
-import '../search_feature_providers.dart';
+import '../../../features/messages/presentation/view_model/deprecated/message_row_mapper.dart';
+import '../../../features/messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
+import '../../db/feature_level_providers.dart';
+import '../../db/infrastructure/data_sources/local/working/working_database.dart';
+import '../feature_level_providers.dart';
 
 const _searchResultLimit = 100;
 const _recencyWeight = 0.15;

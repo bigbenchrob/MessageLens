@@ -1,16 +1,58 @@
+import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import 'presentation/cassettes/stray_emails_cassette.dart';
-import 'presentation/cassettes/stray_phone_numbers_cassette.dart';
-import 'presentation/cassettes/unmatched_handles_cassette.dart';
+import 'application/cassette_builders/stray_emails_cassette_builder_provider.dart';
+import 'application/cassette_builders/stray_phone_numbers_cassette_builder_provider.dart';
+import 'application/cassette_builders/unmatched_handles_cassette_builder_provider.dart';
 
 part 'feature_level_providers.g.dart';
 
+// =============================================================================
+// PLACEHOLDER SPECS - Replace with actual Freezed specs when implemented
+// =============================================================================
+
+/// Placeholder for HandlesSpec (ViewSpec for center panel).
+/// Replace with: import '../../essentials/navigation/domain/entities/features/handles_spec.dart';
+typedef HandlesSpec = void;
+
+/// Placeholder for HandlesSettingsSpec (sidebar cassettes in settings mode).
+/// Replace with: import '../../essentials/sidebar/domain/entities/features/handles_settings_spec.dart';
+typedef HandlesSettingsSpec = void;
+
+// =============================================================================
+// COORDINATORS
+// =============================================================================
+
+/// Coordinator that maps [HandlesSpec] to rendered widgets for the center panel.
 @riverpod
-class HandlesCassetteCoordinator extends _$HandlesCassetteCoordinator {
+class ViewSpecCoordinator extends _$ViewSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a widget for the given [HandlesSpec].
+  Widget buildForSpec(HandlesSpec spec) {
+    // TODO: Implement when HandlesSpec is defined
+    return _buildPlaceholder('Handles view coming soon');
+  }
+
+  Widget _buildPlaceholder(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(message, textAlign: TextAlign.center),
+      ),
+    );
+  }
+}
+
+/// Coordinator that maps [HandlesCassetteSpec] to cassette widgets.
+@riverpod
+class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
   @override
   void build() {
     // Stateless coordinator
@@ -18,24 +60,31 @@ class HandlesCassetteCoordinator extends _$HandlesCassetteCoordinator {
 
   SidebarCassetteCardViewModel buildForSpec(HandlesCassetteSpec spec) {
     return spec.when(
-      unmatchedHandlesList: (_) => const SidebarCassetteCardViewModel(
-        title: 'Unmatched phone numbers & emails',
-        subtitle:
-            'Link stray handles to contacts to keep conversations organized.',
-        child: UnmatchedHandlesCassette(),
-      ),
-      strayPhoneNumbers: () => const SidebarCassetteCardViewModel(
-        title: 'Stray phone numbers',
-        subtitle:
-            'Phone numbers not linked to any contact in your address book.',
-        child: StrayPhoneNumbersCassette(),
-      ),
-      strayEmails: () => const SidebarCassetteCardViewModel(
-        title: 'Stray emails',
-        subtitle:
-            'Email addresses not linked to any contact in your address book.',
-        child: StrayEmailsCassette(),
-      ),
+      unmatchedHandlesList: (_) =>
+          ref.read(unmatchedHandlesCassetteBuilderProvider),
+      strayPhoneNumbers: () =>
+          ref.read(strayPhoneNumbersCassetteBuilderProvider),
+      strayEmails: () => ref.read(strayEmailsCassetteBuilderProvider),
+    );
+  }
+}
+
+/// Coordinator that maps [HandlesSettingsSpec] to cassette widgets.
+@riverpod
+class SettingsCassetteSpecCoordinator
+    extends _$SettingsCassetteSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a cassette view model for the given [HandlesSettingsSpec].
+  SidebarCassetteCardViewModel buildForSpec(HandlesSettingsSpec spec) {
+    // TODO: Implement when HandlesSettingsSpec is defined
+    return const SidebarCassetteCardViewModel(
+      title: 'Handle Settings',
+      subtitle: 'Coming soon',
+      child: SizedBox.shrink(),
     );
   }
 }

@@ -3,8 +3,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import 'package:remember_this_text/features/search/indexing/fts_multi_term_indexer.dart';
-import 'package:remember_this_text/features/search/indexing/search_indexer.dart';
+import 'package:remember_this_text/essentials/search/indexing/fts_multi_term_indexer.dart';
+import 'package:remember_this_text/essentials/search/indexing/search_indexer.dart';
 
 void main() {
   late WorkingDatabase db;
@@ -30,9 +30,9 @@ void main() {
   });
 
   Future<int> countFtsRows() async {
-    final row = await db.customSelect(
-      'SELECT COUNT(*) AS c FROM messages_fts',
-    ).getSingle();
+    final row = await db
+        .customSelect('SELECT COUNT(*) AS c FROM messages_fts')
+        .getSingle();
     return (row.data['c'] as int?) ?? 0;
   }
 
@@ -41,7 +41,9 @@ void main() {
       final chatId = await db
           .into(db.workingChats)
           .insert(const WorkingChatsCompanion(guid: Value('chat-fts')));
-      await db.into(db.workingMessages).insert(
+      await db
+          .into(db.workingMessages)
+          .insert(
             WorkingMessagesCompanion.insert(
               guid: 'fts-msg-1',
               chatId: chatId,
@@ -49,7 +51,9 @@ void main() {
               sentAtUtc: const Value('2024-01-01T00:00:00Z'),
             ),
           );
-      await db.into(db.workingMessages).insert(
+      await db
+          .into(db.workingMessages)
+          .insert(
             WorkingMessagesCompanion.insert(
               guid: 'fts-msg-2',
               chatId: chatId,
@@ -61,9 +65,11 @@ void main() {
       await indexer.rebuildAll(context);
 
       expect(await countFtsRows(), 2);
-      final rows = await db.customSelect(
-        "SELECT rowid FROM messages_fts WHERE messages_fts MATCH 'hello*'",
-      ).get();
+      final rows = await db
+          .customSelect(
+            "SELECT rowid FROM messages_fts WHERE messages_fts MATCH 'hello*'",
+          )
+          .get();
       expect(rows, isNotEmpty);
     });
 
@@ -71,7 +77,9 @@ void main() {
       final chatId = await db
           .into(db.workingChats)
           .insert(const WorkingChatsCompanion(guid: Value('chat-fts-2')));
-      final messageId = await db.into(db.workingMessages).insert(
+      final messageId = await db
+          .into(db.workingMessages)
+          .insert(
             WorkingMessagesCompanion.insert(
               guid: 'fts-msg-3',
               chatId: chatId,
@@ -83,19 +91,21 @@ void main() {
       await indexer.rebuildAll(context);
       expect(await countFtsRows(), 1);
 
-      await (db.update(db.workingMessages)
-            ..where((tbl) => tbl.id.equals(messageId)))
-          .write(
-            const WorkingMessagesCompanion(
-              textContent: Value('updated modular term'),
-            ),
-          );
+      await (db.update(
+        db.workingMessages,
+      )..where((tbl) => tbl.id.equals(messageId))).write(
+        const WorkingMessagesCompanion(
+          textContent: Value('updated modular term'),
+        ),
+      );
 
       await indexer.rebuildForMessages(context, [messageId]);
 
-      final rows = await db.customSelect(
-        "SELECT rowid FROM messages_fts WHERE messages_fts MATCH 'modular*'",
-      ).get();
+      final rows = await db
+          .customSelect(
+            "SELECT rowid FROM messages_fts WHERE messages_fts MATCH 'modular*'",
+          )
+          .get();
       expect(rows.map((row) => row.data['rowid']), contains(messageId));
     });
   });

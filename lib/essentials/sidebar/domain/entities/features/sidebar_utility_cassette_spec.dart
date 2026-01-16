@@ -5,15 +5,12 @@ import '../../../../../features/sidebar_utilities/domain/sidebar_utilities_const
 part 'sidebar_utility_cassette_spec.freezed.dart';
 part 'sidebar_utility_cassette_spec.g.dart';
 
+/// Spec for sidebar utility cassettes in messages mode.
 @freezed
 abstract class SidebarUtilityCassetteSpec with _$SidebarUtilityCassetteSpec {
   const factory SidebarUtilityCassetteSpec.topChatMenu({
     @Default(TopChatMenuChoice.contacts) TopChatMenuChoice selectedChoice,
   }) = _SidebarUtilityCassetteSpecTopChatMenu;
-
-  const factory SidebarUtilityCassetteSpec.settingsMenu({
-    @Default(SettingsMenuChoice.contacts) SettingsMenuChoice selectedChoice,
-  }) = _SidebarUtilityCassetteSpecSettingsMenu;
 
   factory SidebarUtilityCassetteSpec.fromJson(Map<String, dynamic> json) =>
       _$SidebarUtilityCassetteSpecFromJson(json);

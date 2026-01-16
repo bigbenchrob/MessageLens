@@ -31,7 +31,6 @@ class RecentContactsCassette extends ConsumerWidget {
       recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
-      settings: (_) => null,
     );
 
     return recentAsync.when(

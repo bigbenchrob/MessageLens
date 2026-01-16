@@ -21,41 +21,23 @@ import '../../domain/sidebar_utilities_constants.dart';
 /// variants).
 class TopChatMenu extends ConsumerWidget {
   /// The sidebar utility specification representing this top menu.  The
-  /// spec contains the currently selected menu choice.  It must be a
-  /// [SidebarUtilityCassetteSpec.topChatMenu] variant.
+  /// spec contains the currently selected menu choice.
   final SidebarUtilityCassetteSpec spec;
 
-  TopChatMenu({super.key, required this.spec})
-    : assert(
-        spec.maybeWhen(
-          topChatMenu: (_) {
-            return true;
-          },
-          orElse: () {
-            return false;
-          },
-        ),
-        'TopChatMenu requires a SidebarUtilityCassetteSpec.topChatMenu variant.',
-      );
+  const TopChatMenu({super.key, required this.spec});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const choices = TopChatMenuChoice.values;
-    final spec = this.spec;
-    final selectedChoice = spec.when(
-      topChatMenu: (choice) => choice,
-      settingsMenu: (_) => TopChatMenuChoice.contacts, // Should not happen
-    );
+    final selectedChoice = spec.when(topChatMenu: (choice) => choice);
 
     // Get accent color for chevron emphasis
     final colors = ref.watch(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
     void handleSelectionChange(TopChatMenuChoice newChoice) {
-      final updatedSidebarSpec = spec.when(
-        topChatMenu: (_) =>
-            SidebarUtilityCassetteSpec.topChatMenu(selectedChoice: newChoice),
-        settingsMenu: (_) => spec, // No-op
+      final updatedSidebarSpec = SidebarUtilityCassetteSpec.topChatMenu(
+        selectedChoice: newChoice,
       );
       final oldCassetteSpec = CassetteSpec.sidebarUtility(spec);
       final newCassetteSpec = CassetteSpec.sidebarUtility(updatedSidebarSpec);

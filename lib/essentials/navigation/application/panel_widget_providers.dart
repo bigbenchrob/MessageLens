@@ -2,17 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// Import the sidebar cassette widget coordinator to build the left panel.
-// The provider defined there (cassetteWidgetCoordinatorProvider) exposes the list
-// of cassette widgets that compose the sidebar.  We wrap these in a
-// Column to produce the left panel surface.
-import '../../../sidebar/application/cassette_widget_coordinator_provider.dart';
-import '../../../sidebar/presentation/view/sidebar_cassette_card.dart';
-import '../../domain/entities/panel_stack.dart';
-import '../../domain/navigation_constants.dart';
-import '../../domain/sidebar_mode.dart';
-import '../../feature_level_providers.dart';
-import 'panel_coordinator_provider.dart';
+// Import the sidebar feature barrel to access cassette widget coordinator and card.
+// The provider (cassetteWidgetCoordinatorProvider) exposes the list of cassette
+// widgets that compose the sidebar. We wrap these in a Column to produce the
+// left panel surface.
+import '../../sidebar/feature_level_providers.dart';
+import '../domain/entities/panel_stack.dart';
+import '../domain/navigation_constants.dart';
+import '../domain/sidebar_mode.dart';
+import '../feature_level_providers.dart';
+import './panel_coordinator_provider.dart';
 
 part 'panel_widget_providers.g.dart';
 

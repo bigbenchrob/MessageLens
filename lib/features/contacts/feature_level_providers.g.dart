@@ -6,49 +6,62 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactsCassetteCoordinatorHash() =>
-    r'27e75fa16c9a0284fbff76f27e7acde4a0615b88';
+String _$viewSpecCoordinatorHash() =>
+    r'bdf5e2a06958105985d044448aea317dc4d0f50e';
+
+/// Coordinator that maps [ContactsSpec] to rendered widgets for the center panel.
+///
+/// Copied from [ViewSpecCoordinator].
+@ProviderFor(ViewSpecCoordinator)
+final viewSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<ViewSpecCoordinator, void>.internal(
+      ViewSpecCoordinator.new,
+      name: r'viewSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$viewSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$ViewSpecCoordinator = AutoDisposeNotifier<void>;
+String _$featureCassetteSpecCoordinatorHash() =>
+    r'db203e428d08736a514977c7b0721c77cdb1d32c';
 
 /// Coordinator that maps [ContactsCassetteSpec] to cassette widgets.
 ///
-/// Copied from [ContactsCassetteCoordinator].
-@ProviderFor(ContactsCassetteCoordinator)
-final contactsCassetteCoordinatorProvider =
-    AutoDisposeNotifierProvider<ContactsCassetteCoordinator, void>.internal(
-      ContactsCassetteCoordinator.new,
-      name: r'contactsCassetteCoordinatorProvider',
+/// Copied from [FeatureCassetteSpecCoordinator].
+@ProviderFor(FeatureCassetteSpecCoordinator)
+final featureCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<FeatureCassetteSpecCoordinator, void>.internal(
+      FeatureCassetteSpecCoordinator.new,
+      name: r'featureCassetteSpecCoordinatorProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$contactsCassetteCoordinatorHash,
+          : _$featureCassetteSpecCoordinatorHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$ContactsCassetteCoordinator = AutoDisposeNotifier<void>;
-String _$contactsSettingsCassetteCoordinatorHash() =>
-    r'5800e6395e3bbe2cf12b8ad4a357c979cfefe8bf';
+typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
+String _$settingsCassetteSpecCoordinatorHash() =>
+    r'f63487aaa6b02a2949eed5d3375a41703a9fcc73';
 
 /// Coordinator that maps [ContactsSettingsSpec] to cassette widgets.
 ///
-/// This separates the "Settings" concerns from the main operational views
-/// of the Contacts feature.
-///
-/// Copied from [ContactsSettingsCassetteCoordinator].
-@ProviderFor(ContactsSettingsCassetteCoordinator)
-final contactsSettingsCassetteCoordinatorProvider =
-    AutoDisposeNotifierProvider<
-      ContactsSettingsCassetteCoordinator,
-      void
-    >.internal(
-      ContactsSettingsCassetteCoordinator.new,
-      name: r'contactsSettingsCassetteCoordinatorProvider',
+/// Copied from [SettingsCassetteSpecCoordinator].
+@ProviderFor(SettingsCassetteSpecCoordinator)
+final settingsCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<SettingsCassetteSpecCoordinator, void>.internal(
+      SettingsCassetteSpecCoordinator.new,
+      name: r'settingsCassetteSpecCoordinatorProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$contactsSettingsCassetteCoordinatorHash,
+          : _$settingsCassetteSpecCoordinatorHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$ContactsSettingsCassetteCoordinator = AutoDisposeNotifier<void>;
+typedef _$SettingsCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

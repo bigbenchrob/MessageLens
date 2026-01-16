@@ -1,6 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../essentials/navigation/domain/entities/features/contacts_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
 import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
@@ -12,9 +14,38 @@ export 'application/settings/contact_name_mode_provider.dart';
 
 part 'feature_level_providers.g.dart';
 
+/// Coordinator that maps [ContactsSpec] to rendered widgets for the center panel.
+@riverpod
+class ViewSpecCoordinator extends _$ViewSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a widget for the given [ContactsSpec].
+  Widget buildForSpec(ContactsSpec spec) {
+    return spec.when(
+      list: () => _buildPlaceholder('Contacts list view coming soon'),
+      detail: (contactId) =>
+          _buildPlaceholder('Contact detail for $contactId coming soon'),
+      search: (query) =>
+          _buildPlaceholder('Contact search for "$query" coming soon'),
+    );
+  }
+
+  Widget _buildPlaceholder(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(message, textAlign: TextAlign.center),
+      ),
+    );
+  }
+}
+
 /// Coordinator that maps [ContactsCassetteSpec] to cassette widgets.
 @riverpod
-class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
+class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
   @override
   void build() {}
 
@@ -39,20 +70,14 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
         shouldExpand: false,
         child: ContactHeroSummaryCassette(spec: hero),
       ),
-      settings: (settings) => ref
-          .read(contactsSettingsCassetteCoordinatorProvider.notifier)
-          .buildForSpec(settings.spec),
     );
   }
 }
 
 /// Coordinator that maps [ContactsSettingsSpec] to cassette widgets.
-///
-/// This separates the "Settings" concerns from the main operational views
-/// of the Contacts feature.
 @riverpod
-class ContactsSettingsCassetteCoordinator
-    extends _$ContactsSettingsCassetteCoordinator {
+class SettingsCassetteSpecCoordinator
+    extends _$SettingsCassetteSpecCoordinator {
   @override
   void build() {}
 

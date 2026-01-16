@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../search/search_feature_providers.dart';
+import '../../../../../../essentials/search/feature_level_providers.dart';
 import '../../shared/hydration/messages_for_handle_provider.dart';
 
 part 'contact_message_search_provider.g.dart';

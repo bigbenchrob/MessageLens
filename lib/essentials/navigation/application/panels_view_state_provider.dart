@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/entities/panel_stack.dart';
-import '../../domain/entities/view_spec.dart';
-import '../../domain/navigation_constants.dart';
-import '../../domain/sidebar_mode.dart';
+import '../domain/entities/panel_stack.dart';
+import '../domain/entities/view_spec.dart';
+import '../domain/navigation_constants.dart';
+import '../domain/sidebar_mode.dart';
 
 part 'panels_view_state_provider.g.dart';
 

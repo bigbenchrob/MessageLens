@@ -6,62 +6,62 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$messageRepositoryHash() => r'21d4db4c1fbc7f5f904716b41c3759ba8d7e3d07';
-
-/// See also [MessageRepository].
-@ProviderFor(MessageRepository)
-final messageRepositoryProvider =
-    AutoDisposeNotifierProvider<
-      MessageRepository,
-      SqliteMessagesRepository
-    >.internal(
-      MessageRepository.new,
-      name: r'messageRepositoryProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$messageRepositoryHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$MessageRepository = AutoDisposeNotifier<SqliteMessagesRepository>;
-String _$messagesCassetteCoordinatorHash() =>
-    r'6126a7b3cf06b9ffd7946f722475b11e451cba08';
-
-/// Coordinator that maps [MessagesCassetteSpec] to rendered cassette widgets for the sidebar.
-///
-/// Copied from [MessagesCassetteCoordinator].
-@ProviderFor(MessagesCassetteCoordinator)
-final messagesCassetteCoordinatorProvider =
-    AutoDisposeNotifierProvider<MessagesCassetteCoordinator, void>.internal(
-      MessagesCassetteCoordinator.new,
-      name: r'messagesCassetteCoordinatorProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$messagesCassetteCoordinatorHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$MessagesCassetteCoordinator = AutoDisposeNotifier<void>;
-String _$messagesCoordinatorHash() =>
-    r'a9e14c49ddc507ee91c53e0a152d5416ec804f88';
+String _$viewSpecCoordinatorHash() =>
+    r'7d845435f8426995b12e55df3a30a08b058167a3';
 
 /// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
 ///
-/// Copied from [MessagesCoordinator].
-@ProviderFor(MessagesCoordinator)
-final messagesCoordinatorProvider =
-    AutoDisposeNotifierProvider<MessagesCoordinator, void>.internal(
-      MessagesCoordinator.new,
-      name: r'messagesCoordinatorProvider',
+/// Copied from [ViewSpecCoordinator].
+@ProviderFor(ViewSpecCoordinator)
+final viewSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<ViewSpecCoordinator, void>.internal(
+      ViewSpecCoordinator.new,
+      name: r'viewSpecCoordinatorProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$messagesCoordinatorHash,
+          : _$viewSpecCoordinatorHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$MessagesCoordinator = AutoDisposeNotifier<void>;
+typedef _$ViewSpecCoordinator = AutoDisposeNotifier<void>;
+String _$featureCassetteSpecCoordinatorHash() =>
+    r'889182f0adfde9eacc94189625beb4e5dc486fbb';
+
+/// Coordinator that maps [MessagesCassetteSpec] to cassette widgets.
+///
+/// Copied from [FeatureCassetteSpecCoordinator].
+@ProviderFor(FeatureCassetteSpecCoordinator)
+final featureCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<FeatureCassetteSpecCoordinator, void>.internal(
+      FeatureCassetteSpecCoordinator.new,
+      name: r'featureCassetteSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$featureCassetteSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
+String _$settingsCassetteSpecCoordinatorHash() =>
+    r'1386d75789107bd90cce3188f889b6881a4d3f87';
+
+/// Coordinator that maps [MessagesSettingsSpec] to cassette widgets.
+///
+/// Copied from [SettingsCassetteSpecCoordinator].
+@ProviderFor(SettingsCassetteSpecCoordinator)
+final settingsCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<SettingsCassetteSpecCoordinator, void>.internal(
+      SettingsCassetteSpecCoordinator.new,
+      name: r'settingsCassetteSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$settingsCassetteSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$SettingsCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

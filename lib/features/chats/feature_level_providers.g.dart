@@ -6,24 +6,65 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatsRepositoryHash() => r'8df0d2f5a9871b621f728f101054857a5eb02f9d';
+String _$viewSpecCoordinatorHash() =>
+    r'fbdaa27a663761aa2c6775b49fcdca3051439c9d';
 
-/// See also [ChatsRepository].
-@ProviderFor(ChatsRepository)
-final chatsRepositoryProvider =
-    AutoDisposeNotifierProvider<
-      ChatsRepository,
-      SqliteChatsRepository
-    >.internal(
-      ChatsRepository.new,
-      name: r'chatsRepositoryProvider',
+/// Coordinator that maps [ChatsSpec] to rendered widgets for the center panel.
+///
+/// NOTE: ChatsSpec is currently handled inline in PanelCoordinator.
+/// When ready, import ChatsSpec and delegate from PanelCoordinator to here.
+///
+/// Copied from [ViewSpecCoordinator].
+@ProviderFor(ViewSpecCoordinator)
+final viewSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<ViewSpecCoordinator, void>.internal(
+      ViewSpecCoordinator.new,
+      name: r'viewSpecCoordinatorProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$chatsRepositoryHash,
+          : _$viewSpecCoordinatorHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$ChatsRepository = AutoDisposeNotifier<SqliteChatsRepository>;
+typedef _$ViewSpecCoordinator = AutoDisposeNotifier<void>;
+String _$featureCassetteSpecCoordinatorHash() =>
+    r'ec177186ba98285007805dc3705740eafc588f3f';
+
+/// Coordinator that maps [ChatsCassetteSpec] to cassette widgets.
+///
+/// Copied from [FeatureCassetteSpecCoordinator].
+@ProviderFor(FeatureCassetteSpecCoordinator)
+final featureCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<FeatureCassetteSpecCoordinator, void>.internal(
+      FeatureCassetteSpecCoordinator.new,
+      name: r'featureCassetteSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$featureCassetteSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
+String _$settingsCassetteSpecCoordinatorHash() =>
+    r'6f7b941dde954a6d623d9aab86acb20b7397abe3';
+
+/// Coordinator that maps [ChatsSettingsSpec] to cassette widgets.
+///
+/// Copied from [SettingsCassetteSpecCoordinator].
+@ProviderFor(SettingsCassetteSpecCoordinator)
+final settingsCassetteSpecCoordinatorProvider =
+    AutoDisposeNotifierProvider<SettingsCassetteSpecCoordinator, void>.internal(
+      SettingsCassetteSpecCoordinator.new,
+      name: r'settingsCassetteSpecCoordinatorProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$settingsCassetteSpecCoordinatorHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$SettingsCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

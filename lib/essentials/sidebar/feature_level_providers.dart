@@ -1,6 +1,9 @@
 export './application/cassette_rack_state_provider.dart';
+export './application/cassette_widget_coordinator_provider.dart';
 export './domain/entities/cassette_spec.dart';
 export './domain/entities/features/contacts_cassette_spec.dart';
 export './domain/entities/features/handles_cassette_spec.dart';
 export './domain/entities/features/messages_cassette_spec.dart';
 export './domain/entities/features/sidebar_utility_cassette_spec.dart';
+export './domain/entities/features/sidebar_utility_settings_spec.dart';
+export './presentation/view/sidebar_cassette_card.dart';

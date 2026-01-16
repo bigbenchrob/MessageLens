@@ -1,7 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'contacts_settings_spec.dart';
-
 part 'contacts_cassette_spec.freezed.dart';
 
 /// Specification for the contacts-related cassette types.
@@ -28,10 +26,4 @@ abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
   const factory ContactsCassetteSpec.contactHeroSummary({
     required int chosenContactId,
   }) = _ContactHeroSummarySpec;
-
-  /// Configuration options for the contacts feature.
-  /// Delegates to [ContactsSettingsSpec] to keep settings distinct from
-  /// operational views.
-  const factory ContactsCassetteSpec.settings(ContactsSettingsSpec spec) =
-      _Settings;
 }

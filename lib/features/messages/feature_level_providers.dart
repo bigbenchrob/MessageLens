@@ -7,48 +7,28 @@ import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_v
 import 'application/cassette_builders/global_timeline_view_builder_provider.dart';
 import 'application/cassette_builders/messages_for_handle_view_builder_provider.dart';
 import 'application/cassette_builders/messages_heatmap_cassette_builder_provider.dart';
-import 'infrastructure/repositories/sqlite_messages_repository.dart';
 import 'presentation/view/global_timeline_v2_view.dart';
 import 'presentation/view/messages_for_contact_view.dart';
 
+export 'infrastructure/repositories/messages_repository_provider.dart';
+
 part 'feature_level_providers.g.dart';
 
-@riverpod
-class MessageRepository extends _$MessageRepository {
-  /// Build and return the concrete MessagesRepository.
-  /// Wire real dependencies with ref.watch(...) as you implement infra.
-  @override
-  SqliteMessagesRepository build() {
-    // final db = ref.watch(workingDbProvider);
-    // return SqliteMessagesRepository(db: db);
-    return SqliteMessagesRepository();
-  }
-}
+// =============================================================================
+// PLACEHOLDER SPECS - Replace with actual Freezed specs when implemented
+// =============================================================================
 
-/// Coordinator that maps [MessagesCassetteSpec] to rendered cassette widgets for the sidebar.
+/// Placeholder for MessagesSettingsSpec (sidebar cassettes in settings mode).
+/// Replace with: import '../../essentials/sidebar/domain/entities/features/messages_settings_spec.dart';
+typedef MessagesSettingsSpec = void;
 
-@riverpod
-class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
-  @override
-  void build() {
-    // Stateless coordinator
-  }
-
-  SidebarCassetteCardViewModel buildForSpec(MessagesCassetteSpec spec) {
-    return spec.when(
-      heatMap: (contactId, useV2Timeline) => ref.read(
-        messagesHeatmapCassetteBuilderProvider(
-          contactId: contactId,
-          useV2Timeline: useV2Timeline,
-        ),
-      ),
-    );
-  }
-}
+// =============================================================================
+// COORDINATORS
+// =============================================================================
 
 /// Coordinator that maps [MessagesSpec] to rendered widgets for the center panel.
 @riverpod
-class MessagesCoordinator extends _$MessagesCoordinator {
+class ViewSpecCoordinator extends _$ViewSpecCoordinator {
   @override
   void build() {
     // Stateless coordinator
@@ -83,6 +63,46 @@ class MessagesCoordinator extends _$MessagesCoordinator {
         padding: const EdgeInsets.all(24),
         child: Text(message, textAlign: TextAlign.center),
       ),
+    );
+  }
+}
+
+/// Coordinator that maps [MessagesCassetteSpec] to cassette widgets.
+@riverpod
+class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  SidebarCassetteCardViewModel buildForSpec(MessagesCassetteSpec spec) {
+    return spec.when(
+      heatMap: (contactId, useV2Timeline) => ref.read(
+        messagesHeatmapCassetteBuilderProvider(
+          contactId: contactId,
+          useV2Timeline: useV2Timeline,
+        ),
+      ),
+    );
+  }
+}
+
+/// Coordinator that maps [MessagesSettingsSpec] to cassette widgets.
+@riverpod
+class SettingsCassetteSpecCoordinator
+    extends _$SettingsCassetteSpecCoordinator {
+  @override
+  void build() {
+    // Stateless coordinator
+  }
+
+  /// Build a cassette view model for the given [MessagesSettingsSpec].
+  SidebarCassetteCardViewModel buildForSpec(MessagesSettingsSpec spec) {
+    // TODO: Implement when MessagesSettingsSpec is defined
+    return const SidebarCassetteCardViewModel(
+      title: 'Message Settings',
+      subtitle: 'Coming soon',
+      child: SizedBox.shrink(),
     );
   }
 }

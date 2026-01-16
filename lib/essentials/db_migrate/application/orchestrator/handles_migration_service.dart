@@ -5,11 +5,11 @@ import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../../../../features/search/search_feature_providers.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../db_importers/application/debug_settings_provider.dart';
+import '../../../search/feature_level_providers.dart';
 import '../../domain/entities/db_migration_result.dart';
 import '../../domain/states/db_migration_progress.dart';
 import '../../domain/states/table_migration_progress.dart';
