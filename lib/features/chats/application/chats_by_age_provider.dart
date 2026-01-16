@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../settings/application/contact_short_names/contact_short_names_controller.dart';
+import '../../contacts/application/settings/contact_short_names_provider.dart';
 import '../domain/chat_timeline_data.dart';
 import '../presentation/view_model/recent_chats_provider.dart';
 import 'calendar_heatmap_timeline_calculator.dart';

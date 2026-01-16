@@ -45,7 +45,7 @@ final featureCassetteSpecCoordinatorProvider =
 
 typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 String _$settingsCassetteSpecCoordinatorHash() =>
-    r'af243ce1d25e5c875b3d4fb3be56aac142573a30';
+    r'0602f6e54613fe0ba05c226a80bc163ab4a1a524';
 
 /// Coordinator that maps [HandlesSettingsSpec] to cassette widgets.
 ///

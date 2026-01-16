@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
-import 'package:remember_this_text/features/settings/application/message_annotations/message_annotations_controller.dart';
+import 'package:remember_this_text/features/messages/application/settings/message_annotations_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

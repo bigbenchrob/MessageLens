@@ -3,10 +3,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
+import '../../essentials/sidebar/domain/entities/features/handles_settings_spec.dart';
 import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import 'application/cassette_builders/stray_emails_cassette_builder_provider.dart';
 import 'application/cassette_builders/stray_phone_numbers_cassette_builder_provider.dart';
 import 'application/cassette_builders/unmatched_handles_cassette_builder_provider.dart';
+import 'application/settings/manual_linking_cassette_builder_provider.dart';
+import 'application/settings/spam_management_cassette_builder_provider.dart';
 
 part 'feature_level_providers.g.dart';
 
@@ -17,10 +20,6 @@ part 'feature_level_providers.g.dart';
 /// Placeholder for HandlesSpec (ViewSpec for center panel).
 /// Replace with: import '../../essentials/navigation/domain/entities/features/handles_spec.dart';
 typedef HandlesSpec = void;
-
-/// Placeholder for HandlesSettingsSpec (sidebar cassettes in settings mode).
-/// Replace with: import '../../essentials/sidebar/domain/entities/features/handles_settings_spec.dart';
-typedef HandlesSettingsSpec = void;
 
 // =============================================================================
 // COORDINATORS
@@ -80,11 +79,9 @@ class SettingsCassetteSpecCoordinator
 
   /// Build a cassette view model for the given [HandlesSettingsSpec].
   SidebarCassetteCardViewModel buildForSpec(HandlesSettingsSpec spec) {
-    // TODO: Implement when HandlesSettingsSpec is defined
-    return const SidebarCassetteCardViewModel(
-      title: 'Handle Settings',
-      subtitle: 'Coming soon',
-      child: SizedBox.shrink(),
+    return spec.when(
+      manualLinking: () => ref.read(manualLinkingCassetteBuilderProvider),
+      spamManagement: () => ref.read(spamManagementCassetteBuilderProvider),
     );
   }
 }
