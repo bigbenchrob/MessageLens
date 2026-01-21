@@ -147,6 +147,7 @@ extension ContactsInfoCassetteSpecX on ContactsInfoCassetteSpec {
     return when(
       infoCard: (key) {
         // After the info card, show the normal contact chooser.
+
         return const CassetteSpec.contacts(
           ContactsCassetteSpec.contactChooser(),
         );

@@ -4,7 +4,6 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
-import '../../../../config/theme/theme_typography.dart';
 
 class ContactHighlightRow extends StatefulWidget {
   const ContactHighlightRow({
@@ -128,53 +127,170 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
     super.key,
     required this.displayName,
     required this.shortName,
+    required this.summaryLine,
+    required this.onChange,
   });
 
   final String displayName;
   final String shortName;
+  final String summaryLine;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
-    final typography = ref.watch(themeTypographyProvider);
 
-    // Match the hover/selection style from the contact picker
-    final backgroundColor = colors.accents.primary.withValues(alpha: 0.15);
+    final tint = colors.accents.primary.withValues(alpha: 0.10);
+    final accent = colors.accents.primary.withValues(alpha: 0.75);
+    final linkColor = colors.accents.primary;
+    final linkBaseStyle = theme.typography.body.copyWith(color: linkColor);
 
-    return SizedBox(
-      height: 64,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 64),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: tint,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      shortName,
-                      style: typography.heroTitle,
+        child: Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
+                ),
+              ),
+              child: const SizedBox(width: 4),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayName,
+                            style: AppTheme.cassetteHeroTitleStyle(context),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _HoverLink(
+                          label: 'change…',
+                          baseStyle: linkBaseStyle,
+                          onTap: onChange,
+                        ),
+                      ],
+                    ),
+                    if (shortName != displayName)
+                      Text(
+                        shortName,
+                        style: theme.typography.caption2.copyWith(
+                          color: colors.content.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      summaryLine,
+                      style: theme.typography.caption1.copyWith(
+                        color: colors.content.textSecondary,
+                      ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-              if (shortName != displayName)
-                Text(
-                  displayName,
-                  style: typography.heroSubtitle,
-                  overflow: TextOverflow.ellipsis,
+                  ],
                 ),
-            ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HoverLink extends StatefulWidget {
+  const _HoverLink({
+    required this.label,
+    required this.baseStyle,
+    required this.onTap,
+  });
+
+  final String label;
+  final TextStyle baseStyle;
+  final VoidCallback onTap;
+
+  @override
+  State<_HoverLink> createState() => _HoverLinkState();
+}
+
+class _HoverLinkState extends State<_HoverLink> {
+  bool _isHovering = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = widget.baseStyle.color;
+    final hoverColor = baseColor?.withValues(alpha: 0.85);
+    final active = _isHovering || _isPressed;
+    final style = widget.baseStyle.copyWith(
+      color: active ? hoverColor : baseColor,
+      decoration: active ? TextDecoration.underline : TextDecoration.none,
+    );
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) {
+        if (_isHovering) {
+          return;
+        }
+        setState(() {
+          _isHovering = true;
+        });
+      },
+      onExit: (_) {
+        if (!_isHovering) {
+          return;
+        }
+        setState(() {
+          _isHovering = false;
+        });
+      },
+      child: Listener(
+        onPointerDown: (_) {
+          setState(() {
+            _isPressed = true;
+          });
+        },
+        onPointerUp: (_) {
+          setState(() {
+            _isPressed = false;
+          });
+        },
+        onPointerCancel: (_) {
+          setState(() {
+            _isPressed = false;
+          });
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+            child: Text(widget.label, style: style),
           ),
         ),
       ),

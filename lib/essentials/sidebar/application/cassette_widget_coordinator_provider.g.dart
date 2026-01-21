@@ -7,7 +7,7 @@ part of 'cassette_widget_coordinator_provider.dart';
 // **************************************************************************
 
 String _$cassetteWidgetCoordinatorHash() =>
-    r'd8588a9f9d6441a97c3a0b62dccaad249bf3086f';
+    r'55af98b4ae6f05ebab5c052e970eb185f740cf72';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -31,90 +31,22 @@ class _SystemHash {
 }
 
 abstract class _$CassetteWidgetCoordinator
-    extends BuildlessAutoDisposeNotifier<List<Widget>> {
+    extends BuildlessAutoDisposeAsyncNotifier<List<Widget>> {
   late final SidebarMode mode;
 
-  List<Widget> build(SidebarMode mode);
+  FutureOr<List<Widget>> build(SidebarMode mode);
 }
 
-/// Coordinates the construction of sidebar utility cassettes.
-///
-/// This provider reads the current [CassetteRack] from
-/// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-/// the corresponding [Widget] via the appropriate builder.  At this stage
-/// only the top chat menu cassette is supported; additional cassette types
-/// should be handled here as they are implemented.
-/// Coordinates the construction of sidebar utility cassettes as a class-based
-/// Riverpod notifier.
-///
-/// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-/// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-/// into a concrete [Widget] by delegating to the appropriate builder.
-/// The top chat or settings menu are present by default.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) are added depending on user
-/// actions and application state.
-///
-/// Copied from [CassetteWidgetCoordinator].
+/// See also [CassetteWidgetCoordinator].
 @ProviderFor(CassetteWidgetCoordinator)
 const cassetteWidgetCoordinatorProvider = CassetteWidgetCoordinatorFamily();
 
-/// Coordinates the construction of sidebar utility cassettes.
-///
-/// This provider reads the current [CassetteRack] from
-/// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-/// the corresponding [Widget] via the appropriate builder.  At this stage
-/// only the top chat menu cassette is supported; additional cassette types
-/// should be handled here as they are implemented.
-/// Coordinates the construction of sidebar utility cassettes as a class-based
-/// Riverpod notifier.
-///
-/// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-/// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-/// into a concrete [Widget] by delegating to the appropriate builder.
-/// The top chat or settings menu are present by default.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) are added depending on user
-/// actions and application state.
-///
-/// Copied from [CassetteWidgetCoordinator].
-class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
-  /// Coordinates the construction of sidebar utility cassettes.
-  ///
-  /// This provider reads the current [CassetteRack] from
-  /// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-  /// the corresponding [Widget] via the appropriate builder.  At this stage
-  /// only the top chat menu cassette is supported; additional cassette types
-  /// should be handled here as they are implemented.
-  /// Coordinates the construction of sidebar utility cassettes as a class-based
-  /// Riverpod notifier.
-  ///
-  /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-  /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-  /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// The top chat or settings menu are present by default.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) are added depending on user
-  /// actions and application state.
-  ///
-  /// Copied from [CassetteWidgetCoordinator].
+/// See also [CassetteWidgetCoordinator].
+class CassetteWidgetCoordinatorFamily extends Family<AsyncValue<List<Widget>>> {
+  /// See also [CassetteWidgetCoordinator].
   const CassetteWidgetCoordinatorFamily();
 
-  /// Coordinates the construction of sidebar utility cassettes.
-  ///
-  /// This provider reads the current [CassetteRack] from
-  /// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-  /// the corresponding [Widget] via the appropriate builder.  At this stage
-  /// only the top chat menu cassette is supported; additional cassette types
-  /// should be handled here as they are implemented.
-  /// Coordinates the construction of sidebar utility cassettes as a class-based
-  /// Riverpod notifier.
-  ///
-  /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-  /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-  /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// The top chat or settings menu are present by default.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) are added depending on user
-  /// actions and application state.
-  ///
-  /// Copied from [CassetteWidgetCoordinator].
+  /// See also [CassetteWidgetCoordinator].
   CassetteWidgetCoordinatorProvider call(SidebarMode mode) {
     return CassetteWidgetCoordinatorProvider(mode);
   }
@@ -141,48 +73,14 @@ class CassetteWidgetCoordinatorFamily extends Family<List<Widget>> {
   String? get name => r'cassetteWidgetCoordinatorProvider';
 }
 
-/// Coordinates the construction of sidebar utility cassettes.
-///
-/// This provider reads the current [CassetteRack] from
-/// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-/// the corresponding [Widget] via the appropriate builder.  At this stage
-/// only the top chat menu cassette is supported; additional cassette types
-/// should be handled here as they are implemented.
-/// Coordinates the construction of sidebar utility cassettes as a class-based
-/// Riverpod notifier.
-///
-/// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-/// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-/// into a concrete [Widget] by delegating to the appropriate builder.
-/// The top chat or settings menu are present by default.  Additional cassette
-/// variants (e.g. unmatched handles, all messages) are added depending on user
-/// actions and application state.
-///
-/// Copied from [CassetteWidgetCoordinator].
+/// See also [CassetteWidgetCoordinator].
 class CassetteWidgetCoordinatorProvider
     extends
-        AutoDisposeNotifierProviderImpl<
+        AutoDisposeAsyncNotifierProviderImpl<
           CassetteWidgetCoordinator,
           List<Widget>
         > {
-  /// Coordinates the construction of sidebar utility cassettes.
-  ///
-  /// This provider reads the current [CassetteRack] from
-  /// [cassetteRackStateProvider] and transforms each [CassetteSpec] into
-  /// the corresponding [Widget] via the appropriate builder.  At this stage
-  /// only the top chat menu cassette is supported; additional cassette types
-  /// should be handled here as they are implemented.
-  /// Coordinates the construction of sidebar utility cassettes as a class-based
-  /// Riverpod notifier.
-  ///
-  /// This notifier listens to the [cassetteRackStateProvider] and rebuilds
-  /// whenever the rack changes.  It converts each [CassetteSpec] in the rack
-  /// into a concrete [Widget] by delegating to the appropriate builder.
-  /// The top chat or settings menu are present by default.  Additional cassette
-  /// variants (e.g. unmatched handles, all messages) are added depending on user
-  /// actions and application state.
-  ///
-  /// Copied from [CassetteWidgetCoordinator].
+  /// See also [CassetteWidgetCoordinator].
   CassetteWidgetCoordinatorProvider(SidebarMode mode)
     : this._internal(
         () => CassetteWidgetCoordinator()..mode = mode,
@@ -210,7 +108,9 @@ class CassetteWidgetCoordinatorProvider
   final SidebarMode mode;
 
   @override
-  List<Widget> runNotifierBuild(covariant CassetteWidgetCoordinator notifier) {
+  FutureOr<List<Widget>> runNotifierBuild(
+    covariant CassetteWidgetCoordinator notifier,
+  ) {
     return notifier.build(mode);
   }
 
@@ -231,7 +131,10 @@ class CassetteWidgetCoordinatorProvider
   }
 
   @override
-  AutoDisposeNotifierProviderElement<CassetteWidgetCoordinator, List<Widget>>
+  AutoDisposeAsyncNotifierProviderElement<
+    CassetteWidgetCoordinator,
+    List<Widget>
+  >
   createElement() {
     return _CassetteWidgetCoordinatorProviderElement(this);
   }
@@ -253,14 +156,14 @@ class CassetteWidgetCoordinatorProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin CassetteWidgetCoordinatorRef
-    on AutoDisposeNotifierProviderRef<List<Widget>> {
+    on AutoDisposeAsyncNotifierProviderRef<List<Widget>> {
   /// The parameter `mode` of this provider.
   SidebarMode get mode;
 }
 
 class _CassetteWidgetCoordinatorProviderElement
     extends
-        AutoDisposeNotifierProviderElement<
+        AutoDisposeAsyncNotifierProviderElement<
           CassetteWidgetCoordinator,
           List<Widget>
         >

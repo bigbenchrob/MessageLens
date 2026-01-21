@@ -46,6 +46,16 @@ class ContactHeroSummaryCassette extends ConsumerWidget {
             ContactHeroHeaderHighlight(
               displayName: selectedContact.displayName,
               shortName: selectedContact.shortName,
+              summaryLine: _buildSummaryLine(selectedContact),
+              onChange: () {
+                // Clear selection to return to contact chooser
+                ref
+                    .read(cassetteViewModelProvider.notifier)
+                    .updateContactSelection(
+                      currentSpec: spec,
+                      nextContactId: null,
+                    );
+              },
             ),
           ],
         );
@@ -59,4 +69,15 @@ class ContactHeroSummaryCassette extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Builds a human-readable summary line for the contact.
+///
+/// Examples:
+/// - "3 chats · 42 messages"
+/// - "1 chat · 1 message"
+String _buildSummaryLine(ContactSummary contact) {
+  final chatLabel = contact.totalChats == 1 ? 'chat' : 'chats';
+  final messageLabel = contact.totalMessages == 1 ? 'message' : 'messages';
+  return '${contact.totalChats} $chatLabel · ${contact.totalMessages} $messageLabel';
 }

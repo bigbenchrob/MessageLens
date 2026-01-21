@@ -342,9 +342,10 @@ enum InfoCard {
   termInk;
 
   static const Map<InfoCard, ColorPair> _palette = {
-    // Light: a very soft tint between white cards and graySix panel material.
-    // Dark: slightly lifted from the panel to read as a “soft surface”.
-    InfoCard.background: ColorPair(Color(0xFFF3F5F6), Color(0xFF34393A)),
+    // Light: warm near-white that lifts off the cool gray sidebar (~F2F4F6).
+    // Dark: slightly lifted from the panel to read as a distinct "soft surface".
+    // Intent: clearly a card, but softer than white data cards.
+    InfoCard.background: ColorPair(Color(0xFFFAF9F7), Color(0xFF3A3F41)),
 
     // Subtle hairline; intended to be used sparingly.
     InfoCard.border: ColorPair(Color(0x33A8AEB0), Color(0x33424647)),
