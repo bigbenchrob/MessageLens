@@ -10,6 +10,7 @@ import './application/cassette_builders/contact_short_names_cassette_builder_pro
 import './application/use_cases/contact_chooser_view_builder_provider.dart';
 import './presentation/cassettes/contact_hero_summary_cassette.dart';
 export './application/settings/contact_name_mode_provider.dart';
+export './application/spec_coordinators/cassette_coordinator.dart';
 export './application/spec_coordinators/info_cassette_coordinator.dart';
 export './infrastructure/repositories/recent_contacts_repository.dart';
 

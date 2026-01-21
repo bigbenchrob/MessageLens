@@ -68,10 +68,9 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         },
         contacts: (contactsSpec) async {
           final coordinator = ref.read(
-            contacts_feature.featureCassetteSpecCoordinatorProvider.notifier,
+            contacts_feature.contactsCassetteCoordinatorProvider.notifier,
           );
-          // This one already takes ref in your codebase.
-          return coordinator.buildForSpec(ref, contactsSpec);
+          return coordinator.buildViewModel(contactsSpec);
         },
         contactsSettings: (settingsSpec) async {
           final coordinator = ref.read(

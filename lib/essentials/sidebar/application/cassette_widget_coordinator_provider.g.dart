@@ -7,7 +7,7 @@ part of 'cassette_widget_coordinator_provider.dart';
 // **************************************************************************
 
 String _$cassetteWidgetCoordinatorHash() =>
-    r'55af98b4ae6f05ebab5c052e970eb185f740cf72';
+    r'84cb2ef70ae1fa34c11761932925dc8ee8810426';
 
 /// Copied from Dart SDK
 class _SystemHash {
