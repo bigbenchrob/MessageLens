@@ -2,7 +2,7 @@
 tier: project
 scope: index
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-01-19
 source_of_truth: doc
 links:
   - ../agent-instructions-shared/INDEX.md
@@ -28,6 +28,8 @@ This directory captures Remember Every Text–specific documentation that comple
 | `50-USE-CASE-ILLUSTRATIONS/` | Narrative walkthroughs of cross-layer behaviour | [`README.md`](50-USE-CASE-ILLUSTRATIONS/README.md), [`manual-handle-to-contact-linking.md`](50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md) |
 | `60-NAVIGATION/` | ViewSpec-based navigation patterns and panel coordination | [`navigation-overview.md`](60-NAVIGATION/navigation-overview.md) |
 | `70-CASSETTE-CONTENT-CONTROL/` | Where UI cassette choices are decided (responsibility boundaries) | [`00-cassette-choice-flow-and-responsibilities.md`](70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md), [`03-cassette-card-design-guidelines.md`](70-CASSETTE-CONTENT-CONTROL/03-cassette-card-design-guidelines.md) |
+| `80-FEATURE-SPEC-HANDLING/` | **🔥 CRITICAL**: How features interpret and process specs (ViewSpec, CassetteSpec). Defines layer boundaries, application-layer roles, and multi-surface content support | [`README.md`](80-FEATURE-SPEC-HANDLING/README.md), [`TLDR-for-agents.md`](80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md), [`01-feature-spec-handling-flow.md`](80-FEATURE-SPEC-HANDLING/01-feature-spec-handling-flow.md), [`05-responsibility-boundaries-summary.md`](80-FEATURE-SPEC-HANDLING/05-responsibility-boundaries-summary.md) |
+| `90-CROSS-SURFACE-SPEC-SYSTEMS/` | **🔥 CRITICAL**: Architecture pattern for multi-surface systems (onboarding, tooltips, sidebar, etc.). Essentials owns system state & outer routing; features own inner spec interpretation. Prevents feature pollution of global app space. | [`README.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/README.md), [`TLDR-for-agents.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/TLDR-for-agents.md), [`00-principles.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/00-principles.md), [`02-routing-and-ownership.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/02-routing-and-ownership.md), [`EXAMPLE-end-to-end-onboarding-flow.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/EXAMPLE-end-to-end-onboarding-flow.md) |
 
 ## Workflow Expectations
 
@@ -35,5 +37,6 @@ This directory captures Remember Every Text–specific documentation that comple
 2. **Use these docs when planning work.** Every feature proposal, migration, or provider change should reference the relevant per-project doc before editing code.
 3. **Keep metadata current.** Update the `last_reviewed` field whenever a document is edited and ensure links stay valid when files move.
 4. **Retire `_agent-per-project_old/` references.** If you find a pointer back to the legacy tree, migrate the content or update the link in this structure.
+5. **Reference cross-surface patterns.** When designing new essentials systems (onboarding, tooltips, help, etc.), read `90-CROSS-SURFACE-SPEC-SYSTEMS/` to apply the proven routing and responsibility pattern. This keeps systems independent and prevents feature code from polluting global space.
 
 Maintaining this index keeps new contributors oriented and ensures automation can scaffold future projects from a consistent layout.

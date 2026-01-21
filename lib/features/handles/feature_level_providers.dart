@@ -61,6 +61,15 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
     return spec.when(
       unmatchedHandlesList: (_) =>
           ref.read(unmatchedHandlesCassetteBuilderProvider),
+      infoCard: (title, message, footnote, _) => SidebarCassetteCardViewModel(
+        title: title ?? '',
+        footerText: footnote,
+        cardType: CassetteCardType.info,
+        infoBodyText: message,
+        shouldExpand: false,
+        // child is required but ignored for info cards
+        child: const SizedBox.shrink(),
+      ),
       strayPhoneNumbers: () =>
           ref.read(strayPhoneNumbersCassetteBuilderProvider),
       strayEmails: () => ref.read(strayEmailsCassetteBuilderProvider),

@@ -1,12 +1,12 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../domain/participant_origin.dart';
-import '../infrastructure/repositories/contacts_list_repository.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
+import '../../domain/participant_origin.dart';
+import 'contacts_list_repository.dart';
 
-part 'recent_contacts_provider.g.dart';
+part 'recent_contacts_repository.g.dart';
 
 /// Recent contact with participant info for display
 class RecentContactSummary {

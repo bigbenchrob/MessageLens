@@ -316,6 +316,52 @@ enum CassetteCard {
   ColorPair get pair => _palette[this]!;
 }
 
+/// Semantic tokens for “info cards” (explanatory copy, empty-state help, etc.)
+///
+/// Visual intent:
+/// - Present in the cassette flow, but lighter than data/control cards.
+/// - No shadow. Soft surface tint. Calm ink.
+/// - Optional “terminology” ink for app-specific terms (e.g., “stray emails”).
+enum InfoCard {
+  /// Soft background surface for explanatory cards.
+  background,
+
+  /// Optional hairline border for separation (very subtle).
+  border,
+
+  /// Primary informational ink (lead sentence, headings if any).
+  textPrimary,
+
+  /// Secondary informational ink (body copy).
+  textSecondary,
+
+  /// Tertiary / hint ink (footnotes like “Coming soon”).
+  textTertiary,
+
+  /// Terminology emphasis ink (for app-specific terms).
+  termInk;
+
+  static const Map<InfoCard, ColorPair> _palette = {
+    // Light: a very soft tint between white cards and graySix panel material.
+    // Dark: slightly lifted from the panel to read as a “soft surface”.
+    InfoCard.background: ColorPair(Color(0xFFF3F5F6), Color(0xFF34393A)),
+
+    // Subtle hairline; intended to be used sparingly.
+    InfoCard.border: ColorPair(Color(0x33A8AEB0), Color(0x33424647)),
+
+    // These align with your grayscale ink intent.
+    InfoCard.textPrimary: ColorPair(Color(0xFF343638), Color(0xFFDADEE0)),
+    InfoCard.textSecondary: ColorPair(Color(0xFF5B6062), Color(0xFFC8CDCF)),
+    InfoCard.textTertiary: ColorPair(Color(0xFF7F8587), Color(0xFFABB0B2)),
+
+    // Terminology: deliberately *not* your BrandHighlight blue.
+    // Uses an “amber/orange” that can become part of the app’s lexicon.
+    InfoCard.termInk: ColorPair(Color(0xFFB86A00), Color(0xFFFFB340)),
+  };
+
+  ColorPair get pair => _palette[this]!;
+}
+
 @riverpod
 class ThemeColors extends _$ThemeColors {
   @override
@@ -334,6 +380,9 @@ class ThemeColors extends _$ThemeColors {
   Color gray(GrayTone tone) => tone.pair.resolve(brightness);
   Color brandHighlight(BrandHighlight tone) => tone.pair.resolve(brightness);
   Color cassetteCard(CassetteCard tone) => tone.pair.resolve(brightness);
+
+  /// Resolve an InfoCard token for the current brightness.
+  Color infoCard(InfoCard tone) => tone.pair.resolve(brightness);
 
   // Convenience getters for gray tones
   Color get grayOne => gray(GrayTone.one);

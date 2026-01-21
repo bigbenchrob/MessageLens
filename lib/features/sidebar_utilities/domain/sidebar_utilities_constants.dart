@@ -4,19 +4,19 @@
 /// cassette spec.
 enum TopChatMenuChoice {
   /// Contacts list
-  contacts(id: 'contacts', label: 'Contacts'),
-
-  /// New global timeline experience (V2)
-  globalTimeline(id: 'global_timeline', label: 'Global timeline'),
-
-  /// All messages in the database
-  allMessages(id: 'all_messages', label: 'All messages'),
-
-  /// Phone numbers not matched to any contact
-  strayPhoneNumbers(id: 'stray_phone_numbers', label: 'Stray phone numbers'),
+  contacts(id: 'contacts', label: 'From contacts'),
 
   /// Email addresses not matched to any contact
-  strayEmails(id: 'stray_emails', label: 'Stray emails'),
+  strayEmails(id: 'stray_emails', label: 'From stray emails'),
+
+  /// Phone numbers not matched to any contact
+  strayPhoneNumbers(
+    id: 'stray_phone_numbers',
+    label: 'From stray phone numbers',
+  ),
+
+  /// Search all messages in the database (global timeline)
+  searchAllMessages(id: 'search_all_messages', label: 'Search all messages'),
 
   /// Theme playground (for development)
   themePlayground(id: 'theme_playground', label: 'Theme playground');

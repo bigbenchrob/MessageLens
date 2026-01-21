@@ -6,7 +6,7 @@ part of 'chats_by_age_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatsByAgeHash() => r'e878b3d15c43169ec8d7445f21bd9f4f2084809f';
+String _$chatsByAgeHash() => r'55fcac0e140f59dbc8b05b900fc9ed2daaae11e5';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -159,7 +159,7 @@ class _ChatsByAgeProviderElement
   int? get limit => (origin as ChatsByAgeProvider).limit;
 }
 
-String _$chatsByAgeRecentHash() => r'4f72bdc847b19897e2fc57d58d4c22331d374b6c';
+String _$chatsByAgeRecentHash() => r'd83df71fcc70c804a17350efbefdf7a884c6b671';
 
 /// Returns chats ordered by first message date (newest first).
 ///
@@ -295,7 +295,7 @@ class _ChatsByAgeRecentProviderElement
   int? get limit => (origin as ChatsByAgeRecentProvider).limit;
 }
 
-String _$unmatchedChatsHash() => r'2f45c55eb46c6b0ed1aa69092d3faf345f3ca8ad';
+String _$unmatchedChatsHash() => r'f1572e4b62b32e4216181ab122f66920756323c2';
 
 /// Returns chats where the handle has no participant match (unmatched phone numbers/emails).
 ///

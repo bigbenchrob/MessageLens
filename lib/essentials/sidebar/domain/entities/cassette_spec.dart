@@ -2,12 +2,15 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import 'features/contacts_cassette_spec.dart';
+import 'features/contacts_info_cassette_spec.dart';
 import 'features/contacts_settings_spec.dart';
 import 'features/handles_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
 import 'features/sidebar_utility_settings_spec.dart';
+
+// import '../../../../features/contacts/feature_level_providers.dart' as contacts_features;
 
 part 'cassette_spec.freezed.dart';
 
@@ -24,6 +27,8 @@ abstract class CassetteSpec with _$CassetteSpec {
       _CassetteContacts;
   const factory CassetteSpec.contactsSettings(ContactsSettingsSpec spec) =
       _CassetteContactsSettings;
+  const factory CassetteSpec.contactsInfo(ContactsInfoCassetteSpec spec) =
+      _CassetteContactsInfo;
   const factory CassetteSpec.handles(HandlesCassetteSpec spec) =
       _CassetteHandles;
   const factory CassetteSpec.messages(MessagesCassetteSpec spec) =
@@ -39,6 +44,7 @@ extension CassetteSpecX on CassetteSpec {
       presentation: (spec) => spec.childSpec(),
       contacts: (contactsSpec) => contactsSpec.childSpec(),
       contactsSettings: (settingsSpec) => settingsSpec.childSpec(),
+      contactsInfo: (infoSpec) => infoSpec.childSpec(),
       handles: (handlesSpec) => handlesSpec.childSpec(),
       messages: (messagesSpec) => messagesSpec.childSpec(),
     );
@@ -52,15 +58,19 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
       topChatMenu: (selectedChoice) {
         switch (selectedChoice) {
           case TopChatMenuChoice.contacts:
-            return const CassetteSpec.contacts(
-              ContactsCassetteSpec.contactChooser(),
+            return const CassetteSpec.contactsInfo(
+              ContactsInfoCassetteSpec.infoCard(
+                key: ContactsInfoKey.favouritesVsRecents,
+              ),
             );
 
-          case TopChatMenuChoice.globalTimeline:
-            return const CassetteSpec.messages(
-              MessagesCassetteSpec.heatMap(
-                contactId: null,
-                useV2Timeline: true,
+          case TopChatMenuChoice.strayEmails:
+            return const CassetteSpec.handles(
+              HandlesCassetteSpec.infoCard(
+                message:
+                    'These are messages from email addresses that do not '
+                    'belong to a contact in your address book.',
+                childVariant: HandlesCassetteChildVariant.strayEmails,
               ),
             );
 
@@ -69,16 +79,11 @@ extension SidebarUtilityCassetteSpecX on SidebarUtilityCassetteSpec {
               HandlesCassetteSpec.strayPhoneNumbers(),
             );
 
-          case TopChatMenuChoice.strayEmails:
-            return const CassetteSpec.handles(
-              HandlesCassetteSpec.strayEmails(),
-            );
-
-          case TopChatMenuChoice.allMessages:
+          case TopChatMenuChoice.searchAllMessages:
             return const CassetteSpec.messages(
               MessagesCassetteSpec.heatMap(
                 contactId: null,
-                useV2Timeline: false,
+                useV2Timeline: true,
               ),
             );
 
@@ -137,11 +142,33 @@ extension ContactsCassetteSpecX on ContactsCassetteSpec {
   }
 }
 
+extension ContactsInfoCassetteSpecX on ContactsInfoCassetteSpec {
+  CassetteSpec? childSpec() {
+    return when(
+      infoCard: (key) {
+        // After the info card, show the normal contact chooser.
+        return const CassetteSpec.contacts(
+          ContactsCassetteSpec.contactChooser(),
+        );
+      },
+    );
+  }
+}
+
 extension HandlesCassetteSpecX on HandlesCassetteSpec {
-  /// Handles cassettes currently have no children.
+  /// Resolve child spec for handles cassettes.
   CassetteSpec? childSpec() {
     return when(
       unmatchedHandlesList: (_) => null,
+      infoCard: (_, __, ___, childVariant) {
+        return switch (childVariant) {
+          HandlesCassetteChildVariant.strayPhoneNumbers =>
+            const CassetteSpec.handles(HandlesCassetteSpec.strayPhoneNumbers()),
+          HandlesCassetteChildVariant.strayEmails => const CassetteSpec.handles(
+            HandlesCassetteSpec.strayEmails(),
+          ),
+        };
+      },
       strayPhoneNumbers: () => null,
       strayEmails: () => null,
     );

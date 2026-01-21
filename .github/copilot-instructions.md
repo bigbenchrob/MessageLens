@@ -26,6 +26,7 @@ You MUST read these files in order before any code changes:
 8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
 9. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
 10. **`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`** - ViewSpec-based navigation system
+11. **`_AGENT_INSTRUCTIONS/agent-per-project/80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md`** - 🔥 CRITICAL: How features interpret specs (layer boundaries, coordinator vs resolver roles)
 
 ## Quick Reference Code Standards
 - **Primary import**: Always use `hooks_riverpod`, never `flutter_riverpod`
@@ -44,6 +45,7 @@ You MUST read these files in order before any code changes:
 - **🔥 RIVERPOD PATTERNS**: Follow ONLY the patterns documented in `05-riverpod-provider-patterns.md` - DO NOT scan codebase for examples
 - **Provider naming**: Class names follow documented pattern: `MyFeature` → generates `myFeatureProvider`
 - **Navigation**: Use ViewSpec sealed classes, never direct widget management
+- **🔥 Feature Spec Handling**: Feature coordinators route only; application-layer resolvers own meaning; app-level coordinators choose UI chrome
 
 ## Development Workflow
 - **Code generation**: `dart run build_runner build --delete-conflicting-outputs`
@@ -119,6 +121,8 @@ class MyFeature extends _$MyFeature {
 - ❌ String-based navigation (use ViewSpec sealed classes)
 - ❌ 🔥 **SCANNING CODEBASE FOR PROVIDER EXAMPLES** (use documented patterns only)
 - ❌ 🔥 **CRITICAL**: Direct database instantiation (use `importDatabaseProvider` & `workingDatabaseProvider`)
+- ❌ 🔥 **Feature coordinators doing logic** (coordinators route only; resolvers own meaning)
+- ❌ 🔥 **Application-layer builders returning view models** (return widget content; coordinator wraps in chrome)
 
 ## 🔥 MANDATORY DATABASE ACCESS RULE
 

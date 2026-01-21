@@ -22,6 +22,7 @@ abstract class Reaction with _$Reaction {
     String? customText,
     required DateTime createdAt,
     DateTime? removedAt,
+    z,
   }) = _Reaction;
 
   const Reaction._();

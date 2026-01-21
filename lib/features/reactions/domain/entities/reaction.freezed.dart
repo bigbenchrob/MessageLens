@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Reaction {
 
-@ReactionIdConverter() ReactionId get id;@MessageIdConverter() MessageId get messageId;@ContactIdConverter() ContactId get authorId; ReactionKind get kind; String? get customText; DateTime get createdAt; DateTime? get removedAt;
+@ReactionIdConverter() ReactionId get id;@MessageIdConverter() MessageId get messageId;@ContactIdConverter() ContactId get authorId; ReactionKind get kind; String? get customText; DateTime get createdAt; DateTime? get removedAt; dynamic get z;
 /// Create a copy of Reaction
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ReactionCopyWith<Reaction> get copyWith => _$ReactionCopyWithImpl<Reaction>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reaction&&(identical(other.id, id) || other.id == id)&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.authorId, authorId) || other.authorId == authorId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.customText, customText) || other.customText == customText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.removedAt, removedAt) || other.removedAt == removedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Reaction&&(identical(other.id, id) || other.id == id)&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.authorId, authorId) || other.authorId == authorId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.customText, customText) || other.customText == customText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.removedAt, removedAt) || other.removedAt == removedAt)&&const DeepCollectionEquality().equals(other.z, z));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,messageId,authorId,kind,customText,createdAt,removedAt);
+int get hashCode => Object.hash(runtimeType,id,messageId,authorId,kind,customText,createdAt,removedAt,const DeepCollectionEquality().hash(z));
 
 @override
 String toString() {
-  return 'Reaction(id: $id, messageId: $messageId, authorId: $authorId, kind: $kind, customText: $customText, createdAt: $createdAt, removedAt: $removedAt)';
+  return 'Reaction(id: $id, messageId: $messageId, authorId: $authorId, kind: $kind, customText: $customText, createdAt: $createdAt, removedAt: $removedAt, z: $z)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ReactionCopyWith<$Res>  {
   factory $ReactionCopyWith(Reaction value, $Res Function(Reaction) _then) = _$ReactionCopyWithImpl;
 @useResult
 $Res call({
-@ReactionIdConverter() ReactionId id,@MessageIdConverter() MessageId messageId,@ContactIdConverter() ContactId authorId, ReactionKind kind, String? customText, DateTime createdAt, DateTime? removedAt
+@ReactionIdConverter() ReactionId id,@MessageIdConverter() MessageId messageId,@ContactIdConverter() ContactId authorId, ReactionKind kind, String? customText, DateTime createdAt, DateTime? removedAt, dynamic z
 });
 
 
@@ -65,7 +65,7 @@ class _$ReactionCopyWithImpl<$Res>
 
 /// Create a copy of Reaction
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? messageId = null,Object? authorId = null,Object? kind = null,Object? customText = freezed,Object? createdAt = null,Object? removedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? messageId = null,Object? authorId = null,Object? kind = null,Object? customText = freezed,Object? createdAt = null,Object? removedAt = freezed,Object? z = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as ReactionId,messageId: null == messageId ? _self.messageId : messageId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,8 @@ as ContactId,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_
 as ReactionKind,customText: freezed == customText ? _self.customText : customText // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,removedAt: freezed == removedAt ? _self.removedAt : removedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,z: freezed == z ? _self.z : z // ignore: cast_nullable_to_non_nullable
+as dynamic,
   ));
 }
 /// Create a copy of Reaction
@@ -186,10 +187,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt,  dynamic z)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Reaction() when $default != null:
-return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt);case _:
+return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt,_that.z);case _:
   return orElse();
 
 }
@@ -207,10 +208,10 @@ return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customT
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt,  dynamic z)  $default,) {final _that = this;
 switch (_that) {
 case _Reaction():
-return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt);case _:
+return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt,_that.z);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -227,10 +228,10 @@ return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customT
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@ReactionIdConverter()  ReactionId id, @MessageIdConverter()  MessageId messageId, @ContactIdConverter()  ContactId authorId,  ReactionKind kind,  String? customText,  DateTime createdAt,  DateTime? removedAt,  dynamic z)?  $default,) {final _that = this;
 switch (_that) {
 case _Reaction() when $default != null:
-return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt);case _:
+return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customText,_that.createdAt,_that.removedAt,_that.z);case _:
   return null;
 
 }
@@ -242,7 +243,7 @@ return $default(_that.id,_that.messageId,_that.authorId,_that.kind,_that.customT
 @JsonSerializable()
 
 class _Reaction extends Reaction {
-  const _Reaction({@ReactionIdConverter() required this.id, @MessageIdConverter() required this.messageId, @ContactIdConverter() required this.authorId, required this.kind, this.customText, required this.createdAt, this.removedAt}): super._();
+  const _Reaction({@ReactionIdConverter() required this.id, @MessageIdConverter() required this.messageId, @ContactIdConverter() required this.authorId, required this.kind, this.customText, required this.createdAt, this.removedAt, this.z}): super._();
   factory _Reaction.fromJson(Map<String, dynamic> json) => _$ReactionFromJson(json);
 
 @override@ReactionIdConverter() final  ReactionId id;
@@ -252,6 +253,7 @@ class _Reaction extends Reaction {
 @override final  String? customText;
 @override final  DateTime createdAt;
 @override final  DateTime? removedAt;
+@override final  dynamic z;
 
 /// Create a copy of Reaction
 /// with the given fields replaced by the non-null parameter values.
@@ -266,16 +268,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reaction&&(identical(other.id, id) || other.id == id)&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.authorId, authorId) || other.authorId == authorId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.customText, customText) || other.customText == customText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.removedAt, removedAt) || other.removedAt == removedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Reaction&&(identical(other.id, id) || other.id == id)&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.authorId, authorId) || other.authorId == authorId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.customText, customText) || other.customText == customText)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.removedAt, removedAt) || other.removedAt == removedAt)&&const DeepCollectionEquality().equals(other.z, z));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,messageId,authorId,kind,customText,createdAt,removedAt);
+int get hashCode => Object.hash(runtimeType,id,messageId,authorId,kind,customText,createdAt,removedAt,const DeepCollectionEquality().hash(z));
 
 @override
 String toString() {
-  return 'Reaction(id: $id, messageId: $messageId, authorId: $authorId, kind: $kind, customText: $customText, createdAt: $createdAt, removedAt: $removedAt)';
+  return 'Reaction(id: $id, messageId: $messageId, authorId: $authorId, kind: $kind, customText: $customText, createdAt: $createdAt, removedAt: $removedAt, z: $z)';
 }
 
 
@@ -286,7 +288,7 @@ abstract mixin class _$ReactionCopyWith<$Res> implements $ReactionCopyWith<$Res>
   factory _$ReactionCopyWith(_Reaction value, $Res Function(_Reaction) _then) = __$ReactionCopyWithImpl;
 @override @useResult
 $Res call({
-@ReactionIdConverter() ReactionId id,@MessageIdConverter() MessageId messageId,@ContactIdConverter() ContactId authorId, ReactionKind kind, String? customText, DateTime createdAt, DateTime? removedAt
+@ReactionIdConverter() ReactionId id,@MessageIdConverter() MessageId messageId,@ContactIdConverter() ContactId authorId, ReactionKind kind, String? customText, DateTime createdAt, DateTime? removedAt, dynamic z
 });
 
 
@@ -303,7 +305,7 @@ class __$ReactionCopyWithImpl<$Res>
 
 /// Create a copy of Reaction
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? messageId = null,Object? authorId = null,Object? kind = null,Object? customText = freezed,Object? createdAt = null,Object? removedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? messageId = null,Object? authorId = null,Object? kind = null,Object? customText = freezed,Object? createdAt = null,Object? removedAt = freezed,Object? z = freezed,}) {
   return _then(_Reaction(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as ReactionId,messageId: null == messageId ? _self.messageId : messageId // ignore: cast_nullable_to_non_nullable
@@ -312,7 +314,8 @@ as ContactId,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_
 as ReactionKind,customText: freezed == customText ? _self.customText : customText // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,removedAt: freezed == removedAt ? _self.removedAt : removedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,z: freezed == z ? _self.z : z // ignore: cast_nullable_to_non_nullable
+as dynamic,
   ));
 }
 

@@ -1,5 +1,19 @@
 import 'package:flutter/widgets.dart';
 
+/// The type of card container to render for a cassette.
+///
+/// Used by [CassetteWidgetCoordinator] to select the appropriate wrapper.
+enum CassetteCardType {
+  /// Standard cassette card with title, subtitle, section, footer slots.
+  /// Supports both full cards and "naked" mode for plain controls.
+  standard,
+
+  /// Soft informational card for explanatory text.
+  /// Uses [SidebarInfoCard] with tinted background, optional title/footnote.
+  /// When this type is used, [infoBodyText] provides the card body content.
+  info,
+}
+
 /// Presentation data for rendering a cassette inside the sidebar card shell.
 class SidebarCassetteCardViewModel {
   const SidebarCassetteCardViewModel({
@@ -8,6 +22,8 @@ class SidebarCassetteCardViewModel {
     this.sectionTitle,
     this.footerText,
     required this.child,
+    this.cardType = CassetteCardType.standard,
+    this.infoBodyText,
     this.isControl = false,
     this.isNaked = false,
     bool? shouldExpand,
@@ -23,7 +39,22 @@ class SidebarCassetteCardViewModel {
   final String? footerText;
 
   /// The cassette content widget rendered inside the card.
+  ///
+  /// For [CassetteCardType.standard], this is the interactive body content.
+  /// For [CassetteCardType.info], this is ignored; use [infoBodyText] instead.
   final Widget child;
+
+  /// The type of card container to use for this cassette.
+  ///
+  /// Defaults to [CassetteCardType.standard] which uses [SidebarCassetteCard].
+  /// Use [CassetteCardType.info] for explanatory cards using [SidebarInfoCard].
+  final CassetteCardType cardType;
+
+  /// Body text for info cards ([CassetteCardType.info]).
+  ///
+  /// When [cardType] is [CassetteCardType.info], this text is rendered as the
+  /// main explanatory content of the [SidebarInfoCard].
+  final String? infoBodyText;
 
   /// Whether this cassette is primarily a control surface (vs content).
   /// Control cassettes should be visually de-emphasized in the sidebar.

@@ -2,9 +2,12 @@ import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../essentials/db/domain/overlay_db_constants.dart';
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../contacts/application/settings/contact_name_mode_provider.dart';
 import '../../contacts/application/settings/contact_short_names_provider.dart';
+import '../../contacts/domain/participant_name_resolver.dart';
 import '../domain/chat_timeline_data.dart';
 import '../presentation/view_model/recent_chats_provider.dart';
 import 'calendar_heatmap_timeline_calculator.dart';
@@ -16,6 +19,7 @@ part 'chats_by_age_provider.g.dart';
 Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
   final shortNames = await ref.watch(contactShortNamesProvider.future);
+  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   final chatsQuery = db.select(db.workingChats)
     ..orderBy([
@@ -36,6 +40,7 @@ Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
     db: db,
     chatRows: chatRows,
     shortNames: shortNames,
+    nameMode: nameMode,
   );
 }
 
@@ -44,6 +49,7 @@ Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
 Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
   final shortNames = await ref.watch(contactShortNamesProvider.future);
+  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   final chatsQuery = db.select(db.workingChats)
     ..orderBy([
@@ -64,6 +70,7 @@ Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
     db: db,
     chatRows: chatRows,
     shortNames: shortNames,
+    nameMode: nameMode,
   );
 }
 
@@ -72,6 +79,7 @@ Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
 Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
   final shortNames = await ref.watch(contactShortNamesProvider.future);
+  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   // Find chats whose handle_id does NOT appear in handle_to_participant
   final unmatchedHandleIds =
@@ -125,6 +133,7 @@ Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
     db: db,
     chatRows: chatRows,
     shortNames: shortNames,
+    nameMode: nameMode,
   );
 }
 
@@ -134,6 +143,7 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
   required WorkingDatabase db,
   required List<WorkingChat> chatRows,
   required Map<String, String> shortNames,
+  required ParticipantNameMode nameMode,
 }) async {
   final messageCountExpression = db.workingMessages.id.count();
   final firstSentExpression = db.workingMessages.sentAtUtc.min();
@@ -153,32 +163,12 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
 
   String resolveParticipantName(WorkingParticipant participant) {
     final key = resolveContactKey(participant);
-    final trimmedShortName = shortNames[key]?.trim();
-    if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
-      return trimmedShortName;
-    }
-
-    final candidates = <String?>[
-      participant.displayName,
-      participant.originalName,
-      () {
-        final given = participant.givenName?.trim();
-        final family = participant.familyName?.trim();
-        if (given?.isNotEmpty == true && family?.isNotEmpty == true) {
-          return '$given $family';
-        }
-        return given?.isNotEmpty == true ? given : family;
-      }(),
-      participant.organization,
-    ];
-
-    for (final candidate in candidates) {
-      if (candidate != null && candidate.trim().isNotEmpty) {
-        return candidate.trim();
-      }
-    }
-
-    return 'Unknown Contact';
+    final nickname = shortNames[key];
+    return ParticipantNameResolver.resolve(
+      participant: participant,
+      mode: nameMode,
+      nickname: nickname,
+    );
   }
 
   String deriveTitle(WorkingChat chat, List<String> participants) {

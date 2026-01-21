@@ -6,11 +6,12 @@ import '../../essentials/navigation/domain/entities/features/contacts_spec.dart'
 import '../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
 import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import 'application/cassette_builders/contact_short_names_cassette_builder_provider.dart';
-import 'application/use_cases/contact_chooser_view_builder_provider.dart';
-import 'presentation/cassettes/contact_hero_summary_cassette.dart';
-
-export 'application/settings/contact_name_mode_provider.dart';
+import './application/cassette_builders/contact_short_names_cassette_builder_provider.dart';
+import './application/use_cases/contact_chooser_view_builder_provider.dart';
+import './presentation/cassettes/contact_hero_summary_cassette.dart';
+export './application/settings/contact_name_mode_provider.dart';
+export './application/spec_coordinators/info_cassette_coordinator.dart';
+export './infrastructure/repositories/recent_contacts_repository.dart';
 
 part 'feature_level_providers.g.dart';
 

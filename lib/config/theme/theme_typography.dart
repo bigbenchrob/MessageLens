@@ -159,6 +159,46 @@ class ThemeTypography {
   );
 
   // ---------------------------------------------------------------------------
+  // Info card typography (explanatory copy inside the cassette flow)
+  // ---------------------------------------------------------------------------
+
+  /// Optional heading line inside an info card.
+  /// Example: “Stray emails”
+  TextStyle get infoCardTitle => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.2,
+    color: _colors.infoCard(InfoCard.textPrimary),
+  );
+
+  /// Main explanatory body copy inside info cards.
+  TextStyle get infoCardBody => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    height: 1.35,
+    color: _colors.infoCard(InfoCard.textSecondary),
+  );
+
+  /// Lowest-emphasis informational copy.
+  /// Example: “Coming soon”
+  TextStyle get infoCardFootnote => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    fontStyle: FontStyle.italic,
+    height: 1.25,
+    color: _colors.infoCard(InfoCard.textTertiary),
+  );
+
+  /// Terminology emphasis for app-specific terms inside info text.
+  /// Use sparingly (terms of art only).
+  TextStyle get infoCardTerm => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    height: 1.35,
+    color: _colors.infoCard(InfoCard.termInk),
+  );
+
+  // ---------------------------------------------------------------------------
   // Option list typography (radio buttons, toggles, menu choices)
   // ---------------------------------------------------------------------------
   // Used for vertical lists of selectable options. Reusable across cassette

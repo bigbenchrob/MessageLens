@@ -4,7 +4,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../contacts/application/settings/contact_name_mode_provider.dart';
 import '../../../contacts/application/settings/contact_short_names_provider.dart';
+import '../../../contacts/domain/participant_name_resolver.dart';
 import '../../application/calendar_heatmap_timeline_calculator.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
 import '../../domain/chat_timeline_data.dart';
@@ -44,6 +46,7 @@ class RecentChatSummary {
 Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
   final shortNames = await ref.watch(contactShortNamesProvider.future);
+  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   List<WorkingChat> chatRows;
   final chatsQuery = db.select(db.workingChats)
@@ -148,32 +151,12 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
 
     String resolveParticipantName(WorkingParticipant participant) {
       final key = resolveContactKey(participant);
-      final trimmedShortName = shortNames[key]?.trim();
-      if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
-        return trimmedShortName;
-      }
-
-      final candidates = <String?>[
-        participant.displayName,
-        participant.originalName,
-        () {
-          final given = participant.givenName?.trim();
-          final family = participant.familyName?.trim();
-          if (given?.isNotEmpty == true && family?.isNotEmpty == true) {
-            return '$given $family';
-          }
-          return given?.isNotEmpty == true ? given : family;
-        }(),
-        participant.organization,
-      ];
-
-      for (final candidate in candidates) {
-        if (candidate != null && candidate.trim().isNotEmpty) {
-          return candidate.trim();
-        }
-      }
-
-      return 'Unknown Contact';
+      final nickname = shortNames[key];
+      return ParticipantNameResolver.resolve(
+        participant: participant,
+        mode: nameMode,
+        nickname: nickname,
+      );
     }
 
     final participantRows = await participantsQuery.get();

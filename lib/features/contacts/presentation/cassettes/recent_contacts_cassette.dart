@@ -9,7 +9,7 @@ import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
-import '../../application/recent_contacts_provider.dart';
+import '../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../view_model/cassette_view_model.dart';
 
 /// Cassette showing recently accessed contacts with "More..." button.

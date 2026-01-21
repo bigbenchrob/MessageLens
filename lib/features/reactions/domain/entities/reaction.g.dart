@@ -16,6 +16,7 @@ _Reaction _$ReactionFromJson(Map<String, dynamic> json) => _Reaction(
   removedAt: json['removedAt'] == null
       ? null
       : DateTime.parse(json['removedAt'] as String),
+  z: json['z'],
 );
 
 Map<String, dynamic> _$ReactionToJson(_Reaction instance) => <String, dynamic>{
@@ -26,6 +27,7 @@ Map<String, dynamic> _$ReactionToJson(_Reaction instance) => <String, dynamic>{
   'customText': instance.customText,
   'createdAt': instance.createdAt.toIso8601String(),
   'removedAt': instance.removedAt?.toIso8601String(),
+  'z': instance.z,
 };
 
 const _$ReactionKindEnumMap = {

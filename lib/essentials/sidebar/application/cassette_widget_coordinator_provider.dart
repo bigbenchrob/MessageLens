@@ -16,7 +16,8 @@ import '../../navigation/domain/sidebar_mode.dart';
 import '../domain/entities/features/presentation_cassette_spec.dart';
 import '../feature_level_providers.dart';
 
-/// utility widget to wrap each cassette in a card
+/// utility widgets to wrap each cassette in a card
+import '../presentation/sidebar_info_card.dart';
 import '../presentation/view/sidebar_cassette_card.dart';
 import '../presentation/view_model/sidebar_cassette_card_view_model.dart';
 
@@ -45,7 +46,9 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     final rack = ref.watch(cassetteRackStateProvider(mode));
     final widgets = <Widget>[];
 
-    SidebarCassetteCardViewModel buildViewModelForSpec(CassetteSpec spec) {
+    Future<SidebarCassetteCardViewModel> buildViewModelForSpec(
+      CassetteSpec spec,
+    ) async {
       return spec.when(
         sidebarUtility: (sidebarSpec) {
           final coordinator = ref.read(
@@ -82,6 +85,13 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           );
           return coordinator.buildForSpec(settingsSpec);
         },
+
+        contactsInfo: (infoSpec) async {
+          final coordinator = ref.read(
+            contacts_feature.infoCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildViewModel(infoSpec);
+        },
         handles: (handlesSpec) {
           final coordinator = ref.read(
             handles_feature.featureCassetteSpecCoordinatorProvider.notifier,
@@ -99,18 +109,31 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
 
     void addCassette(CassetteSpec spec) {
       final viewModel = buildViewModelForSpec(spec);
-      widgets.add(
-        SidebarCassetteCard(
-          title: viewModel.title,
-          subtitle: viewModel.subtitle,
-          sectionTitle: viewModel.sectionTitle, // NEW
-          footerText: viewModel.footerText,
-          isControl: viewModel.isControl,
-          isNaked: viewModel.isNaked,
-          shouldExpand: viewModel.shouldExpand,
-          child: viewModel.child,
-        ),
-      );
+
+      // Build the appropriate card type based on the view model
+      switch (viewModel.cardType) {
+        case CassetteCardType.standard:
+          widgets.add(
+            SidebarCassetteCard(
+              title: viewModel.title,
+              subtitle: viewModel.subtitle,
+              sectionTitle: viewModel.sectionTitle,
+              footerText: viewModel.footerText,
+              isControl: viewModel.isControl,
+              isNaked: viewModel.isNaked,
+              shouldExpand: viewModel.shouldExpand,
+              child: viewModel.child,
+            ),
+          );
+        case CassetteCardType.info:
+          widgets.add(
+            SidebarInfoCard(
+              title: viewModel.title.isEmpty ? null : viewModel.title,
+              body: TextSpan(text: viewModel.infoBodyText ?? ''),
+              footnote: viewModel.footerText,
+            ),
+          );
+      }
     }
 
     rack.cassettes.forEach(addCassette);
