@@ -18,6 +18,10 @@ This directory captures Remember Every Text–specific documentation that comple
 
 ## Canonical Map
 
+Note: `95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/` is the unified, preferred source
+for spec interpretation and cross-surface system guidance. The legacy `80-` and
+`90-` folders remain for reference during the transition.
+
 | Folder | Purpose | Canonical docs |
 | --- | --- | --- |
 | `00-PROJECT/` | Entry points and global context | [`00-overview.md`](00-PROJECT/00-overview.md), [`01-aggregate-boundaries.md`](00-PROJECT/01-aggregate-boundaries.md), [`02-architecture-overview.md`](00-PROJECT/02-architecture-overview.md), [`03-data-locations.md`](00-PROJECT/03-data-locations.md), [`04-env-and-secrets.md`](00-PROJECT/04-env-and-secrets.md) |
