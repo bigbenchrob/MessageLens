@@ -1,0 +1,146 @@
+You are working on a new branch. Your task is to refactor the spec family topology logic (spec → child spec resolution) so that it scales as the application grows, without changing observable behavior.
+
+Background / Principles (read carefully)
+
+This app uses spec systems (e.g. sidebar cassette specs, onboarding specs, tooltips specs) to avoid top-down complexity.
+The key ideas you must preserve:
+	1.	Specs avoid global complexity
+	•	The app and the user focus on one spec at a time
+	•	There is no giant “settings tree” or “help index”
+	•	Navigation emerges from local parent → child relationships
+	2.	Topology is global, meaning is local
+	•	The existence of parent → child relationships is a domain-level concern
+	•	The interpretation of a spec (how to render it) is a feature-level concern
+	•	Features must not reason about other features
+	3.	Features must not coordinate other features
+	•	The Contacts feature must never decide “Messages comes next”
+	•	Cross-feature transitions belong in essentials/domain, not in features
+	4.	Extension methods on spec families are intentional
+	•	childSpec() / nextSpec() logic lives with the spec family
+	•	This keeps decisions small, local, and DDD-friendly
+	•	This is not accidental coupling — it is topology definition
+	5.	The problem
+	•	Spec families (e.g. CassetteSpec) will grow
+	•	A single monolithic cassette_spec.dart with all child logic will become hard to maintain
+	•	We need physical modularization without re-centralizing logic or introducing a “God router”
+
+Non-negotiable constraints
+	•	Do NOT move child-spec decision logic into feature folders
+	•	Do NOT introduce any top-down registry, database, or config table
+	•	Do NOT make features aware of other features
+	•	Do NOT change public APIs used by the rest of the app
+	•	Do NOT change runtime behavior
+
+What “good” looks like
+	•	There is still one public entry point:
+	•	e.g. CassetteSpec.childSpec()
+	•	The implementation of child resolution is split across multiple files
+	•	Each file is small, coherent, and locally understandable
+	•	Cross-feature transitions are explicit and discoverable
+	•	Adding new specs does not require editing a massive file
+
+⸻
+
+Plan of Action
+
+Phase 1 — Inspect current state
+	1.	Open and understand the current:
+	•	lib/essentials/sidebar/domain/entities/cassette_spec.dart
+	2.	Identify:
+	•	the CassetteSpec union
+	•	all extension methods (e.g. childSpec())
+	•	where parent → child logic currently lives
+
+Do NOT modify anything yet.
+
+⸻
+
+Phase 2 — Introduce topology modules (no behavior change)
+
+Create a new folder structure under the same domain layer:
+
+lib/essentials/sidebar/domain/entities/
+  cassette_spec.dart                // remains public API
+  cascade/
+    cassette_child_resolver.dart    // thin delegator
+    contacts_cassette_topology.dart
+    messages_cassette_topology.dart
+    handles_cassette_topology.dart
+    sidebar_utility_topology.dart
+    links/
+      contacts_to_messages.dart     // cross-feature edges only
+      sidebar_utility_to_contacts.dart
+
+      Guidelines:
+	•	One “topology file” per feature’s cassette specs
+	•	Optional links/ subfolder for explicit cross-feature edges
+	•	No feature imports application or presentation code
+	•	Domain only
+
+⸻
+
+Phase 3 — Refactor childSpec logic (mechanical move)
+	1.	In cassette_spec.dart:
+	•	Keep the CassetteSpec union exactly as-is
+	•	Replace the existing childSpec() implementation with a single delegating call, e.g.:
+“Given a CassetteSpec, delegate to a resolver that knows where to look.”
+	2.	Implement cassette_child_resolver.dart:
+	•	Switch on CassetteSpec variant only
+	•	Delegate to the appropriate topology module
+	•	This file should stay short and boring
+	3.	Move logic:
+	•	Each block of child resolution logic goes into the corresponding topology file
+	•	Preserve semantics exactly
+	•	No new logic, no new conditions
+
+Example intent (not code to copy verbatim):
+	•	Contacts-specific child decisions → contacts_cassette_topology.dart
+	•	Messages-specific child decisions → messages_cassette_topology.dart
+	•	Cross-feature transitions → links/*.dart
+
+⸻
+
+Phase 4 — Enforce separation of concerns
+
+While refactoring, ensure:
+	•	Topology files:
+	•	Decide what spec comes next
+	•	May inspect spec values (IDs, enums)
+	•	Must NOT inspect application state
+	•	Must NOT call repositories or providers
+	•	Feature logic remains unchanged:
+	•	Rendering decisions stay in feature coordinators
+	•	No feature code gains awareness of other features
+
+⸻
+
+Phase 5 — Validate behavior
+
+After refactor:
+	1.	CassetteSpec.childSpec() must behave exactly as before
+	2.	The cassette stack must evolve identically at runtime
+	3.	No feature imports change
+	4.	No new public APIs are introduced
+
+If in doubt: preserve behavior over elegance.
+
+⸻
+
+Phase 6 — Documentation update
+
+Add a short README to the new cascade/ folder explaining:
+	•	What “topology” means in this codebase
+	•	Why this logic is global but modular
+	•	Where to add new childSpec logic in the future
+
+This README is for future agents.
+
+⸻
+
+Summary (for you, Codex)
+	•	You are modularizing topology, not meaning
+	•	You are reducing file size, not adding abstraction
+	•	You are preserving the core virtue of the spec system: local reasoning
+	•	If a change would require a feature to know about another feature, it is wrong
+
+Proceed carefully and autonomously.
