@@ -7,7 +7,6 @@ import '../../navigation/domain/entities/features/contacts_spec.dart';
 import '../../navigation/domain/entities/features/import_spec.dart';
 import '../../navigation/domain/entities/features/messages_spec.dart';
 import '../../navigation/domain/entities/features/settings_spec.dart';
-import '../../navigation/domain/entities/features/sidebar_spec.dart';
 import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
 import '../../navigation/domain/navigation_constants.dart';
@@ -119,18 +118,6 @@ class NavigationLogEntry {
       workbench: (workbenchSpec) => {
         'type': 'workbench',
         'spec': workbenchSpec.when(panel: () => {'variant': 'panel'}),
-      },
-
-      sidebar: (sidebarSpec) => {
-        'type': 'sidebar',
-        'spec': sidebarSpec.when(
-          contacts: (listMode, selectedParticipantId, chatViewMode) => {
-            'variant': 'contacts',
-            'selectedParticipantId': selectedParticipantId?.toString(),
-            'chatViewMode': chatViewMode.name,
-          },
-          unmatchedHandles: (listMode) => {'variant': 'unmatchedHandles'},
-        ),
       },
     );
   }

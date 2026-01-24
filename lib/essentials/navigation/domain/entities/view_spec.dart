@@ -5,7 +5,6 @@ import 'features/contacts_spec.dart';
 import 'features/import_spec.dart';
 import 'features/messages_spec.dart';
 import 'features/settings_spec.dart';
-import 'features/sidebar_spec.dart';
 import 'features/workbench_spec.dart';
 
 part 'view_spec.freezed.dart';
@@ -18,5 +17,4 @@ abstract class ViewSpec with _$ViewSpec {
   const factory ViewSpec.import(ImportSpec spec) = _ViewImport;
   const factory ViewSpec.settings(SettingsSpec spec) = _ViewSettings;
   const factory ViewSpec.workbench(WorkbenchSpec spec) = _ViewWorkbench;
-  const factory ViewSpec.sidebar(SidebarSpec spec) = _ViewSidebar;
 }

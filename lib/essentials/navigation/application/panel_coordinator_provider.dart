@@ -82,9 +82,6 @@ class PanelCoordinator extends _$PanelCoordinator {
       import: _buildImportPanel,
       settings: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),
       workbench: (_) => const WorkbenchPanelView(),
-      sidebar: (sidebarSpec) {
-        return _buildEmptyPanelPlaceholder(WindowPanel.center);
-      },
     );
   }
 
