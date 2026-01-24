@@ -9,14 +9,12 @@ import 'features/handles_info_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
-import 'features/sidebar_utility_settings_spec.dart';
 
 // import '../../../../features/contacts/feature_level_providers.dart' as contacts_features;
 
 part 'cassette_spec.freezed.dart';
 part 'cascade/cassette_child_resolver.dart';
 part 'cascade/sidebar_utility_topology.dart';
-part 'cascade/sidebar_utility_settings_topology.dart';
 part 'cascade/contacts_cassette_topology.dart';
 part 'cascade/contacts_info_topology.dart';
 part 'cascade/contacts_settings_topology.dart';
@@ -30,9 +28,6 @@ part 'cascade/links/sidebar_utility_to_contacts.dart';
 abstract class CassetteSpec with _$CassetteSpec {
   const factory CassetteSpec.sidebarUtility(SidebarUtilityCassetteSpec spec) =
       _CassetteSidebarWidget;
-  const factory CassetteSpec.sidebarUtilitySettings(
-    SidebarUtilitySettingsSpec spec,
-  ) = _CassetteSidebarUtilitySettings;
   const factory CassetteSpec.presentation(PresentationCassetteSpec spec) =
       _CassettePresentation;
   const factory CassetteSpec.contacts(ContactsCassetteSpec spec) =

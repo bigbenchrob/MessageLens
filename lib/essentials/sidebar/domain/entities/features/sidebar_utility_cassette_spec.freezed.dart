@@ -14,20 +14,31 @@ T _$identity<T>(T value) => value;
 SidebarUtilityCassetteSpec _$SidebarUtilityCassetteSpecFromJson(
   Map<String, dynamic> json
 ) {
-    return _SidebarUtilityCassetteSpecTopChatMenu.fromJson(
-      json
-    );
+        switch (json['runtimeType']) {
+                  case 'topChatMenu':
+          return _SidebarUtilityCassetteSpecTopChatMenu.fromJson(
+            json
+          );
+                case 'settingsMenu':
+          return _SidebarUtilityCassetteSpecSettingsMenu.fromJson(
+            json
+          );
+        
+          default:
+            throw CheckedFromJsonException(
+  json,
+  'runtimeType',
+  'SidebarUtilityCassetteSpec',
+  'Invalid union type "${json['runtimeType']}"!'
+);
+        }
+      
 }
 
 /// @nodoc
 mixin _$SidebarUtilityCassetteSpec {
 
- TopChatMenuChoice get selectedChoice;
-/// Create a copy of SidebarUtilityCassetteSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SidebarUtilityCassetteSpecCopyWith<SidebarUtilityCassetteSpec> get copyWith => _$SidebarUtilityCassetteSpecCopyWithImpl<SidebarUtilityCassetteSpec>(this as SidebarUtilityCassetteSpec, _$identity);
+ Enum get selectedChoice;
 
   /// Serializes this SidebarUtilityCassetteSpec to a JSON map.
   Map<String, dynamic> toJson();
@@ -51,34 +62,8 @@ String toString() {
 }
 
 /// @nodoc
-abstract mixin class $SidebarUtilityCassetteSpecCopyWith<$Res>  {
-  factory $SidebarUtilityCassetteSpecCopyWith(SidebarUtilityCassetteSpec value, $Res Function(SidebarUtilityCassetteSpec) _then) = _$SidebarUtilityCassetteSpecCopyWithImpl;
-@useResult
-$Res call({
- TopChatMenuChoice selectedChoice
-});
-
-
-
-
-}
-/// @nodoc
-class _$SidebarUtilityCassetteSpecCopyWithImpl<$Res>
-    implements $SidebarUtilityCassetteSpecCopyWith<$Res> {
-  _$SidebarUtilityCassetteSpecCopyWithImpl(this._self, this._then);
-
-  final SidebarUtilityCassetteSpec _self;
-  final $Res Function(SidebarUtilityCassetteSpec) _then;
-
-/// Create a copy of SidebarUtilityCassetteSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? selectedChoice = null,}) {
-  return _then(_self.copyWith(
-selectedChoice: null == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
-as TopChatMenuChoice,
-  ));
-}
-
+class $SidebarUtilityCassetteSpecCopyWith<$Res>  {
+$SidebarUtilityCassetteSpecCopyWith(SidebarUtilityCassetteSpec _, $Res Function(SidebarUtilityCassetteSpec) __);
 }
 
 
@@ -96,11 +81,12 @@ extension SidebarUtilityCassetteSpecPatterns on SidebarUtilityCassetteSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _SidebarUtilityCassetteSpecTopChatMenu value)?  topChatMenu,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _SidebarUtilityCassetteSpecTopChatMenu value)?  topChatMenu,TResult Function( _SidebarUtilityCassetteSpecSettingsMenu value)?  settingsMenu,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu() when topChatMenu != null:
-return topChatMenu(_that);case _:
+return topChatMenu(_that);case _SidebarUtilityCassetteSpecSettingsMenu() when settingsMenu != null:
+return settingsMenu(_that);case _:
   return orElse();
 
 }
@@ -118,11 +104,12 @@ return topChatMenu(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _SidebarUtilityCassetteSpecTopChatMenu value)  topChatMenu,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _SidebarUtilityCassetteSpecTopChatMenu value)  topChatMenu,required TResult Function( _SidebarUtilityCassetteSpecSettingsMenu value)  settingsMenu,}){
 final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu():
-return topChatMenu(_that);case _:
+return topChatMenu(_that);case _SidebarUtilityCassetteSpecSettingsMenu():
+return settingsMenu(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -139,11 +126,12 @@ return topChatMenu(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _SidebarUtilityCassetteSpecTopChatMenu value)?  topChatMenu,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _SidebarUtilityCassetteSpecTopChatMenu value)?  topChatMenu,TResult? Function( _SidebarUtilityCassetteSpecSettingsMenu value)?  settingsMenu,}){
 final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu() when topChatMenu != null:
-return topChatMenu(_that);case _:
+return topChatMenu(_that);case _SidebarUtilityCassetteSpecSettingsMenu() when settingsMenu != null:
+return settingsMenu(_that);case _:
   return null;
 
 }
@@ -160,10 +148,11 @@ return topChatMenu(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( TopChatMenuChoice selectedChoice)?  topChatMenu,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( TopChatMenuChoice selectedChoice)?  topChatMenu,TResult Function( SettingsMenuChoice selectedChoice)?  settingsMenu,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu() when topChatMenu != null:
-return topChatMenu(_that.selectedChoice);case _:
+return topChatMenu(_that.selectedChoice);case _SidebarUtilityCassetteSpecSettingsMenu() when settingsMenu != null:
+return settingsMenu(_that.selectedChoice);case _:
   return orElse();
 
 }
@@ -181,10 +170,11 @@ return topChatMenu(_that.selectedChoice);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( TopChatMenuChoice selectedChoice)  topChatMenu,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( TopChatMenuChoice selectedChoice)  topChatMenu,required TResult Function( SettingsMenuChoice selectedChoice)  settingsMenu,}) {final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu():
-return topChatMenu(_that.selectedChoice);case _:
+return topChatMenu(_that.selectedChoice);case _SidebarUtilityCassetteSpecSettingsMenu():
+return settingsMenu(_that.selectedChoice);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +191,11 @@ return topChatMenu(_that.selectedChoice);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( TopChatMenuChoice selectedChoice)?  topChatMenu,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( TopChatMenuChoice selectedChoice)?  topChatMenu,TResult? Function( SettingsMenuChoice selectedChoice)?  settingsMenu,}) {final _that = this;
 switch (_that) {
 case _SidebarUtilityCassetteSpecTopChatMenu() when topChatMenu != null:
-return topChatMenu(_that.selectedChoice);case _:
+return topChatMenu(_that.selectedChoice);case _SidebarUtilityCassetteSpecSettingsMenu() when settingsMenu != null:
+return settingsMenu(_that.selectedChoice);case _:
   return null;
 
 }
@@ -216,14 +207,18 @@ return topChatMenu(_that.selectedChoice);case _:
 @JsonSerializable()
 
 class _SidebarUtilityCassetteSpecTopChatMenu implements SidebarUtilityCassetteSpec {
-  const _SidebarUtilityCassetteSpecTopChatMenu({this.selectedChoice = TopChatMenuChoice.contacts});
+  const _SidebarUtilityCassetteSpecTopChatMenu({this.selectedChoice = TopChatMenuChoice.contacts, final  String? $type}): $type = $type ?? 'topChatMenu';
   factory _SidebarUtilityCassetteSpecTopChatMenu.fromJson(Map<String, dynamic> json) => _$SidebarUtilityCassetteSpecTopChatMenuFromJson(json);
 
 @override@JsonKey() final  TopChatMenuChoice selectedChoice;
 
+@JsonKey(name: 'runtimeType')
+final String $type;
+
+
 /// Create a copy of SidebarUtilityCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
+@JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 _$SidebarUtilityCassetteSpecTopChatMenuCopyWith<_SidebarUtilityCassetteSpecTopChatMenu> get copyWith => __$SidebarUtilityCassetteSpecTopChatMenuCopyWithImpl<_SidebarUtilityCassetteSpecTopChatMenu>(this, _$identity);
 
@@ -252,7 +247,7 @@ String toString() {
 /// @nodoc
 abstract mixin class _$SidebarUtilityCassetteSpecTopChatMenuCopyWith<$Res> implements $SidebarUtilityCassetteSpecCopyWith<$Res> {
   factory _$SidebarUtilityCassetteSpecTopChatMenuCopyWith(_SidebarUtilityCassetteSpecTopChatMenu value, $Res Function(_SidebarUtilityCassetteSpecTopChatMenu) _then) = __$SidebarUtilityCassetteSpecTopChatMenuCopyWithImpl;
-@override @useResult
+@useResult
 $Res call({
  TopChatMenuChoice selectedChoice
 });
@@ -271,10 +266,83 @@ class __$SidebarUtilityCassetteSpecTopChatMenuCopyWithImpl<$Res>
 
 /// Create a copy of SidebarUtilityCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? selectedChoice = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? selectedChoice = null,}) {
   return _then(_SidebarUtilityCassetteSpecTopChatMenu(
 selectedChoice: null == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
 as TopChatMenuChoice,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SidebarUtilityCassetteSpecSettingsMenu implements SidebarUtilityCassetteSpec {
+  const _SidebarUtilityCassetteSpecSettingsMenu({this.selectedChoice = SettingsMenuChoice.contacts, final  String? $type}): $type = $type ?? 'settingsMenu';
+  factory _SidebarUtilityCassetteSpecSettingsMenu.fromJson(Map<String, dynamic> json) => _$SidebarUtilityCassetteSpecSettingsMenuFromJson(json);
+
+@override@JsonKey() final  SettingsMenuChoice selectedChoice;
+
+@JsonKey(name: 'runtimeType')
+final String $type;
+
+
+/// Create a copy of SidebarUtilityCassetteSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SidebarUtilityCassetteSpecSettingsMenuCopyWith<_SidebarUtilityCassetteSpecSettingsMenu> get copyWith => __$SidebarUtilityCassetteSpecSettingsMenuCopyWithImpl<_SidebarUtilityCassetteSpecSettingsMenu>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SidebarUtilityCassetteSpecSettingsMenuToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SidebarUtilityCassetteSpecSettingsMenu&&(identical(other.selectedChoice, selectedChoice) || other.selectedChoice == selectedChoice));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,selectedChoice);
+
+@override
+String toString() {
+  return 'SidebarUtilityCassetteSpec.settingsMenu(selectedChoice: $selectedChoice)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SidebarUtilityCassetteSpecSettingsMenuCopyWith<$Res> implements $SidebarUtilityCassetteSpecCopyWith<$Res> {
+  factory _$SidebarUtilityCassetteSpecSettingsMenuCopyWith(_SidebarUtilityCassetteSpecSettingsMenu value, $Res Function(_SidebarUtilityCassetteSpecSettingsMenu) _then) = __$SidebarUtilityCassetteSpecSettingsMenuCopyWithImpl;
+@useResult
+$Res call({
+ SettingsMenuChoice selectedChoice
+});
+
+
+
+
+}
+/// @nodoc
+class __$SidebarUtilityCassetteSpecSettingsMenuCopyWithImpl<$Res>
+    implements _$SidebarUtilityCassetteSpecSettingsMenuCopyWith<$Res> {
+  __$SidebarUtilityCassetteSpecSettingsMenuCopyWithImpl(this._self, this._then);
+
+  final _SidebarUtilityCassetteSpecSettingsMenu _self;
+  final $Res Function(_SidebarUtilityCassetteSpecSettingsMenu) _then;
+
+/// Create a copy of SidebarUtilityCassetteSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? selectedChoice = null,}) {
+  return _then(_SidebarUtilityCassetteSpecSettingsMenu(
+selectedChoice: null == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
+as SettingsMenuChoice,
   ));
 }
 

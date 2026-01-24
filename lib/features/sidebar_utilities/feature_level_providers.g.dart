@@ -7,10 +7,12 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$featureCassetteSpecCoordinatorHash() =>
-    r'4a1c621244db00d3328b8d7462e9447d749de165';
+    r'abd4eef1bc2368e98d2a47965fbdc1242ace1e37';
 
-/// Coordinator that maps [SidebarUtilityCassetteSpec] to cassette widgets
-/// for messages mode (topChatMenu).
+/// Coordinator that maps [SidebarUtilityCassetteSpec] to cassette widgets.
+///
+/// Handles both messages mode (topChatMenu) and settings mode (settingsMenu)
+/// since they're unified in a single spec family.
 ///
 /// Copied from [FeatureCassetteSpecCoordinator].
 @ProviderFor(FeatureCassetteSpecCoordinator)
@@ -26,25 +28,5 @@ final featureCassetteSpecCoordinatorProvider =
     );
 
 typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
-String _$settingsCassetteSpecCoordinatorHash() =>
-    r'a9914398d387374c5ae554958435a63363e4c36c';
-
-/// Coordinator that maps [SidebarUtilitySettingsSpec] to cassette widgets
-/// for settings mode.
-///
-/// Copied from [SettingsCassetteSpecCoordinator].
-@ProviderFor(SettingsCassetteSpecCoordinator)
-final settingsCassetteSpecCoordinatorProvider =
-    AutoDisposeNotifierProvider<SettingsCassetteSpecCoordinator, void>.internal(
-      SettingsCassetteSpecCoordinator.new,
-      name: r'settingsCassetteSpecCoordinatorProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$settingsCassetteSpecCoordinatorHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$SettingsCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

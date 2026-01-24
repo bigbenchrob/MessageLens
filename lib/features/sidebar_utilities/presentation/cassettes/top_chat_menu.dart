@@ -29,7 +29,11 @@ class TopChatMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const choices = TopChatMenuChoice.values;
-    final selectedChoice = spec.when(topChatMenu: (choice) => choice);
+    final selectedChoice = spec.when(
+      topChatMenu: (choice) => choice,
+      settingsMenu: (_) =>
+          TopChatMenuChoice.contacts, // Fallback - shouldn't occur
+    );
 
     // Get accent color for chevron emphasis
     final colors = ref.watch(themeColorsProvider.notifier);

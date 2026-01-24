@@ -5,12 +5,12 @@ import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
-import '../../../../essentials/sidebar/domain/entities/features/sidebar_utility_settings_spec.dart';
+import '../../../../essentials/sidebar/domain/entities/features/sidebar_utility_cassette_spec.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../domain/sidebar_utilities_constants.dart';
 
 class SettingsTopMenu extends ConsumerWidget {
-  final SidebarUtilitySettingsSpec spec;
+  final SidebarUtilityCassetteSpec spec;
 
   const SettingsTopMenu({super.key, required this.spec});
 
@@ -21,14 +21,18 @@ class SettingsTopMenu extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
 
     const choices = SettingsMenuChoice.values;
-    final selectedChoice = spec.when(settingsMenu: (choice) => choice);
+    final selectedChoice = spec.when(
+      topChatMenu: (_) =>
+          SettingsMenuChoice.contacts, // Fallback, shouldn't occur
+      settingsMenu: (choice) => choice,
+    );
 
     void handleSelection(SettingsMenuChoice choice) {
-      final updatedSpec = SidebarUtilitySettingsSpec.settingsMenu(
+      final updatedSpec = SidebarUtilityCassetteSpec.settingsMenu(
         selectedChoice: choice,
       );
-      final oldCassetteSpec = CassetteSpec.sidebarUtilitySettings(spec);
-      final newCassetteSpec = CassetteSpec.sidebarUtilitySettings(updatedSpec);
+      final oldCassetteSpec = CassetteSpec.sidebarUtility(spec);
+      final newCassetteSpec = CassetteSpec.sidebarUtility(updatedSpec);
 
       ref
           .read(cassetteRackStateProvider(SidebarMode.settings).notifier)

@@ -6,7 +6,7 @@ part of 'cassette_rack_state_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cassetteRackStateHash() => r'0beec9d67b48d4b857f0eb09a42c7ce546aa40bf';
+String _$cassetteRackStateHash() => r'97756e0507fb0c0a7119bb93a9081c303781c865';
 
 /// Copied from Dart SDK
 class _SystemHash {

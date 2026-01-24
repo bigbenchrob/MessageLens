@@ -49,12 +49,6 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           );
           return coordinator.buildForSpec(sidebarSpec);
         },
-        sidebarUtilitySettings: (sidebarSpec) async {
-          final coordinator = ref.read(
-            sidebar_utilities.settingsCassetteSpecCoordinatorProvider.notifier,
-          );
-          return coordinator.buildForSpec(sidebarSpec);
-        },
         presentation: (presentationSpec) async {
           return presentationSpec.map(
             themePlayground: (_) {

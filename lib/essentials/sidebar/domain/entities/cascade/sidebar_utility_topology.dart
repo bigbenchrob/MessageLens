@@ -20,6 +20,12 @@ CassetteSpec? resolveSidebarUtilityChild(SidebarUtilityCassetteSpec spec) {
           return sidebarUtilityToPresentationThemePlayground();
       }
     },
+    settingsMenu: (selectedChoice) {
+      switch (selectedChoice) {
+        case SettingsMenuChoice.contacts:
+          return sidebarUtilitySettingsToContactsSettings();
+      }
+    },
   );
 }
 
