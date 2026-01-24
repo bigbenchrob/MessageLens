@@ -5,6 +5,7 @@ import 'features/contacts_cassette_spec.dart';
 import 'features/contacts_info_cassette_spec.dart';
 import 'features/contacts_settings_spec.dart';
 import 'features/handles_cassette_spec.dart';
+import 'features/handles_info_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
 import 'features/sidebar_utility_cassette_spec.dart';
@@ -20,6 +21,7 @@ part 'cascade/contacts_cassette_topology.dart';
 part 'cascade/contacts_info_topology.dart';
 part 'cascade/contacts_settings_topology.dart';
 part 'cascade/handles_cassette_topology.dart';
+part 'cascade/handles_info_topology.dart';
 part 'cascade/messages_cassette_topology.dart';
 part 'cascade/links/contacts_to_messages.dart';
 part 'cascade/links/sidebar_utility_to_contacts.dart';
@@ -41,6 +43,8 @@ abstract class CassetteSpec with _$CassetteSpec {
       _CassetteContactsInfo;
   const factory CassetteSpec.handles(HandlesCassetteSpec spec) =
       _CassetteHandles;
+  const factory CassetteSpec.handlesInfo(HandlesInfoCassetteSpec spec) =
+      _CassetteHandlesInfo;
   const factory CassetteSpec.messages(MessagesCassetteSpec spec) =
       _CassetteMessages;
 }

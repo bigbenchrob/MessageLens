@@ -199,6 +199,7 @@ class CassetteRackState extends _$CassetteRackState {
         contactsSettings: (_) => null,
         contactsInfo: (_) => null,
         handles: (_) => null,
+        handlesInfo: (_) => null,
         messages: (_) => null,
       );
       if (result != null) {

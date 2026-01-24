@@ -11,6 +11,9 @@ import 'application/cassette_builders/unmatched_handles_cassette_builder_provide
 import 'application/settings/manual_linking_cassette_builder_provider.dart';
 import 'application/settings/spam_management_cassette_builder_provider.dart';
 
+// Export coordinator for Handles info cassettes (cross-surface spec pattern)
+export 'application/spec_coordinators/info_cassette_coordinator.dart';
+
 part 'feature_level_providers.g.dart';
 
 // =============================================================================
@@ -61,15 +64,6 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
     return spec.when(
       unmatchedHandlesList: (_) =>
           ref.read(unmatchedHandlesCassetteBuilderProvider),
-      infoCard: (title, message, footnote, _) => SidebarCassetteCardViewModel(
-        title: title ?? '',
-        footerText: footnote,
-        cardType: CassetteCardType.info,
-        infoBodyText: message,
-        shouldExpand: false,
-        // child is required but ignored for info cards
-        child: const SizedBox.shrink(),
-      ),
       strayPhoneNumbers: () =>
           ref.read(strayPhoneNumbersCassetteBuilderProvider),
       strayEmails: () => ref.read(strayEmailsCassetteBuilderProvider),

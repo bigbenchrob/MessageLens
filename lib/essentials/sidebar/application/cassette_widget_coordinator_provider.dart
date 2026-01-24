@@ -90,6 +90,12 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           );
           return coordinator.buildForSpec(handlesSpec);
         },
+        handlesInfo: (handlesInfoSpec) async {
+          final coordinator = ref.read(
+            handles_feature.handlesInfoCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildViewModel(handlesInfoSpec);
+        },
         messages: (messagesSpec) async {
           final coordinator = ref.read(
             messages_feature.featureCassetteSpecCoordinatorProvider.notifier,

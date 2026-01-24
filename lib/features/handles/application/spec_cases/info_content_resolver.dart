@@ -1,41 +1,35 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../essentials/sidebar/feature_level_providers.dart';
+import '../../../../essentials/sidebar/domain/entities/features/handles_info_cassette_spec.dart';
 
 part 'info_content_resolver.g.dart';
 
-/// Feature-local keys for informational/guidance content owned by the Contacts feature.
+/// Surface-agnostic resolved information content for the Handles feature.
 ///
-/// Notes:
-/// - These keys are NOT UI-surface specific (not "cassette", not "tooltip").
-/// - They represent *meaning* that may be rendered in multiple surfaces.
-// enum ContactsInfoKey { favouritesVsRecents }
-
-/// Surface-agnostic resolved information content.
-///
-/// For now this is plain text + optional title.
-/// Later, if needed, this can be replaced by a shared model (recommended) that supports
+/// For now this is plain text + optional title + optional footnote.
+/// Later, if needed, this can be replaced by a shared model that supports
 /// rich text, links, actions, etc.
 ///
 /// IMPORTANT: Keep this payload UI-surface agnostic:
 /// - no padding
 /// - no card type decisions
 /// - no widget building
-class InfoContent {
+class HandlesInfoContent {
   final String? title;
   final String body;
+  final String? footnote;
 
-  const InfoContent({required this.body, this.title});
+  const HandlesInfoContent({required this.body, this.title, this.footnote});
 }
 
-/// Resolves Contacts informational keys into surface-agnostic content.
+/// Resolves Handles informational keys into surface-agnostic content.
 ///
 /// This is the single source of truth for "what does this info key mean?".
 ///
 /// - May evolve to query repositories (e.g., counts, dynamic hints)
 /// - May become async when it needs feature data
 @riverpod
-class InfoContentResolver extends _$InfoContentResolver {
+class HandlesInfoContentResolver extends _$HandlesInfoContentResolver {
   @override
   void build() {
     // No state yet. This resolver is invoked imperatively via methods below.
@@ -44,14 +38,20 @@ class InfoContentResolver extends _$InfoContentResolver {
   /// Resolve an info key into surface-agnostic content.
   ///
   /// Keep UI concerns out of here (no card chrome, no widgets). Just meaning and content.
-  Future<InfoContent> resolve(ContactsInfoKey key) async {
+  Future<HandlesInfoContent> resolve(HandlesInfoKey key) async {
     switch (key) {
-      case ContactsInfoKey.favouritesVsRecents:
-        return const InfoContent(
-          title: 'Favourites vs Recents',
+      case HandlesInfoKey.strayEmailsExplanation:
+        return const HandlesInfoContent(
           body:
-              'Recent contacts are strictly those you have chosen recently. '
-              'Favourites are set by you and remain until you change them.',
+              'These are messages from email addresses that do not '
+              'belong to a contact in your address book.',
+        );
+
+      case HandlesInfoKey.strayPhoneNumbersExplanation:
+        return const HandlesInfoContent(
+          body:
+              'These are messages from phone numbers that do not '
+              'belong to a contact in your address book.',
         );
     }
   }
