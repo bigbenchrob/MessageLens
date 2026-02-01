@@ -45,7 +45,7 @@ final featureCassetteSpecCoordinatorProvider =
 
 typedef _$FeatureCassetteSpecCoordinator = AutoDisposeNotifier<void>;
 String _$settingsCassetteSpecCoordinatorHash() =>
-    r'f63487aaa6b02a2949eed5d3375a41703a9fcc73';
+    r'dfb865bdc58bb03cc50fcf1d83666c8ca5c74a02';
 
 /// Coordinator that maps [ContactsSettingsSpec] to cassette widgets.
 ///

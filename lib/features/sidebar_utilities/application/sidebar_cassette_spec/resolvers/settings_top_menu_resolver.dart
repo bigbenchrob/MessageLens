@@ -3,11 +3,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import '../../../domain/sidebar_utilities_constants.dart';
-import '../widget_builders/top_chat_menu_widget.dart';
+import '../widget_builders/settings_top_menu_widget.dart';
 
-part 'top_chat_menu_resolver.g.dart';
+part 'settings_top_menu_resolver.g.dart';
 
-/// Top Chat Menu Resolver
+/// Settings Top Menu Resolver
 ///
 /// This resolver implements the cross-surface spec system contract:
 ///
@@ -23,24 +23,24 @@ part 'top_chat_menu_resolver.g.dart';
 ///
 /// See: _AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md
 @riverpod
-class TopChatMenuResolver extends _$TopChatMenuResolver {
+class SettingsTopMenuResolver extends _$SettingsTopMenuResolver {
   @override
   void build() {
     // Stateless resolver; invoked imperatively.
   }
 
-  /// Resolve the top chat menu cassette.
+  /// Resolve the settings top menu cassette.
   ///
   /// Parameters are explicit and fully-decided - no spec interpretation here.
   Future<SidebarCassetteCardViewModel> resolve({
-    required TopChatMenuChoice currentChoice,
+    required SettingsMenuChoice currentChoice,
     required int cassetteIndex,
     required SidebarMode sidebarMode,
   }) async {
     return SidebarCassetteCardViewModel(
       title: '',
       isNaked: true,
-      child: TopChatMenuWidget(
+      child: SettingsTopMenuWidget(
         currentChoice: currentChoice,
         cassetteIndex: cassetteIndex,
         sidebarMode: sidebarMode,

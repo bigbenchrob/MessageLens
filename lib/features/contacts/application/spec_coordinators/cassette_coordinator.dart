@@ -57,8 +57,9 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
   /// - Content resolvers may depend on repositories (counts, derived values)
   /// - Keeping the API async avoids refactoring call sites later
   Future<SidebarCassetteCardViewModel> buildViewModel(
-    ContactsCassetteSpec spec,
-  ) async {
+    ContactsCassetteSpec spec, {
+    required int cassetteIndex,
+  }) async {
     return spec.map(
       recentContacts: (recent) => SidebarCassetteCardViewModel(
         title: '',

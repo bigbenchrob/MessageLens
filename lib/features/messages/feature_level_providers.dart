@@ -75,7 +75,10 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
     // Stateless coordinator
   }
 
-  SidebarCassetteCardViewModel buildForSpec(MessagesCassetteSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(
+    MessagesCassetteSpec spec, {
+    required int cassetteIndex,
+  }) {
     return spec.when(
       heatMap: (contactId, useV2Timeline) => ref.read(
         messagesHeatmapCassetteBuilderProvider(

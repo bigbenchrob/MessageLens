@@ -161,9 +161,35 @@ class CassetteRackState extends _$CassetteRackState {
   /// method takes both the old and new specs so that the caller doesn’t
   /// need to know the index of the cassette in the stack.  If the old
   /// spec isn’t found, no action is taken.
+  ///
+  /// **Deprecated**: Prefer [replaceAtIndexAndCascade] which avoids requiring
+  /// widgets to hold specs in state. This method will be removed once all
+  /// callers are migrated.
   void updateSpecAndChild(CassetteSpec oldSpec, CassetteSpec newSpec) {
     final index = state.cassettes.indexOf(oldSpec);
     if (index < 0) {
+      return;
+    }
+    final preserved = state.cassettes.take(index).toList(growable: false);
+    final cascaded = _cascadeFromSpec(newSpec);
+    state = state.copyWith(
+      cassettes: List<CassetteSpec>.unmodifiable([...preserved, ...cascaded]),
+    );
+  }
+
+  /// Replace the cassette at [index] with [newSpec] and re-cascade children.
+  ///
+  /// This is the preferred method for widgets to update their cassette spec
+  /// in response to user interaction. The widget receives its [index] from
+  /// the resolver (which received it from the coordinator), constructs the
+  /// new spec locally, and calls this method.
+  ///
+  /// This approach avoids requiring widgets to hold the old spec in state,
+  /// which would violate the cross-surface spec system rules.
+  ///
+  /// If the index is out of bounds, this is a no-op.
+  void replaceAtIndexAndCascade(int index, CassetteSpec newSpec) {
+    if (index < 0 || index >= state.cassettes.length) {
       return;
     }
     final preserved = state.cassettes.take(index).toList(growable: false);

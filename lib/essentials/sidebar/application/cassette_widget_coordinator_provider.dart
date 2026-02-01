@@ -39,9 +39,13 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     /// IMPORTANT:
     /// Every branch returns a Future, even if the underlying coordinator is sync.
     /// This avoids mixed return types inside `spec.when(...)`.
+    ///
+    /// The [cassetteIndex] is passed to feature coordinators so widgets can
+    /// update the rack without holding specs in state.
     Future<SidebarCassetteCardViewModel> buildViewModelForSpec(
-      CassetteSpec spec,
-    ) {
+      CassetteSpec spec, {
+      required int cassetteIndex,
+    }) {
       return spec.when(
         sidebarUtility: (sidebarSpec) async {
           final coordinator = ref.read(
@@ -49,7 +53,10 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
                 .sidebarUtilitiesCassetteCoordinatorProvider
                 .notifier,
           );
-          return coordinator.buildViewModel(sidebarSpec);
+          return coordinator.buildViewModel(
+            sidebarSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         presentation: (presentationSpec) async {
           return presentationSpec.map(
@@ -66,37 +73,55 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
           final coordinator = ref.read(
             contacts_feature.contactsCassetteCoordinatorProvider.notifier,
           );
-          return coordinator.buildViewModel(contactsSpec);
+          return coordinator.buildViewModel(
+            contactsSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         contactsSettings: (settingsSpec) async {
           final coordinator = ref.read(
             contacts_feature.settingsCassetteSpecCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(settingsSpec);
+          return coordinator.buildForSpec(
+            settingsSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         contactsInfo: (infoSpec) async {
           final coordinator = ref.read(
             contacts_feature.infoCassetteCoordinatorProvider.notifier,
           );
-          return coordinator.buildViewModel(infoSpec);
+          return coordinator.buildViewModel(
+            infoSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         handles: (handlesSpec) async {
           final coordinator = ref.read(
             handles_feature.featureCassetteSpecCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(handlesSpec);
+          return coordinator.buildForSpec(
+            handlesSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         handlesInfo: (handlesInfoSpec) async {
           final coordinator = ref.read(
             handles_feature.handlesInfoCassetteCoordinatorProvider.notifier,
           );
-          return coordinator.buildViewModel(handlesInfoSpec);
+          return coordinator.buildViewModel(
+            handlesInfoSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
         messages: (messagesSpec) async {
           final coordinator = ref.read(
             messages_feature.featureCassetteSpecCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(messagesSpec);
+          return coordinator.buildForSpec(
+            messagesSpec,
+            cassetteIndex: cassetteIndex,
+          );
         },
       );
     }
@@ -104,8 +129,14 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     /// Convert a view model into a concrete widget and append it to the list.
     ///
     /// This is async because it awaits buildViewModelForSpec(spec).
-    Future<void> addCassette(CassetteSpec spec) async {
-      final viewModel = await buildViewModelForSpec(spec);
+    Future<void> addCassette(
+      CassetteSpec spec, {
+      required int cassetteIndex,
+    }) async {
+      final viewModel = await buildViewModelForSpec(
+        spec,
+        cassetteIndex: cassetteIndex,
+      );
 
       switch (viewModel.cardType) {
         case CassetteCardType.standard:
@@ -133,19 +164,12 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
     }
 
     // Build widgets for the explicit rack cassettes.
-    for (final spec in rack.cassettes) {
-      await addCassette(spec);
+    for (var i = 0; i < rack.cassettes.length; i++) {
+      await addCassette(rack.cassettes[i], cassetteIndex: i);
     }
 
-    // Then build any chained children.
-    var childSpec = rack.cassettes.isNotEmpty
-        ? rack.cassettes.last.childSpec()
-        : null;
-
-    while (childSpec != null) {
-      await addCassette(childSpec);
-      childSpec = childSpec.childSpec();
-    }
+    // Note: Child specs are resolved dynamically and don't need index tracking
+    // since they derive their place from the parent spec's cascade.
 
     return widgets;
   }

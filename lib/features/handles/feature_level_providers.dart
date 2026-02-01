@@ -60,7 +60,10 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
     // Stateless coordinator
   }
 
-  SidebarCassetteCardViewModel buildForSpec(HandlesCassetteSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(
+    HandlesCassetteSpec spec, {
+    required int cassetteIndex,
+  }) {
     return spec.when(
       unmatchedHandlesList: (_) =>
           ref.read(unmatchedHandlesCassetteBuilderProvider),

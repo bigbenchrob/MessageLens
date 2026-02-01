@@ -83,7 +83,10 @@ class SettingsCassetteSpecCoordinator
   @override
   void build() {}
 
-  SidebarCassetteCardViewModel buildForSpec(ContactsSettingsSpec spec) {
+  SidebarCassetteCardViewModel buildForSpec(
+    ContactsSettingsSpec spec, {
+    required int cassetteIndex,
+  }) {
     return spec.when(
       shortNames: () => ref.read(contactShortNamesCassetteBuilderProvider),
     );

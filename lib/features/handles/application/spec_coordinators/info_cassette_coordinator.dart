@@ -56,8 +56,9 @@ class HandlesInfoCassetteCoordinator extends _$HandlesInfoCassetteCoordinator {
   /// - info content may later depend on repositories (counts, derived values)
   /// - keeping the API async avoids refactoring call sites later
   Future<SidebarCassetteCardViewModel> buildViewModel(
-    HandlesInfoCassetteSpec spec,
-  ) async {
+    HandlesInfoCassetteSpec spec, {
+    required int cassetteIndex,
+  }) async {
     switch (spec) {
       case HandlesInfoCassetteSpecInfoCard(:final key):
         // Delegate meaning + formatting to the feature-owned resolver.

@@ -54,8 +54,9 @@ class InfoCassetteCoordinator extends _$InfoCassetteCoordinator {
   /// - info content may later depend on repositories (counts, derived values)
   /// - keeping the API async avoids refactoring call sites later
   Future<SidebarCassetteCardViewModel> buildViewModel(
-    ContactsInfoCassetteSpec spec,
-  ) async {
+    ContactsInfoCassetteSpec spec, {
+    required int cassetteIndex,
+  }) async {
     switch (spec) {
       case ContactsInfoCassetteSpecInfoCard(:final key):
         // Delegate meaning + formatting to the feature-owned resolver.
