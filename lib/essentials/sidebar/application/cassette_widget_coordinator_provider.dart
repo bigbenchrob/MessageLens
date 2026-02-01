@@ -80,16 +80,16 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         },
         contactsSettings: (settingsSpec) async {
           final coordinator = ref.read(
-            contacts_feature.settingsCassetteSpecCoordinatorProvider.notifier,
+            contacts_feature.contactsSettingsCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(
+          return coordinator.buildViewModel(
             settingsSpec,
             cassetteIndex: cassetteIndex,
           );
         },
         contactsInfo: (infoSpec) async {
           final coordinator = ref.read(
-            contacts_feature.infoCassetteCoordinatorProvider.notifier,
+            contacts_feature.contactsInfoCassetteCoordinatorProvider.notifier,
           );
           return coordinator.buildViewModel(
             infoSpec,

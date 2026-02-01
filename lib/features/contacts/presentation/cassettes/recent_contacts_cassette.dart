@@ -8,7 +8,7 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../view_model/cassette_view_model.dart';
 
@@ -28,7 +28,6 @@ class RecentContactsCassette extends ConsumerWidget {
 
     // Extract chosenContactId using pattern matching
     final selectedContactId = spec.when(
-      recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
     );

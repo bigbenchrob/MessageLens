@@ -1,16 +1,14 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
-import 'features/contacts_cassette_spec.dart';
+import '../../../../features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
 import 'features/contacts_info_cassette_spec.dart';
 import 'features/contacts_settings_spec.dart';
 import 'features/handles_cassette_spec.dart';
 import 'features/handles_info_cassette_spec.dart';
 import 'features/messages_cassette_spec.dart';
 import 'features/presentation_cassette_spec.dart';
-import 'features/sidebar_utility_cassette_spec.dart';
-
-// import '../../../../features/contacts/feature_level_providers.dart' as contacts_features;
 
 part 'cassette_spec.freezed.dart';
 part 'cascade/cassette_child_resolver.dart';

@@ -1,17 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Essentials imports (shared sidebar protocol + view model)
-// ─────────────────────────────────────────────────────────────────────────────
-
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Legacy bridge imports (temporary - will be removed after full migration)
-// ─────────────────────────────────────────────────────────────────────────────
-
-import '../../presentation/cassettes/contact_hero_summary_cassette.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
+import '../sidebar_cassette_spec/resolvers/contact_hero_summary_resolver.dart';
 import '../use_cases/contact_chooser_view_builder_provider.dart';
 
 part 'cassette_coordinator.g.dart';
@@ -39,8 +30,7 @@ part 'cassette_coordinator.g.dart';
 /// Currently it bridges to legacy builders; these will be replaced phase by phase:
 ///
 /// - [ ] contactChooser → ChooserContentResolver + ChooserWidgetBuilder
-/// - [ ] recentContacts → RecentContactsResolver + ChooserWidgetBuilder
-/// - [ ] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
+/// - [x] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
 ///
 /// See: _AGENT_INSTRUCTIONS/agent-per-project/30-NEW-FEATURE-ADDITION/
 ///      contacts-cassette-cross-surface-migration/PROPOSAL.md
@@ -61,22 +51,17 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
     required int cassetteIndex,
   }) async {
     return spec.map(
-      recentContacts: (recent) => SidebarCassetteCardViewModel(
-        title: '',
-        subtitle: null,
-        child: ref.watch(contactChooserViewBuilderProvider(recent)),
-      ),
       contactChooser: (chooser) => SidebarCassetteCardViewModel(
         title: '',
         subtitle: null,
         child: ref.watch(contactChooserViewBuilderProvider(chooser)),
       ),
-      contactHeroSummary: (hero) => SidebarCassetteCardViewModel(
-        title: '',
-        subtitle: null,
-        shouldExpand: false,
-        child: ContactHeroSummaryCassette(spec: hero),
-      ),
+      contactHeroSummary: (hero) => ref
+          .read(contactHeroSummaryResolverProvider.notifier)
+          .resolve(
+            contactId: hero.chosenContactId,
+            cassetteIndex: cassetteIndex,
+          ),
     );
   }
 }

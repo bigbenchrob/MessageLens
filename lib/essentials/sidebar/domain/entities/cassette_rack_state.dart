@@ -1,8 +1,8 @@
 // A value object representing the current stack of cassettes in the sidebar.
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
 import 'cassette_spec.dart';
-import 'features/sidebar_utility_cassette_spec.dart';
 
 part 'cassette_rack_state.freezed.dart';
 

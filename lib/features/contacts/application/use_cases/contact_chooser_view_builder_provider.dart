@@ -10,8 +10,8 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../constants/domain/contact_constants.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
 import '../../application_pre_cassette/contact_picker_mode.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../../presentation/cassettes/contacts_enhanced_picker_cassette.dart';
@@ -127,7 +127,6 @@ class _CombinedContactPicker extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
 
     final selectedContactId = spec.when(
-      recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
     );

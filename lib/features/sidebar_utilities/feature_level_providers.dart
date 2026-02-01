@@ -9,8 +9,6 @@
 // to the appropriate feature coordinator.
 // =============================================================================
 
-// Spec Coordinators (new cross-surface spec system)
 export './application/sidebar_cassette_spec/coordinators/cassette_coordinator.dart';
-
-// Domain Constants
 export './domain/sidebar_utilities_constants.dart';
+export './domain/spec_classes/sidebar_utility_cassette_spec.dart';

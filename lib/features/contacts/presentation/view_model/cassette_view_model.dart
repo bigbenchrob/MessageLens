@@ -9,7 +9,7 @@ import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart';
 
 part 'cassette_view_model.g.dart';

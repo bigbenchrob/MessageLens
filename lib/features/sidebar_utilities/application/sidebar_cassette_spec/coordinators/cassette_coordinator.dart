@@ -1,7 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
-import '../../../../../essentials/sidebar/feature_level_providers.dart';
+import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/sidebar_utility_cassette_spec.dart';
 import '../resolvers/settings_top_menu_resolver.dart';
 import '../resolvers/top_chat_menu_resolver.dart';
 

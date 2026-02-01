@@ -7,7 +7,7 @@ part of 'cassette_coordinator.dart';
 // **************************************************************************
 
 String _$contactsCassetteCoordinatorHash() =>
-    r'2d968ff0fadc0e1256d9d7d3ec6e42ecb21df489';
+    r'c681a4b71375d3464c07a33d66dea1edceda1631';
 
 /// Contacts CassetteCoordinator
 ///
@@ -32,8 +32,7 @@ String _$contactsCassetteCoordinatorHash() =>
 /// Currently it bridges to legacy builders; these will be replaced phase by phase:
 ///
 /// - [ ] contactChooser → ChooserContentResolver + ChooserWidgetBuilder
-/// - [ ] recentContacts → RecentContactsResolver + ChooserWidgetBuilder
-/// - [ ] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
+/// - [x] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
 ///
 /// See: _AGENT_INSTRUCTIONS/agent-per-project/30-NEW-FEATURE-ADDITION/
 ///      contacts-cassette-cross-surface-migration/PROPOSAL.md

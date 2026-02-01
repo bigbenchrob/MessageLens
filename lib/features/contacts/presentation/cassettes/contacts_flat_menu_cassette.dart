@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart';
 import '../view_model/cassette_view_model.dart';
 
@@ -22,7 +22,6 @@ class ContactsFlatMenuCassette extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Extract chosenContactId using pattern matching
     final selectedContactId = spec.when(
-      recentContacts: (id) => id,
       contactChooser: (id) => id,
       contactHeroSummary: (id) => id,
     );

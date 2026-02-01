@@ -216,7 +216,6 @@ class CassetteRackState extends _$CassetteRackState {
         presentation: (_) => null,
         contacts: (contactsSpec) {
           return contactsSpec.when(
-            recentContacts: (chosenContactId) => chosenContactId,
             contactChooser: (chosenContactId) => chosenContactId,
             contactHeroSummary: (chosenContactId) => chosenContactId,
           );

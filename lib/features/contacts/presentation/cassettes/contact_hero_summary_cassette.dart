@@ -3,7 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../../../../essentials/sidebar/domain/entities/features/contacts_cassette_spec.dart';
+import '../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart';
 import '../view_model/cassette_view_model.dart';
 import '../widgets/contact_cassette_error.dart';

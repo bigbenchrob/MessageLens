@@ -2,12 +2,6 @@ part of '../cassette_spec.dart';
 
 CassetteSpec? resolveContactsChild(ContactsCassetteSpec spec) {
   return spec.when(
-    recentContacts: (chosenContactId) {
-      if (chosenContactId == null) {
-        return null;
-      }
-      return contactsToMessagesHeatMap(chosenContactId);
-    },
     contactChooser: (chosenContactId) {
       if (chosenContactId == null) {
         return null;

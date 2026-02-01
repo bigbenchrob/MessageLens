@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
+import '../sidebar_utilities_constants.dart';
 
 part 'sidebar_utility_cassette_spec.freezed.dart';
 part 'sidebar_utility_cassette_spec.g.dart';
