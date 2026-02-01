@@ -7,8 +7,7 @@ This document captures design decisions, rationale, and technical notes encounte
 ## Architecture Reference
 
 This migration follows the cross-surface spec architecture documented in:
-- [90-CROSS-SURFACE-SPEC-SYSTEMS/README.md](../../90-CROSS-SURFACE-SPEC-SYSTEMS/README.md)
-- [80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md](../../80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md)
+- [90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md](../../90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md)
 
 ### Layer Responsibilities
 

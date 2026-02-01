@@ -25,13 +25,13 @@ This README contains the canonical index to all project documentation including:
 5. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
 6. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
 7. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
-8. **[Feature Spec Handling](_AGENT_INSTRUCTIONS/agent-per-project/80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md)** - 🔥 CRITICAL: How features interpret specs (coordinators route, resolvers own meaning, app-level chooses chrome)
+8. **[Cross-Surface Spec System](_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md)** - 🔥 CRITICAL: How features interpret specs (coordinators route, resolvers own meaning, app-level chooses chrome)
 
 ### Quick Reference
 - **Lint Antipatterns**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md) - One-stop list of analyzer tripwires
 - **Navigation System**: [`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md)
 - **AddressBook Imports**: [`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md)
-- **Feature Spec Handling**: [`_AGENT_INSTRUCTIONS/agent-per-project/80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md`](_AGENT_INSTRUCTIONS/agent-per-project/80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md) - Layer boundaries for spec interpretation
+- **Cross-Surface Spec System**: [`_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md`](_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md) - Layer boundaries for spec interpretation
 
 ## Critical Rules (Quick Reference)
 

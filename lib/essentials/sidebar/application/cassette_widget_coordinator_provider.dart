@@ -45,9 +45,11 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
       return spec.when(
         sidebarUtility: (sidebarSpec) async {
           final coordinator = ref.read(
-            sidebar_utilities.featureCassetteSpecCoordinatorProvider.notifier,
+            sidebar_utilities
+                .sidebarUtilitiesCassetteCoordinatorProvider
+                .notifier,
           );
-          return coordinator.buildForSpec(sidebarSpec);
+          return coordinator.buildViewModel(sidebarSpec);
         },
         presentation: (presentationSpec) async {
           return presentationSpec.map(

@@ -26,7 +26,7 @@ You MUST read these files in order before any code changes:
 8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
 9. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
 10. **`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`** - ViewSpec-based navigation system
-11. **`_AGENT_INSTRUCTIONS/agent-per-project/80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md`** - 🔥 CRITICAL: How features interpret specs (layer boundaries, coordinator vs resolver roles)
+11. **`_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md`** - 🔥 CRITICAL: How features interpret specs (layer boundaries, coordinator vs resolver roles)
 
 ## Quick Reference Code Standards
 - **Primary import**: Always use `hooks_riverpod`, never `flutter_riverpod`

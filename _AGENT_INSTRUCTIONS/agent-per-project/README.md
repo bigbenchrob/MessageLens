@@ -18,10 +18,6 @@ This directory captures Remember Every Text–specific documentation that comple
 
 ## Canonical Map
 
-Note: `95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/` is the unified, preferred source
-for spec interpretation and cross-surface system guidance. The legacy `80-` and
-`90-` folders remain for reference during the transition.
-
 | Folder | Purpose | Canonical docs |
 | --- | --- | --- |
 | `00-PROJECT/` | Entry points and global context | [`00-overview.md`](00-PROJECT/00-overview.md), [`01-aggregate-boundaries.md`](00-PROJECT/01-aggregate-boundaries.md), [`02-architecture-overview.md`](00-PROJECT/02-architecture-overview.md), [`03-data-locations.md`](00-PROJECT/03-data-locations.md), [`04-env-and-secrets.md`](00-PROJECT/04-env-and-secrets.md) |
@@ -32,9 +28,7 @@ for spec interpretation and cross-surface system guidance. The legacy `80-` and
 | `50-USE-CASE-ILLUSTRATIONS/` | Narrative walkthroughs of cross-layer behaviour | [`README.md`](50-USE-CASE-ILLUSTRATIONS/README.md), [`manual-handle-to-contact-linking.md`](50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md) |
 | `60-NAVIGATION/` | ViewSpec-based navigation patterns and panel coordination | [`navigation-overview.md`](60-NAVIGATION/navigation-overview.md) |
 | `70-CASSETTE-CONTENT-CONTROL/` | Where UI cassette choices are decided (responsibility boundaries) | [`00-cassette-choice-flow-and-responsibilities.md`](70-CASSETTE-CONTENT-CONTROL/00-cassette-choice-flow-and-responsibilities.md), [`03-cassette-card-design-guidelines.md`](70-CASSETTE-CONTENT-CONTROL/03-cassette-card-design-guidelines.md) |
-| `80-FEATURE-SPEC-HANDLING/` | **🔥 CRITICAL**: How features interpret and process specs (ViewSpec, CassetteSpec). Defines layer boundaries, application-layer roles, and multi-surface content support | [`README.md`](80-FEATURE-SPEC-HANDLING/README.md), [`TLDR-for-agents.md`](80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md), [`01-feature-spec-handling-flow.md`](80-FEATURE-SPEC-HANDLING/01-feature-spec-handling-flow.md), [`05-responsibility-boundaries-summary.md`](80-FEATURE-SPEC-HANDLING/05-responsibility-boundaries-summary.md) |
-| `90-CROSS-SURFACE-SPEC-SYSTEMS/` | **🔥 CRITICAL**: Architecture pattern for multi-surface systems (onboarding, tooltips, sidebar, etc.). Essentials owns system state & outer routing; features own inner spec interpretation. Prevents feature pollution of global app space. | [`README.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/README.md), [`TLDR-for-agents.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/TLDR-for-agents.md), [`00-principles.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/00-principles.md), [`02-routing-and-ownership.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/02-routing-and-ownership.md), [`EXAMPLE-end-to-end-onboarding-flow.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/EXAMPLE-end-to-end-onboarding-flow.md) |
-| `95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/` | **🔥 CRITICAL**: Unified spec interpretation + cross-surface systems. Canonical flow, ownership boundaries, sidebar contract, templates, and failure modes. | [`README.md`](95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/README.md), [`00-overview-and-goals.md`](95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/00-overview-and-goals.md), [`02-sidebar-cassette-spec-to-widget-contract.md`](95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/02-sidebar-cassette-spec-to-widget-contract.md), [`03-cross-surface-spec-systems.md`](95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/03-cross-surface-spec-systems.md), [`TLDR-for-agents.md`](95-SPEC-INTERPRETATION-AND-CROSS-SURFACE/TLDR-for-agents.md) |
+| `90-CROSS-SURFACE-SPEC-SYSTEMS/` | **🔥 CRITICAL**: Definitive guide for spec interpretation and cross-surface systems. Covers canonical flow, ownership boundaries, sidebar contract, coordinator templates, and failure modes. | [`00-cross-surface-spec-system.md`](90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md) |
 
 ## Workflow Expectations
 

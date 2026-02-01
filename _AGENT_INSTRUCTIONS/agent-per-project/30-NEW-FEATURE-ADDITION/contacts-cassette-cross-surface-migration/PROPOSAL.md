@@ -7,9 +7,7 @@ source_of_truth: doc
 status: awaiting_approval
 links:
   - ../README.md
-  - ../../90-CROSS-SURFACE-SPEC-SYSTEMS/README.md
-  - ../../90-CROSS-SURFACE-SPEC-SYSTEMS/03-feature-implementation-template.md
-  - ../../80-FEATURE-SPEC-HANDLING/TLDR-for-agents.md
+  - ../../90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md
 tests: []
 ---
 
