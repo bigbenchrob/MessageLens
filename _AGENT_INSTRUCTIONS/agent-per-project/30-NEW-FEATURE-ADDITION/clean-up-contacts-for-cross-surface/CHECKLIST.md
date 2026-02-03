@@ -1,7 +1,7 @@
 # Checklist: Clean Up Contacts Feature for Cross-Surface Spec System
 
 **Branch**: `Ftr.cntct-audit`  
-**Status**: PHASE 3 COMPLETE  
+**Status**: PHASE 4 COMPLETE  
 **Last Updated**: 2026-02-03
 
 > **⚠️ AUDIT CORRECTION:** Three files initially marked DELETE were discovered to be  
@@ -84,13 +84,11 @@
 
 | File | Status | Notes |
 |------|--------|-------|
-| `contact_hero_summary_cassette.dart` | 🗑️ DELETE | Replaced by widget_builders/contact_hero_summary_widget.dart |
-| `contacts_enhanced_picker_cassette.dart` | ✅ KEEP | Used via adapters in widget_builders/contact_chooser_widget.dart |
-| `contacts_flat_menu_cassette.dart` | ✅ KEEP | Used via adapters in widget_builders/contact_chooser_widget.dart |
-| `recent_contacts_cassette.dart` | 🗑️ DELETE | No usages found - functionality ostensibly merged into chooser |
+| `contact_hero_summary_cassette.dart` | 🗑️ DELETED | Replaced by widget_builders/contact_hero_summary_widget.dart |
+| `contacts_enhanced_picker_cassette.dart` | 🗑️ DELETED | Replaced by widget_builders/contact_grouped_picker_widget.dart + recent_contacts_section.dart |
+| `contacts_flat_menu_cassette.dart` | 🗑️ DELETED | Replaced by widget_builders/contact_flat_list_widget.dart + recent_contacts_section.dart |
+| `recent_contacts_cassette.dart` | 🗑️ DELETED | Functionality moved to widget_builders/recent_contacts_section.dart |
 | `settings/contact_short_names_settings_cassette.dart` | ✅ KEEP | Used by settings resolver |
-
-**Note:** `contacts_enhanced_picker_cassette.dart` and `contacts_flat_menu_cassette.dart` still receive SPECS which violates the contract. The widget builders use adapter widgets to bridge to these. Future work should refactor these to accept explicit parameters.
 
 ---
 
@@ -210,12 +208,23 @@ The `ContactsEnhancedPickerCassette` has a `_CombinedContactPicker` that include
 ---
 
 ## Phase 4: Consolidation — Fix Remaining Issues
+*(Executed 2026-02-03)*
 
-- [ ] Remove adapter bridges where possible
-- [ ] Ensure `ContactChooserWidget` or grouped picker shows recent contacts
-- [ ] Update `feature_level_providers.dart` to reflect final structure
-- [ ] Run `flutter analyze` — must pass
-- [ ] Run `dart run build_runner build` — regenerate if needed
+- [x] Remove adapter bridges where possible
+  - Created `RecentContactsSection` widget for shared recent contacts display
+  - Updated `contact_chooser_resolver.dart` to wrap pickers with recent contacts
+  - Deleted adapter `contact_chooser_widget.dart` (no longer needed)
+  - Deleted legacy cassettes `contacts_flat_menu_cassette.dart` and `contacts_enhanced_picker_cassette.dart`
+- [x] Ensure `ContactChooserWidget` or grouped picker shows recent contacts
+  - `RecentContactsSection` now displays at top of both flat and grouped pickers
+  - Resolver decides whether to show recent contacts (business logic owned by resolver)
+- [x] Update `feature_level_providers.dart` to reflect final structure
+  - Already correct: exports coordinators, specs, settings (NOT resolvers or widget builders)
+- [x] Run `flutter analyze` — must pass ✅
+- [x] Run `dart run build_runner build` — regenerate if needed ✅
+
+**New files created:**
+- `widget_builders/recent_contacts_section.dart` — Shared recent contacts display widget
 
 ---
 

@@ -7,6 +7,7 @@ import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../resolver_tools/picker_mode_decision.dart';
 import '../widget_builders/contact_flat_list_widget.dart';
 import '../widget_builders/contact_grouped_picker_widget.dart';
+import '../widget_builders/recent_contacts_section.dart';
 
 part 'contact_chooser_resolver.g.dart';
 
@@ -16,7 +17,8 @@ part 'contact_chooser_resolver.g.dart';
 /// cassette by:
 /// 1. Fetching contact count from the repository
 /// 2. Using [determinePickerMode] to decide flat vs grouped display
-/// 3. Returning a view model with the appropriate widget builder
+/// 3. Wrapping the picker with recent contacts section
+/// 4. Returning a view model with the appropriate widget builder
 ///
 /// ## Contract (from 00-cross-surface-spec-system.md)
 ///
@@ -39,7 +41,7 @@ class ContactChooserResolver extends _$ContactChooserResolver {
   /// Resolve the contact chooser cassette.
   ///
   /// Fetches contact count to determine display mode (flat vs grouped),
-  /// then returns a view model with the appropriate widget.
+  /// wraps with recent contacts section, then returns a view model.
   Future<SidebarCassetteCardViewModel> resolve({
     required int? chosenContactId,
     required int cassetteIndex,
@@ -54,26 +56,29 @@ class ContactChooserResolver extends _$ContactChooserResolver {
     // Use resolver tool to make the decision
     final pickerMode = determinePickerMode(contacts.length);
 
-    // Return view model with appropriate widget based on decision
-    return switch (pickerMode) {
-      ContactPickerMode.flat => SidebarCassetteCardViewModel(
-        title: '',
-        subtitle: null,
-        shouldExpand: true,
-        child: ContactFlatListWidget(
+    // Build the main picker based on contact count
+    final mainPicker = switch (pickerMode) {
+      ContactPickerMode.flat => ContactFlatListWidget(
           chosenContactId: chosenContactId,
           cassetteIndex: cassetteIndex,
         ),
-      ),
-      ContactPickerMode.grouped => SidebarCassetteCardViewModel(
-        title: '',
-        subtitle: null,
-        shouldExpand: true,
-        child: ContactGroupedPickerWidget(
+      ContactPickerMode.grouped => ContactGroupedPickerWidget(
           chosenContactId: chosenContactId,
           cassetteIndex: cassetteIndex,
         ),
-      ),
     };
+
+    // Wrap with recent contacts section
+    // The section handles showing/hiding based on whether recents exist
+    return SidebarCassetteCardViewModel(
+      title: '',
+      subtitle: null,
+      shouldExpand: true,
+      child: RecentContactsSection(
+        chosenContactId: chosenContactId,
+        cassetteIndex: cassetteIndex,
+        mainPicker: mainPicker,
+      ),
+    );
   }
 }
