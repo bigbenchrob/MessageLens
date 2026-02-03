@@ -180,8 +180,8 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
             color: widget.isSelected
                 ? selectedColor
                 : _isHovered
-                    ? hoverColor
-                    : Colors.transparent,
+                ? hoverColor
+                : Colors.transparent,
             border: Border(
               bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
             ),
@@ -192,8 +192,9 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
                 child: Text(
                   widget.displayName,
                   style: typography.body.copyWith(
-                    fontWeight:
-                        widget.isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: widget.isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

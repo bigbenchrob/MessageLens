@@ -59,13 +59,13 @@ class ContactChooserResolver extends _$ContactChooserResolver {
     // Build the main picker based on contact count
     final mainPicker = switch (pickerMode) {
       ContactPickerMode.flat => ContactFlatListWidget(
-          chosenContactId: chosenContactId,
-          cassetteIndex: cassetteIndex,
-        ),
+        chosenContactId: chosenContactId,
+        cassetteIndex: cassetteIndex,
+      ),
       ContactPickerMode.grouped => ContactGroupedPickerWidget(
-          chosenContactId: chosenContactId,
-          cassetteIndex: cassetteIndex,
-        ),
+        chosenContactId: chosenContactId,
+        cassetteIndex: cassetteIndex,
+      ),
     };
 
     // Wrap with recent contacts section
