@@ -168,9 +168,6 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
       await addCassette(rack.cassettes[i], cassetteIndex: i);
     }
 
-    // Note: Child specs are resolved dynamically and don't need index tracking
-    // since they derive their place from the parent spec's cascade.
-
     return widgets;
   }
 }
