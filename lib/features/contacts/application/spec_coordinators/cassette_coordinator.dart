@@ -2,8 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import '../../domain/spec_classes/contacts_cassette_spec.dart';
+import '../sidebar_cassette_spec/resolvers/contact_chooser_resolver.dart';
 import '../sidebar_cassette_spec/resolvers/contact_hero_summary_resolver.dart';
-import '../use_cases/contact_chooser_view_builder_provider.dart';
 
 part 'cassette_coordinator.g.dart';
 
@@ -14,8 +14,9 @@ part 'cassette_coordinator.g.dart';
 ///
 /// - Accept a ContactsCassetteSpec (sidebar protocol entity)
 /// - Pattern-match on the spec variant
-/// - Delegate meaning/data/formatting to application-layer case handlers/resolvers
-/// - Return a SidebarCassetteCardViewModel (NOT a wrapped widget)
+/// - Extract payload parameters
+/// - Call exactly ONE resolver
+/// - Return the resolver's Future<SidebarCassetteCardViewModel>
 ///
 /// Why return a view model instead of a widget?
 ///
@@ -24,16 +25,13 @@ part 'cassette_coordinator.g.dart';
 /// - Features remain agnostic to how cards are visually framed.
 /// - Future changes to card chrome happen in one place, not N features.
 ///
-/// ## Migration Status
+/// The coordinator:
+/// - MUST NOT perform IO
+/// - MUST NOT construct widgets
+/// - MUST NOT build view models itself
+/// - MUST NOT pass specs beyond this layer
 ///
-/// This coordinator is being migrated to the cross-surface spec architecture.
-/// Currently it bridges to legacy builders; these will be replaced phase by phase:
-///
-/// - [ ] contactChooser → ChooserContentResolver + ChooserWidgetBuilder
-/// - [x] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
-///
-/// See: _AGENT_INSTRUCTIONS/agent-per-project/30-NEW-FEATURE-ADDITION/
-///      contacts-cassette-cross-surface-migration/PROPOSAL.md
+/// See: _AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md
 @riverpod
 class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
   @override
@@ -41,21 +39,21 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
     // Stateless coordinator; invoked imperatively by other coordinators.
   }
 
-  /// Build a sidebar cassette view model for a Contacts cassette request.
+  /// Route a [ContactsCassetteSpec] to the appropriate resolver.
   ///
-  /// This is async because:
-  /// - Content resolvers may depend on repositories (counts, derived values)
-  /// - Keeping the API async avoids refactoring call sites later
+  /// The [cassetteIndex] is passed through to resolvers so that widget
+  /// builders can update the cassette rack without holding specs in state.
   Future<SidebarCassetteCardViewModel> buildViewModel(
     ContactsCassetteSpec spec, {
     required int cassetteIndex,
   }) async {
     return spec.map(
-      contactChooser: (chooser) => SidebarCassetteCardViewModel(
-        title: '',
-        subtitle: null,
-        child: ref.watch(contactChooserViewBuilderProvider(chooser)),
-      ),
+      contactChooser: (chooser) => ref
+          .read(contactChooserResolverProvider.notifier)
+          .resolve(
+            chosenContactId: chooser.chosenContactId,
+            cassetteIndex: cassetteIndex,
+          ),
       contactHeroSummary: (hero) => ref
           .read(contactHeroSummaryResolverProvider.notifier)
           .resolve(

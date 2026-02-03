@@ -7,25 +7,27 @@ part of 'contact_chooser_resolver.dart';
 // **************************************************************************
 
 String _$contactChooserResolverHash() =>
-    r'a19576aee025a1688d59d4553df0571378bebe4d';
+    r'466d95f1605656e628d5410b9a4279f59010d693';
 
 /// Resolves a contact chooser cassette.
 ///
-/// This resolver determines the correct content for the contact chooser/recent
-/// contacts cassette and returns a fully-realized [SidebarCassetteCardViewModel].
+/// This resolver determines the correct content for the contact chooser
+/// cassette by:
+/// 1. Fetching contact count from the repository
+/// 2. Using [determinePickerMode] to decide flat vs grouped display
+/// 3. Returning a view model with the appropriate widget builder
 ///
 /// ## Contract (from 00-cross-surface-spec-system.md)
 ///
 /// - Receives explicit parameters (not specs)
 /// - Returns `Future<SidebarCassetteCardViewModel>`
 /// - Determines which widget builder to use
-/// - Does NOT construct widgets itself (delegates to widget builder)
+/// - Owns all decision-making for this cassette
 ///
-/// ## Parameters
-///
-/// - [chosenContactId] - Currently selected contact, if any
-/// - [cassetteIndex] - Position in the cassette rack (for updates)
-/// - [showRecentContacts] - Whether to prioritize recent contacts display
+/// Resolvers MUST NOT:
+/// - Accept a spec object
+/// - Read a spec from shared state
+/// - Return widgets, builders, or partial results
 ///
 /// Copied from [ContactChooserResolver].
 @ProviderFor(ContactChooserResolver)

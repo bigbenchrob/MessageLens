@@ -43,7 +43,6 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
           .resolve(
             chosenContactId: chooser.chosenContactId,
             cassetteIndex: cassetteIndex,
-            showRecentContacts: true,
           ),
       contactHeroSummary: (hero) => ref
           .read(contactHeroSummaryResolverProvider.notifier)

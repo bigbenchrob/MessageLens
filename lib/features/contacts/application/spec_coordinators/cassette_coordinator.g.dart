@@ -7,7 +7,7 @@ part of 'cassette_coordinator.dart';
 // **************************************************************************
 
 String _$contactsCassetteCoordinatorHash() =>
-    r'c681a4b71375d3464c07a33d66dea1edceda1631';
+    r'f2421d9c68b9254a52dbf754ed7d6bc787c94ec3';
 
 /// Contacts CassetteCoordinator
 ///
@@ -16,8 +16,9 @@ String _$contactsCassetteCoordinatorHash() =>
 ///
 /// - Accept a ContactsCassetteSpec (sidebar protocol entity)
 /// - Pattern-match on the spec variant
-/// - Delegate meaning/data/formatting to application-layer case handlers/resolvers
-/// - Return a SidebarCassetteCardViewModel (NOT a wrapped widget)
+/// - Extract payload parameters
+/// - Call exactly ONE resolver
+/// - Return the resolver's Future<SidebarCassetteCardViewModel>
 ///
 /// Why return a view model instead of a widget?
 ///
@@ -26,16 +27,13 @@ String _$contactsCassetteCoordinatorHash() =>
 /// - Features remain agnostic to how cards are visually framed.
 /// - Future changes to card chrome happen in one place, not N features.
 ///
-/// ## Migration Status
+/// The coordinator:
+/// - MUST NOT perform IO
+/// - MUST NOT construct widgets
+/// - MUST NOT build view models itself
+/// - MUST NOT pass specs beyond this layer
 ///
-/// This coordinator is being migrated to the cross-surface spec architecture.
-/// Currently it bridges to legacy builders; these will be replaced phase by phase:
-///
-/// - [ ] contactChooser → ChooserContentResolver + ChooserWidgetBuilder
-/// - [x] contactHeroSummary → HeroSummaryResolver + HeroSummaryWidgetBuilder
-///
-/// See: _AGENT_INSTRUCTIONS/agent-per-project/30-NEW-FEATURE-ADDITION/
-///      contacts-cassette-cross-surface-migration/PROPOSAL.md
+/// See: _AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md
 ///
 /// Copied from [ContactsCassetteCoordinator].
 @ProviderFor(ContactsCassetteCoordinator)
