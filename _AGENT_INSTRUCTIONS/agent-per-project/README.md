@@ -16,13 +16,22 @@ This directory captures Remember Every Text–specific documentation that comple
 
 > ⚠️ Read `_AGENT_INSTRUCTIONS/agent-instructions-shared/00-global/agent-guardrails.md` before using this index. The guardrails define planning, approval, and diff-scope rules for all agents.
 
+## 🔥 Quick Facts
+
+| Fact | Detail |
+|------|--------|
+| **Auto-sync enabled** | `ChatDbChangeMonitor` polls `chat.db` every **15 seconds** and auto-imports new messages |
+| **Manual import rarely needed** | Only for initial setup or recovery; ongoing sync is automatic |
+| **New messages appear in ~15-20s** | After arrival in macOS Messages, no user action required |
+| **Provider** | `chatDbChangeMonitorProvider` in `lib/essentials/db_importers/application/monitor/` |
+
 ## Canonical Map
 
 | Folder | Purpose | Canonical docs |
 | --- | --- | --- |
 | `00-PROJECT/` | Entry points and global context | [`00-overview.md`](00-PROJECT/00-overview.md), [`01-aggregate-boundaries.md`](00-PROJECT/01-aggregate-boundaries.md), [`02-architecture-overview.md`](00-PROJECT/02-architecture-overview.md), [`03-data-locations.md`](00-PROJECT/03-data-locations.md), [`04-env-and-secrets.md`](00-PROJECT/04-env-and-secrets.md) |
 | `10-DATABASES/` | Database locations, contracts, and access patterns | [`00-all-databases-accessed.md`](10-DATABASES/00-all-databases-accessed.md), [`05-db-overlay.md`](10-DATABASES/05-db-overlay.md), [`06-addressbook-path-resolution.md`](10-DATABASES/06-addressbook-path-resolution.md), [`11-contact-to-chat-linking.md`](10-DATABASES/11-contact-to-chat-linking.md) |
-| `20-DATA-IMPORT-MIGRATION/` | Ledger importers, migrators, and Rust extractor docs. **For questions about message text (`attributedBody`) decoding, see [`apple-typedstream-format-reference.md`](20-DATA-IMPORT-MIGRATION/apple-typedstream-format-reference.md)** | [`01-overview.md`](20-DATA-IMPORT-MIGRATION/01-overview.md), [`10-import-orchestrator.md`](20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md), [`20-migration-orchestrator.md`](20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md), [`apple-typedstream-format-reference.md`](20-DATA-IMPORT-MIGRATION/apple-typedstream-format-reference.md) |
+| `20-DATA-IMPORT-MIGRATION/` | Ledger importers, migrators, Rust extractor, **and auto-sync polling**. **🔥 Messages auto-import every 15 seconds via `ChatDbChangeMonitor`**. For `attributedBody` decoding, see [`apple-typedstream-format-reference.md`](20-DATA-IMPORT-MIGRATION/apple-typedstream-format-reference.md) | [`01-overview.md`](20-DATA-IMPORT-MIGRATION/01-overview.md), [`10-import-orchestrator.md`](20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md), [`20-migration-orchestrator.md`](20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md), [`apple-typedstream-format-reference.md`](20-DATA-IMPORT-MIGRATION/apple-typedstream-format-reference.md) |
 | `30-NEW-FEATURE-ADDITION/` | Active feature proposals, checklists, and design notes | [`README.md`](30-NEW-FEATURE-ADDITION/README.md), [`manual-handle-to-contact-linking/PROPOSAL.md`](30-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/PROPOSAL.md) |
 | `40-FEATURES/` | Shipped feature documentation with reusable templates | [`README.md`](40-FEATURES/README.md), `*/CHARTER.md`, `*/DOMAIN_AND_DATA_MAP.md`, `*/STATE_AND_PROVIDER_INVENTORY.md`, `*/INTERACTIONS_AND_NAVIGATION.md`, `*/TESTING_AND_MONITORING.md`, `*/WORK_LOG.md` |
 | `50-USE-CASE-ILLUSTRATIONS/` | Narrative walkthroughs of cross-layer behaviour | [`README.md`](50-USE-CASE-ILLUSTRATIONS/README.md), [`manual-handle-to-contact-linking.md`](50-USE-CASE-ILLUSTRATIONS/manual-handle-to-contact-linking.md) |

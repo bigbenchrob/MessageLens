@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/db/feature_level_providers.dart';
@@ -19,6 +18,19 @@ import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 ///
 /// This widget shows recently accessed contacts for quick selection,
 /// typically displayed above the main contact list or grouped picker.
+///
+/// ## Design Guidelines
+///
+/// The recents section is a **lightweight suggestion**, not a secondary picker.
+/// It should communicate: "You can pick a contact from the picker below, but
+/// here are a few you accessed recently if that helps."
+///
+/// Visual treatment:
+/// - No card/container - just inline content
+/// - "Recents" label in caption style with tertiary color
+/// - Contact rows with reduced contrast (textSecondary)
+/// - Spacing between rows instead of heavy dividers
+/// - Extra padding before the main picker to establish separation
 ///
 /// ## Contract (from 00-cross-surface-spec-system.md)
 ///
@@ -55,44 +67,56 @@ class RecentContactsSection extends ConsumerWidget {
 
         ref.watch(themeColorsProvider);
         final colors = ref.read(themeColorsProvider.notifier);
+        final typography = ref.watch(themeTypographyProvider);
 
         return Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Recent contacts section
+            // Recent contacts section - lightweight suggestion, not a card
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 4,
+                bottom: 16, // Increased spacing before picker
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: recents.map((recent) {
-                  final isSelected = recent.participantId == chosenContactId;
-                  return _RecentContactRow(
-                    displayName: recent.displayName,
-                    participantId: recent.participantId,
-                    isSelected: isSelected,
-                    cassetteIndex: cassetteIndex,
-                  );
-                }).toList(),
-              ),
-            ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // "Recents" inline label
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      'Recents',
+                      style: typography.caption.copyWith(
+                        color: colors.content.textTertiary,
+                      ),
+                    ),
+                  ),
 
-            // Divider
-            Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 14),
-              child: Container(
-                height: 1,
-                color: colors.lines.borderSubtle.withValues(alpha: 0.8),
+                  // Recent contact rows - lightweight, spaced
+                  ...recents.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final recent = entry.value;
+                    final isSelected = recent.participantId == chosenContactId;
+                    final isLast = index == recents.length - 1;
+
+                    return _RecentContactRow(
+                      displayName: recent.displayName,
+                      participantId: recent.participantId,
+                      isSelected: isSelected,
+                      cassetteIndex: cassetteIndex,
+                      showDivider: !isLast,
+                    );
+                  }),
+                ],
               ),
             ),
 
             // Full contact picker
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: mainPicker,
-              ),
-            ),
+            Expanded(child: mainPicker),
           ],
         );
       },
@@ -103,18 +127,25 @@ class RecentContactsSection extends ConsumerWidget {
 }
 
 /// Row widget for a recent contact.
+///
+/// Lightweight styling to read as a helpful suggestion:
+/// - Regular weight, slightly reduced contrast (textSecondary)
+/// - Subtle hover highlight
+/// - Minimal spacing between rows (no heavy dividers)
 class _RecentContactRow extends ConsumerStatefulWidget {
   const _RecentContactRow({
     required this.displayName,
     required this.participantId,
     required this.isSelected,
     required this.cassetteIndex,
+    this.showDivider = false,
   });
 
   final String displayName;
   final int participantId;
   final bool isSelected;
   final int cassetteIndex;
+  final bool showDivider;
 
   @override
   ConsumerState<_RecentContactRow> createState() => _RecentContactRowState();
@@ -165,8 +196,8 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
-    final hoverColor = colors.accents.primary.withValues(alpha: 0.15);
-    final selectedColor = colors.accents.primary.withValues(alpha: 0.12);
+    // Very subtle hover - just enough to show interactivity
+    final hoverColor = colors.surfaces.hover;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -174,40 +205,38 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: _handleTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            color: widget.isSelected
-                ? selectedColor
-                : _isHovered
-                ? hoverColor
-                : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(color: colors.lines.borderSubtle, width: 0.5),
-            ),
+            color: _isHovered ? hoverColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.displayName,
-                  style: typography.body.copyWith(
-                    fontWeight: widget.isSelected
-                        ? FontWeight.w600
-                        : FontWeight.w400,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.displayName,
+                    // Reduced contrast - suggestion, not primary content
+                    style: typography.body.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: colors.content.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              if (widget.isSelected) ...[
-                const SizedBox(width: 8),
-                Icon(
-                  CupertinoIcons.checkmark_alt,
-                  size: 14,
-                  color: colors.accents.primary,
-                ),
+                if (widget.isSelected) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    CupertinoIcons.checkmark_alt,
+                    size: 12,
+                    color: colors.accents.primary.withValues(alpha: 0.7),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

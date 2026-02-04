@@ -45,6 +45,7 @@ You MUST read these files in order before any code changes:
 - **🔥 RIVERPOD PATTERNS**: Follow ONLY the patterns documented in `05-riverpod-provider-patterns.md` - DO NOT scan codebase for examples
 - **Provider naming**: Class names follow documented pattern: `MyFeature` → generates `myFeatureProvider`
 - **Navigation**: Use ViewSpec sealed classes, never direct widget management
+- **🔥 THEME ACCESS**: NEVER use `MacosTheme.of(context)` or `Theme.of(context)` - use `themeColorsProvider` and `themeTypographyProvider` exclusively
 - **🔥 Feature Spec Handling**: Feature coordinators route only; application-layer resolvers own meaning; app-level coordinators choose UI chrome
 
 ## Development Workflow
@@ -121,6 +122,7 @@ class MyFeature extends _$MyFeature {
 - ❌ String-based navigation (use ViewSpec sealed classes)
 - ❌ 🔥 **SCANNING CODEBASE FOR PROVIDER EXAMPLES** (use documented patterns only)
 - ❌ 🔥 **CRITICAL**: Direct database instantiation (use `importDatabaseProvider` & `workingDatabaseProvider`)
+- ❌ 🔥 **MacosTheme.of(context) / Theme.of(context)** (use `themeColorsProvider` & `themeTypographyProvider`)
 - ❌ 🔥 **Feature coordinators doing logic** (coordinators route only; resolvers own meaning)
 - ❌ 🔥 **Application-layer builders returning view models** (return widget content; coordinator wraps in chrome)
 

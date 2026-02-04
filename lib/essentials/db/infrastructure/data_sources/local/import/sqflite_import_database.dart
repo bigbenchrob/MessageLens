@@ -237,6 +237,21 @@ class SqfliteImportDatabase {
     return db.rawQuery(sql, args);
   }
 
+  /// Returns the maximum source_rowid imported from the messages table.
+  /// Used by ChatDbChangeMonitor to prime its state from import.db
+  /// instead of chat.db, ensuring messages that arrived before app launch
+  /// but after the last import are properly detected.
+  Future<int?> getMaxImportedMessageRowId() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT MAX(source_rowid) as max_rowid FROM messages',
+    );
+    if (result.isEmpty || result.first['max_rowid'] == null) {
+      return null;
+    }
+    return result.first['max_rowid'] as int?;
+  }
+
   Future<int?> insertSchemaMigration({
     required int version,
     required String appliedAtUtc,

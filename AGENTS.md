@@ -46,6 +46,8 @@ This README contains the canonical index to all project documentation including:
 - ✅ Freezed classes: MUST be `abstract class`, never just `class`
 - ✅ Async functions: Return `Future<void>`, never `void`
 - ✅ Containers: Use `ColoredBox` when only setting color
+- ✅ **Theme access**: Use `themeColorsProvider` and `themeTypographyProvider` exclusively
+- ❌ **Never**: Use `MacosTheme.of(context)` or `Theme.of(context)` for colors/typography
 
 ### Riverpod Patterns
 - ✅ **Use documented patterns only** - Do NOT scan codebase for examples

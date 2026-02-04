@@ -7,7 +7,7 @@ part of 'chat_db_change_monitor_provider.dart';
 // **************************************************************************
 
 String _$chatDbChangeMonitorHash() =>
-    r'ff389234b075159b2610d3d85b80c12f93c92c4e';
+    r'dca4503f9113b49a91874d77a14389fd44c4eef5';
 
 /// See also [ChatDbChangeMonitor].
 @ProviderFor(ChatDbChangeMonitor)

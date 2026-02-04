@@ -18,11 +18,31 @@ tests: []
 
 This folder documents the end-to-end data pipeline that keeps Remember Every Text in sync with the macOS Messages and AddressBook sources. Use it as the starting point whenever you touch ledger ingestion, projection, or the Rust helper binary.
 
+## 🔥 Automatic Background Sync
+
+**Imports are triggered automatically** — the app polls `chat.db` every **15 seconds** and runs import + migration when new messages are detected.
+
+| Component | Purpose |
+|-----------|---------|
+| `ChatDbChangeMonitor` | Polls `MAX(ROWID)` from `chat.db`, triggers import on change |
+| `ImportOrchestrator` | Runs table importers to stage new data in `macos_import.db` |
+| `MigrationOrchestrator` | Projects ledger data into `working.db` (incremental mode) |
+| `driftWorkingDatabaseProvider` | Invalidated after migration → UI automatically refreshes |
+
+**Result:** New messages appear in the UI within ~15-20 seconds of arrival without user action.
+
+See `10-import-orchestrator.md` for detailed auto-polling documentation.
+
 ## High-Level Flow
 
 ```
 chat.db + AddressBook.sqlite
             │
+    ┌───────┴───────┐
+    │ ChatDbChange  │ ← polls every 15s
+    │    Monitor    │
+    └───────┬───────┘
+            │ (triggers on ROWID change)
             ▼
       ImportOrchestrator
             │ (per-table importers)
@@ -65,7 +85,8 @@ chat.db + AddressBook.sqlite
 
 | Action | Command / Trigger | Notes |
 | --- | --- | --- |
-| Full import + migration | `flutter run` -> Import control panel | UI invokes orchestrators with progress reporting. |
+| **Automatic sync** | Always running | `ChatDbChangeMonitor` polls every 15s; no user action required. |
+| Manual full import + migration | `flutter run` -> Import control panel | Only needed for initial setup or recovery. |
 | Headless import | `dart run tool/import.dart --dry-run` | Uses the same orchestrator stack; dry-run leaves the ledger untouched. |
 | Inspect latest batch | `sqlite3 macos_import.db 'SELECT * FROM import_batches ORDER BY started_at DESC LIMIT 1;'` | Confirms source paths, batch IDs, and row counts. |
 | Rerun migration only | `HandlesMigrationService` via admin UI or script | Auto-detects incremental mode when working.db has data. Uses INSERT OR IGNORE for performance. |

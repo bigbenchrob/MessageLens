@@ -44,6 +44,15 @@ class ContactMessagesOrdinal extends _$ContactMessagesOrdinal {
   Future<ContactMessagesOrdinalState> build({required int contactId}) async {
     _contactId = contactId;
 
+    // Note: We intentionally do NOT watch messageDataVersionProvider here.
+    // A full rebuild is expensive for contacts with thousands of messages:
+    // - Creates new scroll controllers (loses scroll position)
+    // - Invalidates all cached message rows (shows spinners)
+    // - Re-hydrates entire list from scratch
+    //
+    // Instead, new messages appear when the user re-selects the contact.
+    // This is a reasonable UX tradeoff for performance.
+
     final isMaintenance = ref.watch(dbMaintenanceLockProvider);
 
     // During destructive maintenance operations we intentionally avoid opening

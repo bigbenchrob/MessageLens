@@ -15,6 +15,54 @@ links:
 
 # Import Orchestrator
 
+## 🔥 Automatic Polling (ChatDbChangeMonitor)
+
+**Imports are triggered automatically** — no manual intervention required.
+
+The app includes a `ChatDbChangeMonitor` provider that continuously watches macOS `chat.db` for new messages:
+
+| Aspect | Detail |
+|--------|--------|
+| **Provider** | `chatDbChangeMonitorProvider` (keepAlive: true) |
+| **Location** | `lib/essentials/db_importers/application/monitor/chat_db_change_monitor_provider.dart` |
+| **Poll interval** | Every **15 seconds** |
+| **Detection method** | Compares `MAX(ROWID)` from `message` table against stored value |
+| **Trigger** | When ROWID increases, schedules debounced import (350ms debounce) |
+
+### Auto-Import Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  ChatDbChangeMonitor (runs in background)                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  1. Timer fires every 15 seconds                                    │
+│  2. Read MAX(ROWID) from ~/Library/Messages/chat.db                 │
+│  3. Compare with lastMaxRowId stored in state                       │
+│  4. If increased → schedule probe (350ms debounce)                  │
+│  5. Probe runs:                                                     │
+│     a. orchestratedLedgerImportServiceProvider.runImport()          │
+│     b. handlesMigrationServiceProvider.run(incrementalMode: true)   │
+│     c. ref.invalidate(driftWorkingDatabaseProvider) → UI refresh    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Wiring
+
+The monitor is activated in `main.dart` via:
+```dart
+ref.watch(chatDbChangeMonitorProvider);
+```
+
+This ensures the monitor starts at app launch and runs continuously.
+
+### Implications for Debugging
+
+- **New messages appear automatically** within ~15-20 seconds of arrival
+- **If messages aren't showing**, the monitor may have encountered an error — check console for `chat.db monitor` logs
+- **Manual import is only needed** for initial setup or recovery scenarios
+
+---
+
 ## Purpose
 - Replace the legacy monolithic import runner with a deterministic sequence of table-focused importers.
 - Ensure every ledger table is ingested with pre-flight validation, transactional copy logic, and post-flight verification.

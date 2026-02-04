@@ -75,7 +75,14 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
   Future<void> _primeMaxRowId(String chatDbPath) async {
     try {
-      final maxRowId = _readMaxRowId(chatDbPath);
+      // CRITICAL: Prime from import.db, not chat.db!
+      // This ensures we detect messages that arrived before app launch
+      // but after the last import batch completed.
+      final importDb = await ref.read(sqfliteImportDatabaseProvider.future);
+      final importedMaxRowId = await importDb.getMaxImportedMessageRowId();
+
+      // Use imported max if available, otherwise fall back to chat.db
+      final maxRowId = importedMaxRowId ?? _readMaxRowId(chatDbPath);
       state = state.copyWith(lastMaxRowId: maxRowId, clearError: true);
     } catch (error, stackTrace) {
       _handleError('Unable to prime MAX(ROWID): $error', stackTrace);
@@ -158,8 +165,13 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
           if (migrationResult.success) {
             print('Incremental migration successful.');
-            // Invalidate the working database provider to force UI refresh
-            ref.invalidate(driftWorkingDatabaseProvider);
+            // Signal to UI providers that new message data is available
+            // This causes message list providers to rebuild with updated counts
+            ref.read(messageDataVersionProvider.notifier).bump();
+            // Note: Do NOT invalidate driftWorkingDatabaseProvider here!
+            // It closes the isolate connection and causes "connection was closed"
+            // errors for in-flight queries. Drift's reactive streams automatically
+            // detect data changes via its internal watch mechanisms.
           } else {
             _handleError(
               'Incremental migration failed: ${migrationResult.error}',
