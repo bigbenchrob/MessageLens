@@ -6,10 +6,17 @@ part of 'recent_contacts_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$recentContactsHash() => r'c420fdc228bfd27438e16b27018d7b824080b537';
+String _$recentContactsHash() => r'ba30de48bfb80201a72a5f10187cb93d21643c30';
 
-/// Provides list of recently accessed contacts (up to 6).
+/// Provides list of recently accessed contacts (up to 3).
 /// Combines overlay DB recent access tracking with working DB participant info.
+/// The list persists across sessions via overlay.db.
+///
+/// ## Behavior
+/// - Empty list in virgin state (no contacts picked yet)
+/// - Shows up to 3 most recently accessed contacts
+/// - Order: most recent first
+/// - Persists across app restarts (stored in overlay.db)
 ///
 /// Copied from [recentContacts].
 @ProviderFor(recentContacts)

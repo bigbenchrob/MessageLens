@@ -1,9 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme.dart';
+import '../../../../essentials/tooltips/feature_level_providers.dart';
+import '../../domain/spec_classes/contacts_tooltip_spec.dart';
 
 class ContactHighlightRow extends StatefulWidget {
   const ContactHighlightRow({
@@ -199,11 +202,7 @@ class ContactHeroHeaderHighlight extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         if (onEdit != null) ...[
-                          _HoverLink(
-                            label: 'edit',
-                            baseStyle: linkBaseStyle,
-                            onTap: onEdit!,
-                          ),
+                          _EditIconButton(onTap: onEdit!, iconColor: linkColor),
                           const SizedBox(width: 8),
                         ],
                         _HoverLink(
@@ -310,6 +309,49 @@ class _HoverLinkState extends State<_HoverLink> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
             child: Text(widget.label, style: style),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pencil icon button for editing contact display name.
+///
+/// Wrapped in [TooltipWrapper] to show "Edit display name" tooltip on hover.
+class _EditIconButton extends StatefulWidget {
+  const _EditIconButton({required this.onTap, required this.iconColor});
+
+  final VoidCallback onTap;
+  final Color iconColor;
+
+  @override
+  State<_EditIconButton> createState() => _EditIconButtonState();
+}
+
+class _EditIconButtonState extends State<_EditIconButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TooltipWrapper(
+      spec: const TooltipSpec.contacts(ContactsTooltipSpec.editDisplayName()),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovering = true),
+        onExit: (_) => setState(() => _isHovering = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(
+              CupertinoIcons.pencil,
+              size: 16,
+              color: _isHovering
+                  ? widget.iconColor
+                  : widget.iconColor.withValues(alpha: 0.7),
+            ),
           ),
         ),
       ),
