@@ -55,11 +55,11 @@ extension ContactsSettingsSpecPatterns on ContactsSettingsSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ShortNames value)?  shortNames,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DisplayNameInfo value)?  displayNameInfo,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _ShortNames() when shortNames != null:
-return shortNames(_that);case _:
+case _DisplayNameInfo() when displayNameInfo != null:
+return displayNameInfo(_that);case _:
   return orElse();
 
 }
@@ -77,11 +77,11 @@ return shortNames(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ShortNames value)  shortNames,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DisplayNameInfo value)  displayNameInfo,}){
 final _that = this;
 switch (_that) {
-case _ShortNames():
-return shortNames(_that);case _:
+case _DisplayNameInfo():
+return displayNameInfo(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -98,11 +98,11 @@ return shortNames(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ShortNames value)?  shortNames,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DisplayNameInfo value)?  displayNameInfo,}){
 final _that = this;
 switch (_that) {
-case _ShortNames() when shortNames != null:
-return shortNames(_that);case _:
+case _DisplayNameInfo() when displayNameInfo != null:
+return displayNameInfo(_that);case _:
   return null;
 
 }
@@ -119,10 +119,10 @@ return shortNames(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  shortNames,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  displayNameInfo,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _ShortNames() when shortNames != null:
-return shortNames();case _:
+case _DisplayNameInfo() when displayNameInfo != null:
+return displayNameInfo();case _:
   return orElse();
 
 }
@@ -140,10 +140,10 @@ return shortNames();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  shortNames,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  displayNameInfo,}) {final _that = this;
 switch (_that) {
-case _ShortNames():
-return shortNames();case _:
+case _DisplayNameInfo():
+return displayNameInfo();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -160,10 +160,10 @@ return shortNames();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  shortNames,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  displayNameInfo,}) {final _that = this;
 switch (_that) {
-case _ShortNames() when shortNames != null:
-return shortNames();case _:
+case _DisplayNameInfo() when displayNameInfo != null:
+return displayNameInfo();case _:
   return null;
 
 }
@@ -174,8 +174,8 @@ return shortNames();case _:
 /// @nodoc
 
 
-class _ShortNames implements ContactsSettingsSpec {
-  const _ShortNames();
+class _DisplayNameInfo implements ContactsSettingsSpec {
+  const _DisplayNameInfo();
   
 
 
@@ -185,7 +185,7 @@ class _ShortNames implements ContactsSettingsSpec {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShortNames);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DisplayNameInfo);
 }
 
 
@@ -194,7 +194,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'ContactsSettingsSpec.shortNames()';
+  return 'ContactsSettingsSpec.displayNameInfo()';
 }
 
 

@@ -4,9 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../contacts/application/settings/contact_name_mode_provider.dart';
-import '../../../contacts/application/settings/contact_short_names_provider.dart';
-import '../../../contacts/domain/participant_name_resolver.dart';
 import '../../application/calendar_heatmap_timeline_calculator.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
 import '../../domain/chat_timeline_data.dart';
@@ -45,8 +42,6 @@ class RecentChatSummary {
 @riverpod
 Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
-  final shortNames = await ref.watch(contactShortNamesProvider.future);
-  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   List<WorkingChat> chatRows;
   final chatsQuery = db.select(db.workingChats)
@@ -78,11 +73,6 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
     }
     final parsed = DateTime.tryParse(value);
     return parsed?.toLocal();
-  }
-
-  String resolveContactKey(WorkingParticipant participant) {
-    // Since contact_ref is removed, use participant.id directly
-    return 'participant:${participant.id}';
   }
 
   String deriveTitle(WorkingChat chat, List<String> participants) {
@@ -149,15 +139,10 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
       ),
     ])..where(db.chatToHandle.chatId.equals(chat.id));
 
-    String resolveParticipantName(WorkingParticipant participant) {
-      final key = resolveContactKey(participant);
-      final nickname = shortNames[key];
-      return ParticipantNameResolver.resolve(
-        participant: participant,
-        mode: nameMode,
-        nickname: nickname,
-      );
-    }
+    // Display name (including any user override) is resolved directly
+    // in the participant's displayName field by the contacts repository
+    String resolveParticipantName(WorkingParticipant participant) =>
+        participant.displayName;
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];

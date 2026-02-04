@@ -112,7 +112,7 @@ class NavigationLogEntry {
       settings: (settingsSpec) => {
         'type': 'settings',
         'spec': settingsSpec.when(
-          contactShortNames: () => {'variant': 'contactShortNames'},
+          contactDisplayNameInfo: () => {'variant': 'contactDisplayNameInfo'},
         ),
       },
       workbench: (workbenchSpec) => {

@@ -6,7 +6,7 @@ part of 'recent_contacts_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$recentContactsHash() => r'ffb779c8e812c1dbb6c4a2c89c33d0413fd9efa4';
+String _$recentContactsHash() => r'c420fdc228bfd27438e16b27018d7b824080b537';
 
 /// Provides list of recently accessed contacts (up to 6).
 /// Combines overlay DB recent access tracking with working DB participant info.

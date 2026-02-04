@@ -5,12 +5,14 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/theme_typography.dart';
+import '../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
+import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 
 /// Widget builder for the flat contact list display.
 ///
@@ -85,7 +87,7 @@ class ContactFlatListWidget extends ConsumerWidget {
     );
   }
 
-  void _handleContactSelection(WidgetRef ref, int contactId) {
+  Future<void> _handleContactSelection(WidgetRef ref, int contactId) async {
     // Construct spec on user interaction (output, not interpretation)
     final newSpec = CassetteSpec.contacts(
       ContactsCassetteSpec.contactHeroSummary(chosenContactId: contactId),
@@ -94,6 +96,11 @@ class ContactFlatListWidget extends ConsumerWidget {
     ref
         .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
         .replaceAtIndexAndCascade(cassetteIndex, newSpec);
+
+    // Track contact as recently accessed (persists to overlay.db)
+    final overlayDb = await ref.read(overlayDatabaseProvider.future);
+    await overlayDb.trackContactAccess(contactId);
+    ref.invalidate(recentContactsProvider);
   }
 }
 

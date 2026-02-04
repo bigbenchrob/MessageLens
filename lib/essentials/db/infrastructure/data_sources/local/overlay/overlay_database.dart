@@ -1,8 +1,6 @@
 import 'package:characters/characters.dart';
 import 'package:drift/drift.dart';
 
-import '../../../../domain/overlay_db_constants.dart';
-
 part 'overlay_database.g.dart';
 
 /// Overlay database for user preferences and customizations (user_overlays.db).
@@ -56,15 +54,13 @@ class OverlayDatabase extends _$OverlayDatabase {
     };
   }
 
-  /// Upsert helper used by all setters.
+  /// Upsert helper for setting display name override.
   ///
   /// - Writes createdAtUtc only when creating a new row
   /// - Always updates updatedAtUtc
   Future<void> _upsertParticipantOverride({
     required int participantId,
-    Value<int?>? nameMode,
-    Value<String?>? nickname,
-    Value<String?>? displayNameOverride,
+    required Value<String?> displayNameOverride,
   }) async {
     final now = DateTime.now().toUtc().toIso8601String();
 
@@ -77,40 +73,10 @@ class OverlayDatabase extends _$OverlayDatabase {
     await into(participantOverrides).insertOnConflictUpdate(
       ParticipantOverridesCompanion(
         participantId: Value(participantId),
-        nameMode: nameMode ?? const Value.absent(),
-        nickname: nickname ?? const Value.absent(),
-        displayNameOverride: displayNameOverride ?? const Value.absent(),
+        displayNameOverride: displayNameOverride,
         createdAtUtc: Value(createdAt),
         updatedAtUtc: Value(now),
       ),
-    );
-  }
-
-  /// Set per-contact name mode. Pass null to "inherit global default".
-  Future<void> setParticipantNameMode(
-    int participantId,
-    ParticipantNameMode? mode,
-  ) async {
-    // Store null for inherit to keep the DB sparse.
-    final dbValue = (mode == null || mode == ParticipantNameMode.inherit)
-        ? null
-        : mode.dbValue;
-
-    await _upsertParticipantOverride(
-      participantId: participantId,
-      nameMode: Value(dbValue),
-    );
-  }
-
-  /// Set nickname (aka “short name”). Pass null to clear.
-  Future<void> setParticipantNickname(
-    int participantId,
-    String? nickname,
-  ) async {
-    final trimmed = nickname?.trim();
-    await _upsertParticipantOverride(
-      participantId: participantId,
-      nickname: Value((trimmed == null || trimmed.isEmpty) ? null : trimmed),
     );
   }
 
@@ -494,8 +460,6 @@ class OverlayDatabase extends _$OverlayDatabase {
     )..where((tbl) => tbl.id.equals(id))).go();
   }
 
-  static const _defaultParticipantNameModeKey = 'contacts.name_mode.default';
-
   Future<int> _nextVirtualParticipantId() async {
     final existingSetting =
         await (select(overlaySettings)
@@ -560,31 +524,6 @@ class OverlayDatabase extends _$OverlayDatabase {
       return null;
     }
     return iterator.current;
-  }
-
-  Future<ParticipantNameMode> getDefaultParticipantNameMode() async {
-    final row =
-        await (select(overlaySettings)
-              ..where((tbl) => tbl.key.equals(_defaultParticipantNameModeKey)))
-            .getSingleOrNull();
-
-    if (row == null) {
-      return ParticipantNameMode.firstNameOnly;
-    }
-
-    final parsed = int.tryParse(row.value);
-    final mode = ParticipantNameMode.fromDb(parsed);
-
-    return mode ?? ParticipantNameMode.firstNameOnly;
-  }
-
-  Future<void> setDefaultParticipantNameMode(ParticipantNameMode mode) async {
-    await into(overlaySettings).insertOnConflictUpdate(
-      OverlaySettingsCompanion.insert(
-        key: _defaultParticipantNameModeKey,
-        value: mode.dbValue.toString(),
-      ),
-    );
   }
 
   // Helper methods for favorite contacts

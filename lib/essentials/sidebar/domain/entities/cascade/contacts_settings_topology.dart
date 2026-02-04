@@ -1,7 +1,7 @@
 part of '../cassette_spec.dart';
 
 CassetteSpec? resolveContactsSettingsChild(ContactsSettingsSpec spec) {
-  return spec.when(shortNames: () => null);
+  return spec.when(displayNameInfo: () => null);
 }
 
 extension ContactsSettingsSpecX on ContactsSettingsSpec {

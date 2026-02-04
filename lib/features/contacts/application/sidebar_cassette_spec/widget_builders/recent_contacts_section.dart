@@ -177,6 +177,8 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
   Future<void> _trackContactAccess(int contactId) async {
     final overlayDb = await ref.read(overlayDatabaseProvider.future);
     await overlayDb.trackContactAccess(contactId);
+    // Invalidate to refresh the recents list
+    ref.invalidate(recentContactsProvider);
   }
 
   void _showMessages(int contactId) {

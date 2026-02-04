@@ -2,12 +2,8 @@ import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/domain/overlay_db_constants.dart';
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../contacts/application/settings/contact_name_mode_provider.dart';
-import '../../contacts/application/settings/contact_short_names_provider.dart';
-import '../../contacts/domain/participant_name_resolver.dart';
 import '../domain/chat_timeline_data.dart';
 import '../presentation/view_model/recent_chats_provider.dart';
 import 'calendar_heatmap_timeline_calculator.dart';
@@ -18,8 +14,6 @@ part 'chats_by_age_provider.g.dart';
 @riverpod
 Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
-  final shortNames = await ref.watch(contactShortNamesProvider.future);
-  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   final chatsQuery = db.select(db.workingChats)
     ..orderBy([
@@ -36,20 +30,13 @@ Future<List<RecentChatSummary>> chatsByAge(Ref ref, {int? limit}) async {
 
   final chatRows = await chatsQuery.get();
 
-  return _buildChatSummaries(
-    db: db,
-    chatRows: chatRows,
-    shortNames: shortNames,
-    nameMode: nameMode,
-  );
+  return _buildChatSummaries(db: db, chatRows: chatRows);
 }
 
 /// Returns chats ordered by first message date (newest first).
 @riverpod
 Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
-  final shortNames = await ref.watch(contactShortNamesProvider.future);
-  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   final chatsQuery = db.select(db.workingChats)
     ..orderBy([
@@ -66,20 +53,13 @@ Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
 
   final chatRows = await chatsQuery.get();
 
-  return _buildChatSummaries(
-    db: db,
-    chatRows: chatRows,
-    shortNames: shortNames,
-    nameMode: nameMode,
-  );
+  return _buildChatSummaries(db: db, chatRows: chatRows);
 }
 
 /// Returns chats where the handle has no participant match (unmatched phone numbers/emails).
 @riverpod
 Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
-  final shortNames = await ref.watch(contactShortNamesProvider.future);
-  final nameMode = await ref.watch(contactNameModeProvider.future);
 
   // Find chats whose handle_id does NOT appear in handle_to_participant
   final unmatchedHandleIds =
@@ -129,12 +109,7 @@ Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
 
   final chatRows = await chatsQuery.get();
 
-  return _buildChatSummaries(
-    db: db,
-    chatRows: chatRows,
-    shortNames: shortNames,
-    nameMode: nameMode,
-  );
+  return _buildChatSummaries(db: db, chatRows: chatRows);
 }
 
 /// Shared logic to build RecentChatSummary list from chat rows.
@@ -142,8 +117,6 @@ Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
 Future<List<RecentChatSummary>> _buildChatSummaries({
   required WorkingDatabase db,
   required List<WorkingChat> chatRows,
-  required Map<String, String> shortNames,
-  required ParticipantNameMode nameMode,
 }) async {
   final messageCountExpression = db.workingMessages.id.count();
   final firstSentExpression = db.workingMessages.sentAtUtc.min();
@@ -157,19 +130,10 @@ Future<List<RecentChatSummary>> _buildChatSummaries({
     return parsed?.toLocal();
   }
 
-  String resolveContactKey(WorkingParticipant participant) {
-    return 'participant:${participant.id}';
-  }
-
-  String resolveParticipantName(WorkingParticipant participant) {
-    final key = resolveContactKey(participant);
-    final nickname = shortNames[key];
-    return ParticipantNameResolver.resolve(
-      participant: participant,
-      mode: nameMode,
-      nickname: nickname,
-    );
-  }
+  // Display name (including any user override) is resolved directly
+  // in the participant's displayName field by the contacts repository
+  String resolveParticipantName(WorkingParticipant participant) =>
+      participant.displayName;
 
   String deriveTitle(WorkingChat chat, List<String> participants) {
     if (participants.isEmpty) {

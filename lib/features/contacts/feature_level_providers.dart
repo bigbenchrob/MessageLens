@@ -17,7 +17,6 @@
 // - Infrastructure details
 // =============================================================================
 
-export './application/settings/contact_name_mode_provider.dart';
 export './application/sidebar_cassette_spec/coordinators/cassette_coordinator.dart';
 export './application/sidebar_cassette_spec/coordinators/contacts_settings_coordinator.dart';
 export './application/sidebar_cassette_spec/coordinators/info_cassette_coordinator.dart';

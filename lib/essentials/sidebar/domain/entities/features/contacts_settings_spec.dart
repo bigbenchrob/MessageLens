@@ -9,6 +9,9 @@ part 'contacts_settings_spec.freezed.dart';
 /// settings screens within the Contacts feature.
 @freezed
 abstract class ContactsSettingsSpec with _$ContactsSettingsSpec {
-  /// Settings for how contact names are displayed (short names, nicknames, etc).
-  const factory ContactsSettingsSpec.shortNames() = _ShortNames;
+  /// Info card explaining how to customize contact display names.
+  ///
+  /// Displayed when user navigates to Settings → Contacts.
+  /// Explains that name customization is done from the contact's hero card.
+  const factory ContactsSettingsSpec.displayNameInfo() = _DisplayNameInfo;
 }

@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import '../resolvers/short_names_resolver.dart';
+import '../resolvers/display_name_info_resolver.dart';
 
 part 'contacts_settings_coordinator.g.dart';
 
@@ -28,8 +28,8 @@ class ContactsSettingsCoordinator extends _$ContactsSettingsCoordinator {
     required int cassetteIndex,
   }) async {
     return spec.when(
-      shortNames: () => ref
-          .read(shortNamesResolverProvider.notifier)
+      displayNameInfo: () => ref
+          .read(displayNameInfoResolverProvider.notifier)
           .resolve(cassetteIndex: cassetteIndex),
     );
   }
