@@ -56,19 +56,29 @@ class ThemeTypography {
   // ---------------------------------------------------------------------------
 
   /// Primary contact name (“Claire”).
-  /// Strongest typographic element in the sidebar.
+  /// Strongest typographic element in the sidebar – serves as a header
+  /// for the chat and message data below.
   TextStyle get heroTitle => _base.copyWith(
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: FontWeight.w700,
     height: 1.15,
     color: _colors.content.textPrimary,
   );
 
-  /// Secondary contact line (full name).
+  /// Secondary contact line (auto-generated name when different from display name).
+  /// De-emphasized to allow title to dominate.
   TextStyle get heroSubtitle => _base.copyWith(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    color: _colors.content.textSecondary,
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textTertiary,
+  );
+
+  /// Metadata line below hero card title (message counts, date range).
+  /// Lowest emphasis in the hero card hierarchy.
+  TextStyle get heroMeta => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textTertiary,
   );
 
   // ---------------------------------------------------------------------------

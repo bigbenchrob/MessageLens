@@ -261,6 +261,65 @@ class Overlays {
   Color get shadow => _r(const ColorPair(Color(0x1F000000), Color(0x33000000)));
 }
 
+/// Interactive hint tokens for subtle hover/focus affordances.
+///
+/// Use these for "text-as-control" patterns where the primary content
+/// (e.g., a name, title) is clickable but should not look like a button.
+///
+/// ## Usage Pattern
+///
+/// ```dart
+/// final hints = colors.interactiveHints;
+///
+/// // Background lift on hover
+/// final bgColor = isHovered
+///     ? hints.backgroundLift
+///     : Colors.transparent;
+///
+/// // Icon contrast: subtle at rest, visible on hover
+/// final iconColor = textPrimary.withValues(
+///   alpha: isHovered ? hints.iconActiveAlpha : hints.iconRestAlpha,
+/// );
+/// ```
+///
+/// ## Geometry Recommendations (pair with these colors)
+/// - Padding: horizontal 6px, vertical 5px (asymmetric for breathing room)
+/// - Corner radius: 6px (soft, matches card language)
+/// - Negative margin: -6px horizontal to offset padding visually
+/// - Transition duration: 120ms
+class InteractiveHints {
+  const InteractiveHints(this._t);
+  final ThemeColors _t;
+
+  /// Subtle background lift for text-as-control hover state.
+  ///
+  /// A neutral tint (5% of textPrimary) that provides visual feedback
+  /// without competing with the card's own shape language.
+  Color get backgroundLift => _t.content.textPrimary.withValues(alpha: 0.05);
+
+  /// Icon alpha at rest (de-emphasized, hint only).
+  ///
+  /// Use 25% for auto-generated content, 40% if user has customized.
+  double get iconRestAlpha => 0.25;
+
+  /// Icon alpha at rest when user has overridden/customized the value.
+  ///
+  /// Slightly more visible to hint that customization exists.
+  double get iconRestAlphaOverridden => 0.40;
+
+  /// Icon alpha on hover/focus (clearly visible).
+  double get iconActiveAlpha => 0.90;
+
+  /// Recommended corner radius for hover backgrounds.
+  double get cornerRadius => 6.0;
+
+  /// Recommended horizontal padding for hover hitbox.
+  double get paddingHorizontal => 6.0;
+
+  /// Recommended vertical padding for hover hitbox.
+  double get paddingVertical => 5.0;
+}
+
 enum GrayTone {
   one,
   two,
@@ -415,6 +474,7 @@ class ThemeColors extends _$ThemeColors {
   Lines get lines => Lines(this);
   Accents get accents => Accents(this);
   Overlays get overlays => Overlays(this);
+  InteractiveHints get interactiveHints => InteractiveHints(this);
 
   Brightness _resolveBrightness() {
     if (ref.exists(switchableDarkModeProvider)) {
