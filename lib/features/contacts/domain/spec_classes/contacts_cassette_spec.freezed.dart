@@ -86,11 +86,12 @@ extension ContactsCassetteSpecPatterns on ContactsCassetteSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ContactChooserSpec value)?  contactChooser,TResult Function( _ContactHeroSummarySpec value)?  contactHeroSummary,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ContactChooserSpec value)?  contactChooser,TResult Function( _ContactSelectionControlSpec value)?  contactSelectionControl,TResult Function( _ContactHeroSummarySpec value)?  contactHeroSummary,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ContactChooserSpec() when contactChooser != null:
-return contactChooser(_that);case _ContactHeroSummarySpec() when contactHeroSummary != null:
+return contactChooser(_that);case _ContactSelectionControlSpec() when contactSelectionControl != null:
+return contactSelectionControl(_that);case _ContactHeroSummarySpec() when contactHeroSummary != null:
 return contactHeroSummary(_that);case _:
   return orElse();
 
@@ -109,11 +110,12 @@ return contactHeroSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ContactChooserSpec value)  contactChooser,required TResult Function( _ContactHeroSummarySpec value)  contactHeroSummary,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ContactChooserSpec value)  contactChooser,required TResult Function( _ContactSelectionControlSpec value)  contactSelectionControl,required TResult Function( _ContactHeroSummarySpec value)  contactHeroSummary,}){
 final _that = this;
 switch (_that) {
 case _ContactChooserSpec():
-return contactChooser(_that);case _ContactHeroSummarySpec():
+return contactChooser(_that);case _ContactSelectionControlSpec():
+return contactSelectionControl(_that);case _ContactHeroSummarySpec():
 return contactHeroSummary(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -131,11 +133,12 @@ return contactHeroSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ContactChooserSpec value)?  contactChooser,TResult? Function( _ContactHeroSummarySpec value)?  contactHeroSummary,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ContactChooserSpec value)?  contactChooser,TResult? Function( _ContactSelectionControlSpec value)?  contactSelectionControl,TResult? Function( _ContactHeroSummarySpec value)?  contactHeroSummary,}){
 final _that = this;
 switch (_that) {
 case _ContactChooserSpec() when contactChooser != null:
-return contactChooser(_that);case _ContactHeroSummarySpec() when contactHeroSummary != null:
+return contactChooser(_that);case _ContactSelectionControlSpec() when contactSelectionControl != null:
+return contactSelectionControl(_that);case _ContactHeroSummarySpec() when contactHeroSummary != null:
 return contactHeroSummary(_that);case _:
   return null;
 
@@ -153,10 +156,11 @@ return contactHeroSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  contactChooser,TResult Function( int chosenContactId)?  contactHeroSummary,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? chosenContactId)?  contactChooser,TResult Function( int chosenContactId)?  contactSelectionControl,TResult Function( int chosenContactId)?  contactHeroSummary,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ContactChooserSpec() when contactChooser != null:
-return contactChooser(_that.chosenContactId);case _ContactHeroSummarySpec() when contactHeroSummary != null:
+return contactChooser(_that.chosenContactId);case _ContactSelectionControlSpec() when contactSelectionControl != null:
+return contactSelectionControl(_that.chosenContactId);case _ContactHeroSummarySpec() when contactHeroSummary != null:
 return contactHeroSummary(_that.chosenContactId);case _:
   return orElse();
 
@@ -175,10 +179,11 @@ return contactHeroSummary(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  contactChooser,required TResult Function( int chosenContactId)  contactHeroSummary,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? chosenContactId)  contactChooser,required TResult Function( int chosenContactId)  contactSelectionControl,required TResult Function( int chosenContactId)  contactHeroSummary,}) {final _that = this;
 switch (_that) {
 case _ContactChooserSpec():
-return contactChooser(_that.chosenContactId);case _ContactHeroSummarySpec():
+return contactChooser(_that.chosenContactId);case _ContactSelectionControlSpec():
+return contactSelectionControl(_that.chosenContactId);case _ContactHeroSummarySpec():
 return contactHeroSummary(_that.chosenContactId);case _:
   throw StateError('Unexpected subclass');
 
@@ -196,10 +201,11 @@ return contactHeroSummary(_that.chosenContactId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  contactChooser,TResult? Function( int chosenContactId)?  contactHeroSummary,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? chosenContactId)?  contactChooser,TResult? Function( int chosenContactId)?  contactSelectionControl,TResult? Function( int chosenContactId)?  contactHeroSummary,}) {final _that = this;
 switch (_that) {
 case _ContactChooserSpec() when contactChooser != null:
-return contactChooser(_that.chosenContactId);case _ContactHeroSummarySpec() when contactHeroSummary != null:
+return contactChooser(_that.chosenContactId);case _ContactSelectionControlSpec() when contactSelectionControl != null:
+return contactSelectionControl(_that.chosenContactId);case _ContactHeroSummarySpec() when contactHeroSummary != null:
 return contactHeroSummary(_that.chosenContactId);case _:
   return null;
 
@@ -268,6 +274,72 @@ class __$ContactChooserSpecCopyWithImpl<$Res>
   return _then(_ContactChooserSpec(
 chosenContactId: freezed == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
 as int?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _ContactSelectionControlSpec implements ContactsCassetteSpec {
+  const _ContactSelectionControlSpec({required this.chosenContactId});
+  
+
+@override final  int chosenContactId;
+
+/// Create a copy of ContactsCassetteSpec
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ContactSelectionControlSpecCopyWith<_ContactSelectionControlSpec> get copyWith => __$ContactSelectionControlSpecCopyWithImpl<_ContactSelectionControlSpec>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ContactSelectionControlSpec&&(identical(other.chosenContactId, chosenContactId) || other.chosenContactId == chosenContactId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,chosenContactId);
+
+@override
+String toString() {
+  return 'ContactsCassetteSpec.contactSelectionControl(chosenContactId: $chosenContactId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ContactSelectionControlSpecCopyWith<$Res> implements $ContactsCassetteSpecCopyWith<$Res> {
+  factory _$ContactSelectionControlSpecCopyWith(_ContactSelectionControlSpec value, $Res Function(_ContactSelectionControlSpec) _then) = __$ContactSelectionControlSpecCopyWithImpl;
+@override @useResult
+$Res call({
+ int chosenContactId
+});
+
+
+
+
+}
+/// @nodoc
+class __$ContactSelectionControlSpecCopyWithImpl<$Res>
+    implements _$ContactSelectionControlSpecCopyWith<$Res> {
+  __$ContactSelectionControlSpecCopyWithImpl(this._self, this._then);
+
+  final _ContactSelectionControlSpec _self;
+  final $Res Function(_ContactSelectionControlSpec) _then;
+
+/// Create a copy of ContactsCassetteSpec
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? chosenContactId = null,}) {
+  return _then(_ContactSelectionControlSpec(
+chosenContactId: null == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

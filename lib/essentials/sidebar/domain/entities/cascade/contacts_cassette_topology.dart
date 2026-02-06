@@ -6,9 +6,23 @@ CassetteSpec? resolveContactsChild(ContactsCassetteSpec spec) {
       if (chosenContactId == null) {
         return null;
       }
-      return contactsToMessagesHeatMap(chosenContactId);
+      // When a contact is chosen, show the selection control
+      return CassetteSpec.contacts(
+        ContactsCassetteSpec.contactSelectionControl(
+          chosenContactId: chosenContactId,
+        ),
+      );
+    },
+    contactSelectionControl: (chosenContactId) {
+      // Selection control cascades to the hero summary
+      return CassetteSpec.contacts(
+        ContactsCassetteSpec.contactHeroSummary(
+          chosenContactId: chosenContactId,
+        ),
+      );
     },
     contactHeroSummary: (chosenContactId) {
+      // Hero summary cascades to messages heat map
       return contactsToMessagesHeatMap(chosenContactId);
     },
   );

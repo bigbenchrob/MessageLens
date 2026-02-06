@@ -22,6 +22,24 @@ abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
   const factory ContactsCassetteSpec.contactChooser({int? chosenContactId}) =
       _ContactChooserSpec;
 
+  /// A compact "Change contact" control that appears after selection.
+  ///
+  /// This cassette displays the selected contact name and provides a
+  /// "Change" affordance to return to the picker. It sits above the
+  /// Hero Card and is visually perceived as a "collapsed" form of the
+  /// picker, though implemented as a separate cassette.
+  ///
+  /// ## Visual Role
+  /// - Visually lightweight (compact height ~44px)
+  /// - Navigation/selection context only
+  /// - Triggers re-entry into picker mode on tap
+  ///
+  /// ## Cascade
+  /// This spec cascades to [contactHeroSummary] which provides identity context.
+  const factory ContactsCassetteSpec.contactSelectionControl({
+    required int chosenContactId,
+  }) = _ContactSelectionControlSpec;
+
   /// A detailed summary view for a selected contact.
   const factory ContactsCassetteSpec.contactHeroSummary({
     required int chosenContactId,

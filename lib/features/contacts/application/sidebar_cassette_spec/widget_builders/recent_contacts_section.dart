@@ -156,8 +156,9 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
 
   void _handleTap() {
     // Construct the new spec (widgets may construct specs as output)
+    // Emit selection control which cascades to hero summary
     final newSpec = CassetteSpec.contacts(
-      ContactsCassetteSpec.contactHeroSummary(
+      ContactsCassetteSpec.contactSelectionControl(
         chosenContactId: widget.participantId,
       ),
     );

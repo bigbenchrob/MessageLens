@@ -1,0 +1,152 @@
+CONTACT PICKER → SELECTION CONTROL TRANSITION
+IMPLEMENTATION & INTERACTION SPEC
+
+Context
+The sidebar supports a cassette stack. Contact selection is a multi-stage interaction that should feel continuous to the user, even though it is implemented using separate cassette components.
+
+Core Principle
+The Contact Picker cassette and the “Change contact” Selection Control cassette are two distinct cassettes in code, but their transition is animated to create the perception that the picker collapses into the selection control.
+
+This perceptual continuity is achieved purely through presentation-layer animation and ordering — not shared widget trees or merged state.
+
+⸻
+
+Cassette Roles (Code-Level Separation)
+	1.	ContactPickerCassette
+Responsibilities:
+	•	Displays full contact picker UI
+	•	Search, filtering, keyboard navigation
+	•	Emits a “contact selected” event
+	•	Occupies all available vertical sidebar space when active
+	2.	ContactSelectionControlCassette (“Change contact”)
+Responsibilities:
+	•	Displays current contact summary
+	•	Provides “Change contact” affordance
+	•	Triggers re-entry into picker mode
+	•	Visually subordinate to the Hero card
+	•	Persistent while a contact is selected
+
+These are separate specs, coordinators, and widget trees.
+
+⸻
+
+User-Perceived Interaction Goal
+
+The user should experience the following sequence as a single evolving object:
+	•	A large picker
+	•	That collapses upward
+	•	And settles into a compact “Change contact” control
+	•	With the Hero card and content appearing beneath it
+
+The sidebar should never feel like it “resets” or swaps unrelated cards.
+
+⸻
+
+Transition Overview (High-Level)
+
+Initial State:
+	•	ContactPickerCassette is present
+	•	It occupies full available vertical space
+	•	No Hero card or downstream content visible
+
+On Contact Selection:
+	•	Picker begins collapsing vertically from the bottom
+	•	Its content transitions out
+	•	Selection Control cassette appears in the same top slot
+	•	Hero card slides in beneath it
+	•	Downstream content follows
+
+Final State:
+	•	Selection Control cassette is pinned at the top
+	•	Hero card appears immediately below
+	•	Content cassettes appear beneath the Hero
+
+⸻
+
+Detailed Transition Breakdown (Step-by-Step)
+
+Step 1 — Selection Event
+	•	User selects a contact in ContactPickerCassette
+	•	Picker emits “contact selected” signal to app-level coordinator
+
+Step 2 — Begin Picker Collapse
+	•	ContactPickerCassette begins height animation:
+	•	Top edge remains visually anchored
+	•	Bottom edge animates upward
+	•	Collapse direction is bottom → top (never center or top-down)
+
+Step 3 — Picker Content Transition
+	•	Picker list/search content:
+	•	Fades out and/or compresses vertically
+	•	No hard removal during first phase
+	•	Avoid instant unmount; allow overlap for perceptual continuity
+
+Step 4 — Selection Control Cassette Introduction
+	•	ContactSelectionControlCassette is inserted in the same cassette slot
+	•	It fades in and/or expands into its final compact height
+	•	This occurs before picker collapse fully completes
+	•	Visual alignment (left edge, padding rhythm) should closely match picker
+
+Step 5 — Picker Removal
+	•	Once collapse completes:
+	•	ContactPickerCassette is removed from the stack
+	•	Selection Control cassette remains
+	•	From this point onward, picker is gone both visually and structurally
+
+Step 6 — Hero Card Entrance
+	•	Hero card slides in from beneath the Selection Control cassette
+	•	Small delay (≈50–100ms) after picker collapse begins
+	•	Hero card becomes the visual anchor for identity context
+
+Step 7 — Content Cassettes Populate
+	•	Content cassettes (e.g. messages heat map) appear below Hero
+	•	These should not animate in a way that competes with the picker collapse
+
+⸻
+
+Steady-State Layout (After Transition)
+
+Top → Bottom ordering:
+	1.	ContactSelectionControlCassette (collapsed)
+	•	Visually light
+	•	Navigation / selection context only
+	2.	HeroCardCassette
+	•	Strong visual weight
+	•	Identity context (name, metadata)
+	•	No navigation actions
+	3.	Content Cassettes
+	•	Feature-driven panels
+
+⸻
+
+Reverse Transition (Change Contact → Picker)
+
+When “Change contact” is activated:
+	•	Selection Control cassette is replaced by ContactPickerCassette
+	•	Picker expands downward from the same top anchor
+	•	Hero card and content cassettes slide/fade out
+	•	Picker returns to full-height dominance
+
+This reverse transition should mirror the forward transition.
+
+⸻
+
+Key Design Constraints
+	•	No shared widget trees between picker and selection control
+	•	No global sidebar reflow or jump cuts
+	•	Animation logic lives at presentation / coordinator boundary
+	•	Feature coordinators remain unaware of each other
+	•	The illusion of morphing is achieved through:
+	•	timing
+	•	vertical continuity
+	•	visual rhythm
+
+⸻
+
+One-Line Architectural Summary (for documentation)
+
+“The Contact Picker and the ‘Change contact’ control are implemented as separate cassettes, but their transition is animated to preserve perceptual continuity, making the latter feel like a collapsed state of the former.”
+
+⸻
+
+End of spec.

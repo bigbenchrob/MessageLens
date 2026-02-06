@@ -4,6 +4,7 @@ import '../../../../../essentials/sidebar/presentation/view_model/sidebar_casset
 import '../../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../resolvers/contact_chooser_resolver.dart';
 import '../resolvers/contact_hero_summary_resolver.dart';
+import '../resolvers/contact_selection_control_resolver.dart';
 
 part 'cassette_coordinator.g.dart';
 
@@ -42,6 +43,12 @@ class ContactsCassetteCoordinator extends _$ContactsCassetteCoordinator {
           .read(contactChooserResolverProvider.notifier)
           .resolve(
             chosenContactId: chooser.chosenContactId,
+            cassetteIndex: cassetteIndex,
+          ),
+      contactSelectionControl: (control) => ref
+          .read(contactSelectionControlResolverProvider.notifier)
+          .resolve(
+            contactId: control.chosenContactId,
             cassetteIndex: cassetteIndex,
           ),
       contactHeroSummary: (hero) => ref

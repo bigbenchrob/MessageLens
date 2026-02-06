@@ -297,17 +297,17 @@ lib/essentials/sidebar/
 
 ---
 
-## Open Questions (For Discussion)
+## Decisions
 
-1. **Animation duration**: 200ms? 250ms? Should collapse and expand be same duration?
+| Question | Decision |
+|----------|----------|
+| Animation duration | **250ms** (collapse and expand same duration) |
+| Stagger timing | ~50-100ms delay between picker collapse start and Selection Control fade-in |
+| Picker state on return | **Fresh state** — no preserved scroll/search |
+| Content cassettes | **Simultaneous** with Hero Card (one cohesive reveal) |
+| Keyboard navigation | TBD during Phase 6 polish |
 
-2. **Stagger timing**: How much delay between picker collapse start and Selection Control fade-in? (Spec says 50-100ms)
-
-3. **Picker state on return**: Fresh state or preserve scroll/search?
-
-4. **Content cassettes**: Should they animate in staggered, or all at once with Hero?
-
-5. **Keyboard navigation**: Tab order during transition?
+> **Content cassettes** = feature panels below Hero Card (e.g., messages heat map). They appear as part of the same reveal animation as the Hero Card.
 
 ---
 

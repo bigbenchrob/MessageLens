@@ -89,8 +89,9 @@ class ContactFlatListWidget extends ConsumerWidget {
 
   Future<void> _handleContactSelection(WidgetRef ref, int contactId) async {
     // Construct spec on user interaction (output, not interpretation)
+    // Emit selection control which cascades to hero summary
     final newSpec = CassetteSpec.contacts(
-      ContactsCassetteSpec.contactHeroSummary(chosenContactId: contactId),
+      ContactsCassetteSpec.contactSelectionControl(chosenContactId: contactId),
     );
 
     ref
