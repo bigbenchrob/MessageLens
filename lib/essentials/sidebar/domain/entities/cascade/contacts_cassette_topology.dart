@@ -2,19 +2,14 @@ part of '../cassette_spec.dart';
 
 CassetteSpec? resolveContactsChild(ContactsCassetteSpec spec) {
   return spec.when(
-    contactChooser: (chosenContactId) {
-      if (chosenContactId == null) {
-        return null;
-      }
-      // When a contact is chosen, show the selection control
-      return CassetteSpec.contacts(
-        ContactsCassetteSpec.contactSelectionControl(
-          chosenContactId: chosenContactId,
-        ),
-      );
+    contactChooser: (_) {
+      // Terminal node — the info card above handles the transition
+      // to contactSelectionControl when a contact is chosen.
+      return null;
     },
     contactSelectionControl: (chosenContactId) {
-      // Selection control cascades to the hero summary
+      // Selection control sits below info card, cascades to hero summary.
+      // Chain: infoCard(chosenContact) → selectionControl → heroSummary → heatMap
       return CassetteSpec.contacts(
         ContactsCassetteSpec.contactHeroSummary(
           chosenContactId: chosenContactId,

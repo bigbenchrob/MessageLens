@@ -8,6 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // left panel surface.
 import '../../sidebar/feature_level_providers.dart';
 import '../../sidebar/presentation/sidebar_info_card.dart';
+import '../../sidebar/presentation/view/sidebar_navigation_card.dart';
 import '../domain/entities/panel_stack.dart';
 import '../domain/navigation_constants.dart';
 import '../domain/sidebar_mode.dart';
@@ -167,11 +168,12 @@ class _LeftSidebarSurface extends StatelessWidget {
             controls.add(constrained);
           } else {
             // SidebarCassetteCard respects its own shouldExpand flag.
-            // SidebarInfoCard should never expand (it wraps its content).
+            // SidebarInfoCard and SidebarNavigationCard never expand.
             // Other widgets default to expanding.
             final shouldExpand = switch (widget) {
               SidebarCassetteCard(:final shouldExpand) => shouldExpand,
               SidebarInfoCard() => false,
+              SidebarNavigationCard() => false,
               _ => true,
             };
             content.add((widget: constrained, shouldExpand: shouldExpand));

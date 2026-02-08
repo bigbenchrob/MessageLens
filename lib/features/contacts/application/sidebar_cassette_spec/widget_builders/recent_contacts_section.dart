@@ -11,7 +11,6 @@ import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 
 /// Section displaying recent contacts at the top of the contact picker.
@@ -155,18 +154,20 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
   bool _isHovered = false;
 
   void _handleTap() {
-    // Construct the new spec (widgets may construct specs as output)
-    // Emit selection control which cascades to hero summary
-    final newSpec = CassetteSpec.contacts(
-      ContactsCassetteSpec.contactSelectionControl(
+    // Replace the info card (one level up) with the chosen-contact variant.
+    // The info card's cascade topology will produce:
+    //   infoCard(chosenContact) → selectionControl → heroSummary → heatMap
+    final infoCardIndex = widget.cassetteIndex - 1;
+    final newSpec = CassetteSpec.contactsInfo(
+      ContactsInfoCassetteSpec.infoCard(
+        key: ContactsInfoKey.chosenContact,
         chosenContactId: widget.participantId,
       ),
     );
 
-    // Update the cassette rack using the index
     ref
         .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
-        .replaceAtIndexAndCascade(widget.cassetteIndex, newSpec);
+        .replaceAtIndexAndCascade(infoCardIndex, newSpec);
 
     // Track as recently accessed
     _trackContactAccess(widget.participantId);

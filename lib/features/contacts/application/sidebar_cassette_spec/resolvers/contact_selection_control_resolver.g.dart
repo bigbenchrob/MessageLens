@@ -7,12 +7,14 @@ part of 'contact_selection_control_resolver.dart';
 // **************************************************************************
 
 String _$contactSelectionControlResolverHash() =>
-    r'91cf1445a8dc37ed44924642c2906445bcd57332';
+    r'b65a8a0616aa042aecf6fa8dc32914277e4b0b2e';
 
-/// Resolves a contact selection control cassette.
+/// Resolves the "back to picker" selection control.
 ///
-/// This resolver produces a compact "Change contact" control view model
-/// that displays the selected contact and provides re-entry to the picker.
+/// The selection control is **navigation, not content and not identity**.
+/// It uses [CassetteCardType.sidebarNavigation] — a full-bleed card type
+/// purpose-built for "back to previous state" navigation affordances.
+/// No card chrome, no shadow, no contact name.
 ///
 /// ## Contract (from 00-cross-surface-spec-system.md)
 ///
@@ -20,14 +22,6 @@ String _$contactSelectionControlResolverHash() =>
 /// - Returns `Future<SidebarCassetteCardViewModel>`
 /// - Determines which widget builder to use
 /// - Does NOT construct widgets itself (delegates to widget builder)
-///
-/// ## Visual Role
-///
-/// The selection control is visually subordinate to the Hero Card and serves
-/// as a "collapsed" representation of the picker. It provides:
-/// - Selected contact name display
-/// - "Change" affordance to return to picker
-/// - Compact height (~44px)
 ///
 /// Copied from [ContactSelectionControlResolver].
 @ProviderFor(ContactSelectionControlResolver)

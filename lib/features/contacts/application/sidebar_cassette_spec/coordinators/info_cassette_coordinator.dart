@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/contacts_info_cassette_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/contacts_info_cassette_spec.dart';
 import '../resolvers/info_content_resolver.dart';
 
 part 'info_cassette_coordinator.g.dart';
@@ -32,16 +32,21 @@ class ContactsInfoCassetteCoordinator
     required int cassetteIndex,
   }) async {
     switch (spec) {
-      case ContactsInfoCassetteSpecInfoCard(:final key):
+      case ContactsInfoCassetteSpecInfoCard(:final key, :final chosenContactId):
         final content = await ref
             .read(contactsInfoContentResolverProvider.notifier)
-            .resolve(key);
+            .resolve(
+              key,
+              cassetteIndex: cassetteIndex,
+              chosenContactId: chosenContactId,
+            );
 
         return SidebarCassetteCardViewModel(
           title: content.title ?? '',
           child: const SizedBox.shrink(), // ignored for info cards
           cardType: CassetteCardType.info,
           infoBodyText: content.body,
+          infoAction: content.action,
         );
     }
 

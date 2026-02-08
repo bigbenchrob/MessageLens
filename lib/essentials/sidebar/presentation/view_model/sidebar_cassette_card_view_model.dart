@@ -12,6 +12,11 @@ enum CassetteCardType {
   /// Uses [SidebarInfoCard] with tinted background, optional title/footnote.
   /// When this type is used, [infoBodyText] provides the card body content.
   info,
+
+  /// Full-bleed navigation control for "back to previous state" actions.
+  /// Uses [SidebarNavigationCard] with a subtle tinted strip.
+  /// The child widget owns all internal padding, typography, and interaction.
+  sidebarNavigation,
 }
 
 /// Presentation data for rendering a cassette inside the sidebar card shell.
@@ -24,6 +29,7 @@ class SidebarCassetteCardViewModel {
     required this.child,
     this.cardType = CassetteCardType.standard,
     this.infoBodyText,
+    this.infoAction,
     this.isControl = false,
     this.isNaked = false,
     bool? shouldExpand,
@@ -55,6 +61,13 @@ class SidebarCassetteCardViewModel {
   /// When [cardType] is [CassetteCardType.info], this text is rendered as the
   /// main explanatory content of the [SidebarInfoCard].
   final String? infoBodyText;
+
+  /// Optional escape-hatch action widget for info cards.
+  ///
+  /// When [cardType] is [CassetteCardType.info] and this is non-null,
+  /// the action is rendered at the bottom of the [SidebarInfoCard]
+  /// as a footnote-action (mutually exclusive with [footerText]).
+  final Widget? infoAction;
 
   /// Whether this cassette is primarily a control surface (vs content).
   /// Control cassettes should be visually de-emphasized in the sidebar.

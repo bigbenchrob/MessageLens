@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ContactsInfoCassetteSpec {
 
- ContactsInfoKey get key;
+ ContactsInfoKey get key; int? get chosenContactId;
 /// Create a copy of ContactsInfoCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ContactsInfoCassetteSpecCopyWith<ContactsInfoCassetteSpec> get copyWith => _$Co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactsInfoCassetteSpec&&(identical(other.key, key) || other.key == key));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactsInfoCassetteSpec&&(identical(other.key, key) || other.key == key)&&(identical(other.chosenContactId, chosenContactId) || other.chosenContactId == chosenContactId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,key);
+int get hashCode => Object.hash(runtimeType,key,chosenContactId);
 
 @override
 String toString() {
-  return 'ContactsInfoCassetteSpec(key: $key)';
+  return 'ContactsInfoCassetteSpec(key: $key, chosenContactId: $chosenContactId)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ContactsInfoCassetteSpecCopyWith<$Res>  {
   factory $ContactsInfoCassetteSpecCopyWith(ContactsInfoCassetteSpec value, $Res Function(ContactsInfoCassetteSpec) _then) = _$ContactsInfoCassetteSpecCopyWithImpl;
 @useResult
 $Res call({
- ContactsInfoKey key
+ ContactsInfoKey key, int? chosenContactId
 });
 
 
@@ -62,10 +62,11 @@ class _$ContactsInfoCassetteSpecCopyWithImpl<$Res>
 
 /// Create a copy of ContactsInfoCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? key = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? key = null,Object? chosenContactId = freezed,}) {
   return _then(_self.copyWith(
 key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as ContactsInfoKey,
+as ContactsInfoKey,chosenContactId: freezed == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -150,10 +151,10 @@ return infoCard(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ContactsInfoKey key)?  infoCard,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ContactsInfoKey key,  int? chosenContactId)?  infoCard,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ContactsInfoCassetteSpecInfoCard() when infoCard != null:
-return infoCard(_that.key);case _:
+return infoCard(_that.key,_that.chosenContactId);case _:
   return orElse();
 
 }
@@ -171,10 +172,10 @@ return infoCard(_that.key);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ContactsInfoKey key)  infoCard,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ContactsInfoKey key,  int? chosenContactId)  infoCard,}) {final _that = this;
 switch (_that) {
 case ContactsInfoCassetteSpecInfoCard():
-return infoCard(_that.key);case _:
+return infoCard(_that.key,_that.chosenContactId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -191,10 +192,10 @@ return infoCard(_that.key);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ContactsInfoKey key)?  infoCard,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ContactsInfoKey key,  int? chosenContactId)?  infoCard,}) {final _that = this;
 switch (_that) {
 case ContactsInfoCassetteSpecInfoCard() when infoCard != null:
-return infoCard(_that.key);case _:
+return infoCard(_that.key,_that.chosenContactId);case _:
   return null;
 
 }
@@ -206,10 +207,11 @@ return infoCard(_that.key);case _:
 
 
 class ContactsInfoCassetteSpecInfoCard extends ContactsInfoCassetteSpec {
-  const ContactsInfoCassetteSpecInfoCard({required this.key}): super._();
+  const ContactsInfoCassetteSpecInfoCard({required this.key, this.chosenContactId}): super._();
   
 
 @override final  ContactsInfoKey key;
+@override final  int? chosenContactId;
 
 /// Create a copy of ContactsInfoCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -221,16 +223,16 @@ $ContactsInfoCassetteSpecInfoCardCopyWith<ContactsInfoCassetteSpecInfoCard> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactsInfoCassetteSpecInfoCard&&(identical(other.key, key) || other.key == key));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactsInfoCassetteSpecInfoCard&&(identical(other.key, key) || other.key == key)&&(identical(other.chosenContactId, chosenContactId) || other.chosenContactId == chosenContactId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,key);
+int get hashCode => Object.hash(runtimeType,key,chosenContactId);
 
 @override
 String toString() {
-  return 'ContactsInfoCassetteSpec.infoCard(key: $key)';
+  return 'ContactsInfoCassetteSpec.infoCard(key: $key, chosenContactId: $chosenContactId)';
 }
 
 
@@ -241,7 +243,7 @@ abstract mixin class $ContactsInfoCassetteSpecInfoCardCopyWith<$Res> implements 
   factory $ContactsInfoCassetteSpecInfoCardCopyWith(ContactsInfoCassetteSpecInfoCard value, $Res Function(ContactsInfoCassetteSpecInfoCard) _then) = _$ContactsInfoCassetteSpecInfoCardCopyWithImpl;
 @override @useResult
 $Res call({
- ContactsInfoKey key
+ ContactsInfoKey key, int? chosenContactId
 });
 
 
@@ -258,10 +260,11 @@ class _$ContactsInfoCassetteSpecInfoCardCopyWithImpl<$Res>
 
 /// Create a copy of ContactsInfoCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? key = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? key = null,Object? chosenContactId = freezed,}) {
   return _then(ContactsInfoCassetteSpecInfoCard(
 key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
-as ContactsInfoKey,
+as ContactsInfoKey,chosenContactId: freezed == chosenContactId ? _self.chosenContactId : chosenContactId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

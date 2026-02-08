@@ -19,6 +19,7 @@ import '../feature_level_providers.dart';
 /// utility widgets to wrap each cassette in a card
 import '../presentation/sidebar_info_card.dart';
 import '../presentation/view/sidebar_cassette_card.dart';
+import '../presentation/view/sidebar_navigation_card.dart';
 import '../presentation/view_model/sidebar_cassette_card_view_model.dart';
 
 part 'cassette_widget_coordinator_provider.g.dart';
@@ -158,8 +159,11 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
               title: viewModel.title.isEmpty ? null : viewModel.title,
               body: TextSpan(text: viewModel.infoBodyText ?? ''),
               footnote: viewModel.footerText,
+              action: viewModel.infoAction,
             ),
           );
+        case CassetteCardType.sidebarNavigation:
+          widgets.add(SidebarNavigationCard(child: viewModel.child));
       }
     }
 

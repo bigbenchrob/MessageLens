@@ -7,7 +7,7 @@ part of 'info_content_resolver.dart';
 // **************************************************************************
 
 String _$contactsInfoContentResolverHash() =>
-    r'e9777415aae28ffbe4bf126c36f84a7c7ad6b6be';
+    r'596d2c23dab03616e86b3b424f2298cd4b376367';
 
 /// Resolves info card content for [ContactsInfoKey] values.
 ///

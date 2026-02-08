@@ -1,6 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/contacts_info_cassette_spec.dart';
+import '../../../domain/spec_classes/contacts_info_cassette_spec.dart';
+import '../widget_builders/contact_selection_control_widget.dart';
 
 part 'info_content_resolver.g.dart';
 
@@ -9,7 +11,10 @@ class ContactsInfoContent {
   final String? title;
   final String body;
 
-  const ContactsInfoContent({this.title, required this.body});
+  /// Optional escape-hatch action widget rendered at the bottom of the card.
+  final Widget? action;
+
+  const ContactsInfoContent({this.title, required this.body, this.action});
 }
 
 /// Resolves info card content for [ContactsInfoKey] values.
@@ -31,13 +36,31 @@ class ContactsInfoContentResolver extends _$ContactsInfoContentResolver {
   }
 
   /// Resolve the content for a given info key.
-  Future<ContactsInfoContent> resolve(ContactsInfoKey key) async {
+  ///
+  /// [cassetteIndex] is needed so that embedded action widgets
+  /// (e.g., the selection control) can replace-and-cascade at the
+  /// correct position in the rack.
+  Future<ContactsInfoContent> resolve(
+    ContactsInfoKey key, {
+    required int cassetteIndex,
+    int? chosenContactId,
+  }) async {
     switch (key) {
       case ContactsInfoKey.favouritesVsRecents:
         return const ContactsInfoContent(
           body:
               'Contacts are ordered by message frequency. '
               'Favorites marked in macOS Contacts appear at the top.',
+        );
+      case ContactsInfoKey.chosenContact:
+        return ContactsInfoContent(
+          body:
+              'Showing messages and activity for the selected contact. '
+              'Click the name to edit how it appears in the app.',
+          action: ContactSelectionControlWidget(
+            contactId: chosenContactId!,
+            cassetteIndex: cassetteIndex,
+          ),
         );
     }
   }

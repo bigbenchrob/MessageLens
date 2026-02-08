@@ -2,13 +2,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'contacts_info_cassette_spec.freezed.dart';
 
-/// Sidebar-surface spec for Contacts "info" cassettes.
+/// Feature-owned spec for Contacts "info" cassettes.
 ///
-/// IMPORTANT:
-/// - This is a *sidebar protocol* entity, so it lives under `essentials/sidebar/...`.
-/// - It does NOT contain explanatory text directly.
-/// - It carries only a *feature-owned key* that the Contacts feature will resolve
-///   into surface-agnostic InfoContent.
+/// Lives with the Contacts feature since the keys and their meanings
+/// are feature-owned. Re-exported by `essentials/sidebar/feature_level_providers.dart`
+/// so the sidebar cascade topology can reference it.
 ///
 /// This allows:
 /// - centralized spec routing (CassetteSpec.* variants)
@@ -27,21 +25,19 @@ abstract class ContactsInfoCassetteSpec with _$ContactsInfoCassetteSpec {
   /// Request an informational card.
   ///
   /// The `key` identifies the meaning; the Contacts feature will resolve it.
+  /// [chosenContactId] is carried through so the cascade topology can route
+  /// to the correct child spec (e.g. selection control for a chosen contact).
   const factory ContactsInfoCassetteSpec.infoCard({
     required ContactsInfoKey key,
+    int? chosenContactId,
   }) = ContactsInfoCassetteSpecInfoCard;
 }
 
 /// Feature-owned keys that identify informational content meaning for Contacts.
-///
-/// NOTE:
-/// This enum is referenced by a sidebar protocol spec, but its values are owned by the
-/// Contacts feature. Keeping it here is acceptable because:
-/// - it is still "meaning-level", not UI-level
-/// - it allows the spec to remain lightweight
-///
-/// Alternative (later):
-/// - Move this enum into the Contacts feature and reference it here by import.
-/// - That is a larger migration because essentials then depends on feature code.
-/// For now, keep it here to avoid circular dependencies.
-enum ContactsInfoKey { favouritesVsRecents }
+enum ContactsInfoKey {
+  /// Shown before a contact is chosen: explains how contacts are listed.
+  favouritesVsRecents,
+
+  /// Shown after a contact is chosen: contextual info about the selection.
+  chosenContact,
+}

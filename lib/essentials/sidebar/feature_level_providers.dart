@@ -1,12 +1,13 @@
 export '../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
+export '../../features/contacts/domain/spec_classes/contacts_info_cassette_spec.dart';
 export '../../features/sidebar_utilities/feature_level_providers.dart'
     show SidebarUtilityCassetteSpec;
 export './application/cassette_rack_state_provider.dart';
 export './application/cassette_widget_coordinator_provider.dart';
 export './domain/entities/cassette_spec.dart';
-export './domain/entities/features/contacts_info_cassette_spec.dart';
 export './domain/entities/features/contacts_settings_spec.dart';
 export './domain/entities/features/handles_cassette_spec.dart';
 export './domain/entities/features/messages_cassette_spec.dart';
 export './presentation/view/sidebar_cassette_card.dart';
+export './presentation/view/sidebar_navigation_card.dart';
 export './presentation/view_model/sidebar_cassette_card_view_model.dart';

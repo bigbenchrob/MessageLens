@@ -10,21 +10,33 @@ import '../../../config/theme/theme_typography.dart';
 /// - Lives in the cassette flow (so it *is* a card)
 /// - Lighter than SidebarCassetteCard (no shadow, subtle tint)
 /// - Optional title + body + footnote
+/// - Optional [action] widget rendered below body as a footnote-action
+///   (mutually exclusive with [footnote])
 class SidebarInfoCard extends ConsumerWidget {
   const SidebarInfoCard({
     super.key,
     this.title,
     required this.body,
     this.footnote,
+    this.action,
     this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
     this.padding = const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
     this.borderRadius = 10.0,
     this.showBorder = false,
-  });
+  }) : assert(
+         footnote == null || action == null,
+         'SidebarInfoCard cannot have both a footnote and an action.',
+       );
 
   final String? title;
   final InlineSpan body;
   final String? footnote;
+
+  /// Optional escape-hatch action rendered at the bottom of the card.
+  ///
+  /// Reads as a footnote-action — muted, lightweight, no divider.
+  /// Mutually exclusive with [footnote].
+  final Widget? action;
 
   final EdgeInsetsGeometry margin;
   final EdgeInsetsGeometry padding;
@@ -68,6 +80,7 @@ class SidebarInfoCard extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(footnote!, style: typography.infoCardFootnote),
             ],
+            if (action != null) ...[const SizedBox(height: 10), action!],
           ],
         ),
       ),

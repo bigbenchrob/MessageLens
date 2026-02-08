@@ -8,7 +8,6 @@ import '../../../../../essentials/navigation/domain/entities/features/contacts_l
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../../domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../../../presentation/widgets/contact_cassette_error.dart';
@@ -71,15 +70,20 @@ class ContactGroupedPickerWidget extends ConsumerWidget {
   }
 
   Future<void> _handleContactSelection(WidgetRef ref, int contactId) async {
-    // Construct spec on user interaction (output, not interpretation)
-    // Emit selection control which cascades to hero summary
-    final newSpec = CassetteSpec.contacts(
-      ContactsCassetteSpec.contactSelectionControl(chosenContactId: contactId),
+    // Replace the info card (one level up) with the chosen-contact variant.
+    // The info card's cascade topology will produce:
+    //   infoCard(chosenContact) → selectionControl → heroSummary → heatMap
+    final infoCardIndex = cassetteIndex - 1;
+    final newSpec = CassetteSpec.contactsInfo(
+      ContactsInfoCassetteSpec.infoCard(
+        key: ContactsInfoKey.chosenContact,
+        chosenContactId: contactId,
+      ),
     );
 
     ref
         .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
-        .replaceAtIndexAndCascade(cassetteIndex, newSpec);
+        .replaceAtIndexAndCascade(infoCardIndex, newSpec);
 
     // Track contact as recently accessed (persists to overlay.db)
     final overlayDb = await ref.read(overlayDatabaseProvider.future);
