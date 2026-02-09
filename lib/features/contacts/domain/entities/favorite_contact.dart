@@ -8,6 +8,7 @@ abstract class FavoriteContact with _$FavoriteContact {
   const factory FavoriteContact({
     required int participantId,
     required int sortOrder,
+    required bool isFavorited,
     required DateTime pinnedAt,
     DateTime? lastInteractionAt,
     required DateTime updatedAt,

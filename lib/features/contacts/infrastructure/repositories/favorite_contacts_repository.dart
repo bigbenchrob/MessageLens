@@ -12,6 +12,7 @@ class FavoriteContactsRepository {
     return FavoriteContact(
       participantId: row.participantId,
       sortOrder: row.sortOrder,
+      isFavorited: row.isFavorited,
       pinnedAt: DateTime.parse(row.createdAtUtc).toUtc(),
       lastInteractionAt: row.lastInteractionUtc != null
           ? DateTime.parse(row.lastInteractionUtc!).toUtc()
@@ -38,6 +39,11 @@ class FavoriteContactsRepository {
 
   Future<void> removeFavorite(int participantId) {
     return _database.removeFavorite(participantId);
+  }
+
+  /// Check whether [participantId] is currently a favorite.
+  Future<bool> isFavorite(int participantId) {
+    return _database.isFavorite(participantId);
   }
 
   Future<void> updateFavorite({

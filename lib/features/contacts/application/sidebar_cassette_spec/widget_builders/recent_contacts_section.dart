@@ -12,6 +12,7 @@ import '../../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
+import '../../../presentation/widgets/contact_initial_badge.dart';
 
 /// Section displaying recent contacts at the top of the contact picker.
 ///
@@ -64,8 +65,6 @@ class RecentContactsSection extends ConsumerWidget {
           return mainPicker;
         }
 
-        ref.watch(themeColorsProvider);
-        final colors = ref.read(themeColorsProvider.notifier);
         final typography = ref.watch(themeTypographyProvider);
 
         return Column(
@@ -84,18 +83,16 @@ class RecentContactsSection extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // "Recents" inline label
+                  // "RECENTS" section label — whispers "section label", not peer
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      'Recents',
-                      style: typography.caption.copyWith(
-                        color: colors.content.textTertiary,
-                      ),
+                      'RECENTS',
+                      style: typography.pickerSectionLabel,
                     ),
                   ),
 
-                  // Recent contact rows - lightweight, spaced
+                  // Recent contact rows with initial badges
                   ...recents.asMap().entries.map((entry) {
                     final index = entry.key;
                     final recent = entry.value;
@@ -215,13 +212,14 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Row(
               children: [
+                ContactInitialBadge(displayName: widget.displayName),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.displayName,
-                    // Reduced contrast - suggestion, not primary content
                     style: typography.body.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w400,

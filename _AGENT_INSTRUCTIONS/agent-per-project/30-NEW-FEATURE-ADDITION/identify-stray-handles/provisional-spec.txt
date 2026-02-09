@@ -1,0 +1,246 @@
+Stray Handle Management
+
+Feature Specification
+
+1. Purpose
+
+This feature introduces a first-class mechanism for reviewing, classifying, and persistently managing email and phone handles that are not currently accessible through contact-based UI surfaces.
+
+The system is designed to:
+	•	Preserve all imported data
+	•	Avoid destructive operations on the working/import databases
+	•	Give the user fast, low-friction control over spam, unknown entities, and valuable non-contact correspondents
+	•	Use the overlay database as the sole source of truth for user intent
+
+⸻
+
+2. Definitions
+
+Handle
+
+A normalized communication identifier originating from iMessage data:
+	•	Phone number (E.164 normalized)
+	•	Email address (lower-cased, canonicalized)
+
+A handle may participate in one or more conversations and may represent:
+	•	A real person
+	•	An organization or service
+	•	An automated system
+	•	Spam
+
+Stray Handle
+
+A handle that:
+	•	Is not linked to an AddressBook contact or
+	•	Cannot currently be surfaced through contact-based UI (e.g. picker, contact cassettes)
+
+⸻
+
+3. Design Principles
+	1.	Handles are first-class overlay entities
+	•	Contact status is a projection, not an intrinsic property.
+	2.	Import logic suggests, overlays decide
+	•	Suspected spam or matches are hints, not behavior.
+	3.	Nothing is deleted
+	•	“Hidden” means excluded from normal UI, not erased.
+	4.	Fast triage beats perfect classification
+	•	The system optimizes for quick review and progressive refinement.
+
+⸻
+
+4. Handle Classification Model
+
+Classification is represented by orthogonal flags, not a single enum.
+
+4.1 Identity State
+	•	unknown
+	•	named (user-provided label)
+
+4.2 Visibility / Surfacing State
+	•	normal
+	•	promote_to_contact_picker
+	•	spam_hidden
+
+These dimensions combine to express all supported outcomes:
+
+
+| User Meaning              | user_label | promote_to_contact_picker | spam_hidden |
+|---------------------------|------------|----------------------------|-------------|
+| Unidentified              | null       | false                      | false       |
+| Identified                | non-null   | false                      | false       |
+| Identified & valuable     | non-null   | true                       | false       |
+| Spam                      | any        | false                      | true        |
+
+
+5. Overlay Persistence Model
+
+All user decisions are stored in the overlay database.
+
+5.1 overlay_handle (conceptual schema)
+	•	handle_id
+Normalized string key (phone/email)
+	•	handle_type
+phone | email
+	•	user_label
+Nullable string
+	•	linked_contact_id
+Nullable reference to AddressBook contact
+	•	promote_to_contact_picker
+Boolean
+	•	spam_hidden
+Boolean
+	•	spam_suspected
+Boolean (system-generated hint)
+	•	reviewed_at
+Nullable timestamp
+	•	Audit fields (created_at, updated_at)
+
+Constraints
+	•	Exactly one row per unique handle
+	•	Overlay values always override import-time inference
+
+⸻
+
+6. Review Surface (Sidebar)
+
+6.1 Entry Point
+
+A dedicated sidebar section (e.g. “Unclassified Handles” or “Handle Inbox”) lists all handles where:
+	•	spam_hidden = false
+	•	and (reviewed_at IS NULL OR user explicitly requests review)
+
+6.2 List Row Content
+
+Each row displays:
+	•	Handle text (phone/email)
+	•	Optional user label
+	•	Message count
+	•	First / last message date
+	•	Optional last-message snippet
+	•	Spam suspicion indicator (if applicable)
+
+6.3 Sorting & Filtering
+	•	Sort by:
+	•	Message count
+	•	Last activity
+	•	First seen
+	•	Filters:
+	•	Suspected spam
+	•	Unreviewed only
+	•	Promoted handles
+	•	Named vs unnamed
+
+⸻
+
+7. Center Panel: Handle Lens View
+
+Selecting a handle opens a Handle Lens in the center panel.
+
+7.1 Lens Semantics
+
+The Handle Lens shows:
+	•	All messages to or from the selected handle
+	•	Across all conversations
+	•	Ordered by:
+	•	Date or message id
+	•	Ascending / descending
+
+This is explicitly not a single conversation thread view.
+
+7.2 Controls
+
+From the Handle Lens, the user may:
+	•	Assign or edit a label
+	•	Link the handle to an existing contact
+	•	Promote the handle to the contact picker
+	•	Mark as spam
+	•	Mark as reviewed
+
+⸻
+
+8. Spam Handling
+
+8.1 Default Behavior
+
+When spam_hidden = true:
+	•	Handle is excluded from:
+	•	Sidebar lists
+	•	Contact picker
+	•	Default search results
+	•	Timeline aggregations
+
+8.2 Escape Hatch
+
+A dedicated Spam Quarantine surface:
+	•	Read-only by default
+	•	Explicitly accessed via settings or advanced filters
+	•	Allows:
+	•	Reviewing messages
+	•	Unmarking spam
+	•	Relabeling
+
+No spam content reappears in normal UI unless explicitly restored.
+
+⸻
+
+9. Bulk Triage (Non-Functional Requirement)
+
+The review surface must support:
+	•	Multi-selection
+	•	Bulk actions:
+	•	Mark spam
+	•	Promote
+	•	Assign label
+	•	Mark reviewed
+	•	Keyboard-first workflow (future-proofed)
+
+⸻
+
+10. Contact Projection Rules
+
+A handle appears in contact-based UI if:
+	•	promote_to_contact_picker = true
+	•	OR linked_contact_id IS NOT NULL
+
+Promoted handles:
+	•	Appear as pseudo-contacts (distinct from AddressBook entries)
+	•	Do not mutate AddressBook data
+	•	May optionally be exported to AddressBook in a future feature
+
+⸻
+
+11. Import & Reconciliation Rules
+	•	Import may set spam_suspected = true
+	•	Import may suggest contact matches
+	•	Overlay decisions always win
+	•	New imports must:
+	•	Respect existing overlay_handle rows
+	•	Never re-surface spam-hidden handles
+	•	Never overwrite user labels or promotions
+
+⸻
+
+12. Explicit Non-Goals (for v1)
+	•	Automatic handle merging
+	•	Cross-handle entity grouping
+	•	Editing AddressBook entries
+	•	Deleting message data
+
+⸻
+
+13. Future Extensions (Designed-For)
+	•	Handle grouping / merge (“these belong to the same entity”)
+	•	Auto-label suggestions
+	•	Spam heuristics tuning
+	•	Per-handle muting or archiving
+	•	Export promoted handles to AddressBook
+
+⸻
+
+TL;DR
+
+Handles are first-class overlay entities.
+Users classify them with labels + visibility flags.
+Spam is hidden but never destroyed.
+The Handle Lens provides a powerful cross-conversation view.
+Overlays, not imports, define truth.

@@ -7,9 +7,11 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 
-import '../../application_pre_cassette/grouped_contacts_provider.dart';
-import '../../infrastructure/repositories/contacts_list_repository.dart';
+import '../../application_pre_cassette/unified_picker_sections_provider.dart';
+import '../../infrastructure/repositories/contacts_list_repository.dart'
+    show ContactSummary;
 import 'contact_highlight_row.dart';
 
 /// Smart header that can show either the full picker or the compact lozenge.
@@ -69,7 +71,7 @@ class FullContactPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groupedAsync = ref.watch(groupedContactsProvider);
+    final groupedAsync = ref.watch(unifiedPickerSectionsProvider);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
@@ -89,12 +91,12 @@ class FullContactPicker extends ConsumerWidget {
         }
 
         final pickerContent = groupedAsync.when(
-          data: (grouped) {
-            if (grouped.availableLetters.isEmpty) {
+          data: (unified) {
+            if (unified.sections.isEmpty) {
               return const _GroupedEmptyState();
             }
             return GroupedContactsPicker(
-              grouped: grouped,
+              unified: unified,
               selectedParticipantId: selectedParticipantId,
               onContactSelected: onContactSelected,
             );
@@ -106,7 +108,7 @@ class FullContactPicker extends ConsumerWidget {
           error: (error, _) => _GroupedSelectorError(
             message: '$error',
             onRetry: () {
-              ref.invalidate(groupedContactsProvider);
+              ref.invalidate(unifiedPickerSectionsProvider);
             },
           ),
         );
@@ -303,12 +305,12 @@ const double _kJumpBarWidth = 24;
 class GroupedContactsPicker extends ConsumerStatefulWidget {
   const GroupedContactsPicker({
     super.key,
-    required this.grouped,
+    required this.unified,
     required this.selectedParticipantId,
     required this.onContactSelected,
   });
 
-  final GroupedContacts grouped;
+  final UnifiedPickerSections unified;
   final int? selectedParticipantId;
   final ValueChanged<int> onContactSelected;
 
@@ -323,7 +325,7 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
       ItemPositionsListener.create();
   String? _activeLetter;
 
-  List<String> get _letters => widget.grouped.availableLetters;
+  List<String> get _letters => widget.unified.alphabeticalLetters;
 
   @override
   void initState() {
@@ -355,23 +357,35 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
       return;
     }
 
-    final firstVisible = visiblePositions.first;
-    final currentLetter = _letters[firstVisible.index];
-    if (currentLetter != _activeLetter) {
+    // Map section index to alphabetical letter, accounting for
+    // non-alphabetical sections (FAVORITES, RECENTS) at the top.
+    final firstVisibleIndex = visiblePositions.first.index;
+    final offset = widget.unified.alphabeticalStartIndex;
+    final letterIndex = firstVisibleIndex - offset;
+
+    String? newLetter;
+    if (letterIndex >= 0 && letterIndex < _letters.length) {
+      newLetter = _letters[letterIndex];
+    }
+
+    if (newLetter != _activeLetter) {
       setState(() {
-        _activeLetter = currentLetter;
+        _activeLetter = newLetter;
       });
     }
   }
 
   void _scrollToLetter(String letter) {
-    final index = _letters.indexOf(letter);
-    if (index == -1) {
+    final letterIndex = _letters.indexOf(letter);
+    if (letterIndex == -1) {
       return;
     }
 
+    // Offset by the number of non-alphabetical sections at the top.
+    final sectionIndex = widget.unified.alphabeticalStartIndex + letterIndex;
+
     _itemScrollController.scrollTo(
-      index: index,
+      index: sectionIndex,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
@@ -388,15 +402,13 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
         final hasBoundedHeight = constraints.maxHeight.isFinite;
         final availableHeight = hasBoundedHeight
             ? constraints.maxHeight
-            : _calculatePickerHeight(widget.grouped.availableLetters.length);
-        final jumpBarHeight = _calculatePickerHeight(
-          widget.grouped.availableLetters.length,
-        );
+            : _calculatePickerHeight(_letters.length);
+        final jumpBarHeight = _calculatePickerHeight(_letters.length);
 
         final list = SizedBox(
           height: availableHeight,
           child: _GroupedContactsList(
-            grouped: widget.grouped,
+            unified: widget.unified,
             selectedParticipantId: widget.selectedParticipantId,
             onContactSelected: widget.onContactSelected,
             controller: _itemScrollController,
@@ -467,14 +479,14 @@ class _GroupedEmptyState extends ConsumerWidget {
 
 class _GroupedContactsList extends StatefulWidget {
   const _GroupedContactsList({
-    required this.grouped,
+    required this.unified,
     required this.selectedParticipantId,
     required this.onContactSelected,
     required this.controller,
     required this.positionsListener,
   });
 
-  final GroupedContacts grouped;
+  final UnifiedPickerSections unified;
   final int? selectedParticipantId;
   final ValueChanged<int> onContactSelected;
   final ItemScrollController controller;
@@ -487,20 +499,18 @@ class _GroupedContactsList extends StatefulWidget {
 class _GroupedContactsListState extends State<_GroupedContactsList> {
   @override
   Widget build(BuildContext context) {
-    final letters = widget.grouped.availableLetters;
+    final sections = widget.unified.sections;
 
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: ScrollablePositionedList.builder(
-        itemCount: letters.length,
+        itemCount: sections.length,
         itemScrollController: widget.controller,
         itemPositionsListener: widget.positionsListener,
         itemBuilder: (context, index) {
-          final letter = letters[index];
-          final contacts = widget.grouped.groups[letter] ?? const [];
           return _ContactGroupSection(
-            letter: letter,
-            contacts: contacts,
+            section: sections[index],
+            allFavoriteIds: widget.unified.allFavoriteIds,
             selectedParticipantId: widget.selectedParticipantId,
             onContactSelected: widget.onContactSelected,
           );
@@ -654,44 +664,44 @@ class _GroupedSelectorError extends ConsumerWidget {
 
 class _ContactGroupSection extends ConsumerWidget {
   const _ContactGroupSection({
-    required this.letter,
-    required this.contacts,
+    required this.section,
+    required this.allFavoriteIds,
     required this.selectedParticipantId,
     required this.onContactSelected,
   });
 
-  final String letter;
-  final List<ContactSummary> contacts;
+  final PickerSection section;
+  final Set<int> allFavoriteIds;
   final int? selectedParticipantId;
   final ValueChanged<int> onContactSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(themeColorsProvider);
-    final colors = ref.read(themeColorsProvider.notifier);
-    final typography = MacosTheme.of(context).typography;
+    final typography = ref.watch(themeTypographyProvider);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Section header — same visual grammar for all sections
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              letter,
-              style: typography.title3.copyWith(
-                fontSize: 14,
-                color: colors.content.textSecondary,
-              ),
+            padding: const EdgeInsets.only(
+              left: 8,
+              right: 8,
+              top: 4,
+              bottom: 4,
             ),
+            child: Text(section.label, style: typography.pickerSectionLabel),
           ),
-          const SizedBox(height: 4),
-          ...contacts.map(
+          ...section.contacts.map(
             (contact) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: _ContactListItem(
                 contact: contact,
+                showFavoriteIndicator: allFavoriteIds.contains(
+                  contact.participantId,
+                ),
                 selected: contact.participantId == selectedParticipantId,
                 onTap: () => onContactSelected(contact.participantId),
               ),
@@ -708,17 +718,20 @@ class _ContactListItem extends StatelessWidget {
     required this.contact,
     required this.selected,
     required this.onTap,
+    this.showFavoriteIndicator = false,
   });
 
   final ContactSummary contact;
   final bool selected;
   final VoidCallback onTap;
+  final bool showFavoriteIndicator;
 
   @override
   Widget build(BuildContext context) {
     return ContactHighlightRow(
       displayName: contact.displayName,
       shortName: contact.shortName,
+      showFavoriteIndicator: showFavoriteIndicator,
       onTap: onTap,
     );
   }

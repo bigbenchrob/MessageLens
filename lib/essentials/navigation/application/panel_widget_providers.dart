@@ -144,6 +144,7 @@ Widget leftPanelWidget(Ref ref, SidebarMode mode) {
   );
 }
 
+/// Sidebar surface that separates pinned controls from scrollable content.
 class _LeftSidebarSurface extends StatelessWidget {
   const _LeftSidebarSurface({required this.cassetteWidgets});
 

@@ -7,7 +7,6 @@ import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../resolver_tools/picker_mode_decision.dart';
 import '../widget_builders/contact_flat_list_widget.dart';
 import '../widget_builders/contact_grouped_picker_widget.dart';
-import '../widget_builders/recent_contacts_section.dart';
 
 part 'contact_chooser_resolver.g.dart';
 
@@ -68,17 +67,13 @@ class ContactChooserResolver extends _$ContactChooserResolver {
       ),
     };
 
-    // Wrap with recent contacts section
-    // The section handles showing/hiding based on whether recents exist
+    // The picker now contains FAVORITES and RECENTS sections inline
+    // via the unified picker sections provider.
     return SidebarCassetteCardViewModel(
       title: '',
       subtitle: null,
       shouldExpand: true,
-      child: RecentContactsSection(
-        chosenContactId: chosenContactId,
-        cassetteIndex: cassetteIndex,
-        mainPicker: mainPicker,
-      ),
+      child: mainPicker,
     );
   }
 }

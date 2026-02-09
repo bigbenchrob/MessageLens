@@ -21,12 +21,18 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 5) {
+        // Add is_favorited column; existing rows become non-favorited recents.
+        await m.addColumn(favoriteContacts, favoriteContacts.isFavorited);
+      }
     },
   );
 
@@ -528,49 +534,53 @@ class OverlayDatabase extends _$OverlayDatabase {
 
   // Helper methods for favorite contacts
 
-  /// Get all favorite contacts ordered by last interaction (most recent first)
+  /// Get all user-designated favorite contacts, ordered by when they were
+  /// favorited (most recent first).
   Future<List<FavoriteContact>> getAllFavorites() async {
-    return (select(favoriteContacts)..orderBy([
-          (tbl) => OrderingTerm(
-            expression: tbl.lastInteractionUtc,
-            mode: OrderingMode.desc,
-          ),
-          (tbl) => OrderingTerm(
-            expression: tbl.createdAtUtc,
-            mode: OrderingMode.desc,
-          ),
-        ]))
+    return (select(favoriteContacts)
+          ..where((tbl) => tbl.isFavorited.equals(true))
+          ..orderBy([
+            (tbl) => OrderingTerm(
+              expression: tbl.createdAtUtc,
+              mode: OrderingMode.desc,
+            ),
+          ]))
         .get();
   }
 
-  /// Get count of favorites (for limit enforcement)
+  /// Get count of user-designated favorites (for limit enforcement)
   Future<int> getFavoriteCount() async {
     final countQuery = selectOnly(favoriteContacts)
+      ..where(favoriteContacts.isFavorited.equals(true))
       ..addColumns([favoriteContacts.participantId.count()]);
     final result = await countQuery.getSingleOrNull();
     return result?.read(favoriteContacts.participantId.count()) ?? 0;
   }
 
-  /// Check if a participant is favorited
+  /// Check if a participant is explicitly favorited by the user.
   Future<bool> isFavorite(int participantId) async {
     final result =
         await (select(favoriteContacts)
               ..where((tbl) => tbl.participantId.equals(participantId)))
             .getSingleOrNull();
-    return result != null;
+    return result?.isFavorited ?? false;
   }
 
-  /// Add a contact to favorites
+  /// Mark a contact as a user-designated favorite.
+  ///
+  /// Uses upsert so this works whether or not a recents-only row already
+  /// exists for the participant.
   Future<void> addFavorite(
     int participantId,
     DateTime? lastInteractionUtc,
   ) async {
     final now = DateTime.now().toUtc();
 
-    await into(favoriteContacts).insert(
+    await into(favoriteContacts).insertOnConflictUpdate(
       FavoriteContactsCompanion.insert(
         participantId: Value(participantId),
         createdAtUtc: now.toIso8601String(),
+        isFavorited: const Value(true),
         lastInteractionUtc: lastInteractionUtc != null
             ? Value(lastInteractionUtc.toUtc().toIso8601String())
             : const Value.absent(),
@@ -579,11 +589,20 @@ class OverlayDatabase extends _$OverlayDatabase {
     );
   }
 
-  /// Remove a contact from favorites
+  /// Remove the favorite designation from a contact.
+  ///
+  /// Clears the `isFavorited` flag rather than deleting the row, because
+  /// the row may still be needed for recents tracking.
   Future<void> removeFavorite(int participantId) async {
-    await (delete(
+    final now = DateTime.now().toUtc().toIso8601String();
+    await (update(
       favoriteContacts,
-    )..where((tbl) => tbl.participantId.equals(participantId))).go();
+    )..where((tbl) => tbl.participantId.equals(participantId))).write(
+      FavoriteContactsCompanion(
+        isFavorited: const Value(false),
+        updatedAtUtc: Value(now),
+      ),
+    );
   }
 
   /// Update mutable attributes for a favorite contact.
@@ -617,21 +636,38 @@ class OverlayDatabase extends _$OverlayDatabase {
   }
 
   /// Track that a contact was recently accessed.
-  /// This creates or updates a favorite entry with current timestamp,
-  /// allowing us to show "recent contacts" in the UI.
+  ///
+  /// Creates or updates a row with the current timestamp for recency sorting.
+  /// Does **not** touch `isFavorited` — that flag is user-controlled only.
   Future<void> trackContactAccess(int participantId) async {
     final now = DateTime.now().toUtc();
-    final existing = await isFavorite(participantId);
+    final nowIso = now.toIso8601String();
 
-    if (existing) {
-      // Update existing entry's last interaction time
-      await updateFavorite(
-        participantId: participantId,
-        lastInteractionUtc: now,
+    final existing =
+        await (select(favoriteContacts)
+              ..where((tbl) => tbl.participantId.equals(participantId)))
+            .getSingleOrNull();
+
+    if (existing != null) {
+      // Update last interaction time; preserve isFavorited.
+      await (update(
+        favoriteContacts,
+      )..where((tbl) => tbl.participantId.equals(participantId))).write(
+        FavoriteContactsCompanion(
+          lastInteractionUtc: Value(nowIso),
+          updatedAtUtc: Value(nowIso),
+        ),
       );
     } else {
-      // Create new entry (auto-tracked as "recently accessed")
-      await addFavorite(participantId, now);
+      // Insert a recents-only row (isFavorited defaults to false).
+      await into(favoriteContacts).insert(
+        FavoriteContactsCompanion.insert(
+          participantId: Value(participantId),
+          createdAtUtc: nowIso,
+          lastInteractionUtc: Value(nowIso),
+          updatedAtUtc: Value(nowIso),
+        ),
+      );
     }
   }
 
@@ -824,6 +860,11 @@ class FavoriteContacts extends Table {
   /// ISO8601 timestamp of last user interaction (for auto-sorting)
   TextColumn get lastInteractionUtc =>
       text().named('last_interaction_utc').nullable()();
+
+  /// Whether this contact has been explicitly favorited by the user.
+  /// Rows exist for both favorites (true) and mere recents (false).
+  BoolColumn get isFavorited =>
+      boolean().named('is_favorited').withDefault(const Constant(false))();
 
   /// ISO8601 timestamp of the last mutation for bookkeeping
   TextColumn get updatedAtUtc => text()

@@ -287,6 +287,19 @@ class Overlays {
 /// - Corner radius: 6px (soft, matches card language)
 /// - Negative margin: -6px horizontal to offset padding visually
 /// - Transition duration: 120ms
+/// Muted initial-letter badge for contact rows.
+/// Neutral grays only — no per-contact color coding.
+class ContactBadge {
+  ContactBadge(this._t);
+  final ThemeColors _t;
+
+  /// Circle background: textTertiary at 12% alpha.
+  Color get background => _t.content.textTertiary.withValues(alpha: 0.12);
+
+  /// Letter foreground: full textTertiary.
+  Color get foreground => _t.content.textTertiary;
+}
+
 class InteractiveHints {
   const InteractiveHints(this._t);
   final ThemeColors _t;
@@ -318,6 +331,19 @@ class InteractiveHints {
 
   /// Recommended vertical padding for hover hitbox.
   double get paddingVertical => 5.0;
+
+  // -- Favorite star (hero card) ----------------------------------------
+
+  /// Filled-star color when favorited and at rest (muted, non-competing).
+  ///
+  /// Uses the warm amber from the system star glyph at reduced saturation
+  /// so it reads as "active but secondary" next to the display name.
+  Color get starFavoritedResting =>
+      const Color(0xFFFFC107).withValues(alpha: 0.55);
+
+  /// Filled-star color when favorited and hovered (crisp feedback).
+  Color get starFavoritedHover =>
+      const Color(0xFFFFC107).withValues(alpha: 0.90);
 }
 
 enum GrayTone {
@@ -475,6 +501,7 @@ class ThemeColors extends _$ThemeColors {
   Accents get accents => Accents(this);
   Overlays get overlays => Overlays(this);
   InteractiveHints get interactiveHints => InteractiveHints(this);
+  ContactBadge get contactBadge => ContactBadge(this);
 
   Brightness _resolveBrightness() {
     if (ref.exists(switchableDarkModeProvider)) {

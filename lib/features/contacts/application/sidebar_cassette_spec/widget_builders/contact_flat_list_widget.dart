@@ -12,6 +12,7 @@ import '../../../../../essentials/sidebar/application/cassette_rack_state_provid
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
+import '../../../presentation/widgets/contact_initial_badge.dart';
 
 /// Widget builder for the flat contact list display.
 ///
@@ -161,6 +162,8 @@ class _ContactRow extends StatelessWidget {
         ),
         child: Row(
           children: [
+            ContactInitialBadge(displayName: displayName),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 displayName,

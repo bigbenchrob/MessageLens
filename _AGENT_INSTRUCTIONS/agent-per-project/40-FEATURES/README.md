@@ -15,6 +15,12 @@ tests: []
 
 This directory documents every shipped feature. Each child folder should represent a stable capability that has graduated from `30-NEW-FEATURE-ADDITION/`.
 
+## Feature Index
+
+| Feature | Key Docs |
+| --- | --- |
+| `contact-favourites/` | [`RECENTS-FAVORITES.md`](contact-favourites/RECENTS-FAVORITES.md) — Picker section precedence, de-duplication, and semantic preservation rules |
+
 ## Required Files Per Feature
 
 Create or maintain the following documents inside every feature folder:

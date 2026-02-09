@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
 
-import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../../infrastructure/repositories/contacts_list_repository.dart';
+import '../../../application_pre_cassette/unified_picker_sections_provider.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
-import '../../../presentation/widgets/contact_cassette_error.dart';
 import '../../../presentation/widgets/grouped_contact_selector.dart';
 
 /// Widget builder for the grouped contact picker display.
@@ -40,32 +37,10 @@ class ContactGroupedPickerWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final contactsAsync = ref.watch(
-      contactsListRepositoryProvider(
-        spec: const ContactsListSpec.alphabetical(),
-      ),
-    );
-
-    return contactsAsync.when(
-      data: (contacts) {
-        return FullContactPicker(
-          selectedParticipantId: chosenContactId,
-          onContactSelected: (contactId) =>
-              _handleContactSelection(ref, contactId),
-          maxHeight: 380,
-        );
-      },
-      loading: () => const Center(child: ProgressCircle()),
-      error: (error, _) => ContactCassetteError(
-        onRetry: () {
-          ref.invalidate(
-            contactsListRepositoryProvider(
-              spec: const ContactsListSpec.alphabetical(),
-            ),
-          );
-        },
-        message: '$error',
-      ),
+    return FullContactPicker(
+      selectedParticipantId: chosenContactId,
+      onContactSelected: (contactId) => _handleContactSelection(ref, contactId),
+      maxHeight: 380,
     );
   }
 
@@ -89,5 +64,6 @@ class ContactGroupedPickerWidget extends ConsumerWidget {
     final overlayDb = await ref.read(overlayDatabaseProvider.future);
     await overlayDb.trackContactAccess(contactId);
     ref.invalidate(recentContactsProvider);
+    ref.invalidate(unifiedPickerSectionsProvider);
   }
 }

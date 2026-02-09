@@ -1,0 +1,103 @@
+Right now, the “Recents” section fails for two reasons:
+	1.	No visual identity per row → names blur together
+	2.	Header and rows share the same visual language → no hierarchy
+
+Let’s fix both without turning this into a noisy contact list.
+
+⸻
+
+Short answer
+
+Yes — adding an initial/avatar badge would absolutely help, but only if it’s done in a restrained, low-chroma way.
+
+However, the badge alone isn’t enough. The section also needs row differentiation and header contrast.
+
+Think subtle structure, not decoration.
+
+⸻
+
+What’s wrong with the current state (precisely)
+
+In your screenshot:
+	•	“Recents” header:
+	•	same color family as names
+	•	same alignment
+	•	same rhythm
+	•	Contact rows:
+	•	pure text
+	•	identical indentation
+	•	no anchor point for the eye
+
+Result:
+
+It reads like a paragraph, not a list.
+
+⸻
+
+Recommended solution (layered, not all-or-nothing)
+
+1. Add a muted initial badge (strongly recommended)
+
+This is the single biggest upgrade.
+
+Design rules for the badge
+	•	Shape: circular
+	•	Size: small (≈ text cap height × 1.6–1.8)
+	•	Content:
+	•	first letter of display name
+	•	Color:
+	•	neutral, not accent
+	•	light gray background
+	•	darker gray letter
+	•	No saturation
+	•	No per-contact color coding (that gets loud fast)
+
+Effect:
+
+Each row gains a visual “bullet” with meaning.
+
+This mirrors iMessage without copying its flashiness.
+
+⸻
+
+2. Increase contrast between “Recents” and items
+
+Make the header read as a label, not a peer.
+
+Options (pick one):
+	•	Make “Recents”:
+	•	smaller
+	•	lighter color
+	•	uppercase or small-caps
+	•	Add a little more vertical spacing below the header
+
+The header should whisper:
+
+“Section label”
+
+⸻
+
+3. Introduce gentle row rhythm
+
+Don’t add dividers. Instead:
+	•	Slight vertical padding per row
+	•	Hover background on rows (very subtle)
+	•	Cursor change on hover
+
+This makes it scannable and interactive without feeling list-heavy.
+
+⸻
+
+4. Optional: visually group Recents as a capsule
+
+If you want one extra step (optional):
+	•	Put Recents rows in a very light surface:
+	•	slightly different from the A–Z list below
+	•	Rounded container
+	•	No border
+
+This says:
+
+“These are special, not just alphabetical.”
+
+But do this only if the badge + header tweaks aren’t enough.

@@ -126,6 +126,28 @@ class ThemeTypography {
   );
 
   // ---------------------------------------------------------------------------
+  // Contact picker
+  // ---------------------------------------------------------------------------
+
+  /// Initial-letter badge inside contact rows (22 px circle).
+  /// Neutral gray, matching the badge background.
+  TextStyle get contactBadgeInitial => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    color: _colors.content.textTertiary,
+    height: 1,
+  );
+
+  /// Section label above picker groups (e.g., "RECENTS").
+  /// Uppercase, tracked-out, very low contrast — whispers "section label".
+  TextStyle get pickerSectionLabel => _base.copyWith(
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.8,
+    color: _colors.content.textTertiary.withValues(alpha: 0.6),
+  );
+
+  // ---------------------------------------------------------------------------
   // Cassette card typography
   // ---------------------------------------------------------------------------
   // Hierarchy (highest to lowest emphasis):
