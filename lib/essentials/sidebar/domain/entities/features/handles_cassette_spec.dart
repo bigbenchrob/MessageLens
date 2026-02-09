@@ -2,6 +2,12 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'handles_cassette_spec.freezed.dart';
 
+/// Filter for the stray handles review cassette.
+enum StrayHandleFilter {
+  phones,
+  emails,
+}
+
 /// Specification for the handles-related cassette types.
 ///
 /// This file resides in the `features` folder to align with the directory
@@ -26,4 +32,9 @@ abstract class HandlesCassetteSpec with _$HandlesCassetteSpec {
 
   /// A list of email addresses not matched to any contact.
   const factory HandlesCassetteSpec.strayEmails() = _HandlesStrayEmailsSpec;
+
+  /// Unified stray handles review — filtered by phone or email.
+  const factory HandlesCassetteSpec.strayHandlesReview({
+    required StrayHandleFilter filter,
+  }) = _HandlesStrayReviewSpec;
 }

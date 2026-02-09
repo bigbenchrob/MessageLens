@@ -16,7 +16,9 @@ CassetteSpec sidebarUtilityToHandlesInfoCardForStrayEmails() {
 }
 
 CassetteSpec sidebarUtilityToHandlesStrayPhoneNumbers() {
-  return const CassetteSpec.handles(HandlesCassetteSpec.strayPhoneNumbers());
+  return const CassetteSpec.handles(
+    HandlesCassetteSpec.strayHandlesReview(filter: StrayHandleFilter.phones),
+  );
 }
 
 CassetteSpec sidebarUtilityToMessagesHeatMapAll() {

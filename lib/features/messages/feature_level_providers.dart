@@ -8,6 +8,7 @@ import 'application/cassette_builders/global_timeline_view_builder_provider.dart
 import 'application/cassette_builders/messages_for_handle_view_builder_provider.dart';
 import 'application/cassette_builders/messages_heatmap_cassette_builder_provider.dart';
 import 'presentation/view/global_timeline_v2_view.dart';
+import 'presentation/view/handle_lens_view.dart';
 import 'presentation/view/messages_for_contact_view.dart';
 
 export 'infrastructure/repositories/messages_repository_provider.dart';
@@ -47,6 +48,7 @@ class ViewSpecCoordinator extends _$ViewSpecCoordinator {
       globalTimeline: () => ref.read(globalTimelineViewBuilderProvider),
       forHandle: (handleId) =>
           ref.read(messagesForHandleViewBuilderProvider(handleId)),
+      handleLens: (handleId) => HandleLensView(handleId: handleId),
       forChatInDateRange: (chatId, startDate, endDate) {
         return _buildComingSoon(
           'Messages for chat ($chatId) in date range view is coming soon.',

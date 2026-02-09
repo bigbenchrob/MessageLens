@@ -26,6 +26,10 @@ class MessagesSpec with _$MessagesSpec {
   const factory MessagesSpec.forHandle({required int handleId}) =
       _MessagesForHandle;
 
+  /// Triage view for a stray handle: header + action bar + message list.
+  const factory MessagesSpec.handleLens({required int handleId}) =
+      _MessagesHandleLens;
+
   /// Show messages for a chat within a specific date range (e.g., for a month)
   const factory MessagesSpec.forChatInDateRange({
     required int chatId,

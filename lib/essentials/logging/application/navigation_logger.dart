@@ -74,6 +74,10 @@ class NavigationLogEntry {
             'startDate': startDate.toIso8601String(),
             'endDate': endDate.toIso8601String(),
           },
+          handleLens: (handleId) => {
+            'variant': 'handleLens',
+            'handleId': handleId,
+          },
         ),
       },
       chats: (chatsSpec) => {
