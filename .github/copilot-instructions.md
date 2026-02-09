@@ -125,6 +125,7 @@ class MyFeature extends _$MyFeature {
 - ❌ 🔥 **MacosTheme.of(context) / Theme.of(context)** (use `themeColorsProvider` & `themeTypographyProvider`)
 - ❌ 🔥 **Feature coordinators doing logic** (coordinators route only; resolvers own meaning)
 - ❌ 🔥 **Application-layer builders returning view models** (return widget content; coordinator wraps in chrome)
+- ❌ 🔥 **INVIOLABLE: Dual-writing to overlay AND working DB** (user intent → overlay ONLY; migration → working ONLY; providers merge at read time with overlay winning on conflict. See `10-DATABASES/07-overlay-database-independence.md`)
 
 ## 🔥 MANDATORY DATABASE ACCESS RULE
 

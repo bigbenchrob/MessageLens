@@ -6,7 +6,7 @@ part of 'unmatched_handles_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unmatchedPhonesHash() => r'fa66808b461ecc564ed6282e44fb8aa163d03204';
+String _$unmatchedPhonesHash() => r'cf174ed2615e7e7bb5bd91eca8dead1632972002';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -154,7 +154,7 @@ class _UnmatchedPhonesProviderElement
       (origin as UnmatchedPhonesProvider).filterMode;
 }
 
-String _$unmatchedEmailsHash() => r'8c528e602e2a60fc924625acf146a270e973aa15';
+String _$unmatchedEmailsHash() => r'068be66aa5f15eb29f26d792f6013d6e4babc547';
 
 /// See also [unmatchedEmails].
 @ProviderFor(unmatchedEmails)

@@ -65,8 +65,13 @@ Future<List<ContactSummary>> contactsListRepository(
   final overlayHandlesByParticipant = await overlayHandleIdsByParticipant(
     overlayDb,
   );
+  final overlayHandlesByVP = await overlayHandleIdsByVirtualParticipant(
+    overlayDb,
+  );
   final participantOverrides = await participantOverridesById(overlayDb);
-  final overlayHandleCounts = await overlayHandleCountsByParticipant(overlayDb);
+  final overlayVPHandleCounts = await overlayHandleCountsByVirtualParticipant(
+    overlayDb,
+  );
 
   final participantsQuery = workingDb.select(workingDb.workingParticipants)
     ..where(
@@ -190,7 +195,7 @@ Future<List<ContactSummary>> contactsListRepository(
     if (isPlaceholderDisplayName(contact.displayName)) {
       continue;
     }
-    final handleIds = overlayHandlesByParticipant[contact.id] ?? const <int>{};
+    final handleIds = overlayHandlesByVP[contact.id] ?? const <int>{};
 
     final metrics = await _calculateMetrics(
       workingDb,
@@ -207,7 +212,7 @@ Future<List<ContactSummary>> contactsListRepository(
         totalMessages: metrics.totalMessages,
         lastMessageDate: metrics.lastMessageDate,
         origin: ParticipantOrigin.overlayVirtual,
-        handleCount: overlayHandleCounts[contact.id] ?? handleIds.length,
+        handleCount: overlayVPHandleCounts[contact.id] ?? handleIds.length,
         // Virtual contacts have no AddressBook data
         givenName: null,
         familyName: null,

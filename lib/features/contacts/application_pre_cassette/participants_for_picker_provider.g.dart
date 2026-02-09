@@ -7,7 +7,7 @@ part of 'participants_for_picker_provider.dart';
 // **************************************************************************
 
 String _$participantsForPickerHash() =>
-    r'77967940da54420f8b8fbaba1ccd83591219631f';
+    r'ba754c0ae6a3b36ae29588c433c39487c61d8092';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -14,16 +14,29 @@ tests: []
 
 # Overlay Database Independence Rule
 
-## 🚨 CRITICAL ARCHITECTURAL PRINCIPLE 🚨
+## 🚨 INVIOLABLE ARCHITECTURAL PRINCIPLE 🚨
 
 **`db-overlay` (`user_overlays.db`) and `db-working` (`working.db`) are completely independent.**
 
 1. **No synchronization** — The databases never copy data to each other.
-2. **No cross-writing** — Code that writes to overlay never writes to working, and vice versa.
-3. **No shared migrations** — Migration tasks for one database must not read or mutate the other.
+2. **No cross-writing** — Code that writes to overlay never writes to working, and vice versa. **No dual-writes.**
+3. **No shared migrations** — Migration tasks for one database must not read or mutate the other. Migration NEVER consults overlay.
 4. **Provider-level merging only** — Combine data in Riverpod providers or services, not in SQL.
+5. **Overlay wins on conflict** — When a provider merges working + overlay data for the same entity, the overlay value ALWAYS takes precedence.
 
-Breaking these rules jeopardizes user data persistence and invalidates the import/migration contract. Treat this file as the canonical guardrail.
+Breaking these rules jeopardizes user data persistence and invalidates the import/migration contract. **This principle is inviolable and must be heeded by all agents.**
+
+## Separation of Concerns
+
+| Concern | Writes to | Reads from | Survives migration |
+|---|---|---|---|
+| **Source data** (import/migration) | Working DB only | Source DBs only | Rebuilt from scratch |
+| **User intent** (overlay) | Overlay DB only | — | Always persists |
+| **Providers** (read path) | — | Working ∪ Overlay, overlay wins | N/A |
+
+Migration is a **pure function** of source data → working DB. It never reads overlay.
+User actions are **pure writes** to overlay. They never write to working.
+Providers are the **sole merge point** where both databases are read and combined.
 
 ## Architectural Model
 
@@ -127,6 +140,15 @@ Future<void> syncOverlayToWorking(Ref ref) async {
 3. Were dependent providers invalidated after the override was written?
 4. Does any code attempt to mutate `db-working` in response to overlay changes? Remove it.
 5. Are migrations touching overlay tables? They must not.
+
+## ⚠️ Known Violations (To Be Fixed)
+
+The following existing code violates this principle and must be refactored:
+
+1. **`ManualHandleLinkService`** — Dual-writes to both overlay (`HandleToParticipantOverrides`) and working (`handle_to_participant`). Should write ONLY to overlay; providers should merge at read time.
+2. **`handles_canonical.is_blacklisted`** — Spam/hidden flag stored on working DB (which gets rebuilt on migration). User-controlled spam designation should live in overlay DB only (e.g. `overlay_handles.spam_hidden`).
+
+These violations mean that user decisions written to working DB are **lost on the next full migration** unless the migration pipeline explicitly re-applies them — which it should never need to do.
 
 ## Related Documentation
 

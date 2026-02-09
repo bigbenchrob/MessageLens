@@ -40,6 +40,14 @@ This README contains the canonical index to all project documentation including:
 - ✅ **Database access**: Use `importDatabaseProvider` & `workingDatabaseProvider` from `essentials/databases/feature_level_providers.dart`
 - ❌ **Never**: Create direct database instances (causes SQLite locking)
 
+### 🔥 INVIOLABLE: Overlay / Working DB Separation
+- ✅ **User intent** (labels, favorites, spam flags, manual links): Write ONLY to overlay DB
+- ✅ **Import/migration**: Write ONLY to working DB (pure function of source data)
+- ✅ **Providers**: Merge working ∪ overlay at read time; **overlay always wins on conflict**
+- ❌ **NEVER** dual-write to both overlay AND working DB
+- ❌ **NEVER** have migration read or consult overlay DB
+- 📖 See [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md)
+
 ### Code Standards
 - ✅ Color opacity: `withValues(alpha: 0.5)` (never `withOpacity`)
 - ✅ Control flow: Always use braces (never single-line statements)

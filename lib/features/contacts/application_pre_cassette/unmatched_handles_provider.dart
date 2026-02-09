@@ -53,6 +53,10 @@ Future<List<UnmatchedHandleSummary>> unmatchedPhones(
   required PhoneFilterMode filterMode,
 }) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+
+  // Get all handle IDs that already have an overlay override (linked or not).
+  final overlayLinkedHandleIds = await overlayDb.getAllOverriddenHandleIds();
 
   // Query handles WHERE NOT EXISTS (handle_to_participant)
   // Filter for SMS/iMessage services (phone numbers)
@@ -72,6 +76,11 @@ Future<List<UnmatchedHandleSummary>> unmatchedPhones(
   final results = <UnmatchedHandleSummary>[];
 
   for (final handle in handles) {
+    // Skip handles that have an overlay override (already linked or reviewed)
+    if (overlayLinkedHandleIds.contains(handle.id)) {
+      continue;
+    }
+
     final isProbableSpam = _isProbableSpam(
       handle.rawIdentifier,
       handle.service,
@@ -134,6 +143,10 @@ Future<List<UnmatchedHandleSummary>> unmatchedPhones(
 @riverpod
 Future<List<UnmatchedHandleSummary>> unmatchedEmails(Ref ref) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+
+  // Get all handle IDs that already have an overlay override.
+  final overlayLinkedHandleIds = await overlayDb.getAllOverriddenHandleIds();
 
   // Query handles WHERE NOT EXISTS (handle_to_participant)
   // Filter for email addresses (contain @)
@@ -153,6 +166,11 @@ Future<List<UnmatchedHandleSummary>> unmatchedEmails(Ref ref) async {
   final results = <UnmatchedHandleSummary>[];
 
   for (final handle in handles) {
+    // Skip handles that have an overlay override (already linked or reviewed)
+    if (overlayLinkedHandleIds.contains(handle.id)) {
+      continue;
+    }
+
     // Count messages from this handle
     final messagesQuery = db.selectOnly(db.workingMessages)
       ..addColumns([db.workingMessages.id.count()])

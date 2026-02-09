@@ -36,6 +36,7 @@ Future<Map<int, int>> overlayHandleCountsByParticipant(
 
   final rows =
       await (db.selectOnly(db.handleToParticipantOverrides)
+            ..where(participantColumn.isNotNull())
             ..addColumns([participantColumn, countExpression])
             ..groupBy([participantColumn]))
           .get();
@@ -53,6 +54,35 @@ Future<Map<int, int>> overlayHandleCountsByParticipant(
   return handleCounts;
 }
 
+/// Handle counts grouped by virtual_participant_id (overlay overrides only).
+Future<Map<int, int>> overlayHandleCountsByVirtualParticipant(
+  OverlayDatabase db,
+) async {
+  final vpColumn = db.handleToParticipantOverrides.virtualParticipantId;
+  final countExpression = db.handleToParticipantOverrides.handleId.count();
+
+  final rows =
+      await (db.selectOnly(db.handleToParticipantOverrides)
+            ..where(vpColumn.isNotNull())
+            ..addColumns([vpColumn, countExpression])
+            ..groupBy([vpColumn]))
+          .get();
+
+  final handleCounts = <int, int>{};
+
+  for (final row in rows) {
+    final vpId = row.read(vpColumn);
+    if (vpId == null) {
+      continue;
+    }
+    handleCounts[vpId] = row.read(countExpression) ?? 0;
+  }
+
+  return handleCounts;
+}
+
+/// Map of participantId → Set<handleId> from overlay overrides
+/// (real participants only, not virtual).
 Future<Map<int, Set<int>>> overlayHandleIdsByParticipant(
   OverlayDatabase db,
 ) async {
@@ -60,9 +90,29 @@ Future<Map<int, Set<int>>> overlayHandleIdsByParticipant(
   final map = <int, Set<int>>{};
 
   for (final override in overrides) {
-    map
-        .putIfAbsent(override.participantId, () => <int>{})
-        .add(override.handleId);
+    final pid = override.participantId;
+    if (pid == null) {
+      continue;
+    }
+    map.putIfAbsent(pid, () => <int>{}).add(override.handleId);
+  }
+
+  return map;
+}
+
+/// Map of virtualParticipantId → Set<handleId> from overlay overrides.
+Future<Map<int, Set<int>>> overlayHandleIdsByVirtualParticipant(
+  OverlayDatabase db,
+) async {
+  final overrides = await db.getAllHandleOverrides();
+  final map = <int, Set<int>>{};
+
+  for (final override in overrides) {
+    final vpId = override.virtualParticipantId;
+    if (vpId == null) {
+      continue;
+    }
+    map.putIfAbsent(vpId, () => <int>{}).add(override.handleId);
   }
 
   return map;
