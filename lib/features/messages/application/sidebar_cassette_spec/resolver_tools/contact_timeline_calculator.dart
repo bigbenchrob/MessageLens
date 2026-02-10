@@ -1,34 +1,28 @@
 import 'package:drift/drift.dart' as drift;
 
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../messages/domain/calendar_heatmap_timeline_data.dart';
+import '../../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../domain/calendar_heatmap_timeline_data.dart';
 
-/// Calculate calendar heatmap timeline data for all messages with a contact
-/// across all their chats/handles.
+/// Pure computation: query contact_message_index and build a calendar heatmap.
 ///
-/// Creates a compact year × month grid where each month is a fixed-size
-/// rectangle colored by message intensity (1 message to 50,000+)
+/// This is a resolver tool: a shared pure helper for resolvers.
+/// It contains no Riverpod, no widgets, and no routing.
+///
+/// Queries `contact_message_index` (which aggregates across all chats/handles
+/// for the given contact) and returns a year × month grid of message intensity.
 Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
   WorkingDatabase db,
   int contactId,
-  DateTime? firstMessageDate,
-  DateTime? lastMessageDate,
+  DateTime firstMessageDate,
+  DateTime lastMessageDate,
 ) async {
-  if (firstMessageDate == null || lastMessageDate == null) {
-    print('[CONTACT_HEATMAP] Contact $contactId: Missing dates, skipping');
-    return null;
-  }
-
   final firstYear = firstMessageDate.year;
   final lastYear = lastMessageDate.year;
 
-  print('[CONTACT_HEATMAP] Contact $contactId: Years $firstYear-$lastYear');
-
-  // Query message counts by year-month from contact_message_index
-  // This automatically aggregates across all chats/handles for this contact
-  final query = db.customSelect(
-    '''
-    SELECT 
+  final results = await db
+      .customSelect(
+        '''
+    SELECT
       strftime('%Y', cmi.sent_at_utc) as year,
       strftime('%m', cmi.sent_at_utc) as month,
       COUNT(*) as count
@@ -39,22 +33,15 @@ Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
     GROUP BY year, month
     ORDER BY year, month
     ''',
-    variables: [drift.Variable.withInt(contactId)],
-    readsFrom: {db.contactMessageIndex},
-  );
-
-  final results = await query.get();
+        variables: [drift.Variable.withInt(contactId)],
+        readsFrom: {db.contactMessageIndex},
+      )
+      .get();
 
   if (results.isEmpty) {
-    print('[CONTACT_HEATMAP] Contact $contactId: No messages in results');
     return null;
   }
 
-  print(
-    '[CONTACT_HEATMAP] Contact $contactId: Query returned ${results.length} months',
-  );
-
-  // Build a map of year-month to count
   final counts = <String, int>{};
   for (final row in results) {
     final year = row.read<String>('year');
@@ -63,7 +50,10 @@ Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
     counts['$year-$month'] = count;
   }
 
-  // Build year rows
+  final contactStartMonth = DateTime(
+    firstMessageDate.year,
+    firstMessageDate.month,
+  );
   final yearRows = <YearRow>[];
   var totalMessages = 0;
   var maxMonthCount = 0;
@@ -73,23 +63,16 @@ Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
     var yearHasMessages = false;
 
     for (var month = 1; month <= 12; month++) {
-      // Check if this month is before contact's first message
       final monthDate = DateTime(year, month);
-      final contactStartDate = DateTime(
-        firstMessageDate.year,
-        firstMessageDate.month,
-      );
-      final isBeforeStart = monthDate.isBefore(contactStartDate);
+      final isBeforeStart = monthDate.isBefore(contactStartMonth);
 
       final MonthIntensity intensity;
       final int count;
 
       if (isBeforeStart) {
-        // Month before first message with this contact
         intensity = MonthIntensity.notYetStarted;
         count = 0;
       } else {
-        // Check message count
         final key = '$year-${month.toString().padLeft(2, '0')}';
         count = counts[key] ?? 0;
 
@@ -110,7 +93,7 @@ Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
           month: month,
           messageCount: count,
           intensity: intensity,
-          chatId: contactId, // Use contactId for navigation context
+          chatId: contactId,
         ),
       );
     }
@@ -123,11 +106,6 @@ Future<CalendarHeatmapTimelineData?> calculateContactCalendarHeatmapTimeline(
   if (yearRows.isEmpty) {
     return null;
   }
-
-  print(
-    '[CONTACT_HEATMAP] Contact $contactId: Built ${yearRows.length} years, '
-    'total=$totalMessages, maxMonth=$maxMonthCount',
-  );
 
   return CalendarHeatmapTimelineData(
     yearRows: yearRows,

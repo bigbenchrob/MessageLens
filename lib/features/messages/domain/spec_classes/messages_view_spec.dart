@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'messages_spec.freezed.dart';
+part 'messages_view_spec.freezed.dart';
 
 @freezed
 class MessagesSpec with _$MessagesSpec {

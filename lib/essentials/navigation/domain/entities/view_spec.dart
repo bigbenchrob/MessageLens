@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'features/chats_spec.dart';
 import 'features/contacts_spec.dart';
 import 'features/import_spec.dart';
-import 'features/messages_spec.dart';
+import '../../../../features/messages/domain/spec_classes/messages_view_spec.dart';
 import 'features/settings_spec.dart';
 import 'features/workbench_spec.dart';
 

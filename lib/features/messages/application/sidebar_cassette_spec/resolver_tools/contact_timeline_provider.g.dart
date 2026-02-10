@@ -6,7 +6,7 @@ part of 'contact_timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactTimelineHash() => r'2417f04fb1340121410fda41bef87cd067e64a60';
+String _$contactTimelineHash() => r'd0daba6e9f2a8d86829ea1c4dc8282eba7f17cca';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -32,6 +32,10 @@ class _SystemHash {
 /// Provides calendar heatmap timeline data for a contact's message history
 /// across all their chats/handles.
 ///
+/// This is a resolver tool: a data-fetching provider used by resolvers and
+/// widget builders. It queries date bounds from `contact_message_index` then
+/// delegates computation to [calculateContactCalendarHeatmapTimeline].
+///
 /// Copied from [contactTimeline].
 @ProviderFor(contactTimeline)
 const contactTimelineProvider = ContactTimelineFamily();
@@ -39,11 +43,19 @@ const contactTimelineProvider = ContactTimelineFamily();
 /// Provides calendar heatmap timeline data for a contact's message history
 /// across all their chats/handles.
 ///
+/// This is a resolver tool: a data-fetching provider used by resolvers and
+/// widget builders. It queries date bounds from `contact_message_index` then
+/// delegates computation to [calculateContactCalendarHeatmapTimeline].
+///
 /// Copied from [contactTimeline].
 class ContactTimelineFamily
     extends Family<AsyncValue<CalendarHeatmapTimelineData?>> {
   /// Provides calendar heatmap timeline data for a contact's message history
   /// across all their chats/handles.
+  ///
+  /// This is a resolver tool: a data-fetching provider used by resolvers and
+  /// widget builders. It queries date bounds from `contact_message_index` then
+  /// delegates computation to [calculateContactCalendarHeatmapTimeline].
   ///
   /// Copied from [contactTimeline].
   const ContactTimelineFamily();
@@ -51,28 +63,20 @@ class ContactTimelineFamily
   /// Provides calendar heatmap timeline data for a contact's message history
   /// across all their chats/handles.
   ///
+  /// This is a resolver tool: a data-fetching provider used by resolvers and
+  /// widget builders. It queries date bounds from `contact_message_index` then
+  /// delegates computation to [calculateContactCalendarHeatmapTimeline].
+  ///
   /// Copied from [contactTimeline].
-  ContactTimelineProvider call({
-    required int contactId,
-    DateTime? firstMessageDate,
-    DateTime? lastMessageDate,
-  }) {
-    return ContactTimelineProvider(
-      contactId: contactId,
-      firstMessageDate: firstMessageDate,
-      lastMessageDate: lastMessageDate,
-    );
+  ContactTimelineProvider call({required int contactId}) {
+    return ContactTimelineProvider(contactId: contactId);
   }
 
   @override
   ContactTimelineProvider getProviderOverride(
     covariant ContactTimelineProvider provider,
   ) {
-    return call(
-      contactId: provider.contactId,
-      firstMessageDate: provider.firstMessageDate,
-      lastMessageDate: provider.lastMessageDate,
-    );
+    return call(contactId: provider.contactId);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -93,36 +97,35 @@ class ContactTimelineFamily
 /// Provides calendar heatmap timeline data for a contact's message history
 /// across all their chats/handles.
 ///
+/// This is a resolver tool: a data-fetching provider used by resolvers and
+/// widget builders. It queries date bounds from `contact_message_index` then
+/// delegates computation to [calculateContactCalendarHeatmapTimeline].
+///
 /// Copied from [contactTimeline].
 class ContactTimelineProvider
     extends AutoDisposeFutureProvider<CalendarHeatmapTimelineData?> {
   /// Provides calendar heatmap timeline data for a contact's message history
   /// across all their chats/handles.
   ///
+  /// This is a resolver tool: a data-fetching provider used by resolvers and
+  /// widget builders. It queries date bounds from `contact_message_index` then
+  /// delegates computation to [calculateContactCalendarHeatmapTimeline].
+  ///
   /// Copied from [contactTimeline].
-  ContactTimelineProvider({
-    required int contactId,
-    DateTime? firstMessageDate,
-    DateTime? lastMessageDate,
-  }) : this._internal(
-         (ref) => contactTimeline(
-           ref as ContactTimelineRef,
-           contactId: contactId,
-           firstMessageDate: firstMessageDate,
-           lastMessageDate: lastMessageDate,
-         ),
-         from: contactTimelineProvider,
-         name: r'contactTimelineProvider',
-         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-             ? null
-             : _$contactTimelineHash,
-         dependencies: ContactTimelineFamily._dependencies,
-         allTransitiveDependencies:
-             ContactTimelineFamily._allTransitiveDependencies,
-         contactId: contactId,
-         firstMessageDate: firstMessageDate,
-         lastMessageDate: lastMessageDate,
-       );
+  ContactTimelineProvider({required int contactId})
+    : this._internal(
+        (ref) =>
+            contactTimeline(ref as ContactTimelineRef, contactId: contactId),
+        from: contactTimelineProvider,
+        name: r'contactTimelineProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$contactTimelineHash,
+        dependencies: ContactTimelineFamily._dependencies,
+        allTransitiveDependencies:
+            ContactTimelineFamily._allTransitiveDependencies,
+        contactId: contactId,
+      );
 
   ContactTimelineProvider._internal(
     super._createNotifier, {
@@ -132,13 +135,9 @@ class ContactTimelineProvider
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.contactId,
-    required this.firstMessageDate,
-    required this.lastMessageDate,
   }) : super.internal();
 
   final int contactId;
-  final DateTime? firstMessageDate;
-  final DateTime? lastMessageDate;
 
   @override
   Override overrideWith(
@@ -155,8 +154,6 @@ class ContactTimelineProvider
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         contactId: contactId,
-        firstMessageDate: firstMessageDate,
-        lastMessageDate: lastMessageDate,
       ),
     );
   }
@@ -169,18 +166,13 @@ class ContactTimelineProvider
 
   @override
   bool operator ==(Object other) {
-    return other is ContactTimelineProvider &&
-        other.contactId == contactId &&
-        other.firstMessageDate == firstMessageDate &&
-        other.lastMessageDate == lastMessageDate;
+    return other is ContactTimelineProvider && other.contactId == contactId;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, contactId.hashCode);
-    hash = _SystemHash.combine(hash, firstMessageDate.hashCode);
-    hash = _SystemHash.combine(hash, lastMessageDate.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -192,12 +184,6 @@ mixin ContactTimelineRef
     on AutoDisposeFutureProviderRef<CalendarHeatmapTimelineData?> {
   /// The parameter `contactId` of this provider.
   int get contactId;
-
-  /// The parameter `firstMessageDate` of this provider.
-  DateTime? get firstMessageDate;
-
-  /// The parameter `lastMessageDate` of this provider.
-  DateTime? get lastMessageDate;
 }
 
 class _ContactTimelineProviderElement
@@ -207,12 +193,6 @@ class _ContactTimelineProviderElement
 
   @override
   int get contactId => (origin as ContactTimelineProvider).contactId;
-  @override
-  DateTime? get firstMessageDate =>
-      (origin as ContactTimelineProvider).firstMessageDate;
-  @override
-  DateTime? get lastMessageDate =>
-      (origin as ContactTimelineProvider).lastMessageDate;
 }
 
 // ignore_for_file: type=lint

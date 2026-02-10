@@ -9,7 +9,6 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../essentials/db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../../../../essentials/navigation/domain/entities/features/chats_spec.dart';
-import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
@@ -106,7 +105,6 @@ class ChatsSidebarView extends HookConsumerWidget {
               selectedChatId = chatId;
             },
             forContact: (_, __) {},
-            recent: (_) {},
             globalTimeline: () {},
             globalTimelineV2: (_) {},
             forHandle: (_) {},

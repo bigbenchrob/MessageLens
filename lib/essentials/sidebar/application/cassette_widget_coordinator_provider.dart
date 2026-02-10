@@ -117,9 +117,9 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         },
         messages: (messagesSpec) async {
           final coordinator = ref.read(
-            messages_feature.featureCassetteSpecCoordinatorProvider.notifier,
+            messages_feature.messagesCassetteCoordinatorProvider.notifier,
           );
-          return coordinator.buildForSpec(
+          return coordinator.buildViewModel(
             messagesSpec,
             cassetteIndex: cassetteIndex,
           );

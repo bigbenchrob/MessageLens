@@ -7,24 +7,35 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme_typography.dart';
-import '../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
-import '../../../../essentials/navigation/domain/entities/view_spec.dart';
-import '../../../../essentials/navigation/domain/navigation_constants.dart';
-import '../../../../essentials/navigation/domain/sidebar_mode.dart';
-import '../../../../essentials/navigation/feature_level_providers.dart';
-import '../../../contacts/application_pre_cassette/contact_profile_provider.dart';
-import '../../../contacts/application_pre_cassette/contact_timeline_provider.dart';
-import '../../application/use_cases/global_messages_heatmap_provider.dart';
-import '../../domain/calendar_heatmap_timeline_data.dart';
-import '../view_model/view_model_contact/current_visible_month_for_contact_provider.dart';
-import '../view_model/view_model_global/current_visible_month_provider.dart';
-import '../view_model/view_model_global/global_timeline_controller.dart';
-import '../widgets/calendar_heatmap_timeline_widget.dart';
+import '../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../config/theme/theme_typography.dart';
+import '../../../../../essentials/navigation/domain/entities/view_spec.dart';
+import '../../../../../essentials/navigation/domain/navigation_constants.dart';
+import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
+import '../../../../../essentials/navigation/feature_level_providers.dart';
+import '../../../../contacts/application_pre_cassette/contact_profile_provider.dart';
+import '../../../domain/calendar_heatmap_timeline_data.dart';
+import '../../../presentation/view_model/view_model_contact/current_visible_month_for_contact_provider.dart';
+import '../../../presentation/view_model/view_model_global/current_visible_month_provider.dart';
+import '../../../presentation/view_model/view_model_global/global_timeline_controller.dart';
+import '../../../presentation/widgets/calendar_heatmap_timeline_widget.dart';
+import '../../use_cases/global_messages_heatmap_provider.dart';
+import '../resolver_tools/contact_timeline_provider.dart';
 
-class MessagesHeatmapCassette extends ConsumerWidget {
-  const MessagesHeatmapCassette({
+/// Widget builder for the messages heatmap cassette.
+///
+/// Displays a calendar heatmap of message activity, either globally or scoped
+/// to a specific contact.
+///
+/// ## Contract (from 00-cross-surface-spec-system.md)
+///
+/// Widget builders:
+/// - Accept fully-decided inputs (not specs)
+/// - May use `ref.watch()` for reactive updates
+/// - Construct specs only on user interaction (output, not interpretation)
+/// - Never make branching decisions about which UI to show
+class MessagesHeatmapWidget extends ConsumerWidget {
+  const MessagesHeatmapWidget({
     this.contactId,
     this.useV2Timeline = false,
     super.key,
@@ -92,7 +103,6 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Auto-open timeline view on first load
     useEffect(() {
       if (data != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,7 +133,6 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     final colors = ref.watch(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
 
-    // Watch the currently visible month
     final selectedMonthAsync = ref.watch(currentVisibleMonthProvider);
     final selectedMonth = selectedMonthAsync.valueOrNull;
 
@@ -163,8 +172,6 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
               return;
             }
 
-            // If this is the last month, treat it as a "jump to latest" action
-            // by passing null as the date.
             final isLastMonth =
                 year == timeline.lastMessageDate.year &&
                 month == timeline.lastMessageDate.month;
@@ -228,7 +235,6 @@ class _ContactHeatmapContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Auto-open contact messages view on first load
     useEffect(() {
       if (data != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -258,7 +264,6 @@ class _ContactHeatmapContent extends HookConsumerWidget {
     final timeline = data!;
     final t = ref.watch(themeTypographyProvider);
 
-    // Watch the currently visible month for this contact
     final selectedMonthAsync = ref.watch(
       currentVisibleMonthForContactProvider(contactId: contactId),
     );
@@ -281,8 +286,6 @@ class _ContactHeatmapContent extends HookConsumerWidget {
               return;
             }
 
-            // If this is the last month, treat it as a "jump to latest" action
-            // by passing null as the date.
             final isLastMonth =
                 year == timeline.lastMessageDate.year &&
                 month == timeline.lastMessageDate.month;

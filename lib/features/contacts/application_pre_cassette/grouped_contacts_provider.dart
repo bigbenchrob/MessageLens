@@ -4,7 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../infrastructure/repositories/contacts_list_repository.dart';
-import 'contact_group_key.dart';
 
 part 'grouped_contacts_provider.freezed.dart';
 part 'grouped_contacts_provider.g.dart';
@@ -60,7 +59,7 @@ Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
   final grouped = <String, List<ContactSummary>>{};
 
   for (final contact in contacts) {
-    final key = deriveContactGroupKey(contact.displayName);
+    final key = _deriveGroupKey(contact.displayName);
     grouped.putIfAbsent(key, () => []).add(contact);
   }
 
@@ -88,6 +87,21 @@ Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
     letterCounts: letterCounts,
     availableLetters: availableLetters,
   );
+}
+
+/// Derives the A-Z or # group key from a display name.
+String _deriveGroupKey(String displayName) {
+  final trimmed = displayName.trim();
+  if (trimmed.isEmpty) {
+    return '#';
+  }
+  final first = trimmed[0].toUpperCase();
+  final codeUnit = first.codeUnitAt(0);
+  // A=65, Z=90
+  if (codeUnit >= 65 && codeUnit <= 90) {
+    return first;
+  }
+  return '#';
 }
 
 @riverpod

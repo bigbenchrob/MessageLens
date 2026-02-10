@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart';
 import '../../../essentials/logging/application/message_logger.dart';
-import 'unmatched_handles_provider.dart';
+import 'stray_handles_provider.dart';
 import 'virtual_participants_provider.dart';
 
 part 'manual_handle_link_service.g.dart';
@@ -113,8 +113,7 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
       await overlayDb.setHandleOverride(handleId, participantId);
 
       // Invalidate cached providers
-      ref.invalidate(unmatchedPhonesProvider);
-      ref.invalidate(unmatchedEmailsProvider);
+      ref.invalidate(strayHandlesProvider);
 
       return const Right(unit);
     } catch (e, stackTrace) {
@@ -141,8 +140,7 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
       );
 
       // Invalidate cached providers
-      ref.invalidate(unmatchedPhonesProvider);
-      ref.invalidate(unmatchedEmailsProvider);
+      ref.invalidate(strayHandlesProvider);
       ref.invalidate(virtualParticipantsProvider);
 
       return const Right(unit);
@@ -175,8 +173,7 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
       await overlayDb.deleteHandleOverride(handleId);
 
       // Invalidate cached providers
-      ref.invalidate(unmatchedPhonesProvider);
-      ref.invalidate(unmatchedEmailsProvider);
+      ref.invalidate(strayHandlesProvider);
 
       return const Right(unit);
     } catch (e, stackTrace) {
