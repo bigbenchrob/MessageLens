@@ -2,8 +2,8 @@ import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../essentials/db/feature_level_providers.dart';
-import '../../infrastructure/data_sources/global_message_index_data_source.dart';
+import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../infrastructure/data_sources/global_message_index_data_source.dart';
 
 part 'global_message_timeline_provider.g.dart';
 

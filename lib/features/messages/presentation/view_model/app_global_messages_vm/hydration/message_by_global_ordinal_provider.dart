@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../infrastructure/data_sources/global_message_index_data_source.dart';
-import '../../deprecated/message_row_mapper.dart';
+import '../../shared/message_row_mapper.dart';
 import '../../shared/hydration/messages_for_handle_provider.dart';
 
 part 'message_by_global_ordinal_provider.g.dart';

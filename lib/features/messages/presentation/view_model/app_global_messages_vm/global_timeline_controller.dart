@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../application/use_cases/global_message_timeline_provider.dart';
+import '../../../application/view_spec/resolver_tools/global_message_timeline_provider.dart';
 
 part 'global_timeline_controller.g.dart';
 

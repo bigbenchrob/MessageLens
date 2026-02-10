@@ -6,8 +6,8 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:macos_ui/macos_ui.dart' as macos_ui;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../view_model/view_model_global/global_messages_view_model_provider.dart';
-import '../view_model/view_model_global/hydration/message_by_global_ordinal_provider.dart';
+import '../view_model/app_global_messages_vm/global_messages_view_model_provider.dart';
+import '../view_model/app_global_messages_vm/hydration/message_by_global_ordinal_provider.dart';
 import '../widgets/message_card.dart';
 
 class GlobalTimelineV2View extends HookConsumerWidget {

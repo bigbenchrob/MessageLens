@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,12 +14,12 @@ import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../contacts/application_pre_cassette/contact_profile_provider.dart';
 import '../../../domain/calendar_heatmap_timeline_data.dart';
-import '../../../presentation/view_model/view_model_contact/current_visible_month_for_contact_provider.dart';
-import '../../../presentation/view_model/view_model_global/current_visible_month_provider.dart';
-import '../../../presentation/view_model/view_model_global/global_timeline_controller.dart';
+import '../../../presentation/view_model/messages_by_contact_vm/current_visible_month_for_contact_provider.dart';
+import '../../../presentation/view_model/app_global_messages_vm/current_visible_month_provider.dart';
+import '../../../presentation/view_model/app_global_messages_vm/global_timeline_controller.dart';
 import '../../../presentation/widgets/calendar_heatmap_timeline_widget.dart';
-import '../../use_cases/global_messages_heatmap_provider.dart';
 import '../resolver_tools/contact_timeline_provider.dart';
+import '../resolver_tools/global_messages_heatmap_provider.dart';
 
 /// Widget builder for the messages heatmap cassette.
 ///

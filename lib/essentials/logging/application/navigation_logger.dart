@@ -9,6 +9,7 @@ import '../../navigation/domain/entities/features/settings_spec.dart';
 import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
 import '../../navigation/domain/navigation_constants.dart';
+import '../../navigation/feature_level_providers.dart';
 import 'message_logger.dart';
 
 part 'navigation_logger.g.dart';
