@@ -3,10 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'handles_cassette_spec.freezed.dart';
 
 /// Filter for the stray handles review cassette.
-enum StrayHandleFilter {
-  phones,
-  emails,
-}
+enum StrayHandleFilter { phones, emails }
 
 /// Specification for the handles-related cassette types.
 ///

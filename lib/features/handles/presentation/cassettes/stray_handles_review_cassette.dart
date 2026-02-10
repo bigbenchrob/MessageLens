@@ -55,10 +55,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: filtered.length,
-          separatorBuilder: (_, __) => Divider(
-            height: 1,
-            color: colors.lines.border,
-          ),
+          separatorBuilder: (_, __) =>
+              Divider(height: 1, color: colors.lines.border),
           itemBuilder: (context, index) {
             final handle = filtered[index];
             return _StrayHandleRow(
@@ -76,9 +74,7 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
         padding: const EdgeInsets.all(12),
         child: Text(
           'Error loading handles: $error',
-          style: typography.caption.copyWith(
-            color: colors.accents.secondary,
-          ),
+          style: typography.caption.copyWith(color: colors.accents.secondary),
         ),
       ),
     );
@@ -94,20 +90,18 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
   }
 
   String get _emptyMessage => switch (filter) {
-        StrayHandleFilter.phones =>
-          'No stray phone numbers found.\nAll phone handles are linked to contacts.',
-        StrayHandleFilter.emails =>
-          'No stray email addresses found.\nAll email handles are linked to contacts.',
-      };
+    StrayHandleFilter.phones =>
+      'No stray phone numbers found.\nAll phone handles are linked to contacts.',
+    StrayHandleFilter.emails =>
+      'No stray email addresses found.\nAll email handles are linked to contacts.',
+  };
 
   void _openHandleLens(WidgetRef ref, int handleId) {
     ref
         .read(panelsViewStateProvider(SidebarMode.messages).notifier)
         .show(
           panel: WindowPanel.center,
-          spec: ViewSpec.messages(
-            MessagesSpec.handleLens(handleId: handleId),
-          ),
+          spec: ViewSpec.messages(MessagesSpec.handleLens(handleId: handleId)),
         );
   }
 }
@@ -142,8 +136,9 @@ class _StrayHandleRow extends ConsumerWidget {
                   Text(
                     handle.handleValue,
                     style: typography.body.copyWith(
-                      color: colors.content.textPrimary
-                          .withValues(alpha: contentAlpha),
+                      color: colors.content.textPrimary.withValues(
+                        alpha: contentAlpha,
+                      ),
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
@@ -154,8 +149,9 @@ class _StrayHandleRow extends ConsumerWidget {
                     Text(
                       _formatDate(handle.lastMessageDate!),
                       style: typography.caption.copyWith(
-                        color: colors.content.textTertiary
-                            .withValues(alpha: contentAlpha),
+                        color: colors.content.textTertiary.withValues(
+                          alpha: contentAlpha,
+                        ),
                       ),
                     ),
                   ],
@@ -175,8 +171,9 @@ class _StrayHandleRow extends ConsumerWidget {
               child: Text(
                 '${handle.totalMessages}',
                 style: typography.caption.copyWith(
-                  color: colors.content.textSecondary
-                      .withValues(alpha: contentAlpha),
+                  color: colors.content.textSecondary.withValues(
+                    alpha: contentAlpha,
+                  ),
                   fontWeight: FontWeight.w600,
                   fontSize: 11,
                 ),
