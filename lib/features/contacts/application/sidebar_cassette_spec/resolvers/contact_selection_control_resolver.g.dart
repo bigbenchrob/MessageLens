@@ -7,7 +7,7 @@ part of 'contact_selection_control_resolver.dart';
 // **************************************************************************
 
 String _$contactSelectionControlResolverHash() =>
-    r'b65a8a0616aa042aecf6fa8dc32914277e4b0b2e';
+    r'5d1b3d2e4d7e89b9371c92a16dc7cd1be24ee65f';
 
 /// Resolves the "back to picker" selection control.
 ///

@@ -17,7 +17,7 @@ import '../domain/entities/features/presentation_cassette_spec.dart';
 import '../feature_level_providers.dart';
 
 /// utility widgets to wrap each cassette in a card
-import '../presentation/sidebar_info_card.dart';
+import '../presentation/view/sidebar_info_card.dart';
 import '../presentation/view/sidebar_cassette_card.dart';
 import '../presentation/view/sidebar_navigation_card.dart';
 import '../presentation/view_model/sidebar_cassette_card_view_model.dart';

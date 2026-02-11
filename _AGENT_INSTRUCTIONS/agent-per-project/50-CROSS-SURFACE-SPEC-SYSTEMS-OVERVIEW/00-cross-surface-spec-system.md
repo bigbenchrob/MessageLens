@@ -1,558 +1,223 @@
-# Cross-Surface Spec System — Single Source of Truth (Authoritative)
+# Cross-Surface Spec System — Architecture Overview
+
+## What This System Does
+
+The app displays content across multiple **UI surfaces** — a sidebar, a center panel,
+a right panel (future), tooltips (future). Each surface shows a mix of content from
+different features (messages, contacts, handles, etc.).
+
+The cross-surface spec system provides a **uniform architecture** for:
+- Describing what each surface should display (via sealed spec classes)
+- Routing specs to the owning feature
+- Having features produce surface-appropriate payloads
+- Composing those payloads into the final UI
+
+---
 
-This document defines the non-negotiable rules governing the Cross-Surface Spec System.
-These rules exist to eliminate ambiguity, prevent ad-hoc solutions, and make automated
-agents incapable of “creatively” re-interpreting the architecture during migration.
+## The Surfaces
 
-Any new code or refactor that violates these rules is incorrect by definition.
+| Surface | Sealed class | State model | Feature returns | Async? |
+|---|---|---|---|---|
+| **Left sidebar** (cassettes) | `CassetteSpec` | `CassetteRack` (ordered list) | `Future<SidebarCassetteCardViewModel>` | Yes |
+| **Center panel** | `ViewSpec` | `PanelStack` (pages with tabs) | `Widget` | No |
+| **Right panel** (future) | `ViewSpec` | `PanelStack` | `Widget` | No |
+| **Tooltips** (future) | TBD | TBD | TBD | TBD |
+| **Settings sidebar** (future) | `CassetteSpec` (settings mode) | `CassetteRack` | `Future<SidebarCassetteCardViewModel>` | Yes |
 
-================================================================
-1. PURPOSE
-================================================================
+---
 
-The Cross-Surface Spec System exists to:
+## The Universal Pattern
 
-• Coordinate navigation and sidebar composition across multiple features
-• Preserve strict ownership boundaries between essentials and features
-• Ensure all feature logic resolves to a single, uniform payload
-• Eliminate wrapper types, hybrid flows, and implicit state passing
-• Support async resolution without architectural branching
+Despite surface-specific differences, every surface follows the same structural flow:
 
-This system is explicitly designed to be boring, explicit, and uniform.
+```
+Surface state changes
+    │
+    ▼
+App-level coordinator (in essentials/)
+    │  iterates specs
+    │  routes each to the owning feature
+    │
+    ▼
+Feature coordinator (in feature/application/<surface>_spec/coordinators/)
+    │  pattern-matches feature spec
+    │  calls exactly one resolver
+    │
+    ▼
+Resolver (in feature/application/<surface>_spec/resolvers/)
+    │  receives explicit parameters
+    │  performs logic, constructs payload
+    │  calls widget builder for UI content
+    │
+    ▼
+Widget builder (in feature/application/<surface>_spec/widget_builders/)
+    │  assembles widgets from decided inputs
+    │
+    ▼
+Payload returned to app-level coordinator
+    │
+    ▼
+App-level applies chrome / layout → UI
+```
 
-================================================================
-2. DEFINITIONS (TERMS ARE PRECISE)
-================================================================
+Detailed documentation of this pattern: [52 — Feature Handling of X-Surface Specs](../52-FEATURE-HANDLING-OF-X-SURFACE-SPECS/)
 
-CassetteSpec
-  A sealed specification describing what cassette should appear.
-  May wrap a feature-specific spec.
+---
 
-FeatureCassetteSpec
-  A sealed specification owned by a feature. Interpreted only by that feature’s coordinator.
-  FeatureCassetteSpec is domain data: a declarative description of intent.
+## Spec Class Hierarchy
 
-Coordinator
-  A routing function whose only job is to:
-    • Pattern-match a spec
-    • Extract payload values
-    • Call the appropriate resolver
-    • Return a Future<SidebarCassetteCardViewModel>
+### Two-level sealed classes
 
-Resolver
-  A stateless decision-making function that:
-    • Receives explicit parameters
-    • Performs domain lookups / logic
-    • Constructs and returns SidebarCassetteCardViewModel
-    • Performs no routing
-    • Owns no UI assembly logic
+Each surface uses a **two-level** sealed class structure:
 
-Widget Builder
-  A dumb constructor that:
-    • Receives fully-decided inputs
-    • Assembles widgets
-    • Never interprets specs
-    • Never makes branching decisions
+1. **Top-level spec** (owned by essentials) — one variant per feature
+2. **Feature spec** (owned by the feature) — one variant per view/behavior
 
-SidebarCassetteCardViewModel
-  The single, canonical payload returned from a feature to the sidebar system.
-  This is the ONLY object that crosses the feature → essentials boundary.
+Example — sidebar cassettes:
 
-================================================================
-3. THE SINGLE CROSS-LAYER CONTRACT (ABSOLUTE)
-================================================================
+```dart
+// Level 1: essentials-owned — which feature?
+CassetteSpec.contacts(ContactsCassetteSpec spec)
+CassetteSpec.messages(MessagesCassetteSpec spec)
 
-Feature-level coordinators MUST return:
+// Level 2: feature-owned — which view within the feature?
+ContactsCassetteSpec.contactChooser()
+MessagesCassetteSpec.heatMap()
+```
 
-  Future<SidebarCassetteCardViewModel>
+Example — panel content:
 
-This is the ONLY value that may cross from a feature into the essentials/sidebar layer.
+```dart
+// Level 1: essentials-owned
+ViewSpec.messages(MessagesSpec spec)
+ViewSpec.contacts(ContactsSpec spec)
 
-No alternative return types are permitted.
-No wrapper types are permitted.
-No tuples, records, results, or metadata carriers are permitted.
+// Level 2: feature-owned
+MessagesSpec.forContact(contactId: 42)
+MessagesSpec.globalTimelineV2()
+```
 
-If additional data is required, it MUST be added as a field on
-SidebarCassetteCardViewModel itself.
+### Ownership rule
 
-================================================================
-4. COORDINATOR RESPONSIBILITIES (STRICT)
-================================================================
+- **Level 1** (CassetteSpec, ViewSpec) → essentials owns definition and routing
+- **Level 2** (feature specs) → the feature owns definition and interpretation
 
-A feature coordinator:
+---
 
-• Receives a FeatureCassetteSpec
-• Pattern-matches on that spec
-• Extracts payload parameters
-• Calls exactly ONE resolver
-• Returns the resolver’s Future<SidebarCassetteCardViewModel>
+## State Models
 
-The coordinator:
+### Sidebar: CassetteRack
 
-• MUST NOT perform IO
-• MUST NOT construct widgets
-• MUST NOT build view models itself
-• MUST NOT pass specs beyond this layer
-• MUST NOT return widgets or widget builders
+A flat, ordered list of `CassetteSpec`. Supports:
+- **Cascade**: placing spec A automatically determines specs B, C below it
+- **Rack mutations**: replace-and-cascade, truncate, push, update
 
-The coordinator is a router — nothing more.
+The rack is mode-dependent (`SidebarMode.messages` vs `SidebarMode.settings`).
 
-================================================================
-5. RESOLVER CONTRACT (NO WIGGLE ROOM)
-================================================================
+Detail: [54 — Sidebar Cassette Spec System](../54-SIDEBAR-CASSETTE-SPEC-SYSTEM/)
 
-Resolvers are implemented as Riverpod-annotated Notifier classes.
+### Panels: PanelStack
 
-A resolver:
+A stack of `PanelPage` objects per `WindowPanel`. Supports:
+- **Show**: replace with a single page
+- **Push/pop**: stack pages (tabs)
+- **Activate**: switch between stacked pages
 
-• Is invoked explicitly by the coordinator
-• Receives all required inputs as parameters
-• Returns Future<SidebarCassetteCardViewModel>
-• Owns all decision-making for that cassette
-• Determines which widget builder is used (declared via the view model)
+Detail: [56 — View Spec Panel Content System](../56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/)
 
-Resolvers MUST NOT:
+---
 
-• Accept a spec object
-• Read a spec from shared state
-• Be parameterized via provider families
-• Require pre-initialization or setter calls
-• Return widgets, builders, or partial results
-• Reach back into coordinators or routing logic
+## App-Level Coordinators
 
-Resolvers are explicit, stateless decision functions.
+Two app-level coordinators dispatch to features:
 
-================================================================
-6. ASYNC BEHAVIOR & LOADING (OPTION 1 — SIMPLE, MANDATED)
-================================================================
+### CassetteWidgetCoordinator
 
-Initial loading MUST be represented solely by the pending
-Future<SidebarCassetteCardViewModel>.
+- Watches `CassetteRackState` → iterates each `CassetteSpec`
+- Routes to feature cassette coordinators via `spec.when(...)`
+- Awaits `Future<SidebarCassetteCardViewModel>` from each feature
+- Wraps each view model in card chrome (`SidebarCassetteCard`, etc.)
+- Returns `List<Widget>`
 
-• Pending Future  = “loading”
-• Completed Future = realized cassette
+**Location:** `lib/essentials/sidebar/application/cassette_widget_coordinator_provider.dart`
 
-SidebarCassetteCardViewModel MUST represent only realized cassette content.
+### PanelCoordinator
 
-Therefore, the view model MUST NOT contain:
-• isLoading flags
-• loading variants
-• skeleton-only states
-• partial or placeholder content
+- Watches `PanelsViewState` → reads active page's `ViewSpec`
+- Routes to feature view spec coordinators via `spec.when(...)`
+- Gets `Widget` back synchronously
+- Renders in `PanelStackSurface`
 
-The sidebar system MAY display generic chrome or placeholders while awaiting the Future,
-but MUST NOT infer semantic meaning from loading.
+**Location:** `lib/essentials/navigation/application/panel_coordinator_provider.dart`
 
-================================================================
-7. ERROR AND EMPTY STATES
-================================================================
+---
 
-All error and empty states MUST be explicitly encoded inside SidebarCassetteCardViewModel.
+## Feature-Level Folder Convention
 
-Resolvers MUST NOT:
-• Throw errors across the boundary
-• Return null
-• Return alternate payload types
+Every feature that participates in a surface has a dedicated folder:
 
-All failure representation is content, not control flow.
+```
+feature/application/
+  sidebar_cassette_spec/
+    coordinators/
+    resolvers/
+    resolver_tools/
+    widget_builders/
+  view_spec/
+    coordinators/
+    resolvers/
+    resolver_tools/
+    widget_builders/
+```
 
-================================================================
-8. OWNERSHIP SUMMARY (ABSOLUTE)
-================================================================
+Each surface gets its own folder. The 4-subfolder structure is mandatory.
 
-Essentials / Sidebar owns:
-• Cassette stack topology
-• Cassette ordering
-• Chrome and layout
-• Calling feature coordinators
+---
 
-Features own:
-• FeatureCassetteSpec definitions (domain)
-• Coordinators
-• Resolvers
-• View model construction
-• Widget builders
+## Barrel File Convention
 
-No ownership overlaps are permitted.
+Features expose coordinators via `feature_level_providers.dart`:
 
-================================================================
-9. CANONICAL FEATURE COORDINATOR CONTRACT
-================================================================
+```dart
+export 'application/sidebar_cassette_spec/coordinators/cassette_coordinator.dart';
+export 'application/view_spec/coordinators/view_spec_coordinator.dart';
+```
 
-PURPOSE
-A feature coordinator is a routing function. It exists solely to translate a FeatureCassetteSpec
-into a Future<SidebarCassetteCardViewModel> by delegating to resolvers.
+App-level code imports features with aliases:
 
-REQUIRED FUNCTION SIGNATURE
-Every feature coordinator MUST expose a single public entry point:
+```dart
+import '.../features/messages/feature_level_providers.dart' as messages_feature;
+```
 
-  Future<SidebarCassetteCardViewModel> build(FeatureCassetteSpec spec)
+No other import path into a feature is permitted.
 
-No additional public methods are permitted.
+---
 
-ONLY PERMITTED CONTROL FLOW
-The coordinator MUST:
+## Cross-Surface Interactions
 
-1. Receive a FeatureCassetteSpec
-2. Pattern-match the spec
-3. Extract payload parameters
-4. Call exactly ONE resolver
-5. Return the resolver’s Future<SidebarCassetteCardViewModel>
-
-COORDINATORS MAY NOT
-• Call multiple resolvers
-• Compose or merge Futures
-• Inspect or modify view models
-• Perform conditional logic beyond spec pattern-matching
-• Pass specs to resolvers
-• Hold references to widget builders
-• Import presentation-layer widgets
-• Reach into infrastructure implementations
-
-ASYNC RULE (NON-NEGOTIABLE)
-All coordinators MUST return Futures. No sync pathways. No placeholders.
-
-================================================================
-10. CANONICAL RESOLVER CONTRACT
-================================================================
-
-REQUIRED FORM
-Every resolver MUST be implemented as a Riverpod-annotated Notifier class.
+Sidebar cassette widgets can trigger panel navigation:
 
-Naming convention (mandatory):
-• Annotated class:   ContactChooserResolver
-• Generated provider: contactChooserResolverProvider
-• File name:         contact_chooser_resolver_provider.dart
-
-ONLY PERMITTED PUBLIC API
-Each resolver MUST expose exactly ONE public method:
+```dart
+// Inside a cassette widget builder (sidebar)
+ref.read(panelsViewStateProvider(SidebarMode.messages).notifier).show(
+  panel: WindowPanel.center,
+  spec: ViewSpec.messages(MessagesSpec.forContact(contactId: contactId)),
+);
+```
 
-  Future<SidebarCassetteCardViewModel> resolve(...)
-
-No additional public methods are permitted.
-
-EXPLICIT PARAMETER PASSING (MANDATED)
-All data required to build the cassette MUST be passed explicitly to resolve(...).
-
-Resolvers MUST NOT:
-• Accept a spec object
-• Read a spec from shared state
-• Use provider families to bind inputs
-• Depend on call order or mutable initialization
-
-STATELESSNESS REQUIREMENT
-Resolvers MUST be stateless across calls. No caching inputs. No parameter storage in fields.
+This is the **only** permitted cross-surface interaction pattern:
+dispatch a spec through the target surface's state provider.
 
-DEPENDENCIES
-Resolvers MAY depend on repositories and services via abstractions.
-Resolvers MUST NOT depend on widgets, coordinators, or essentials/sidebar state.
-
-================================================================
-11. SidebarCassetteCardViewModel — Semantics & Ownership
-================================================================
-
-PURPOSE
-SidebarCassetteCardViewModel is the SINGLE authoritative payload returned from features
-to the sidebar system. It describes a realized cassette.
-
-SINGLE CROSS-BOUNDARY PAYLOAD (ABSOLUTE)
-SidebarCassetteCardViewModel is:
-• The ONLY object returned by resolvers
-• The ONLY object returned by feature coordinators
-• The ONLY object consumed by the sidebar cassette system
-
-REQUIRED SEMANTIC CATEGORIES
-The view model MUST fully encode:
-
-A) Identity
-   • Stable cassette identity
-   • Feature ownership
-
-B) Presentation Semantics
-   • Title / subtitle / footer text
-   • Visual emphasis and hierarchy
-   • Whether the cassette is expandable
-   • Whether the cassette is interactive
-
-C) Content Description
-   • Which widget builder must be used
-   • All inputs required by that builder
-
-D) State Representation
-   • Normal content
-   • Empty state
-   • Error state
-
-WIDGET BUILDER SELECTION
-The resolver decides. The view model declares. The widget builder obeys.
-
-IMMUTABILITY
-SidebarCassetteCardViewModel MUST be immutable and MUST NOT contain:
-• callbacks
-• mutable collections
-• BuildContext
-• closures/lambdas
-• feature specs
-• navigation logic
-• routing instructions
-• widgets
-• references to coordinators/resolvers
-• execution/loading state
-
-EXTENSIBILITY RULE (MANDATORY)
-If the system needs “one more piece of information”, add a field to SidebarCassetteCardViewModel.
-Do NOT introduce wrappers. Do NOT introduce parallel view models.
-
-================================================================
-12. FEATURE-LEVEL FOLDER SCAFFOLD & OWNERSHIP RULES
-================================================================
-
-Feature root structure (mandatory):
-
-featureName/
-  domain/
-  application/
-  infrastructure/
-  presentation/
-  feature_level_providers.dart
-
-No additional top-level folders are permitted.
-
-----------------------------------------------------------------
-12.1 Spec classes live in DOMAIN (MANDATORY)
-----------------------------------------------------------------
-
-All feature surface specs MUST live in the domain layer:
-
-featureName/
-  domain/
-    spec_classes/
-      <feature>_cassette_spec.dart
-      <feature>_tooltip_spec.dart            (future)
-      <feature>_<other_surface>_spec.dart    (future)
+Features must not reach into another surface's coordinator, rack state,
+or rendering internals.
 
-Rules:
-• Spec classes are pure domain data
-• They MUST NOT import application, infrastructure, or presentation code
-• Each surface gets exactly one spec file per feature; do not create per-case spec files
-
-----------------------------------------------------------------
-12.2 Application layer — sidebar cassette support (MANDATORY)
-----------------------------------------------------------------
-
-All sidebar-related feature logic MUST live under:
+---
 
-featureName/
-  domain/
-    spec_classes/
-      contacts_cassette_spec.dart
-      contacts_tooltip_spec.dart
+## Design Principles
 
-  application/
-    sidebar_cassette_spec/
-      coordinators/
-      resolvers/
-      resolver_tools/
-      widget_builders/
-
-  infrastructure/
-  presentation/
-
-  feature_level_providers.dart
-
-Meanings:
-
-coordinators/
-  • feature-level coordinator(s)
-  • routes FeatureCassetteSpec → resolver calls
-  • no IO, no widget construction, no business logic
-
-resolvers/
-  • riverpod Notifier resolvers
-  • one resolve(...) method
-  • explicit parameters
-  • returns Future<SidebarCassetteCardViewModel>
-
-resolver_tools/
-  • shared pure helper functions for resolvers
-  • no Riverpod, no widgets, no routing
-
-widget_builders/
-  • dumb widget assembly only
-  • accepts fully-decided inputs
-  • never interprets specs, never performs IO
-
-----------------------------------------------------------------
-12.3 Domain layer ownership
-----------------------------------------------------------------
-
-Domain contains:
-• feature-specific enums
-• text key enums
-• entities, value objects, rules
-• spec_classes (above)
-
-Domain MUST NOT depend on application/infrastructure/presentation.
-
-----------------------------------------------------------------
-12.4 Infrastructure layer ownership
-----------------------------------------------------------------
-
-Infrastructure contains:
-• repository implementations
-• database access
-• external service adapters
-
-Repositories:
-• are injected into resolvers via abstractions
-• must not expose UI or spec concepts
-
-----------------------------------------------------------------
-12.5 Presentation layer ownership
-----------------------------------------------------------------
-
-Presentation contains:
-• widgets, styles, layout primitives
-
-Presentation MUST NOT import coordinators or resolvers.
-
-================================================================
-13. feature_level_providers.dart (BARREL FILE) — PUBLIC API ONLY
-================================================================
-
-Each feature MUST expose a single barrel file:
-
-featureName/
-  feature_level_providers.dart
-
-This file is the ONLY public entry point for the feature.
-
-It MUST export:
-• FeatureCassetteSpec definitions (domain/spec_classes)
-• Feature coordinator(s)
-• Domain enums required by callers
-
-It MUST NOT export:
-• Resolver implementations
-• Resolver tools
-• Widget builders
-• Infrastructure details
-
-VISIBILITY RULE (ABSOLUTE)
-Code outside a feature MAY import only:
-
-featureName/feature_level_providers.dart
-
-Any other import path is a violation.
-
-================================================================
-14. COMMON FAILURE MODES & EXPLICITLY BANNED ANTI-PATTERNS
-================================================================
-
-The following are explicitly forbidden:
-
-1) Wrapper transport objects
-   • Result/Response/Payload wrappers
-   • WidgetWithMetadata, CassetteBuildResult, etc.
-   Correct fix: add fields to SidebarCassetteCardViewModel.
-
-2) Passing specs into resolvers
-   Correct fix: coordinators extract payload values and pass explicitly.
-
-3) Provider families / implicit binding
-   Correct fix: explicit parameters to resolve(...).
-
-4) Mutable resolver initialization
-   • setX/init/configure before resolve()
-   Correct fix: resolve(...) must accept all required parameters.
-
-5) Coordinators doing “a little bit more”
-   • IO, combining futures, inspecting view models, choosing builders, catching errors
-   Correct fix: move logic into resolvers.
-
-6) Returning widgets or builders across the boundary
-   Correct fix: only SidebarCassetteCardViewModel crosses the boundary.
-
-7) AsyncValue/execution state leakage
-   Correct fix: pending Future = loading; realized VM = content.
-
-8) Partial/placeholder view models
-   Correct fix: return complete, realized view model only.
-
-9) Sidebar inference logic
-   • runtime type checks, inferred expandability, inferred state
-   Correct fix: resolver declares; sidebar renders.
-
-10) Feature cross-talk
-   • importing another feature’s coordinator/resolver
-   Correct fix: extract shared domain/application services, not coordinators/resolvers.
-
-================================================================
-15. MIGRATION CHECKLIST — LEGACY → SIDEBAR CASSETTE ARCHITECTURE
-================================================================
-
-Follow this procedure in order. No shortcuts.
-
-1) Identify the feature boundary
-   • confirm domain/application/infrastructure/presentation exist
-
-2) Create required folder scaffold
-   • application/sidebar_cassette_spec/{coordinators,resolvers,resolver_tools,widget_builders}
-   • domain/spec_classes/
-
-3) Define FeatureCassetteSpec in domain/spec_classes
-   • minimal explicit payloads only
-
-4) Create resolvers first
-   • Notifier class
-   • single resolve(...) method
-   • explicit parameters
-   • returns Future<SidebarCassetteCardViewModel>
-   • errors/empty encoded as view model content (no throwing across boundary)
-
-5) Create widget builders
-   • assemble widgets only
-   • no specs, no IO, no decisions
-
-6) Create the feature coordinator
-   • build(spec) routes spec → exactly one resolver call per case
-   • returns resolver Future directly
-
-7) Verify async behavior
-   • pending Future = loading
-   • no loading flags in view models
-   • no partial view models
-
-8) Remove legacy paths
-   • delete old sidebar logic, wrappers, adapters
-
-9) Create feature_level_providers.dart
-   • export spec(s), coordinator(s), required domain enums only
-
-10) Verify ownership boundaries
-   • essentials imports only feature_level_providers.dart
-   • no cross-feature imports
-   • coordinators import no widgets
-   • widget builders import no specs
-
-11) Delete “temporary” code
-   • no transitional adapters, no TODO-based architecture
-
-12) Final validation questions (all must be “yes”)
-   • each cassette originates from FeatureCassetteSpec
-   • each spec case maps to exactly one resolver
-   • each resolver returns exactly one view model
-   • SidebarCassetteCardViewModel is the only boundary payload
-   • loading is represented only by a pending Future
-
-================================================================
-16. FINAL RULE
-================================================================
-
-If a piece of code requires explanation to justify why it does not follow these rules,
-it is wrong.
-
-If a migration “needs” an exception, the migration strategy is wrong.
-
-These contracts are not guidelines.
-They are architectural law.
+1. **Specs are data, not behavior** — they describe intent, features interpret
+2. **Surfaces are independent** — each has its own state model, coordinator, and rendering
+3. **Features are unaware of surface chrome** — they return payloads, not wrapped UI
+4. **The pattern is boring and uniform** — every surface works the same structural way
+5. **Cross-surface coupling is minimal** — only through spec dispatch to state providers
+6. **Compile-time safety** — sealed classes ensure exhaustive handling of all cases

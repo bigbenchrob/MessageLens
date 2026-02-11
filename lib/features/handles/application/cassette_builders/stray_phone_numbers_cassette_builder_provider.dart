@@ -16,6 +16,7 @@ SidebarCassetteCardViewModel strayPhoneNumbersCassetteBuilder(Ref ref) {
   return const SidebarCassetteCardViewModel(
     title: 'Stray phone numbers',
     subtitle: 'Phone numbers not linked to any contact in your address book.',
+    shouldExpand: true,
     child: StrayPhoneNumbersCassette(),
   );
 }

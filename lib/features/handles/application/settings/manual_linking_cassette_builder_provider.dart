@@ -15,6 +15,7 @@ SidebarCassetteCardViewModel manualLinkingCassetteBuilder(Ref ref) {
   return const SidebarCassetteCardViewModel(
     title: 'Manual Linking',
     subtitle: 'Link unknown handles to contacts when automatic matching fails.',
+    shouldExpand: true,
     child: ManualLinkingView(),
   );
 }

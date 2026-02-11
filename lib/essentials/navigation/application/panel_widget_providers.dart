@@ -7,8 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // widgets that compose the sidebar. We wrap these in a Column to produce the
 // left panel surface.
 import '../../sidebar/feature_level_providers.dart';
-import '../../sidebar/presentation/sidebar_info_card.dart';
-import '../../sidebar/presentation/view/sidebar_navigation_card.dart';
 import '../domain/entities/panel_stack.dart';
 import '../domain/navigation_constants.dart';
 import '../domain/sidebar_mode.dart';
@@ -168,27 +166,29 @@ class _LeftSidebarSurface extends StatelessWidget {
               (widget.isControl || widget.isNaked)) {
             controls.add(constrained);
           } else {
-            // SidebarCassetteCard respects its own shouldExpand flag.
-            // SidebarInfoCard and SidebarNavigationCard never expand.
-            // Other widgets default to expanding.
+            // SidebarCassetteCard carries its own shouldExpand flag.
+            // All other widget types default to false (intrinsic height).
             final shouldExpand = switch (widget) {
               SidebarCassetteCard(:final shouldExpand) => shouldExpand,
-              SidebarInfoCard() => false,
-              SidebarNavigationCard() => false,
-              _ => true,
+              _ => false,
             };
             content.add((widget: constrained, shouldExpand: shouldExpand));
           }
         }
 
+        final hasExpandingContent = content.any((c) => c.shouldExpand);
+
         return CustomScrollView(
           slivers: [
             for (final control in controls) SliverToBoxAdapter(child: control),
-            if (content.isNotEmpty)
+            if (content.isNotEmpty && hasExpandingContent)
               SliverFillRemaining(
                 hasScrollBody: true,
                 child: _ContentFillColumn(children: content),
-              ),
+              )
+            else
+              for (final item in content)
+                SliverToBoxAdapter(child: item.widget),
           ],
         );
       },

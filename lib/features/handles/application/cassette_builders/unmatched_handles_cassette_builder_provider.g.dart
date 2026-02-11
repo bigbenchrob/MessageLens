@@ -7,7 +7,7 @@ part of 'unmatched_handles_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$unmatchedHandlesCassetteBuilderHash() =>
-    r'209f16a1fe845ef63aaad31158b7368fbc5b17dc';
+    r'6bdeb40b22a5aa7439a0d2b5e0d472a8a41c9941';
 
 /// Builds the cassette view model for unmatched handles list.
 ///

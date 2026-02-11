@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../config/theme/colors/theme_colors.dart';
-import '../../../config/theme/theme_typography.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 
 /// A “soft” informational card for explanatory text.
 ///
@@ -67,6 +67,7 @@ class SidebarInfoCard extends ConsumerWidget {
       child: Padding(
         padding: padding,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (hasTitle) ...[
