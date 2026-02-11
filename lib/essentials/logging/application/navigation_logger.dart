@@ -57,9 +57,8 @@ class NavigationLogEntry {
             if (scrollToDate != null)
               'scrollToDate': scrollToDate.toIso8601String(),
           },
-          globalTimeline: () => {'variant': 'globalTimeline'},
-          globalTimelineV2: (scrollToDate) => {
-            'variant': 'globalTimelineV2',
+          globalTimeline: (scrollToDate) => {
+            'variant': 'globalTimeline',
             if (scrollToDate != null)
               'scrollToDate': scrollToDate.toIso8601String(),
           },

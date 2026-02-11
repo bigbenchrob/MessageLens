@@ -3,7 +3,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../domain/spec_classes/messages_view_spec.dart';
 import '../resolvers/global_timeline_resolver.dart';
-import '../resolvers/global_timeline_v2_resolver.dart';
 import '../resolvers/handle_lens_resolver.dart';
 import '../resolvers/messages_for_contact_resolver.dart';
 import '../resolvers/messages_for_handle_resolver.dart';
@@ -35,9 +34,8 @@ class ViewSpecCoordinator extends _$ViewSpecCoordinator {
       ),
       forContact: (contactId, scrollToDate) => MessagesForContactResolver()
           .resolve(contactId: contactId, scrollToDate: scrollToDate),
-      globalTimeline: () => GlobalTimelineResolver().resolve(),
-      globalTimelineV2: (scrollToDate) =>
-          GlobalTimelineV2Resolver().resolve(scrollToDate: scrollToDate),
+      globalTimeline: (scrollToDate) =>
+          GlobalTimelineResolver().resolve(scrollToDate: scrollToDate),
       forHandle: (handleId) =>
           MessagesForHandleResolver().resolve(handleId: handleId),
       handleLens: (handleId) =>

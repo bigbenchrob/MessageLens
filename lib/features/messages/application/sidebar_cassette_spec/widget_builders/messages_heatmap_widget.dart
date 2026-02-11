@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -14,9 +12,8 @@ import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../contacts/infrastructure/repositories/contact_profile_provider.dart';
 import '../../../domain/calendar_heatmap_timeline_data.dart';
-import '../../../presentation/view_model/app_global_messages_vm/current_visible_month_provider.dart';
-import '../../../presentation/view_model/app_global_messages_vm/global_timeline_controller.dart';
-import '../../../presentation/view_model/messages_by_contact_vm/current_visible_month_for_contact_provider.dart';
+import '../../../domain/value_objects/message_timeline_scope.dart';
+import '../../../presentation/view_model/timeline/ordinal/current_visible_month_provider.dart';
 import '../../../presentation/widgets/calendar_heatmap_timeline_widget.dart';
 import '../resolver_tools/contact_timeline_provider.dart';
 import '../resolver_tools/global_messages_heatmap_provider.dart';
@@ -34,14 +31,9 @@ import '../resolver_tools/global_messages_heatmap_provider.dart';
 /// - Construct specs only on user interaction (output, not interpretation)
 /// - Never make branching decisions about which UI to show
 class MessagesHeatmapWidget extends ConsumerWidget {
-  const MessagesHeatmapWidget({
-    this.contactId,
-    this.useV2Timeline = false,
-    super.key,
-  });
+  const MessagesHeatmapWidget({this.contactId, super.key});
 
   final int? contactId;
-  final bool useV2Timeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,10 +63,7 @@ class MessagesHeatmapWidget extends ConsumerWidget {
             ),
           );
         }
-        return _GlobalHeatmapContent(
-          data: timeline,
-          useV2Timeline: useV2Timeline,
-        );
+        return _GlobalHeatmapContent(data: timeline);
       },
       loading: () => const _HeatmapLoadingCard(),
       error: (error, _) => _HeatmapErrorCard(
@@ -92,13 +81,9 @@ class MessagesHeatmapWidget extends ConsumerWidget {
 }
 
 class _GlobalHeatmapContent extends HookConsumerWidget {
-  const _GlobalHeatmapContent({
-    required this.data,
-    required this.useV2Timeline,
-  });
+  const _GlobalHeatmapContent({required this.data});
 
   final CalendarHeatmapTimelineData? data;
-  final bool useV2Timeline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -109,11 +94,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
               .read(panelsViewStateProvider(SidebarMode.messages).notifier)
               .show(
                 panel: WindowPanel.center,
-                spec: ViewSpec.messages(
-                  useV2Timeline
-                      ? const MessagesSpec.globalTimelineV2()
-                      : const MessagesSpec.globalTimeline(),
-                ),
+                spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
               );
         });
       }
@@ -132,7 +113,11 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     final colors = ref.watch(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
 
-    final selectedMonthAsync = ref.watch(currentVisibleMonthProvider);
+    final selectedMonthAsync = ref.watch(
+      currentVisibleMonthForScopeProvider(
+        scope: const MessageTimelineScope.global(),
+      ),
+    );
     final selectedMonth = selectedMonthAsync.valueOrNull;
 
     final stats = _buildStats(
@@ -181,19 +166,9 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
                 .show(
                   panel: WindowPanel.center,
                   spec: ViewSpec.messages(
-                    useV2Timeline
-                        ? MessagesSpec.globalTimelineV2(scrollToDate: startDate)
-                        : const MessagesSpec.globalTimeline(),
+                    MessagesSpec.globalTimeline(scrollToDate: startDate),
                   ),
                 );
-
-            if (startDate != null) {
-              unawaited(
-                ref
-                    .read(globalTimelineControllerProvider().notifier)
-                    .jumpToDate(startDate),
-              );
-            }
           },
         ),
         const SizedBox(height: 12),
@@ -204,11 +179,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
                 .read(panelsViewStateProvider(SidebarMode.messages).notifier)
                 .show(
                   panel: WindowPanel.center,
-                  spec: ViewSpec.messages(
-                    useV2Timeline
-                        ? const MessagesSpec.globalTimelineV2()
-                        : const MessagesSpec.globalTimeline(),
-                  ),
+                  spec: const ViewSpec.messages(MessagesSpec.globalTimeline()),
                 );
           },
           child: Text(
@@ -264,7 +235,9 @@ class _ContactHeatmapContent extends HookConsumerWidget {
     final t = ref.watch(themeTypographyProvider);
 
     final selectedMonthAsync = ref.watch(
-      currentVisibleMonthForContactProvider(contactId: contactId),
+      currentVisibleMonthForScopeProvider(
+        scope: MessageTimelineScope.contact(contactId: contactId),
+      ),
     );
     final selectedMonth = selectedMonthAsync.valueOrNull;
 

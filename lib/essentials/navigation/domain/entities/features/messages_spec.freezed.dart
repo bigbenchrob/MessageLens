@@ -55,14 +55,13 @@ extension MessagesSpecPatterns on MessagesSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult Function( _MessagesGlobalTimelineV2 value)?  globalTimelineV2,TResult Function( _MessagesForHandle value)?  forHandle,TResult Function( _MessagesHandleLens value)?  handleLens,TResult Function( _MessagesForChatInDateRange value)?  forChatInDateRange,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _MessagesForChat value)?  forChat,TResult Function( _MessagesForContact value)?  forContact,TResult Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult Function( _MessagesForHandle value)?  forHandle,TResult Function( _MessagesHandleLens value)?  handleLens,TResult Function( _MessagesForChatInDateRange value)?  forChatInDateRange,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline(_that);case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2(_that);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that);case _:
@@ -83,14 +82,13 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _MessagesGlobalTimeline value)  globalTimeline,required TResult Function( _MessagesGlobalTimelineV2 value)  globalTimelineV2,required TResult Function( _MessagesForHandle value)  forHandle,required TResult Function( _MessagesHandleLens value)  handleLens,required TResult Function( _MessagesForChatInDateRange value)  forChatInDateRange,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _MessagesForChat value)  forChat,required TResult Function( _MessagesForContact value)  forContact,required TResult Function( _MessagesGlobalTimeline value)  globalTimeline,required TResult Function( _MessagesForHandle value)  forHandle,required TResult Function( _MessagesHandleLens value)  handleLens,required TResult Function( _MessagesForChatInDateRange value)  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that);case _MessagesForContact():
 return forContact(_that);case _MessagesGlobalTimeline():
-return globalTimeline(_that);case _MessagesGlobalTimelineV2():
-return globalTimelineV2(_that);case _MessagesForHandle():
+return globalTimeline(_that);case _MessagesForHandle():
 return forHandle(_that);case _MessagesHandleLens():
 return handleLens(_that);case _MessagesForChatInDateRange():
 return forChatInDateRange(_that);case _:
@@ -110,14 +108,13 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult? Function( _MessagesGlobalTimelineV2 value)?  globalTimelineV2,TResult? Function( _MessagesForHandle value)?  forHandle,TResult? Function( _MessagesHandleLens value)?  handleLens,TResult? Function( _MessagesForChatInDateRange value)?  forChatInDateRange,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _MessagesForChat value)?  forChat,TResult? Function( _MessagesForContact value)?  forContact,TResult? Function( _MessagesGlobalTimeline value)?  globalTimeline,TResult? Function( _MessagesForHandle value)?  forHandle,TResult? Function( _MessagesHandleLens value)?  handleLens,TResult? Function( _MessagesForChatInDateRange value)?  forChatInDateRange,}){
 final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that);case _MessagesForContact() when forContact != null:
 return forContact(_that);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline(_that);case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2(_that);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that);case _:
@@ -137,13 +134,12 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function()?  globalTimeline,TResult Function( DateTime? scrollToDate)?  globalTimelineV2,TResult Function( int handleId)?  forHandle,TResult Function( int handleId)?  handleLens,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( DateTime? scrollToDate)?  globalTimeline,TResult Function( int handleId)?  forHandle,TResult Function( int handleId)?  handleLens,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
@@ -164,13 +160,12 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function()  globalTimeline,required TResult Function( DateTime? scrollToDate)  globalTimelineV2,required TResult Function( int handleId)  forHandle,required TResult Function( int handleId)  handleLens,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( DateTime? scrollToDate)  globalTimeline,required TResult Function( int handleId)  forHandle,required TResult Function( int handleId)  handleLens,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
 return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline():
-return globalTimeline();case _MessagesGlobalTimelineV2():
-return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle():
+return globalTimeline(_that.scrollToDate);case _MessagesForHandle():
 return forHandle(_that.handleId);case _MessagesHandleLens():
 return handleLens(_that.handleId);case _MessagesForChatInDateRange():
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
@@ -190,13 +185,12 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function()?  globalTimeline,TResult? Function( DateTime? scrollToDate)?  globalTimelineV2,TResult? Function( int handleId)?  forHandle,TResult? Function( int handleId)?  handleLens,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( DateTime? scrollToDate)?  globalTimeline,TResult? Function( int handleId)?  forHandle,TResult? Function( int handleId)?  handleLens,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
 return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline() when globalTimeline != null:
-return globalTimeline();case _MessagesGlobalTimelineV2() when globalTimelineV2 != null:
-return globalTimelineV2(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
+return globalTimeline(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
 return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
@@ -345,39 +339,7 @@ as DateTime?,
 
 
 class _MessagesGlobalTimeline implements MessagesSpec {
-  const _MessagesGlobalTimeline();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimeline);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'MessagesSpec.globalTimeline()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class _MessagesGlobalTimelineV2 implements MessagesSpec {
-  const _MessagesGlobalTimelineV2({this.scrollToDate});
+  const _MessagesGlobalTimeline({this.scrollToDate});
   
 
  final  DateTime? scrollToDate;
@@ -386,13 +348,13 @@ class _MessagesGlobalTimelineV2 implements MessagesSpec {
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$MessagesGlobalTimelineV2CopyWith<_MessagesGlobalTimelineV2> get copyWith => __$MessagesGlobalTimelineV2CopyWithImpl<_MessagesGlobalTimelineV2>(this, _$identity);
+_$MessagesGlobalTimelineCopyWith<_MessagesGlobalTimeline> get copyWith => __$MessagesGlobalTimelineCopyWithImpl<_MessagesGlobalTimeline>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimelineV2&&(identical(other.scrollToDate, scrollToDate) || other.scrollToDate == scrollToDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesGlobalTimeline&&(identical(other.scrollToDate, scrollToDate) || other.scrollToDate == scrollToDate));
 }
 
 
@@ -401,15 +363,15 @@ int get hashCode => Object.hash(runtimeType,scrollToDate);
 
 @override
 String toString() {
-  return 'MessagesSpec.globalTimelineV2(scrollToDate: $scrollToDate)';
+  return 'MessagesSpec.globalTimeline(scrollToDate: $scrollToDate)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$MessagesGlobalTimelineV2CopyWith<$Res> implements $MessagesSpecCopyWith<$Res> {
-  factory _$MessagesGlobalTimelineV2CopyWith(_MessagesGlobalTimelineV2 value, $Res Function(_MessagesGlobalTimelineV2) _then) = __$MessagesGlobalTimelineV2CopyWithImpl;
+abstract mixin class _$MessagesGlobalTimelineCopyWith<$Res> implements $MessagesSpecCopyWith<$Res> {
+  factory _$MessagesGlobalTimelineCopyWith(_MessagesGlobalTimeline value, $Res Function(_MessagesGlobalTimeline) _then) = __$MessagesGlobalTimelineCopyWithImpl;
 @useResult
 $Res call({
  DateTime? scrollToDate
@@ -420,17 +382,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$MessagesGlobalTimelineV2CopyWithImpl<$Res>
-    implements _$MessagesGlobalTimelineV2CopyWith<$Res> {
-  __$MessagesGlobalTimelineV2CopyWithImpl(this._self, this._then);
+class __$MessagesGlobalTimelineCopyWithImpl<$Res>
+    implements _$MessagesGlobalTimelineCopyWith<$Res> {
+  __$MessagesGlobalTimelineCopyWithImpl(this._self, this._then);
 
-  final _MessagesGlobalTimelineV2 _self;
-  final $Res Function(_MessagesGlobalTimelineV2) _then;
+  final _MessagesGlobalTimeline _self;
+  final $Res Function(_MessagesGlobalTimeline) _then;
 
 /// Create a copy of MessagesSpec
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? scrollToDate = freezed,}) {
-  return _then(_MessagesGlobalTimelineV2(
+  return _then(_MessagesGlobalTimeline(
 scrollToDate: freezed == scrollToDate ? _self.scrollToDate : scrollToDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

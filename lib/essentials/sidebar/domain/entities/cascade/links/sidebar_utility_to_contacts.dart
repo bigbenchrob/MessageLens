@@ -23,7 +23,7 @@ CassetteSpec sidebarUtilityToHandlesStrayPhoneNumbers() {
 
 CassetteSpec sidebarUtilityToMessagesHeatMapAll() {
   return const CassetteSpec.messages(
-    MessagesCassetteSpec.heatMap(contactId: null, useV2Timeline: true),
+    MessagesCassetteSpec.heatMap(contactId: null),
   );
 }
 

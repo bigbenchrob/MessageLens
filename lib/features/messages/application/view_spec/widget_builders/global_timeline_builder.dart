@@ -1,8 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../presentation/view/global_timeline_view.dart';
+import '../../../domain/value_objects/message_timeline_scope.dart';
+import '../../../presentation/view/messages_timeline_view.dart';
 
-/// Widget builder for the global timeline (V1) center panel view.
-Widget buildGlobalTimelineView() {
-  return const GlobalTimelineView();
+/// Widget builder for the global timeline center panel view.
+Widget buildGlobalTimelineView({DateTime? scrollToDate}) {
+  return MessagesTimelineView(
+    scope: const MessageTimelineScope.global(),
+    scrollToDate: scrollToDate,
+  );
 }

@@ -40,11 +40,7 @@ class MessagesCassetteCoordinator extends _$MessagesCassetteCoordinator {
     return spec.map(
       heatMap: (heatMap) => ref
           .read(heatmapResolverProvider.notifier)
-          .resolve(
-            contactId: heatMap.contactId,
-            useV2Timeline: heatMap.useV2Timeline,
-            cassetteIndex: cassetteIndex,
-          ),
+          .resolve(contactId: heatMap.contactId, cassetteIndex: cassetteIndex),
     );
   }
 }

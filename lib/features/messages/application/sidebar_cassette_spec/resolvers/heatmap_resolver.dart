@@ -28,7 +28,6 @@ class HeatmapResolver extends _$HeatmapResolver {
   /// Resolve the messages heatmap cassette.
   Future<SidebarCassetteCardViewModel> resolve({
     required int? contactId,
-    required bool useV2Timeline,
     required int cassetteIndex,
   }) async {
     final isContactScoped = contactId != null;
@@ -41,10 +40,7 @@ class HeatmapResolver extends _$HeatmapResolver {
           ? null
           : 'Discover peaks and gaps across your entire archive.',
       shouldExpand: false,
-      child: MessagesHeatmapWidget(
-        contactId: contactId,
-        useV2Timeline: useV2Timeline,
-      ),
+      child: MessagesHeatmapWidget(contactId: contactId),
     );
   }
 }

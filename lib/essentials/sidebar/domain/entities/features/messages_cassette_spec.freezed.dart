@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MessagesCassetteSpec {
 
- int? get contactId; bool get useV2Timeline;
+ int? get contactId;
 /// Create a copy of MessagesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MessagesCassetteSpecCopyWith<MessagesCassetteSpec> get copyWith => _$MessagesCa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessagesCassetteSpec&&(identical(other.contactId, contactId) || other.contactId == contactId)&&(identical(other.useV2Timeline, useV2Timeline) || other.useV2Timeline == useV2Timeline));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessagesCassetteSpec&&(identical(other.contactId, contactId) || other.contactId == contactId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,contactId,useV2Timeline);
+int get hashCode => Object.hash(runtimeType,contactId);
 
 @override
 String toString() {
-  return 'MessagesCassetteSpec(contactId: $contactId, useV2Timeline: $useV2Timeline)';
+  return 'MessagesCassetteSpec(contactId: $contactId)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MessagesCassetteSpecCopyWith<$Res>  {
   factory $MessagesCassetteSpecCopyWith(MessagesCassetteSpec value, $Res Function(MessagesCassetteSpec) _then) = _$MessagesCassetteSpecCopyWithImpl;
 @useResult
 $Res call({
- int? contactId, bool useV2Timeline
+ int? contactId
 });
 
 
@@ -62,11 +62,10 @@ class _$MessagesCassetteSpecCopyWithImpl<$Res>
 
 /// Create a copy of MessagesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? contactId = freezed,Object? useV2Timeline = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? contactId = freezed,}) {
   return _then(_self.copyWith(
 contactId: freezed == contactId ? _self.contactId : contactId // ignore: cast_nullable_to_non_nullable
-as int?,useV2Timeline: null == useV2Timeline ? _self.useV2Timeline : useV2Timeline // ignore: cast_nullable_to_non_nullable
-as bool,
+as int?,
   ));
 }
 
@@ -151,10 +150,10 @@ return heatMap(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? contactId,  bool useV2Timeline)?  heatMap,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int? contactId)?  heatMap,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesHeatMapSpec() when heatMap != null:
-return heatMap(_that.contactId,_that.useV2Timeline);case _:
+return heatMap(_that.contactId);case _:
   return orElse();
 
 }
@@ -172,10 +171,10 @@ return heatMap(_that.contactId,_that.useV2Timeline);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? contactId,  bool useV2Timeline)  heatMap,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int? contactId)  heatMap,}) {final _that = this;
 switch (_that) {
 case _MessagesHeatMapSpec():
-return heatMap(_that.contactId,_that.useV2Timeline);case _:
+return heatMap(_that.contactId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -192,10 +191,10 @@ return heatMap(_that.contactId,_that.useV2Timeline);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? contactId,  bool useV2Timeline)?  heatMap,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int? contactId)?  heatMap,}) {final _that = this;
 switch (_that) {
 case _MessagesHeatMapSpec() when heatMap != null:
-return heatMap(_that.contactId,_that.useV2Timeline);case _:
+return heatMap(_that.contactId);case _:
   return null;
 
 }
@@ -207,11 +206,10 @@ return heatMap(_that.contactId,_that.useV2Timeline);case _:
 
 
 class _MessagesHeatMapSpec implements MessagesCassetteSpec {
-  const _MessagesHeatMapSpec({this.contactId, this.useV2Timeline = false});
+  const _MessagesHeatMapSpec({this.contactId});
   
 
 @override final  int? contactId;
-@override@JsonKey() final  bool useV2Timeline;
 
 /// Create a copy of MessagesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -223,16 +221,16 @@ _$MessagesHeatMapSpecCopyWith<_MessagesHeatMapSpec> get copyWith => __$MessagesH
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesHeatMapSpec&&(identical(other.contactId, contactId) || other.contactId == contactId)&&(identical(other.useV2Timeline, useV2Timeline) || other.useV2Timeline == useV2Timeline));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesHeatMapSpec&&(identical(other.contactId, contactId) || other.contactId == contactId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,contactId,useV2Timeline);
+int get hashCode => Object.hash(runtimeType,contactId);
 
 @override
 String toString() {
-  return 'MessagesCassetteSpec.heatMap(contactId: $contactId, useV2Timeline: $useV2Timeline)';
+  return 'MessagesCassetteSpec.heatMap(contactId: $contactId)';
 }
 
 
@@ -243,7 +241,7 @@ abstract mixin class _$MessagesHeatMapSpecCopyWith<$Res> implements $MessagesCas
   factory _$MessagesHeatMapSpecCopyWith(_MessagesHeatMapSpec value, $Res Function(_MessagesHeatMapSpec) _then) = __$MessagesHeatMapSpecCopyWithImpl;
 @override @useResult
 $Res call({
- int? contactId, bool useV2Timeline
+ int? contactId
 });
 
 
@@ -260,11 +258,10 @@ class __$MessagesHeatMapSpecCopyWithImpl<$Res>
 
 /// Create a copy of MessagesCassetteSpec
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? contactId = freezed,Object? useV2Timeline = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? contactId = freezed,}) {
   return _then(_MessagesHeatMapSpec(
 contactId: freezed == contactId ? _self.contactId : contactId // ignore: cast_nullable_to_non_nullable
-as int?,useV2Timeline: null == useV2Timeline ? _self.useV2Timeline : useV2Timeline // ignore: cast_nullable_to_non_nullable
-as bool,
+as int?,
   ));
 }
 
