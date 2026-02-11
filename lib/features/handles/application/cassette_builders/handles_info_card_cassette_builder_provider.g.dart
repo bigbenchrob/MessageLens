@@ -7,7 +7,7 @@ part of 'handles_info_card_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$handlesInfoCardCassetteBuilderHash() =>
-    r'c38045ac59ff1d0245e6759a5674d31a08e9f2f2';
+    r'be708218c026e55c84b0f1917a065dcfaac62441';
 
 /// Copied from Dart SDK
 class _SystemHash {

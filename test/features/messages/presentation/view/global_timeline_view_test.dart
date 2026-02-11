@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
-import 'package:remember_this_text/features/messages/application/use_cases/global_message_timeline_provider.dart';
+import 'package:remember_this_text/features/messages/application/view_spec/resolver_tools/global_message_timeline_provider.dart';
 import 'package:remember_this_text/features/messages/presentation/view/global_timeline_view.dart';
 import 'package:remember_this_text/features/messages/presentation/view_model/shared/hydration/message_by_id_provider.dart';
 import 'package:remember_this_text/features/messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
-import 'package:remember_this_text/features/messages/presentation/view_model/view_model_global/global_timeline_controller.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/app_global_messages_vm/global_timeline_controller.dart';
 
 void main() {
   late GlobalTimelineState sampleState;

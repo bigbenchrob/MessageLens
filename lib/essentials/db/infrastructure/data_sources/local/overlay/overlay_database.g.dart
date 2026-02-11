@@ -1489,31 +1489,30 @@ class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
   late final GeneratedColumn<int> participantId = GeneratedColumn<int>(
     'participant_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
   );
-  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  static const VerificationMeta _virtualParticipantIdMeta =
+      const VerificationMeta('virtualParticipantId');
   @override
-  late final GeneratedColumn<String> source = GeneratedColumn<String>(
-    'source',
+  late final GeneratedColumn<int> virtualParticipantId = GeneratedColumn<int>(
+    'virtual_participant_id',
     aliasedName,
-    false,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reviewedAtMeta = const VerificationMeta(
+    'reviewedAt',
+  );
+  @override
+  late final GeneratedColumn<String> reviewedAt = GeneratedColumn<String>(
+    'reviewed_at',
+    aliasedName,
+    true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('user_manual'),
-  );
-  static const VerificationMeta _confidenceMeta = const VerificationMeta(
-    'confidence',
-  );
-  @override
-  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
-    'confidence',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(1.0),
   );
   static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
     'createdAtUtc',
@@ -1541,8 +1540,8 @@ class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
   List<GeneratedColumn> get $columns => [
     handleId,
     participantId,
-    source,
-    confidence,
+    virtualParticipantId,
+    reviewedAt,
     createdAtUtc,
     updatedAtUtc,
   ];
@@ -1572,19 +1571,20 @@ class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
           _participantIdMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_participantIdMeta);
     }
-    if (data.containsKey('source')) {
+    if (data.containsKey('virtual_participant_id')) {
       context.handle(
-        _sourceMeta,
-        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+        _virtualParticipantIdMeta,
+        virtualParticipantId.isAcceptableOrUnknown(
+          data['virtual_participant_id']!,
+          _virtualParticipantIdMeta,
+        ),
       );
     }
-    if (data.containsKey('confidence')) {
+    if (data.containsKey('reviewed_at')) {
       context.handle(
-        _confidenceMeta,
-        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+        _reviewedAtMeta,
+        reviewedAt.isAcceptableOrUnknown(data['reviewed_at']!, _reviewedAtMeta),
       );
     }
     if (data.containsKey('created_at_utc')) {
@@ -1628,15 +1628,15 @@ class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
       participantId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}participant_id'],
-      )!,
-      source: attachedDatabase.typeMapping.read(
+      ),
+      virtualParticipantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}virtual_participant_id'],
+      ),
+      reviewedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}source'],
-      )!,
-      confidence: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}confidence'],
-      )!,
+        data['${effectivePrefix}reviewed_at'],
+      ),
       createdAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_at_utc'],
@@ -1656,24 +1656,27 @@ class $HandleToParticipantOverridesTable extends HandleToParticipantOverrides
 
 class HandleToParticipantOverride extends DataClass
     implements Insertable<HandleToParticipantOverride> {
-  /// Matches working.handles.id
+  /// Matches working.handles_canonical.id
   final int handleId;
 
-  /// Matches working.participants.id
-  final int participantId;
+  /// Matches working.participants.id (null when linking to a virtual participant
+  /// or when the handle is dismissed).
+  final int? participantId;
 
-  /// Source of the link (always 'user_manual' for manual overrides)
-  final String source;
+  /// Matches overlay virtual_participants.id (null when linking to a real
+  /// participant or when the handle is dismissed).
+  final int? virtualParticipantId;
 
-  /// Confidence level (1.0 for user-confirmed manual links)
-  final double confidence;
+  /// ISO 8601 timestamp of when the user last reviewed this handle in the
+  /// Handle Lens. Auto-set on review; semantics may be refined later.
+  final String? reviewedAt;
   final String createdAtUtc;
   final String updatedAtUtc;
   const HandleToParticipantOverride({
     required this.handleId,
-    required this.participantId,
-    required this.source,
-    required this.confidence,
+    this.participantId,
+    this.virtualParticipantId,
+    this.reviewedAt,
     required this.createdAtUtc,
     required this.updatedAtUtc,
   });
@@ -1681,9 +1684,15 @@ class HandleToParticipantOverride extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['handle_id'] = Variable<int>(handleId);
-    map['participant_id'] = Variable<int>(participantId);
-    map['source'] = Variable<String>(source);
-    map['confidence'] = Variable<double>(confidence);
+    if (!nullToAbsent || participantId != null) {
+      map['participant_id'] = Variable<int>(participantId);
+    }
+    if (!nullToAbsent || virtualParticipantId != null) {
+      map['virtual_participant_id'] = Variable<int>(virtualParticipantId);
+    }
+    if (!nullToAbsent || reviewedAt != null) {
+      map['reviewed_at'] = Variable<String>(reviewedAt);
+    }
     map['created_at_utc'] = Variable<String>(createdAtUtc);
     map['updated_at_utc'] = Variable<String>(updatedAtUtc);
     return map;
@@ -1692,9 +1701,15 @@ class HandleToParticipantOverride extends DataClass
   HandleToParticipantOverridesCompanion toCompanion(bool nullToAbsent) {
     return HandleToParticipantOverridesCompanion(
       handleId: Value(handleId),
-      participantId: Value(participantId),
-      source: Value(source),
-      confidence: Value(confidence),
+      participantId: participantId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(participantId),
+      virtualParticipantId: virtualParticipantId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(virtualParticipantId),
+      reviewedAt: reviewedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewedAt),
       createdAtUtc: Value(createdAtUtc),
       updatedAtUtc: Value(updatedAtUtc),
     );
@@ -1707,9 +1722,11 @@ class HandleToParticipantOverride extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return HandleToParticipantOverride(
       handleId: serializer.fromJson<int>(json['handleId']),
-      participantId: serializer.fromJson<int>(json['participantId']),
-      source: serializer.fromJson<String>(json['source']),
-      confidence: serializer.fromJson<double>(json['confidence']),
+      participantId: serializer.fromJson<int?>(json['participantId']),
+      virtualParticipantId: serializer.fromJson<int?>(
+        json['virtualParticipantId'],
+      ),
+      reviewedAt: serializer.fromJson<String?>(json['reviewedAt']),
       createdAtUtc: serializer.fromJson<String>(json['createdAtUtc']),
       updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
     );
@@ -1719,9 +1736,9 @@ class HandleToParticipantOverride extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'handleId': serializer.toJson<int>(handleId),
-      'participantId': serializer.toJson<int>(participantId),
-      'source': serializer.toJson<String>(source),
-      'confidence': serializer.toJson<double>(confidence),
+      'participantId': serializer.toJson<int?>(participantId),
+      'virtualParticipantId': serializer.toJson<int?>(virtualParticipantId),
+      'reviewedAt': serializer.toJson<String?>(reviewedAt),
       'createdAtUtc': serializer.toJson<String>(createdAtUtc),
       'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
     };
@@ -1729,16 +1746,20 @@ class HandleToParticipantOverride extends DataClass
 
   HandleToParticipantOverride copyWith({
     int? handleId,
-    int? participantId,
-    String? source,
-    double? confidence,
+    Value<int?> participantId = const Value.absent(),
+    Value<int?> virtualParticipantId = const Value.absent(),
+    Value<String?> reviewedAt = const Value.absent(),
     String? createdAtUtc,
     String? updatedAtUtc,
   }) => HandleToParticipantOverride(
     handleId: handleId ?? this.handleId,
-    participantId: participantId ?? this.participantId,
-    source: source ?? this.source,
-    confidence: confidence ?? this.confidence,
+    participantId: participantId.present
+        ? participantId.value
+        : this.participantId,
+    virtualParticipantId: virtualParticipantId.present
+        ? virtualParticipantId.value
+        : this.virtualParticipantId,
+    reviewedAt: reviewedAt.present ? reviewedAt.value : this.reviewedAt,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
     updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
   );
@@ -1750,10 +1771,12 @@ class HandleToParticipantOverride extends DataClass
       participantId: data.participantId.present
           ? data.participantId.value
           : this.participantId,
-      source: data.source.present ? data.source.value : this.source,
-      confidence: data.confidence.present
-          ? data.confidence.value
-          : this.confidence,
+      virtualParticipantId: data.virtualParticipantId.present
+          ? data.virtualParticipantId.value
+          : this.virtualParticipantId,
+      reviewedAt: data.reviewedAt.present
+          ? data.reviewedAt.value
+          : this.reviewedAt,
       createdAtUtc: data.createdAtUtc.present
           ? data.createdAtUtc.value
           : this.createdAtUtc,
@@ -1768,8 +1791,8 @@ class HandleToParticipantOverride extends DataClass
     return (StringBuffer('HandleToParticipantOverride(')
           ..write('handleId: $handleId, ')
           ..write('participantId: $participantId, ')
-          ..write('source: $source, ')
-          ..write('confidence: $confidence, ')
+          ..write('virtualParticipantId: $virtualParticipantId, ')
+          ..write('reviewedAt: $reviewedAt, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -1780,8 +1803,8 @@ class HandleToParticipantOverride extends DataClass
   int get hashCode => Object.hash(
     handleId,
     participantId,
-    source,
-    confidence,
+    virtualParticipantId,
+    reviewedAt,
     createdAtUtc,
     updatedAtUtc,
   );
@@ -1791,8 +1814,8 @@ class HandleToParticipantOverride extends DataClass
       (other is HandleToParticipantOverride &&
           other.handleId == this.handleId &&
           other.participantId == this.participantId &&
-          other.source == this.source &&
-          other.confidence == this.confidence &&
+          other.virtualParticipantId == this.virtualParticipantId &&
+          other.reviewedAt == this.reviewedAt &&
           other.createdAtUtc == this.createdAtUtc &&
           other.updatedAtUtc == this.updatedAtUtc);
 }
@@ -1800,42 +1823,42 @@ class HandleToParticipantOverride extends DataClass
 class HandleToParticipantOverridesCompanion
     extends UpdateCompanion<HandleToParticipantOverride> {
   final Value<int> handleId;
-  final Value<int> participantId;
-  final Value<String> source;
-  final Value<double> confidence;
+  final Value<int?> participantId;
+  final Value<int?> virtualParticipantId;
+  final Value<String?> reviewedAt;
   final Value<String> createdAtUtc;
   final Value<String> updatedAtUtc;
   const HandleToParticipantOverridesCompanion({
     this.handleId = const Value.absent(),
     this.participantId = const Value.absent(),
-    this.source = const Value.absent(),
-    this.confidence = const Value.absent(),
+    this.virtualParticipantId = const Value.absent(),
+    this.reviewedAt = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
     this.updatedAtUtc = const Value.absent(),
   });
   HandleToParticipantOverridesCompanion.insert({
     this.handleId = const Value.absent(),
-    required int participantId,
-    this.source = const Value.absent(),
-    this.confidence = const Value.absent(),
+    this.participantId = const Value.absent(),
+    this.virtualParticipantId = const Value.absent(),
+    this.reviewedAt = const Value.absent(),
     required String createdAtUtc,
     required String updatedAtUtc,
-  }) : participantId = Value(participantId),
-       createdAtUtc = Value(createdAtUtc),
+  }) : createdAtUtc = Value(createdAtUtc),
        updatedAtUtc = Value(updatedAtUtc);
   static Insertable<HandleToParticipantOverride> custom({
     Expression<int>? handleId,
     Expression<int>? participantId,
-    Expression<String>? source,
-    Expression<double>? confidence,
+    Expression<int>? virtualParticipantId,
+    Expression<String>? reviewedAt,
     Expression<String>? createdAtUtc,
     Expression<String>? updatedAtUtc,
   }) {
     return RawValuesInsertable({
       if (handleId != null) 'handle_id': handleId,
       if (participantId != null) 'participant_id': participantId,
-      if (source != null) 'source': source,
-      if (confidence != null) 'confidence': confidence,
+      if (virtualParticipantId != null)
+        'virtual_participant_id': virtualParticipantId,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
       if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
     });
@@ -1843,17 +1866,17 @@ class HandleToParticipantOverridesCompanion
 
   HandleToParticipantOverridesCompanion copyWith({
     Value<int>? handleId,
-    Value<int>? participantId,
-    Value<String>? source,
-    Value<double>? confidence,
+    Value<int?>? participantId,
+    Value<int?>? virtualParticipantId,
+    Value<String?>? reviewedAt,
     Value<String>? createdAtUtc,
     Value<String>? updatedAtUtc,
   }) {
     return HandleToParticipantOverridesCompanion(
       handleId: handleId ?? this.handleId,
       participantId: participantId ?? this.participantId,
-      source: source ?? this.source,
-      confidence: confidence ?? this.confidence,
+      virtualParticipantId: virtualParticipantId ?? this.virtualParticipantId,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
       updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
     );
@@ -1868,11 +1891,11 @@ class HandleToParticipantOverridesCompanion
     if (participantId.present) {
       map['participant_id'] = Variable<int>(participantId.value);
     }
-    if (source.present) {
-      map['source'] = Variable<String>(source.value);
+    if (virtualParticipantId.present) {
+      map['virtual_participant_id'] = Variable<int>(virtualParticipantId.value);
     }
-    if (confidence.present) {
-      map['confidence'] = Variable<double>(confidence.value);
+    if (reviewedAt.present) {
+      map['reviewed_at'] = Variable<String>(reviewedAt.value);
     }
     if (createdAtUtc.present) {
       map['created_at_utc'] = Variable<String>(createdAtUtc.value);
@@ -1888,8 +1911,8 @@ class HandleToParticipantOverridesCompanion
     return (StringBuffer('HandleToParticipantOverridesCompanion(')
           ..write('handleId: $handleId, ')
           ..write('participantId: $participantId, ')
-          ..write('source: $source, ')
-          ..write('confidence: $confidence, ')
+          ..write('virtualParticipantId: $virtualParticipantId, ')
+          ..write('reviewedAt: $reviewedAt, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('updatedAtUtc: $updatedAtUtc')
           ..write(')'))
@@ -3758,18 +3781,18 @@ typedef $$MessageAnnotationsTableProcessedTableManager =
 typedef $$HandleToParticipantOverridesTableCreateCompanionBuilder =
     HandleToParticipantOverridesCompanion Function({
       Value<int> handleId,
-      required int participantId,
-      Value<String> source,
-      Value<double> confidence,
+      Value<int?> participantId,
+      Value<int?> virtualParticipantId,
+      Value<String?> reviewedAt,
       required String createdAtUtc,
       required String updatedAtUtc,
     });
 typedef $$HandleToParticipantOverridesTableUpdateCompanionBuilder =
     HandleToParticipantOverridesCompanion Function({
       Value<int> handleId,
-      Value<int> participantId,
-      Value<String> source,
-      Value<double> confidence,
+      Value<int?> participantId,
+      Value<int?> virtualParticipantId,
+      Value<String?> reviewedAt,
       Value<String> createdAtUtc,
       Value<String> updatedAtUtc,
     });
@@ -3793,13 +3816,13 @@ class $$HandleToParticipantOverridesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get source => $composableBuilder(
-    column: $table.source,
+  ColumnFilters<int> get virtualParticipantId => $composableBuilder(
+    column: $table.virtualParticipantId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get confidence => $composableBuilder(
-    column: $table.confidence,
+  ColumnFilters<String> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3833,13 +3856,13 @@ class $$HandleToParticipantOverridesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get source => $composableBuilder(
-    column: $table.source,
+  ColumnOrderings<int> get virtualParticipantId => $composableBuilder(
+    column: $table.virtualParticipantId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get confidence => $composableBuilder(
-    column: $table.confidence,
+  ColumnOrderings<String> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3871,11 +3894,13 @@ class $$HandleToParticipantOverridesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get source =>
-      $composableBuilder(column: $table.source, builder: (column) => column);
+  GeneratedColumn<int> get virtualParticipantId => $composableBuilder(
+    column: $table.virtualParticipantId,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<double> get confidence => $composableBuilder(
-    column: $table.confidence,
+  GeneratedColumn<String> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
     builder: (column) => column,
   );
 
@@ -3937,32 +3962,32 @@ class $$HandleToParticipantOverridesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> handleId = const Value.absent(),
-                Value<int> participantId = const Value.absent(),
-                Value<String> source = const Value.absent(),
-                Value<double> confidence = const Value.absent(),
+                Value<int?> participantId = const Value.absent(),
+                Value<int?> virtualParticipantId = const Value.absent(),
+                Value<String?> reviewedAt = const Value.absent(),
                 Value<String> createdAtUtc = const Value.absent(),
                 Value<String> updatedAtUtc = const Value.absent(),
               }) => HandleToParticipantOverridesCompanion(
                 handleId: handleId,
                 participantId: participantId,
-                source: source,
-                confidence: confidence,
+                virtualParticipantId: virtualParticipantId,
+                reviewedAt: reviewedAt,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
               ),
           createCompanionCallback:
               ({
                 Value<int> handleId = const Value.absent(),
-                required int participantId,
-                Value<String> source = const Value.absent(),
-                Value<double> confidence = const Value.absent(),
+                Value<int?> participantId = const Value.absent(),
+                Value<int?> virtualParticipantId = const Value.absent(),
+                Value<String?> reviewedAt = const Value.absent(),
                 required String createdAtUtc,
                 required String updatedAtUtc,
               }) => HandleToParticipantOverridesCompanion.insert(
                 handleId: handleId,
                 participantId: participantId,
-                source: source,
-                confidence: confidence,
+                virtualParticipantId: virtualParticipantId,
+                reviewedAt: reviewedAt,
                 createdAtUtc: createdAtUtc,
                 updatedAtUtc: updatedAtUtc,
               ),

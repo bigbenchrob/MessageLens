@@ -7,7 +7,7 @@ part of 'spam_management_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$spamManagementCassetteBuilderHash() =>
-    r'4369dc80081380d1e465dcd7f0969a2646105047';
+    r'a015a7f9c46cbb75db5a198a1420394c2a7d0472';
 
 /// Builds the cassette view model for spam management.
 ///

@@ -1,0 +1,62 @@
+CURRENT STATUS
+
+email and phone chat handles are matched to AddressBook contacts where 
+possible during the import stage. This leaves many stray handles whose
+chats and messagets cannot be accessed through the contact based UI 
+elements that have been developed so far.
+
+Stray handles can be:
+
+(1) email and phone numbers belonging to individuals who are in the AddressBook
+but which themselves have not been added to the contact's AddressBook entry
+
+(2) email and phone numbers of known entities who happen not to have
+been entered into the AddressBook.
+
+(3) email and phone numbers of unknown entities who have consequently not
+been entered into the AddressBook. This would include brief communications
+such as one-off two-factor authentication texts, package delivery notifications, 
+AI chats moved off a web page to iMessage
+
+(4) Spam
+
+
+DESIRED ENDPOINTS
+
+-- spam messages are permanently hidden. There can be an escape hatch mechanism 
+to accommodate a future scenario where, for legal or other reasons, the user 
+needs to review them. Otherwise, it should be a very simple matter for the user
+to smash the SPAM button and never see a reference again
+
+-- otherwise, the user can review the handle's messages and sort them into one
+of three categories:
+
+ (1) identified -- the user assigns the handle a name which will label that
+ handle for reference the next time stray handles are reviewed
+
+ (2) identified and valuable -- the user assigns the handle a name and designates
+ it as something that should be treated as a contact -- it shows up in the contact
+ picker etc.
+
+ (3) unidentified
+
+ (4) identified spam
+
+ MECHANISM FOR review
+
+ -- the user picks an unfamiliar phone number or email address from a sidebar
+ list. The list entry gives the handle text as well as metadata such as message
+ total, date of first/last etc. There should be the opportunity to sort the list
+ by message total as well as filter the list for suspected spam detected during
+ the import processs
+
+ -- clicking on the handle displays all its associated messages in the center
+ panel, ordered by date or id and ASC or DESC order.
+
+ -- depending on what the user identifies based on the message content, they can
+ then opt to classify the handle as 1, 2, 3, or 4
+
+
+ PERSISTENCE
+
+ All of the above will obviously reside in the overlay database.

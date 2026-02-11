@@ -393,10 +393,11 @@ Future<List<_HandleToParticipantOverride>>
 _snapshotHandleToParticipantOverrides(OverlayDatabase db) async {
   final rows = await db.getAllHandleOverrides();
   return rows
+      .where((row) => row.participantId != null)
       .map(
         (row) => _HandleToParticipantOverride(
           handleId: row.handleId,
-          participantId: row.participantId,
+          participantId: row.participantId!,
         ),
       )
       .toList();

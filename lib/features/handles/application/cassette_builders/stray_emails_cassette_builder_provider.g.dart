@@ -7,7 +7,7 @@ part of 'stray_emails_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayEmailsCassetteBuilderHash() =>
-    r'74cb8ca2b00626b4bd04172a1860605a3db38083';
+    r'f6069ff103a16a7717f7f3af40cf3dbf9f79028b';
 
 /// Builds the cassette view model for stray emails.
 ///

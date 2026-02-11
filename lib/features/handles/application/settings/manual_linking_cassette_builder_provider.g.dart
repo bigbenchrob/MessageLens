@@ -7,7 +7,7 @@ part of 'manual_linking_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$manualLinkingCassetteBuilderHash() =>
-    r'68d5c6882e4e8174837ac9c658bbb4a1c0d1ec23';
+    r'd5fe98e01d83044bb6ce7bcfd1bdfb8137e7c71e';
 
 /// Builds the cassette view model for manual handle linking.
 ///

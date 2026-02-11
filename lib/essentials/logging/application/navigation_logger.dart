@@ -5,11 +5,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../navigation/domain/entities/features/chats_spec.dart';
 import '../../navigation/domain/entities/features/contacts_spec.dart';
 import '../../navigation/domain/entities/features/import_spec.dart';
-import '../../navigation/domain/entities/features/messages_spec.dart';
 import '../../navigation/domain/entities/features/settings_spec.dart';
 import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
 import '../../navigation/domain/navigation_constants.dart';
+import '../../navigation/feature_level_providers.dart';
 import 'message_logger.dart';
 
 part 'navigation_logger.g.dart';
@@ -57,7 +57,6 @@ class NavigationLogEntry {
             if (scrollToDate != null)
               'scrollToDate': scrollToDate.toIso8601String(),
           },
-          recent: (limit) => {'variant': 'recent', 'limit': limit},
           globalTimeline: () => {'variant': 'globalTimeline'},
           globalTimelineV2: (scrollToDate) => {
             'variant': 'globalTimelineV2',
@@ -73,6 +72,10 @@ class NavigationLogEntry {
             'chatId': chatId,
             'startDate': startDate.toIso8601String(),
             'endDate': endDate.toIso8601String(),
+          },
+          handleLens: (handleId) => {
+            'variant': 'handleLens',
+            'handleId': handleId,
           },
         ),
       },

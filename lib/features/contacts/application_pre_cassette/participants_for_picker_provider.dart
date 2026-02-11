@@ -55,7 +55,9 @@ Future<List<ParticipantForPicker>> participantsForPicker(
       .toList(growable: false);
 
   final workingHandleCounts = await workingHandleCountsByParticipant(workingDb);
-  final overlayHandleCounts = await overlayHandleCountsByParticipant(overlayDb);
+  final overlayVPHandleCounts = await overlayHandleCountsByVirtualParticipant(
+    overlayDb,
+  );
   final overlayHandlesByParticipant = await overlayHandleIdsByParticipant(
     overlayDb,
   );
@@ -111,7 +113,7 @@ Future<List<ParticipantForPicker>> participantsForPicker(
               id: contact.id,
               displayName: contact.displayName,
               shortName: contact.shortName,
-              handleCount: overlayHandleCounts[contact.id] ?? 0,
+              handleCount: overlayVPHandleCounts[contact.id] ?? 0,
               origin: ParticipantOrigin.overlayVirtual,
             ),
           )

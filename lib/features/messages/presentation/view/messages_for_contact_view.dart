@@ -7,7 +7,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../view_model/shared/display_widgets/new_display_widgets.dart';
 import '../view_model/shared/hydration/messages_for_handle_provider.dart';
-import '../view_model/view_model_contact/contact_messages_view_model_provider.dart';
+import '../view_model/messages_by_contact_vm/contact_messages_view_model_provider.dart';
 import '../widgets/message_card.dart';
 
 /// View showing all messages with a specific contact across all chats/handles.

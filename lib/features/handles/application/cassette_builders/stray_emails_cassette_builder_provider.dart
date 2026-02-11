@@ -16,6 +16,7 @@ SidebarCassetteCardViewModel strayEmailsCassetteBuilder(Ref ref) {
   return const SidebarCassetteCardViewModel(
     title: 'Stray emails',
     subtitle: 'Email addresses not linked to any contact in your address book.',
+    shouldExpand: true,
     child: StrayEmailsCassette(),
   );
 }

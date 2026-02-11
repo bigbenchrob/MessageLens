@@ -99,7 +99,10 @@ void main() {
               ),
             );
 
-        await overlayDb.setHandleOverride(virtualHandleId, virtualContact.id);
+        await overlayDb.setHandleVirtualParticipantOverride(
+          virtualHandleId,
+          virtualContact.id,
+        );
 
         final results = await container.read(
           participantsForPickerProvider(searchQuery: '').future,

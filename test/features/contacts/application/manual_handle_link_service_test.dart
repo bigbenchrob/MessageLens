@@ -84,16 +84,6 @@ void main() {
       expect(overlayLink, isNotNull);
       expect(overlayLink!.handleId, handleId);
       expect(overlayLink.participantId, participantId);
-      expect(overlayLink.source, 'user_manual');
-      expect(overlayLink.confidence, 1.0);
-
-      // Verify working DB link
-      final workingLinks = await (workingDb.select(
-        workingDb.handleToParticipant,
-      )..where((tbl) => tbl.handleId.equals(handleId))).get();
-      expect(workingLinks, hasLength(1));
-      expect(workingLinks.first.handleId, handleId);
-      expect(workingLinks.first.participantId, participantId);
     });
 
     test('linkHandleToParticipant overrides automatic link', () async {
@@ -155,13 +145,10 @@ void main() {
       // Assert: Manual link replaced automatic link
       expect(result.isRight(), isTrue);
 
-      // Verify working DB link was replaced (INSERT OR REPLACE)
-      final workingLinks = await (workingDb.select(
-        workingDb.handleToParticipant,
-      )..where((tbl) => tbl.handleId.equals(handleId))).get();
-      expect(workingLinks, hasLength(1));
-      expect(workingLinks.first.handleId, handleId);
-      expect(workingLinks.first.participantId, correctParticipantId);
+      // Verify overlay DB has the corrected link
+      final overlayLink = await overlayDb.getHandleOverride(handleId);
+      expect(overlayLink, isNotNull);
+      expect(overlayLink!.participantId, correctParticipantId);
     });
 
     test(
@@ -324,12 +311,6 @@ void main() {
       // Verify overlay link removed
       final overlayLink = await overlayDb.getHandleOverride(handleId);
       expect(overlayLink, isNull);
-
-      // Verify working DB link removed
-      final workingLinks = await (workingDb.select(
-        workingDb.handleToParticipant,
-      )..where((tbl) => tbl.handleId.equals(handleId))).get();
-      expect(workingLinks, isEmpty);
     });
 
     test('unlinkHandle returns error when no manual link exists', () async {

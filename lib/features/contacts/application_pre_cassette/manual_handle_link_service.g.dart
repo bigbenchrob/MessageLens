@@ -7,15 +7,13 @@ part of 'manual_handle_link_service.dart';
 // **************************************************************************
 
 String _$manualHandleLinkServiceHash() =>
-    r'd60ccb399c626990cbe4d8d7e854b76eb9bd2218';
+    r'd1d71f2fade5087d281850ab60dc9afbd0da5747';
 
-/// Service for managing manual handle-to-contact links
+/// Service for managing manual handle-to-contact links.
 ///
-/// This service coordinates between overlay and working databases to:
-/// 1. Create user-defined handle-participant associations
-/// 2. Update the working database projection
-/// 3. Rebuild affected message indexes
-/// 4. Invalidate cached providers
+/// All writes target the overlay database exclusively. The working database
+/// is never modified here — providers merge both databases at read time
+/// with overlay winning on conflict (inviolable architectural rule).
 ///
 /// Copied from [ManualHandleLinkService].
 @ProviderFor(ManualHandleLinkService)

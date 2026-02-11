@@ -20,6 +20,7 @@ This directory documents every shipped feature. Each child folder should represe
 | Feature | Key Docs |
 | --- | --- |
 | `contact-favourites/` | [`RECENTS-FAVORITES.md`](contact-favourites/RECENTS-FAVORITES.md) — Picker section precedence, de-duplication, and semantic preservation rules |
+| `identify-stray-handles/` | [`MASTER_PLAN.md`](identify-stray-handles/MASTER_PLAN.md) — 3-phase plan: overlay schema + virtual participants → sidebar review + Handle Lens → polish & bulk ops |
 
 ## Required Files Per Feature
 

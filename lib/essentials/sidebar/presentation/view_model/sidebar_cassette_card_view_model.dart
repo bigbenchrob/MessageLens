@@ -33,7 +33,7 @@ class SidebarCassetteCardViewModel {
     this.isControl = false,
     this.isNaked = false,
     bool? shouldExpand,
-  }) : shouldExpand = shouldExpand ?? !isControl;
+  }) : shouldExpand = shouldExpand ?? false;
 
   /// Display title shown in the sidebar card header.
   final String title;
@@ -80,6 +80,9 @@ class SidebarCassetteCardViewModel {
   final bool isNaked;
 
   /// Whether this cassette should expand to fill available vertical space.
-  /// Defaults to true for content cassettes, false for control cassettes.
+  ///
+  /// Defaults to `false` — cards take their intrinsic height unless the
+  /// resolver explicitly opts in with `shouldExpand: true` (e.g. scrollable
+  /// lists that should fill the remaining sidebar space).
   final bool shouldExpand;
 }

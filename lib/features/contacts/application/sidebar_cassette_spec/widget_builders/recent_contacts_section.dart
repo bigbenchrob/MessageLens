@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/db/feature_level_providers.dart';
-import '../../../../../essentials/navigation/domain/entities/features/messages_spec.dart';
 import '../../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';

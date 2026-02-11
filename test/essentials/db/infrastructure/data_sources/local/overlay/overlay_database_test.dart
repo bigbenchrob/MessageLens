@@ -25,8 +25,6 @@ void main() {
       expect(override, isNotNull);
       expect(override!.handleId, equals(123));
       expect(override.participantId, equals(456));
-      expect(override.source, equals('user_manual'));
-      expect(override.confidence, equals(1.0));
     });
 
     test('update existing handle override', () async {

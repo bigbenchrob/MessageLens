@@ -16,6 +16,7 @@ SidebarCassetteCardViewModel unmatchedHandlesCassetteBuilder(Ref ref) {
   return const SidebarCassetteCardViewModel(
     title: 'Unmatched phone numbers & emails',
     subtitle: 'Link stray handles to contacts to keep conversations organized.',
+    shouldExpand: true,
     child: UnmatchedHandlesCassette(),
   );
 }

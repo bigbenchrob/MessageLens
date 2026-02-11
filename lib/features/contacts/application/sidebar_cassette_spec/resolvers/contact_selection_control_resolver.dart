@@ -34,7 +34,6 @@ class ContactSelectionControlResolver
     return SidebarCassetteCardViewModel(
       title: '',
       cardType: CassetteCardType.sidebarNavigation,
-      shouldExpand: false,
       child: ContactSelectionControlWidget(
         contactId: contactId,
         cassetteIndex: cassetteIndex,

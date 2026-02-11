@@ -47,7 +47,7 @@ class SidebarCassetteCard extends ConsumerWidget {
     this.borderRadius = 8.0,
     this.isControl = false,
     this.isNaked = false,
-    this.shouldExpand = true,
+    this.shouldExpand = false,
   });
 
   @override

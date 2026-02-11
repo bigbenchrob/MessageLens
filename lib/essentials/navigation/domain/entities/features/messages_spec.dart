@@ -11,8 +11,6 @@ class MessagesSpec with _$MessagesSpec {
     DateTime? scrollToDate,
   }) = _MessagesForContact;
 
-  const factory MessagesSpec.recent({required int limit}) = _RecentMessages;
-
   /// Show every message across all chats ordered by the global ordinal index.
   const factory MessagesSpec.globalTimeline() = _MessagesGlobalTimeline;
 
@@ -25,6 +23,10 @@ class MessagesSpec with _$MessagesSpec {
   /// Show ALL messages from a handle across all chats chronologically
   const factory MessagesSpec.forHandle({required int handleId}) =
       _MessagesForHandle;
+
+  /// Triage view for a stray handle: header + action bar + message list.
+  const factory MessagesSpec.handleLens({required int handleId}) =
+      _MessagesHandleLens;
 
   /// Show messages for a chat within a specific date range (e.g., for a month)
   const factory MessagesSpec.forChatInDateRange({

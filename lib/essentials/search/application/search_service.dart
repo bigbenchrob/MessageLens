@@ -4,7 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../features/messages/presentation/view_model/deprecated/message_row_mapper.dart';
+import '../../../features/messages/presentation/view_model/shared/message_row_mapper.dart';
 import '../../../features/messages/presentation/view_model/shared/hydration/messages_for_handle_provider.dart';
 import '../../db/feature_level_providers.dart';
 import '../../db/infrastructure/data_sources/local/working/working_database.dart';

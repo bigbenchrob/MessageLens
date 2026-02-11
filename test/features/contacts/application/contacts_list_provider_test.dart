@@ -122,7 +122,10 @@ void main() {
         displayName: 'Virtual Friend',
       );
 
-      await overlayDb.setHandleOverride(virtualHandleId, virtualParticipant.id);
+      await overlayDb.setHandleVirtualParticipantOverride(
+        virtualHandleId,
+        virtualParticipant.id,
+      );
 
       final results = await container.read(
         contactsListRepositoryProvider(

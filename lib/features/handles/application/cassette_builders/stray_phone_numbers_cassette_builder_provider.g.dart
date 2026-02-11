@@ -7,7 +7,7 @@ part of 'stray_phone_numbers_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayPhoneNumbersCassetteBuilderHash() =>
-    r'006d8a6983cba6df5354b19dfe3f7fde61b90108';
+    r'3d83fddb753372a97cb84d39c0293574841913b8';
 
 /// Builds the cassette view model for stray phone numbers.
 ///

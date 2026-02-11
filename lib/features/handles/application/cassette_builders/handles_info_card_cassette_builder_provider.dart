@@ -26,7 +26,6 @@ SidebarCassetteCardViewModel handlesInfoCardCassetteBuilder(
     footerText: footnote,
     cardType: CassetteCardType.info,
     infoBodyText: message,
-    shouldExpand: false,
     // child is required but ignored for info cards
     child: const SizedBox.shrink(),
   );

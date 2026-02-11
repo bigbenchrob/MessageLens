@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import 'package:remember_this_text/features/messages/presentation/view_model/view_model_global/global_timeline_controller.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/app_global_messages_vm/global_timeline_controller.dart';
 
 void main() {
   late WorkingDatabase db;

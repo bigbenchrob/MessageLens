@@ -15,6 +15,7 @@ SidebarCassetteCardViewModel spamManagementCassetteBuilder(Ref ref) {
   return const SidebarCassetteCardViewModel(
     title: 'Spam Management',
     subtitle: 'Block unwanted handles and manage your blacklist.',
+    shouldExpand: true,
     child: SpamManagementView(),
   );
 }

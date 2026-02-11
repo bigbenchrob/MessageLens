@@ -64,8 +64,6 @@ void main() {
       expect(override, isNotNull);
       expect(override!.handleId, handleId);
       expect(override.participantId, participantId);
-      expect(override.source, 'user_manual');
-      expect(override.confidence, 1.0);
 
       // Simulate migration: Read overrides from overlay DB
       final overrides = await overlayDb.getAllHandleOverrides();
@@ -81,7 +79,7 @@ void main() {
             .insertOnConflictUpdate(
               HandleToParticipantCompanion.insert(
                 handleId: o.handleId,
-                participantId: o.participantId,
+                participantId: o.participantId!,
                 confidence: const drift.Value(1.0),
                 source: const drift.Value('user_manual'),
               ),
@@ -166,7 +164,7 @@ void main() {
             .insert(
               HandleToParticipantCompanion.insert(
                 handleId: o.handleId,
-                participantId: o.participantId,
+                participantId: o.participantId!,
                 confidence: const drift.Value(1.0),
                 source: const drift.Value('user_manual'),
               ),
@@ -230,7 +228,7 @@ void main() {
             .insertOnConflictUpdate(
               HandleToParticipantCompanion.insert(
                 handleId: o.handleId,
-                participantId: o.participantId,
+                participantId: o.participantId!,
                 confidence: const drift.Value(1.0),
                 source: const drift.Value('user_manual'),
               ),
@@ -244,7 +242,6 @@ void main() {
       for (var i = 0; i < 3; i++) {
         expect(links[i].handleId, handles[i]);
         expect(links[i].participantId, participants[i]);
-        expect(links[i].source, 'user_manual');
       }
     });
 
@@ -261,7 +258,7 @@ void main() {
               .insertOnConflictUpdate(
                 HandleToParticipantCompanion.insert(
                   handleId: o.handleId,
-                  participantId: o.participantId,
+                  participantId: o.participantId!,
                   confidence: const drift.Value(1.0),
                   source: const drift.Value('user_manual'),
                 ),

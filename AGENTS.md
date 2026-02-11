@@ -25,13 +25,16 @@ This README contains the canonical index to all project documentation including:
 5. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
 6. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
 7. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
-8. **[Cross-Surface Spec System](_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md)** - 🔥 CRITICAL: How features interpret specs (coordinators route, resolvers own meaning, app-level chooses chrome)
+8. **[Cross-Surface Spec Systems](_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/)** - 🔥 CRITICAL: How sealed spec classes coordinate UI across all surfaces
+9. **[Feature Spec Handling](_AGENT_INSTRUCTIONS/agent-per-project/52-FEATURE-HANDLING-OF-X-SURFACE-SPECS/)** - Universal coordinator → resolver → widget_builder pattern
+10. **[Sidebar Cassette System](_AGENT_INSTRUCTIONS/agent-per-project/54-SIDEBAR-CASSETTE-SPEC-SYSTEM/)** - Rack state, cascade, card chrome
+11. **[View Spec Panel System](_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/)** - ViewSpec panel navigation and feature dispatch
 
 ### Quick Reference
 - **Lint Antipatterns**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md) - One-stop list of analyzer tripwires
-- **Navigation System**: [`_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-features/navigation-overview.md)
+- **Navigation / View Spec System**: [`_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/`](_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/)
 - **AddressBook Imports**: [`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md)
-- **Cross-Surface Spec System**: [`_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md`](_AGENT_INSTRUCTIONS/agent-per-project/90-CROSS-SURFACE-SPEC-SYSTEMS/00-cross-surface-spec-system.md) - Layer boundaries for spec interpretation
+- **Cross-Surface Spec Systems**: [`_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/`](_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/) - Architecture overview and inviolate rules
 
 ## Critical Rules (Quick Reference)
 
@@ -39,6 +42,14 @@ This README contains the canonical index to all project documentation including:
 - ✅ **Always use**: `hooks_riverpod` (never `flutter_riverpod`)
 - ✅ **Database access**: Use `importDatabaseProvider` & `workingDatabaseProvider` from `essentials/databases/feature_level_providers.dart`
 - ❌ **Never**: Create direct database instances (causes SQLite locking)
+
+### 🔥 INVIOLABLE: Overlay / Working DB Separation
+- ✅ **User intent** (labels, favorites, spam flags, manual links): Write ONLY to overlay DB
+- ✅ **Import/migration**: Write ONLY to working DB (pure function of source data)
+- ✅ **Providers**: Merge working ∪ overlay at read time; **overlay always wins on conflict**
+- ❌ **NEVER** dual-write to both overlay AND working DB
+- ❌ **NEVER** have migration read or consult overlay DB
+- 📖 See [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md)
 
 ### Code Standards
 - ✅ Color opacity: `withValues(alpha: 0.5)` (never `withOpacity`)

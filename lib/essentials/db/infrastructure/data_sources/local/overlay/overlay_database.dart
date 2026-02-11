@@ -21,7 +21,7 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -32,6 +32,34 @@ class OverlayDatabase extends _$OverlayDatabase {
       if (from < 5) {
         // Add is_favorited column; existing rows become non-favorited recents.
         await m.addColumn(favoriteContacts, favoriteContacts.isFavorited);
+      }
+      if (from < 6) {
+        // Recreate handle_to_participant_overrides with new schema:
+        // - participant_id becomes nullable
+        // - add virtual_participant_id (nullable)
+        // - add reviewed_at (nullable)
+        // - remove source and confidence (redundant for overlay)
+        await customStatement('''
+          CREATE TABLE handle_to_participant_overrides_new (
+            handle_id INTEGER NOT NULL PRIMARY KEY,
+            participant_id INTEGER,
+            virtual_participant_id INTEGER,
+            reviewed_at TEXT,
+            created_at_utc TEXT NOT NULL,
+            updated_at_utc TEXT NOT NULL
+          )
+        ''');
+        await customStatement('''
+          INSERT INTO handle_to_participant_overrides_new
+            (handle_id, participant_id, created_at_utc, updated_at_utc)
+          SELECT handle_id, participant_id, created_at_utc, updated_at_utc
+          FROM handle_to_participant_overrides
+        ''');
+        await customStatement('DROP TABLE handle_to_participant_overrides');
+        await customStatement('''
+          ALTER TABLE handle_to_participant_overrides_new
+          RENAME TO handle_to_participant_overrides
+        ''');
       }
     },
   );
@@ -370,52 +398,119 @@ class OverlayDatabase extends _$OverlayDatabase {
     )..where((tbl) => tbl.priority.isBiggerOrEqualValue(4))).get();
   }
 
-  // Helper methods for handle-to-participant overrides
+  // ────────────────────────────────────────────────────────────────────────────
+  // Handle-to-participant overrides
+  // ────────────────────────────────────────────────────────────────────────────
 
-  /// Get override for a specific handle
+  /// Get override for a specific handle.
   Future<HandleToParticipantOverride?> getHandleOverride(int handleId) {
     return (select(
       handleToParticipantOverrides,
     )..where((tbl) => tbl.handleId.equals(handleId))).getSingleOrNull();
   }
 
-  /// Get all handle overrides
+  /// Get all handle overrides, ordered by creation time.
   Future<List<HandleToParticipantOverride>> getAllHandleOverrides() {
     return (select(
       handleToParticipantOverrides,
     )..orderBy([(tbl) => OrderingTerm.asc(tbl.createdAtUtc)])).get();
   }
 
-  /// Set manual link from handle to participant
+  /// Get the set of all handle IDs that have an overlay override row.
+  Future<Set<int>> getAllOverriddenHandleIds() async {
+    final rows = await select(handleToParticipantOverrides).get();
+    return {for (final row in rows) row.handleId};
+  }
+
+  /// Link a handle to a real (working-DB) participant.
   Future<void> setHandleOverride(int handleId, int participantId) async {
     final now = DateTime.now().toUtc().toIso8601String();
 
     await into(handleToParticipantOverrides).insertOnConflictUpdate(
-      HandleToParticipantOverridesCompanion.insert(
+      HandleToParticipantOverridesCompanion(
         handleId: Value(handleId),
-        participantId: participantId,
-        source: const Value('user_manual'),
-        confidence: const Value(1.0),
-        createdAtUtc: now,
-        updatedAtUtc: now,
+        participantId: Value(participantId),
+        virtualParticipantId: const Value(null),
+        reviewedAt: Value(now),
+        createdAtUtc: Value(now),
+        updatedAtUtc: Value(now),
       ),
     );
   }
 
-  /// Delete handle override
+  /// Link a handle to a virtual participant (overlay-DB).
+  Future<void> setHandleVirtualParticipantOverride(
+    int handleId,
+    int virtualParticipantId,
+  ) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(handleToParticipantOverrides).insertOnConflictUpdate(
+      HandleToParticipantOverridesCompanion(
+        handleId: Value(handleId),
+        participantId: const Value(null),
+        virtualParticipantId: Value(virtualParticipantId),
+        reviewedAt: Value(now),
+        createdAtUtc: Value(now),
+        updatedAtUtc: Value(now),
+      ),
+    );
+  }
+
+  /// Mark a handle as reviewed without linking it ("dismiss").
+  Future<void> setHandleReviewed(int handleId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final existing = await getHandleOverride(handleId);
+    if (existing != null) {
+      // Update reviewed_at on existing row, preserving any link.
+      await (update(
+        handleToParticipantOverrides,
+      )..where((tbl) => tbl.handleId.equals(handleId))).write(
+        HandleToParticipantOverridesCompanion(
+          reviewedAt: Value(now),
+          updatedAtUtc: Value(now),
+        ),
+      );
+    } else {
+      // Insert a "reviewed but unlinked" row.
+      await into(handleToParticipantOverrides).insert(
+        HandleToParticipantOverridesCompanion(
+          handleId: Value(handleId),
+          participantId: const Value(null),
+          virtualParticipantId: const Value(null),
+          reviewedAt: Value(now),
+          createdAtUtc: Value(now),
+          updatedAtUtc: Value(now),
+        ),
+      );
+    }
+  }
+
+  /// Delete handle override (reverts to automatic linking or unlinked state).
   Future<void> deleteHandleOverride(int handleId) async {
     await (delete(
       handleToParticipantOverrides,
     )..where((tbl) => tbl.handleId.equals(handleId))).go();
   }
 
-  /// Get all overrides for a specific participant
+  /// Get all overrides pointing to a specific real participant.
   Future<List<HandleToParticipantOverride>> getOverridesForParticipant(
     int participantId,
   ) {
     return (select(
       handleToParticipantOverrides,
     )..where((tbl) => tbl.participantId.equals(participantId))).get();
+  }
+
+  /// Get all overrides pointing to a specific virtual participant.
+  Future<List<HandleToParticipantOverride>> getOverridesForVirtualParticipant(
+    int virtualParticipantId,
+  ) {
+    return (select(handleToParticipantOverrides)..where(
+          (tbl) => tbl.virtualParticipantId.equals(virtualParticipantId),
+        ))
+        .get();
   }
 
   // Helper methods for virtual participants
@@ -778,25 +873,30 @@ class MessageAnnotations extends Table {
   Set<Column> get primaryKey => {messageId};
 }
 
-/// User-defined manual links from handles to participants
-/// Overrides automatic AddressBook matching when user explicitly assigns a handle to a contact
+/// User-defined manual links from handles to participants or virtual participants.
+///
+/// Each row links a handle to either a real participant (from working DB) or a
+/// virtual participant (from overlay DB). A row with both IDs null means the
+/// handle has been reviewed but intentionally left unlinked ("dismissed").
 class HandleToParticipantOverrides extends Table {
   @override
   String get tableName => 'handle_to_participant_overrides';
 
-  /// Matches working.handles.id
+  /// Matches working.handles_canonical.id
   IntColumn get handleId => integer().named('handle_id')();
 
-  /// Matches working.participants.id
-  IntColumn get participantId => integer().named('participant_id')();
+  /// Matches working.participants.id (null when linking to a virtual participant
+  /// or when the handle is dismissed).
+  IntColumn get participantId => integer().named('participant_id').nullable()();
 
-  /// Source of the link (always 'user_manual' for manual overrides)
-  TextColumn get source =>
-      text().named('source').withDefault(const Constant('user_manual'))();
+  /// Matches overlay virtual_participants.id (null when linking to a real
+  /// participant or when the handle is dismissed).
+  IntColumn get virtualParticipantId =>
+      integer().named('virtual_participant_id').nullable()();
 
-  /// Confidence level (1.0 for user-confirmed manual links)
-  RealColumn get confidence =>
-      real().named('confidence').withDefault(const Constant(1.0))();
+  /// ISO 8601 timestamp of when the user last reviewed this handle in the
+  /// Handle Lens. Auto-set on review; semantics may be refined later.
+  TextColumn get reviewedAt => text().named('reviewed_at').nullable()();
 
   TextColumn get createdAtUtc => text().named('created_at_utc')();
   TextColumn get updatedAtUtc => text().named('updated_at_utc')();

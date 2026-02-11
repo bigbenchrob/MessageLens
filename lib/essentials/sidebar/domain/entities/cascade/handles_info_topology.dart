@@ -6,9 +6,15 @@ CassetteSpec? resolveHandlesInfoChild(HandlesInfoCassetteSpec spec) {
       // After the info card, show the appropriate handles list.
       return switch (childVariant) {
         HandlesCassetteChildVariant.strayPhoneNumbers =>
-          const CassetteSpec.handles(HandlesCassetteSpec.strayPhoneNumbers()),
+          const CassetteSpec.handles(
+            HandlesCassetteSpec.strayHandlesReview(
+              filter: StrayHandleFilter.phones,
+            ),
+          ),
         HandlesCassetteChildVariant.strayEmails => const CassetteSpec.handles(
-          HandlesCassetteSpec.strayEmails(),
+          HandlesCassetteSpec.strayHandlesReview(
+            filter: StrayHandleFilter.emails,
+          ),
         ),
       };
     },
