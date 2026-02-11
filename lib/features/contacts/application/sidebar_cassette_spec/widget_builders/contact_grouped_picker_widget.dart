@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
-
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
-import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../../application_pre_cassette/unified_picker_sections_provider.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../../../presentation/widgets/grouped_contact_selector.dart';
+import '../resolver_tools/unified_picker_sections_provider.dart';
 
 /// Widget builder for the grouped contact picker display.
 ///

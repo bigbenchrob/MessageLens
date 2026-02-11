@@ -9,7 +9,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 
-import '../../application_pre_cassette/unified_picker_sections_provider.dart';
+import '../../application/sidebar_cassette_spec/resolver_tools/unified_picker_sections_provider.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart'
     show ContactSummary;
 import 'contact_highlight_row.dart';

@@ -1,10 +1,10 @@
 import 'package:dartz/dartz.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../../../essentials/logging/application/message_logger.dart';
-import 'stray_handles_provider.dart';
-import 'virtual_participants_provider.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/logging/application/message_logger.dart';
+import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
+import '../../infrastructure/repositories/virtual_participants_provider.dart';
 
 part 'manual_handle_link_service.g.dart';
 

@@ -10,11 +10,11 @@ import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../application/view_spec/resolver_tools/global_message_timeline_provider.dart';
+import '../view_model/app_global_messages_vm/global_timeline_controller.dart';
 import '../view_model/shared/display_widgets/new_display_widgets.dart';
 import '../view_model/shared/hydration/attachment_info.dart';
 import '../view_model/shared/hydration/message_by_id_provider.dart';
 import '../view_model/shared/hydration/messages_for_handle_provider.dart';
-import '../view_model/app_global_messages_vm/global_timeline_controller.dart';
 import '../widgets/message_link_preview_card.dart';
 
 class GlobalTimelineView extends HookConsumerWidget {

@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
 
 part 'messages_for_handle_provider.freezed.dart';
 part 'messages_for_handle_provider.g.dart';

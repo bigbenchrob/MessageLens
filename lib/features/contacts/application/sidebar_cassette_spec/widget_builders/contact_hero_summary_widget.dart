@@ -4,14 +4,14 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../../../application_pre_cassette/contact_is_favorite_provider.dart';
-import '../../../application_pre_cassette/favorite_contacts_provider.dart';
-import '../../../application_pre_cassette/favorite_contacts_repository_provider.dart';
-import '../../../application_pre_cassette/unified_picker_sections_provider.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../../presentation/dialogs/contact_name_edit_dialog.dart';
 import '../../../presentation/widgets/contact_cassette_error.dart';
 import '../../../presentation/widgets/contact_highlight_row.dart';
+import '../resolver_tools/contact_is_favorite_provider.dart';
+import '../resolver_tools/favorite_contacts_provider.dart';
+import '../resolver_tools/favorite_contacts_repository_provider.dart';
+import '../resolver_tools/unified_picker_sections_provider.dart';
 
 /// Widget builder for the contact hero summary cassette.
 ///

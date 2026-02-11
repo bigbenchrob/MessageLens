@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../../essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
+import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 
 Future<Map<int, int>> workingHandleCountsByParticipant(
   WorkingDatabase db,

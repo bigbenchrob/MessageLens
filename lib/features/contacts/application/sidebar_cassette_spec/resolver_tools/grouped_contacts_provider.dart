@@ -2,8 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
-import '../infrastructure/repositories/contacts_list_repository.dart';
+import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
+import '../../../infrastructure/repositories/contacts_list_repository.dart';
 
 part 'grouped_contacts_provider.freezed.dart';
 part 'grouped_contacts_provider.g.dart';

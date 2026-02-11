@@ -8,10 +8,10 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../contacts/application_pre_cassette/manual_handle_link_service.dart';
-import '../../../contacts/application_pre_cassette/messages_for_handle_provider.dart';
-import '../../../contacts/application_pre_cassette/stray_handles_provider.dart';
+import '../../../contacts/application/services/manual_handle_link_service.dart';
 import '../../../contacts/presentation/widgets/contact_picker_dialog.dart';
+import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
+import '../../infrastructure/repositories/messages_for_handle_provider.dart';
 
 /// Triage view for a single stray handle.
 ///
@@ -48,10 +48,7 @@ class HandleLensView extends HookConsumerWidget {
     final serviceType = handleSummary?.serviceType ?? '';
 
     return MacosScaffold(
-      toolBar: ToolBar(
-        title: Text(handleValue),
-        titleWidth: 300,
-      ),
+      toolBar: ToolBar(title: Text(handleValue), titleWidth: 300),
       children: [
         ContentArea(
           builder: (context, scrollController) {
@@ -98,10 +95,7 @@ class HandleLensView extends HookConsumerWidget {
 
                 // Divider
                 SliverToBoxAdapter(
-                  child: Divider(
-                    height: 1,
-                    color: colors.lines.border,
-                  ),
+                  child: Divider(height: 1, color: colors.lines.border),
                 ),
 
                 // Message list

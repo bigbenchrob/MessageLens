@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../infrastructure/repositories/favorite_contacts_repository.dart';
+import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../infrastructure/repositories/favorite_contacts_repository.dart';
 
 part 'favorite_contacts_repository_provider.g.dart';
 

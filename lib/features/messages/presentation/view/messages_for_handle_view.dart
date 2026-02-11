@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../contacts/application_pre_cassette/messages_for_handle_provider.dart';
+import '../../infrastructure/repositories/messages_for_handle_provider.dart';
 
 /// Displays ALL messages from a specific handle across all chats chronologically
 class MessagesForHandleView extends HookConsumerWidget {

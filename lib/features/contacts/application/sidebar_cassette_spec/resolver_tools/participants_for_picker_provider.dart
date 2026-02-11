@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../domain/participant_origin.dart';
-import 'participant_merge_utils.dart';
-import 'virtual_participants_provider.dart';
+import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../domain/participant_origin.dart';
+import '../../../infrastructure/repositories/participant_merge_utils.dart';
+import '../../../infrastructure/repositories/virtual_participants_provider.dart';
 
 part 'participants_for_picker_provider.g.dart';
 

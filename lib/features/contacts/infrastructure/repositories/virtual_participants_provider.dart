@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../essentials/db/feature_level_providers.dart';
-import '../domain/overlay_virtual_contact.dart';
-import '../infrastructure/repositories/overlay_participants_repository.dart';
+import '../../../../essentials/db/feature_level_providers.dart';
+import '../../domain/overlay_virtual_contact.dart';
+import 'overlay_participants_repository.dart';
 
 part 'virtual_participants_provider.g.dart';
 

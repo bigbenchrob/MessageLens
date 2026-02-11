@@ -10,7 +10,7 @@ import '../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
-import '../../../contacts/application_pre_cassette/stray_handles_provider.dart';
+import '../../infrastructure/repositories/stray_handles_provider.dart';
 
 /// Sidebar cassette that displays a scrollable list of stray handles,
 /// filtered by phone numbers or email addresses.
