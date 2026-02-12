@@ -1,6 +1,6 @@
 # Rationalize Message Views — Implementation Checklist
 
-**Status**: IN PROGRESS — Phases 1-6 complete, needs verification and documentation
+**Status**: ✅ COMPLETE — Merged to main
 
 ## Phase 1: Foundation — Sealed Class & Strategies ✅
 
@@ -89,12 +89,12 @@
 - [x] **6.2** Update MessagesForContactView builder
   - Modified `messages_for_contact_builder.dart` to use `MessagesTimelineView` with `ContactTimelineScope`
 
-- [ ] **6.3** Manual testing
-  - [ ] Global timeline loads and scrolls
-  - [ ] Global search works (all terms / any term)
-  - [ ] Jump to date from heatmap works
-  - [ ] Contact messages load and scroll
-  - [ ] Contact search works
+- [x] **6.3** Manual testing
+  - [x] Global timeline loads and scrolls
+  - [x] Global search works (all terms / any term)
+  - [x] Jump to date from heatmap works
+  - [x] Contact messages load and scroll
+  - [x] Contact search works
 
 - [x] **6.4** Delete orphaned old code (after testing)
   - Deleted `global_messages_view.dart`
@@ -106,18 +106,18 @@
 
 ## Phase 7: Documentation & Verification
 
-- [ ] **7.1** Update DESIGN_NOTES.md with final architecture
-- [ ] **7.2** Update TESTS.md with test coverage summary
-- [ ] **7.3** Run `flutter analyze` — ensure no issues
-- [ ] **7.4** Manual QA checklist:
-  - [ ] Global timeline loads and scrolls
-  - [ ] Global search works (all terms / any term)
-  - [ ] Jump to date from heatmap works
-  - [ ] Contact messages load and scroll
-  - [ ] Contact search works
-  - [ ] Handle lens loads and scrolls
-- [ ] **7.5** Create STATUS.md marking feature complete
-- [ ] **7.6** Move documentation to `40-FEATURES/rationalized-message-views/`
+- [x] **7.1** Update DESIGN_NOTES.md with final architecture
+- [x] **7.2** Update TESTS.md with test coverage summary
+- [x] **7.3** Run `flutter analyze` — ensure no issues
+- [x] **7.4** Manual QA checklist:
+  - [x] Global timeline loads and scrolls
+  - [x] Global search works (all terms / any term)
+  - [x] Jump to date from heatmap works
+  - [x] Contact messages load and scroll
+  - [x] Contact search works
+  - [x] Handle lens loads and scrolls
+- [x] **7.5** Create STATUS.md marking feature complete
+- [x] **7.6** Move documentation to `40-FEATURES/rationalized-message-views/`
 
 ---
 
@@ -131,4 +131,4 @@
 | 4. View Model | ✅ Complete | Unified with scope-aware search |
 | 5. View Widget | ✅ Complete | MessagesTimelineView created |
 | 6. Migration | ✅ Complete | Old code deleted, heatmap updated |
-| 7. Documentation | ⬜ Not started | |
+| 7. Documentation | ✅ Complete | Merged to main |

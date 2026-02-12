@@ -96,31 +96,38 @@ view_model/
     └── (common utilities)
 ```
 
-### After (unified)
+### After (unified) — FINAL IMPLEMENTATION
 ```
-view_model/
-├── timeline/                          # Unified infrastructure
-│   ├── message_timeline_view_model_provider.dart
-│   ├── ordinal/
-│   │   ├── message_timeline_ordinal_provider.dart
-│   │   └── strategies/
-│   │       ├── ordinal_strategy.dart  # Interface
-│   │       ├── global_ordinal_strategy.dart
-│   │       ├── contact_ordinal_strategy.dart
-│   │       └── handle_ordinal_strategy.dart
-│   ├── hydration/
-│   │   ├── message_by_ordinal_provider.dart
-│   │   └── strategies/
-│   │       ├── hydration_strategy.dart  # Interface
-│   │       ├── global_hydration_strategy.dart
-│   │       ├── contact_hydration_strategy.dart
-│   │       └── handle_hydration_strategy.dart
-│   └── search/
-│       └── timeline_search_provider.dart
-└── shared/                            # Unchanged
-    ├── message_row_mapper.dart
-    └── hydration/
-        └── messages_for_handle_provider.dart
+domain/value_objects/
+├── message_timeline_scope.dart         # Sealed class: global(), contact(), chat()
+└── message_timeline_scope.freezed.dart
+
+domain/
+└── message_timeline_scope_extensions.dart  # toOrdinalStrategy() extension
+
+application/strategies/
+├── ordinal_strategy.dart                # Interface
+├── global_ordinal_strategy.dart         # Delegates to GlobalMessageIndexDataSource
+├── contact_ordinal_strategy.dart        # Delegates to ContactMessageIndexDataSource
+├── chat_ordinal_strategy.dart           # Delegates to MessageIndexDataSource
+└── strategies.dart                      # Barrel export
+
+presentation/view_model/timeline/
+├── message_timeline_view_model_provider.dart  # Unified view model with search
+├── ordinal/
+│   ├── message_timeline_ordinal_provider.dart  # Unified ordinal state + scroll
+│   └── current_visible_month_provider.dart     # Heatmap month tracking
+└── hydration/
+    └── message_by_ordinal_provider.dart   # Hydrates via strategy
+
+presentation/view/
+├── messages_timeline_view.dart           # Unified view widget
+└── (old views deleted)
+
+shared/                                    # Unchanged
+├── message_row_mapper.dart
+└── hydration/
+    └── messages_for_handle_provider.dart
 ```
 
 ---
@@ -221,30 +228,16 @@ Keep both implementations, add feature flag. Excessive overhead for internal ref
 
 ---
 
-## Open Design Questions
+## Design Questions — Final Answers
 
 ### Q1: Where does MessageTimelineScope live?
 
-**Options:**
-- `messages/domain/value_objects/` — Aligns with DDD, but scope is more of an application concern
-- `messages/application/models/` — Application layer seems right since it coordinates providers
-- `essentials/navigation/` — If it becomes navigation-related
-
-**Tentative answer:** `messages/domain/value_objects/` — It describes a domain concept (the scope of a message query).
+**Final answer:** `messages/domain/value_objects/` — It describes a domain concept (the scope of a message query). The extension method `toOrdinalStrategy()` lives in `message_timeline_scope_extensions.dart`.
 
 ### Q2: Should the unified view replace the old views entirely?
 
-**Options:**
-- Yes, single `MessagesTimelineView` everywhere
-- No, keep `GlobalMessagesView` / `MessagesForContactView` as thin wrappers
-
-**Tentative answer:** Keep thin wrappers initially for easier migration. Collapse later if wrappers become trivial.
+**Final answer:** Yes. The unified `MessagesTimelineView` directly replaces the old views. Widget builders instantiate it with the appropriate scope. No thin wrappers needed.
 
 ### Q3: How to handle scope-specific state (e.g., global filters)?
 
-**Options:**
-- Include in unified state with optional fields
-- Create scope-specific state extensions
-- Keep as separate providers
-
-**Tentative answer:** Separate providers for scope-specific features. Unified state contains only common fields.
+**Final answer:** The unified view model includes `searchMode` which is only used by global scope. Scope-specific UI (headers, search bar variants) is handled via `switch` on the scope within the view widget.
