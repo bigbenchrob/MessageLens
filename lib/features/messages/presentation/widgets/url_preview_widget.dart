@@ -122,35 +122,64 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
   }
 
   Widget _buildLoadingWidget() {
+    // Show a lightweight placeholder with domain info while loading
+    // This feels much faster than a spinner
     return SizedBox(
       key: const ValueKey('loading'),
       width: _effectiveMaxWidth,
       height: _cardHeight,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: _effectiveMaxWidth,
-          minHeight: _cardHeight,
-        ),
-        padding: const EdgeInsets.all(16),
-        decoration: _cardDecoration,
-        child: const Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Loading preview...',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: MacosColors.systemGrayColor,
+      child: GestureDetector(
+        onTap: () => _launchUrl(widget.url),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: _effectiveMaxWidth,
+              minHeight: _cardHeight,
+            ),
+            decoration: _cardDecoration,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Placeholder image area with subtle shimmer
+                const SizedBox(
+                  height: _mediaHeight,
+                  child: ColoredBox(color: Color(0xFFE5E5E9)),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _extractDomain(widget.url),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: MacosColors.systemGrayColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        // Show URL while title loads
+                        Text(
+                          widget.url,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: MacosColors.systemGrayColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

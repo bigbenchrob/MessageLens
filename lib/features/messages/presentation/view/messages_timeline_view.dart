@@ -231,10 +231,7 @@ class MessagesTimelineView extends HookConsumerWidget {
 /// Creates a soft visual transition when content scrolls under the header,
 /// similar to Apple's Messages app.
 class _FadeOverlayList extends StatelessWidget {
-  const _FadeOverlayList({
-    required this.backgroundColor,
-    required this.child,
-  });
+  const _FadeOverlayList({required this.backgroundColor, required this.child});
 
   final Color backgroundColor;
   final Widget child;
@@ -319,8 +316,9 @@ class _SearchModeToggle extends ConsumerWidget {
     final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final activeColor = CupertinoColors.systemBlue.resolveFrom(context);
-    final inactiveColor =
-        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final inactiveColor = isDark
+        ? const Color(0xFF98989D)
+        : const Color(0xFF6E6E73);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
