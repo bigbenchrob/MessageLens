@@ -36,12 +36,12 @@ void main() {
     container.dispose();
   });
 
-  test('searchChatMessages returns results for LIKE queries', () async {
+  test('searchChatMessageIds returns matching message IDs', () async {
     final chatId = await db
         .into(db.workingChats)
         .insert(const WorkingChatsCompanion(guid: Value('chat-1')));
 
-    await db
+    final msgId1 = await db
         .into(db.workingMessages)
         .insert(
           WorkingMessagesCompanion.insert(
@@ -63,16 +63,16 @@ void main() {
         );
 
     final service = container.read(searchServiceProvider);
-    final results = await service.searchChatMessages(
+    final resultIds = await service.searchChatMessageIds(
       chatId: chatId,
       query: 'modular',
     );
 
-    expect(results, hasLength(1));
-    expect(results.first.text, contains('Modular'));
+    expect(resultIds, hasLength(1));
+    expect(resultIds.first, equals(msgId1));
   });
 
-  test('searchContactMessages returns results via contact index', () async {
+  test('searchContactMessageIds returns results via contact index', () async {
     const contactId = 1;
     await db
         .into(db.workingParticipants)
@@ -110,19 +110,20 @@ void main() {
         );
 
     final service = container.read(searchServiceProvider);
-    final results = await service.searchContactMessages(
+    final resultIds = await service.searchContactMessageIds(
       contactId: contactId,
       query: 'specific',
     );
 
-    expect(results, hasLength(1));
-    expect(results.first.text, contains('Contact specific search'));
+    expect(resultIds, hasLength(1));
+    expect(resultIds.first, equals(messageId));
   });
-  test('fts multi-term search ranks matches higher', () async {
+
+  test('fts multi-term search returns matching IDs', () async {
     final chatId = await db
         .into(db.workingChats)
         .insert(const WorkingChatsCompanion(guid: Value('chat-fts')));
-    await db
+    final msgId1 = await db
         .into(db.workingMessages)
         .insert(
           WorkingMessagesCompanion.insert(
@@ -146,13 +147,13 @@ void main() {
     final ftsContainer = createContainer(enableFts: true);
     final service = ftsContainer.read(searchServiceProvider);
 
-    final results = await service.searchChatMessages(
+    final resultIds = await service.searchChatMessageIds(
       chatId: chatId,
       query: 'hello world',
     );
 
-    expect(results, hasLength(1));
-    expect(results.first.text, contains('modular indexing'));
+    expect(resultIds, hasLength(1));
+    expect(resultIds.first, equals(msgId1));
     ftsContainer.dispose();
   });
 
@@ -195,12 +196,12 @@ void main() {
 
     final ftsContainer = createContainer(enableFts: true);
     final service = ftsContainer.read(searchServiceProvider);
-    final results = await service.searchContactMessages(
+    final resultIds = await service.searchContactMessageIds(
       contactId: contactId,
       query: 'searchable term',
     );
-    expect(results, hasLength(1));
-    expect(results.first.text, contains('contact'));
+    expect(resultIds, hasLength(1));
+    expect(resultIds.first, equals(firstId));
     ftsContainer.dispose();
   });
 }

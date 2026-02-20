@@ -7,7 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../../essentials/search/application/search_service.dart';
 import '../../../../../essentials/search/feature_level_providers.dart';
 import '../../../domain/value_objects/message_timeline_scope.dart';
-import '../shared/hydration/messages_for_handle_provider.dart';
 import 'ordinal/message_timeline_ordinal_provider.dart';
 
 part 'message_timeline_view_model_provider.g.dart';
@@ -33,7 +32,7 @@ class MessageTimelineViewModelState {
     required this.searchQuery,
     required this.debouncedQuery,
     required this.searchMode,
-    required this.searchResults,
+    required this.searchResultIds,
     required this.ordinal,
   });
 
@@ -52,14 +51,17 @@ class MessageTimelineViewModelState {
   /// Search mode (all terms / any term). Currently global-only.
   final MessageSearchMode searchMode;
 
-  /// Search results when in search mode.
-  final AsyncValue<List<MessageListItem>> searchResults;
+  /// Search result message IDs for virtual scrolling.
+  final AsyncValue<List<int>> searchResultIds;
 
   /// Ordinal state for the message list.
   final AsyncValue<MessageTimelineOrdinalState> ordinal;
 
   /// Whether the view is in search mode.
   bool get isSearching => debouncedQuery.trim().isNotEmpty;
+
+  /// Number of search results (for display).
+  int get searchResultCount => searchResultIds.valueOrNull?.length ?? 0;
 }
 
 /// Unified view model provider for message timelines.
@@ -100,7 +102,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       searchQuery: '',
       debouncedQuery: '',
       searchMode: MessageSearchMode.allTerms,
-      searchResults: const AsyncValue<List<MessageListItem>>.data([]),
+      searchResultIds: const AsyncValue<List<int>>.data([]),
       ordinal: ordinal,
     );
   }
@@ -130,7 +132,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       searchQuery: value,
       debouncedQuery: state.debouncedQuery,
       searchMode: state.searchMode,
-      searchResults: state.searchResults,
+      searchResultIds: state.searchResultIds,
       ordinal: state.ordinal,
     );
   }
@@ -147,7 +149,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       searchQuery: state.searchQuery,
       debouncedQuery: trimmed,
       searchMode: state.searchMode,
-      searchResults: state.searchResults,
+      searchResultIds: state.searchResultIds,
       ordinal: state.ordinal,
     );
 
@@ -158,7 +160,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
         searchQuery: state.searchQuery,
         debouncedQuery: state.debouncedQuery,
         searchMode: state.searchMode,
-        searchResults: const AsyncValue<List<MessageListItem>>.data([]),
+        searchResultIds: const AsyncValue<List<int>>.data([]),
         ordinal: state.ordinal,
       );
       return;
@@ -170,7 +172,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       searchQuery: state.searchQuery,
       debouncedQuery: state.debouncedQuery,
       searchMode: state.searchMode,
-      searchResults: const AsyncValue<List<MessageListItem>>.loading(),
+      searchResultIds: const AsyncValue<List<int>>.loading(),
       ordinal: state.ordinal,
     );
 
@@ -184,8 +186,8 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
           ? SearchMode.allTerms
           : SearchMode.anyTerm;
 
-      // Execute scope-specific search
-      final results = await _searchForScope(searchService, query, mode);
+      // Execute scope-specific search - returns just IDs for fast response
+      final resultIds = await _searchForScope(searchService, query, mode);
 
       // Check if the query is still relevant
       if (state.debouncedQuery != query) {
@@ -198,7 +200,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
         searchQuery: state.searchQuery,
         debouncedQuery: state.debouncedQuery,
         searchMode: state.searchMode,
-        searchResults: AsyncValue<List<MessageListItem>>.data(results),
+        searchResultIds: AsyncValue<List<int>>.data(resultIds),
         ordinal: state.ordinal,
       );
     } catch (error, stackTrace) {
@@ -211,28 +213,28 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
         searchQuery: state.searchQuery,
         debouncedQuery: state.debouncedQuery,
         searchMode: state.searchMode,
-        searchResults: AsyncValue<List<MessageListItem>>.error(
-          error,
-          stackTrace,
-        ),
+        searchResultIds: AsyncValue<List<int>>.error(error, stackTrace),
         ordinal: state.ordinal,
       );
     }
   }
 
-  Future<List<MessageListItem>> _searchForScope(
+  Future<List<int>> _searchForScope(
     SearchService searchService,
     String query,
     SearchMode mode,
   ) async {
     return switch (state.scope) {
-      GlobalTimelineScope() => searchService.searchGlobalMessages(
+      GlobalTimelineScope() => searchService.searchGlobalMessageIds(
         query: query,
         mode: mode,
       ),
       ContactTimelineScope(:final contactId) =>
-        searchService.searchContactMessages(contactId: contactId, query: query),
-      ChatTimelineScope(:final chatId) => searchService.searchChatMessages(
+        searchService.searchContactMessageIds(
+          contactId: contactId,
+          query: query,
+        ),
+      ChatTimelineScope(:final chatId) => searchService.searchChatMessageIds(
         chatId: chatId,
         query: query,
       ),
@@ -253,7 +255,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       searchQuery: state.searchQuery,
       debouncedQuery: state.debouncedQuery,
       searchMode: mode,
-      searchResults: state.searchResults,
+      searchResultIds: state.searchResultIds,
       ordinal: state.ordinal,
     );
 
@@ -264,7 +266,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
         searchQuery: state.searchQuery,
         debouncedQuery: state.debouncedQuery,
         searchMode: state.searchMode,
-        searchResults: const AsyncValue<List<MessageListItem>>.loading(),
+        searchResultIds: const AsyncValue<List<int>>.loading(),
         ordinal: state.ordinal,
       );
       _executeSearch(state.debouncedQuery);

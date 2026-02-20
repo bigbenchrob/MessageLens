@@ -1,0 +1,190 @@
+I'm now taking a step back and looking at overall styling of the app. Although all the components are there, I'm not really happy with the visual impression it leaves. It looks like the different components (sidebar, center panel header, search area, messages list) like like they were thrown together rather than being a designed as a unified coherent design. Any ideas?
+
+You’re not wrong — everything works, but visually it reads as assembled, not composed. The good news is that this is a design-system problem, not a component problem. You’re already 80% there.
+
+Let me frame what’s going wrong, then give you a concrete path to make it feel intentional and calm rather than busy.
+
+⸻
+
+What your UI is currently communicating (subconsciously)
+
+Right now the app feels like:
+
+“Several independently useful tools sharing a window”
+
+instead of:
+
+“One coherent reading and exploration experience”
+
+That usually happens when:
+	•	too many horizontal separators compete
+	•	surfaces don’t clearly belong to a hierarchy
+	•	typography doesn’t enforce a single visual rhythm
+	•	controls look like UI elements, not part of a surface
+
+None of these require redesigning features — just unifying principles.
+
+⸻
+
+The single biggest issue: too many surfaces
+
+You currently have:
+	•	Sidebar surface
+	•	Sidebar header surface
+	•	Center header surface
+	•	Search surface
+	•	Message list surface
+
+All with similar weight, similar backgrounds, and visible edges.
+
+Humans read that as five panels, not one layout.
+
+Fix: collapse visual surfaces into two primary planes
+
+Plane 1 — Navigation
+	•	Sidebar
+	•	Contact picker
+	•	Heatmap
+	•	Filters
+
+Plane 2 — Content
+	•	Header
+	•	Search
+	•	Messages list
+
+Visually, those planes should feel continuous, not stacked.
+
+⸻
+
+Concrete changes that will instantly help
+
+1. Kill most separators; use spacing instead
+
+Hard rule:
+
+If two things belong together, remove the line between them.
+
+Specifically:
+	•	Remove the divider between center header and search
+	•	Remove the divider between search and message list
+	•	Keep one divider only: between sidebar and content
+
+Let whitespace + alignment do the work.
+
+This alone will make the app feel 2× calmer.
+
+⸻
+
+2. Make the center column a single cardless surface
+
+Right now the center reads as:
+
+[ header ]
+---------
+[ search ]
+---------
+[ messages ]
+
+Instead, aim for:
+
+┌─────────────────────────────┐
+│ Header                      │
+│ Search                      │
+│                             │
+│ Messages                    │
+│                             │
+└─────────────────────────────┘
+
+
+
+No borders. No cards. Just one canvas.
+
+If you want separation:
+	•	very subtle background tint shift (1–2%)
+	•	or increased top padding above the message list
+
+macOS apps almost never cardify their main reading surface — cards imply widgets, not streams.
+
+⸻
+
+3. Establish a strict vertical rhythm
+
+Right now spacing feels locally correct but globally inconsistent.
+
+Pick one unit and enforce it everywhere:
+	•	8pt or 12pt grid
+	•	header → search gap = same as search → list gap
+	•	sidebar section gaps match center column gaps
+
+You want the eye to predict spacing subconsciously.
+
+If you do nothing else:
+make vertical spacing boringly consistent.
+
+⸻
+
+4. Reduce typography roles (you have too many)
+
+I’d strongly recommend limiting yourself to four text roles:
+	1.	Navigation titles (contact name, section headers)
+	2.	Primary content text (messages)
+	3.	Metadata (timestamps, counts)
+	4.	Controls (buttons, filters)
+
+Right now, some metadata looks as heavy as navigation, and some controls look as heavy as content.
+
+Two fixes:
+	•	lighten metadata color (not smaller — lighter)
+	•	slightly increase message text line-height (reading comfort)
+
+Reading is your app’s core job — optimize for that first.
+
+⸻
+
+5. Sidebar cohesion: treat it as one object
+
+The sidebar currently feels like:
+	•	a dropdown
+	•	a contact card
+	•	a heatmap widget
+
+…stacked.
+
+Instead, treat it as one navigational instrument.
+
+Design cue:
+	•	same background across entire sidebar
+	•	same horizontal padding for everything
+	•	same text alignment left edge
+
+The heatmap especially should feel embedded, not like a plugin.
+
+If you want hierarchy:
+	•	indentation
+	•	opacity
+	•	size
+—not boxes.
+
+⸻
+
+A useful mental model
+
+Ask yourself this question for every UI boundary:
+
+“If I blurred this screenshot slightly, would the structure still make sense?”
+
+Right now: no — too many equal-weight blocks.
+After the changes above: yes — two planes, one flow.
+
+⸻
+
+If you want one guiding principle
+
+Fewer surfaces, stronger rhythm, calmer typography.
+
+You don’t need:
+	•	new colors
+	•	new components
+	•	fancy effects
+
+You need restraint — and your instincts are already pointing that way.

@@ -9,6 +9,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../contacts/infrastructure/repositories/contact_profile_provider.dart';
 import '../../domain/value_objects/message_timeline_scope.dart';
+import '../view_model/timeline/hydration/message_by_id_provider.dart';
 import '../view_model/timeline/hydration/message_by_ordinal_provider.dart';
 import '../view_model/timeline/message_timeline_view_model_provider.dart';
 import '../view_model/timeline/ordinal/current_visible_month_provider.dart';
@@ -737,31 +738,84 @@ class _SkeletonRow extends StatelessWidget {
   }
 }
 
-/// Search results list.
-class _SearchResultsList extends StatelessWidget {
+/// Search results list with virtual scrolling.
+///
+/// Uses on-demand hydration like the main timeline for fast initial display.
+class _SearchResultsList extends ConsumerWidget {
   const _SearchResultsList({required this.vm});
 
   final MessageTimelineViewModelState vm;
 
   @override
-  Widget build(BuildContext context) {
-    return vm.searchResults.when(
-      data: (results) {
-        if (results.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
+
+    return vm.searchResultIds.when(
+      data: (resultIds) {
+        if (resultIds.isEmpty) {
           return Center(
             child: Text('No matches found for "${vm.debouncedQuery}"'),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: results.length,
-          itemBuilder: (context, index) {
-            return MessageCard(message: results[index]);
-          },
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                '${resultIds.length} results',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.brightness == Brightness.dark
+                      ? const Color(0xFF98989D)
+                      : const Color(0xFF6E6E73),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: resultIds.length,
+                itemBuilder: (context, index) {
+                  return _SearchResultRow(
+                    messageId: resultIds[index],
+                    theme: theme,
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: ProgressCircle()),
       error: (error, _) => Center(child: Text('Search failed: $error')),
+    );
+  }
+}
+
+/// Single search result row with on-demand hydration.
+class _SearchResultRow extends ConsumerWidget {
+  const _SearchResultRow({required this.messageId, required this.theme});
+
+  final int messageId;
+  final MacosThemeData theme;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final itemAsync = ref.watch(messageByIdProvider(messageId: messageId));
+
+    return itemAsync.when(
+      data: (item) {
+        if (item == null) {
+          return _SkeletonRow(theme: theme);
+        }
+        return MessageCard(message: item);
+      },
+      loading: () => _SkeletonRow(theme: theme),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Message $messageId failed: $error'),
+      ),
     );
   }
 }
