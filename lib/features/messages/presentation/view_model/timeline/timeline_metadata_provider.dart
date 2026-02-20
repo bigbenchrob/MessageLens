@@ -51,8 +51,9 @@ class TimelineMetadata {
       return yearPart;
     }
 
-    final monthPart =
-        remainingMonths == 1 ? '1 month' : '$remainingMonths months';
+    final monthPart = remainingMonths == 1
+        ? '1 month'
+        : '$remainingMonths months';
     return '$yearPart, $monthPart';
   }
 
@@ -76,8 +77,10 @@ Future<TimelineMetadata> timelineMetadata(
 
   return switch (scope) {
     GlobalTimelineScope() => _fetchGlobalMetadata(db),
-    ContactTimelineScope(:final contactId) =>
-      _fetchContactMetadata(db, contactId),
+    ContactTimelineScope(:final contactId) => _fetchContactMetadata(
+      db,
+      contactId,
+    ),
     ChatTimelineScope(:final chatId) => _fetchChatMetadata(db, chatId),
   };
 }

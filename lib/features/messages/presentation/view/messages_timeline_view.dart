@@ -59,8 +59,9 @@ class MessagesTimelineView extends HookConsumerWidget {
     // Color scheme: header/search get a darker chrome, message list gets lighter
     final isDark = theme.brightness == Brightness.dark;
     final chromeBg = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE8E8ED);
-    final messageListBg =
-        isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F8FA);
+    final messageListBg = isDark
+        ? const Color(0xFF2C2C2E)
+        : const Color(0xFFF8F8FA);
 
     // Build scope-specific scaffold
     return switch (scope) {
@@ -101,43 +102,20 @@ class MessagesTimelineView extends HookConsumerWidget {
     Color chromeBg,
     Color messageListBg,
   ) {
-    return MacosScaffold(
-      toolBar: ToolBar(
-        actions: [
-          ToolBarIconButton(
-            icon: const MacosIcon(CupertinoIcons.arrow_down_to_line),
-            label: 'Jump to latest',
-            onPressed: () => ref
-                .read(messageTimelineViewModelProvider(scope: scope).notifier)
-                .jumpToLatest(),
-            showLabel: false,
+    return Material(
+      color: chromeBg,
+      child: Column(
+        children: [
+          _GlobalHeader(scope: scope, scrollToDate: scrollToDate),
+          _GlobalSearchBar(scope: scope, vm: vm),
+          Expanded(
+            child: ColoredBox(
+              color: messageListBg,
+              child: _buildMessageList(context, ref, vm, theme),
+            ),
           ),
         ],
       ),
-      children: [
-        ContentArea(
-          builder: (context, _) {
-            return ColoredBox(
-              color: chromeBg,
-              child: Column(
-                children: [
-                  _GlobalHeader(
-                    scope: scope,
-                    scrollToDate: scrollToDate,
-                  ),
-                  _GlobalSearchBar(scope: scope, vm: vm),
-                  Expanded(
-                    child: ColoredBox(
-                      color: messageListBg,
-                      child: _buildMessageList(context, ref, vm, theme),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 
@@ -184,11 +162,7 @@ class MessagesTimelineView extends HookConsumerWidget {
       color: chromeBg,
       child: Column(
         children: [
-          _ChatHeader(
-            chatId: chatId,
-            scope: scope,
-            scrollToDate: scrollToDate,
-          ),
+          _ChatHeader(chatId: chatId, scope: scope, scrollToDate: scrollToDate),
           _SimpleSearchBar(scope: scope, vm: vm),
           Expanded(
             child: ColoredBox(
@@ -338,10 +312,7 @@ class _SearchModeToggle extends ConsumerWidget {
 
 /// Header for global (all messages) view.
 class _GlobalHeader extends ConsumerWidget {
-  const _GlobalHeader({
-    required this.scope,
-    this.scrollToDate,
-  });
+  const _GlobalHeader({required this.scope, this.scrollToDate});
 
   final MessageTimelineScope scope;
   final DateTime? scrollToDate;
@@ -350,8 +321,9 @@ class _GlobalHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor =
-        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final secondaryColor = isDark
+        ? const Color(0xFF98989D)
+        : const Color(0xFF6E6E73);
 
     final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
     final visibleMonthAsync = ref.watch(
@@ -407,10 +379,7 @@ class _GlobalHeader extends ConsumerWidget {
 
 /// Shows current scroll position when viewing a portion of the timeline.
 class _ScrollPositionIndicator extends StatelessWidget {
-  const _ScrollPositionIndicator({
-    this.scrollToDate,
-    this.visibleMonthKey,
-  });
+  const _ScrollPositionIndicator({this.scrollToDate, this.visibleMonthKey});
 
   /// The date explicitly requested via navigation (e.g., from heatmap click).
   final DateTime? scrollToDate;
@@ -495,11 +464,14 @@ class _ContactHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor =
-        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final secondaryColor = isDark
+        ? const Color(0xFF98989D)
+        : const Color(0xFF6E6E73);
 
     // Get contact profile for display name
-    final profileAsync = ref.watch(contactProfileProvider(contactId: contactId));
+    final profileAsync = ref.watch(
+      contactProfileProvider(contactId: contactId),
+    );
     final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
     final visibleMonthAsync = ref.watch(
       currentVisibleMonthForScopeProvider(scope: scope),
@@ -569,8 +541,9 @@ class _ChatHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor =
-        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+    final secondaryColor = isDark
+        ? const Color(0xFF98989D)
+        : const Color(0xFF6E6E73);
 
     final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
     final visibleMonthAsync = ref.watch(
