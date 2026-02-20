@@ -108,7 +108,7 @@ class MessagesTimelineView extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _GlobalHeader(scope: scope, scrollToDate: scrollToDate),
-          _GlobalSearchBar(scope: scope, vm: vm),
+          _SearchBar(scope: scope, vm: vm),
           Expanded(
             child: ColoredBox(
               color: messageListBg,
@@ -139,7 +139,7 @@ class MessagesTimelineView extends HookConsumerWidget {
             scope: scope,
             scrollToDate: scrollToDate,
           ),
-          _SimpleSearchBar(scope: scope, vm: vm),
+          _SearchBar(scope: scope, vm: vm),
           Expanded(
             child: ColoredBox(
               color: messageListBg,
@@ -166,7 +166,7 @@ class MessagesTimelineView extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _ChatHeader(chatId: chatId, scope: scope, scrollToDate: scrollToDate),
-          _SimpleSearchBar(scope: scope, vm: vm),
+          _SearchBar(scope: scope, vm: vm),
           Expanded(
             child: ColoredBox(
               color: messageListBg,
@@ -225,43 +225,15 @@ class MessagesTimelineView extends HookConsumerWidget {
   }
 }
 
-/// Search bar with mode toggle (for global scope).
-class _GlobalSearchBar extends ConsumerWidget {
-  const _GlobalSearchBar({required this.scope, required this.vm});
+/// Unified search bar with mode toggle for all timeline scopes.
+class _SearchBar extends ConsumerWidget {
+  const _SearchBar({required this.scope, required this.vm});
 
   final MessageTimelineScope scope;
   final MessageTimelineViewModelState vm;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: MacosTextField(
-              controller: vm.searchController,
-              placeholder: 'Search all messages',
-              clearButtonMode: macos_ui.OverlayVisibilityMode.editing,
-            ),
-          ),
-          const SizedBox(width: 12),
-          _SearchModeToggle(scope: scope, mode: vm.searchMode),
-        ],
-      ),
-    );
-  }
-}
-
-/// Simple search bar without mode toggle (for contact/chat scopes).
-class _SimpleSearchBar extends StatelessWidget {
-  const _SimpleSearchBar({required this.scope, required this.vm});
-
-  final MessageTimelineScope scope;
-  final MessageTimelineViewModelState vm;
-
-  @override
-  Widget build(BuildContext context) {
     final placeholder = switch (scope) {
       GlobalTimelineScope() => 'Search all messages',
       ContactTimelineScope() => 'Search messages with this contact',
@@ -269,11 +241,19 @@ class _SimpleSearchBar extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: MacosSearchField<String>(
-        controller: vm.searchController,
-        placeholder: placeholder,
-        results: const [],
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: MacosTextField(
+              controller: vm.searchController,
+              placeholder: placeholder,
+              clearButtonMode: macos_ui.OverlayVisibilityMode.editing,
+            ),
+          ),
+          const SizedBox(width: 12),
+          _SearchModeToggle(scope: scope, mode: vm.searchMode),
+        ],
       ),
     );
   }
