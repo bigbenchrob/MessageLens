@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/theme_typography.dart';
 
 /// A “soft” informational card for explanatory text.
@@ -19,10 +19,11 @@ class SidebarInfoCard extends ConsumerWidget {
     required this.body,
     this.footnote,
     this.action,
-    this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-    this.padding = const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
-    this.borderRadius = 10.0,
-    this.showBorder = false,
+    this.margin = const EdgeInsets.symmetric(
+      vertical: AppSpacing.sm,
+      horizontal: AppSpacing.md,
+    ),
+    this.padding = const EdgeInsets.all(AppSpacing.md),
   }) : assert(
          footnote == null || action == null,
          'SidebarInfoCard cannot have both a footnote and an action.',
@@ -40,30 +41,18 @@ class SidebarInfoCard extends ConsumerWidget {
 
   final EdgeInsetsGeometry margin;
   final EdgeInsetsGeometry padding;
-  final double borderRadius;
-
-  /// Default false: border is optional; the tint usually does enough.
-  final bool showBorder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final typography = ref.watch(themeTypographyProvider);
-    ref.watch(themeColorsProvider);
-    final colors = ref.read(themeColorsProvider.notifier);
-
-    final bg = colors.infoCard(InfoCard.background);
-    final border = colors.infoCard(InfoCard.border);
 
     final hasTitle = title != null && title!.trim().isNotEmpty;
     final hasFootnote = footnote != null && footnote!.trim().isNotEmpty;
 
-    return Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: showBorder ? Border.all(color: border) : null,
-      ),
+    // No visual chrome: transparent background, no border.
+    // The SidebarPlane provides the background.
+    return Padding(
+      padding: margin,
       child: Padding(
         padding: padding,
         child: Column(
@@ -72,16 +61,19 @@ class SidebarInfoCard extends ConsumerWidget {
           children: [
             if (hasTitle) ...[
               Text(title!, style: typography.infoCardTitle),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
             ],
             RichText(
               text: TextSpan(style: typography.infoCardBody, children: [body]),
             ),
             if (hasFootnote) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm + AppSpacing.xs),
               Text(footnote!, style: typography.infoCardFootnote),
             ],
-            if (action != null) ...[const SizedBox(height: 10), action!],
+            if (action != null) ...[
+              const SizedBox(height: AppSpacing.sm + AppSpacing.xs),
+              action!,
+            ],
           ],
         ),
       ),
