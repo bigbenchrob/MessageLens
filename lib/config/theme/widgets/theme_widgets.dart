@@ -8,6 +8,9 @@ import 'app_primary_button.dart';
 
 export 'app_dropdown_menu.dart';
 export 'app_primary_button.dart';
+export 'cassette_chrome.dart';
+export 'content_plane.dart';
+export 'sidebar_plane.dart';
 
 /// Catalog of reusable widgets that adhere to the shared app theme.
 abstract class AppThemeWidgets {
