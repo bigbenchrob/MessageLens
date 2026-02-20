@@ -105,6 +105,7 @@ class MessagesTimelineView extends HookConsumerWidget {
     return Material(
       color: chromeBg,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _GlobalHeader(scope: scope, scrollToDate: scrollToDate),
           _GlobalSearchBar(scope: scope, vm: vm),
@@ -131,6 +132,7 @@ class MessagesTimelineView extends HookConsumerWidget {
     return Material(
       color: chromeBg,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _ContactHeader(
             contactId: contactId,
@@ -161,6 +163,7 @@ class MessagesTimelineView extends HookConsumerWidget {
     return Material(
       color: chromeBg,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _ChatHeader(chatId: chatId, scope: scope, scrollToDate: scrollToDate),
           _SimpleSearchBar(scope: scope, vm: vm),
