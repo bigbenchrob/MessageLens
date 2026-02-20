@@ -1,8 +1,9 @@
 # Feature Proposal — UI Sweep
 
 **Branch**: `Ftr.uisweep`  
-**Status**: Awaiting approval  
-**Created**: 2026-02-20
+**Status**: ✅ Approved — proceeding to planning  
+**Created**: 2026-02-20  
+**Approved**: 2026-02-20
 
 ---
 
@@ -48,9 +49,11 @@ The current UI communicates visual fragmentation:
 - Separation via spacing and subtle tint shifts (≤2%) only
 
 #### 3. Establish Vertical Rhythm
-- Single spacing unit: **8pt or 12pt** (to be determined)
-- All gaps are multiples of this unit
+- Base spacing unit: **8pt**
+- Visual groupings: **16pt**, **24pt**, **32pt** multiples
+- All gaps are multiples of the base unit
 - Sidebar and content sections share the same rhythm
+- One-off spacing values strictly prohibited
 
 #### 4. Constrain Typography to Four Roles
 
@@ -99,20 +102,48 @@ From `ui-design-contract.md`:
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-1. **Spacing unit**: 8pt or 12pt? Need to audit current spacing to determine which aligns better with existing patterns.
+1. **Spacing unit**: 8pt base. Visual groupings use 16pt, 24pt, 32pt multiples. No one-offs.
 
-2. **Background tints**: What are the exact hex values for:
-   - Sidebar background (both light/dark mode)
-   - Content column background (both modes)
-   - Should search area have a subtle tint shift from message list?
+2. **Search area tint**: Subtle background tint (≤2% delta) allowed for interaction mode. Must remain visually continuous with content plane — no borders, elevation, or card semantics.
 
-3. **Typography audit**: Need to inventory current text styles to map them to the four roles. Are there styles that don't fit any role?
+3. **Cassette structure**: Keep the cassette *flow and logic*, remove the *card chrome*. Styling comes from token roles and structural wrapper context, not per-cassette decisions.
 
-4. **Heatmap integration**: The heatmap currently has distinct visual treatment. How aggressive should the integration be? (Same background? Reduced padding? Simpler frame?)
+4. **Implementation order**: Sidebar (Plane A) first, then content (Plane B).
 
-5. **Implementation order**: Should we sweep one plane at a time (sidebar first, then content) or work element-by-element across the whole UI?
+---
+
+## Implementation Approach
+
+### Token System
+
+Introduce design tokens to enforce consistency and eliminate ad-hoc styling:
+
+| Token Class | Purpose |
+|-------------|---------|
+| `AppSpacing` | 8pt base + standard multiples (sm, md, lg, xl) |
+| `AppTypography` | Four roles: NavigationTitle, Content, Metadata, Controls |
+| `AppColors` | Plane backgrounds, text hierarchy, state colors |
+| `AppDividers` | Single divider style for plane separation |
+
+### Structural Wrappers
+
+Create wrapper widgets that own plane-level styling:
+
+| Wrapper | Responsibility |
+|---------|----------------|
+| `SidebarPlane` | Background, single divider on right edge |
+| `ContentPlane` | Single continuous surface for header/search/list |
+| `CassetteChrome` | Padding + rhythm + selection states (no card borders) |
+
+### Enforcement Rule
+
+Feature widgets must use tokens exclusively:
+- ❌ `Container(color: ...)` — prohibited
+- ❌ `EdgeInsets(...)` — prohibited  
+- ❌ `TextStyle(...)` — prohibited
+- ✅ `AppSpacing.md`, `AppColors.sidebarBg`, `AppTypography.metadata`
 
 ---
 
@@ -137,13 +168,14 @@ From `ui-design-contract.md`:
 
 ---
 
-## Next Steps (Pending Approval)
+## Next Steps
 
-1. Create `CHECKLIST.md` with detailed implementation tasks
-2. Create `DESIGN_NOTES.md` to document spacing grid and color values
-3. Create `TESTS.md` for manual visual validation criteria
-4. Begin implementation with sidebar cohesion (Plane A)
+1. ✅ Create `PROPOSAL.md` — complete
+2. 🔄 Create `DESIGN_NOTES.md` — document token definitions
+3. 🔄 Create `CHECKLIST.md` — detailed implementation tasks
+4. 🔄 Create `TESTS.md` — visual validation criteria
+5. Begin implementation: Sidebar (Plane A) first
 
 ---
 
-**Awaiting user approval to proceed to planning phase.**
+**Proposal approved. Proceeding to planning phase.**
