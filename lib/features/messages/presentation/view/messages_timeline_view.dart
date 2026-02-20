@@ -268,25 +268,79 @@ class _SearchModeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final activeColor = CupertinoColors.systemBlue.resolveFrom(context);
+    final inactiveColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        PushButton(
-          controlSize: ControlSize.small,
-          secondary: mode != MessageSearchMode.allTerms,
-          onPressed: () => ref
-              .read(messageTimelineViewModelProvider(scope: scope).notifier)
-              .setSearchMode(MessageSearchMode.allTerms),
-          child: const Text('All terms'),
+        MacosTooltip(
+          message: 'All terms must match',
+          child: GestureDetector(
+            onTap: () => ref
+                .read(messageTimelineViewModelProvider(scope: scope).notifier)
+                .setSearchMode(MessageSearchMode.allTerms),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: mode == MessageSearchMode.allTerms
+                    ? activeColor.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: mode == MessageSearchMode.allTerms
+                      ? activeColor.withValues(alpha: 0.4)
+                      : inactiveColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                'AND',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: mode == MessageSearchMode.allTerms
+                      ? activeColor
+                      : inactiveColor,
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(width: 8),
-        PushButton(
-          controlSize: ControlSize.small,
-          secondary: mode != MessageSearchMode.anyTerm,
-          onPressed: () => ref
-              .read(messageTimelineViewModelProvider(scope: scope).notifier)
-              .setSearchMode(MessageSearchMode.anyTerm),
-          child: const Text('Any term'),
+        const SizedBox(width: 6),
+        MacosTooltip(
+          message: 'Any term can match',
+          child: GestureDetector(
+            onTap: () => ref
+                .read(messageTimelineViewModelProvider(scope: scope).notifier)
+                .setSearchMode(MessageSearchMode.anyTerm),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: mode == MessageSearchMode.anyTerm
+                    ? activeColor.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: mode == MessageSearchMode.anyTerm
+                      ? activeColor.withValues(alpha: 0.4)
+                      : inactiveColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                'OR',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: mode == MessageSearchMode.anyTerm
+                      ? activeColor
+                      : inactiveColor,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
