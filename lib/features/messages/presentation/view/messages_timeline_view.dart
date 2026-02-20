@@ -110,8 +110,8 @@ class MessagesTimelineView extends HookConsumerWidget {
           _GlobalHeader(scope: scope, scrollToDate: scrollToDate),
           _SearchBar(scope: scope, vm: vm),
           Expanded(
-            child: ColoredBox(
-              color: messageListBg,
+            child: _FadeOverlayList(
+              backgroundColor: messageListBg,
               child: _buildMessageList(context, ref, vm, theme),
             ),
           ),
@@ -141,8 +141,8 @@ class MessagesTimelineView extends HookConsumerWidget {
           ),
           _SearchBar(scope: scope, vm: vm),
           Expanded(
-            child: ColoredBox(
-              color: messageListBg,
+            child: _FadeOverlayList(
+              backgroundColor: messageListBg,
               child: _buildMessageList(context, ref, vm, theme),
             ),
           ),
@@ -168,8 +168,8 @@ class MessagesTimelineView extends HookConsumerWidget {
           _ChatHeader(chatId: chatId, scope: scope, scrollToDate: scrollToDate),
           _SearchBar(scope: scope, vm: vm),
           Expanded(
-            child: ColoredBox(
-              color: messageListBg,
+            child: _FadeOverlayList(
+              backgroundColor: messageListBg,
               child: _buildMessageList(context, ref, vm, theme),
             ),
           ),
@@ -222,6 +222,53 @@ class MessagesTimelineView extends HookConsumerWidget {
       ContactTimelineScope() => 'No messages with this contact yet.',
       ChatTimelineScope() => 'No messages in this chat yet.',
     };
+  }
+}
+
+/// Wraps the message list with a gradient fade overlay at the top.
+///
+/// Creates a soft visual transition when content scrolls under the header,
+/// similar to Apple's Messages app.
+class _FadeOverlayList extends StatelessWidget {
+  const _FadeOverlayList({
+    required this.backgroundColor,
+    required this.child,
+  });
+
+  final Color backgroundColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: backgroundColor,
+      child: Stack(
+        children: [
+          child,
+          // Gradient fade overlay at top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 24,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      backgroundColor,
+                      backgroundColor.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
