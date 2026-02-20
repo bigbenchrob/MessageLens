@@ -2,13 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:macos_ui/macos_ui.dart' as macos_ui;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../../contacts/infrastructure/repositories/contact_profile_provider.dart';
 import '../../domain/value_objects/message_timeline_scope.dart';
 import '../view_model/timeline/hydration/message_by_ordinal_provider.dart';
 import '../view_model/timeline/message_timeline_view_model_provider.dart';
+import '../view_model/timeline/ordinal/current_visible_month_provider.dart';
+import '../view_model/timeline/timeline_metadata_provider.dart';
 import '../widgets/message_card.dart';
 
 /// Unified view for message timelines across all scopes.
@@ -52,20 +56,30 @@ class MessagesTimelineView extends HookConsumerWidget {
       return null;
     }, [scrollToDate, ordinalAsync.hasValue]);
 
-    final contentBg = theme.brightness == Brightness.dark
-        ? const Color(0xFF1C1C1E)
-        : const Color(0xFFF2F2F7);
+    // Color scheme: header/search get a darker chrome, message list gets lighter
+    final isDark = theme.brightness == Brightness.dark;
+    final chromeBg = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE8E8ED);
+    final messageListBg =
+        isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F8FA);
 
     // Build scope-specific scaffold
     return switch (scope) {
-      GlobalTimelineScope() => _buildGlobalScaffold(context, ref, vm, theme),
+      GlobalTimelineScope() => _buildGlobalScaffold(
+        context,
+        ref,
+        vm,
+        theme,
+        chromeBg,
+        messageListBg,
+      ),
       ContactTimelineScope(:final contactId) => _buildContactScaffold(
         context,
         ref,
         vm,
         theme,
         contactId,
-        contentBg,
+        chromeBg,
+        messageListBg,
       ),
       ChatTimelineScope(:final chatId) => _buildChatScaffold(
         context,
@@ -73,7 +87,8 @@ class MessagesTimelineView extends HookConsumerWidget {
         vm,
         theme,
         chatId,
-        contentBg,
+        chromeBg,
+        messageListBg,
       ),
     };
   }
@@ -83,10 +98,12 @@ class MessagesTimelineView extends HookConsumerWidget {
     WidgetRef ref,
     MessageTimelineViewModelState vm,
     MacosThemeData theme,
+    Color chromeBg,
+    Color messageListBg,
   ) {
     return MacosScaffold(
       toolBar: ToolBar(
-        title: const Text('Global timeline'),
+        title: const Text('All Messages'),
         actions: [
           ToolBarIconButton(
             icon: const MacosIcon(CupertinoIcons.arrow_down_to_line),
@@ -101,15 +118,21 @@ class MessagesTimelineView extends HookConsumerWidget {
       children: [
         ContentArea(
           builder: (context, _) {
-            final contentBg = theme.brightness == Brightness.dark
-                ? const Color(0xFF1C1C1E)
-                : const Color(0xFFF2F2F7);
             return ColoredBox(
-              color: contentBg,
+              color: chromeBg,
               child: Column(
                 children: [
+                  _GlobalHeader(
+                    scope: scope,
+                    scrollToDate: scrollToDate,
+                  ),
                   _GlobalSearchBar(scope: scope, vm: vm),
-                  Expanded(child: _buildMessageList(context, ref, vm, theme)),
+                  Expanded(
+                    child: ColoredBox(
+                      color: messageListBg,
+                      child: _buildMessageList(context, ref, vm, theme),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -125,21 +148,25 @@ class MessagesTimelineView extends HookConsumerWidget {
     MessageTimelineViewModelState vm,
     MacosThemeData theme,
     int contactId,
-    Color contentBg,
+    Color chromeBg,
+    Color messageListBg,
   ) {
     return Material(
-      color: contentBg,
+      color: chromeBg,
       child: Column(
         children: [
           _ContactHeader(
             contactId: contactId,
-            totalMessages: vm.ordinal.value?.totalCount ?? 0,
-            theme: theme,
+            scope: scope,
+            scrollToDate: scrollToDate,
           ),
-          const Divider(height: 1),
           _SimpleSearchBar(scope: scope, vm: vm),
-          const Divider(height: 1),
-          Expanded(child: _buildMessageList(context, ref, vm, theme)),
+          Expanded(
+            child: ColoredBox(
+              color: messageListBg,
+              child: _buildMessageList(context, ref, vm, theme),
+            ),
+          ),
         ],
       ),
     );
@@ -151,21 +178,25 @@ class MessagesTimelineView extends HookConsumerWidget {
     MessageTimelineViewModelState vm,
     MacosThemeData theme,
     int chatId,
-    Color contentBg,
+    Color chromeBg,
+    Color messageListBg,
   ) {
     return Material(
-      color: contentBg,
+      color: chromeBg,
       child: Column(
         children: [
           _ChatHeader(
             chatId: chatId,
-            totalMessages: vm.ordinal.value?.totalCount ?? 0,
-            theme: theme,
+            scope: scope,
+            scrollToDate: scrollToDate,
           ),
-          const Divider(height: 1),
           _SimpleSearchBar(scope: scope, vm: vm),
-          const Divider(height: 1),
-          Expanded(child: _buildMessageList(context, ref, vm, theme)),
+          Expanded(
+            child: ColoredBox(
+              color: messageListBg,
+              child: _buildMessageList(context, ref, vm, theme),
+            ),
+          ),
         ],
       ),
     );
@@ -306,90 +337,290 @@ class _SearchModeToggle extends ConsumerWidget {
   }
 }
 
-/// Header for contact message view.
-class _ContactHeader extends StatelessWidget {
-  const _ContactHeader({
-    required this.contactId,
-    required this.totalMessages,
-    required this.theme,
+/// Header for global (all messages) view.
+class _GlobalHeader extends ConsumerWidget {
+  const _GlobalHeader({
+    required this.scope,
+    this.scrollToDate,
   });
 
-  final int contactId;
-  final int totalMessages;
-  final MacosThemeData theme;
+  final MessageTimelineScope scope;
+  final DateTime? scrollToDate;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final countText = totalMessages.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (match) => '${match[1]} ',
+    final secondaryColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
+    final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
+    final visibleMonthAsync = ref.watch(
+      currentVisibleMonthForScopeProvider(scope: scope),
     );
 
+    final metadata = metadataAsync.valueOrNull;
+    final visibleMonth = visibleMonthAsync.valueOrNull;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // TODO: Add contact name and avatar from contactId
-          const Text(
-            'All Messages',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
           Text(
-            '$countText messages across all conversations',
+            'All messages, regardless of sender',
+            style: TextStyle(fontSize: 13, color: secondaryColor),
+          ),
+          if (metadata != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              _buildMetadataLine(metadata),
+              style: TextStyle(fontSize: 12, color: secondaryColor),
+            ),
+          ],
+          if (scrollToDate != null || visibleMonth != null) ...[
+            const SizedBox(height: 4),
+            _ScrollPositionIndicator(
+              scrollToDate: scrollToDate,
+              visibleMonthKey: visibleMonth,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _buildMetadataLine(TimelineMetadata metadata) {
+    final count = _formatCount(metadata.totalMessages);
+    if (metadata.durationSpan.isEmpty) {
+      return '$count messages';
+    }
+    return '$count messages over ${metadata.durationSpan}';
+  }
+
+  String _formatCount(int count) {
+    return count.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+  }
+}
+
+/// Shows current scroll position when viewing a portion of the timeline.
+class _ScrollPositionIndicator extends StatelessWidget {
+  const _ScrollPositionIndicator({
+    this.scrollToDate,
+    this.visibleMonthKey,
+  });
+
+  /// The date explicitly requested via navigation (e.g., from heatmap click).
+  final DateTime? scrollToDate;
+
+  /// The month key of the currently visible top message (e.g., '2023-06').
+  final String? visibleMonthKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = _getDisplayText();
+    if (displayText == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBlue.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.systemBlue.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            CupertinoIcons.calendar,
+            size: 12,
+            color: CupertinoColors.systemBlue.resolveFrom(context),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            displayText,
             style: TextStyle(
-              fontSize: 13,
-              color: isDark ? const Color(0xFF98989D) : const Color(0xFF7A7A7F),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.systemBlue.resolveFrom(context),
             ),
           ),
         ],
       ),
     );
   }
+
+  String? _getDisplayText() {
+    // Prefer explicit scroll-to date when navigating from heatmap
+    if (scrollToDate != null) {
+      return 'SCROLLED TO ${DateFormat('MMMM yyyy').format(scrollToDate!)}';
+    }
+
+    // Fall back to currently visible month from scroll position
+    if (visibleMonthKey != null && visibleMonthKey!.isNotEmpty) {
+      final parts = visibleMonthKey!.split('-');
+      if (parts.length == 2) {
+        final year = int.tryParse(parts[0]);
+        final month = int.tryParse(parts[1]);
+        if (year != null && month != null) {
+          final date = DateTime(year, month);
+          return 'VIEWING ${DateFormat('MMMM yyyy').format(date).toUpperCase()}';
+        }
+      }
+    }
+
+    return null;
+  }
 }
 
-/// Header for chat message view.
-class _ChatHeader extends StatelessWidget {
-  const _ChatHeader({
-    required this.chatId,
-    required this.totalMessages,
-    required this.theme,
+/// Header for contact message view.
+class _ContactHeader extends ConsumerWidget {
+  const _ContactHeader({
+    required this.contactId,
+    required this.scope,
+    this.scrollToDate,
   });
 
-  final int chatId;
-  final int totalMessages;
-  final MacosThemeData theme;
+  final int contactId;
+  final MessageTimelineScope scope;
+  final DateTime? scrollToDate;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final countText = totalMessages.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (match) => '${match[1]} ',
+    final secondaryColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
+    // Get contact profile for display name
+    final profileAsync = ref.watch(contactProfileProvider(contactId: contactId));
+    final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
+    final visibleMonthAsync = ref.watch(
+      currentVisibleMonthForScopeProvider(scope: scope),
     );
 
+    final displayName = profileAsync.valueOrNull?.displayName ?? 'Contact';
+    final metadata = metadataAsync.valueOrNull;
+    final visibleMonth = visibleMonthAsync.valueOrNull;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // TODO: Add chat/handle info from chatId
-          const Text(
-            'Conversation',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+          Text(
+            'All messages from $displayName',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          Text(
-            '$countText messages',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? const Color(0xFF98989D) : const Color(0xFF7A7A7F),
+          if (metadata != null) ...[
+            Text(
+              _buildMetadataLine(metadata),
+              style: TextStyle(fontSize: 13, color: secondaryColor),
             ),
-          ),
+          ],
+          if (scrollToDate != null || visibleMonth != null) ...[
+            const SizedBox(height: 6),
+            _ScrollPositionIndicator(
+              scrollToDate: scrollToDate,
+              visibleMonthKey: visibleMonth,
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  String _buildMetadataLine(TimelineMetadata metadata) {
+    final count = _formatCount(metadata.totalMessages);
+    if (metadata.durationSpan.isEmpty) {
+      return '$count messages';
+    }
+    return '$count messages over ${metadata.durationSpan}';
+  }
+
+  String _formatCount(int count) {
+    return count.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+  }
+}
+
+/// Header for chat message view.
+class _ChatHeader extends ConsumerWidget {
+  const _ChatHeader({
+    required this.chatId,
+    required this.scope,
+    this.scrollToDate,
+  });
+
+  final int chatId;
+  final MessageTimelineScope scope;
+  final DateTime? scrollToDate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = MacosTheme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? const Color(0xFF98989D) : const Color(0xFF6E6E73);
+
+    final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
+    final visibleMonthAsync = ref.watch(
+      currentVisibleMonthForScopeProvider(scope: scope),
+    );
+
+    final metadata = metadataAsync.valueOrNull;
+    final visibleMonth = visibleMonthAsync.valueOrNull;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Conversation',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          if (metadata != null) ...[
+            Text(
+              _buildMetadataLine(metadata),
+              style: TextStyle(fontSize: 13, color: secondaryColor),
+            ),
+          ],
+          if (scrollToDate != null || visibleMonth != null) ...[
+            const SizedBox(height: 6),
+            _ScrollPositionIndicator(
+              scrollToDate: scrollToDate,
+              visibleMonthKey: visibleMonth,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _buildMetadataLine(TimelineMetadata metadata) {
+    final count = _formatCount(metadata.totalMessages);
+    if (metadata.durationSpan.isEmpty) {
+      return '$count messages';
+    }
+    return '$count messages over ${metadata.durationSpan}';
+  }
+
+  String _formatCount(int count) {
+    return count.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
     );
   }
 }
