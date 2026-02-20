@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../essentials/db/feature_level_providers/message_data_version_provider.dart';
 import '../../../domain/calendar_heatmap_timeline_data.dart';
 
 part 'global_messages_heatmap_provider.g.dart';
@@ -10,6 +11,9 @@ part 'global_messages_heatmap_provider.g.dart';
 Future<CalendarHeatmapTimelineData?> globalMessagesHeatmap(
   GlobalMessagesHeatmapRef ref,
 ) async {
+  // Watch message data version so we rebuild when new messages are imported.
+  ref.watch(messageDataVersionProvider);
+
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
   final boundsRow = await db

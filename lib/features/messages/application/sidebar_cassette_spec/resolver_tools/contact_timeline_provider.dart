@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../essentials/db/feature_level_providers/message_data_version_provider.dart';
 import '../../../domain/calendar_heatmap_timeline_data.dart';
 import 'contact_timeline_calculator.dart';
 
@@ -19,6 +20,9 @@ Future<CalendarHeatmapTimelineData?> contactTimeline(
   Ref ref, {
   required int contactId,
 }) async {
+  // Watch message data version so we rebuild when new messages are imported.
+  ref.watch(messageDataVersionProvider);
+
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
 
   final datesQuery = await db

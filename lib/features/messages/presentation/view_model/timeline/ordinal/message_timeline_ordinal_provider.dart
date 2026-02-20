@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../../essentials/db/feature_level_providers/message_data_version_provider.dart';
 import '../../../../application/strategies/ordinal_strategy.dart';
 import '../../../../domain/message_timeline_scope_extensions.dart';
 import '../../../../domain/value_objects/message_timeline_scope.dart';
@@ -60,6 +61,10 @@ class MessageTimelineOrdinal extends _$MessageTimelineOrdinal {
   Future<MessageTimelineOrdinalState> build({
     required MessageTimelineScope scope,
   }) async {
+    // Watch the message data version so we rebuild when new messages are imported.
+    // This is critical for incremental imports - without it, the totalCount stays stale.
+    ref.watch(messageDataVersionProvider);
+
     // During maintenance, return empty state to avoid DB access.
     final isMaintenance = ref.watch(dbMaintenanceLockProvider);
     if (isMaintenance) {

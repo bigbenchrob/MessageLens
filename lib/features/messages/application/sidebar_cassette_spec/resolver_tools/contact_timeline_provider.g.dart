@@ -6,7 +6,7 @@ part of 'contact_timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$contactTimelineHash() => r'd0daba6e9f2a8d86829ea1c4dc8282eba7f17cca';
+String _$contactTimelineHash() => r'c2a3f3f872879bd2d7312aee80c03063c0e7564d';
 
 /// Copied from Dart SDK
 class _SystemHash {

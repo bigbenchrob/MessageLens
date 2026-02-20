@@ -67,9 +67,40 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
       _chatDbPath = chatDbPath;
 
       await _primeMaxRowId(chatDbPath);
+      
+      // Immediate check on startup to catch messages that arrived while app was closed.
+      // This ensures users don't see stale data for 15 seconds.
+      await _checkForNewMessagesOnStartup(chatDbPath);
+      
       _startPolling(chatDbPath);
     } catch (error, stackTrace) {
       _handleError('Failed to initialize chat.db monitor: $error', stackTrace);
+    }
+  }
+
+  /// Check for new messages immediately on startup.
+  /// 
+  /// This catches the case where the app was closed for an extended period
+  /// and new messages arrived. Without this, users would see stale data until
+  /// the first polling interval (15 seconds).
+  Future<void> _checkForNewMessagesOnStartup(String chatDbPath) async {
+    try {
+      final currentMaxRowId = _readMaxRowId(chatDbPath);
+      final previousMaxRowId = state.lastMaxRowId;
+
+      if (previousMaxRowId != null && currentMaxRowId > previousMaxRowId) {
+        print(
+          'Startup check: new messages detected (MAX ROWID: $previousMaxRowId → $currentMaxRowId)',
+        );
+        _scheduleProbe();
+      } else {
+        print(
+          'Startup check: no new messages (MAX ROWID: $currentMaxRowId)',
+        );
+      }
+    } catch (error) {
+      // Non-fatal - polling will catch up
+      print('Startup check failed: $error');
     }
   }
 
