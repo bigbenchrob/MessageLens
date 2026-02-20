@@ -103,7 +103,6 @@ class MessagesTimelineView extends HookConsumerWidget {
   ) {
     return MacosScaffold(
       toolBar: ToolBar(
-        title: const Text('All Messages'),
         actions: [
           ToolBarIconButton(
             icon: const MacosIcon(CupertinoIcons.arrow_down_to_line),
@@ -363,23 +362,23 @@ class _GlobalHeader extends ConsumerWidget {
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'All messages, regardless of sender',
-            style: TextStyle(fontSize: 13, color: secondaryColor),
+          const Text(
+            'All Messages',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
+          const SizedBox(height: 4),
           if (metadata != null) ...[
-            const SizedBox(height: 2),
             Text(
               _buildMetadataLine(metadata),
-              style: TextStyle(fontSize: 12, color: secondaryColor),
+              style: TextStyle(fontSize: 13, color: secondaryColor),
             ),
           ],
           if (scrollToDate != null || visibleMonth != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             _ScrollPositionIndicator(
               scrollToDate: scrollToDate,
               visibleMonthKey: visibleMonth,
