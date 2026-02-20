@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../../essentials/navigation/domain/navigation_constants.dart';
@@ -109,7 +110,6 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     }
 
     final timeline = data!;
-    final macosTheme = MacosTheme.of(context);
     final colors = ref.watch(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
 
@@ -121,7 +121,6 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     final selectedMonth = selectedMonthAsync.valueOrNull;
 
     final stats = _buildStats(
-      macosTheme: macosTheme,
       typography: t,
       colors: colors,
       stats: [
@@ -145,7 +144,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         stats,
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         CalendarHeatmapTimelineWidget(
           data: timeline,
           monthSize: 12,
@@ -171,7 +170,7 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
                 );
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         PushButton(
           controlSize: ControlSize.small,
           onPressed: () {
@@ -276,7 +275,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
                 );
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         Text(summaryText, style: t.vizMeta),
       ],
     );
@@ -290,31 +289,25 @@ class _HeatmapLoadingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: ProgressCircle(radius: 10),
       ),
     );
   }
 }
 
-class _HeatmapErrorCard extends StatelessWidget {
+class _HeatmapErrorCard extends ConsumerWidget {
   const _HeatmapErrorCard({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    final macosTheme = MacosTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: macosTheme.canvasColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: CupertinoColors.systemRed.withValues(alpha: 0.6),
-        ),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(themeTypographyProvider);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,18 +316,16 @@ class _HeatmapErrorCard extends StatelessWidget {
             color: CupertinoColors.systemRed,
             size: 18,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   message,
-                  style: macosTheme.typography.caption1.copyWith(
-                    color: CupertinoColors.systemRed,
-                  ),
+                  style: t.caption.copyWith(color: CupertinoColors.systemRed),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 PushButton(
                   controlSize: ControlSize.small,
                   onPressed: onRetry,
@@ -349,35 +340,28 @@ class _HeatmapErrorCard extends StatelessWidget {
   }
 }
 
-class _EmptyHeatmapCard extends StatelessWidget {
+class _EmptyHeatmapCard extends ConsumerWidget {
   const _EmptyHeatmapCard({required this.message, required this.icon});
 
   final String message;
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) {
-    final macosTheme = MacosTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: macosTheme.canvasColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: macosTheme.dividerColor.withValues(alpha: 0.6),
-        ),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = ref.watch(themeColorsProvider.notifier);
+    final t = ref.watch(themeTypographyProvider);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: CupertinoColors.inactiveGray),
-          const SizedBox(width: 12),
+          Icon(icon, size: 22, color: colors.content.textTertiary),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               message,
-              style: macosTheme.typography.caption1.copyWith(
-                color: macosTheme.typography.caption1.color?.withValues(
-                  alpha: 0.8,
-                ),
+              style: t.caption.copyWith(
+                color: colors.content.textSecondary,
               ),
             ),
           ),
@@ -400,43 +384,29 @@ class _HeatmapStat {
 }
 
 Widget _buildStats({
-  required MacosThemeData macosTheme,
   required ThemeTypography typography,
   required ThemeColors colors,
   required List<_HeatmapStat> stats,
 }) {
   return Wrap(
-    spacing: 10,
-    runSpacing: 10,
+    spacing: AppSpacing.sm,
+    runSpacing: AppSpacing.xs,
     children: stats
         .map(
-          (stat) => Container(
-            constraints: const BoxConstraints(minWidth: 140),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: macosTheme.canvasColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: macosTheme.dividerColor.withValues(alpha: 0.5),
+          (stat) => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(stat.icon, size: 14, color: colors.content.textSecondary),
+              const SizedBox(width: AppSpacing.xs),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(stat.value, style: typography.vizMeta),
+                  Text(stat.label, style: typography.caption),
+                ],
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(stat.icon, size: 14, color: colors.content.textSecondary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(stat.value, style: typography.vizMeta),
-                      const SizedBox(height: 2),
-                      Text(stat.label, style: typography.caption),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              const SizedBox(width: AppSpacing.md),
+            ],
           ),
         )
         .toList(growable: false),

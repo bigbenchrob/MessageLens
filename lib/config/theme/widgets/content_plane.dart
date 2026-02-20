@@ -57,10 +57,7 @@ class ContentPlane extends ConsumerWidget {
         ? colors.surfaces.contentControl
         : colors.surfaces.canvas;
 
-    return ColoredBox(
-      color: bgColor,
-      child: child,
-    );
+    return ColoredBox(color: bgColor, child: child);
   }
 }
 
@@ -83,10 +80,7 @@ class ContentPlane extends ConsumerWidget {
 /// - Must remain visually continuous with the content plane.
 /// - NO borders, elevation, or card semantics.
 class SearchAreaTint extends ConsumerWidget {
-  const SearchAreaTint({
-    required this.child,
-    super.key,
-  });
+  const SearchAreaTint({required this.child, super.key});
 
   final Widget child;
 
@@ -101,9 +95,6 @@ class SearchAreaTint extends ConsumerWidget {
       colors.surfaces.canvas,
     );
 
-    return ColoredBox(
-      color: tintColor,
-      child: child,
-    );
+    return ColoredBox(color: tintColor, child: child);
   }
 }

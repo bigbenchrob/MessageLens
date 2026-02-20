@@ -82,7 +82,8 @@ class CassetteChrome extends ConsumerWidget {
       bgColor = const Color(0x00000000); // Transparent
     }
 
-    final effectivePadding = padding ??
+    final effectivePadding =
+        padding ??
         const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,

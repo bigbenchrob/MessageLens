@@ -57,19 +57,14 @@ class SidebarPlane extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
 
-    Widget content = ColoredBox(
-      color: colors.surfaces.panel,
-      child: child,
-    );
+    Widget content = ColoredBox(color: colors.surfaces.panel, child: child);
 
     if (showDivider) {
       content = DecoratedBox(
         decoration: BoxDecoration(
           color: colors.surfaces.panel,
           border: Border(
-            right: BorderSide(
-              color: colors.lines.contentControlDivider,
-            ),
+            right: BorderSide(color: colors.lines.contentControlDivider),
           ),
         ),
         child: child,

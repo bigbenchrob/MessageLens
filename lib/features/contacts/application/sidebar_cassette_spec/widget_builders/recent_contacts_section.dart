@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import '../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../../essentials/navigation/domain/entities/view_spec.dart';
@@ -73,10 +75,10 @@ class RecentContactsSection extends ConsumerWidget {
             // Recent contacts section - lightweight suggestion, not a card
             Padding(
               padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 4,
-                bottom: 16, // Increased spacing before picker
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                top: AppSpacing.xs,
+                bottom: AppSpacing.md, // Increased spacing before picker
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -84,7 +86,7 @@ class RecentContactsSection extends ConsumerWidget {
                 children: [
                   // "RECENTS" section label — whispers "section label", not peer
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: Text(
                       'RECENTS',
                       style: typography.pickerSectionLabel,
@@ -211,7 +213,10 @@ class _RecentContactRowState extends ConsumerState<_RecentContactRow> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: AppSpacing.xs,
+            ),
             child: Row(
               children: [
                 ContactInitialBadge(displayName: widget.displayName),
