@@ -282,11 +282,16 @@ class _ContactHeatmapContent extends HookConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(top: AppSpacing.xs),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(width: 32), // Same as year label width
               const SizedBox(width: 4), // Same as monthSpacing * 2
-              Text('Tap a month to jump to those messages', style: t.caption),
+              Flexible(
+                child: Text(
+                  'Tap a square to jump to that month',
+                  style: t.caption,
+                  softWrap: true,
+                ),
+              ),
             ],
           ),
         ),
