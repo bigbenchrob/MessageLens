@@ -809,9 +809,9 @@ class OverlayDatabase extends _$OverlayDatabase {
   ///
   /// Labeling a handle implicitly calls this method.
   Future<void> restoreHandle(String normalizedHandle) async {
-    await (delete(dismissedHandles)
-          ..where((tbl) => tbl.normalizedHandle.equals(normalizedHandle)))
-        .go();
+    await (delete(
+      dismissedHandles,
+    )..where((tbl) => tbl.normalizedHandle.equals(normalizedHandle))).go();
   }
 
   /// Check if a handle is currently dismissed.
@@ -833,9 +833,9 @@ class OverlayDatabase extends _$OverlayDatabase {
 
   /// Get detailed info about all dismissed handles.
   Future<List<DismissedHandle>> getDismissedHandleDetails() async {
-    return (select(dismissedHandles)
-          ..orderBy([(tbl) => OrderingTerm.desc(tbl.dismissedAtUtc)]))
-        .get();
+    return (select(
+      dismissedHandles,
+    )..orderBy([(tbl) => OrderingTerm.desc(tbl.dismissedAtUtc)])).get();
   }
 }
 

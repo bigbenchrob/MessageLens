@@ -6,6 +6,10 @@ CassetteSpec? resolveHandlesChild(HandlesCassetteSpec spec) {
     strayPhoneNumbers: () => null,
     strayEmails: () => null,
     strayHandlesReview: (_, __) => null,
+    // Mode switcher cascades to the stray handles review list
+    strayHandlesModeSwitcher: (filter) => CassetteSpec.handles(
+      HandlesCassetteSpec.strayHandlesReview(filter: filter),
+    ),
   );
 }
 

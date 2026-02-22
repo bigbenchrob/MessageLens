@@ -47,4 +47,12 @@ abstract class HandlesCassetteSpec with _$HandlesCassetteSpec {
     required StrayHandleFilter filter,
     @Default(StrayHandleMode.allStrays) StrayHandleMode mode,
   }) = _HandlesStrayReviewSpec;
+
+  /// Mode switcher control for stray handles triage.
+  ///
+  /// This is a separate cassette that controls the global mode state,
+  /// allowing it to have child cassettes for additional filtering/sorting.
+  const factory HandlesCassetteSpec.strayHandlesModeSwitcher({
+    required StrayHandleFilter filter,
+  }) = _HandlesModeSwitcherSpec;
 }

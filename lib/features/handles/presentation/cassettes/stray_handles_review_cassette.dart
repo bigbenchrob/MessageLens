@@ -115,17 +115,17 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
 
   String get _emptyMessage => switch (mode) {
     StrayHandleMode.allStrays => switch (filter) {
-        StrayHandleFilter.phones =>
-          'No stray phone numbers found.\nAll phone handles are linked to contacts.',
-        StrayHandleFilter.emails =>
-          'No stray email addresses found.\nAll email handles are linked to contacts.',
-      },
+      StrayHandleFilter.phones =>
+        'No stray phone numbers found.\nAll phone handles are linked to contacts.',
+      StrayHandleFilter.emails =>
+        'No stray email addresses found.\nAll email handles are linked to contacts.',
+    },
     StrayHandleMode.spamCandidates => switch (filter) {
-        StrayHandleFilter.phones =>
-          'No spam candidates found.\nNo short codes or one-off messages detected.',
-        StrayHandleFilter.emails =>
-          'No spam candidates found.\nNo one-off email addresses detected.',
-      },
+      StrayHandleFilter.phones =>
+        'No spam candidates found.\nNo short codes or one-off messages detected.',
+      StrayHandleFilter.emails =>
+        'No spam candidates found.\nNo one-off email addresses detected.',
+    },
     StrayHandleMode.dismissed =>
       'No dismissed handles.\nHandles you dismiss will appear here.',
   };
@@ -185,8 +185,8 @@ class _StrayHandleRow extends ConsumerWidget {
     final contentAlpha = isReviewed ? 0.5 : 1.0;
 
     // Show spam indicator for high junk scores in all modes
-    final showSpamBadge = handle.junkScore >= 3 &&
-        mode != StrayHandleMode.dismissed;
+    final showSpamBadge =
+        handle.junkScore >= 3 && mode != StrayHandleMode.dismissed;
 
     return GestureDetector(
       onTap: onTap,
@@ -209,7 +209,9 @@ class _StrayHandleRow extends ConsumerWidget {
                             vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: colors.accents.primary.withValues(alpha: 0.15),
+                            color: colors.accents.primary.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -287,7 +289,8 @@ class _StrayHandleRow extends ConsumerWidget {
 
             // Dismiss button (always visible in spam mode, hover in all strays)
             if (onDismiss != null &&
-                (mode == StrayHandleMode.spamCandidates || handle.junkScore >= 3)) ...[
+                (mode == StrayHandleMode.spamCandidates ||
+                    handle.junkScore >= 3)) ...[
               const SizedBox(width: 6),
               _ActionButton(
                 icon: CupertinoIcons.xmark_circle_fill,
