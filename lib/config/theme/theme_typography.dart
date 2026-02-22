@@ -98,7 +98,7 @@ class ThemeTypography {
   TextStyle get vizAxisLabel => _base.copyWith(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    color: _colors.content.textSecondary,
+    color: _colors.content.textTertiary,
   );
 
   /// Summary metadata:
