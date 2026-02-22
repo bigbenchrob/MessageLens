@@ -69,8 +69,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
         }
 
         return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          // Let ListView fill the bounded height from shouldExpand: true
+          // and handle its own scrolling
           itemCount: filtered.length,
           separatorBuilder: (_, __) =>
               Divider(height: 1, color: colors.lines.border),
