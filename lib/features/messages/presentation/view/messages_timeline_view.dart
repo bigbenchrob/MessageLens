@@ -7,6 +7,8 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:macos_ui/macos_ui.dart' as macos_ui;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../../../config/theme/spacing/app_spacing.dart';
+
 import '../../../contacts/infrastructure/repositories/contact_profile_provider.dart';
 import '../../domain/value_objects/message_timeline_scope.dart';
 import '../view_model/timeline/hydration/message_by_id_provider.dart';
@@ -286,7 +288,13 @@ class _SearchBar extends ConsumerWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      // Top: tight gap from header; bottom: looser gap to content
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        AppSpacing.xs, // Completes panelHeaderToControlsGap (header: 8 + search: 4 = 12)
+        16,
+        AppSpacing.panelControlsToContentGap,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -417,7 +425,7 @@ class _GlobalHeader extends ConsumerWidget {
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -565,7 +573,7 @@ class _ContactHeader extends ConsumerWidget {
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -637,7 +645,7 @@ class _ChatHeader extends ConsumerWidget {
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -91,6 +91,14 @@ abstract final class AppSpacing {
   /// Gap between visualization and hint/footnote text.
   static const double cassetteHintGap = sm;
 
+  /// Gap between panel header and controls (search, filters).
+  /// Tighter to group header+controls as one conceptual unit.
+  static const double panelHeaderToControlsGap = sm + xs; // 12pt
+
+  /// Gap between panel controls and content.
+  /// Looser to separate controls from downstream content.
+  static const double panelControlsToContentGap = md; // 16pt
+
   // ---------------------------------------------------------------------------
   // EdgeInsets helpers
   // ---------------------------------------------------------------------------
