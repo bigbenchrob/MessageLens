@@ -31,6 +31,7 @@ class ContactHeroSummaryResolver extends _$ContactHeroSummaryResolver {
     return SidebarCassetteCardViewModel(
       title: '',
       subtitle: null,
+      isNaked: true, // Align edges with top menu dropdown
       shouldExpand: false, // Hero summary wraps content, doesn't expand
       child: ContactHeroSummaryWidget(
         contactId: contactId,

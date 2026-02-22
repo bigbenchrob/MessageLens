@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
@@ -120,7 +121,10 @@ class _EmptyState extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.md,
+      ),
       child: Center(
         child: Text(
           'No contacts available',
@@ -151,7 +155,10 @@ class _ContactRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: isSelected
               ? colors.accents.primary.withValues(alpha: 0.12)
