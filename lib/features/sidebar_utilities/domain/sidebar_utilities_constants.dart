@@ -6,14 +6,8 @@ enum TopChatMenuChoice {
   /// Contacts list
   contacts(id: 'contacts', label: 'From contacts'),
 
-  /// Email addresses not matched to any contact
-  strayEmails(id: 'stray_emails', label: 'From stray emails'),
-
-  /// Phone numbers not matched to any contact
-  strayPhoneNumbers(
-    id: 'stray_phone_numbers',
-    label: 'From stray phone numbers',
-  ),
+  /// Handles not matched to any contact (phone #, email, business URN)
+  strayHandles(id: 'stray_handles', label: 'From unfamiliar sources'),
 
   /// Search all messages in the database (global timeline)
   searchAllMessages(id: 'search_all_messages', label: 'Search all messages'),

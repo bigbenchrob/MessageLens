@@ -3,46 +3,47 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
+import '../../../../essentials/navigation/domain/sidebar_mode.dart';
+import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
-import '../../application/state/stray_handle_mode_provider.dart';
+import '../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../infrastructure/repositories/stray_handles_provider.dart';
 
-/// A compact segmented control for switching between stray handle triage modes.
+/// A segmented control for selecting which type of stray handles to review:
+/// Phone numbers, Email addresses, or Business URNs.
 ///
-/// This cassette reads and writes to [strayHandleModeSettingProvider], which
-/// the list cassette watches to determine which handles to display.
-class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
-  const StrayHandlesModeSwitcherCassette({required this.filter, super.key});
+/// This cassette sits between the menu selection and the mode switcher,
+/// allowing the user to choose which handle type to triage.
+class StrayHandlesTypeSwitcherCassette extends ConsumerWidget {
+  const StrayHandlesTypeSwitcherCassette({
+    required this.selectedFilter,
+    required this.cassetteIndex,
+    super.key,
+  });
 
-  final StrayHandleFilter filter;
+  final StrayHandleFilter selectedFilter;
+  final int cassetteIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
-    final currentMode = ref.watch(strayHandleModeSettingProvider);
 
-    // Get counts for badges, filtered by phone/email
+    // Get counts for badges
     final allStraysAsync = ref.watch(strayHandlesProvider);
-    final spamAsync = ref.watch(spamCandidateHandlesProvider);
-    final dismissedAsync = ref.watch(dismissedHandlesProvider);
 
-    // Filter counts to match the current filter (phones vs emails vs business URNs)
-    int? filterCount(List<StrayHandleSummary>? handles) {
+    // Filter counts by type
+    int? filterCount(StrayHandleFilter filter) {
+      final handles = allStraysAsync.valueOrNull;
       if (handles == null) {
         return null;
       }
       final filtered = switch (filter) {
-        // Business URNs start with 'urn:'
-        StrayHandleFilter.businessUrns => handles.where(
-          (h) => h.handleValue.startsWith('urn:'),
-        ),
-        // Emails contain '@'
-        StrayHandleFilter.emails => handles.where(
-          (h) => h.handleValue.contains('@'),
-        ),
-        // Phones: no '@', no 'urn:' prefix
+        StrayHandleFilter.businessUrns =>
+          handles.where((h) => h.handleValue.startsWith('urn:')),
+        StrayHandleFilter.emails =>
+          handles.where((h) => h.handleValue.contains('@')),
         StrayHandleFilter.phones => handles.where(
           (h) =>
               !h.handleValue.contains('@') &&
@@ -52,34 +53,41 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
       return filtered.length;
     }
 
+    void handleFilterChange(StrayHandleFilter newFilter) {
+      // Build new spec with updated filter and cascade
+      final newSpec = CassetteSpec.handles(
+        HandlesCassetteSpec.strayHandlesTypeSwitcher(selectedFilter: newFilter),
+      );
+      ref
+          .read(cassetteRackStateProvider(SidebarMode.messages).notifier)
+          .replaceAtIndexAndCascade(cassetteIndex, newSpec);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: CupertinoSegmentedControl<StrayHandleMode>(
-        groupValue: currentMode,
-        onValueChanged: (mode) {
-          ref.read(strayHandleModeSettingProvider.notifier).setMode(mode);
-        },
+      child: CupertinoSegmentedControl<StrayHandleFilter>(
+        groupValue: selectedFilter,
+        onValueChanged: handleFilterChange,
         padding: const EdgeInsets.all(2),
         children: {
-          StrayHandleMode.allStrays: _SegmentContent(
-            label: 'All',
-            count: filterCount(allStraysAsync.valueOrNull),
-            isSelected: currentMode == StrayHandleMode.allStrays,
+          StrayHandleFilter.phones: _SegmentContent(
+            label: 'Phone #',
+            count: filterCount(StrayHandleFilter.phones),
+            isSelected: selectedFilter == StrayHandleFilter.phones,
             colors: colors,
             typography: typography,
           ),
-          StrayHandleMode.spamCandidates: _SegmentContent(
-            label: 'Spam',
-            count: filterCount(spamAsync.valueOrNull),
-            isSelected: currentMode == StrayHandleMode.spamCandidates,
+          StrayHandleFilter.emails: _SegmentContent(
+            label: 'Email',
+            count: filterCount(StrayHandleFilter.emails),
+            isSelected: selectedFilter == StrayHandleFilter.emails,
             colors: colors,
             typography: typography,
-            badgeColor: colors.accents.primary,
           ),
-          StrayHandleMode.dismissed: _SegmentContent(
-            label: 'Dismissed',
-            count: filterCount(dismissedAsync.valueOrNull),
-            isSelected: currentMode == StrayHandleMode.dismissed,
+          StrayHandleFilter.businessUrns: _SegmentContent(
+            label: 'Business',
+            count: filterCount(StrayHandleFilter.businessUrns),
+            isSelected: selectedFilter == StrayHandleFilter.businessUrns,
             colors: colors,
             typography: typography,
           ),
@@ -96,7 +104,6 @@ class _SegmentContent extends StatelessWidget {
     required this.colors,
     required this.typography,
     this.count,
-    this.badgeColor,
   });
 
   final String label;
@@ -104,7 +111,6 @@ class _SegmentContent extends StatelessWidget {
   final bool isSelected;
   final ThemeColors colors;
   final ThemeTypography typography;
-  final Color? badgeColor;
 
   @override
   Widget build(BuildContext context) {
@@ -128,15 +134,13 @@ class _SegmentContent extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color:
-                    badgeColor?.withValues(alpha: 0.15) ??
-                    colors.surfaces.hover,
+                color: colors.surfaces.hover,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '$count',
                 style: typography.caption.copyWith(
-                  color: badgeColor ?? colors.content.textTertiary,
+                  color: colors.content.textTertiary,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),

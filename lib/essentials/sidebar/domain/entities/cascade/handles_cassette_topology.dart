@@ -10,6 +10,10 @@ CassetteSpec? resolveHandlesChild(HandlesCassetteSpec spec) {
     strayHandlesModeSwitcher: (filter) => CassetteSpec.handles(
       HandlesCassetteSpec.strayHandlesReview(filter: filter),
     ),
+    // Type switcher cascades to the mode switcher with selected filter
+    strayHandlesTypeSwitcher: (selectedFilter) => CassetteSpec.handles(
+      HandlesCassetteSpec.strayHandlesModeSwitcher(filter: selectedFilter),
+    ),
   );
 }
 

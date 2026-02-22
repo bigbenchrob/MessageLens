@@ -8,6 +8,7 @@ import '../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_v
 import 'application/cassette_builders/stray_emails_cassette_builder_provider.dart';
 import 'application/cassette_builders/stray_handles_mode_switcher_cassette_builder_provider.dart';
 import 'application/cassette_builders/stray_handles_review_cassette_builder_provider.dart';
+import 'application/cassette_builders/stray_handles_type_switcher_cassette_builder_provider.dart';
 import 'application/cassette_builders/stray_phone_numbers_cassette_builder_provider.dart';
 import 'application/cassette_builders/unmatched_handles_cassette_builder_provider.dart';
 import 'application/settings/manual_linking_cassette_builder_provider.dart';
@@ -82,6 +83,12 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
       },
       strayHandlesModeSwitcher: (filter) => ref.read(
         strayHandlesModeSwitcherCassetteBuilderProvider(filter: filter),
+      ),
+      strayHandlesTypeSwitcher: (selectedFilter) => ref.read(
+        strayHandlesTypeSwitcherCassetteBuilderProvider(
+          selectedFilter: selectedFilter,
+          cassetteIndex: cassetteIndex,
+        ),
       ),
     );
   }

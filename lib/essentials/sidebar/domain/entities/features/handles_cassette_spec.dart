@@ -2,8 +2,17 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'handles_cassette_spec.freezed.dart';
 
-/// Filter for the stray handles review cassette.
-enum StrayHandleFilter { phones, emails }
+/// Filter for the stray handles review cassette - determines which handle type to show.
+enum StrayHandleFilter {
+  /// Phone numbers (no '@', no 'urn:' prefix)
+  phones,
+
+  /// Email addresses (contains '@')
+  emails,
+
+  /// Business URNs (starts with 'urn:' - Apple Business Chat, etc.)
+  businessUrns,
+}
 
 /// Mode for the stray handles review cassette - determines which handles to show.
 enum StrayHandleMode {
@@ -55,4 +64,12 @@ abstract class HandlesCassetteSpec with _$HandlesCassetteSpec {
   const factory HandlesCassetteSpec.strayHandlesModeSwitcher({
     required StrayHandleFilter filter,
   }) = _HandlesModeSwitcherSpec;
+
+  /// Type switcher for selecting Phone # / Email / Business URN.
+  ///
+  /// This sits between the menu selection and the mode switcher,
+  /// allowing the user to choose which handle type to review.
+  const factory HandlesCassetteSpec.strayHandlesTypeSwitcher({
+    @Default(StrayHandleFilter.phones) StrayHandleFilter selectedFilter,
+  }) = _HandlesTypeSwitcherSpec;
 }

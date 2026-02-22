@@ -27,6 +27,7 @@ String _buildTitle(StrayHandleFilter filter, StrayHandleMode mode) {
   final filterLabel = switch (filter) {
     StrayHandleFilter.phones => 'phone numbers',
     StrayHandleFilter.emails => 'email addresses',
+    StrayHandleFilter.businessUrns => 'business accounts',
   };
 
   return switch (mode) {

@@ -106,12 +106,21 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
 
   List<StrayHandleSummary> _applyFilter(List<StrayHandleSummary> handles) {
     return switch (filter) {
-      // Phone numbers don't contain '@'
-      StrayHandleFilter.phones =>
-        handles.where((h) => !h.handleValue.contains('@')).toList(),
+      // Business URNs start with 'urn:'
+      StrayHandleFilter.businessUrns =>
+        handles.where((h) => h.handleValue.startsWith('urn:')).toList(),
       // Emails contain '@'
       StrayHandleFilter.emails =>
         handles.where((h) => h.handleValue.contains('@')).toList(),
+      // Phones: no '@', no 'urn:' prefix
+      StrayHandleFilter.phones =>
+        handles
+            .where(
+              (h) =>
+                  !h.handleValue.contains('@') &&
+                  !h.handleValue.startsWith('urn:'),
+            )
+            .toList(),
     };
   }
 
@@ -121,12 +130,16 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
         'No stray phone numbers found.\nAll phone handles are linked to contacts.',
       StrayHandleFilter.emails =>
         'No stray email addresses found.\nAll email handles are linked to contacts.',
+      StrayHandleFilter.businessUrns =>
+        'No stray business accounts found.\nAll business URNs are linked to contacts.',
     },
     StrayHandleMode.spamCandidates => switch (filter) {
       StrayHandleFilter.phones =>
         'No spam candidates found.\nNo short codes or one-off messages detected.',
       StrayHandleFilter.emails =>
         'No spam candidates found.\nNo one-off email addresses detected.',
+      StrayHandleFilter.businessUrns =>
+        'No spam candidates found.\nNo one-off business accounts detected.',
     },
     StrayHandleMode.dismissed =>
       'No dismissed handles.\nHandles you dismiss will appear here.',
