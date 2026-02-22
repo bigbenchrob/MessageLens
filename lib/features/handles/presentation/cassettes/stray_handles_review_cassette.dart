@@ -68,29 +68,26 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           );
         }
 
-        return ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: ListView.separated(
-            // Let ListView fill the bounded height from shouldExpand: true
-            // and handle its own scrolling
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) =>
-                Divider(height: 1, color: colors.lines.border),
-            itemBuilder: (context, index) {
-              final handle = filtered[index];
-              return _StrayHandleRow(
-                handle: handle,
-                mode: mode,
-                onTap: () => _openHandleLens(ref, handle.handleId),
-                onDismiss: mode != StrayHandleMode.dismissed
-                    ? () => _dismissHandle(ref, handle)
-                    : null,
-                onRestore: mode == StrayHandleMode.dismissed
-                    ? () => _restoreHandle(ref, handle)
-                    : null,
-              );
-            },
-          ),
+        return ListView.separated(
+          // Let ListView fill the bounded height from shouldExpand: true
+          // and handle its own scrolling
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) =>
+              Divider(height: 1, color: colors.lines.border),
+          itemBuilder: (context, index) {
+            final handle = filtered[index];
+            return _StrayHandleRow(
+              handle: handle,
+              mode: mode,
+              onTap: () => _openHandleLens(ref, handle.handleId),
+              onDismiss: mode != StrayHandleMode.dismissed
+                  ? () => _dismissHandle(ref, handle)
+                  : null,
+              onRestore: mode == StrayHandleMode.dismissed
+                  ? () => _restoreHandle(ref, handle)
+                  : null,
+            );
+          },
         );
       },
       loading: () => const Padding(
