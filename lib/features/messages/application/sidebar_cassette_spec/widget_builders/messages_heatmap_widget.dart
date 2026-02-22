@@ -286,7 +286,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
             children: [
               const SizedBox(width: 32), // Same as year label width
               const SizedBox(width: 4), // Same as monthSpacing * 2
-              Text('Tap a month to filter', style: t.caption),
+              Text('Tap a month to jump to those messages', style: t.caption),
             ],
           ),
         ),
@@ -373,9 +373,7 @@ class _EmptyHeatmapCard extends ConsumerWidget {
           Expanded(
             child: Text(
               message,
-              style: t.caption.copyWith(
-                color: colors.content.textSecondary,
-              ),
+              style: t.caption.copyWith(color: colors.content.textSecondary),
             ),
           ),
         ],
