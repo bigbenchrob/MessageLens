@@ -228,45 +228,103 @@ class MessagesTimelineView extends HookConsumerWidget {
   }
 }
 
-/// Wraps the message list with a gradient fade overlay at the top.
+/// Wraps the message list with a scroll-driven gradient fade overlay at top.
 ///
-/// Creates a soft visual transition when content scrolls under the header,
-/// similar to Apple's Messages app.
-class _FadeOverlayList extends StatelessWidget {
+/// The overlay is invisible at rest and only appears during scroll motion,
+/// providing a soft collision boundary without becoming a visible surface.
+///
+/// ## Design Contract
+///
+/// Top-of-list blur is interaction-driven, not layout-driven.
+/// It must be invisible at rest, engage only during scrolling, and fade out
+/// immediately when motion stops. Height ≤ 24pt and strength must not be
+/// perceptible as a visual element.
+class _FadeOverlayList extends StatefulWidget {
   const _FadeOverlayList({required this.backgroundColor, required this.child});
 
   final Color backgroundColor;
   final Widget child;
 
   @override
+  State<_FadeOverlayList> createState() => _FadeOverlayListState();
+}
+
+class _FadeOverlayListState extends State<_FadeOverlayList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150), // Fast fade in
+      reverseDuration: const Duration(milliseconds: 300), // Slower fade out
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollStartNotification) {
+      // User started scrolling — show overlay
+      _controller.forward();
+    } else if (notification is ScrollEndNotification) {
+      // User stopped scrolling — hide overlay
+      _controller.reverse();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: backgroundColor,
-      child: Stack(
-        children: [
-          child,
-          // Gradient fade overlay at top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 24,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      backgroundColor,
-                      backgroundColor.withValues(alpha: 0),
-                    ],
+      color: widget.backgroundColor,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          _handleScrollNotification(notification);
+          return false; // Don't consume the notification
+        },
+        child: Stack(
+          children: [
+            widget.child,
+            // Scroll-driven gradient fade overlay at top
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 20, // Shallow: just enough to soften collision
+              child: IgnorePointer(
+                child: FadeTransition(
+                  opacity: _opacity,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.4, 1.0],
+                        colors: [
+                          widget.backgroundColor,
+                          widget.backgroundColor.withValues(alpha: 0.6),
+                          widget.backgroundColor.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -291,7 +349,8 @@ class _SearchBar extends ConsumerWidget {
       // Top: tight gap from header; bottom: looser gap to content
       padding: const EdgeInsets.fromLTRB(
         16,
-        AppSpacing.xs, // Completes panelHeaderToControlsGap (header: 8 + search: 4 = 12)
+        AppSpacing
+            .xs, // Completes panelHeaderToControlsGap (header: 8 + search: 4 = 12)
         16,
         AppSpacing.panelControlsToContentGap,
       ),
