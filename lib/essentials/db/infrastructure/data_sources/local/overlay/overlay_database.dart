@@ -15,13 +15,14 @@ part 'overlay_database.g.dart';
     VirtualParticipants,
     OverlaySettings,
     FavoriteContacts,
+    DismissedHandles,
   ],
 )
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +61,10 @@ class OverlayDatabase extends _$OverlayDatabase {
           ALTER TABLE handle_to_participant_overrides_new
           RENAME TO handle_to_participant_overrides
         ''');
+      }
+      if (from < 7) {
+        // Add dismissed_handles table for strong dismissal semantics.
+        await m.createTable(dismissedHandles);
       }
     },
   );
@@ -779,6 +784,59 @@ class OverlayDatabase extends _$OverlayDatabase {
           ..limit(limit))
         .get();
   }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Dismissed handles
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /// Dismiss a handle by its normalized identifier.
+  ///
+  /// Dismissal excludes all messages from this handle from search, All Messages,
+  /// analytics, and aggregate surfaces. The handle will only appear in the
+  /// "Dismissed" escape hatch view.
+  Future<void> dismissHandle(String normalizedHandle) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    await into(dismissedHandles).insertOnConflictUpdate(
+      DismissedHandlesCompanion(
+        normalizedHandle: Value(normalizedHandle),
+        dismissedAtUtc: Value(now),
+      ),
+    );
+  }
+
+  /// Restore a dismissed handle, re-including its messages in circulation.
+  ///
+  /// Labeling a handle implicitly calls this method.
+  Future<void> restoreHandle(String normalizedHandle) async {
+    await (delete(dismissedHandles)
+          ..where((tbl) => tbl.normalizedHandle.equals(normalizedHandle)))
+        .go();
+  }
+
+  /// Check if a handle is currently dismissed.
+  Future<bool> isHandleDismissed(String normalizedHandle) async {
+    final result =
+        await (select(dismissedHandles)
+              ..where((tbl) => tbl.normalizedHandle.equals(normalizedHandle)))
+            .getSingleOrNull();
+    return result != null;
+  }
+
+  /// Get all dismissed handle identifiers.
+  ///
+  /// Returns normalized values, not handle IDs (which are transient).
+  Future<Set<String>> getAllDismissedHandles() async {
+    final rows = await select(dismissedHandles).get();
+    return {for (final row in rows) row.normalizedHandle};
+  }
+
+  /// Get detailed info about all dismissed handles.
+  Future<List<DismissedHandle>> getDismissedHandleDetails() async {
+    return (select(dismissedHandles)
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.dismissedAtUtc)]))
+        .get();
+  }
 }
 
 /// User-defined short names and preferences for participants
@@ -973,4 +1031,25 @@ class FavoriteContacts extends Table {
 
   @override
   Set<Column> get primaryKey => {participantId};
+}
+
+/// Dismissed handles — keyed by normalized handle value for persistence across
+/// re-imports.
+///
+/// When a user dismisses a handle, all messages from that handle are excluded
+/// from search, All Messages, analytics, and aggregate surfaces. Dismissal is
+/// reversible via restore or by labeling the handle.
+class DismissedHandles extends Table {
+  @override
+  String get tableName => 'dismissed_handles';
+
+  /// Normalized handle identifier (phone: digits only with optional leading +;
+  /// email: lowercase). This is the PRIMARY KEY, not the transient handle ID.
+  TextColumn get normalizedHandle => text().named('normalized_handle')();
+
+  /// ISO 8601 timestamp of when this handle was dismissed.
+  TextColumn get dismissedAtUtc => text().named('dismissed_at_utc')();
+
+  @override
+  Set<Column> get primaryKey => {normalizedHandle};
 }

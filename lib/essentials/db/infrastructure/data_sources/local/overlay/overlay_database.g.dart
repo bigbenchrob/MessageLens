@@ -2992,6 +2992,243 @@ class FavoriteContactsCompanion extends UpdateCompanion<FavoriteContact> {
   }
 }
 
+class $DismissedHandlesTable extends DismissedHandles
+    with TableInfo<$DismissedHandlesTable, DismissedHandle> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DismissedHandlesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _normalizedHandleMeta = const VerificationMeta(
+    'normalizedHandle',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedHandle = GeneratedColumn<String>(
+    'normalized_handle',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dismissedAtUtcMeta = const VerificationMeta(
+    'dismissedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> dismissedAtUtc = GeneratedColumn<String>(
+    'dismissed_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [normalizedHandle, dismissedAtUtc];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dismissed_handles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DismissedHandle> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('normalized_handle')) {
+      context.handle(
+        _normalizedHandleMeta,
+        normalizedHandle.isAcceptableOrUnknown(
+          data['normalized_handle']!,
+          _normalizedHandleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedHandleMeta);
+    }
+    if (data.containsKey('dismissed_at_utc')) {
+      context.handle(
+        _dismissedAtUtcMeta,
+        dismissedAtUtc.isAcceptableOrUnknown(
+          data['dismissed_at_utc']!,
+          _dismissedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dismissedAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {normalizedHandle};
+  @override
+  DismissedHandle map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DismissedHandle(
+      normalizedHandle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_handle'],
+      )!,
+      dismissedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dismissed_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $DismissedHandlesTable createAlias(String alias) {
+    return $DismissedHandlesTable(attachedDatabase, alias);
+  }
+}
+
+class DismissedHandle extends DataClass implements Insertable<DismissedHandle> {
+  /// Normalized handle identifier (phone: digits only with optional leading +;
+  /// email: lowercase). This is the PRIMARY KEY, not the transient handle ID.
+  final String normalizedHandle;
+
+  /// ISO 8601 timestamp of when this handle was dismissed.
+  final String dismissedAtUtc;
+  const DismissedHandle({
+    required this.normalizedHandle,
+    required this.dismissedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['normalized_handle'] = Variable<String>(normalizedHandle);
+    map['dismissed_at_utc'] = Variable<String>(dismissedAtUtc);
+    return map;
+  }
+
+  DismissedHandlesCompanion toCompanion(bool nullToAbsent) {
+    return DismissedHandlesCompanion(
+      normalizedHandle: Value(normalizedHandle),
+      dismissedAtUtc: Value(dismissedAtUtc),
+    );
+  }
+
+  factory DismissedHandle.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DismissedHandle(
+      normalizedHandle: serializer.fromJson<String>(json['normalizedHandle']),
+      dismissedAtUtc: serializer.fromJson<String>(json['dismissedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'normalizedHandle': serializer.toJson<String>(normalizedHandle),
+      'dismissedAtUtc': serializer.toJson<String>(dismissedAtUtc),
+    };
+  }
+
+  DismissedHandle copyWith({
+    String? normalizedHandle,
+    String? dismissedAtUtc,
+  }) => DismissedHandle(
+    normalizedHandle: normalizedHandle ?? this.normalizedHandle,
+    dismissedAtUtc: dismissedAtUtc ?? this.dismissedAtUtc,
+  );
+  DismissedHandle copyWithCompanion(DismissedHandlesCompanion data) {
+    return DismissedHandle(
+      normalizedHandle: data.normalizedHandle.present
+          ? data.normalizedHandle.value
+          : this.normalizedHandle,
+      dismissedAtUtc: data.dismissedAtUtc.present
+          ? data.dismissedAtUtc.value
+          : this.dismissedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DismissedHandle(')
+          ..write('normalizedHandle: $normalizedHandle, ')
+          ..write('dismissedAtUtc: $dismissedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(normalizedHandle, dismissedAtUtc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DismissedHandle &&
+          other.normalizedHandle == this.normalizedHandle &&
+          other.dismissedAtUtc == this.dismissedAtUtc);
+}
+
+class DismissedHandlesCompanion extends UpdateCompanion<DismissedHandle> {
+  final Value<String> normalizedHandle;
+  final Value<String> dismissedAtUtc;
+  final Value<int> rowid;
+  const DismissedHandlesCompanion({
+    this.normalizedHandle = const Value.absent(),
+    this.dismissedAtUtc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DismissedHandlesCompanion.insert({
+    required String normalizedHandle,
+    required String dismissedAtUtc,
+    this.rowid = const Value.absent(),
+  }) : normalizedHandle = Value(normalizedHandle),
+       dismissedAtUtc = Value(dismissedAtUtc);
+  static Insertable<DismissedHandle> custom({
+    Expression<String>? normalizedHandle,
+    Expression<String>? dismissedAtUtc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (normalizedHandle != null) 'normalized_handle': normalizedHandle,
+      if (dismissedAtUtc != null) 'dismissed_at_utc': dismissedAtUtc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DismissedHandlesCompanion copyWith({
+    Value<String>? normalizedHandle,
+    Value<String>? dismissedAtUtc,
+    Value<int>? rowid,
+  }) {
+    return DismissedHandlesCompanion(
+      normalizedHandle: normalizedHandle ?? this.normalizedHandle,
+      dismissedAtUtc: dismissedAtUtc ?? this.dismissedAtUtc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (normalizedHandle.present) {
+      map['normalized_handle'] = Variable<String>(normalizedHandle.value);
+    }
+    if (dismissedAtUtc.present) {
+      map['dismissed_at_utc'] = Variable<String>(dismissedAtUtc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DismissedHandlesCompanion(')
+          ..write('normalizedHandle: $normalizedHandle, ')
+          ..write('dismissedAtUtc: $dismissedAtUtc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
@@ -3010,6 +3247,9 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
   late final $FavoriteContactsTable favoriteContacts = $FavoriteContactsTable(
     this,
   );
+  late final $DismissedHandlesTable dismissedHandles = $DismissedHandlesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3022,6 +3262,7 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
     virtualParticipants,
     overlaySettings,
     favoriteContacts,
+    dismissedHandles,
   ];
 }
 
@@ -4641,6 +4882,163 @@ typedef $$FavoriteContactsTableProcessedTableManager =
       FavoriteContact,
       PrefetchHooks Function()
     >;
+typedef $$DismissedHandlesTableCreateCompanionBuilder =
+    DismissedHandlesCompanion Function({
+      required String normalizedHandle,
+      required String dismissedAtUtc,
+      Value<int> rowid,
+    });
+typedef $$DismissedHandlesTableUpdateCompanionBuilder =
+    DismissedHandlesCompanion Function({
+      Value<String> normalizedHandle,
+      Value<String> dismissedAtUtc,
+      Value<int> rowid,
+    });
+
+class $$DismissedHandlesTableFilterComposer
+    extends Composer<_$OverlayDatabase, $DismissedHandlesTable> {
+  $$DismissedHandlesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get normalizedHandle => $composableBuilder(
+    column: $table.normalizedHandle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dismissedAtUtc => $composableBuilder(
+    column: $table.dismissedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DismissedHandlesTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $DismissedHandlesTable> {
+  $$DismissedHandlesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get normalizedHandle => $composableBuilder(
+    column: $table.normalizedHandle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dismissedAtUtc => $composableBuilder(
+    column: $table.dismissedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DismissedHandlesTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $DismissedHandlesTable> {
+  $$DismissedHandlesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get normalizedHandle => $composableBuilder(
+    column: $table.normalizedHandle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dismissedAtUtc => $composableBuilder(
+    column: $table.dismissedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$DismissedHandlesTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $DismissedHandlesTable,
+          DismissedHandle,
+          $$DismissedHandlesTableFilterComposer,
+          $$DismissedHandlesTableOrderingComposer,
+          $$DismissedHandlesTableAnnotationComposer,
+          $$DismissedHandlesTableCreateCompanionBuilder,
+          $$DismissedHandlesTableUpdateCompanionBuilder,
+          (
+            DismissedHandle,
+            BaseReferences<
+              _$OverlayDatabase,
+              $DismissedHandlesTable,
+              DismissedHandle
+            >,
+          ),
+          DismissedHandle,
+          PrefetchHooks Function()
+        > {
+  $$DismissedHandlesTableTableManager(
+    _$OverlayDatabase db,
+    $DismissedHandlesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DismissedHandlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DismissedHandlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DismissedHandlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> normalizedHandle = const Value.absent(),
+                Value<String> dismissedAtUtc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DismissedHandlesCompanion(
+                normalizedHandle: normalizedHandle,
+                dismissedAtUtc: dismissedAtUtc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String normalizedHandle,
+                required String dismissedAtUtc,
+                Value<int> rowid = const Value.absent(),
+              }) => DismissedHandlesCompanion.insert(
+                normalizedHandle: normalizedHandle,
+                dismissedAtUtc: dismissedAtUtc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DismissedHandlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $DismissedHandlesTable,
+      DismissedHandle,
+      $$DismissedHandlesTableFilterComposer,
+      $$DismissedHandlesTableOrderingComposer,
+      $$DismissedHandlesTableAnnotationComposer,
+      $$DismissedHandlesTableCreateCompanionBuilder,
+      $$DismissedHandlesTableUpdateCompanionBuilder,
+      (
+        DismissedHandle,
+        BaseReferences<
+          _$OverlayDatabase,
+          $DismissedHandlesTable,
+          DismissedHandle
+        >,
+      ),
+      DismissedHandle,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -4663,4 +5061,6 @@ class $OverlayDatabaseManager {
       $$OverlaySettingsTableTableManager(_db, _db.overlaySettings);
   $$FavoriteContactsTableTableManager get favoriteContacts =>
       $$FavoriteContactsTableTableManager(_db, _db.favoriteContacts);
+  $$DismissedHandlesTableTableManager get dismissedHandles =>
+      $$DismissedHandlesTableTableManager(_db, _db.dismissedHandles);
 }

@@ -1,0 +1,287 @@
+:::writing{variant=“email” id=“58241” subject=“IMPLEMENTATION SPEC: Stray Handles (Phone/Email) — Spam Blitz + Dismiss + Label-First Virtual Contacts”}
+
+Stray Handles Feature: Implementation Specification (Agent-Ready)
+
+Purpose
+
+When importing iMessage (chat.db), some phone numbers / email handles are not linked to Address Book contacts. This feature provides:
+	1.	A triage workflow to quickly dismiss junk-like handles (spam, 2FA, one-off commercial).
+	2.	A resolution workflow to label meaningful unknown handles so they re-enter normal app circulation.
+	3.	A dismissal mechanism that is reversible but strongly excludes dismissed content from normal surfaces.
+
+This feature is handle-based, not conversation-based.
+
+⸻
+
+Glossary
+	•	Handle: a unique phone number or email address used in iMessage threads.
+	•	Stray handle: a handle not currently linked to an Address Book contact in the app’s working model.
+	•	Dismissed handle: a handle the user has explicitly dismissed; it is hidden from normal navigation + excluded from search and aggregate surfaces.
+	•	Virtual contact: an app-owned contact entity (not from Address Book) created implicitly by labeling; used to attach meaning to unknown handles.
+
+⸻
+
+Non-Goals (MUST NOT implement)
+	•	No auto-dismiss of any handle (ever).
+	•	No “search dismissed messages” scope.
+	•	No advanced filters to temporarily include dismissed content in global search.
+	•	No time-based expiry for dismissal.
+	•	No partial dismissal of individual messages (dismissal is handle-level).
+
+⸻
+
+Mode System (Sidebar List Modes)
+
+Mode A: All Strays (default)
+
+Shows: all stray handles that are not dismissed.
+Purpose: resolve identity or decide to dismiss.
+
+Actions available (via row context menu and/or message list header):
+	•	Label handle…
+	•	Link to existing Address Book contact (if supported)
+	•	Dismiss
+
+Mode B: Spam / One-off
+
+Shows: only stray handles that match conservative “junk-like” heuristics (and are not dismissed).
+Purpose: blitz-dismiss workflow (fast triage).
+
+Critical UI rule: In this mode, the sidebar row owns the Dismiss action (always-visible button).
+
+Mode C: Dismissed (escape hatch)
+
+Access: Settings → Advanced → Dismissed handles (optionally enable as sidebar mode).
+Shows: dismissed handles only.
+
+Actions:
+	•	Restore
+	•	Label handle… (which implicitly restores)
+
+⸻
+
+Sidebar Row Anatomy
+
+Common row structure (all modes)
+	•	Primary label: phone number/email display (normalized); prefer tabular numerals/monospace for phone numbers.
+	•	Secondary metadata: message count; last activity date.
+	•	Optional low-visual-weight badges (only if high confidence):
+	•	“Short code”
+	•	“2FA”
+	•	“Promo”
+
+Row body click selects the handle and loads its messages in the message list.
+
+All Strays mode row behavior
+	•	Neutral emphasis.
+	•	No always-visible destructive buttons.
+	•	Actions via:
+	•	context menu on the row, and/or
+	•	message list header buttons.
+
+Spam / One-off mode row behavior (MUST)
+	•	Denser list acceptable.
+	•	ALWAYS-visible Dismiss button on the row (right side).
+	•	Clicking Dismiss:
+	•	dismisses immediately (no confirmation)
+	•	removes row instantly
+	•	auto-advances selection to the next handle
+
+Message list header may still include Dismiss but is visually secondary.
+
+Keyboard (Spam mode strongly recommended)
+	•	Up/Down: move selection
+	•	Enter: Dismiss selected handle
+	•	(Optional) Space: preview without changing selection
+
+⸻
+
+Dismiss Semantics (Handle-Level State)
+
+Definition
+
+Dismissal is a reversible state that removes a handle (and associated messages) from all normal surfaces.
+
+When dismissed, content MUST be excluded from:
+	•	Global message search
+	•	All Messages view
+	•	Any analytics/stats/heatmaps/timelines
+	•	Recents/Favorites/normal navigation
+	•	Spam/One-off mode list
+	•	All Strays list
+
+What dismiss does NOT do
+	•	Does not delete raw messages.
+	•	Does not mutate chat.db.
+	•	No confirmation, no toast.
+
+Persistence requirement (MUST)
+
+Dismissal must persist across re-imports/sync: once dismissed, the handle remains dismissed unless user restores/labels it.
+Dismissal is keyed on normalized handle identifier (not transient DB ids).
+
+Restore
+
+Restoring returns the handle to Active (non-dismissed) and re-includes it everywhere.
+
+⸻
+
+Search / Circulation Policy (Hard Rule)
+
+Hard rule
+
+Messages for dismissed handles must never appear in:
+	•	Search results
+	•	All Messages
+	•	Aggregate surfaces
+
+User education (InfoCard)
+
+In Spam mode and/or Dismissed view, show an InfoCard message:
+	•	Dismissed handles are fully hidden and excluded from search + All Messages + analytics.
+	•	If the user wants them back, they can Restore or Label handle… (which restores implicitly).
+
+No search-for-dismissed feature is required.
+
+⸻
+
+Label-First Virtual Contacts (CRITICAL CLARIFICATION)
+
+User mental model (authoritative)
+
+The user action is: “Label this handle as ?Paul’s brother for now.”
+
+The user must NOT be forced into a “create contact then assign handle” mental flow.
+
+UI action
+
+Provide Label handle… as a primary resolution action in All Strays and Dismissed contexts (and optionally Spam mode).
+
+Flow:
+	1.	User chooses Label handle…
+	2.	Enters freeform text (examples shown as placeholder):
+	•	?Paul’s brother
+	•	?Old landlord
+	•	?Vet clinic
+	3.	Confirm
+
+Under-the-hood behavior (implementation detail)
+	•	Create (or reuse) an app-owned virtual contact entity with that label as its display name.
+	•	Link the handle to that virtual contact.
+	•	If handle was dismissed, labeling implicitly restores it (so it re-enters circulation).
+	•	After labeling:
+	•	handle is no longer considered “stray”
+	•	messages re-enter Search / All Messages / analytics
+
+Label constraints
+	•	Freeform text allowed (punctuation, leading symbols like ?).
+	•	Label is the primary display name shown in UI.
+	•	Label can be edited later.
+	•	Virtual contacts are invisible unless they have at least one linked handle.
+
+⸻
+
+Heuristics for Spam / One-off Mode (Triage Aid Only)
+
+Principle
+
+Heuristics ONLY affect:
+	•	Inclusion in Spam / One-off mode
+	•	Optional badges
+	•	Optional sorting priority
+
+Heuristics NEVER trigger automatic dismissal.
+
+Suggested conservative scoring (junkScore)
+
+Include in Spam mode if junkScore >= 3.
+
+High-signal:
+	•	Short code handle (numeric length 3–8, no country code) => +3
+	•	Message count == 1 => +2
+	•	Message count <= 3 => +1
+	•	All messages within 24h => +1
+	•	Zero outbound messages from user => +1
+
+Conservative keyword hits (+2):
+	•	“verification code”, “security code”, “2fa”, “OTP”, “one-time”, “passcode”
+	•	“unsubscribe”, “reply STOP”, “STOP to stop”, “msg&data rates”
+
+URL presence => +1
+
+Badges:
+	•	Short code => “Short code”
+	•	OTP keywords => “2FA”
+	•	Unsubscribe keywords => “Promo”
+Avoid a “Spam” badge.
+
+⸻
+
+Implementation Checklist (Concrete Tasks)
+
+Data / Domain
+	•	Define normalized handle identifier function (phone + email).
+	•	Add persisted handle state: isDismissed, dismissedAt (optional).
+	•	Ensure dismissal state is stored in overlay/user-intent store (not raw import).
+	•	Ensure dismissal keyed by normalized handle; persists across re-import.
+	•	Add virtual contact entity model (app-owned), linked to handle(s).
+	•	Implement “Label handle…” -> create/reuse virtual contact + link handle.
+	•	Labeling a dismissed handle implicitly restores it.
+
+Query / Repository layer
+	•	Provide queries for:
+	•	active stray handles (exclude dismissed, exclude linked-to-contact)
+	•	junk-candidate stray handles (heuristics + exclude dismissed)
+	•	dismissed handles
+	•	Ensure global search and All Messages exclude dismissed handles at the query level.
+	•	Ensure analytics/stats queries exclude dismissed handles.
+
+UI
+	•	Add sidebar mode switch UI: Segmented control “All | Spam/One-off”.
+	•	Add Settings → Advanced → Dismissed handles view (and optional sidebar mode toggle).
+	•	Implement sidebar row component with:
+	•	primary label
+	•	metadata
+	•	optional badges
+	•	Spam mode row MUST include always-visible Dismiss button.
+	•	Dismiss auto-advances selection to next row.
+	•	Provide Label handle… action in All Strays + Dismissed contexts.
+	•	Label input UI with placeholder examples.
+	•	Add InfoCard in Spam mode / Dismissed view explaining exclusion semantics + recovery.
+
+Interaction / UX polish
+	•	No confirmation dialogs for Dismiss.
+	•	No toast required for Dismiss.
+	•	Optional keyboard shortcuts in Spam mode (Up/Down, Enter dismiss).
+
+⸻
+
+Acceptance Tests (Must Pass)
+
+Dismiss behavior
+	•	Dismissing a handle removes it immediately from current list.
+	•	Dismissed handle does not appear in All Strays or Spam mode.
+	•	Dismissed handle messages never appear in Search results.
+	•	Dismissed handle messages never appear in All Messages.
+	•	Dismissed handle messages excluded from analytics/stats.
+	•	Dismiss state persists after app restart and after re-import.
+
+Spam mode blitz
+	•	Spam mode shows only heuristic-included handles.
+	•	Dismiss button is visible on every row in Spam mode.
+	•	Clicking Dismiss auto-selects the next handle without requiring mouse travel to header.
+	•	No confirmation interrupts blitz flow.
+
+Label-first semantics
+	•	“Label handle…” is a single user action that asks for a label text.
+	•	After labeling, the handle is no longer stray.
+	•	If the handle was dismissed, labeling restores it and reintroduces messages to Search/All Messages.
+	•	Virtual contact entity creation is not exposed as a required conceptual step.
+
+⸻
+
+Notes for Implementation Discipline
+	•	Treat “Dismiss” as a strong user intent: total exclusion from circulation.
+	•	Treat “Label handle…” as the primary recovery mechanism, not “search dismissed content”.
+	•	Keep the UI modes simple and explicit; avoid hidden filters.
+:::

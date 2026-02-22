@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
+import '../../domain/utilities/handle_normalizer.dart';
 
 part 'stray_handles_provider.freezed.dart';
 part 'stray_handles_provider.g.dart';
@@ -22,6 +23,13 @@ abstract class StrayHandleSummary with _$StrayHandleSummary {
     /// if never reviewed.
     String? reviewedAt,
     DateTime? lastMessageDate,
+
+    /// Heuristic score indicating likelihood of junk/spam (higher = more likely).
+    /// Used to filter candidates for Spam/One-off mode.
+    @Default(0) int junkScore,
+
+    /// Whether this handle is a short code (3-8 digits, no country code).
+    @Default(false) bool isShortCode,
   }) = _StrayHandleSummary;
 }
 
@@ -31,6 +39,9 @@ abstract class StrayHandleSummary with _$StrayHandleSummary {
 ///
 /// Handles with an overlay row that has only `reviewed_at` set (both
 /// participant IDs null) are still included — they are reviewed but unlinked.
+///
+/// **Excludes dismissed handles** — those are only visible in the Dismissed
+/// escape hatch view via [dismissedHandlesProvider].
 ///
 /// Sorted by total message count descending (most messages first).
 @riverpod
@@ -54,7 +65,10 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
     }
   }
 
-  // 2. Query working-DB handles that have no working-DB participant link.
+  // 2. Get all dismissed handles (keyed by normalized value).
+  final dismissedHandles = await overlayDb.getAllDismissedHandles();
+
+  // 3. Query working-DB handles that have no working-DB participant link.
   final handlesQuery = workingDb.select(workingDb.handlesCanonical)
     ..where(
       (tbl) => drift.notExistsQuery(
@@ -70,6 +84,12 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
   for (final handle in handles) {
     // Skip handles that are linked via overlay override.
     if (linkedOverrideHandleIds.contains(handle.id)) {
+      continue;
+    }
+
+    // Skip dismissed handles.
+    final normalized = normalizeHandleIdentifier(handle.rawIdentifier);
+    if (dismissedHandles.contains(normalized)) {
       continue;
     }
 
@@ -101,6 +121,20 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
       lastMessageDate = DateTime.tryParse(lastMessageUtc)?.toLocal();
     }
 
+    // Calculate junk score for sorting/filtering.
+    final handleIsShortCode = isShortCode(handle.rawIdentifier);
+    var junkScore = 0;
+    if (handleIsShortCode) {
+      junkScore += 3;
+    }
+    if (totalMessages == 1) {
+      junkScore += 2;
+    } else if (totalMessages <= 3) {
+      junkScore += 1;
+    }
+    // Note: Additional keyword scoring requires message content, deferred to
+    // spamCandidateHandlesProvider for performance.
+
     results.add(
       StrayHandleSummary(
         handleId: handle.id,
@@ -109,11 +143,98 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
         totalMessages: totalMessages,
         reviewedAt: reviewedAtByHandle[handle.id],
         lastMessageDate: lastMessageDate,
+        junkScore: junkScore,
+        isShortCode: handleIsShortCode,
       ),
     );
   }
 
   // Sort by message count descending (most messages first).
+  results.sort((a, b) => b.totalMessages.compareTo(a.totalMessages));
+
+  return results;
+}
+
+/// Returns only stray handles that match junk-like heuristics (junkScore >= 3).
+///
+/// Used for the "Spam / One-off" blitz-dismiss mode. Sorted by junk score
+/// descending (most likely junk first).
+@riverpod
+Future<List<StrayHandleSummary>> spamCandidateHandles(Ref ref) async {
+  final allStrays = await ref.watch(strayHandlesProvider.future);
+
+  // Filter to handles with junkScore >= 3.
+  final candidates = allStrays.where((h) => h.junkScore >= 3).toList();
+
+  // Sort by junk score descending (most likely spam first).
+  candidates.sort((a, b) => b.junkScore.compareTo(a.junkScore));
+
+  return candidates;
+}
+
+/// Returns only dismissed handles for the escape hatch view.
+///
+/// Note: This returns metadata about dismissed handles by looking them up
+/// in the working database using their normalized values.
+@riverpod
+Future<List<StrayHandleSummary>> dismissedHandles(Ref ref) async {
+  final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+
+  // Get all dismissed normalized handles.
+  final dismissedNormalized = await overlayDb.getAllDismissedHandles();
+  if (dismissedNormalized.isEmpty) {
+    return [];
+  }
+
+  // Query all handles from working DB.
+  final handles = await workingDb.select(workingDb.handlesCanonical).get();
+
+  final results = <StrayHandleSummary>[];
+
+  for (final handle in handles) {
+    final normalized = normalizeHandleIdentifier(handle.rawIdentifier);
+    if (!dismissedNormalized.contains(normalized)) {
+      continue;
+    }
+
+    // Count messages where this handle is the sender.
+    final messagesQuery = workingDb.selectOnly(workingDb.workingMessages)
+      ..addColumns([workingDb.workingMessages.id.count()])
+      ..where(workingDb.workingMessages.senderHandleId.equals(handle.id));
+
+    final messageCountRow = await messagesQuery.getSingleOrNull();
+    final totalMessages =
+        messageCountRow?.read(workingDb.workingMessages.id.count()) ?? 0;
+
+    // Get last message date.
+    final lastMessageQuery = workingDb.selectOnly(workingDb.workingMessages)
+      ..addColumns([workingDb.workingMessages.sentAtUtc.max()])
+      ..where(workingDb.workingMessages.senderHandleId.equals(handle.id));
+
+    final lastMessageRow = await lastMessageQuery.getSingleOrNull();
+    final lastMessageUtc = lastMessageRow?.read(
+      workingDb.workingMessages.sentAtUtc.max(),
+    );
+
+    DateTime? lastMessageDate;
+    if (lastMessageUtc != null && lastMessageUtc.isNotEmpty) {
+      lastMessageDate = DateTime.tryParse(lastMessageUtc)?.toLocal();
+    }
+
+    results.add(
+      StrayHandleSummary(
+        handleId: handle.id,
+        handleValue: handle.rawIdentifier,
+        serviceType: handle.service,
+        totalMessages: totalMessages,
+        lastMessageDate: lastMessageDate,
+        isShortCode: isShortCode(handle.rawIdentifier),
+      ),
+    );
+  }
+
+  // Sort by message count descending.
   results.sort((a, b) => b.totalMessages.compareTo(a.totalMessages));
 
   return results;
