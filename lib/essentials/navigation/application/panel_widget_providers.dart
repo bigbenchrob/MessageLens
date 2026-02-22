@@ -178,17 +178,26 @@ class _LeftSidebarSurface extends StatelessWidget {
 
         final hasExpandingContent = content.any((c) => c.shouldExpand);
 
+        // When we have expanding content (e.g., scrollable lists that handle
+        // their own scrolling), use a simple Column layout instead of
+        // CustomScrollView. This prevents the outer sidebar from showing its
+        // own scrollbar - only the inner list scrolls.
+        if (hasExpandingContent) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...controls,
+              Expanded(child: _ContentFillColumn(children: content)),
+            ],
+          );
+        }
+
+        // For content without expanding items, use CustomScrollView so the
+        // entire sidebar can scroll if content exceeds available height.
         return CustomScrollView(
           slivers: [
             for (final control in controls) SliverToBoxAdapter(child: control),
-            if (content.isNotEmpty && hasExpandingContent)
-              SliverFillRemaining(
-                hasScrollBody: true,
-                child: _ContentFillColumn(children: content),
-              )
-            else
-              for (final item in content)
-                SliverToBoxAdapter(child: item.widget),
+            for (final item in content) SliverToBoxAdapter(child: item.widget),
           ],
         );
       },
