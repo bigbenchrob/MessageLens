@@ -131,10 +131,7 @@ class SidebarCassetteCard extends ConsumerWidget {
 
             if (hasFooter) ...[
               const SizedBox(height: AppSpacing.md),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(footerText!, style: typography.cassetteCardFooter),
-              ),
+              Text(footerText!, style: typography.cassetteCardFooter),
             ],
           ],
         );

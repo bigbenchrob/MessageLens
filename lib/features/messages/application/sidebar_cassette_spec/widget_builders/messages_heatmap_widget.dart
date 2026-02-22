@@ -278,6 +278,14 @@ class _ContactHeatmapContent extends HookConsumerWidget {
                 );
           },
         ),
+        // Hint text aligned with month squares (year label is 32px + 4px gap)
+        Padding(
+          padding: const EdgeInsets.only(left: 36, top: AppSpacing.xs),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Tap a month to filter', style: t.caption),
+          ),
+        ),
       ],
     );
   }

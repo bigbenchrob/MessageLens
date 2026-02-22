@@ -39,8 +39,6 @@ class HeatmapResolver extends _$HeatmapResolver {
       subtitle: isContactScoped
           ? null
           : 'Discover peaks and gaps across your entire archive.',
-      // Contact heatmap hint as subtle footer (first-time discovery aid)
-      footerText: isContactScoped ? 'Tap a month to filter' : null,
       shouldExpand: false,
       child: MessagesHeatmapWidget(contactId: contactId),
     );
