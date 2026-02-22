@@ -7,7 +7,7 @@ part of 'stray_handles_review_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayHandlesReviewCassetteBuilderHash() =>
-    r'5112dc42cae0ec569cb96be252012356e09acb40';
+    r'd686e439c7ec23c57fb9b9db1d8f189db2b030c4';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -52,15 +52,19 @@ class StrayHandlesReviewCassetteBuilderFamily
   /// Copied from [strayHandlesReviewCassetteBuilder].
   StrayHandlesReviewCassetteBuilderProvider call({
     required StrayHandleFilter filter,
+    required StrayHandleMode mode,
   }) {
-    return StrayHandlesReviewCassetteBuilderProvider(filter: filter);
+    return StrayHandlesReviewCassetteBuilderProvider(
+      filter: filter,
+      mode: mode,
+    );
   }
 
   @override
   StrayHandlesReviewCassetteBuilderProvider getProviderOverride(
     covariant StrayHandlesReviewCassetteBuilderProvider provider,
   ) {
-    return call(filter: provider.filter);
+    return call(filter: provider.filter, mode: provider.mode);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -86,22 +90,26 @@ class StrayHandlesReviewCassetteBuilderProvider
   /// Builds the cassette view model for the unified stray handles review list.
   ///
   /// Copied from [strayHandlesReviewCassetteBuilder].
-  StrayHandlesReviewCassetteBuilderProvider({required StrayHandleFilter filter})
-    : this._internal(
-        (ref) => strayHandlesReviewCassetteBuilder(
-          ref as StrayHandlesReviewCassetteBuilderRef,
-          filter: filter,
-        ),
-        from: strayHandlesReviewCassetteBuilderProvider,
-        name: r'strayHandlesReviewCassetteBuilderProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$strayHandlesReviewCassetteBuilderHash,
-        dependencies: StrayHandlesReviewCassetteBuilderFamily._dependencies,
-        allTransitiveDependencies:
-            StrayHandlesReviewCassetteBuilderFamily._allTransitiveDependencies,
-        filter: filter,
-      );
+  StrayHandlesReviewCassetteBuilderProvider({
+    required StrayHandleFilter filter,
+    required StrayHandleMode mode,
+  }) : this._internal(
+         (ref) => strayHandlesReviewCassetteBuilder(
+           ref as StrayHandlesReviewCassetteBuilderRef,
+           filter: filter,
+           mode: mode,
+         ),
+         from: strayHandlesReviewCassetteBuilderProvider,
+         name: r'strayHandlesReviewCassetteBuilderProvider',
+         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+             ? null
+             : _$strayHandlesReviewCassetteBuilderHash,
+         dependencies: StrayHandlesReviewCassetteBuilderFamily._dependencies,
+         allTransitiveDependencies:
+             StrayHandlesReviewCassetteBuilderFamily._allTransitiveDependencies,
+         filter: filter,
+         mode: mode,
+       );
 
   StrayHandlesReviewCassetteBuilderProvider._internal(
     super._createNotifier, {
@@ -111,9 +119,11 @@ class StrayHandlesReviewCassetteBuilderProvider
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.filter,
+    required this.mode,
   }) : super.internal();
 
   final StrayHandleFilter filter;
+  final StrayHandleMode mode;
 
   @override
   Override overrideWith(
@@ -132,6 +142,7 @@ class StrayHandlesReviewCassetteBuilderProvider
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         filter: filter,
+        mode: mode,
       ),
     );
   }
@@ -144,13 +155,15 @@ class StrayHandlesReviewCassetteBuilderProvider
   @override
   bool operator ==(Object other) {
     return other is StrayHandlesReviewCassetteBuilderProvider &&
-        other.filter == filter;
+        other.filter == filter &&
+        other.mode == mode;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, filter.hashCode);
+    hash = _SystemHash.combine(hash, mode.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -162,6 +175,9 @@ mixin StrayHandlesReviewCassetteBuilderRef
     on AutoDisposeProviderRef<SidebarCassetteCardViewModel> {
   /// The parameter `filter` of this provider.
   StrayHandleFilter get filter;
+
+  /// The parameter `mode` of this provider.
+  StrayHandleMode get mode;
 }
 
 class _StrayHandlesReviewCassetteBuilderProviderElement
@@ -172,6 +188,9 @@ class _StrayHandlesReviewCassetteBuilderProviderElement
   @override
   StrayHandleFilter get filter =>
       (origin as StrayHandlesReviewCassetteBuilderProvider).filter;
+  @override
+  StrayHandleMode get mode =>
+      (origin as StrayHandlesReviewCassetteBuilderProvider).mode;
 }
 
 // ignore_for_file: type=lint

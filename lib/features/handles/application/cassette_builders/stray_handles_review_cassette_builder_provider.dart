@@ -12,15 +12,26 @@ part 'stray_handles_review_cassette_builder_provider.g.dart';
 SidebarCassetteCardViewModel strayHandlesReviewCassetteBuilder(
   Ref ref, {
   required StrayHandleFilter filter,
+  required StrayHandleMode mode,
 }) {
-  final title = switch (filter) {
-    StrayHandleFilter.phones => 'Stray phone numbers',
-    StrayHandleFilter.emails => 'Stray email addresses',
-  };
+  final title = _buildTitle(filter, mode);
 
   return SidebarCassetteCardViewModel(
     title: title,
     shouldExpand: true,
-    child: StrayHandlesReviewCassette(filter: filter),
+    child: StrayHandlesReviewCassette(filter: filter, mode: mode),
   );
+}
+
+String _buildTitle(StrayHandleFilter filter, StrayHandleMode mode) {
+  final filterLabel = switch (filter) {
+    StrayHandleFilter.phones => 'phone numbers',
+    StrayHandleFilter.emails => 'email addresses',
+  };
+
+  return switch (mode) {
+    StrayHandleMode.allStrays => 'Stray $filterLabel',
+    StrayHandleMode.spamCandidates => 'Spam $filterLabel',
+    StrayHandleMode.dismissed => 'Dismissed $filterLabel',
+  };
 }

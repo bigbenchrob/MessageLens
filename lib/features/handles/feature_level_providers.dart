@@ -71,8 +71,9 @@ class FeatureCassetteSpecCoordinator extends _$FeatureCassetteSpecCoordinator {
       strayPhoneNumbers: () =>
           ref.read(strayPhoneNumbersCassetteBuilderProvider),
       strayEmails: () => ref.read(strayEmailsCassetteBuilderProvider),
-      strayHandlesReview: (filter) =>
-          ref.read(strayHandlesReviewCassetteBuilderProvider(filter: filter)),
+      strayHandlesReview: (filter, mode) => ref.read(
+        strayHandlesReviewCassetteBuilderProvider(filter: filter, mode: mode),
+      ),
     );
   }
 }

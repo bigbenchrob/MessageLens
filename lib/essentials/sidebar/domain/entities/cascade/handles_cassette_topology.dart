@@ -5,7 +5,7 @@ CassetteSpec? resolveHandlesChild(HandlesCassetteSpec spec) {
     unmatchedHandlesList: (_) => null,
     strayPhoneNumbers: () => null,
     strayEmails: () => null,
-    strayHandlesReview: (_) => null,
+    strayHandlesReview: (_, __) => null,
   );
 }
 
