@@ -104,7 +104,8 @@ class _SegmentContent extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: badgeColor?.withValues(alpha: 0.15) ??
+                color:
+                    badgeColor?.withValues(alpha: 0.15) ??
                     colors.surfaces.hover,
                 borderRadius: BorderRadius.circular(8),
               ),
