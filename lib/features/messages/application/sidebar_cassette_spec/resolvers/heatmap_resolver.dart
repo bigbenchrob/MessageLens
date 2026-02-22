@@ -33,12 +33,14 @@ class HeatmapResolver extends _$HeatmapResolver {
     final isContactScoped = contactId != null;
 
     return SidebarCassetteCardViewModel(
-      title: isContactScoped
-          ? 'Click on a square to see messages for that month'
-          : 'All messages heatmap',
+      // No loud title for contact heatmap - it's obvious from context.
+      // Global heatmap gets a title since it's the main feature.
+      title: isContactScoped ? '' : 'All messages heatmap',
       subtitle: isContactScoped
           ? null
           : 'Discover peaks and gaps across your entire archive.',
+      // Contact heatmap hint as subtle footer (first-time discovery aid)
+      footerText: isContactScoped ? 'Tap a month to filter' : null,
       shouldExpand: false,
       child: MessagesHeatmapWidget(contactId: contactId),
     );
