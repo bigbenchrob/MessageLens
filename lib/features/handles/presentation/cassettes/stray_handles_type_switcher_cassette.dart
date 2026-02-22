@@ -63,8 +63,9 @@ class StrayHandlesTypeSwitcherCassette extends ConsumerWidget {
           .replaceAtIndexAndCascade(cassetteIndex, newSpec);
     }
 
+    // Use only vertical padding - horizontal space comes from cassette chrome
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: CupertinoSegmentedControl<StrayHandleFilter>(
         groupValue: selectedFilter,
         onValueChanged: handleFilterChange,
@@ -115,7 +116,7 @@ class _SegmentContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
