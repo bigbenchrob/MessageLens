@@ -85,6 +85,12 @@ abstract final class AppSpacing {
   /// Gap between cassette items in sidebar.
   static const double cassetteGap = sm;
 
+  /// Gap between content blocks within a cassette (label → visualization).
+  static const double cassetteContentGap = md;
+
+  /// Gap between visualization and hint/footnote text.
+  static const double cassetteHintGap = sm;
+
   // ---------------------------------------------------------------------------
   // EdgeInsets helpers
   // ---------------------------------------------------------------------------

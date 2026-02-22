@@ -249,7 +249,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
       children: [
         // Summary above heatmap acts as visual separator from info card
         Text(summaryText, style: t.vizMeta),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.cassetteContentGap),
         CalendarHeatmapTimelineWidget(
           data: timeline,
           monthSize: 12,
@@ -280,7 +280,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
         ),
         // Hint using same Row structure as heatmap year rows
         Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xs),
+          padding: const EdgeInsets.only(top: AppSpacing.cassetteHintGap),
           child: Row(
             children: [
               const SizedBox(width: 32), // Same as year label width
