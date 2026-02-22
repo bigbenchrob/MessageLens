@@ -1,7 +1,7 @@
 # UI Sweep — Implementation Checklist
 
 **Branch**: `Ftr.uisweep`  
-**Status**: Planning complete — ready for implementation
+**Status**: ✅ COMPLETE — Merged to main
 
 ---
 
