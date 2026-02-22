@@ -35,6 +35,7 @@ class HandleLensView extends HookConsumerWidget {
     final isCreating = useState(false);
     final nameController = useTextEditingController();
     final isBusy = useState(false);
+    final newestFirst = useState(false);
 
     // Find the stray handle summary for header info.
     final handleSummary = asyncHandles.whenOrNull(
@@ -75,6 +76,7 @@ class HandleLensView extends HookConsumerWidget {
                     isCreating: isCreating,
                     nameController: nameController,
                     isBusy: isBusy,
+                    newestFirst: newestFirst,
                     colors: colors,
                     typography: typography,
                   ),
@@ -115,17 +117,19 @@ class HandleLensView extends HookConsumerWidget {
                       );
                     }
 
-                    // Show newest first.
-                    final reversed = messages.reversed.toList();
+                    // Order by user preference (default: oldest first)
+                    final ordered = newestFirst.value
+                        ? messages.reversed.toList()
+                        : messages;
 
                     return SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => _MessageRow(
-                          message: reversed[index],
+                          message: ordered[index],
                           colors: colors,
                           typography: typography,
                         ),
-                        childCount: reversed.length,
+                        childCount: ordered.length,
                       ),
                     );
                   },
@@ -309,6 +313,7 @@ class _ActionBar extends HookConsumerWidget {
     required this.isCreating,
     required this.nameController,
     required this.isBusy,
+    required this.newestFirst,
     required this.colors,
     required this.typography,
   });
@@ -317,6 +322,7 @@ class _ActionBar extends HookConsumerWidget {
   final ValueNotifier<bool> isCreating;
   final TextEditingController nameController;
   final ValueNotifier<bool> isBusy;
+  final ValueNotifier<bool> newestFirst;
   final ThemeColors colors;
   final ThemeTypography typography;
 
@@ -383,6 +389,23 @@ class _ActionBar extends HookConsumerWidget {
                 SizedBox(width: 6),
                 Text('Dismiss'),
               ],
+            ),
+          ),
+
+          const Spacer(),
+
+          // Sort order toggle
+          MacosTooltip(
+            message: newestFirst.value ? 'Showing newest first' : 'Showing oldest first',
+            child: MacosIconButton(
+              icon: MacosIcon(
+                newestFirst.value
+                    ? CupertinoIcons.arrow_down
+                    : CupertinoIcons.arrow_up,
+                size: 16,
+                color: colors.content.textSecondary,
+              ),
+              onPressed: () => newestFirst.value = !newestFirst.value,
             ),
           ),
         ],
