@@ -278,12 +278,16 @@ class _ContactHeatmapContent extends HookConsumerWidget {
                 );
           },
         ),
-        // Hint text aligned with month squares (year label is 32px + 4px gap)
+        // Hint using same Row structure as heatmap year rows
         Padding(
-          padding: const EdgeInsets.only(left: 36, top: AppSpacing.xs),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Tap a month to filter', style: t.caption),
+          padding: const EdgeInsets.only(top: AppSpacing.xs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 32), // Same as year label width
+              const SizedBox(width: 4), // Same as monthSpacing * 2
+              Text('Tap a month to filter', style: t.caption),
+            ],
           ),
         ),
       ],
