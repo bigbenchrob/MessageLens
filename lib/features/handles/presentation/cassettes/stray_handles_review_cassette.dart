@@ -106,10 +106,12 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
 
   List<StrayHandleSummary> _applyFilter(List<StrayHandleSummary> handles) {
     return switch (filter) {
+      // Phone numbers don't contain '@'
       StrayHandleFilter.phones =>
-        handles.where((h) => h.serviceType != 'iMessage').toList(),
+        handles.where((h) => !h.handleValue.contains('@')).toList(),
+      // Emails contain '@'
       StrayHandleFilter.emails =>
-        handles.where((h) => h.serviceType == 'iMessage').toList(),
+        handles.where((h) => h.handleValue.contains('@')).toList(),
     };
   }
 

@@ -23,10 +23,24 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
     final currentMode = ref.watch(strayHandleModeSettingProvider);
 
-    // Get counts for badges
+    // Get counts for badges, filtered by phone/email
     final allStraysAsync = ref.watch(strayHandlesProvider);
     final spamAsync = ref.watch(spamCandidateHandlesProvider);
     final dismissedAsync = ref.watch(dismissedHandlesProvider);
+
+    // Filter counts to match the current filter (phones vs emails)
+    int? filterCount(List<StrayHandleSummary>? handles) {
+      if (handles == null) {
+        return null;
+      }
+      final filtered = switch (filter) {
+        StrayHandleFilter.phones =>
+          handles.where((h) => !h.handleValue.contains('@')),
+        StrayHandleFilter.emails =>
+          handles.where((h) => h.handleValue.contains('@')),
+      };
+      return filtered.length;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -39,14 +53,14 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
         children: {
           StrayHandleMode.allStrays: _SegmentContent(
             label: 'All',
-            count: allStraysAsync.valueOrNull?.length,
+            count: filterCount(allStraysAsync.valueOrNull),
             isSelected: currentMode == StrayHandleMode.allStrays,
             colors: colors,
             typography: typography,
           ),
           StrayHandleMode.spamCandidates: _SegmentContent(
             label: 'Spam',
-            count: spamAsync.valueOrNull?.length,
+            count: filterCount(spamAsync.valueOrNull),
             isSelected: currentMode == StrayHandleMode.spamCandidates,
             colors: colors,
             typography: typography,
@@ -54,7 +68,7 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
           ),
           StrayHandleMode.dismissed: _SegmentContent(
             label: 'Dismissed',
-            count: dismissedAsync.valueOrNull?.length,
+            count: filterCount(dismissedAsync.valueOrNull),
             isSelected: currentMode == StrayHandleMode.dismissed,
             colors: colors,
             typography: typography,
