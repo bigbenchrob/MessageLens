@@ -247,6 +247,9 @@ class _ContactHeatmapContent extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Summary above heatmap acts as visual separator from info card
+        Text(summaryText, style: t.vizMeta),
+        const SizedBox(height: AppSpacing.sm),
         CalendarHeatmapTimelineWidget(
           data: timeline,
           monthSize: 12,
@@ -275,8 +278,6 @@ class _ContactHeatmapContent extends HookConsumerWidget {
                 );
           },
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(summaryText, style: t.vizMeta),
       ],
     );
   }
