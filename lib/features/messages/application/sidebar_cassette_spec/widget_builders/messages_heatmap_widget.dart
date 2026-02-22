@@ -249,7 +249,7 @@ class _ContactHeatmapContent extends HookConsumerWidget {
       children: [
         // Summary above heatmap acts as visual separator from info card
         Text(summaryText, style: t.vizMeta),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.md),
         CalendarHeatmapTimelineWidget(
           data: timeline,
           monthSize: 12,
