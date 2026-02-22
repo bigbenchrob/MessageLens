@@ -101,12 +101,24 @@ Future<List<MessageWithChatContext>> messagesForHandle(
     return true;
   }).toList();
 
-  // Sort by sent time
+  // Sort by sent time using DateTime comparison for proper chronological order
   uniqueRows.sort((a, b) {
     final aMessage = a.readTable(db.workingMessages);
     final bMessage = b.readTable(db.workingMessages);
-    final aTime = aMessage.sentAtUtc ?? '';
-    final bTime = bMessage.sentAtUtc ?? '';
+    final aTime = DateTime.tryParse(aMessage.sentAtUtc ?? '');
+    final bTime = DateTime.tryParse(bMessage.sentAtUtc ?? '');
+
+    // Null dates sort to the end
+    if (aTime == null && bTime == null) {
+      return 0;
+    }
+    if (aTime == null) {
+      return 1;
+    }
+    if (bTime == null) {
+      return -1;
+    }
+
     return aTime.compareTo(bTime);
   });
 
