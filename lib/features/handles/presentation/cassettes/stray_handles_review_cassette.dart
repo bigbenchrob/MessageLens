@@ -34,8 +34,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
 
   /// Fixed-width trailing gutter for action buttons.
   /// All rows reserve this space - data stops, action buttons live here.
-  /// 40pt = 24pt button + 8pt padding on each side.
-  static const double actionGutterWidth = 40;
+  /// 32pt = 24pt button + 4pt padding on each side.
+  static const double actionGutterWidth = 32;
 
   final StrayHandleFilter filter;
   final StrayHandleMode mode;
@@ -344,11 +344,12 @@ class _StrayHandleRow extends ConsumerWidget {
           ),
 
           // Action button overlay (outside data flow)
+          // Nudged up 2pt to align with count/date cluster
           if (showDismiss || showRestore)
             Positioned(
               right: 0,
               top: 0,
-              bottom: 0,
+              bottom: 2,
               child: Center(
                 child: showDismiss
                     ? _DismissButton(onPressed: onDismiss!)
