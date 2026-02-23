@@ -205,6 +205,10 @@ class _StrayHandleRow extends ConsumerWidget {
     final showSpamBadge =
         handle.junkScore >= 3 && mode != StrayHandleMode.dismissed;
 
+    // Muted warning/destructive hue for spam rows
+    // Using coral-red for instant spam recognition during blitz cleanup
+    const spamTint = Color(0xFFD64545);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -223,17 +227,15 @@ class _StrayHandleRow extends ConsumerWidget {
                         vertical: 1,
                       ),
                       decoration: BoxDecoration(
-                        // Reduced visual weight: softer background
-                        color: colors.content.textTertiary.withValues(
-                          alpha: 0.12,
-                        ),
+                        // Warning tint for spam badge
+                        color: spamTint.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Text(
                         'SPAM',
                         style: typography.caption.copyWith(
-                          // Reduced visual weight: use tertiary color
-                          color: colors.content.textTertiary,
+                          // Warning color for spam badge text
+                          color: spamTint.withValues(alpha: 0.75),
                           fontSize: 8,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.3,
@@ -246,9 +248,13 @@ class _StrayHandleRow extends ConsumerWidget {
                     child: Text(
                       handle.handleValue,
                       style: typography.body.copyWith(
-                        color: colors.content.textPrimary.withValues(
-                          alpha: contentAlpha,
-                        ),
+                        // Spam rows: tint handle with warning color
+                        // Normal rows: standard primary text
+                        color: showSpamBadge
+                            ? spamTint.withValues(alpha: contentAlpha * 0.85)
+                            : colors.content.textPrimary.withValues(
+                                alpha: contentAlpha,
+                              ),
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
@@ -364,11 +370,31 @@ class _DismissButtonState extends State<_DismissButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Destructive accent: muted red, not alarming
-    // Communicates "remove from view" without implying danger
-    const destructiveRed = Color(0xFFD64545); // Muted coral-red
-    final bgAlpha = _isPressed ? 0.22 : (_isHovered ? 0.14 : 0.10);
-    final iconAlpha = _isPressed ? 1.0 : (_isHovered ? 0.95 : 0.70);
+    // Neutral surface at rest, destructive accent on interaction
+    // Button-like appearance with larger hit area
+    const destructiveRed = Color(0xFFD64545);
+    const neutralGray = Color(0xFF8E8E93); // System gray
+
+    // Background: neutral at rest, red-tinted on hover/press
+    final bgColor = _isPressed
+        ? destructiveRed.withValues(alpha: 0.20)
+        : _isHovered
+            ? destructiveRed.withValues(alpha: 0.12)
+            : neutralGray.withValues(alpha: 0.08);
+
+    // Border: subtle at rest, red on interaction
+    final borderColor = _isPressed
+        ? destructiveRed.withValues(alpha: 0.40)
+        : _isHovered
+            ? destructiveRed.withValues(alpha: 0.30)
+            : neutralGray.withValues(alpha: 0.20);
+
+    // Icon: neutral at rest, red on interaction
+    final iconColor = _isPressed
+        ? destructiveRed
+        : _isHovered
+            ? destructiveRed.withValues(alpha: 0.90)
+            : neutralGray.withValues(alpha: 0.65);
 
     return Tooltip(
       message: 'Dismiss handle',
@@ -382,16 +408,17 @@ class _DismissButtonState extends State<_DismissButton> {
           onTapCancel: () => setState(() => _isPressed = false),
           onTap: widget.onPressed,
           child: Container(
-            // Increased padding for better tap target and button-like feel
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+            // Larger hit area for button-like feel
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: destructiveRed.withValues(alpha: bgAlpha),
-              borderRadius: BorderRadius.circular(5),
+              color: bgColor,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: borderColor, width: 0.5),
             ),
             child: Icon(
               CupertinoIcons.xmark,
-              size: 11,
-              color: destructiveRed.withValues(alpha: iconAlpha),
+              size: 10,
+              color: iconColor,
             ),
           ),
         ),
