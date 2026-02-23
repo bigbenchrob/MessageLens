@@ -324,15 +324,6 @@ class _StrayHandleRow extends ConsumerWidget {
                     ),
                   ),
                 ],
-                // Reviewed indicator
-                if (isReviewed && mode != StrayHandleMode.dismissed) ...[
-                  const SizedBox(height: 2),
-                  Icon(
-                    CupertinoIcons.checkmark_circle,
-                    size: 12,
-                    color: colors.content.textTertiary.withValues(alpha: 0.5),
-                  ),
-                ],
               ],
             ),
 
@@ -346,14 +337,14 @@ class _StrayHandleRow extends ConsumerWidget {
                       child: _DismissButton(onPressed: onDismiss!),
                     )
                   : onRestore != null
-                      ? Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: _RestoreButton(
-                            onPressed: onRestore!,
-                            colors: colors,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _RestoreButton(
+                        onPressed: onRestore!,
+                        colors: colors,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
