@@ -35,13 +35,12 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // "Show:" label
+          // "Show:" label - secondary color, normal weight to de-emphasize
           Text(
             'Show:',
             style: typography.caption.copyWith(
               color: colors.content.textSecondary,
               fontSize: 12,
-              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(width: 6), // 6pt label-to-popup spacing
