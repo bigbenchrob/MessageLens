@@ -318,7 +318,7 @@ class _StrayHandleRow extends ConsumerWidget {
                 (mode == StrayHandleMode.spamCandidates ||
                     handle.junkScore >= 3)) ...[
               const SizedBox(width: 8),
-              _DismissButton(onPressed: onDismiss!, colors: colors),
+              _DismissButton(onPressed: onDismiss!),
             ],
 
             // Restore button (dismissed mode only)
@@ -350,10 +350,9 @@ class _StrayHandleRow extends ConsumerWidget {
 
 /// Dismiss button with destructive styling and hover state.
 class _DismissButton extends StatefulWidget {
-  const _DismissButton({required this.onPressed, required this.colors});
+  const _DismissButton({required this.onPressed});
 
   final VoidCallback onPressed;
-  final ThemeColors colors;
 
   @override
   State<_DismissButton> createState() => _DismissButtonState();
@@ -365,14 +364,16 @@ class _DismissButtonState extends State<_DismissButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Destructive accent: subtle red tones
-    final baseColor = widget.colors.accents.secondary;
-    final bgAlpha = _isPressed ? 0.25 : (_isHovered ? 0.15 : 0.08);
-    final iconAlpha = _isPressed ? 1.0 : (_isHovered ? 0.9 : 0.6);
+    // Destructive accent: muted red, not alarming
+    // Communicates "remove from view" without implying danger
+    const destructiveRed = Color(0xFFD64545); // Muted coral-red
+    final bgAlpha = _isPressed ? 0.22 : (_isHovered ? 0.14 : 0.10);
+    final iconAlpha = _isPressed ? 1.0 : (_isHovered ? 0.95 : 0.70);
 
     return Tooltip(
-      message: 'Dismiss',
+      message: 'Dismiss handle',
       child: MouseRegion(
+        cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
@@ -381,15 +382,16 @@ class _DismissButtonState extends State<_DismissButton> {
           onTapCancel: () => setState(() => _isPressed = false),
           onTap: widget.onPressed,
           child: Container(
-            padding: const EdgeInsets.all(4),
+            // Increased padding for better tap target and button-like feel
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
             decoration: BoxDecoration(
-              color: baseColor.withValues(alpha: bgAlpha),
-              borderRadius: BorderRadius.circular(4),
+              color: destructiveRed.withValues(alpha: bgAlpha),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               CupertinoIcons.xmark,
-              size: 12,
-              color: baseColor.withValues(alpha: iconAlpha),
+              size: 11,
+              color: destructiveRed.withValues(alpha: iconAlpha),
             ),
           ),
         ),
