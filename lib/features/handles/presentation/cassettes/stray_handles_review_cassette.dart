@@ -222,14 +222,22 @@ class _StrayHandleRow extends ConsumerWidget {
     // Show restore button for dismissed mode
     final showRestore = onRestore != null;
 
+    // Whether an action button will be shown (affects data padding)
+    final hasAction = showDismiss || showRestore;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          // Data container: full width with symmetric padding
+          // Data container: symmetric left padding, conditional right inset for action
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.only(
+              left: 12,
+              right: hasAction ? 44 : 12, // 44 = 12 + 32 action-safe inset
+              top: 8,
+              bottom: 8,
+            ),
             child: Row(
               children: [
                 // Handle value (with optional spam badge)

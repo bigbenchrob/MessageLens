@@ -1,0 +1,22 @@
+Required fix: decouple data width from action presence
+
+1. The data container must be full-width
+
+Explicit rule:
+
+The list item’s data container must span the full available sidebar width, independent of whether an action button exists.
+
+Concretely:
+	•	Remove any:
+	•	trailing padding
+	•	max-width
+	•	reserved “action gutter”
+	•	The data container should measure:
+
+    width = sidebar width – standard list inset
+
+    Not:
+
+    sidebar width – action column – spacing
+
+    
