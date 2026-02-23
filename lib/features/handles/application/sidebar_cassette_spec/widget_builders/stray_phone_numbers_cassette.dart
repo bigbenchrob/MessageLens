@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme.dart';
+import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../config/theme/theme.dart';
 
-/// Placeholder cassette for displaying email addresses that are not matched to
+/// Placeholder cassette for displaying phone numbers that are not matched to
 /// any contact in the address book.
-class StrayEmailsCassette extends ConsumerWidget {
-  const StrayEmailsCassette({super.key});
+class StrayPhoneNumbersCassette extends ConsumerWidget {
+  const StrayPhoneNumbersCassette({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,7 +18,7 @@ class StrayEmailsCassette extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Stray emails',
+          'Stray phone numbers',
           style: AppTheme.typography(context).headline.copyWith(
             color: colors.content.textPrimary,
             fontWeight: FontWeight.w700,
@@ -26,7 +26,7 @@ class StrayEmailsCassette extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'This cassette will display email addresses from the Messages database that have not been matched to any contact in your address book.',
+          'This cassette will display phone numbers from the Messages database that have not been matched to any contact in your address book.',
           style: AppTheme.typography(
             context,
           ).callout.copyWith(color: colors.content.textSecondary),

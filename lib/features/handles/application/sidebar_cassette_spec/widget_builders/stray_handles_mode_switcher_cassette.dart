@@ -2,10 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme_typography.dart';
-import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
-import '../../application/state/stray_handle_mode_provider.dart';
+import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../config/theme/theme_typography.dart';
+import '../../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
+import '../../state/stray_handle_mode_provider.dart';
 
 /// A macOS-style popup menu for filtering stray handles by mode.
 ///

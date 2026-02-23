@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import '../../../presentation/cassettes/stray_phone_numbers_cassette.dart';
+import '../widget_builders/stray_phone_numbers_cassette.dart';
 
 part 'stray_phones_resolver.g.dart';
 

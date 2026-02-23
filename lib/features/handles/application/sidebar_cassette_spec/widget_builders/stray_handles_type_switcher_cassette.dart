@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme_typography.dart';
-import '../../../../essentials/navigation/domain/sidebar_mode.dart';
-import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
-import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
-import '../../../../essentials/sidebar/feature_level_providers.dart';
+import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../config/theme/theme_typography.dart';
+import '../../../../../../essentials/navigation/domain/sidebar_mode.dart';
+import '../../../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
+import '../../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
+import '../../../../../../essentials/sidebar/feature_level_providers.dart';
 
 /// A segmented control for selecting which type of stray handles to review:
 /// Phone numbers, Email addresses, or Business URNs.

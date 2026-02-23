@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import '../../../presentation/cassettes/stray_handles_type_switcher_cassette.dart';
+import '../widget_builders/stray_handles_type_switcher_cassette.dart';
 
 part 'stray_handles_type_switcher_resolver.g.dart';
 

@@ -43,15 +43,12 @@ class HandlesCassetteCoordinator extends _$HandlesCassetteCoordinator {
     required int cassetteIndex,
   }) async {
     return spec.map(
-      unmatchedHandlesList: (_) => ref
-          .read(unmatchedHandlesResolverProvider.notifier)
-          .resolve(),
-      strayPhoneNumbers: (_) => ref
-          .read(strayPhonesResolverProvider.notifier)
-          .resolve(),
-      strayEmails: (_) => ref
-          .read(strayEmailsResolverProvider.notifier)
-          .resolve(),
+      unmatchedHandlesList: (_) =>
+          ref.read(unmatchedHandlesResolverProvider.notifier).resolve(),
+      strayPhoneNumbers: (_) =>
+          ref.read(strayPhonesResolverProvider.notifier).resolve(),
+      strayEmails: (_) =>
+          ref.read(strayEmailsResolverProvider.notifier).resolve(),
       strayHandlesReview: (reviewSpec) {
         // Read mode from global provider (mode switcher controls this)
         final mode = ref.watch(strayHandleModeSettingProvider);

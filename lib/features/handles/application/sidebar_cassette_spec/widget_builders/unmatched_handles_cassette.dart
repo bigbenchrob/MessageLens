@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/theme.dart';
+import '../../../../../../config/theme/theme.dart';
 
 /// Placeholder cassette for unmatched phone numbers and emails.
 class UnmatchedHandlesCassette extends StatelessWidget {

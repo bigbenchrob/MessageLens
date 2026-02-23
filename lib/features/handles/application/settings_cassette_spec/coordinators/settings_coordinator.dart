@@ -30,12 +30,10 @@ class HandlesSettingsCoordinator extends _$HandlesSettingsCoordinator {
     HandlesSettingsSpec spec,
   ) async {
     return spec.map(
-      manualLinking: (_) => ref
-          .read(manualLinkingResolverProvider.notifier)
-          .resolve(),
-      spamManagement: (_) => ref
-          .read(spamManagementResolverProvider.notifier)
-          .resolve(),
+      manualLinking: (_) =>
+          ref.read(manualLinkingResolverProvider.notifier).resolve(),
+      spamManagement: (_) =>
+          ref.read(spamManagementResolverProvider.notifier).resolve(),
     );
   }
 }

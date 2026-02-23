@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import '../../../presentation/cassettes/unmatched_handles_cassette.dart';
+import '../widget_builders/unmatched_handles_cassette.dart';
 
 part 'unmatched_handles_resolver.g.dart';
 
@@ -20,7 +20,8 @@ class UnmatchedHandlesResolver extends _$UnmatchedHandlesResolver {
     // TODO: Add data fetching and conditional logic as needed
     return const SidebarCassetteCardViewModel(
       title: 'Unmatched phone numbers & emails',
-      subtitle: 'Link stray handles to contacts to keep conversations organized.',
+      subtitle:
+          'Link stray handles to contacts to keep conversations organized.',
       shouldExpand: true,
       child: UnmatchedHandlesCassette(),
     );

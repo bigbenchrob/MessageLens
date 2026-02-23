@@ -19,7 +19,8 @@ class ManualLinkingResolver extends _$ManualLinkingResolver {
   Future<SidebarCassetteCardViewModel> resolve() async {
     return const SidebarCassetteCardViewModel(
       title: 'Manual Linking',
-      subtitle: 'Link unknown handles to contacts when automatic matching fails.',
+      subtitle:
+          'Link unknown handles to contacts when automatic matching fails.',
       shouldExpand: true,
       child: ManualLinkingView(),
     );
