@@ -6,18 +6,10 @@ CassetteSpec sidebarUtilityToContactsInfoCard() {
   );
 }
 
-CassetteSpec sidebarUtilityToHandlesInfoCardForStrayEmails() {
-  return const CassetteSpec.handlesInfo(
-    HandlesInfoCassetteSpec.infoCard(
-      key: HandlesInfoKey.strayEmailsExplanation,
-      childVariant: HandlesCassetteChildVariant.strayEmails,
-    ),
-  );
-}
-
-CassetteSpec sidebarUtilityToHandlesStrayPhoneNumbers() {
+/// Cascade from "From unfamiliar sources" menu to stray handles type switcher.
+CassetteSpec sidebarUtilityToStrayHandlesTypeSwitcher() {
   return const CassetteSpec.handles(
-    HandlesCassetteSpec.strayHandlesReview(filter: StrayHandleFilter.phones),
+    HandlesCassetteSpec.strayHandlesTypeSwitcher(),
   );
 }
 

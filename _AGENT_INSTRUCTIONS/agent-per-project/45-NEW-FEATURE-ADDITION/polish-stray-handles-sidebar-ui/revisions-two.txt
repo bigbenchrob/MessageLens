@@ -1,0 +1,116 @@
+UI POLISH — Make “Dismiss” an unmistakable destructive action
+
+Scope: Visual affordance and interaction clarity
+Non-goals: No logic changes, no new workflows, no confirmation dialogs
+
+⸻
+
+Problem
+
+The current inline dismiss control (white “×” on light blue) reads as:
+	•	informational (badge-like), not actionable
+	•	visually similar to the SPAM badge
+	•	insufficiently destructive-looking for its effect
+
+This creates hesitation and misinterpretation.
+
+⸻
+
+Goal
+
+Make the dismiss control:
+	•	clearly an action
+	•	clearly destructive
+	•	clearly row-scoped
+	•	still lightweight enough for rapid spam blitzing
+
+The user should never wonder what it does or what it applies to.
+
+⸻
+
+Required visual changes
+
+1. Change dismiss control from “badge-like” to “button-like”
+
+The dismiss affordance must visually separate itself from metadata badges.
+
+Do all of the following:
+	•	Increase tappable area (padding) so it reads as a control
+	•	Give it a subtle container (rounded rect or circle)
+	•	Add hover and pressed states
+
+Do not keep it visually flat or text-only.
+
+⸻
+
+2. Use a destructive accent (subtle, not alarming)
+	•	Use a destructive/red-tinted accent
+	•	e.g. muted red, system destructive color at reduced opacity
+	•	Avoid bright or saturated red
+	•	Background can be:
+	•	very light red tint, or
+	•	neutral background + red icon/text
+
+The goal:
+
+“This removes something,” not “Danger! Emergency!”
+
+⸻
+
+3. Iconography and labeling
+	•	Keep the “×” or replace with a standard dismiss/trash glyph
+	•	Do not add text (“Dismiss”) inline
+	•	Keep tooltip:
+	•	“Dismiss handle” (unchanged)
+
+The icon + color + placement must do the work.
+
+⸻
+
+4. Placement rules (unchanged, but explicit)
+	•	Inline dismiss button appears only on suspected spam rows
+	•	It is right-aligned, visually separate from:
+	•	message count badge
+	•	metadata cluster
+	•	Non-spam rows:
+	•	Do not get inline dismiss
+	•	Dismissal remains available via the message list header
+
+This preserves intentional friction for non-obvious cases.
+
+⸻
+
+Interaction requirements
+	•	Hover state:
+	•	Slight background change
+	•	Cursor changes to pointer
+	•	Pressed state:
+	•	Clear but subtle (darken or inset)
+	•	Click behavior:
+	•	Immediate dismissal
+	•	No confirmation
+	•	Row disappears
+	•	Selection advances (existing behavior)
+
+No animation flourish required.
+
+⸻
+
+Explicit non-goals (do NOT do these)
+	•	Do NOT add confirmation dialogs
+	•	Do NOT add text labels in the row
+	•	Do NOT recolor SPAM badge
+	•	Do NOT make dismiss available on all rows
+	•	Do NOT change dismissal semantics
+
+⸻
+
+Visual success criteria
+
+After this change:
+	•	The dismiss control is unmistakably clickable
+	•	It no longer looks like metadata
+	•	It visually communicates “remove from view”
+	•	Users can blitz spam without hesitation
+
+If a user can describe it as “that little red button on spam rows”, it’s correct.

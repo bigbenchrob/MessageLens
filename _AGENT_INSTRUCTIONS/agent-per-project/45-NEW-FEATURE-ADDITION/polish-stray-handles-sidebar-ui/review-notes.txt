@@ -1,0 +1,150 @@
+UI REVIEW NOTE — Unfamiliar Sources View
+
+Scope: UI polish, naming, visual hierarchy, and affordances
+Non-Goal: Do not rethink information architecture, data model, or workflows
+
+This note lists specific, bounded changes to improve clarity, accessibility, and perceived quality. The underlying structure is correct.
+
+⸻
+
+1. Top-level framing (KEEP AS-IS)
+	•	Keep the menu entry “From unfamiliar sources”
+	•	Do not reintroduce “stray” terminology anywhere in the UI
+
+This framing is correct and should remain.
+
+⸻
+
+2. Remove “Handle Type” header
+	•	Delete the “Handle Type” label entirely
+	•	Users do not understand or care what a “handle” is
+	•	The segmented control is self-explanatory when paired with content below
+
+Do not replace this label with another technical term.
+
+⸻
+
+3. Refine Handle Type segmented control (visual only)
+
+Segmented control stays, but adjust styling:
+	•	Remove count badges from segments (e.g. “Phone # 58”)
+	•	These add noise and duplicate information already visible in the list
+	•	Improve selected-state contrast:
+	•	Selected segment text must be light (white / near-white) on blue
+	•	Avoid black text on dark blue
+	•	Reduce visual weight:
+	•	Remove heavy blue outlines and dividers
+	•	Use neutral gray separators where needed
+
+No functional changes.
+
+⸻
+
+4. Rename “Triage Mode” → “Show:”
+
+Replace the label:
+	•	From: Triage Mode
+	•	To: Show:
+
+“Triage” is internal language and should not be user-facing.
+
+⸻
+
+5. Keep “All | Spam | Dismissed” segmented control
+	•	Keep the structure exactly as-is
+	•	This is a good axis and should not be merged or hidden
+
+Only adjust labeling and visual polish, not behavior.
+
+⸻
+
+6. Rename list section headers
+
+Replace list headers as follows:
+	•	“Stray phone numbers” → “Unfamiliar phone numbers”
+	•	Apply the same pattern for email and business lists
+
+Avoid judgmental or technical language.
+
+⸻
+
+7. Row badge audit (keep, but refine emphasis)
+
+SPAM badge
+	•	Keep as-is conceptually
+	•	Optional: slightly reduce visual weight (size or saturation)
+
+Message count badge (right side)
+	•	Keep
+	•	This provides useful decision context
+
+Do not remove either of these.
+
+⸻
+
+8. Dismiss button: make it look like an action, not a badge
+
+The white “X” on light blue currently reads as metadata.
+
+Change the visual treatment only:
+	•	Make it clearly button-like:
+	•	Add hover + pressed states
+	•	Increase padding or give it a subtle container
+	•	Use a destructive accent (subtle red or red-tinted neutral)
+	•	Keep tooltip text: “Dismiss handle”
+
+Placement rule remains:
+	•	Only show this inline button for suspected spam items
+	•	For non-spam rows, dismissal remains via the message list header
+
+⸻
+
+9. Date subhead: clarify semantics
+
+The current date display is ambiguous.
+
+Change to:
+	•	Display last message date (not first)
+	•	Visually associate it with message count (same metadata cluster)
+	•	Reduce visual prominence (lighter color, smaller text)
+
+Avoid standalone floating dates with no context.
+
+⸻
+
+10. Reduce overall “blue noise”
+
+The UI currently overuses blue.
+
+Adjust globally within this view:
+	•	Blue = selection and primary actions only
+	•	Dividers and outlines = neutral gray
+	•	Avoid blue borders around segmented controls
+
+Goal: macOS Preferences tone, not iOS tab bar tone.
+
+⸻
+
+11. Do not add new controls or labels
+
+Explicit non-goals for this pass:
+	•	No new headers
+	•	No helper text
+	•	No onboarding copy
+	•	No explanatory tooltips beyond what already exists
+
+This is a refinement pass, not an instructional one.
+
+⸻
+
+12. Success criteria (how to know this is done)
+
+After changes:
+	•	The view should read cleanly at a glance
+	•	Destructive actions should look intentional
+	•	No internal terminology (“handle”, “triage”, “stray”) remains visible
+	•	Visual hierarchy feels calm, not busy
+
+If any change would require touching data, logic, or navigation structure, do not do it.
+
+⸻

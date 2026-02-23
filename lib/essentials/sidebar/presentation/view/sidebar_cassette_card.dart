@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/theme_typography.dart';
+import '../view_model/sidebar_cassette_card_view_model.dart';
 
 /// A content container for sidebar cassette widgets.
 ///
@@ -39,6 +40,10 @@ class SidebarCassetteCard extends ConsumerWidget {
   final bool isNaked;
   final bool shouldExpand;
 
+  /// Layout style controlling horizontal rails.
+  /// When non-null, overrides [padding] and [margin] with style-derived values.
+  final SidebarCardLayoutStyle? layoutStyle;
+
   const SidebarCassetteCard({
     super.key,
     required this.child,
@@ -59,6 +64,7 @@ class SidebarCassetteCard extends ConsumerWidget {
     this.isControl = false,
     this.isNaked = false,
     this.shouldExpand = false,
+    this.layoutStyle,
   });
 
   @override
@@ -84,21 +90,9 @@ class SidebarCassetteCard extends ConsumerWidget {
 
     final showHeader = hasTitle || hasSubtitle;
 
-    // Control cassettes get tighter spacing
-    final effectiveMargin = isControl
-        ? const EdgeInsets.only(
-            left: AppSpacing.md,
-            right: AppSpacing.md,
-            top: AppSpacing.sm,
-            bottom: AppSpacing.xs,
-          )
-        : margin;
-    final effectivePadding = isControl
-        ? const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm + AppSpacing.xs,
-          )
-        : padding;
+    // Compute effective margin/padding from layoutStyle or legacy properties
+    final (effectiveMargin, effectivePadding, sectionTitleGap) =
+        _computeLayout();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -121,7 +115,7 @@ class SidebarCassetteCard extends ConsumerWidget {
 
             if (hasSectionTitle) ...[
               Text(sectionTitle!, style: typography.cassetteCardSectionHeader),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: sectionTitleGap),
             ],
 
             if (hasBoundedHeight && shouldExpand)
@@ -144,5 +138,47 @@ class SidebarCassetteCard extends ConsumerWidget {
         );
       },
     );
+  }
+
+  /// Computes (margin, padding, sectionTitleGap) based on layoutStyle.
+  (EdgeInsets, EdgeInsets, double) _computeLayout() {
+    // Layout style takes precedence when specified
+    if (layoutStyle != null) {
+      return switch (layoutStyle!) {
+        SidebarCardLayoutStyle.standard => (
+          const EdgeInsets.symmetric(
+            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.md,
+          ),
+          const EdgeInsets.all(AppSpacing.md),
+          AppSpacing.sm,
+        ),
+        SidebarCardLayoutStyle.listDense => (
+          const EdgeInsets.symmetric(vertical: AppSpacing.xs, horizontal: 0),
+          const EdgeInsets.symmetric(horizontal: 12, vertical: AppSpacing.sm),
+          AppSpacing.xs,
+        ),
+      };
+    }
+
+    // Legacy: isControl overrides
+    if (isControl) {
+      return (
+        const EdgeInsets.only(
+          left: AppSpacing.md,
+          right: AppSpacing.md,
+          top: AppSpacing.sm,
+          bottom: AppSpacing.xs,
+        ),
+        const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm + AppSpacing.xs,
+        ),
+        AppSpacing.sm,
+      );
+    }
+
+    // Legacy: use provided margin/padding
+    return (margin as EdgeInsets, padding as EdgeInsets, AppSpacing.sm);
   }
 }

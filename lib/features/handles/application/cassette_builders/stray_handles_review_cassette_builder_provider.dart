@@ -12,15 +12,29 @@ part 'stray_handles_review_cassette_builder_provider.g.dart';
 SidebarCassetteCardViewModel strayHandlesReviewCassetteBuilder(
   Ref ref, {
   required StrayHandleFilter filter,
+  required StrayHandleMode mode,
 }) {
-  final title = switch (filter) {
-    StrayHandleFilter.phones => 'Stray phone numbers',
-    StrayHandleFilter.emails => 'Stray email addresses',
-  };
+  final sectionHeader = _buildSectionHeader(filter, mode);
 
   return SidebarCassetteCardViewModel(
-    title: title,
+    title: '', // No card title - use sectionTitle for tighter spacing
+    sectionTitle: sectionHeader,
+    layoutStyle: SidebarCardLayoutStyle.listDense, // Space-efficient rails
     shouldExpand: true,
-    child: StrayHandlesReviewCassette(filter: filter),
+    child: StrayHandlesReviewCassette(filter: filter, mode: mode),
   );
+}
+
+String _buildSectionHeader(StrayHandleFilter filter, StrayHandleMode mode) {
+  final filterLabel = switch (filter) {
+    StrayHandleFilter.phones => 'phone numbers',
+    StrayHandleFilter.emails => 'email addresses',
+    StrayHandleFilter.businessUrns => 'business accounts',
+  };
+
+  return switch (mode) {
+    StrayHandleMode.allStrays => 'Unfamiliar $filterLabel',
+    StrayHandleMode.spamCandidates => 'Spam $filterLabel',
+    StrayHandleMode.dismissed => 'Dismissed $filterLabel',
+  };
 }

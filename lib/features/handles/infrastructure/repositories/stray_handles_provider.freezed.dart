@@ -16,7 +16,10 @@ mixin _$StrayHandleSummary {
 
  int get handleId; String get handleValue; String get serviceType; int get totalMessages;/// ISO 8601 timestamp of when the user last reviewed this handle, or null
 /// if never reviewed.
- String? get reviewedAt; DateTime? get lastMessageDate;
+ String? get reviewedAt; DateTime? get lastMessageDate;/// Heuristic score indicating likelihood of junk/spam (higher = more likely).
+/// Used to filter candidates for Spam/One-off mode.
+ int get junkScore;/// Whether this handle is a short code (3-8 digits, no country code).
+ bool get isShortCode;
 /// Create a copy of StrayHandleSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,16 +30,16 @@ $StrayHandleSummaryCopyWith<StrayHandleSummary> get copyWith => _$StrayHandleSum
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StrayHandleSummary&&(identical(other.handleId, handleId) || other.handleId == handleId)&&(identical(other.handleValue, handleValue) || other.handleValue == handleValue)&&(identical(other.serviceType, serviceType) || other.serviceType == serviceType)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StrayHandleSummary&&(identical(other.handleId, handleId) || other.handleId == handleId)&&(identical(other.handleValue, handleValue) || other.handleValue == handleValue)&&(identical(other.serviceType, serviceType) || other.serviceType == serviceType)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate)&&(identical(other.junkScore, junkScore) || other.junkScore == junkScore)&&(identical(other.isShortCode, isShortCode) || other.isShortCode == isShortCode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,handleId,handleValue,serviceType,totalMessages,reviewedAt,lastMessageDate);
+int get hashCode => Object.hash(runtimeType,handleId,handleValue,serviceType,totalMessages,reviewedAt,lastMessageDate,junkScore,isShortCode);
 
 @override
 String toString() {
-  return 'StrayHandleSummary(handleId: $handleId, handleValue: $handleValue, serviceType: $serviceType, totalMessages: $totalMessages, reviewedAt: $reviewedAt, lastMessageDate: $lastMessageDate)';
+  return 'StrayHandleSummary(handleId: $handleId, handleValue: $handleValue, serviceType: $serviceType, totalMessages: $totalMessages, reviewedAt: $reviewedAt, lastMessageDate: $lastMessageDate, junkScore: $junkScore, isShortCode: $isShortCode)';
 }
 
 
@@ -47,7 +50,7 @@ abstract mixin class $StrayHandleSummaryCopyWith<$Res>  {
   factory $StrayHandleSummaryCopyWith(StrayHandleSummary value, $Res Function(StrayHandleSummary) _then) = _$StrayHandleSummaryCopyWithImpl;
 @useResult
 $Res call({
- int handleId, String handleValue, String serviceType, int totalMessages, String? reviewedAt, DateTime? lastMessageDate
+ int handleId, String handleValue, String serviceType, int totalMessages, String? reviewedAt, DateTime? lastMessageDate, int junkScore, bool isShortCode
 });
 
 
@@ -64,7 +67,7 @@ class _$StrayHandleSummaryCopyWithImpl<$Res>
 
 /// Create a copy of StrayHandleSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? handleId = null,Object? handleValue = null,Object? serviceType = null,Object? totalMessages = null,Object? reviewedAt = freezed,Object? lastMessageDate = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? handleId = null,Object? handleValue = null,Object? serviceType = null,Object? totalMessages = null,Object? reviewedAt = freezed,Object? lastMessageDate = freezed,Object? junkScore = null,Object? isShortCode = null,}) {
   return _then(_self.copyWith(
 handleId: null == handleId ? _self.handleId : handleId // ignore: cast_nullable_to_non_nullable
 as int,handleValue: null == handleValue ? _self.handleValue : handleValue // ignore: cast_nullable_to_non_nullable
@@ -72,7 +75,9 @@ as String,serviceType: null == serviceType ? _self.serviceType : serviceType // 
 as String,totalMessages: null == totalMessages ? _self.totalMessages : totalMessages // ignore: cast_nullable_to_non_nullable
 as int,reviewedAt: freezed == reviewedAt ? _self.reviewedAt : reviewedAt // ignore: cast_nullable_to_non_nullable
 as String?,lastMessageDate: freezed == lastMessageDate ? _self.lastMessageDate : lastMessageDate // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,junkScore: null == junkScore ? _self.junkScore : junkScore // ignore: cast_nullable_to_non_nullable
+as int,isShortCode: null == isShortCode ? _self.isShortCode : isShortCode // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -157,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate,  int junkScore,  bool isShortCode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StrayHandleSummary() when $default != null:
-return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate);case _:
+return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate,_that.junkScore,_that.isShortCode);case _:
   return orElse();
 
 }
@@ -178,10 +183,10 @@ return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate,  int junkScore,  bool isShortCode)  $default,) {final _that = this;
 switch (_that) {
 case _StrayHandleSummary():
-return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate);case _:
+return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate,_that.junkScore,_that.isShortCode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +203,10 @@ return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int handleId,  String handleValue,  String serviceType,  int totalMessages,  String? reviewedAt,  DateTime? lastMessageDate,  int junkScore,  bool isShortCode)?  $default,) {final _that = this;
 switch (_that) {
 case _StrayHandleSummary() when $default != null:
-return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate);case _:
+return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMessages,_that.reviewedAt,_that.lastMessageDate,_that.junkScore,_that.isShortCode);case _:
   return null;
 
 }
@@ -213,7 +218,7 @@ return $default(_that.handleId,_that.handleValue,_that.serviceType,_that.totalMe
 
 
 class _StrayHandleSummary implements StrayHandleSummary {
-  const _StrayHandleSummary({required this.handleId, required this.handleValue, required this.serviceType, required this.totalMessages, this.reviewedAt, this.lastMessageDate});
+  const _StrayHandleSummary({required this.handleId, required this.handleValue, required this.serviceType, required this.totalMessages, this.reviewedAt, this.lastMessageDate, this.junkScore = 0, this.isShortCode = false});
   
 
 @override final  int handleId;
@@ -224,6 +229,11 @@ class _StrayHandleSummary implements StrayHandleSummary {
 /// if never reviewed.
 @override final  String? reviewedAt;
 @override final  DateTime? lastMessageDate;
+/// Heuristic score indicating likelihood of junk/spam (higher = more likely).
+/// Used to filter candidates for Spam/One-off mode.
+@override@JsonKey() final  int junkScore;
+/// Whether this handle is a short code (3-8 digits, no country code).
+@override@JsonKey() final  bool isShortCode;
 
 /// Create a copy of StrayHandleSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +245,16 @@ _$StrayHandleSummaryCopyWith<_StrayHandleSummary> get copyWith => __$StrayHandle
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StrayHandleSummary&&(identical(other.handleId, handleId) || other.handleId == handleId)&&(identical(other.handleValue, handleValue) || other.handleValue == handleValue)&&(identical(other.serviceType, serviceType) || other.serviceType == serviceType)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StrayHandleSummary&&(identical(other.handleId, handleId) || other.handleId == handleId)&&(identical(other.handleValue, handleValue) || other.handleValue == handleValue)&&(identical(other.serviceType, serviceType) || other.serviceType == serviceType)&&(identical(other.totalMessages, totalMessages) || other.totalMessages == totalMessages)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.lastMessageDate, lastMessageDate) || other.lastMessageDate == lastMessageDate)&&(identical(other.junkScore, junkScore) || other.junkScore == junkScore)&&(identical(other.isShortCode, isShortCode) || other.isShortCode == isShortCode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,handleId,handleValue,serviceType,totalMessages,reviewedAt,lastMessageDate);
+int get hashCode => Object.hash(runtimeType,handleId,handleValue,serviceType,totalMessages,reviewedAt,lastMessageDate,junkScore,isShortCode);
 
 @override
 String toString() {
-  return 'StrayHandleSummary(handleId: $handleId, handleValue: $handleValue, serviceType: $serviceType, totalMessages: $totalMessages, reviewedAt: $reviewedAt, lastMessageDate: $lastMessageDate)';
+  return 'StrayHandleSummary(handleId: $handleId, handleValue: $handleValue, serviceType: $serviceType, totalMessages: $totalMessages, reviewedAt: $reviewedAt, lastMessageDate: $lastMessageDate, junkScore: $junkScore, isShortCode: $isShortCode)';
 }
 
 
@@ -255,7 +265,7 @@ abstract mixin class _$StrayHandleSummaryCopyWith<$Res> implements $StrayHandleS
   factory _$StrayHandleSummaryCopyWith(_StrayHandleSummary value, $Res Function(_StrayHandleSummary) _then) = __$StrayHandleSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int handleId, String handleValue, String serviceType, int totalMessages, String? reviewedAt, DateTime? lastMessageDate
+ int handleId, String handleValue, String serviceType, int totalMessages, String? reviewedAt, DateTime? lastMessageDate, int junkScore, bool isShortCode
 });
 
 
@@ -272,7 +282,7 @@ class __$StrayHandleSummaryCopyWithImpl<$Res>
 
 /// Create a copy of StrayHandleSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? handleId = null,Object? handleValue = null,Object? serviceType = null,Object? totalMessages = null,Object? reviewedAt = freezed,Object? lastMessageDate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? handleId = null,Object? handleValue = null,Object? serviceType = null,Object? totalMessages = null,Object? reviewedAt = freezed,Object? lastMessageDate = freezed,Object? junkScore = null,Object? isShortCode = null,}) {
   return _then(_StrayHandleSummary(
 handleId: null == handleId ? _self.handleId : handleId // ignore: cast_nullable_to_non_nullable
 as int,handleValue: null == handleValue ? _self.handleValue : handleValue // ignore: cast_nullable_to_non_nullable
@@ -280,7 +290,9 @@ as String,serviceType: null == serviceType ? _self.serviceType : serviceType // 
 as String,totalMessages: null == totalMessages ? _self.totalMessages : totalMessages // ignore: cast_nullable_to_non_nullable
 as int,reviewedAt: freezed == reviewedAt ? _self.reviewedAt : reviewedAt // ignore: cast_nullable_to_non_nullable
 as String?,lastMessageDate: freezed == lastMessageDate ? _self.lastMessageDate : lastMessageDate // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,junkScore: null == junkScore ? _self.junkScore : junkScore // ignore: cast_nullable_to_non_nullable
+as int,isShortCode: null == isShortCode ? _self.isShortCode : isShortCode // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

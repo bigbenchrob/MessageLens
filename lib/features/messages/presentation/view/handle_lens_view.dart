@@ -396,7 +396,9 @@ class _ActionBar extends HookConsumerWidget {
 
           // Sort order toggle
           MacosTooltip(
-            message: newestFirst.value ? 'Showing newest first' : 'Showing oldest first',
+            message: newestFirst.value
+                ? 'Showing newest first'
+                : 'Showing oldest first',
             child: MacosIconButton(
               icon: MacosIcon(
                 newestFirst.value

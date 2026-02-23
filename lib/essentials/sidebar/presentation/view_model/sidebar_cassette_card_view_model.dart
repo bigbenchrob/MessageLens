@@ -19,6 +19,22 @@ enum CassetteCardType {
   sidebarNavigation,
 }
 
+/// Layout style for [SidebarCassetteCard] horizontal rails.
+///
+/// Controls margin, padding, and title gaps without changing card structure.
+/// Use this when differences are mainly about horizontal insets and breathing
+/// room, not structural/behavioral changes.
+enum SidebarCardLayoutStyle {
+  /// Standard layout with generous horizontal insets (32pt total).
+  /// Suitable for most cassettes with moderate content density.
+  standard,
+
+  /// Dense layout for space-sensitive lists (12pt horizontal inset).
+  /// Use when horizontal space is at a premium (e.g., scrollable lists
+  /// with metadata, action overlays, or long text content).
+  listDense,
+}
+
 /// Presentation data for rendering a cassette inside the sidebar card shell.
 class SidebarCassetteCardViewModel {
   const SidebarCassetteCardViewModel({
@@ -28,6 +44,7 @@ class SidebarCassetteCardViewModel {
     this.footerText,
     required this.child,
     this.cardType = CassetteCardType.standard,
+    this.layoutStyle = SidebarCardLayoutStyle.standard,
     this.infoBodyText,
     this.infoAction,
     this.isControl = false,
@@ -55,6 +72,12 @@ class SidebarCassetteCardViewModel {
   /// Defaults to [CassetteCardType.standard] which uses [SidebarCassetteCard].
   /// Use [CassetteCardType.info] for explanatory cards using [SidebarInfoCard].
   final CassetteCardType cardType;
+
+  /// Layout style controlling horizontal rails (margin/padding/gaps).
+  ///
+  /// Defaults to [SidebarCardLayoutStyle.standard] with generous insets.
+  /// Use [SidebarCardLayoutStyle.listDense] for space-sensitive lists.
+  final SidebarCardLayoutStyle layoutStyle;
 
   /// Body text for info cards ([CassetteCardType.info]).
   ///

@@ -18,7 +18,7 @@ Features own the content. Essentials owns the stack, chrome, and composition.
 
 | File | Purpose |
 |---|---|
-| [00-cassette-system-architecture.md](00-cassette-system-architecture.md) | Full architecture: rack state, cascade, coordinator dispatch, card chrome |
+| [00-cassette-system-architecture.md](00-cassette-system-architecture.md) | Full architecture: rack state, cascade, coordinator dispatch, card chrome, **card configuration patterns** |
 | [INVIOLATE_RULES.md](INVIOLATE_RULES.md) | Non-negotiable rules for the cassette system |
 
 ## Key Code Locations

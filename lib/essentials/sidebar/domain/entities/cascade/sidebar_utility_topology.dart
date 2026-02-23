@@ -7,11 +7,8 @@ CassetteSpec? resolveSidebarUtilityChild(SidebarUtilityCassetteSpec spec) {
         case TopChatMenuChoice.contacts:
           return sidebarUtilityToContactsInfoCard();
 
-        case TopChatMenuChoice.strayEmails:
-          return sidebarUtilityToHandlesInfoCardForStrayEmails();
-
-        case TopChatMenuChoice.strayPhoneNumbers:
-          return sidebarUtilityToHandlesStrayPhoneNumbers();
+        case TopChatMenuChoice.strayHandles:
+          return sidebarUtilityToStrayHandlesTypeSwitcher();
 
         case TopChatMenuChoice.searchAllMessages:
           return sidebarUtilityToMessagesHeatMapAll();

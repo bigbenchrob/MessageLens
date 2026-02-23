@@ -1,0 +1,126 @@
+Architecture Note — Sidebar Card Layout Profiles (Rails) for Space-Sensitive Lists
+
+Context
+
+We currently have multiple sidebar “card” wrappers:
+	•	SidebarCassetteCard
+	•	SidebarInfoCard
+	•	SidebarNavigationCard
+
+While implementing the Unfamiliar Sources / stray-handles list, we discovered a recurring UI requirement:
+
+Some sidebar cassettes (especially lists) need tighter horizontal rails than the standard cassette card provides.
+
+Today, SidebarCassetteCard applies cumulative horizontal inset (e.g., margin: 16pt + padding: 16pt = 32pt), which is ideal for many cards but too expensive for dense lists where horizontal space is at a premium.
+
+We considered adding a dedicated SidebarListCard. However, that would introduce a 4th wrapper type and create long-term drift and policy fragmentation (“which card should I use?”).
+
+Decision
+
+Introduce layout profiles for SidebarCassetteCard so different cassettes can opt into different rails without introducing another card widget.
+
+The key concept is:
+
+The “card wrapper” remains the same component, but it can render using different layout styles (insets, stacking margin, title gap), selected by the cassette’s view model.
+
+Goals
+	•	Centralize layout policy in one place
+	•	Avoid adding another card type/widget unless structure/behavior truly diverges
+	•	Make it trivial for future list cassettes to request space-efficient rails
+	•	Keep feature code clean: declare a style, don’t reimplement layout decisions
+
+Non-Goals
+	•	No new coordinator branching
+	•	No new “card type” enum wiring if avoidable
+	•	No behavior changes to existing cards unless they explicitly opt in
+
+⸻
+
+Proposed Implementation
+
+1) Add a layout style to the cassette card view model
+
+Add a property to SidebarCassetteCardViewModel (or equivalent):
+	•	SidebarCardLayoutStyle layoutStyle (default: standard)
+
+Recommended enum:
+	•	standard — current behavior (existing insets/margins)
+	•	listDense — space-sensitive list rails
+	•	(optional) naked — alias for existing isNaked behavior, if you want to unify semantics
+
+2) Compute insets/gaps from layoutStyle inside SidebarCassetteCard
+
+In sidebar_cassette_card.dart, derive:
+	•	horizontal margin
+	•	horizontal padding
+	•	vertical stacking gap
+	•	title-to-content gap
+
+Example profiles (values illustrative; align to your token system):
+
+Profile
+Horizontal margin
+Horizontal padding
+Vertical margin between stacked cards
+Title gap
+
+standard
+16pt
+16pt
+8pt
+8pt
+
+listDense
+0pt
+12pt
+0pt (or 4pt)
+4pt
+
+The wrapper continues to handle overall chrome and structure consistently; only the rails change.
+
+3) Adopt listDense for space-sensitive lists
+
+For the Unfamiliar Sources / stray-handles cassette:
+	•	set layoutStyle: SidebarCardLayoutStyle.listDense
+
+This ensures list content can align with top controls (segmented control/popup) and use the sidebar width effectively.
+
+⸻
+
+Design Rule of Thumb
+
+Use layoutStyle when differences are mainly:
+	•	horizontal insets / rails
+	•	title spacing
+	•	vertical stacking margins
+	•	how much “breathing room” content gets
+
+Create a new card widget only when differences are structural/behavioral:
+	•	fundamentally different chrome (no card surface, no header region, different shadows)
+	•	different interaction model
+	•	different layout primitives that don’t belong in SidebarCassetteCard
+
+⸻
+
+Benefits
+	•	Avoids wrapper proliferation (SidebarListCard not needed yet)
+	•	Keeps all “card policy” centralized and coherent
+	•	Provides a clear, repeatable mechanism for future list-like cassettes
+	•	Minimizes coordinator surface area and reduces risk of future refactors
+
+⸻
+
+Adoption Checklist
+
+When a cassette feels horizontally cramped:
+	1.	Confirm there isn’t duplicate padding inside row/list components
+	2.	If the wrapper rails are the limiting factor:
+	•	switch to layoutStyle: listDense
+	3.	Ensure list dividers and action overlays respect the “data region” width
+	4.	Validate alignment with any top-of-cassette controls (segmented control, popup)
+
+⸻
+
+Status
+
+This note documents a recommended pattern to implement now and reuse going forward.

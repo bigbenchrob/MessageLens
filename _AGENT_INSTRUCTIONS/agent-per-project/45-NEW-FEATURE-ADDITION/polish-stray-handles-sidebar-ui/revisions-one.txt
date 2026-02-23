@@ -1,0 +1,143 @@
+UI CHANGE INSTRUCTIONS — Make “Show” a subsidiary macOS-style filter
+
+Goal
+
+Visually and cognitively distinguish:
+	•	Primary axis: what kind of unfamiliar source (Phone / Email / Business)
+	•	Secondary axis: how to filter the current list (All / Spam / Dismissed)
+
+The UI must clearly read:
+
+“I’m looking at unfamiliar phone numbers, and I’m currently showing All.”
+
+⸻
+
+Required UI outcome (authoritative)
+	•	Top segmented control remains the primary navigation:
+	•	Phone # | Email | Business
+	•	Lower segmented control is removed
+	•	Replace it with a macOS-style popup menu:
+	•	Label: Show:
+	•	Value: All ▾ / Spam ▾ / Dismissed ▾
+	•	The popup is visually lighter, smaller, and quieter than the segmented control
+
+⸻
+
+Step-by-step implementation instructions
+
+1. KEEP the top segmented control (primary)
+
+No functional or structural changes.
+	•	Control: Segmented
+	•	Purpose: Select unfamiliar source type
+	•	Style:
+	•	Blue selected segment
+	•	White (or near-white) selected text
+	•	Placement:
+	•	Immediately below the “From unfamiliar sources” dropdown
+
+This remains the dominant control in the view.
+
+⸻
+
+2. REMOVE the lower segmented control entirely
+
+Delete the segmented control currently showing:
+
+All | Spam | Dismissed
+
+Do not keep it hidden, disabled, or restyled. It should not exist anymore.
+
+⸻
+
+3. ADD a macOS-style popup filter control
+
+Control type
+	•	Use a popup button / menu button, not a segmented control
+
+Label
+	•	Static text label:
+Show:
+
+Menu items
+	•	All
+	•	Spam
+	•	Dismissed
+
+The currently selected item is shown as the popup’s title.
+
+Example:
+
+
+Show: All ▾
+
+⸻
+
+4. Placement and alignment (critical)
+
+Place the popup directly under the Handle Type segmented control, with clear subordinate spacing.
+
+Vertical spacing rules:
+	•	Segmented control → Show: label: 16–20 pt
+	•	Show: label → popup button: 6–8 pt
+	•	Popup button → section header (“Unfamiliar phone numbers”): 16–24 pt
+
+Horizontal alignment:
+	•	Left-align Show: and the popup with the segmented control’s leading edge
+(do NOT center it, do NOT full-width it)
+
+This tight label-to-control spacing is what makes it read as a filter, not navigation.
+
+⸻
+
+5. Visual styling of the popup (must be quieter)
+
+The popup must not compete with the segmented control.
+
+Apply the following styling constraints:
+	•	Height: smaller than segmented control
+	•	Background:
+	•	Default macOS control background (no blue fill)
+	•	Border:
+	•	Light gray or system default
+	•	Text:
+	•	Regular weight
+	•	System label color
+	•	Accent color:
+	•	No blue fill when selected
+	•	Only the chevron and focus ring use system accent, if at all
+
+The popup should visually read like:
+
+“a preference / filter”, not “navigation”.
+
+⸻
+
+6. Behavior (unchanged, but explicit)
+	•	Changing the popup selection:
+	•	Immediately updates the list
+	•	Does not affect Handle Type
+	•	The popup selection is scoped to the currently selected Handle Type
+	•	(Phone can be “Spam” while Email is “All” — implementation choice, but acceptable)
+
+No other behavior changes are required.
+
+⸻
+
+Explicit non-goals (do NOT do these)
+	•	Do NOT add explanatory text
+	•	Do NOT add icons
+	•	Do NOT add counts to popup items
+	•	Do NOT recolor the popup blue
+	•	Do NOT change underlying filtering logic
+	•	Do NOT reintroduce segmented controls for filtering
+
+⸻
+
+Visual success criteria
+
+After this change:
+	•	The top segmented control clearly reads as the main switch
+	•	“Show” clearly reads as a secondary filter
+	•	The two controls no longer look like they “do the same thing”
+	•	The top of the view feels calmer and more macOS-native

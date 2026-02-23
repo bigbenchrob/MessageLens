@@ -1,0 +1,98 @@
+UI CORRECTION — Relax horizontal constraints in Unfamiliar Sources list
+
+Scope: Row layout + divider behavior
+Non-goals: No changes to actions, semantics, or hierarchy
+
+⸻
+
+Problem (diagnosis)
+
+The list currently feels cramped because:
+	1.	The metadata and action columns are consuming fixed horizontal space too early
+	2.	The dismiss button is visually treated as part of the row’s measured width
+	3.	Vertical dividers are over-communicating structure and reducing usable width
+
+This causes phone numbers and badges to compress unnecessarily.
+
+⸻
+
+Required changes (authoritative)
+
+1. Use full available sidebar width for list content
+
+Primary content (number + badges + metadata) must expand to fill the sidebar width.
+
+Implementation rules:
+	•	Do not cap the width of the list tile based on action controls
+	•	Treat the dismiss button as outside the main content flow
+	•	Phone numbers and badges should never truncate earlier because of the dismiss control
+
+Think:
+
+“The list owns the width. Actions borrow space.”
+
+⸻
+
+2. Remove the vertical divider immediately left of the dismiss button
+	•	Delete the vertical rule separating metadata from the dismiss button
+	•	This divider currently:
+	•	visually compresses the row
+	•	incorrectly implies the dismiss button is part of the data
+
+After removal:
+	•	The dismiss button should float visually as an adjacent action
+	•	The list row reads as a single, calm horizontal unit
+
+⸻
+
+3. Pull the right edge of horizontal row dividers inward
+
+The horizontal dividers should:
+	•	Terminate at the end of the data region
+	•	Not extend under or behind the dismiss button
+
+Implementation detail:
+	•	Set the divider’s trailing inset so it ends before the action column
+	•	The dismiss button sits beyond the divider, visually “outside” the list data
+
+This makes the dismiss button read as:
+
+“an operation on this row”
+not
+“part of the row’s information”
+
+⸻
+
+Resulting structure (mental model)
+
+Each row should read as:
+
+|  DATA (flex, full width)                 |   ACTION   |
+|  number + badges + metadata              |     X      |
+|------------------------------------------|
+
+Where:
+	•	DATA stretches as wide as possible
+	•	ACTION is opt-in, narrow, and visually detached
+	•	Dividers only describe DATA, not ACTION
+
+⸻
+
+Explicit non-goals (do NOT do these)
+	•	Do NOT reintroduce fixed-width metadata columns
+	•	Do NOT right-align metadata tightly against the action
+	•	Do NOT add new dividers or separators
+	•	Do NOT reduce font size or badge size to “make it fit”
+
+If something feels cramped, it’s a layout constraint problem — not a typography problem.
+
+⸻
+
+Success criteria
+
+After this change:
+	•	Phone numbers have breathing room
+	•	Rows no longer feel horizontally squashed
+	•	Dividers reinforce calm repetition
+	•	The dismiss button reads as a deliberate action sitting outside the data
+	•	Scrolling feels smooth and rhythmically consistent

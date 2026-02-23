@@ -207,6 +207,7 @@ class SidebarCassetteCardViewModel {
     this.footerText,
     required this.child,            // The feature-owned widget content
     this.cardType = CassetteCardType.standard,
+    this.layoutStyle = SidebarCardLayoutStyle.standard,
     this.infoBodyText,
     this.infoAction,
     this.isControl = false,
@@ -224,6 +225,7 @@ class SidebarCassetteCardViewModel {
 | `subtitle` | Optional secondary text in header |
 | `child` | The feature's widget (a widget builder output) |
 | `cardType` | Determines which card chrome is used |
+| `layoutStyle` | Controls horizontal rails (margin/padding/gaps) |
 | `isControl` | When true, card is a navigation control (non-expanding) |
 | `isNaked` | When true, card has no chrome at all |
 | `shouldExpand` | Whether card fills available vertical space |
@@ -263,7 +265,7 @@ The coordinator switches on `cardType` to select the chrome widget:
 
 | `cardType` | Widget created | VM properties forwarded |
 |---|---|---|
-| `.standard` | `SidebarCassetteCard` | `title`, `subtitle`, `sectionTitle`, `footerText`, `isControl`, `isNaked`, **`shouldExpand`**, `child` |
+| `.standard` | `SidebarCassetteCard` | `title`, `subtitle`, `sectionTitle`, `footerText`, `isControl`, `isNaked`, **`shouldExpand`**, **`layoutStyle`**, `child` |
 | `.info` | `SidebarInfoCard` | `title` (if non-empty), `infoBodyText` → body, `footerText` → footnote, `infoAction` → action |
 | `.sidebarNavigation` | `SidebarNavigationCard` | `child` only |
 
@@ -376,7 +378,126 @@ SidebarCassetteCard.build (inner LayoutBuilder)
 
 ---
 
-## 8. Sidebar Rendering
+## 8. Card Configuration Patterns
+
+This section provides guidance for choosing the right card configuration based on
+the cassette's purpose and content characteristics.
+
+### 8a. Card Types (`CassetteCardType`)
+
+The `cardType` determines which **chrome widget** wraps the content:
+
+| Type | When to use | Example cassettes |
+|---|---|---|
+| `standard` | Interactive content, lists, forms, data displays | Contact lists, message threads, stray handles review |
+| `info` | Explanatory text, onboarding, contextual help | "Why am I seeing this?", feature explanations |
+| `sidebarNavigation` | Navigation controls to return to previous states | "Back to all contacts" strip |
+
+**Default:** Most cassettes use `standard`. Use `info` sparingly for educational
+content. Use `sidebarNavigation` only for drill-down escape hatches.
+
+### 8b. Layout Styles (`SidebarCardLayoutStyle`)
+
+The `layoutStyle` controls **horizontal rails** (margin, padding, section gaps)
+without changing the card's structural behavior:
+
+| Style | Horizontal inset | Section gap | When to use |
+|---|---|---|---|
+| `standard` | 32pt (16pt margin + 16pt padding) | 8pt | Most cassettes, moderate content density |
+| `listDense` | 12pt (0pt margin + 12pt padding) | 4pt | Space-sensitive scrollable lists |
+
+**Use `listDense` when:**
+- The cassette contains a scrollable list with per-row metadata
+- Rows have overlaid action buttons (e.g., dismiss/restore) that need gutter space
+- Long text values (phone numbers, email addresses) need horizontal room
+- You want dividers and content edges to align tightly
+
+**Layout values (AppSpacing reference):**
+- `standard`: margin=`(v: sm=8, h: md=16)`, padding=`all(md=16)`, sectionTitleGap=`sm=8`
+- `listDense`: margin=`(v: xs=4, h: 0)`, padding=`(h: 12, v: sm=8)`, sectionTitleGap=`xs=4`
+
+### 8c. Behavioral Flags
+
+#### `isControl`
+
+Marks the cassette as a **navigation control** rather than content:
+- Pinned in the "controls zone" at the top of the sidebar
+- Never expands vertically
+- Receives reduced visual emphasis (tighter margins)
+
+**Use for:** Menu selectors, mode switchers, filter dropdowns.
+
+#### `isNaked`
+
+Removes **all card chrome** — no title, no padding structure:
+- Only horizontal margin remains (to align with card edges)
+- Child widget owns all padding, typography, and interaction
+
+**Use for:** Dropdowns, popup menus, and controls that should align flush with
+the sidebar edge and need full control over their layout.
+
+#### `shouldExpand`
+
+Opts the card into **vertical space filling**:
+- When `true`, card expands to fill remaining sidebar height
+- When `false` (default), card takes intrinsic height
+- Only meaningful for `CassetteCardType.standard`
+
+**Use for:** Scrollable lists that should fill available space (contact lists,
+message threads, stray handles review). Leave `false` for fixed-height content
+(info cards, summaries, heatmaps).
+
+### 8d. Decision Matrix
+
+| Cassette purpose | `cardType` | `layoutStyle` | `isControl` | `isNaked` | `shouldExpand` |
+|---|---|---|---|---|---|
+| Scrollable contact/message list | `standard` | `standard` | `false` | `false` | `true` |
+| Dense list with action overlays | `standard` | `listDense` | `false` | `false` | `true` |
+| Menu/filter dropdown | `standard` | `standard` | `true` | `true` | `false` |
+| Mode switcher popup | `standard` | `standard` | `true` | `true` | `false` |
+| Explanatory help text | `info` | — | `false` | `false` | `false` |
+| "Back to X" navigation strip | `sidebarNavigation` | — | `false` | `false` | `false` |
+| Summary statistics card | `standard` | `standard` | `false` | `false` | `false` |
+
+### 8e. Action Gutter Pattern
+
+For lists with per-row action buttons (dismiss, restore, etc.), use the
+**action gutter** pattern:
+
+1. Define a fixed `actionGutterWidth` constant (e.g., 32pt)
+2. Apply as right padding to the data content — data never overlaps action area
+3. Position action buttons as overlays anchored at `right: 0`
+4. Set divider `endIndent` to `actionGutterWidth` — dividers stop at data boundary
+5. Non-actionable rows leave gutter empty but still reserve the space
+
+This keeps action buttons vertically aligned in a dedicated column, visually
+separate from the data region.
+
+```dart
+// Example: Stray handles review cassette
+static const double actionGutterWidth = 32;
+
+// Row data padding
+Padding(
+  padding: const EdgeInsets.only(right: actionGutterWidth),
+  child: Row(children: [/* data content */]),
+)
+
+// Divider stops at data boundary
+Divider(endIndent: actionGutterWidth)
+
+// Action button overlay
+Positioned(
+  right: 0,
+  top: 0,
+  bottom: 2,  // nudge up to align with metadata cluster
+  child: Center(child: DismissButton()),
+)
+```
+
+---
+
+## 9. Sidebar Rendering
 
 The `leftPanelWidget()` provider in `lib/essentials/navigation/application/panel_widget_providers.dart`:
 1. Watches `cassetteWidgetCoordinatorProvider(mode)`
