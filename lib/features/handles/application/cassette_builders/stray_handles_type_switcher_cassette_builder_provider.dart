@@ -17,6 +17,7 @@ SidebarCassetteCardViewModel strayHandlesTypeSwitcherCassetteBuilder(
   return SidebarCassetteCardViewModel(
     title: '', // Intentionally empty - control is self-explanatory
     shouldExpand: false,
+    isNaked: true, // Tight spacing control for filter controls
     child: StrayHandlesTypeSwitcherCassette(
       selectedFilter: selectedFilter,
       cassetteIndex: cassetteIndex,

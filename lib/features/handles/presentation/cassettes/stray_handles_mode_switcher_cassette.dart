@@ -26,8 +26,12 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
     final currentMode = ref.watch(strayHandleModeSettingProvider);
 
+    // Spacing constants:
+    // - 20pt from segmented control above (contributes with type switcher bottom)
+    // - 6pt between "Show:" label and popup (horizontal)
+    // - 24pt to section header below (16pt here + 4pt wrapper + 4pt from review card)
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -40,7 +44,7 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6), // 6pt label-to-popup spacing
           // Popup button
           MacosPopupButton<StrayHandleMode>(
             value: currentMode,

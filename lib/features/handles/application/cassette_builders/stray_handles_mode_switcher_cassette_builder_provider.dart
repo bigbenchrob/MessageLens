@@ -16,6 +16,7 @@ SidebarCassetteCardViewModel strayHandlesModeSwitcherCassetteBuilder(
   return SidebarCassetteCardViewModel(
     title: '', // Empty - the "Show:" label is inline in the widget
     shouldExpand: false,
+    isNaked: true, // Tight spacing control for filter controls
     child: StrayHandlesModeSwitcherCassette(filter: filter),
   );
 }

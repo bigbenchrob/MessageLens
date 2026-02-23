@@ -7,7 +7,7 @@ part of 'stray_handles_mode_switcher_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayHandlesModeSwitcherCassetteBuilderHash() =>
-    r'f2d3987ec7309983f60f2c10e9c454ff93deb2aa';
+    r'bd9030eff9cbcd917a3947687f46d3b691340239';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -14,16 +14,17 @@ SidebarCassetteCardViewModel strayHandlesReviewCassetteBuilder(
   required StrayHandleFilter filter,
   required StrayHandleMode mode,
 }) {
-  final title = _buildTitle(filter, mode);
+  final sectionHeader = _buildSectionHeader(filter, mode);
 
   return SidebarCassetteCardViewModel(
-    title: title,
+    title: '', // No card title - use sectionTitle for tighter spacing
+    sectionTitle: sectionHeader, // 12pt gap to first row
     shouldExpand: true,
     child: StrayHandlesReviewCassette(filter: filter, mode: mode),
   );
 }
 
-String _buildTitle(StrayHandleFilter filter, StrayHandleMode mode) {
+String _buildSectionHeader(StrayHandleFilter filter, StrayHandleMode mode) {
   final filterLabel = switch (filter) {
     StrayHandleFilter.phones => 'phone numbers',
     StrayHandleFilter.emails => 'email addresses',

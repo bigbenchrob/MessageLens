@@ -39,9 +39,11 @@ class StrayHandlesTypeSwitcherCassette extends ConsumerWidget {
           .replaceAtIndexAndCascade(cassetteIndex, newSpec);
     }
 
-    // Use only vertical padding - horizontal space comes from cassette chrome
+    // Spacing constants:
+    // - 12pt from top dropdown (8pt here + 4pt from naked wrapper)
+    // - 20pt to "Show:" below (12pt here + 4pt wrapper + 4pt mode switcher wrapper)
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 12),
       child: CupertinoSegmentedControl<StrayHandleFilter>(
         groupValue: selectedFilter,
         onValueChanged: handleFilterChange,

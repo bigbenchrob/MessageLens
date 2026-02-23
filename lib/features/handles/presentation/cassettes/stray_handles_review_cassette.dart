@@ -71,6 +71,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
         return ListView.separated(
           // Let ListView fill the bounded height from shouldExpand: true
           // and handle its own scrolling
+          // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
+          padding: const EdgeInsets.only(top: 4),
           itemCount: filtered.length,
           separatorBuilder: (_, __) =>
               Divider(height: 1, color: colors.lines.border),
