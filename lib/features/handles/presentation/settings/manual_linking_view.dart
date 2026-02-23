@@ -4,7 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../application/settings/manual_linking_provider.dart';
+import '../../application/settings_cassette_spec/resolver_tools/manual_linking_provider.dart';
 
 /// UI component for manually linking handles to participants.
 ///
