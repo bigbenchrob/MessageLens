@@ -80,11 +80,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           padding: const EdgeInsets.only(top: 2),
           itemCount: filtered.length,
           // Dividers stop at the data boundary (before action gutter)
-          separatorBuilder: (_, __) => const Divider(
-            height: 1,
-            indent: 0,
-            endIndent: actionGutterWidth,
-          ),
+          separatorBuilder: (_, __) =>
+              const Divider(height: 1, indent: 0, endIndent: actionGutterWidth),
           itemBuilder: (context, index) {
             final handle = filtered[index];
             return _StrayHandleRow(
