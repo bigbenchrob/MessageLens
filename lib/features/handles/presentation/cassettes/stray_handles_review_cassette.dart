@@ -74,13 +74,12 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
           padding: const EdgeInsets.only(top: 2),
           itemCount: filtered.length,
-          // Dividers inset on right to end before action column
-          // Action sits outside the data, so dividers don't extend under it
+          // Symmetric divider insets - action button overlays on top
           separatorBuilder: (_, __) => Divider(
             height: 1,
             color: colors.lines.border,
             indent: 12,
-            endIndent: 48, // Clear action column (36pt + 12pt padding)
+            endIndent: 12,
           ),
           itemBuilder: (context, index) {
             final handle = filtered[index];
@@ -220,134 +219,132 @@ class _StrayHandleRow extends ConsumerWidget {
         onDismiss != null &&
         (mode == StrayHandleMode.spamCandidates || handle.junkScore >= 3);
 
-    // Action column width (dismiss/restore sits outside the data flow)
-    const actionColumnWidth = 36.0;
+    // Show restore button for dismissed mode
+    final showRestore = onRestore != null;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            // Handle value (with optional spam badge)
-            Expanded(
-              child: Row(
-                children: [
-                  if (showSpamBadge) ...[
+      child: Stack(
+        children: [
+          // Data container: full width with symmetric padding
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                // Handle value (with optional spam badge)
+                Expanded(
+                  child: Row(
+                    children: [
+                      if (showSpamBadge) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            // Warning tint for spam badge
+                            color: spamTint.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(
+                            'SPAM',
+                            style: typography.caption.copyWith(
+                              // Warning color for spam badge text
+                              color: spamTint.withValues(alpha: 0.75),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          handle.handleValue,
+                          style: typography.body.copyWith(
+                            // Spam rows: tint handle with warning color
+                            // Normal rows: standard primary text
+                            color: showSpamBadge
+                                ? spamTint.withValues(alpha: contentAlpha * 0.85)
+                                : colors.content.textPrimary.withValues(
+                                    alpha: contentAlpha,
+                                  ),
+                            // Spam: slightly lighter weight (less substantial)
+                            // Normal: medium weight
+                            fontWeight: showSpamBadge
+                                ? FontWeight.w400
+                                : FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Metadata (message count + date) - flows naturally, right-aligned
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Message count badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
+                        horizontal: 6,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        // Warning tint for spam badge
-                        color: spamTint.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(3),
+                        color: colors.surfaces.hover,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        'SPAM',
+                        '${handle.totalMessages}',
                         style: typography.caption.copyWith(
-                          // Warning color for spam badge text
-                          color: spamTint.withValues(alpha: 0.75),
-                          fontSize: 8,
+                          color: colors.content.textSecondary.withValues(
+                            alpha: contentAlpha,
+                          ),
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                          fontSize: 11,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    // Last message date (reduced visual prominence)
+                    if (handle.lastMessageDate != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDate(handle.lastMessageDate!),
+                        style: typography.caption.copyWith(
+                          color: colors.content.textTertiary.withValues(
+                            alpha: contentAlpha * 0.8,
+                          ),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ],
-                  Expanded(
-                    child: Text(
-                      handle.handleValue,
-                      style: typography.body.copyWith(
-                        // Spam rows: tint handle with warning color
-                        // Normal rows: standard primary text
-                        color: showSpamBadge
-                            ? spamTint.withValues(alpha: contentAlpha * 0.85)
-                            : colors.content.textPrimary.withValues(
-                                alpha: contentAlpha,
-                              ),
-                        // Spam: slightly lighter weight (less substantial)
-                        // Normal: medium weight
-                        fontWeight: showSpamBadge
-                            ? FontWeight.w400
-                            : FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            // Metadata (message count + date) - flows naturally, right-aligned
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Message count badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surfaces.hover,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${handle.totalMessages}',
-                    style: typography.caption.copyWith(
-                      color: colors.content.textSecondary.withValues(
-                        alpha: contentAlpha,
-                      ),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
                 ),
-                // Last message date (reduced visual prominence)
-                if (handle.lastMessageDate != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(handle.lastMessageDate!),
-                    style: typography.caption.copyWith(
-                      color: colors.content.textTertiary.withValues(
-                        alpha: contentAlpha * 0.8,
-                      ),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
               ],
             ),
+          ),
 
-            // Action column (dismiss/restore) - sits outside the data flow
-            // No vertical divider; action reads as external to the row data
-            SizedBox(
-              width: actionColumnWidth,
-              child: showDismiss
-                  ? Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: _DismissButton(onPressed: onDismiss!),
-                    )
-                  : onRestore != null
-                  ? Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: _RestoreButton(
-                        onPressed: onRestore!,
-                        colors: colors,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
+          // Action button overlay (outside data flow, positioned at right edge)
+          if (showDismiss || showRestore)
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: showDismiss
+                    ? _DismissButton(onPressed: onDismiss!)
+                    : _RestoreButton(onPressed: onRestore!, colors: colors),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
