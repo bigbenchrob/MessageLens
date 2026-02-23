@@ -316,19 +316,13 @@ class _StrayHandleRow extends ConsumerWidget {
                 (mode == StrayHandleMode.spamCandidates ||
                     handle.junkScore >= 3)) ...[
               const SizedBox(width: 8),
-              _DismissButton(
-                onPressed: onDismiss!,
-                colors: colors,
-              ),
+              _DismissButton(onPressed: onDismiss!, colors: colors),
             ],
 
             // Restore button (dismissed mode only)
             if (onRestore != null) ...[
               const SizedBox(width: 8),
-              _RestoreButton(
-                onPressed: onRestore!,
-                colors: colors,
-              ),
+              _RestoreButton(onPressed: onRestore!, colors: colors),
             ],
           ],
         ),
@@ -354,10 +348,7 @@ class _StrayHandleRow extends ConsumerWidget {
 
 /// Dismiss button with destructive styling and hover state.
 class _DismissButton extends StatefulWidget {
-  const _DismissButton({
-    required this.onPressed,
-    required this.colors,
-  });
+  const _DismissButton({required this.onPressed, required this.colors});
 
   final VoidCallback onPressed;
   final ThemeColors colors;
@@ -407,10 +398,7 @@ class _DismissButtonState extends State<_DismissButton> {
 
 /// Restore button with hover state.
 class _RestoreButton extends StatefulWidget {
-  const _RestoreButton({
-    required this.onPressed,
-    required this.colors,
-  });
+  const _RestoreButton({required this.onPressed, required this.colors});
 
   final VoidCallback onPressed;
   final ThemeColors colors;

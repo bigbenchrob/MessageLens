@@ -1,15 +1,19 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../application/state/stray_handle_mode_provider.dart';
 
-/// A compact segmented control for switching between stray handle triage modes.
+/// A macOS-style popup menu for filtering stray handles by mode.
 ///
 /// This cassette reads and writes to [strayHandleModeSettingProvider], which
 /// the list cassette watches to determine which handles to display.
+///
+/// Visually quieter than the primary segmented control, acting as a
+/// secondary filter rather than primary navigation.
 class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
   const StrayHandlesModeSwitcherCassette({required this.filter, super.key});
 
@@ -22,72 +26,45 @@ class StrayHandlesModeSwitcherCassette extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
     final currentMode = ref.watch(strayHandleModeSettingProvider);
 
-    // Use only vertical padding - horizontal space comes from cassette chrome
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: CupertinoSegmentedControl<StrayHandleMode>(
-        groupValue: currentMode,
-        onValueChanged: (mode) {
-          ref.read(strayHandleModeSettingProvider.notifier).setMode(mode);
-        },
-        padding: const EdgeInsets.all(2),
-        // Use neutral gray for unselected border/separator
-        unselectedColor: colors.surfaces.surface,
-        borderColor: colors.lines.border,
-        pressedColor: colors.surfaces.hover,
-        children: {
-          StrayHandleMode.allStrays: _SegmentContent(
-            label: 'All',
-            isSelected: currentMode == StrayHandleMode.allStrays,
-            colors: colors,
-            typography: typography,
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // "Show:" label
+          Text(
+            'Show:',
+            style: typography.caption.copyWith(
+              color: colors.content.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          StrayHandleMode.spamCandidates: _SegmentContent(
-            label: 'Spam',
-            isSelected: currentMode == StrayHandleMode.spamCandidates,
-            colors: colors,
-            typography: typography,
+          const SizedBox(width: 8),
+          // Popup button
+          MacosPopupButton<StrayHandleMode>(
+            value: currentMode,
+            onChanged: (mode) {
+              if (mode != null) {
+                ref.read(strayHandleModeSettingProvider.notifier).setMode(mode);
+              }
+            },
+            items: const [
+              MacosPopupMenuItem<StrayHandleMode>(
+                value: StrayHandleMode.allStrays,
+                child: Text('All'),
+              ),
+              MacosPopupMenuItem<StrayHandleMode>(
+                value: StrayHandleMode.spamCandidates,
+                child: Text('Spam'),
+              ),
+              MacosPopupMenuItem<StrayHandleMode>(
+                value: StrayHandleMode.dismissed,
+                child: Text('Dismissed'),
+              ),
+            ],
           ),
-          StrayHandleMode.dismissed: _SegmentContent(
-            label: 'Dismissed',
-            isSelected: currentMode == StrayHandleMode.dismissed,
-            colors: colors,
-            typography: typography,
-          ),
-        },
-      ),
-    );
-  }
-}
-
-class _SegmentContent extends StatelessWidget {
-  const _SegmentContent({
-    required this.label,
-    required this.isSelected,
-    required this.colors,
-    required this.typography,
-  });
-
-  final String label;
-  final bool isSelected;
-  final ThemeColors colors;
-  final ThemeTypography typography;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Text(
-        label,
-        style: typography.caption.copyWith(
-          // Selected segment has blue background, so use white text
-          // Unselected uses secondary text color
-          color: isSelected
-              ? CupertinoColors.white
-              : colors.content.textSecondary,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          fontSize: 12,
-        ),
+        ],
       ),
     );
   }

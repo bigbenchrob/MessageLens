@@ -7,7 +7,7 @@ part of 'stray_handles_mode_switcher_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayHandlesModeSwitcherCassetteBuilderHash() =>
-    r'e7ce50f7736b4c0bc4334f5ab1ddee388287bec1';
+    r'f2d3987ec7309983f60f2c10e9c454ff93deb2aa';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -30,24 +30,24 @@ class _SystemHash {
   }
 }
 
-/// Builds the cassette view model for the stray handles mode switcher.
+/// Builds the cassette view model for the stray handles mode filter.
 ///
 /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
 @ProviderFor(strayHandlesModeSwitcherCassetteBuilder)
 const strayHandlesModeSwitcherCassetteBuilderProvider =
     StrayHandlesModeSwitcherCassetteBuilderFamily();
 
-/// Builds the cassette view model for the stray handles mode switcher.
+/// Builds the cassette view model for the stray handles mode filter.
 ///
 /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
 class StrayHandlesModeSwitcherCassetteBuilderFamily
     extends Family<SidebarCassetteCardViewModel> {
-  /// Builds the cassette view model for the stray handles mode switcher.
+  /// Builds the cassette view model for the stray handles mode filter.
   ///
   /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
   const StrayHandlesModeSwitcherCassetteBuilderFamily();
 
-  /// Builds the cassette view model for the stray handles mode switcher.
+  /// Builds the cassette view model for the stray handles mode filter.
   ///
   /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
   StrayHandlesModeSwitcherCassetteBuilderProvider call({
@@ -78,12 +78,12 @@ class StrayHandlesModeSwitcherCassetteBuilderFamily
   String? get name => r'strayHandlesModeSwitcherCassetteBuilderProvider';
 }
 
-/// Builds the cassette view model for the stray handles mode switcher.
+/// Builds the cassette view model for the stray handles mode filter.
 ///
 /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
 class StrayHandlesModeSwitcherCassetteBuilderProvider
     extends AutoDisposeProvider<SidebarCassetteCardViewModel> {
-  /// Builds the cassette view model for the stray handles mode switcher.
+  /// Builds the cassette view model for the stray handles mode filter.
   ///
   /// Copied from [strayHandlesModeSwitcherCassetteBuilder].
   StrayHandlesModeSwitcherCassetteBuilderProvider({

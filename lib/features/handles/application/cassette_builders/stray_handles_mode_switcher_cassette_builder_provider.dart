@@ -7,14 +7,14 @@ import '../../presentation/cassettes/stray_handles_mode_switcher_cassette.dart';
 
 part 'stray_handles_mode_switcher_cassette_builder_provider.g.dart';
 
-/// Builds the cassette view model for the stray handles mode switcher.
+/// Builds the cassette view model for the stray handles mode filter.
 @riverpod
 SidebarCassetteCardViewModel strayHandlesModeSwitcherCassetteBuilder(
   Ref ref, {
   required StrayHandleFilter filter,
 }) {
   return SidebarCassetteCardViewModel(
-    title: 'Show:',
+    title: '', // Empty - the "Show:" label is inline in the widget
     shouldExpand: false,
     child: StrayHandlesModeSwitcherCassette(filter: filter),
   );
