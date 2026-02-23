@@ -3,7 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
-import '../../../infrastructure/repositories/recent_contacts_repository.dart';
+import '../../state/contact_picker_filter_provider.dart';
 import 'favorite_contacts_provider.dart';
 import 'grouped_contacts_provider.dart';
 
@@ -12,13 +12,10 @@ part 'unified_picker_sections_provider.g.dart';
 
 /// The kind of section in the unified picker list.
 enum PickerSectionType {
-  /// Most recently accessed contacts.
-  recents,
-
-  /// User-designated favourites (excluding those already in RECENTS).
+  /// User-designated favourites.
   favorites,
 
-  /// Alphabetical A–Z groups (excluding RECENTS and FAVORITES).
+  /// Alphabetical A–Z groups.
   alphabetical,
 }
 
@@ -66,97 +63,81 @@ abstract class UnifiedPickerSections with _$UnifiedPickerSections {
   }) = _UnifiedPickerSections;
 }
 
-/// Maximum number of recent contacts shown in the picker.
-const int kMaxRecents = 3;
-
-/// Maximum number of favourite contacts shown in the picker.
-const int kMaxFavorites = 7;
-
-/// Produces a unified section list for the contact picker by merging
-/// recents, favourites, and alphabetical groups into a single flat
-/// list of identically-styled sections.
+/// Produces a unified section list for the contact picker.
 ///
-/// **Precedence (hard invariant — see RECENTS-FAVORITES.md):**
-///   RECENTS > FAVORITES > ALPHABETICAL
+/// When filter mode is `favorites`:
+///   - Shows only favorited contacts, alphabetically sorted
+///   - No limit on number of favorites
 ///
-/// A contact appears in exactly one section. Recents outrank favourites,
-/// favourites outrank alphabetical. Favourite *status* is preserved in
-/// [UnifiedPickerSections.allFavoriteIds] for semantic indicators.
+/// When filter mode is `all`:
+///   - Shows all contacts alphabetically (A-Z sections)
+///   - Favorite status preserved in [allFavoriteIds] for star indicators
 @riverpod
 Future<UnifiedPickerSections> unifiedPickerSections(Ref ref) async {
-  // Fetch all three data sources in parallel.
+  final filterMode = ref.watch(contactPickerFilterProvider);
+
+  // Fetch data sources in parallel.
   final results = await (
     ref.watch(favoriteContactsProvider.future),
-    ref.watch(recentContactsProvider.future),
     ref.watch(groupedContactsProvider.future),
   ).wait;
 
   final favorites = results.$1;
-  final recents = results.$2;
-  final grouped = results.$3;
-
-  // Build a lookup of all contacts by participant ID for recents resolution.
-  final allContactsById = <int, ContactSummary>{};
-  for (final contacts in grouped.groups.values) {
-    for (final contact in contacts) {
-      allContactsById[contact.participantId] = contact;
-    }
-  }
+  final grouped = results.$2;
 
   // Full set of user-designated favourite IDs (for semantic indicators).
   final allFavoriteIds = <int>{
     for (final entry in favorites) entry.contact.participantId,
   };
 
-  // Track which participant IDs have already been placed in a section.
-  final placed = <int>{};
-
   final sections = <PickerSection>[];
 
-  // ── 1. RECENTS (highest precedence) ────────────────────────────────
-  final recentContacts = recents
-      .take(kMaxRecents)
-      .map((r) => allContactsById[r.participantId])
-      .whereType<ContactSummary>()
-      .toList(growable: false);
-
-  if (recentContacts.isNotEmpty) {
-    sections.add(
-      PickerSection(
-        key: 'RECENTS',
-        label: 'RECENTS',
-        contacts: recentContacts,
-        type: PickerSectionType.recents,
-      ),
-    );
-    for (final c in recentContacts) {
-      placed.add(c.participantId);
+  if (filterMode == ContactPickerFilterMode.favorites) {
+    // ── FAVORITES MODE: Show only favourites, alphabetically sorted ──
+    // Group favorites by first letter of display name
+    final favoritesByLetter = <String, List<ContactSummary>>{};
+    for (final entry in favorites) {
+      final contact = entry.contact;
+      final letter = contact.displayName.isNotEmpty
+          ? contact.displayName[0].toUpperCase()
+          : '#';
+      final normalizedLetter =
+          RegExp(r'^[A-Z]$').hasMatch(letter) ? letter : '#';
+      (favoritesByLetter[normalizedLetter] ??= []).add(contact);
     }
+
+    // Sort letters and build sections
+    final sortedLetters = favoritesByLetter.keys.toList()..sort();
+    final alphabeticalLetters = <String>[];
+
+    for (final letter in sortedLetters) {
+      final contacts = favoritesByLetter[letter]!;
+      // Sort contacts within each letter group
+      contacts.sort(
+        (a, b) => a.displayName.toLowerCase().compareTo(
+          b.displayName.toLowerCase(),
+        ),
+      );
+      alphabeticalLetters.add(letter);
+      sections.add(
+        PickerSection(
+          key: letter,
+          label: letter,
+          contacts: contacts,
+          type: PickerSectionType.favorites,
+        ),
+      );
+    }
+
+    return UnifiedPickerSections(
+      sections: sections,
+      alphabeticalLetters: alphabeticalLetters,
+      alphabeticalStartIndex: 0,
+      allFavoriteIds: allFavoriteIds,
+    );
   }
 
-  // ── 2. FAVORITES (excludes contacts already in RECENTS) ────────────
-  final favoriteContacts = favorites
-      .where((entry) => !placed.contains(entry.contact.participantId))
-      .take(kMaxFavorites)
-      .map((entry) => entry.contact)
-      .toList(growable: false);
-
-  if (favoriteContacts.isNotEmpty) {
-    sections.add(
-      PickerSection(
-        key: 'FAVORITES',
-        label: 'FAVORITES',
-        contacts: favoriteContacts,
-        type: PickerSectionType.favorites,
-      ),
-    );
-    for (final c in favoriteContacts) {
-      placed.add(c.participantId);
-    }
-  }
-
-  // ── 3. ALPHABETICAL (excludes RECENTS + FAVORITES) ─────────────────
-  final alphabeticalStartIndex = sections.length;
+  // ── ALL MODE: Show all contacts alphabetically ─────────────────────
   final alphabeticalLetters = <String>[];
 
   for (final letter in grouped.availableLetters) {
@@ -165,27 +146,21 @@ Future<UnifiedPickerSections> unifiedPickerSections(Ref ref) async {
       continue;
     }
 
-    final filtered = contacts
-        .where((c) => !placed.contains(c.participantId))
-        .toList(growable: false);
-
-    if (filtered.isNotEmpty) {
-      alphabeticalLetters.add(letter);
-      sections.add(
-        PickerSection(
-          key: letter,
-          label: letter,
-          contacts: filtered,
-          type: PickerSectionType.alphabetical,
-        ),
-      );
-    }
+    alphabeticalLetters.add(letter);
+    sections.add(
+      PickerSection(
+        key: letter,
+        label: letter,
+        contacts: contacts,
+        type: PickerSectionType.alphabetical,
+      ),
+    );
   }
 
   return UnifiedPickerSections(
     sections: sections,
     alphabeticalLetters: alphabeticalLetters,
-    alphabeticalStartIndex: alphabeticalStartIndex,
+    alphabeticalStartIndex: 0,
     allFavoriteIds: allFavoriteIds,
   );
 }

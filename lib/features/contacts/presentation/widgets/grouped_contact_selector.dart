@@ -10,6 +10,8 @@ import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 
 import '../../application/sidebar_cassette_spec/resolver_tools/unified_picker_sections_provider.dart';
+import '../../application/sidebar_cassette_spec/widget_builders/contact_picker_filter_switcher.dart';
+import '../../application/state/contact_picker_filter_provider.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart'
     show ContactSummary;
 import 'contact_highlight_row.dart';
@@ -72,6 +74,7 @@ class FullContactPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groupedAsync = ref.watch(unifiedPickerSectionsProvider);
+    final filterMode = ref.watch(contactPickerFilterProvider);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
@@ -93,6 +96,10 @@ class FullContactPicker extends ConsumerWidget {
         final pickerContent = groupedAsync.when(
           data: (unified) {
             if (unified.sections.isEmpty) {
+              // Custom empty state for favourites mode
+              if (filterMode == ContactPickerFilterMode.favorites) {
+                return const _FavouritesEmptyState();
+              }
               return const _GroupedEmptyState();
             }
             return GroupedContactsPicker(
@@ -120,7 +127,13 @@ class FullContactPicker extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
           ),
-          child: buildPicker(pickerContent),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ContactPickerFilterSwitcher(),
+              Expanded(child: buildPicker(pickerContent)),
+            ],
+          ),
         );
 
         return Container(
@@ -472,6 +485,39 @@ class _GroupedEmptyState extends ConsumerWidget {
       child: Text(
         'No contacts available',
         style: TextStyle(color: colors.content.textSecondary, fontSize: 13),
+      ),
+    );
+  }
+}
+
+class _FavouritesEmptyState extends ConsumerWidget {
+  const _FavouritesEmptyState();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the brightness state to trigger rebuilds
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MacosIcon(
+            CupertinoIcons.star,
+            size: 32,
+            color: colors.content.textTertiary,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No favourites yet',
+            style: TextStyle(color: colors.content.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Star contacts to add them here',
+            style: TextStyle(color: colors.content.textTertiary, fontSize: 11),
+          ),
+        ],
       ),
     );
   }
