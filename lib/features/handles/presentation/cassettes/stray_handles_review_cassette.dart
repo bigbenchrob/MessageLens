@@ -78,8 +78,7 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           separatorBuilder: (_, __) => Divider(
             height: 1,
             color: colors.lines.border,
-            indent: 12,
-            endIndent: 12,
+            // No indent - card wrapper provides horizontal inset
           ),
           itemBuilder: (context, index) {
             final handle = filtered[index];
@@ -230,11 +229,11 @@ class _StrayHandleRow extends ConsumerWidget {
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          // Data container: symmetric left padding, conditional right inset for action
+          // Data container: no left padding (card wrapper provides inset)
+          // Conditional right inset to keep action button from overlapping
           Padding(
             padding: EdgeInsets.only(
-              left: 12,
-              right: hasAction ? 44 : 12, // 44 = 12 + 32 action-safe inset
+              right: hasAction ? 32 : 0, // action-safe inset only
               top: 8,
               bottom: 8,
             ),
@@ -340,10 +339,10 @@ class _StrayHandleRow extends ConsumerWidget {
             ),
           ),
 
-          // Action button overlay (outside data flow, positioned at right edge)
+          // Action button overlay (outside data flow)
           if (showDismiss || showRestore)
             Positioned(
-              right: 8,
+              right: 0,
               top: 0,
               bottom: 0,
               child: Center(
