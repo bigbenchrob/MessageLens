@@ -7,7 +7,7 @@ part of 'stray_handles_review_cassette_builder_provider.dart';
 // **************************************************************************
 
 String _$strayHandlesReviewCassetteBuilderHash() =>
-    r'2ec23ee2de4041f955215288e2895874eb6514b0';
+    r'3a5a457f86f8959cdd2a77a4e7de1b43f8b42357';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -149,6 +149,7 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
               isControl: viewModel.isControl,
               isNaked: viewModel.isNaked,
               shouldExpand: viewModel.shouldExpand,
+              layoutStyle: viewModel.layoutStyle,
               child: viewModel.child,
             ),
           );

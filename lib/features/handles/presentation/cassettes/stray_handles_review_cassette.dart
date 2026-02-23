@@ -274,7 +274,9 @@ class _StrayHandleRow extends ConsumerWidget {
                             // Spam rows: tint handle with warning color
                             // Normal rows: standard primary text
                             color: showSpamBadge
-                                ? spamTint.withValues(alpha: contentAlpha * 0.85)
+                                ? spamTint.withValues(
+                                    alpha: contentAlpha * 0.85,
+                                  )
                                 : colors.content.textPrimary.withValues(
                                     alpha: contentAlpha,
                                   ),

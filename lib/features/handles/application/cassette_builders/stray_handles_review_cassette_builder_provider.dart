@@ -18,7 +18,8 @@ SidebarCassetteCardViewModel strayHandlesReviewCassetteBuilder(
 
   return SidebarCassetteCardViewModel(
     title: '', // No card title - use sectionTitle for tighter spacing
-    sectionTitle: sectionHeader, // 12pt gap to first row
+    sectionTitle: sectionHeader,
+    layoutStyle: SidebarCardLayoutStyle.listDense, // Space-efficient rails
     shouldExpand: true,
     child: StrayHandlesReviewCassette(filter: filter, mode: mode),
   );
