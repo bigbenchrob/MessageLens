@@ -255,7 +255,10 @@ class _StrayHandleRow extends ConsumerWidget {
                             : colors.content.textPrimary.withValues(
                                 alpha: contentAlpha,
                               ),
-                        fontWeight: FontWeight.w500,
+                        // Spam: slightly lighter weight (less substantial)
+                        // Normal: medium weight
+                        fontWeight:
+                            showSpamBadge ? FontWeight.w400 : FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
