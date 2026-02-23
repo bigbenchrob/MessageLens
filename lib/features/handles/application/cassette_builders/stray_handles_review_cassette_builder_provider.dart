@@ -31,7 +31,7 @@ String _buildTitle(StrayHandleFilter filter, StrayHandleMode mode) {
   };
 
   return switch (mode) {
-    StrayHandleMode.allStrays => 'Stray $filterLabel',
+    StrayHandleMode.allStrays => 'Unfamiliar $filterLabel',
     StrayHandleMode.spamCandidates => 'Spam $filterLabel',
     StrayHandleMode.dismissed => 'Dismissed $filterLabel',
   };

@@ -15,7 +15,7 @@ SidebarCassetteCardViewModel strayHandlesTypeSwitcherCassetteBuilder(
   required int cassetteIndex,
 }) {
   return SidebarCassetteCardViewModel(
-    title: 'Handle Type',
+    title: '', // Intentionally empty - control is self-explanatory
     shouldExpand: false,
     child: StrayHandlesTypeSwitcherCassette(
       selectedFilter: selectedFilter,

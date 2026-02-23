@@ -7,7 +7,6 @@ import '../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../essentials/sidebar/domain/entities/cassette_spec.dart';
 import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../../../essentials/sidebar/feature_level_providers.dart';
-import '../../infrastructure/repositories/stray_handles_provider.dart';
 
 /// A segmented control for selecting which type of stray handles to review:
 /// Phone numbers, Email addresses, or Business URNs.
@@ -30,29 +29,6 @@ class StrayHandlesTypeSwitcherCassette extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
-    // Get counts for badges
-    final allStraysAsync = ref.watch(strayHandlesProvider);
-
-    // Filter counts by type
-    int? filterCount(StrayHandleFilter filter) {
-      final handles = allStraysAsync.valueOrNull;
-      if (handles == null) {
-        return null;
-      }
-      final filtered = switch (filter) {
-        StrayHandleFilter.businessUrns =>
-          handles.where((h) => h.handleValue.startsWith('urn:')),
-        StrayHandleFilter.emails =>
-          handles.where((h) => h.handleValue.contains('@')),
-        StrayHandleFilter.phones => handles.where(
-          (h) =>
-              !h.handleValue.contains('@') &&
-              !h.handleValue.startsWith('urn:'),
-        ),
-      };
-      return filtered.length;
-    }
-
     void handleFilterChange(StrayHandleFilter newFilter) {
       // Build new spec with updated filter and cascade
       final newSpec = CassetteSpec.handles(
@@ -70,24 +46,25 @@ class StrayHandlesTypeSwitcherCassette extends ConsumerWidget {
         groupValue: selectedFilter,
         onValueChanged: handleFilterChange,
         padding: const EdgeInsets.all(2),
+        // Use neutral gray for unselected border/separator
+        unselectedColor: colors.surfaces.surface,
+        borderColor: colors.lines.border,
+        pressedColor: colors.surfaces.hover,
         children: {
           StrayHandleFilter.phones: _SegmentContent(
             label: 'Phone #',
-            count: filterCount(StrayHandleFilter.phones),
             isSelected: selectedFilter == StrayHandleFilter.phones,
             colors: colors,
             typography: typography,
           ),
           StrayHandleFilter.emails: _SegmentContent(
             label: 'Email',
-            count: filterCount(StrayHandleFilter.emails),
             isSelected: selectedFilter == StrayHandleFilter.emails,
             colors: colors,
             typography: typography,
           ),
           StrayHandleFilter.businessUrns: _SegmentContent(
             label: 'Business',
-            count: filterCount(StrayHandleFilter.businessUrns),
             isSelected: selectedFilter == StrayHandleFilter.businessUrns,
             colors: colors,
             typography: typography,
@@ -104,11 +81,9 @@ class _SegmentContent extends StatelessWidget {
     required this.isSelected,
     required this.colors,
     required this.typography,
-    this.count,
   });
 
   final String label;
-  final int? count;
   final bool isSelected;
   final ThemeColors colors;
   final ThemeTypography typography;
@@ -116,39 +91,18 @@ class _SegmentContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: typography.caption.copyWith(
-              color: isSelected
-                  ? colors.content.textPrimary
-                  : colors.content.textSecondary,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 12,
-            ),
-          ),
-          if (count != null && count! > 0) ...[
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: colors.surfaces.hover,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$count',
-                style: typography.caption.copyWith(
-                  color: colors.content.textTertiary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Text(
+        label,
+        style: typography.caption.copyWith(
+          // Selected segment has blue background, so use white text
+          // Unselected uses secondary text color
+          color: isSelected
+              ? CupertinoColors.white
+              : colors.content.textSecondary,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          fontSize: 12,
+        ),
       ),
     );
   }

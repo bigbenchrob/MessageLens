@@ -127,22 +127,22 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
   String get _emptyMessage => switch (mode) {
     StrayHandleMode.allStrays => switch (filter) {
       StrayHandleFilter.phones =>
-        'No stray phone numbers found.\nAll phone handles are linked to contacts.',
+        'No unfamiliar phone numbers found.\nAll are linked to contacts.',
       StrayHandleFilter.emails =>
-        'No stray email addresses found.\nAll email handles are linked to contacts.',
+        'No unfamiliar email addresses found.\nAll are linked to contacts.',
       StrayHandleFilter.businessUrns =>
-        'No stray business accounts found.\nAll business URNs are linked to contacts.',
+        'No unfamiliar business accounts found.\nAll are linked to contacts.',
     },
     StrayHandleMode.spamCandidates => switch (filter) {
       StrayHandleFilter.phones =>
-        'No spam candidates found.\nNo short codes or one-off messages detected.',
+        'No spam candidates.\nNo short codes or one-off messages detected.',
       StrayHandleFilter.emails =>
-        'No spam candidates found.\nNo one-off email addresses detected.',
+        'No spam candidates.\nNo one-off email addresses detected.',
       StrayHandleFilter.businessUrns =>
-        'No spam candidates found.\nNo one-off business accounts detected.',
+        'No spam candidates.\nNo one-off business accounts detected.',
     },
     StrayHandleMode.dismissed =>
-      'No dismissed handles.\nHandles you dismiss will appear here.',
+      'No dismissed items.\nItems you dismiss will appear here.',
   };
 
   void _openHandleLens(WidgetRef ref, int handleId) {
@@ -210,86 +210,95 @@ class _StrayHandleRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            // Handle value + last date
+            // Handle value (with optional spam badge)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      if (showSpamBadge) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.accents.primary.withValues(
-                              alpha: 0.15,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'SPAM',
-                            style: typography.caption.copyWith(
-                              color: colors.accents.primary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      Expanded(
-                        child: Text(
-                          handle.handleValue,
-                          style: typography.body.copyWith(
-                            color: colors.content.textPrimary.withValues(
-                              alpha: contentAlpha,
-                            ),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  if (showSpamBadge) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
                       ),
-                    ],
-                  ),
-                  if (handle.lastMessageDate != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatDate(handle.lastMessageDate!),
-                      style: typography.caption.copyWith(
+                      decoration: BoxDecoration(
+                        // Reduced visual weight: softer background
                         color: colors.content.textTertiary.withValues(
-                          alpha: contentAlpha,
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        'SPAM',
+                        style: typography.caption.copyWith(
+                          // Reduced visual weight: use tertiary color
+                          color: colors.content.textTertiary,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 6),
                   ],
+                  Expanded(
+                    child: Text(
+                      handle.handleValue,
+                      style: typography.body.copyWith(
+                        color: colors.content.textPrimary.withValues(
+                          alpha: contentAlpha,
+                        ),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(width: 8),
 
-            // Message count badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: colors.surfaces.hover,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '${handle.totalMessages}',
-                style: typography.caption.copyWith(
-                  color: colors.content.textSecondary.withValues(
-                    alpha: contentAlpha,
+            // Metadata cluster: message count + last date
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Message count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
                   ),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  decoration: BoxDecoration(
+                    color: colors.surfaces.hover,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${handle.totalMessages}',
+                    style: typography.caption.copyWith(
+                      color: colors.content.textSecondary.withValues(
+                        alpha: contentAlpha,
+                      ),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
-              ),
+                // Last message date (reduced visual prominence)
+                if (handle.lastMessageDate != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(handle.lastMessageDate!),
+                    style: typography.caption.copyWith(
+                      color: colors.content.textTertiary.withValues(
+                        alpha: contentAlpha * 0.8,
+                      ),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ],
             ),
 
             // Reviewed indicator
@@ -302,27 +311,23 @@ class _StrayHandleRow extends ConsumerWidget {
               ),
             ],
 
-            // Dismiss button (always visible in spam mode, hover in all strays)
+            // Dismiss button (for spam candidates)
             if (onDismiss != null &&
                 (mode == StrayHandleMode.spamCandidates ||
                     handle.junkScore >= 3)) ...[
-              const SizedBox(width: 6),
-              _ActionButton(
-                icon: CupertinoIcons.xmark_circle_fill,
-                color: colors.accents.secondary,
-                tooltip: 'Dismiss handle',
+              const SizedBox(width: 8),
+              _DismissButton(
                 onPressed: onDismiss!,
+                colors: colors,
               ),
             ],
 
             // Restore button (dismissed mode only)
             if (onRestore != null) ...[
-              const SizedBox(width: 6),
-              _ActionButton(
-                icon: CupertinoIcons.arrow_uturn_left_circle_fill,
-                color: colors.accents.tertiary,
-                tooltip: 'Restore handle',
+              const SizedBox(width: 8),
+              _RestoreButton(
                 onPressed: onRestore!,
+                colors: colors,
               ),
             ],
           ],
@@ -347,27 +352,106 @@ class _StrayHandleRow extends ConsumerWidget {
   }
 }
 
-/// Small icon button for row actions (dismiss/restore).
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    required this.color,
-    required this.tooltip,
+/// Dismiss button with destructive styling and hover state.
+class _DismissButton extends StatefulWidget {
+  const _DismissButton({
     required this.onPressed,
+    required this.colors,
   });
 
-  final IconData icon;
-  final Color color;
-  final String tooltip;
   final VoidCallback onPressed;
+  final ThemeColors colors;
+
+  @override
+  State<_DismissButton> createState() => _DismissButtonState();
+}
+
+class _DismissButtonState extends State<_DismissButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
+    // Destructive accent: subtle red tones
+    final baseColor = widget.colors.accents.secondary;
+    final bgAlpha = _isPressed ? 0.25 : (_isHovered ? 0.15 : 0.08);
+    final iconAlpha = _isPressed ? 1.0 : (_isHovered ? 0.9 : 0.6);
+
     return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Icon(icon, size: 18, color: color.withValues(alpha: 0.7)),
+      message: 'Dismiss',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTap: widget.onPressed,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: bgAlpha),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              CupertinoIcons.xmark,
+              size: 12,
+              color: baseColor.withValues(alpha: iconAlpha),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Restore button with hover state.
+class _RestoreButton extends StatefulWidget {
+  const _RestoreButton({
+    required this.onPressed,
+    required this.colors,
+  });
+
+  final VoidCallback onPressed;
+  final ThemeColors colors;
+
+  @override
+  State<_RestoreButton> createState() => _RestoreButtonState();
+}
+
+class _RestoreButtonState extends State<_RestoreButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = widget.colors.accents.tertiary;
+    final bgAlpha = _isPressed ? 0.25 : (_isHovered ? 0.15 : 0.08);
+    final iconAlpha = _isPressed ? 1.0 : (_isHovered ? 0.9 : 0.6);
+
+    return Tooltip(
+      message: 'Restore',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTap: widget.onPressed,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: bgAlpha),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              CupertinoIcons.arrow_uturn_left,
+              size: 12,
+              color: baseColor.withValues(alpha: iconAlpha),
+            ),
+          ),
+        ),
       ),
     );
   }

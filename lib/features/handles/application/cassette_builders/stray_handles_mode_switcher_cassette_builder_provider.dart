@@ -14,7 +14,7 @@ SidebarCassetteCardViewModel strayHandlesModeSwitcherCassetteBuilder(
   required StrayHandleFilter filter,
 }) {
   return SidebarCassetteCardViewModel(
-    title: 'Triage Mode',
+    title: 'Show:',
     shouldExpand: false,
     child: StrayHandlesModeSwitcherCassette(filter: filter),
   );
