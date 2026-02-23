@@ -209,6 +209,14 @@ class _StrayHandleRow extends ConsumerWidget {
     // Using coral-red for instant spam recognition during blitz cleanup
     const spamTint = Color(0xFFD64545);
 
+    // Show dismiss button for spam candidates
+    final showDismiss = onDismiss != null &&
+        (mode == StrayHandleMode.spamCandidates || handle.junkScore >= 3);
+
+    // Fixed widths for aligned columns
+    const metadataWidth = 52.0; // Message count + date
+    const actionColumnWidth = 36.0; // Dismiss/restore button or empty space
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -271,71 +279,79 @@ class _StrayHandleRow extends ConsumerWidget {
 
             const SizedBox(width: 8),
 
-            // Metadata cluster: message count + last date
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Message count badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surfaces.hover,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${handle.totalMessages}',
-                    style: typography.caption.copyWith(
-                      color: colors.content.textSecondary.withValues(
-                        alpha: contentAlpha,
+            // Fixed-width metadata column (aligned across all rows)
+            SizedBox(
+              width: metadataWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Message count badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaces.hover,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${handle.totalMessages}',
+                      style: typography.caption.copyWith(
+                        color: colors.content.textSecondary.withValues(
+                          alpha: contentAlpha,
+                        ),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
                       ),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
                     ),
                   ),
-                ),
-                // Last message date (reduced visual prominence)
-                if (handle.lastMessageDate != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(handle.lastMessageDate!),
-                    style: typography.caption.copyWith(
-                      color: colors.content.textTertiary.withValues(
-                        alpha: contentAlpha * 0.8,
+                  // Last message date (reduced visual prominence)
+                  if (handle.lastMessageDate != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(handle.lastMessageDate!),
+                      style: typography.caption.copyWith(
+                        color: colors.content.textTertiary.withValues(
+                          alpha: contentAlpha * 0.8,
+                        ),
+                        fontSize: 10,
                       ),
-                      fontSize: 10,
                     ),
-                  ),
+                  ],
+                  // Reviewed indicator (within metadata column)
+                  if (isReviewed && mode != StrayHandleMode.dismissed) ...[
+                    const SizedBox(height: 2),
+                    Icon(
+                      CupertinoIcons.checkmark_circle,
+                      size: 12,
+                      color: colors.content.textTertiary.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
 
-            // Reviewed indicator
-            if (isReviewed && mode != StrayHandleMode.dismissed) ...[
-              const SizedBox(width: 6),
-              Icon(
-                CupertinoIcons.checkmark_circle,
-                size: 14,
-                color: colors.content.textTertiary.withValues(alpha: 0.5),
+            // Divider between metadata and action column
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Container(
+                width: 1,
+                height: 24,
+                color: colors.lines.dividerQuiet,
               ),
-            ],
+            ),
 
-            // Dismiss button (for spam candidates)
-            if (onDismiss != null &&
-                (mode == StrayHandleMode.spamCandidates ||
-                    handle.junkScore >= 3)) ...[
-              const SizedBox(width: 8),
-              _DismissButton(onPressed: onDismiss!),
-            ],
-
-            // Restore button (dismissed mode only)
-            if (onRestore != null) ...[
-              const SizedBox(width: 8),
-              _RestoreButton(onPressed: onRestore!, colors: colors),
-            ],
+            // Fixed-width action column (always present, conditionally populated)
+            SizedBox(
+              width: actionColumnWidth,
+              child: showDismiss
+                  ? _DismissButton(onPressed: onDismiss!)
+                  : onRestore != null
+                      ? _RestoreButton(onPressed: onRestore!, colors: colors)
+                      : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
