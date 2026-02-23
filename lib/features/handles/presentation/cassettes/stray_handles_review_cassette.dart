@@ -205,9 +205,9 @@ class _StrayHandleRow extends ConsumerWidget {
     final showSpamBadge =
         handle.junkScore >= 3 && mode != StrayHandleMode.dismissed;
 
-    // Muted warning/destructive hue for spam rows
-    // Using coral-red for instant spam recognition during blitz cleanup
-    const spamTint = Color(0xFFD64545);
+    // Muted warning hue for spam rows - desaturated so dismiss button is strongest red
+    // Using brownish-red for badge/text, keeps visual hierarchy clear
+    const spamTint = Color(0xFFA05050); // Muted, desaturated red-brown
 
     return GestureDetector(
       onTap: onTap,
@@ -257,8 +257,9 @@ class _StrayHandleRow extends ConsumerWidget {
                               ),
                         // Spam: slightly lighter weight (less substantial)
                         // Normal: medium weight
-                        fontWeight:
-                            showSpamBadge ? FontWeight.w400 : FontWeight.w500,
+                        fontWeight: showSpamBadge
+                            ? FontWeight.w400
+                            : FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -373,31 +374,31 @@ class _DismissButtonState extends State<_DismissButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Neutral surface at rest, destructive accent on interaction
-    // Button-like appearance with larger hit area
+    // Red X on neutral surface at rest - action is clear without hover
+    // Hover/pressed reinforce, not redefine
     const destructiveRed = Color(0xFFD64545);
     const neutralGray = Color(0xFF8E8E93); // System gray
 
-    // Background: neutral at rest, red-tinted on hover/press
+    // Background: neutral at rest, slight darkening on hover/press
     final bgColor = _isPressed
-        ? destructiveRed.withValues(alpha: 0.20)
+        ? neutralGray.withValues(alpha: 0.18)
         : _isHovered
-            ? destructiveRed.withValues(alpha: 0.12)
+            ? neutralGray.withValues(alpha: 0.12)
             : neutralGray.withValues(alpha: 0.08);
 
-    // Border: subtle at rest, red on interaction
+    // Border: subtle at rest, slightly stronger on interaction
     final borderColor = _isPressed
-        ? destructiveRed.withValues(alpha: 0.40)
+        ? neutralGray.withValues(alpha: 0.35)
         : _isHovered
-            ? destructiveRed.withValues(alpha: 0.30)
+            ? neutralGray.withValues(alpha: 0.28)
             : neutralGray.withValues(alpha: 0.20);
 
-    // Icon: neutral at rest, red on interaction
+    // Icon: RED at rest, intensifies on hover/press
     final iconColor = _isPressed
         ? destructiveRed
         : _isHovered
-            ? destructiveRed.withValues(alpha: 0.90)
-            : neutralGray.withValues(alpha: 0.65);
+            ? destructiveRed.withValues(alpha: 0.95)
+            : destructiveRed.withValues(alpha: 0.75);
 
     return Tooltip(
       message: 'Dismiss handle',
@@ -418,11 +419,7 @@ class _DismissButtonState extends State<_DismissButton> {
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: borderColor, width: 0.5),
             ),
-            child: Icon(
-              CupertinoIcons.xmark,
-              size: 10,
-              color: iconColor,
-            ),
+            child: Icon(CupertinoIcons.xmark, size: 10, color: iconColor),
           ),
         ),
       ),
