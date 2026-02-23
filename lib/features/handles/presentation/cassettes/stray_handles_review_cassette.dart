@@ -205,9 +205,9 @@ class _StrayHandleRow extends ConsumerWidget {
     final showSpamBadge =
         handle.junkScore >= 3 && mode != StrayHandleMode.dismissed;
 
-    // Muted warning hue for spam rows - desaturated so dismiss button is strongest red
-    // Using brownish-red for badge/text, keeps visual hierarchy clear
-    const spamTint = Color(0xFFA05050); // Muted, desaturated red-brown
+    // Muted warning/destructive hue for spam rows
+    // Using coral-red for instant spam recognition during blitz cleanup
+    const spamTint = Color(0xFFD64545);
 
     return GestureDetector(
       onTap: onTap,
@@ -383,22 +383,22 @@ class _DismissButtonState extends State<_DismissButton> {
     final bgColor = _isPressed
         ? neutralGray.withValues(alpha: 0.18)
         : _isHovered
-            ? neutralGray.withValues(alpha: 0.12)
-            : neutralGray.withValues(alpha: 0.08);
+        ? neutralGray.withValues(alpha: 0.12)
+        : neutralGray.withValues(alpha: 0.08);
 
     // Border: subtle at rest, slightly stronger on interaction
     final borderColor = _isPressed
         ? neutralGray.withValues(alpha: 0.35)
         : _isHovered
-            ? neutralGray.withValues(alpha: 0.28)
-            : neutralGray.withValues(alpha: 0.20);
+        ? neutralGray.withValues(alpha: 0.28)
+        : neutralGray.withValues(alpha: 0.20);
 
     // Icon: RED at rest, intensifies on hover/press
     final iconColor = _isPressed
         ? destructiveRed
         : _isHovered
-            ? destructiveRed.withValues(alpha: 0.95)
-            : destructiveRed.withValues(alpha: 0.75);
+        ? destructiveRed.withValues(alpha: 0.95)
+        : destructiveRed.withValues(alpha: 0.75);
 
     return Tooltip(
       message: 'Dismiss handle',
