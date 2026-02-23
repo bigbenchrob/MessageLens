@@ -74,8 +74,14 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
           padding: const EdgeInsets.only(top: 2),
           itemCount: filtered.length,
-          separatorBuilder: (_, __) =>
-              Divider(height: 1, color: colors.lines.border),
+          // Dividers inset on right to end before action column
+          // Action sits outside the data, so dividers don't extend under it
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            color: colors.lines.border,
+            indent: 12,
+            endIndent: 48, // Clear action column (36pt + 12pt padding)
+          ),
           itemBuilder: (context, index) {
             final handle = filtered[index];
             return _StrayHandleRow(
@@ -210,12 +216,12 @@ class _StrayHandleRow extends ConsumerWidget {
     const spamTint = Color(0xFFD64545);
 
     // Show dismiss button for spam candidates
-    final showDismiss = onDismiss != null &&
+    final showDismiss =
+        onDismiss != null &&
         (mode == StrayHandleMode.spamCandidates || handle.junkScore >= 3);
 
-    // Fixed widths for aligned columns
-    const metadataWidth = 52.0; // Message count + date
-    const actionColumnWidth = 36.0; // Dismiss/restore button or empty space
+    // Action column width (dismiss/restore sits outside the data flow)
+    const actionColumnWidth = 36.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -279,77 +285,74 @@ class _StrayHandleRow extends ConsumerWidget {
 
             const SizedBox(width: 8),
 
-            // Fixed-width metadata column (aligned across all rows)
-            SizedBox(
-              width: metadataWidth,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Message count badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.surfaces.hover,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${handle.totalMessages}',
-                      style: typography.caption.copyWith(
-                        color: colors.content.textSecondary.withValues(
-                          alpha: contentAlpha,
-                        ),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
+            // Metadata (message count + date) - flows naturally, right-aligned
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Message count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surfaces.hover,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${handle.totalMessages}',
+                    style: typography.caption.copyWith(
+                      color: colors.content.textSecondary.withValues(
+                        alpha: contentAlpha,
                       ),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
                   ),
-                  // Last message date (reduced visual prominence)
-                  if (handle.lastMessageDate != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatDate(handle.lastMessageDate!),
-                      style: typography.caption.copyWith(
-                        color: colors.content.textTertiary.withValues(
-                          alpha: contentAlpha * 0.8,
-                        ),
-                        fontSize: 10,
+                ),
+                // Last message date (reduced visual prominence)
+                if (handle.lastMessageDate != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(handle.lastMessageDate!),
+                    style: typography.caption.copyWith(
+                      color: colors.content.textTertiary.withValues(
+                        alpha: contentAlpha * 0.8,
                       ),
+                      fontSize: 10,
                     ),
-                  ],
-                  // Reviewed indicator (within metadata column)
-                  if (isReviewed && mode != StrayHandleMode.dismissed) ...[
-                    const SizedBox(height: 2),
-                    Icon(
-                      CupertinoIcons.checkmark_circle,
-                      size: 12,
-                      color: colors.content.textTertiary.withValues(alpha: 0.5),
-                    ),
-                  ],
+                  ),
                 ],
-              ),
+                // Reviewed indicator
+                if (isReviewed && mode != StrayHandleMode.dismissed) ...[
+                  const SizedBox(height: 2),
+                  Icon(
+                    CupertinoIcons.checkmark_circle,
+                    size: 12,
+                    color: colors.content.textTertiary.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
             ),
 
-            // Divider between metadata and action column
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Container(
-                width: 1,
-                height: 24,
-                color: colors.lines.dividerQuiet,
-              ),
-            ),
-
-            // Fixed-width action column (always present, conditionally populated)
+            // Action column (dismiss/restore) - sits outside the data flow
+            // No vertical divider; action reads as external to the row data
             SizedBox(
               width: actionColumnWidth,
               child: showDismiss
-                  ? _DismissButton(onPressed: onDismiss!)
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _DismissButton(onPressed: onDismiss!),
+                    )
                   : onRestore != null
-                      ? _RestoreButton(onPressed: onRestore!, colors: colors)
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: _RestoreButton(
+                            onPressed: onRestore!,
+                            colors: colors,
+                          ),
+                        )
                       : const SizedBox.shrink(),
             ),
           ],
