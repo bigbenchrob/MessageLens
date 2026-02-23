@@ -146,24 +146,18 @@ class SidebarCassetteCard extends ConsumerWidget {
     if (layoutStyle != null) {
       return switch (layoutStyle!) {
         SidebarCardLayoutStyle.standard => (
-            const EdgeInsets.symmetric(
-              vertical: AppSpacing.sm,
-              horizontal: AppSpacing.md,
-            ),
-            const EdgeInsets.all(AppSpacing.md),
-            AppSpacing.sm,
+          const EdgeInsets.symmetric(
+            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.md,
           ),
+          const EdgeInsets.all(AppSpacing.md),
+          AppSpacing.sm,
+        ),
         SidebarCardLayoutStyle.listDense => (
-            const EdgeInsets.symmetric(
-              vertical: AppSpacing.xs,
-              horizontal: 0,
-            ),
-            const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: AppSpacing.sm,
-            ),
-            AppSpacing.xs,
-          ),
+          const EdgeInsets.symmetric(vertical: AppSpacing.xs, horizontal: 0),
+          const EdgeInsets.symmetric(horizontal: 12, vertical: AppSpacing.sm),
+          AppSpacing.xs,
+        ),
       };
     }
 
@@ -185,10 +179,6 @@ class SidebarCassetteCard extends ConsumerWidget {
     }
 
     // Legacy: use provided margin/padding
-    return (
-      margin as EdgeInsets,
-      padding as EdgeInsets,
-      AppSpacing.sm,
-    );
+    return (margin as EdgeInsets, padding as EdgeInsets, AppSpacing.sm);
   }
 }

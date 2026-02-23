@@ -1,0 +1,51 @@
+you’ve lost the second half of the original plan:
+
+Dismiss button in a dedicated action column (stable, right-aligned, visually “outside” the data).
+
+Right now the X is drifting into the data region again, because we haven’t reinstated a clear action gutter + column alignment rule.
+
+Here’s how to get back to the original plan without re-compressing the list.
+
+⸻
+
+What we want (authoritative)
+	•	Data region: full, calm, aligned columns (number/badges + metadata)
+	•	Action column: a narrow, fixed “gutter” on the far right
+	•	Dividers: end at the data region edge (stop before the action gutter)
+	•	Dismiss button: anchored in that gutter, aligned across rows
+	•	Non-spam rows: no X, but the gutter still exists (empty)
+
+This gives calm alignment and keeps the action visually separate.
+
+⸻
+
+Implementation: add an “action gutter” (small, fixed) + pin the overlay into it
+
+1) Define a constant gutter width
+
+Pick a value that fits your button + breathing room:
+	•	actionGutterWidth = 40pt  (good default: 24pt button + 8pt padding on each side)
+
+2) Apply that gutter ONLY as trailing padding to the row’s data content
+
+This prevents overlap and makes the data stop before the action column.
+	•	Row content padding:
+	•	left: 0 (already handled by card)
+	•	right: actionGutterWidth
+
+Key: this is not “compression”; it’s a deliberate separation of “information” vs “actions.”
+
+3) Keep the dismiss button as an overlay, but anchor it to the far-right gutter
+
+Position relative to the row bounds:
+	•	right = 0 (or right = 4–8pt if you want a little outer air)
+	•	vertical center
+
+So the X is always in the same x-position across rows.
+
+4) Dividers must stop at the data edge
+
+Set divider end indent to match the data’s trailing padding:
+	•	dividerEndIndent = actionGutterWidth
+
+Now the divider visually defines “data ends here,” and the button reads as outside.

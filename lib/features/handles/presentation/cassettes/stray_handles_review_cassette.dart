@@ -32,6 +32,11 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
     super.key,
   });
 
+  /// Fixed-width trailing gutter for action buttons.
+  /// All rows reserve this space - data stops, action buttons live here.
+  /// 40pt = 24pt button + 8pt padding on each side.
+  static const double actionGutterWidth = 40;
+
   final StrayHandleFilter filter;
   final StrayHandleMode mode;
 
@@ -74,11 +79,11 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
           padding: const EdgeInsets.only(top: 2),
           itemCount: filtered.length,
-          // Symmetric divider insets - action button overlays on top
-          separatorBuilder: (_, __) => Divider(
+          // Dividers stop at the data boundary (before action gutter)
+          separatorBuilder: (_, __) => const Divider(
             height: 1,
-            color: colors.lines.border,
-            // No indent - card wrapper provides horizontal inset
+            indent: 0,
+            endIndent: actionGutterWidth,
           ),
           itemBuilder: (context, index) {
             final handle = filtered[index];
@@ -221,19 +226,16 @@ class _StrayHandleRow extends ConsumerWidget {
     // Show restore button for dismissed mode
     final showRestore = onRestore != null;
 
-    // Whether an action button will be shown (affects data padding)
-    final hasAction = showDismiss || showRestore;
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
           // Data container: no left padding (card wrapper provides inset)
-          // Conditional right inset to keep action button from overlapping
+          // Fixed right inset reserves action gutter for all rows
           Padding(
-            padding: EdgeInsets.only(
-              right: hasAction ? 32 : 0, // action-safe inset only
+            padding: const EdgeInsets.only(
+              right: StrayHandlesReviewCassette.actionGutterWidth,
               top: 8,
               bottom: 8,
             ),
