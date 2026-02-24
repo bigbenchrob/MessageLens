@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/util/paths_helper.dart';
 import '../../../providers.dart';
 import '../../db_importers/domain/value_objects/db_import_stage.dart';
+import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../domain/db_onboarding_phase.dart';
 import '../domain/db_onboarding_state.dart';
 
@@ -20,7 +21,57 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
   @override
   DbOnboardingState build() {
+    // Listen to import control state changes and update onboarding phases
+    ref.listen<DbImportControlState>(
+      dbImportControlViewModelProvider,
+      (previous, next) => _handleImportControlChange(previous, next),
+    );
+
     return DbOnboardingState.initial();
+  }
+
+  /// React to import/migration control state changes.
+  void _handleImportControlChange(
+    DbImportControlState? previous,
+    DbImportControlState next,
+  ) {
+    // Only update if onboarding is active (not complete, not error)
+    if (state.currentPhase == DbOnboardingPhase.complete ||
+        state.currentPhase == DbOnboardingPhase.error) {
+      return;
+    }
+
+    // Update progress percentage
+    if (next.progress != null) {
+      state = state.copyWith(progressPercent: next.progress);
+    }
+
+    // Map current stage to onboarding phase
+    final stageName = next.currentStage;
+    if (stageName == null) {
+      return;
+    }
+
+    // Try to find matching import stage
+    final importStage = DbImportStage.values
+        .where((s) => s.key == stageName)
+        .firstOrNull;
+
+    if (importStage != null) {
+      updateFromImportStage(importStage);
+    }
+
+    // Handle completion state
+    final lastImport = next.lastImportResult;
+    final lastMigration = next.lastMigrationResult;
+
+    if (lastMigration?.success == true) {
+      markComplete();
+    } else if (lastImport?.success == false) {
+      setError(lastImport?.error ?? 'Import failed');
+    } else if (lastMigration?.success == false) {
+      setError(lastMigration?.error ?? 'Migration failed');
+    }
   }
 
   /// Start the onboarding flow.
