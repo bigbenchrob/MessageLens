@@ -73,6 +73,7 @@ class ContactChooserResolver extends _$ContactChooserResolver {
       title: '',
       subtitle: null,
       shouldExpand: true,
+      layoutStyle: SidebarCardLayoutStyle.listDense,
       child: mainPicker,
     );
   }

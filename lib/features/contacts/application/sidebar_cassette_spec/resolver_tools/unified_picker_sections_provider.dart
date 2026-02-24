@@ -101,8 +101,9 @@ Future<UnifiedPickerSections> unifiedPickerSections(Ref ref) async {
       final letter = contact.displayName.isNotEmpty
           ? contact.displayName[0].toUpperCase()
           : '#';
-      final normalizedLetter =
-          RegExp(r'^[A-Z]$').hasMatch(letter) ? letter : '#';
+      final normalizedLetter = RegExp(r'^[A-Z]$').hasMatch(letter)
+          ? letter
+          : '#';
       (favoritesByLetter[normalizedLetter] ??= []).add(contact);
     }
 
@@ -114,9 +115,8 @@ Future<UnifiedPickerSections> unifiedPickerSections(Ref ref) async {
       final contacts = favoritesByLetter[letter]!;
       // Sort contacts within each letter group
       contacts.sort(
-        (a, b) => a.displayName.toLowerCase().compareTo(
-          b.displayName.toLowerCase(),
-        ),
+        (a, b) =>
+            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
       );
       alphabeticalLetters.add(letter);
       sections.add(
