@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../../config/theme/theme_typography.dart';
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../../essentials/db/shared/handle_identifier_utils.dart';
 import '../../../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../../../essentials/navigation/domain/sidebar_mode.dart';
@@ -268,7 +269,7 @@ class _StrayHandleRow extends ConsumerWidget {
                       ],
                       Expanded(
                         child: Text(
-                          handle.handleValue,
+                          formatPhoneNumberForDisplay(handle.handleValue),
                           style: typography.body.copyWith(
                             // Spam rows: tint handle with warning color
                             // Normal rows: standard primary text
