@@ -1,0 +1,85 @@
+Yes — your plan makes sense, and the “this isn’t a wizard, it’s a first-run bootstrap status UI” distinction is exactly right.
+
+A few tweaks I’d suggest so it stays architecturally crisp and doesn’t accidentally become “a cassette feature pretending to be onboarding”:
+
+What you’re describing is a bootstrap gate, not user-driven onboarding
+
+It’s basically:
+	•	Guard condition: import/working DBs missing or empty
+	•	Automatic route: open a center panel “Setup / Import status” view
+	•	Progress reporting: a simplified, user-safe projection of the importer/migrator pipeline
+
+That’s totally fine to implement as a feature with its own spec + coordinator, but I’d treat the sidebar cassette as optional/secondary.
+
+Does “db_onboarding as an essentials feature” make sense?
+
+Yes, especially since it’s the umbrella over db_import and db_migrate concerns. The benefit is you get:
+	•	one place to own “first-run DB readiness” decisions
+	•	one view model that summarizes import/migration without exposing scary details
+	•	one progress persistence story (“setup started / in progress / complete”)
+
+Key point
+
+Make db_onboarding the orchestrator + presenter, but keep the heavy lifting where it belongs:
+	•	db_import remains responsible for importing
+	•	db_migrate remains responsible for schema/data migration
+	•	db_onboarding just coordinates and renders status
+
+The only part I’d reconsider: “add as a cassette setting”
+
+You can, but you don’t have to.
+
+Since it’s auto-triggered and “deeply buried,” the sidebar cassette may end up being dead weight and extra surface area.
+
+A clean compromise:
+	•	Primary entry: app bootstrap guard routes to DbOnboardingViewSpec in the center panel.
+	•	Secondary entry (optional): a hidden/advanced Settings row (“Database setup”) that only appears when:
+	•	setup incomplete, or
+	•	debug flag enabled, or
+	•	user holds Option / uses a hidden gesture
+
+If you still want it to live in “Essentials” for symmetry: that’s fine — just don’t make the sidebar cassette the conceptual anchor.
+
+Suggested structure that matches your spec philosophy
+
+Inside features/db_onboarding/:
+	•	domain/
+	•	db_onboarding_state.dart (NotStarted / Running / Completed / Failed + last error summary)
+	•	db_onboarding_progress.dart (user-facing phases)
+	•	application/
+	•	db_onboarding_bootstrap_guard.dart (the “DB absent/empty?” decision)
+	•	db_onboarding_coordinator.dart (produces view model + kicks off work if needed)
+	•	sidebar_cassette_spec/ (optional)
+	•	view_spec/ (yes — this is the important one)
+	•	presentation/
+	•	db_onboarding_panel.dart (center panel UI)
+	•	widgets/ (progress rows, spinner, “Open Full Logs” if you ever expose it)
+
+And in the app startup path:
+	•	AppBootstrapCoordinator (or equivalent) checks guard → routes to DbOnboardingViewSpec.
+
+Make the “simplified process view” a projection, not a mirror
+
+Have the importer/migrator emit rich internal progress, then map it to a small stable set of user-facing phases like:
+	•	Looking for Messages database…
+	•	Messages database found
+	•	Reading messages…
+	•	Looking for Contacts…
+	•	Contacts found
+	•	Linking contacts to chats…
+	•	Finalizing…
+
+That way you can refactor internals without changing the UI contract.
+
+One more practical recommendation: an escape hatch
+
+Even if you don’t want users to trigger it normally, you’ll thank yourself later if you include:
+	•	“Reset setup” (debug-only or hidden)
+	•	“Re-run scan” (only if safe)
+	•	A one-line diagnostic like “Last updated: …” and “Import DB present / Working DB present”
+
+This avoids “reinstall the app” during development and future support.
+
+⸻
+
+So: yes, your plan is coherent. I’d just frame it as a bootstrap readiness gate whose primary surface is a center panel view spec, with a sidebar cassette entry only if you want an optional backdoor.
