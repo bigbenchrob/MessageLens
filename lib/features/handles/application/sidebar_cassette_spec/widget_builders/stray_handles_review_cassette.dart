@@ -74,29 +74,35 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           );
         }
 
-        return ListView.separated(
-          // Let ListView fill the bounded height from shouldExpand: true
-          // and handle its own scrolling
-          // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
-          padding: const EdgeInsets.only(top: 2),
-          itemCount: filtered.length,
-          // Dividers stop at the data boundary (before action gutter)
-          separatorBuilder: (_, __) =>
-              const Divider(height: 1, indent: 0, endIndent: actionGutterWidth),
-          itemBuilder: (context, index) {
-            final handle = filtered[index];
-            return _StrayHandleRow(
-              handle: handle,
-              mode: mode,
-              onTap: () => _openHandleLens(ref, handle.handleId),
-              onDismiss: mode != StrayHandleMode.dismissed
-                  ? () => _dismissHandle(ref, handle)
-                  : null,
-              onRestore: mode == StrayHandleMode.dismissed
-                  ? () => _restoreHandle(ref, handle)
-                  : null,
-            );
-          },
+        return ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: ListView.separated(
+            // Let ListView fill the bounded height from shouldExpand: true
+            // and handle its own scrolling
+            // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
+            padding: const EdgeInsets.only(top: 2),
+            itemCount: filtered.length,
+            // Dividers stop at the data boundary (before action gutter)
+            separatorBuilder: (_, __) => const Divider(
+              height: 1,
+              indent: 0,
+              endIndent: actionGutterWidth,
+            ),
+            itemBuilder: (context, index) {
+              final handle = filtered[index];
+              return _StrayHandleRow(
+                handle: handle,
+                mode: mode,
+                onTap: () => _openHandleLens(ref, handle.handleId),
+                onDismiss: mode != StrayHandleMode.dismissed
+                    ? () => _dismissHandle(ref, handle)
+                    : null,
+                onRestore: mode == StrayHandleMode.dismissed
+                    ? () => _restoreHandle(ref, handle)
+                    : null,
+              );
+            },
+          ),
         );
       },
       loading: () => const Padding(

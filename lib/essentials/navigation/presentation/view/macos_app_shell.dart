@@ -113,7 +113,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             top: _toolbarVerticalPadding,
             bottom: _toolbarVerticalPadding,
           ),
-          title: const Text('Remember This Text'),
+          title: const Text('MessageLens'),
           centerTitle: true,
           leading: const AppModeToggle(),
           actions: [
