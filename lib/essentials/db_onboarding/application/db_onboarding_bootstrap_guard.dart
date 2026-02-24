@@ -14,9 +14,9 @@ Future<bool> dbOnboardingRequired(DbOnboardingRequiredRef ref) async {
     final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
 
     // Check if there are any messages in the working database
-    final result = await workingDb.customSelect(
-      'SELECT COUNT(*) as count FROM messages',
-    ).getSingleOrNull();
+    final result = await workingDb
+        .customSelect('SELECT COUNT(*) as count FROM messages')
+        .getSingleOrNull();
 
     final messageCount = result?.read<int>('count') ?? 0;
 

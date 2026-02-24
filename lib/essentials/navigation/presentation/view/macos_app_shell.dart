@@ -6,7 +6,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../providers.dart';
-
+import '../../../db_onboarding/application/db_onboarding_bootstrap_guard.dart';
+import '../../../db_onboarding/application/db_onboarding_state_provider.dart';
+import '../../../db_onboarding/domain/db_onboarding_phase.dart';
+import '../../../db_onboarding/presentation/view/db_onboarding_panel.dart';
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../application/sidebar_mode_provider.dart';
@@ -103,8 +106,19 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       }
     });
 
-    return MacosWindow(
-      child: MacosScaffold(
+    // Check if onboarding is required and get current onboarding state
+    final onboardingRequiredAsync = ref.watch(dbOnboardingRequiredProvider);
+    final onboardingState = ref.watch(dbOnboardingStateNotifierProvider);
+    final showOnboarding = onboardingRequiredAsync.maybeWhen(
+      data: (required) =>
+          required && onboardingState.currentPhase != DbOnboardingPhase.complete,
+      orElse: () => false,
+    );
+
+    return Stack(
+      children: [
+        MacosWindow(
+          child: MacosScaffold(
         toolBar: ToolBar(
           // Position mode toggle above sidebar, other controls above center panel.
           padding: const EdgeInsets.only(
@@ -269,6 +283,11 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
           ),
         ],
       ),
+    ),
+    // Onboarding overlay - shown on first run until setup is complete
+    if (showOnboarding)
+      const Positioned.fill(child: DbOnboardingPanel()),
+    ],
     );
   }
 }

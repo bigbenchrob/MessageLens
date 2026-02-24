@@ -129,7 +129,9 @@ class _DbOnboardingPanelState extends ConsumerState<DbOnboardingPanel> {
       decoration: BoxDecoration(
         color: colors.surfaces.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFF3B30).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -168,10 +170,7 @@ class _DbOnboardingPanelState extends ConsumerState<DbOnboardingPanel> {
           ],
           const SizedBox(height: 20),
           CupertinoButton(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: colors.accents.primary,
             borderRadius: BorderRadius.circular(8),
             onPressed: () {
@@ -179,10 +178,7 @@ class _DbOnboardingPanelState extends ConsumerState<DbOnboardingPanel> {
             },
             child: const Text(
               'Try Again',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],

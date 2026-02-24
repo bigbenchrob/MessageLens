@@ -65,28 +65,28 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
 
     return switch (state) {
       PhaseRowState.pending => Icon(
-          CupertinoIcons.circle,
-          size: iconSize,
-          color: colors.content.textTertiary,
-        ),
+        CupertinoIcons.circle,
+        size: iconSize,
+        color: colors.content.textTertiary,
+      ),
       PhaseRowState.active => SizedBox(
-          width: iconSize,
-          height: iconSize,
-          child: CupertinoActivityIndicator(
-            radius: iconSize / 2 - 2,
-            color: colors.accents.primary,
-          ),
+        width: iconSize,
+        height: iconSize,
+        child: CupertinoActivityIndicator(
+          radius: iconSize / 2 - 2,
+          color: colors.accents.primary,
         ),
+      ),
       PhaseRowState.completed => const Icon(
-          CupertinoIcons.checkmark_circle_fill,
-          size: iconSize,
-          color: Color(0xFF34C759), // System green
-        ),
+        CupertinoIcons.checkmark_circle_fill,
+        size: iconSize,
+        color: Color(0xFF34C759), // System green
+      ),
       PhaseRowState.error => const Icon(
-          CupertinoIcons.exclamationmark_circle_fill,
-          size: iconSize,
-          color: Color(0xFFFF3B30), // System red
-        ),
+        CupertinoIcons.exclamationmark_circle_fill,
+        size: iconSize,
+        color: Color(0xFFFF3B30), // System red
+      ),
     };
   }
 

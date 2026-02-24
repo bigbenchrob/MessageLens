@@ -10,10 +10,7 @@ import 'db_onboarding_phase_row.dart';
 /// Renders each phase with the appropriate state (pending/active/completed/error)
 /// based on the current onboarding state.
 class DbOnboardingStepper extends ConsumerWidget {
-  const DbOnboardingStepper({
-    required this.state,
-    super.key,
-  });
+  const DbOnboardingStepper({required this.state, super.key});
 
   /// The current onboarding state.
   final DbOnboardingState state;

@@ -113,7 +113,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       final file = File(chatDbPath);
 
       // Try to stat the file - this will fail if FDA is not granted
-      await file.stat();
+      file.statSync();
       return true;
     } on FileSystemException {
       // Permission denied
@@ -132,7 +132,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       final chatDbPath = _pathsHelper!.chatDBPath;
       final file = File(chatDbPath);
 
-      if (await file.exists()) {
+      if (file.existsSync()) {
         state = state.copyWith(
           currentPhase: DbOnboardingPhase.messagesFound,
           messagesDbFound: true,
@@ -142,7 +142,9 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
         await Future<void>.delayed(const Duration(milliseconds: 500));
 
         // Proceed to import phase
-        state = state.copyWith(currentPhase: DbOnboardingPhase.importingMessages);
+        state = state.copyWith(
+          currentPhase: DbOnboardingPhase.importingMessages,
+        );
       } else {
         setError('Messages database not found at expected location.');
       }
@@ -157,11 +159,14 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       DbImportStage.clearingLedger => DbOnboardingPhase.importingMessages,
       DbImportStage.importingHandles => DbOnboardingPhase.importingMessages,
       DbImportStage.importingChats => DbOnboardingPhase.importingMessages,
-      DbImportStage.importingParticipants => DbOnboardingPhase.importingMessages,
+      DbImportStage.importingParticipants =>
+        DbOnboardingPhase.importingMessages,
       DbImportStage.importingMessages => DbOnboardingPhase.importingMessages,
-      DbImportStage.extractingRichContent => DbOnboardingPhase.importingMessages,
+      DbImportStage.extractingRichContent =>
+        DbOnboardingPhase.importingMessages,
       DbImportStage.importingAttachments => DbOnboardingPhase.importingMessages,
-      DbImportStage.linkingMessageArtifacts => DbOnboardingPhase.importingMessages,
+      DbImportStage.linkingMessageArtifacts =>
+        DbOnboardingPhase.importingMessages,
       DbImportStage.importingAddressBook => DbOnboardingPhase.locatingContacts,
       DbImportStage.linkingContacts => DbOnboardingPhase.linkingContacts,
       DbImportStage.completed => null, // Wait for migration

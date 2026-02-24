@@ -36,10 +36,10 @@ abstract class DbOnboardingState with _$DbOnboardingState {
 
   /// Initial state for starting the onboarding flow.
   factory DbOnboardingState.initial() => const DbOnboardingState(
-        currentPhase: DbOnboardingPhase.checkingPermissions,
-        fdaGranted: false,
-        messagesDbFound: false,
-        contactsDbFound: false,
-        importComplete: false,
-      );
+    currentPhase: DbOnboardingPhase.checkingPermissions,
+    fdaGranted: false,
+    messagesDbFound: false,
+    contactsDbFound: false,
+    importComplete: false,
+  );
 }

@@ -8,10 +8,7 @@ import '../../../../config/theme/colors/theme_colors.dart';
 ///
 /// Shows step-by-step guide with a button to open System Settings.
 class FdaInstructionsCard extends ConsumerWidget {
-  const FdaInstructionsCard({
-    required this.onRetry,
-    super.key,
-  });
+  const FdaInstructionsCard({required this.onRetry, super.key});
 
   /// Called when user taps "Check Again" after enabling FDA.
   final VoidCallback onRetry;
@@ -77,10 +74,7 @@ class FdaInstructionsCard extends ConsumerWidget {
                 onPressed: _openSystemSettings,
                 child: const Text(
                   'Open System Settings',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
               const SizedBox(width: 12),

@@ -32,15 +32,15 @@ enum DbOnboardingPhase {
 extension DbOnboardingPhaseX on DbOnboardingPhase {
   /// Human-readable label for this phase.
   String get label => switch (this) {
-        DbOnboardingPhase.checkingPermissions => 'Checking System Permissions',
-        DbOnboardingPhase.locatingMessages => 'Locating Messages Database',
-        DbOnboardingPhase.messagesFound => 'Messages Database Found',
-        DbOnboardingPhase.importingMessages => 'Importing Messages',
-        DbOnboardingPhase.locatingContacts => 'Locating Contacts',
-        DbOnboardingPhase.linkingContacts => 'Linking Contacts',
-        DbOnboardingPhase.complete => 'Setup Complete',
-        DbOnboardingPhase.error => 'Setup Error',
-      };
+    DbOnboardingPhase.checkingPermissions => 'Checking System Permissions',
+    DbOnboardingPhase.locatingMessages => 'Locating Messages Database',
+    DbOnboardingPhase.messagesFound => 'Messages Database Found',
+    DbOnboardingPhase.importingMessages => 'Importing Messages',
+    DbOnboardingPhase.locatingContacts => 'Locating Contacts',
+    DbOnboardingPhase.linkingContacts => 'Linking Contacts',
+    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.error => 'Setup Error',
+  };
 
   /// Whether this phase represents a terminal state.
   bool get isTerminal =>
@@ -49,15 +49,15 @@ extension DbOnboardingPhaseX on DbOnboardingPhase {
   /// The ordered index of this phase in the stepper (0-based).
   /// Returns -1 for error state.
   int get stepIndex => switch (this) {
-        DbOnboardingPhase.checkingPermissions => 0,
-        DbOnboardingPhase.locatingMessages => 1,
-        DbOnboardingPhase.messagesFound => 2,
-        DbOnboardingPhase.importingMessages => 3,
-        DbOnboardingPhase.locatingContacts => 4,
-        DbOnboardingPhase.linkingContacts => 5,
-        DbOnboardingPhase.complete => 6,
-        DbOnboardingPhase.error => -1,
-      };
+    DbOnboardingPhase.checkingPermissions => 0,
+    DbOnboardingPhase.locatingMessages => 1,
+    DbOnboardingPhase.messagesFound => 2,
+    DbOnboardingPhase.importingMessages => 3,
+    DbOnboardingPhase.locatingContacts => 4,
+    DbOnboardingPhase.linkingContacts => 5,
+    DbOnboardingPhase.complete => 6,
+    DbOnboardingPhase.error => -1,
+  };
 }
 
 /// All phases in stepper display order.

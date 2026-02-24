@@ -17,12 +17,10 @@ class DbSetupSpecCoordinator extends _$DbSetupSpecCoordinator {
   /// Build the panel widget for the given [DbSetupSpec].
   Widget buildForSpec(DbSetupSpec spec) {
     return spec.when(
-      firstRun: () => const DbOnboardingPanel(
-        key: ValueKey('db-onboarding-first-run'),
-      ),
-      rerunImport: () => const DbOnboardingPanel(
-        key: ValueKey('db-onboarding-rerun'),
-      ),
+      firstRun: () =>
+          const DbOnboardingPanel(key: ValueKey('db-onboarding-first-run')),
+      rerunImport: () =>
+          const DbOnboardingPanel(key: ValueKey('db-onboarding-rerun')),
     );
   }
 }
