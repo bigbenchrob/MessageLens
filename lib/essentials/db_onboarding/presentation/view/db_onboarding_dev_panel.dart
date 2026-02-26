@@ -16,10 +16,7 @@ const _databaseDirectoryPath = '/Users/rob/sqlite_rmc/remember_every_text/';
 
 /// Database file definitions for the dev panel.
 class _DbFileInfo {
-  const _DbFileInfo({
-    required this.name,
-    required this.filename,
-  });
+  const _DbFileInfo({required this.name, required this.filename});
 
   final String name;
   final String filename;
@@ -149,8 +146,9 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
                 ? CupertinoIcons.checkmark_circle_fill
                 : CupertinoIcons.xmark_circle,
             size: 16,
-            color:
-                exists ? const Color(0xFF34C759) : colors.content.textTertiary,
+            color: exists
+                ? const Color(0xFF34C759)
+                : colors.content.textTertiary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -195,7 +193,7 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     // (regardless of devMode flag - that's just to suppress the overlay)
     final isInitial =
         onboardingState.currentPhase == DbOnboardingPhase.checkingPermissions &&
-            !onboardingState.fdaGranted;
+        !onboardingState.fdaGranted;
     final isRunning = !isComplete && !isError && !isInitial;
 
     return Container(
@@ -394,8 +392,8 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     ref.invalidate(dbOnboardingRequiredProvider);
 
     // Start onboarding in dev mode (suppresses the fullscreen overlay)
-    ref.read(dbOnboardingStateNotifierProvider.notifier).startOnboarding(
-          devMode: true,
-        );
+    ref
+        .read(dbOnboardingStateNotifierProvider.notifier)
+        .startOnboarding(devMode: true);
   }
 }

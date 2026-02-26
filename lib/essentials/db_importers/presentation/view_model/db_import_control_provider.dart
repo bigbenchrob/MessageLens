@@ -1154,13 +1154,13 @@ that prevent migration access. Restarting the app is the best solution.''';
       if (i == index) {
         final isComplete = stageProgress != null && stageProgress >= 1.0;
         final completedAt = isComplete ? stage.completedAt ?? now : null;
-        // Calculate progress from current/total if stageProgress not provided
-        var progressValue = stageProgress ?? stage.progress;
-        if (progressValue == null &&
-            stageCurrent != null &&
-            stageTotal != null &&
-            stageTotal > 0) {
+        // Prefer calculating progress from current/total when available (most accurate)
+        // Fall back to explicit stageProgress, then existing stage.progress
+        double? progressValue;
+        if (stageCurrent != null && stageTotal != null && stageTotal > 0) {
           progressValue = stageCurrent / stageTotal;
+        } else {
+          progressValue = stageProgress ?? stage.progress;
         }
         return stage.copyWith(
           isActive: !isComplete,
