@@ -30,6 +30,26 @@ enum DbImportMode { import, migration }
 
 enum DbImportViewMode { progress, summary }
 
+/// Maps table/importer names to their corresponding stage key.
+///
+/// This enables row-level progress from table events to propagate
+/// up to stage-level progress for the onboarding UI.
+String? _tableNameToStageKey(String tableName) {
+  return switch (tableName) {
+    'handles' => DbImportStage.importingHandles.key,
+    'chats' => DbImportStage.importingChats.key,
+    'chat_to_handle' => DbImportStage.importingParticipants.key,
+    'messages' => DbImportStage.importingMessages.key,
+    'message_rich_text' => DbImportStage.extractingRichContent.key,
+    'attachments' => DbImportStage.importingAttachments.key,
+    'message_attachments' => DbImportStage.linkingMessageArtifacts.key,
+    'contacts' => DbImportStage.importingAddressBook.key,
+    'contact_phone_email' => DbImportStage.importingAddressBook.key,
+    'contact_to_chat_handle' => DbImportStage.linkingContacts.key,
+    _ => null,
+  };
+}
+
 class UiStageProgress {
   const UiStageProgress({
     required this.name,
@@ -964,6 +984,22 @@ that prevent migration access. Restarting the app is the best solution.''';
     }
 
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
+
+    // Propagate row counts to stage-level progress for onboarding UI
+    if (event.rowsProcessed != null &&
+        event.totalRows != null &&
+        phase == TableMigrationPhase.copy) {
+      final stageKey = _tableNameToStageKey(event.importerName);
+      if (stageKey != null) {
+        final updatedStages = _updateStageProgress(
+          currentStages: state.stages,
+          stageName: stageKey,
+          stageCurrent: event.rowsProcessed,
+          stageTotal: event.totalRows,
+        );
+        state = state.copyWith(stages: updatedStages);
+      }
+    }
   }
 
   void _handleTableMigrationProgress(TableMigrationProgressEvent event) {
@@ -1027,6 +1063,23 @@ that prevent migration access. Restarting the app is the best solution.''';
     }
 
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
+
+    // Propagate row counts to stage-level progress for onboarding UI
+    // Note: Migration uses table migrators which map differently
+    if (event.rowsProcessed != null &&
+        event.totalRows != null &&
+        event.phase == TableMigrationPhase.copy) {
+      final stageKey = _tableNameToStageKey(event.tableName);
+      if (stageKey != null) {
+        final updatedStages = _updateStageProgress(
+          currentStages: state.stages,
+          stageName: stageKey,
+          stageCurrent: event.rowsProcessed,
+          stageTotal: event.totalRows,
+        );
+        state = state.copyWith(stages: updatedStages);
+      }
+    }
   }
 
   List<UiStageProgress> _importStageTemplate() {
