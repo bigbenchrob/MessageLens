@@ -5,7 +5,19 @@ import '../value_objects/db_import_stage.dart';
 enum TableImportPhase { validatePrereqs, copy, postValidate }
 
 /// Status emitted for a [TableImportPhase].
-enum TableImportStatus { started, succeeded, failed }
+enum TableImportStatus {
+  /// Phase has started but not yet emitted row-level progress.
+  started,
+
+  /// Phase is in progress with row-level updates available.
+  inProgress,
+
+  /// Phase completed successfully.
+  succeeded,
+
+  /// Phase failed with an error.
+  failed,
+}
 
 /// Event describing progress for an individual table importer.
 class TableImportProgressEvent {
@@ -16,6 +28,9 @@ class TableImportProgressEvent {
     required this.status,
     this.message,
     this.stage,
+    this.rowsProcessed,
+    this.totalRows,
+    this.currentItem,
   });
 
   final String importerName;
@@ -24,6 +39,23 @@ class TableImportProgressEvent {
   final TableImportStatus status;
   final String? message;
   final DbImportStage? stage;
+
+  /// Number of rows processed so far (only set when status is [inProgress]).
+  final int? rowsProcessed;
+
+  /// Total number of rows to process (only set when status is [inProgress]).
+  final int? totalRows;
+
+  /// Description of the current item being processed.
+  final String? currentItem;
+
+  /// Progress as a fraction 0.0 to 1.0, or null if not determinable.
+  double? get progress {
+    if (rowsProcessed == null || totalRows == null || totalRows == 0) {
+      return null;
+    }
+    return rowsProcessed! / totalRows!;
+  }
 }
 
 typedef TableImportProgressCallback =

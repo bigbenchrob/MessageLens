@@ -236,18 +236,18 @@ class OrchestratedLedgerImportService {
         scratchpad: scratchpad,
       );
 
-      const importers = <TableImporter>[
-        HandlesImporter(),
-        ChatsImporter(),
-        ChatToHandleImporter(),
-        ContactsImporter(),
-        ContactChannelsImporter(),
-        ContactToChatHandleImporter(),
+      final importers = <TableImporter>[
+        const HandlesImporter(),
+        const ChatsImporter(),
+        const ChatToHandleImporter(),
+        const ContactsImporter(),
+        const ContactChannelsImporter(),
+        const ContactToChatHandleImporter(),
         MessagesImporter(),
-        MessageRichTextImporter(),
-        ChatToMessageImporter(),
-        AttachmentsImporter(),
-        MessageAttachmentsImporter(),
+        const MessageRichTextImporter(),
+        const ChatToMessageImporter(),
+        const AttachmentsImporter(),
+        const MessageAttachmentsImporter(),
       ];
 
       final orchestrator = ImportOrchestrator(importers);
@@ -262,6 +262,7 @@ class OrchestratedLedgerImportService {
 
         switch (event.status) {
           case TableImportStatus.started:
+          case TableImportStatus.inProgress:
             progressValue += phaseWeight * 0.1;
             break;
           case TableImportStatus.succeeded:

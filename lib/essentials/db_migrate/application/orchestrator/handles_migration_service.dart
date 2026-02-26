@@ -133,6 +133,7 @@ class HandlesMigrationService {
       var progressValue = completedWeight;
       switch (event.status) {
         case TableMigrationStatus.started:
+        case TableMigrationStatus.inProgress:
           progressValue += phaseWeight * 0.1;
           break;
         case TableMigrationStatus.succeeded:

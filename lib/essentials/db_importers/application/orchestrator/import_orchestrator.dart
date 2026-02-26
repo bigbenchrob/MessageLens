@@ -1,5 +1,6 @@
 import '../../domain/base_table_importer.dart';
 import '../../domain/i_importers.dart/table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../domain/states/table_import_progress.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
@@ -120,6 +121,29 @@ class ImportOrchestrator {
       ),
     );
 
+    // Set up row-level progress callback for copy phase
+    if (phase == TableImportPhase.copy &&
+        importer is RowProgressReporter &&
+        onTableProgress != null) {
+      (importer as RowProgressReporter).setProgressCallback(({
+        required int processed,
+        required int total,
+        String? currentItem,
+      }) {
+        onTableProgress(
+          TableImportProgressEvent(
+            importerName: importer.name,
+            displayName: displayName,
+            phase: phase,
+            status: TableImportStatus.inProgress,
+            rowsProcessed: processed,
+            totalRows: total,
+            currentItem: currentItem,
+          ),
+        );
+      });
+    }
+
     try {
       await action();
       onTableProgress?.call(
@@ -142,6 +166,11 @@ class ImportOrchestrator {
         ),
       );
       rethrow;
+    } finally {
+      // Clear the row progress callback
+      if (importer is RowProgressReporter) {
+        (importer as RowProgressReporter).clearProgressCallback();
+      }
     }
   }
 }

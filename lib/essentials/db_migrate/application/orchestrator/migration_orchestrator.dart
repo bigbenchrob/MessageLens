@@ -1,5 +1,6 @@
 import '../../domain/base_table_migrator.dart';
 import '../../domain/i_migrators.dart/table_migrator.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../domain/states/table_migration_progress.dart';
 import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
@@ -139,6 +140,30 @@ class MigrationOrchestrator {
       ),
     );
 
+    // Set up row-level progress callback for copy phase
+    if (phase == TableMigrationPhase.copy &&
+        migrator is RowProgressReporter &&
+        onTableProgress != null) {
+      (migrator as RowProgressReporter).setProgressCallback(({
+        required int processed,
+        required int total,
+        String? currentItem,
+      }) {
+        onTableProgress(
+          TableMigrationProgressEvent(
+            tableName: migrator.name,
+            displayName: displayName,
+            phase: phase,
+            status: TableMigrationStatus.inProgress,
+            stage: stage,
+            rowsProcessed: processed,
+            totalRows: total,
+            currentItem: currentItem,
+          ),
+        );
+      });
+    }
+
     try {
       await ctx.ensureImportReady('$phaseLabel (preflight)');
       await action();
@@ -172,6 +197,11 @@ class MigrationOrchestrator {
         ),
       );
       rethrow;
+    } finally {
+      // Clear the row progress callback
+      if (migrator is RowProgressReporter) {
+        (migrator as RowProgressReporter).clearProgressCallback();
+      }
     }
   }
 }

@@ -435,6 +435,7 @@ _TableProgressColors _colorsForOverallStatus(TableMigrationStatus status) {
         accent: const Color(0xFFC62828),
       );
     case TableMigrationStatus.started:
+    case TableMigrationStatus.inProgress:
       return _TableProgressColors(
         background: const Color(0xFFE3F2FD),
         border: const Color(0xFF1565C0).withValues(alpha: 0.4),
@@ -446,6 +447,7 @@ _TableProgressColors _colorsForOverallStatus(TableMigrationStatus status) {
 String _overallStatusSummary(UiTableMigrationProgress progress) {
   switch (progress.overallStatus) {
     case TableMigrationStatus.started:
+    case TableMigrationStatus.inProgress:
       return 'In progress';
     case TableMigrationStatus.succeeded:
       final duration = progress.duration;
@@ -475,6 +477,7 @@ String _phaseStatusLabel(UiTableMigrationPhaseStatus? status) {
   }
   switch (status.status) {
     case TableMigrationStatus.started:
+    case TableMigrationStatus.inProgress:
       return 'In progress';
     case TableMigrationStatus.succeeded:
       final duration = status.duration;
@@ -494,6 +497,7 @@ Color _statusColor(TableMigrationStatus? status) {
     case TableMigrationStatus.failed:
       return const Color(0xFFC62828);
     case TableMigrationStatus.started:
+    case TableMigrationStatus.inProgress:
       return const Color(0xFF1565C0);
     case null:
       return const Color(0xFF9E9E9E);
@@ -507,6 +511,7 @@ IconData _statusIcon(TableMigrationStatus? status) {
     case TableMigrationStatus.failed:
       return Icons.error;
     case TableMigrationStatus.started:
+    case TableMigrationStatus.inProgress:
       return Icons.radio_button_checked;
     case null:
       return Icons.radio_button_unchecked;

@@ -5,10 +5,11 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../../../core/util/date_converter.dart';
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class MessagesImporter extends BaseTableImporter {
-  const MessagesImporter();
+class MessagesImporter extends BaseTableImporter with RowProgressReporter {
+  MessagesImporter();
 
   @override
   String get name => 'messages';
@@ -114,6 +115,10 @@ class MessagesImporter extends BaseTableImporter {
         ctx.info(
           'MessagesImporter: processed $processed/${rows.length} messages '
           '(inserted $inserted)',
+        );
+        reportRowProgress(
+          processed: processed,
+          total: rows.length,
         );
       }
     }

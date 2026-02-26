@@ -885,6 +885,7 @@ that prevent migration access. Restarting the app is the best solution.''';
       final startedAt = existing?.startedAt ?? now;
       switch (event.status) {
         case TableImportStatus.started:
+        case TableImportStatus.inProgress:
           return UiTableMigrationPhaseStatus(
             phase: phase,
             status: status,
@@ -944,6 +945,7 @@ that prevent migration access. Restarting the app is the best solution.''';
       final startedAt = existing?.startedAt ?? now;
       switch (event.status) {
         case TableMigrationStatus.started:
+        case TableMigrationStatus.inProgress:
           return UiTableMigrationPhaseStatus(
             phase: event.phase,
             status: event.status,
