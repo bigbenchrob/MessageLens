@@ -45,6 +45,11 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
 
+    // For single-substage phases, get progress info from that substage
+    final singleActiveSubStage = (subStages.length == 1 && subStages[0].isActive)
+        ? subStages[0]
+        : null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,15 +65,32 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _textColor(colors),
-                        fontWeight: state == PhaseRowState.active
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _textColor(colors),
+                              fontWeight: state == PhaseRowState.active
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        // Show count on main row for single-substage phases
+                        if (singleActiveSubStage != null &&
+                            singleActiveSubStage.hasGranularProgress)
+                          Text(
+                            '${_formatNumber(singleActiveSubStage.current!)} / ${_formatNumber(singleActiveSubStage.total!)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.content.textTertiary,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                      ],
                     ),
                     // Show segmented progress bar for active phase with sub-stages
                     if (state == PhaseRowState.active && subStages.isNotEmpty)
@@ -82,8 +104,10 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
             ],
           ),
         ),
-        // Show sub-stages for active phase
-        if (state == PhaseRowState.active && subStages.isNotEmpty)
+        // Show sub-stages list only when there are multiple (2+) sub-stages.
+        // Single sub-stage phases just show the main progress bar to avoid
+        // redundant parallel progress bars.
+        if (state == PhaseRowState.active && subStages.length >= 2)
           _buildSubStagesList(colors),
       ],
     );
