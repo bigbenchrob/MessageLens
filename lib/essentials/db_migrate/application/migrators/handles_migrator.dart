@@ -4,10 +4,11 @@ import 'package:sqflite/sqflite.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../db/shared/handle_identifier_utils.dart';
 import '../../domain/base_table_migrator.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 
-class HandlesMigrator extends BaseTableMigrator {
-  const HandlesMigrator();
+class HandlesMigrator extends BaseTableMigrator with RowProgressReporter {
+  HandlesMigrator();
 
   @override
   String get name => 'handles';
@@ -103,14 +104,26 @@ class HandlesMigrator extends BaseTableMigrator {
 
     final importDb = await ctx.importDb.database;
     final sourceRows = await importDb.query('handles');
+    final totalRows = sourceRows.length;
 
     final groups = <String, _HandleGroup>{};
     final clairesHandles = <int>[];
+    var processedRows = 0;
     for (final row in sourceRows) {
+      processedRows++;
       final parsed = _parseImportHandle(row);
       if (parsed == null) {
         ctx.log('[handles] WARNING: parsed handle is null for row: $row');
         continue;
+      }
+
+      // Report progress periodically (every 100 rows or at the end)
+      if (processedRows % 100 == 0 || processedRows == totalRows) {
+        reportRowProgress(
+          processed: processedRows,
+          total: totalRows,
+          currentItem: parsed.rawIdentifier,
+        );
       }
       // Group by normalized identifier only (not compound identifier)
       // This merges handles like +17789908506 across iMessage/SMS/iMessageLite

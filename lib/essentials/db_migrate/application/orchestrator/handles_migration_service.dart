@@ -36,7 +36,7 @@ class HandlesMigrationService {
   final Ref ref;
 
   static const String _logContext = 'HandlesMigrationService';
-  static const HandlesMigrator _handlesMigrator = HandlesMigrator();
+  static final HandlesMigrator _handlesMigrator = HandlesMigrator();
   static const ChatsMigrator _chatsMigrator = ChatsMigrator();
   static const ChatToHandleMigrator _chatToHandleMigrator =
       ChatToHandleMigrator();
