@@ -183,16 +183,9 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       state = state.copyWith(currentPhase: phase);
     }
 
-    // Check for contacts-related stages
+    // Update contacts flag when we reach the contacts phase
     if (stage == DbImportStage.importingAddressBook) {
-      state = state.copyWith(
-        currentPhase: DbOnboardingPhase.locatingContacts,
-        contactsDbFound: true,
-      );
-    }
-
-    if (stage == DbImportStage.linkingContacts) {
-      state = state.copyWith(currentPhase: DbOnboardingPhase.linkingContacts);
+      state = state.copyWith(contactsDbFound: true);
     }
   }
 
@@ -220,7 +213,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   }
 
   Future<void> _proceedToLocateMessages() async {
-    state = state.copyWith(currentPhase: DbOnboardingPhase.locatingMessages);
+    state = state.copyWith(currentPhase: DbOnboardingPhase.messagesDatabase);
 
     try {
       _pathsHelper ??= await ref.read(pathsHelperProvider.future);
@@ -228,17 +221,14 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       final file = File(chatDbPath);
 
       if (file.existsSync()) {
-        state = state.copyWith(
-          currentPhase: DbOnboardingPhase.messagesFound,
-          messagesDbFound: true,
-        );
+        state = state.copyWith(messagesDbFound: true);
 
-        // Brief pause to show "found" state
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+        // Brief pause to show "found" state before proceeding
+        await Future<void>.delayed(const Duration(milliseconds: 300));
 
-        // Proceed to import phase
+        // Proceed to conversation metadata phase
         state = state.copyWith(
-          currentPhase: DbOnboardingPhase.importingMessages,
+          currentPhase: DbOnboardingPhase.conversationMetadata,
         );
 
         // Actually trigger the import and migration pipeline
@@ -255,20 +245,21 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
   DbOnboardingPhase? _mapImportStageToPhase(DbImportStage stage) {
     return switch (stage) {
-      DbImportStage.preparingSources => DbOnboardingPhase.locatingMessages,
-      DbImportStage.clearingLedger => DbOnboardingPhase.importingMessages,
-      DbImportStage.importingHandles => DbOnboardingPhase.importingMessages,
-      DbImportStage.importingChats => DbOnboardingPhase.importingMessages,
+      DbImportStage.preparingSources => DbOnboardingPhase.messagesDatabase,
+      DbImportStage.clearingLedger => DbOnboardingPhase.conversationMetadata,
+      DbImportStage.importingHandles => DbOnboardingPhase.conversationMetadata,
+      DbImportStage.importingChats => DbOnboardingPhase.conversationMetadata,
       DbImportStage.importingParticipants =>
-        DbOnboardingPhase.importingMessages,
+        DbOnboardingPhase.conversationMetadata,
       DbImportStage.importingMessages => DbOnboardingPhase.importingMessages,
       DbImportStage.extractingRichContent =>
-        DbOnboardingPhase.importingMessages,
-      DbImportStage.importingAttachments => DbOnboardingPhase.importingMessages,
+        DbOnboardingPhase.processingContent,
+      DbImportStage.importingAttachments =>
+        DbOnboardingPhase.importingAttachments,
       DbImportStage.linkingMessageArtifacts =>
-        DbOnboardingPhase.importingMessages,
-      DbImportStage.importingAddressBook => DbOnboardingPhase.locatingContacts,
-      DbImportStage.linkingContacts => DbOnboardingPhase.linkingContacts,
+        DbOnboardingPhase.importingAttachments,
+      DbImportStage.importingAddressBook => DbOnboardingPhase.contactsDatabase,
+      DbImportStage.linkingContacts => DbOnboardingPhase.contactsDatabase,
       DbImportStage.completed => null, // Wait for migration
     };
   }

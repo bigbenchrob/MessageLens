@@ -1,25 +1,28 @@
 /// User-facing phases shown in the onboarding stepper.
 ///
 /// These are simplified projections of the internal import/migration stages,
-/// designed to be stable even as internals are refactored.
+/// designed to provide even visual pacing even as internals are refactored.
 enum DbOnboardingPhase {
   /// Checking Full Disk Access permission
   checkingPermissions,
 
-  /// Looking for Messages database (chat.db)
-  locatingMessages,
+  /// Looking for and verifying Messages database (chat.db)
+  messagesDatabase,
 
-  /// Messages database found successfully
-  messagesFound,
+  /// Importing conversation structure (handles, chats, participants)
+  conversationMetadata,
 
-  /// Reading and importing message data
+  /// Importing message records (the big one)
   importingMessages,
 
-  /// Looking for AddressBook database
-  locatingContacts,
+  /// Extracting rich text content from messages
+  processingContent,
 
-  /// Connecting chats to contacts
-  linkingContacts,
+  /// Importing attachments and linking to messages
+  importingAttachments,
+
+  /// Importing and linking contacts from AddressBook
+  contactsDatabase,
 
   /// Setup complete, ready to use
   complete,
@@ -30,17 +33,48 @@ enum DbOnboardingPhase {
 
 /// Extension methods for [DbOnboardingPhase].
 extension DbOnboardingPhaseX on DbOnboardingPhase {
-  /// Human-readable label for this phase.
-  String get label => switch (this) {
-    DbOnboardingPhase.checkingPermissions => 'Checking System Permissions',
-    DbOnboardingPhase.locatingMessages => 'Locating Messages Database',
-    DbOnboardingPhase.messagesFound => 'Messages Database Found',
-    DbOnboardingPhase.importingMessages => 'Importing Messages',
-    DbOnboardingPhase.locatingContacts => 'Locating Contacts',
-    DbOnboardingPhase.linkingContacts => 'Linking Contacts',
+  /// Human-readable label for this phase when pending.
+  String get pendingLabel => switch (this) {
+    DbOnboardingPhase.checkingPermissions => 'System Permissions',
+    DbOnboardingPhase.messagesDatabase => 'macOS Messages Database',
+    DbOnboardingPhase.conversationMetadata => 'Conversation Metadata',
+    DbOnboardingPhase.importingMessages => 'Messages',
+    DbOnboardingPhase.processingContent => 'Message Content',
+    DbOnboardingPhase.importingAttachments => 'Attachments',
+    DbOnboardingPhase.contactsDatabase => 'Contacts Database',
     DbOnboardingPhase.complete => 'Setup Complete',
     DbOnboardingPhase.error => 'Setup Error',
   };
+
+  /// Human-readable label for this phase when active.
+  String get activeLabel => switch (this) {
+    DbOnboardingPhase.checkingPermissions => 'Checking system permissions...',
+    DbOnboardingPhase.messagesDatabase => 'Locating messages database...',
+    DbOnboardingPhase.conversationMetadata =>
+      'Importing conversation metadata...',
+    DbOnboardingPhase.importingMessages => 'Importing messages...',
+    DbOnboardingPhase.processingContent => 'Processing message content...',
+    DbOnboardingPhase.importingAttachments => 'Importing attachments...',
+    DbOnboardingPhase.contactsDatabase => 'Importing contacts...',
+    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.error => 'Setup Error',
+  };
+
+  /// Human-readable label for this phase when complete.
+  String get completeLabel => switch (this) {
+    DbOnboardingPhase.checkingPermissions => 'Permissions verified',
+    DbOnboardingPhase.messagesDatabase => 'Messages database found',
+    DbOnboardingPhase.conversationMetadata => 'Conversation metadata imported',
+    DbOnboardingPhase.importingMessages => 'Messages imported',
+    DbOnboardingPhase.processingContent => 'Message content processed',
+    DbOnboardingPhase.importingAttachments => 'Attachments imported',
+    DbOnboardingPhase.contactsDatabase => 'Contacts imported',
+    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.error => 'Setup Error',
+  };
+
+  /// Legacy label getter for backward compatibility.
+  String get label => pendingLabel;
 
   /// Whether this phase represents a terminal state.
   bool get isTerminal =>
@@ -50,12 +84,13 @@ extension DbOnboardingPhaseX on DbOnboardingPhase {
   /// Returns -1 for error state.
   int get stepIndex => switch (this) {
     DbOnboardingPhase.checkingPermissions => 0,
-    DbOnboardingPhase.locatingMessages => 1,
-    DbOnboardingPhase.messagesFound => 2,
+    DbOnboardingPhase.messagesDatabase => 1,
+    DbOnboardingPhase.conversationMetadata => 2,
     DbOnboardingPhase.importingMessages => 3,
-    DbOnboardingPhase.locatingContacts => 4,
-    DbOnboardingPhase.linkingContacts => 5,
-    DbOnboardingPhase.complete => 6,
+    DbOnboardingPhase.processingContent => 4,
+    DbOnboardingPhase.importingAttachments => 5,
+    DbOnboardingPhase.contactsDatabase => 6,
+    DbOnboardingPhase.complete => 7,
     DbOnboardingPhase.error => -1,
   };
 }
@@ -63,10 +98,11 @@ extension DbOnboardingPhaseX on DbOnboardingPhase {
 /// All phases in stepper display order.
 const kDbOnboardingPhaseOrder = [
   DbOnboardingPhase.checkingPermissions,
-  DbOnboardingPhase.locatingMessages,
-  DbOnboardingPhase.messagesFound,
+  DbOnboardingPhase.messagesDatabase,
+  DbOnboardingPhase.conversationMetadata,
   DbOnboardingPhase.importingMessages,
-  DbOnboardingPhase.locatingContacts,
-  DbOnboardingPhase.linkingContacts,
+  DbOnboardingPhase.processingContent,
+  DbOnboardingPhase.importingAttachments,
+  DbOnboardingPhase.contactsDatabase,
   DbOnboardingPhase.complete,
 ];

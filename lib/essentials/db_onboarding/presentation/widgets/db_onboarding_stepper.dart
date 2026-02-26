@@ -6,23 +6,31 @@ import '../../domain/db_onboarding_state.dart';
 import '../../domain/import_sub_stage.dart';
 import 'db_onboarding_phase_row.dart';
 
-/// Import stage keys that belong to the "Importing Messages" phase.
-const _importMessagesStageKeys = <String>{
+/// Import stage keys that belong to the "Conversation Metadata" phase.
+const _conversationMetadataStageKeys = <String>{
   'clearingLedger',
   'importingHandles',
   'importingChats',
   'importingParticipants',
-  'importingMessages',
-  'extractingRichContent',
+};
+
+/// Import stage keys that belong to the "Importing Messages" phase.
+const _importingMessagesStageKeys = <String>{'importingMessages'};
+
+/// Import stage keys that belong to the "Processing Content" phase.
+const _processingContentStageKeys = <String>{'extractingRichContent'};
+
+/// Import stage keys that belong to the "Importing Attachments" phase.
+const _importingAttachmentsStageKeys = <String>{
   'importingAttachments',
   'linkingMessageArtifacts',
 };
 
-/// Import stage keys that belong to the "Locating Contacts" phase.
-const _locatingContactsStageKeys = <String>{'importingAddressBook'};
-
-/// Import stage keys that belong to the "Linking Contacts" phase.
-const _linkingContactsStageKeys = <String>{'linkingContacts'};
+/// Import stage keys that belong to the "Contacts Database" phase.
+const _contactsDatabaseStageKeys = <String>{
+  'importingAddressBook',
+  'linkingContacts',
+};
 
 /// Vertical stepper showing all onboarding phases.
 ///
@@ -42,12 +50,23 @@ class DbOnboardingStepper extends ConsumerWidget {
       children: [
         for (final phase in kDbOnboardingPhaseOrder)
           DbOnboardingPhaseRow(
-            label: phase.label,
+            label: _labelForPhase(phase),
             state: _rowStateForPhase(phase),
             subStages: _subStagesForPhase(phase),
           ),
       ],
     );
+  }
+
+  /// Get the appropriate label based on the phase's current visual state.
+  String _labelForPhase(DbOnboardingPhase phase) {
+    final rowState = _rowStateForPhase(phase);
+    return switch (rowState) {
+      PhaseRowState.pending => phase.pendingLabel,
+      PhaseRowState.active => phase.activeLabel,
+      PhaseRowState.completed => phase.completeLabel,
+      PhaseRowState.error => phase.pendingLabel,
+    };
   }
 
   PhaseRowState _rowStateForPhase(DbOnboardingPhase phase) {
@@ -79,9 +98,11 @@ class DbOnboardingStepper extends ConsumerWidget {
 
     // Filter sub-stages by phase
     final applicableKeys = switch (phase) {
-      DbOnboardingPhase.importingMessages => _importMessagesStageKeys,
-      DbOnboardingPhase.locatingContacts => _locatingContactsStageKeys,
-      DbOnboardingPhase.linkingContacts => _linkingContactsStageKeys,
+      DbOnboardingPhase.conversationMetadata => _conversationMetadataStageKeys,
+      DbOnboardingPhase.importingMessages => _importingMessagesStageKeys,
+      DbOnboardingPhase.processingContent => _processingContentStageKeys,
+      DbOnboardingPhase.importingAttachments => _importingAttachmentsStageKeys,
+      DbOnboardingPhase.contactsDatabase => _contactsDatabaseStageKeys,
       _ => const <String>{},
     };
 
