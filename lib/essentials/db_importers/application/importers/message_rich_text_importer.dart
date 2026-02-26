@@ -2,7 +2,8 @@ import '../../domain/base_table_importer.dart';
 import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class MessageRichTextImporter extends BaseTableImporter with RowProgressReporter {
+class MessageRichTextImporter extends BaseTableImporter
+    with RowProgressReporter {
   MessageRichTextImporter();
 
   @override

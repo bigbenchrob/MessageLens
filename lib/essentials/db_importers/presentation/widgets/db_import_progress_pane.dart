@@ -372,6 +372,13 @@ class _TablePhaseRow extends StatelessWidget {
         ? status?.message
         : null;
 
+    // Show row progress during in-progress copy phase
+    final isInProgress = status?.status == TableMigrationStatus.inProgress;
+    final showRowProgress = isInProgress &&
+        phase == TableMigrationPhase.copy &&
+        status?.rowsProcessed != null &&
+        status?.totalRows != null;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -381,14 +388,41 @@ class _TablePhaseRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _phaseLabel(phase),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF424242),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _phaseLabel(phase),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF424242),
+                      ),
+                    ),
+                  ),
+                  if (showRowProgress)
+                    Text(
+                      '${status!.rowsProcessed}/${status!.totalRows}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF666666),
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                ],
               ),
+              if (showRowProgress && status!.progress != null) ...[
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: status!.progress,
+                  backgroundColor: const Color(0xFFE0E0E0),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF2196F3),
+                  ),
+                  minHeight: 3,
+                ),
+                const SizedBox(height: 2),
+              ],
               Text(statusLabel, style: TextStyle(fontSize: 11, color: color)),
               if (message != null && message.isNotEmpty) ...[
                 const SizedBox(height: 2),

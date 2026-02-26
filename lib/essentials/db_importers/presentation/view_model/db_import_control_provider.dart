@@ -99,6 +99,9 @@ class UiTableMigrationPhaseStatus {
     this.startedAt,
     this.completedAt,
     this.message,
+    this.rowsProcessed,
+    this.totalRows,
+    this.currentItem,
   });
 
   final TableMigrationPhase phase;
@@ -108,6 +111,23 @@ class UiTableMigrationPhaseStatus {
   final DateTime? completedAt;
   final String? message;
 
+  /// Number of rows processed so far (only set during inProgress).
+  final int? rowsProcessed;
+
+  /// Total number of rows to process (only set during inProgress).
+  final int? totalRows;
+
+  /// Description of the current item being processed.
+  final String? currentItem;
+
+  /// Progress as a fraction 0.0 to 1.0, or null if not determinable.
+  double? get progress {
+    if (rowsProcessed == null || totalRows == null || totalRows == 0) {
+      return null;
+    }
+    return rowsProcessed! / totalRows!;
+  }
+
   UiTableMigrationPhaseStatus copyWith({
     TableMigrationStatus? status,
     DateTime? updatedAt,
@@ -115,6 +135,12 @@ class UiTableMigrationPhaseStatus {
     DateTime? completedAt,
     bool clearCompletedAt = false,
     String? message,
+    int? rowsProcessed,
+    bool clearRowsProcessed = false,
+    int? totalRows,
+    bool clearTotalRows = false,
+    String? currentItem,
+    bool clearCurrentItem = false,
   }) {
     return UiTableMigrationPhaseStatus(
       phase: phase,
@@ -123,6 +149,10 @@ class UiTableMigrationPhaseStatus {
       startedAt: startedAt ?? this.startedAt,
       completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
       message: message ?? this.message,
+      rowsProcessed:
+          clearRowsProcessed ? null : rowsProcessed ?? this.rowsProcessed,
+      totalRows: clearTotalRows ? null : totalRows ?? this.totalRows,
+      currentItem: clearCurrentItem ? null : currentItem ?? this.currentItem,
     );
   }
 
@@ -892,6 +922,9 @@ that prevent migration access. Restarting the app is the best solution.''';
             updatedAt: now,
             startedAt: existing?.startedAt ?? now,
             message: event.message,
+            rowsProcessed: event.rowsProcessed,
+            totalRows: event.totalRows,
+            currentItem: event.currentItem,
           );
         case TableImportStatus.succeeded:
         case TableImportStatus.failed:
@@ -952,6 +985,9 @@ that prevent migration access. Restarting the app is the best solution.''';
             updatedAt: now,
             startedAt: existing?.startedAt ?? now,
             message: event.message,
+            rowsProcessed: event.rowsProcessed,
+            totalRows: event.totalRows,
+            currentItem: event.currentItem,
           );
         case TableMigrationStatus.succeeded:
         case TableMigrationStatus.failed:
