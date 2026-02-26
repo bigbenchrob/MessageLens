@@ -191,10 +191,11 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     final isComplete =
         onboardingState.currentPhase == DbOnboardingPhase.complete;
     final isError = onboardingState.currentPhase == DbOnboardingPhase.error;
+    // In dev mode, "initial" means at checkingPermissions without FDA granted
+    // (regardless of devMode flag - that's just to suppress the overlay)
     final isInitial =
         onboardingState.currentPhase == DbOnboardingPhase.checkingPermissions &&
-            !onboardingState.fdaGranted &&
-            !onboardingState.devMode;
+            !onboardingState.fdaGranted;
     final isRunning = !isComplete && !isError && !isInitial;
 
     return Container(
