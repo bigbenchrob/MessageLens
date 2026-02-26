@@ -32,6 +32,15 @@ abstract class DbOnboardingState with _$DbOnboardingState {
 
     /// Optional progress percentage for the current phase (0.0 to 1.0).
     double? progressPercent,
+
+    /// Current count for import progress (e.g., messages imported so far).
+    int? importCurrent,
+
+    /// Total count for import progress (e.g., total messages to import).
+    int? importTotal,
+
+    /// Human-readable description of current import activity.
+    String? importStatusMessage,
   }) = _DbOnboardingState;
 
   /// Initial state for starting the onboarding flow.

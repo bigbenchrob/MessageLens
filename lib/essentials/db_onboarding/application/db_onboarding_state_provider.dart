@@ -41,9 +41,22 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       return;
     }
 
-    // Update progress percentage
-    if (next.progress != null) {
-      state = state.copyWith(progressPercent: next.progress);
+    // Update progress percentage and status message
+    if (next.progress != null || next.statusMessage != null) {
+      state = state.copyWith(
+        progressPercent: next.progress,
+        importStatusMessage: next.statusMessage,
+      );
+    }
+
+    // Extract current/total from the active stage in stages list
+    final activeStage = next.stages.where((s) => s.isActive).firstOrNull;
+    if (activeStage != null) {
+      state = state.copyWith(
+        importCurrent: activeStage.current,
+        importTotal: activeStage.total,
+        progressPercent: activeStage.progress ?? state.progressPercent,
+      );
     }
 
     // Map current stage to onboarding phase
@@ -196,6 +209,11 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
         state = state.copyWith(
           currentPhase: DbOnboardingPhase.importingMessages,
         );
+
+        // Actually trigger the import and migration pipeline
+        ref
+            .read(dbImportControlViewModelProvider.notifier)
+            .runImportAndMigration();
       } else {
         setError('Messages database not found at expected location.');
       }
