@@ -46,9 +46,8 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
 
     // For single-substage phases, get progress info from that substage
-    final singleActiveSubStage = (subStages.length == 1 && subStages[0].isActive)
-        ? subStages[0]
-        : null;
+    final singleActiveSubStage =
+        (subStages.length == 1 && subStages[0].isActive) ? subStages[0] : null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -87,16 +86,22 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               color: colors.content.textTertiary,
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                       ],
                     ),
-                    // Show segmented progress bar for active phase with sub-stages
-                    if (state == PhaseRowState.active && subStages.isNotEmpty)
+                    // Show main progress bar ONLY for single-substage phases.
+                    // Multi-substage phases show individual substage progress bars instead.
+                    if (singleActiveSubStage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: _buildSegmentedProgressBar(colors),
+                        child: _buildSingleSubstageProgressBar(
+                          singleActiveSubStage,
+                          colors,
+                        ),
                       ),
                   ],
                 ),
@@ -113,16 +118,12 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
     );
   }
 
-  /// Segmented progress bar showing overall phase progress.
-  Widget _buildSegmentedProgressBar(ThemeColors colors) {
-    final completedCount = subStages.where((s) => s.isComplete).length;
-    final activeStage = subStages.where((s) => s.isActive).firstOrNull;
-
-    // Calculate progress: completed segments + partial progress of active segment
-    var progress = completedCount / subStages.length;
-    if (activeStage != null && activeStage.progress != null) {
-      progress += activeStage.progress! / subStages.length;
-    }
+  /// Progress bar for single-substage phases, using that substage's progress.
+  Widget _buildSingleSubstageProgressBar(
+    ImportSubStage subStage,
+    ThemeColors colors,
+  ) {
+    final progress = subStage.progress ?? 0.0;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(2),
