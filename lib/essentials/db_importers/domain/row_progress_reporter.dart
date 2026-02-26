@@ -1,9 +1,10 @@
 /// Callback signature for row-level progress during copy operations.
-typedef RowProgressCallback = void Function({
-  required int processed,
-  required int total,
-  String? currentItem,
-});
+typedef RowProgressCallback =
+    void Function({
+      required int processed,
+      required int total,
+      String? currentItem,
+    });
 
 /// Mixin providing row-level progress reporting during copy operations.
 ///

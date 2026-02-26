@@ -1,8 +1,9 @@
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ContactChannelsImporter extends BaseTableImporter {
-  const ContactChannelsImporter();
+class ContactChannelsImporter extends BaseTableImporter with RowProgressReporter {
+  ContactChannelsImporter();
 
   @override
   String get name => 'contact_phone_email';
@@ -27,103 +28,101 @@ class ContactChannelsImporter extends BaseTableImporter {
   Future<void> copy(IImportContext ctx) async {
     var inserted = 0;
 
-    Future<void> importEmailRows() async {
-      final rows = await ctx.addressBookDb.query('ZABCDEMAILADDRESS');
-      if (rows.isEmpty) {
-        return;
+    // Collect row counts for combined progress
+    final emailRows = await ctx.addressBookDb.query('ZABCDEMAILADDRESS');
+    final phoneRows = await ctx.addressBookDb.query('ZABCDPHONENUMBER');
+    final totalRows = emailRows.length + phoneRows.length;
+    var overallProcessed = 0;
+
+    // Process email rows
+    for (final row in emailRows) {
+      final owner = row['ZOWNER'] as int?;
+      if (owner == null) {
+        overallProcessed += 1;
+        continue;
       }
-      var processed = 0;
-      for (final row in rows) {
-        final owner = row['ZOWNER'] as int?;
-        if (owner == null) {
-          processed += 1;
-          continue;
-        }
 
-        final addressNormalized = _trim(row['ZADDRESSNORMALIZED']);
-        final address = _trim(row['ZADDRESS']) ?? addressNormalized;
-        if (address == null || address.isEmpty) {
-          processed += 1;
-          continue;
-        }
-
-        final normalized = address.toLowerCase();
-        final alreadyImported = await ctx.importDb.contactChannelExists(
-          kind: 'email',
-          value: normalized,
-        );
-        if (alreadyImported) {
-          processed += 1;
-          continue;
-        }
-
-        await ctx.importDb.insertContactChannel(
-          zOwner: owner,
-          kind: 'email',
-          value: normalized,
-          label: _trim(row['ZLABEL']),
-        );
-        inserted += 1;
-        processed += 1;
-
-        if (processed % 200 == 0 || processed == rows.length) {
-          ctx.info(
-            'ContactChannelsImporter: processed $processed/${rows.length} '
-            'email rows (inserted $inserted)',
-          );
-        }
+      final addressNormalized = _trim(row['ZADDRESSNORMALIZED']);
+      final address = _trim(row['ZADDRESS']) ?? addressNormalized;
+      if (address == null || address.isEmpty) {
+        overallProcessed += 1;
+        continue;
       }
-    }
 
-    Future<void> importPhoneRows() async {
-      final rows = await ctx.addressBookDb.query('ZABCDPHONENUMBER');
-      if (rows.isEmpty) {
-        return;
+      final normalized = address.toLowerCase();
+      final alreadyImported = await ctx.importDb.contactChannelExists(
+        kind: 'email',
+        value: normalized,
+      );
+      if (alreadyImported) {
+        overallProcessed += 1;
+        continue;
       }
-      var processed = 0;
-      for (final row in rows) {
-        final owner = row['ZOWNER'] as int?;
-        if (owner == null) {
-          processed += 1;
-          continue;
-        }
 
-        final rawNumber = _trim(row['ZFULLNUMBER']) ?? _trim(row['ZVALUE']);
-        if (rawNumber == null || rawNumber.isEmpty) {
-          processed += 1;
-          continue;
-        }
+      await ctx.importDb.insertContactChannel(
+        zOwner: owner,
+        kind: 'email',
+        value: normalized,
+        label: _trim(row['ZLABEL']),
+      );
+      inserted += 1;
+      overallProcessed += 1;
 
-        final normalized = _normalizeIdentifier(rawNumber) ?? rawNumber;
-        final alreadyImported = await ctx.importDb.contactChannelExists(
-          kind: 'phone',
-          value: normalized,
+      if (overallProcessed % 200 == 0) {
+        ctx.info(
+          'ContactChannelsImporter: processed $overallProcessed/$totalRows '
+          'rows (inserted $inserted)',
         );
-        if (alreadyImported) {
-          processed += 1;
-          continue;
-        }
-
-        await ctx.importDb.insertContactChannel(
-          zOwner: owner,
-          kind: 'phone',
-          value: normalized,
-          label: _trim(row['ZLABEL']),
-        );
-        inserted += 1;
-        processed += 1;
-
-        if (processed % 200 == 0 || processed == rows.length) {
-          ctx.info(
-            'ContactChannelsImporter: processed $processed/${rows.length} '
-            'phone rows (inserted $inserted)',
-          );
-        }
+        reportRowProgress(processed: overallProcessed, total: totalRows);
       }
     }
 
-    await importEmailRows();
-    await importPhoneRows();
+    // Process phone rows
+    for (final row in phoneRows) {
+      final owner = row['ZOWNER'] as int?;
+      if (owner == null) {
+        overallProcessed += 1;
+        continue;
+      }
+
+      final rawNumber = _trim(row['ZFULLNUMBER']) ?? _trim(row['ZVALUE']);
+      if (rawNumber == null || rawNumber.isEmpty) {
+        overallProcessed += 1;
+        continue;
+      }
+
+      final normalized = _normalizeIdentifier(rawNumber) ?? rawNumber;
+      final alreadyImported = await ctx.importDb.contactChannelExists(
+        kind: 'phone',
+        value: normalized,
+      );
+      if (alreadyImported) {
+        overallProcessed += 1;
+        continue;
+      }
+
+      await ctx.importDb.insertContactChannel(
+        zOwner: owner,
+        kind: 'phone',
+        value: normalized,
+        label: _trim(row['ZLABEL']),
+      );
+      inserted += 1;
+      overallProcessed += 1;
+
+      if (overallProcessed % 200 == 0 || overallProcessed == totalRows) {
+        ctx.info(
+          'ContactChannelsImporter: processed $overallProcessed/$totalRows '
+          'rows (inserted $inserted)',
+        );
+        reportRowProgress(processed: overallProcessed, total: totalRows);
+      }
+    }
+
+    // Final progress report if not already reported
+    if (totalRows > 0 && overallProcessed % 200 != 0) {
+      reportRowProgress(processed: overallProcessed, total: totalRows);
+    }
 
     ctx.writeScratch('contactChannels.inserted', inserted);
   }

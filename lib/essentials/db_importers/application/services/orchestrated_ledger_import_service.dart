@@ -237,17 +237,17 @@ class OrchestratedLedgerImportService {
       );
 
       final importers = <TableImporter>[
-        const HandlesImporter(),
-        const ChatsImporter(),
-        const ChatToHandleImporter(),
-        const ContactsImporter(),
-        const ContactChannelsImporter(),
-        const ContactToChatHandleImporter(),
+        HandlesImporter(),
+        ChatsImporter(),
+        ChatToHandleImporter(),
+        ContactsImporter(),
+        ContactChannelsImporter(),
+        ContactToChatHandleImporter(),
         MessagesImporter(),
-        const MessageRichTextImporter(),
-        const ChatToMessageImporter(),
-        const AttachmentsImporter(),
-        const MessageAttachmentsImporter(),
+        MessageRichTextImporter(),
+        ChatToMessageImporter(),
+        AttachmentsImporter(),
+        MessageAttachmentsImporter(),
       ];
 
       final orchestrator = ImportOrchestrator(importers);

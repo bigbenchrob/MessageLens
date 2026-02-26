@@ -1,10 +1,11 @@
 import '../../../../../core/util/date_converter.dart';
 import '../../../db/shared/handle_identifier_utils.dart';
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class HandlesImporter extends BaseTableImporter {
-  const HandlesImporter();
+class HandlesImporter extends BaseTableImporter with RowProgressReporter {
+  HandlesImporter();
 
   @override
   String get name => 'handles';
@@ -75,6 +76,7 @@ class HandlesImporter extends BaseTableImporter {
         ctx.info(
           'HandlesImporter: processed $processed/${rows.length} handles from chat.db',
         );
+        reportRowProgress(processed: processed, total: rows.length);
       }
     }
 

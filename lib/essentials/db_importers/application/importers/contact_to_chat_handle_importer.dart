@@ -1,8 +1,10 @@
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ContactToChatHandleImporter extends BaseTableImporter {
-  const ContactToChatHandleImporter();
+class ContactToChatHandleImporter extends BaseTableImporter
+    with RowProgressReporter {
+  ContactToChatHandleImporter();
 
   @override
   String get name => 'contact_to_chat_handle';
@@ -130,6 +132,7 @@ class ContactToChatHandleImporter extends BaseTableImporter {
           'ContactToChatHandleImporter: processed '
           '$processed/${channels.length} channels (linked $inserted)',
         );
+        reportRowProgress(processed: processed, total: channels.length);
       }
     }
 

@@ -1,10 +1,11 @@
 import '../../../../../core/util/date_converter.dart';
 
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ChatsImporter extends BaseTableImporter {
-  const ChatsImporter();
+class ChatsImporter extends BaseTableImporter with RowProgressReporter {
+  ChatsImporter();
 
   @override
   String get name => 'chats';
@@ -79,6 +80,7 @@ class ChatsImporter extends BaseTableImporter {
         ctx.info(
           'ChatsImporter: processed $processed/${rows.length} chats from chat.db',
         );
+        reportRowProgress(processed: processed, total: rows.length);
       }
     }
 

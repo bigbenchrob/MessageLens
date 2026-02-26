@@ -1,8 +1,9 @@
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ChatToMessageImporter extends BaseTableImporter {
-  const ChatToMessageImporter();
+class ChatToMessageImporter extends BaseTableImporter with RowProgressReporter {
+  ChatToMessageImporter();
 
   @override
   String get name => 'chat_to_message';
@@ -54,6 +55,7 @@ class ChatToMessageImporter extends BaseTableImporter {
           'ChatToMessageImporter: processed $processed/${entries.length} '
           'links (inserted $linked)',
         );
+        reportRowProgress(processed: processed, total: entries.length);
       }
     }
 

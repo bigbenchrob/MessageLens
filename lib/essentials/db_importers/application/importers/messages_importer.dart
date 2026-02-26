@@ -116,10 +116,7 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
           'MessagesImporter: processed $processed/${rows.length} messages '
           '(inserted $inserted)',
         );
-        reportRowProgress(
-          processed: processed,
-          total: rows.length,
-        );
+        reportRowProgress(processed: processed, total: rows.length);
       }
     }
 

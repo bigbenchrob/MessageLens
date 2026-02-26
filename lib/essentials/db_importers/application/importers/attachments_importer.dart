@@ -1,9 +1,10 @@
 import '../../../../../core/util/date_converter.dart';
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class AttachmentsImporter extends BaseTableImporter {
-  const AttachmentsImporter();
+class AttachmentsImporter extends BaseTableImporter with RowProgressReporter {
+  AttachmentsImporter();
 
   @override
   String get name => 'attachments';
@@ -86,6 +87,7 @@ class AttachmentsImporter extends BaseTableImporter {
           'AttachmentsImporter: processed $processed/${rows.length} '
           'attachments (inserted $inserted)',
         );
+        reportRowProgress(processed: processed, total: rows.length);
       }
     }
 

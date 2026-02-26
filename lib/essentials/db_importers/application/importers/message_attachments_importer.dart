@@ -1,10 +1,12 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class MessageAttachmentsImporter extends BaseTableImporter {
-  const MessageAttachmentsImporter();
+class MessageAttachmentsImporter extends BaseTableImporter
+    with RowProgressReporter {
+  MessageAttachmentsImporter();
 
   @override
   String get name => 'message_attachments';
@@ -61,6 +63,7 @@ class MessageAttachmentsImporter extends BaseTableImporter {
           'MessageAttachmentsImporter: processed $processed/${joinPairs.length} '
           'pairs (linked $linked)',
         );
+        reportRowProgress(processed: processed, total: joinPairs.length);
       }
     }
 

@@ -1,8 +1,9 @@
 import '../../domain/base_table_importer.dart';
+import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class MessageRichTextImporter extends BaseTableImporter {
-  const MessageRichTextImporter();
+class MessageRichTextImporter extends BaseTableImporter with RowProgressReporter {
+  MessageRichTextImporter();
 
   @override
   String get name => 'message_rich_text';
@@ -63,14 +64,20 @@ class MessageRichTextImporter extends BaseTableImporter {
     }
 
     var applied = 0;
+    var processed = 0;
     for (final id in candidates) {
       final text = extracted[id];
       final normalized = text?.trim();
       if (normalized == null || normalized.isEmpty) {
+        processed += 1;
         continue;
       }
       await ctx.importDb.updateMessageText(messageId: id, text: normalized);
       applied += 1;
+      processed += 1;
+      if (processed % 200 == 0 || processed == candidates.length) {
+        reportRowProgress(processed: processed, total: candidates.length);
+      }
     }
 
     ctx.info(
