@@ -104,6 +104,7 @@ class PanelsViewState extends _$PanelsViewState {
       messages: (_) => 'Messages',
       chats: (_) => 'Chats',
       contacts: (_) => 'Contacts',
+      dbSetup: (_) => 'Setup',
       import: (_) => 'Import',
       settings: (_) => 'Settings',
       workbench: (_) => 'Workbench',
