@@ -17,7 +17,7 @@ class MessagesImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['chat_to_handle'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -30,7 +30,7 @@ class MessagesImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final minRowId = ctx.previousMaxMessageRowId;
     final rows = await ctx.messagesDb.query(
       'message',
@@ -138,7 +138,7 @@ class MessagesImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     ctx.info('MessagesImporter: ledger now tracks $total messages.');
   }

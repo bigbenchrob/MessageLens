@@ -218,7 +218,7 @@ class OrchestratedLedgerImportService {
       messagesDb = await openDatabase(messagesFile.path, readOnly: true);
       addressBookDb = await openDatabase(addressBookFile.path, readOnly: true);
 
-      final context = ImportContext(
+      final context = ImportContextSqlite(
         importDb: ledgerDb,
         messagesDb: messagesDb,
         messagesDbPath: messagesFile.path,

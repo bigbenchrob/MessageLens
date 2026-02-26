@@ -4,9 +4,9 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import '../../db/infrastructure/data_sources/local/working/working_database.dart';
-import '../infrastructure/sqlite/migration_context_sqlite.dart';
 import 'failures/migration_exception.dart';
 import 'i_migrators.dart/table_migrator.dart';
+import 'ports/migration_context.dart';
 
 /// A small base that gives you handy helpers.
 abstract class BaseTableMigrator implements TableMigrator {
@@ -21,13 +21,13 @@ abstract class BaseTableMigrator implements TableMigrator {
   List<String> get targetTables => <String>[name];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx);
+  Future<void> validatePrereqs(IMigrationContext ctx);
 
   @override
-  Future<void> copy(MigrationContext ctx);
+  Future<void> copy(IMigrationContext ctx);
 
   @override
-  Future<void> postValidate(MigrationContext ctx);
+  Future<void> postValidate(IMigrationContext ctx);
 
   Future<int> count(Object database, String table) async {
     final safeTable = table.replaceAll('"', '""');

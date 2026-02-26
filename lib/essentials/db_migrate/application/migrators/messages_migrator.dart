@@ -21,7 +21,7 @@ class MessagesMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['chats', 'handles'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final joinableMessages = await _countJoinableMessages(ctx);
     ctx.log('[messages] joinable import count = $joinableMessages');
 
@@ -50,7 +50,7 @@ class MessagesMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[messages] dry run – skipping copy');
       return;
@@ -290,7 +290,7 @@ class MessagesMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expected = await _countJoinableMessages(ctx);
     final projected = await count(ctx.workingDb, 'messages');
     ctx.log('[messages] expected=$expected projected=$projected');
@@ -322,7 +322,7 @@ class MessagesMigrator extends BaseTableMigrator {
     }
   }
 
-  Future<int> _countJoinableMessages(MigrationContext ctx) async {
+  Future<int> _countJoinableMessages(IMigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
@@ -337,7 +337,7 @@ class MessagesMigrator extends BaseTableMigrator {
   }
 
   Future<T> _withAttachedImport<T>(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     Future<T> Function() run,
   ) async {
     final importSqlite = await ctx.importDb.database;
@@ -352,7 +352,7 @@ class MessagesMigrator extends BaseTableMigrator {
     }
   }
 
-  Future<void> _detachImportWithRetry(MigrationContext ctx) async {
+  Future<void> _detachImportWithRetry(IMigrationContext ctx) async {
     const maxAttempts = 5;
     var attempt = 0;
     while (true) {

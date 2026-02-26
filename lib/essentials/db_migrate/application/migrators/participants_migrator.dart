@@ -48,7 +48,7 @@ COALESCE(
   List<String> get dependsOn => const ['handles'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final importCount = await _countImportContacts(ctx);
     ctx.log('[participants] import count = $importCount');
     if (importCount == 0) {
@@ -68,7 +68,7 @@ COALESCE(
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[participants] dry run – skipping copy');
       return;
@@ -127,7 +127,7 @@ COALESCE(
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expected = await _countImportContacts(ctx);
     final projected = await count(ctx.workingDb, 'participants');
     ctx.log('[participants] expected=$expected projected=$projected');
@@ -161,7 +161,7 @@ COALESCE(
     }
   }
 
-  Future<int> _countImportContacts(MigrationContext ctx) async {
+  Future<int> _countImportContacts(IMigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery('''
       SELECT COUNT(*) AS c
@@ -175,7 +175,7 @@ COALESCE(
   }
 
   Future<T> _withAttachedImport<T>(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     Future<T> Function() run,
   ) async {
     final importSqlite = await ctx.importDb.database;

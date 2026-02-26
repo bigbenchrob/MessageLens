@@ -13,7 +13,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['chats', 'handles'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final importLinks = await _countImportLinks(ctx);
     ctx.log('[chat_to_handle] import count = $importLinks');
 
@@ -39,7 +39,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[chat_to_handle] dry run – skipping copy');
       return;
@@ -123,7 +123,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expected = await _withAttachedImport(ctx, () async {
       final rows = await ctx.workingDb.customSelect('''
         SELECT COUNT(*) AS c
@@ -156,7 +156,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
     }
   }
 
-  Future<int> _countImportLinks(MigrationContext ctx) async {
+  Future<int> _countImportLinks(IMigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c FROM chat_to_handle',
@@ -168,7 +168,7 @@ class ChatToHandleMigrator extends BaseTableMigrator {
   }
 
   Future<T> _withAttachedImport<T>(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     Future<T> Function() run,
   ) async {
     final importSqlite = await ctx.importDb.database;

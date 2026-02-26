@@ -13,7 +13,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['messages'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final joinable = await _countJoinableAttachments(ctx);
     ctx.log('[attachments] joinable import count = $joinable');
 
@@ -32,7 +32,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[attachments] dry run – skipping copy');
       return;
@@ -102,7 +102,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expected = await _countJoinableAttachments(ctx);
     final projected = await count(ctx.workingDb, 'attachments');
     ctx.log('[attachments] expected=$expected projected=$projected');
@@ -135,7 +135,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
     }
   }
 
-  Future<int> _countJoinableAttachments(MigrationContext ctx) async {
+  Future<int> _countJoinableAttachments(IMigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
@@ -151,7 +151,7 @@ class AttachmentsMigrator extends BaseTableMigrator {
   }
 
   Future<T> _withAttachedImport<T>(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     Future<T> Function() run,
   ) async {
     final importSqlite = await ctx.importDb.database;

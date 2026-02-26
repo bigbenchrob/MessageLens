@@ -13,7 +13,7 @@ class MessageAttachmentsImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['attachments'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -26,7 +26,7 @@ class MessageAttachmentsImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final messageIds = _readIntList(ctx, 'messages.insertedIds');
     final attachmentIds = _readIntList(ctx, 'attachments.insertedIds');
     final joinPairs = await _collectJoinPairs(
@@ -68,7 +68,7 @@ class MessageAttachmentsImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     ctx.info(
       'MessageAttachmentsImporter: ledger now tracks $total message/attachment links.',
@@ -137,7 +137,7 @@ Future<Set<({int messageId, int attachmentId})>> _collectJoinPairs(
   return pairs;
 }
 
-List<int> _readIntList(ImportContext ctx, String key) {
+List<int> _readIntList(IImportContext ctx, String key) {
   final raw = ctx.readScratch<Object?>(key);
   if (raw is List<Object?>) {
     return raw

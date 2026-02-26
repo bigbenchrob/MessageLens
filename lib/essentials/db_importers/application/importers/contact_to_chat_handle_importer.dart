@@ -15,7 +15,7 @@ class ContactToChatHandleImporter extends BaseTableImporter {
   ];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -28,7 +28,7 @@ class ContactToChatHandleImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     await ctx.importDb.clearContactHandleLinksForBatch(batchId: ctx.batchId);
 
     final handles = await ctx.importDb.handlesForBatch(ctx.batchId);
@@ -142,7 +142,7 @@ class ContactToChatHandleImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     ctx.info(
       'ContactToChatHandleImporter: ledger now tracks $total handle/contact links.',

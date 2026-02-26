@@ -13,7 +13,7 @@ class HandlesImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>[];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -26,7 +26,7 @@ class HandlesImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final minRowId = ctx.previousMaxHandleRowId;
     final rows = await ctx.messagesDb.query(
       'handle',
@@ -88,7 +88,7 @@ class HandlesImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
       ok: total > 0,

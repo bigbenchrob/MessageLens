@@ -4,40 +4,57 @@ import 'package:sqflite/sqflite.dart' show DatabaseException;
 import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../domain/failures/migration_exception.dart';
+import '../../domain/ports/migration_context.dart';
+import '../../domain/value_objects/canonical_handle_info.dart';
 
-class CanonicalHandleInfo {
-  const CanonicalHandleInfo({required this.compound, required this.display});
+export '../../domain/ports/migration_context.dart';
+export '../../domain/value_objects/canonical_handle_info.dart';
 
-  final String compound;
-  final String display;
-}
-
-/// Common context shared by all migrators.
-class MigrationContext {
+/// SQLite implementation of [IMigrationContext].
+class MigrationContextSqlite implements IMigrationContext {
+  @override
   final SqfliteImportDatabase importDb;
+
+  @override
   final WorkingDatabase workingDb;
+
+  @override
   final bool dryRun;
+
+  @override
   final bool incrementalMode;
-  final void Function(String msg) log;
+
+  final void Function(String msg) _log;
+
+  @override
   final Map<int, int> handleIdCanonicalMap;
+
+  @override
   final Map<int, CanonicalHandleInfo> canonicalHandleInfo;
-  MigrationContext({
+
+  MigrationContextSqlite({
     required this.importDb,
     required this.workingDb,
     this.dryRun = false,
     this.incrementalMode = false,
-    required this.log,
+    required void Function(String msg) log,
     Map<int, int>? handleIdCanonicalMap,
     Map<int, CanonicalHandleInfo>? canonicalHandleInfo,
-  }) : handleIdCanonicalMap = handleIdCanonicalMap ?? <int, int>{},
+  }) : _log = log,
+       handleIdCanonicalMap = handleIdCanonicalMap ?? <int, int>{},
        canonicalHandleInfo =
            canonicalHandleInfo ?? <int, CanonicalHandleInfo>{};
 
+  @override
+  void log(String message) => _log(message);
+
+  @override
   Future<void> ensureImportReady(String stageLabel) async {
     await _clearLingeringImportAttachments(stageLabel);
     await _verifyImportAttachable(stageLabel);
   }
 
+  @override
   Future<void> ensureImportClean(String stageLabel) async {
     await _clearLingeringImportAttachments(stageLabel);
     await _verifyImportAttachable(stageLabel);

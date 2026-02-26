@@ -12,7 +12,7 @@ class AttachmentsImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['messages'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -25,7 +25,7 @@ class AttachmentsImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final minRowId = ctx.previousMaxAttachmentRowId;
     final sql = StringBuffer()
       ..writeln('SELECT')
@@ -101,7 +101,7 @@ class AttachmentsImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     ctx.info('AttachmentsImporter: ledger now tracks $total attachments.');
   }

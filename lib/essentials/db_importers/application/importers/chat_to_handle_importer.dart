@@ -11,7 +11,7 @@ class ChatToHandleImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['handles', 'chats'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -24,7 +24,7 @@ class ChatToHandleImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final rows = await ctx.messagesDb.query('chat_handle_join');
     if (rows.isEmpty) {
       ctx.info('ChatToHandleImporter: no chat memberships detected.');
@@ -69,7 +69,7 @@ class ChatToHandleImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     await expectTrueOrThrow(
       ok: total > 0,

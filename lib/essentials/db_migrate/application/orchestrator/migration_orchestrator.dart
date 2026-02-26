@@ -39,7 +39,7 @@ class MigrationOrchestrator {
   }
 
   Future<void> run(
-    MigrationContext ctx, {
+    IMigrationContext ctx, {
     TableMigrationProgressCallback? onTableProgress,
   }) async {
     final ordered = _sorted();
@@ -87,7 +87,7 @@ class MigrationOrchestrator {
   }
 
   Future<void> _prepareWorking(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     List<TableMigrator> ordered,
   ) async {
     if (ctx.dryRun) {
@@ -119,7 +119,7 @@ class MigrationOrchestrator {
   }
 
   Future<void> _runPhase({
-    required MigrationContext ctx,
+    required IMigrationContext ctx,
     required TableMigrator migrator,
     required TableMigrationPhase phase,
     required Future<void> Function() action,

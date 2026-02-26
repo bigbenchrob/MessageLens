@@ -22,7 +22,7 @@ class HandlesMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const [];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final importDb = await ctx.importDb.database;
     await importDb.execute('PRAGMA foreign_keys = ON');
 
@@ -92,7 +92,7 @@ class HandlesMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[handles] dry run – skipping copy');
       return;
@@ -281,7 +281,7 @@ class HandlesMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final src = await count(ctx.importDb, 'handles');
     // 'handles' table is removed in v17, so we only check handles_canonical
     final dstNew = await count(ctx.workingDb, 'handles_canonical');

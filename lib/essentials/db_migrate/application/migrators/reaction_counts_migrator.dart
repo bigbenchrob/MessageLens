@@ -11,13 +11,13 @@ class ReactionCountsMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['reactions'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final reactionRows = await count(ctx.workingDb, 'reactions');
     ctx.log('[reaction_counts] reactions available = $reactionRows');
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[reaction_counts] dry run – skipping copy');
       return;
@@ -79,7 +79,7 @@ class ReactionCountsMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final distinctSources = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c FROM (
         SELECT DISTINCT message_guid

@@ -11,7 +11,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['messages', 'attachments'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final batchId = await _latestBatchId(ctx);
     await expectTrueOrThrow(
       ok: batchId != null,
@@ -22,7 +22,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[projection_state] dry run – skipping copy');
       return;
@@ -51,7 +51,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final rows = await ctx.workingDb
         .customSelect(
           'SELECT last_import_batch_id, last_projected_message_id, last_projected_attachment_id '
@@ -77,7 +77,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
     );
   }
 
-  Future<int?> _latestBatchId(MigrationContext ctx) async {
+  Future<int?> _latestBatchId(IMigrationContext ctx) async {
     final rows = await ctx.importDb.database.then(
       (db) => db.query(
         'import_batches',
@@ -102,7 +102,7 @@ class ProjectionStateMigrator extends BaseTableMigrator {
     return int.tryParse(value.toString());
   }
 
-  Future<int?> _maxId(MigrationContext ctx, String table, String column) async {
+  Future<int?> _maxId(IMigrationContext ctx, String table, String column) async {
     final rows = await ctx.workingDb
         .customSelect('SELECT MAX($column) AS m FROM $table')
         .get();

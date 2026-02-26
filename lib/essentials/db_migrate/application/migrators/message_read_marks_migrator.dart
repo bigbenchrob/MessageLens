@@ -11,7 +11,7 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['messages'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final messagesWithReadAt = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c
       FROM messages
@@ -22,7 +22,7 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[message_read_marks] dry run – skipping copy');
       return;
@@ -43,7 +43,7 @@ class MessageReadMarksMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expectedRows = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c
       FROM messages

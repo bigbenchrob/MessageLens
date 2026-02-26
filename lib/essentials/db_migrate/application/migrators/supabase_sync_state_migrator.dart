@@ -11,17 +11,17 @@ class SupabaseSyncStateMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const [];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     throw UnimplementedError('SupabaseSyncStateMigrator.validatePrereqs');
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     throw UnimplementedError('SupabaseSyncStateMigrator.copy');
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     throw UnimplementedError('SupabaseSyncStateMigrator.postValidate');
   }
 }

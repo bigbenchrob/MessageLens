@@ -13,7 +13,7 @@ class ReactionsMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['messages', 'handles'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final joinable = await _countJoinableReactions(ctx);
     ctx.log('[reactions] joinable import count = $joinable');
 
@@ -42,7 +42,7 @@ class ReactionsMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[reactions] dry run – skipping copy');
       return;
@@ -114,7 +114,7 @@ class ReactionsMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expected = await _countJoinableReactions(ctx);
     final projected = await count(ctx.workingDb, 'reactions');
     ctx.log('[reactions] expected=$expected projected=$projected');
@@ -147,7 +147,7 @@ class ReactionsMigrator extends BaseTableMigrator {
     }
   }
 
-  Future<int> _countJoinableReactions(MigrationContext ctx) async {
+  Future<int> _countJoinableReactions(IMigrationContext ctx) async {
     final importSqlite = await ctx.importDb.database;
     final rows = await importSqlite.rawQuery(
       'SELECT COUNT(*) AS c '
@@ -162,7 +162,7 @@ class ReactionsMigrator extends BaseTableMigrator {
   }
 
   Future<T> _withAttachedImport<T>(
-    MigrationContext ctx,
+    IMigrationContext ctx,
     Future<T> Function() run,
   ) async {
     final importSqlite = await ctx.importDb.database;

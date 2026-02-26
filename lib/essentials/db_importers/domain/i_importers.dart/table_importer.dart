@@ -1,4 +1,4 @@
-import '../../infrastructure/sqlite/import_context_sqlite.dart';
+import '../ports/import_context.dart';
 
 /// Contract that every table-specific importer must satisfy.
 abstract class TableImporter {
@@ -9,11 +9,11 @@ abstract class TableImporter {
   List<String> get dependsOn;
 
   /// Pre-flight validation before any data movement occurs.
-  Future<void> validatePrereqs(ImportContext ctx);
+  Future<void> validatePrereqs(IImportContext ctx);
 
   /// Executes the primary import work (INSERT/SELECT, transforms, etc.).
-  Future<void> copy(ImportContext ctx);
+  Future<void> copy(IImportContext ctx);
 
   /// Post-import validation and reconciliation.
-  Future<void> postValidate(ImportContext ctx);
+  Future<void> postValidate(IImportContext ctx);
 }

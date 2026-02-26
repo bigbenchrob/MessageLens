@@ -1,4 +1,4 @@
-import '../../infrastructure/sqlite/migration_context_sqlite.dart';
+import '../ports/migration_context.dart';
 
 /// What every table-specific migrator must implement.
 abstract class TableMigrator {
@@ -8,12 +8,12 @@ abstract class TableMigrator {
 
   /// Pre-copy checks: existence, counts, FK prerequisites (in source),
   /// and—importantly—presence of referenced parents already in WORKING if needed.
-  Future<void> validatePrereqs(MigrationContext ctx);
+  Future<void> validatePrereqs(IMigrationContext ctx);
 
   /// The actual lift-and-shift (usually INSERT…SELECT).
   /// Should be idempotent (e.g., use INSERT OR REPLACE / ON CONFLICT DO NOTHING).
-  Future<void> copy(MigrationContext ctx);
+  Future<void> copy(IMigrationContext ctx);
 
   /// Post-copy validation: FK sanity, counts, and diffs.
-  Future<void> postValidate(MigrationContext ctx);
+  Future<void> postValidate(IMigrationContext ctx);
 }

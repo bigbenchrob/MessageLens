@@ -11,17 +11,17 @@ class AppSettingsMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const [];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     throw UnimplementedError('AppSettingsMigrator.validatePrereqs');
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     throw UnimplementedError('AppSettingsMigrator.copy');
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     throw UnimplementedError('AppSettingsMigrator.postValidate');
   }
 }

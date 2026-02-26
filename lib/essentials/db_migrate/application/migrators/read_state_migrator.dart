@@ -11,13 +11,13 @@ class ReadStateMigrator extends BaseTableMigrator {
   List<String> get dependsOn => const ['chats', 'messages'];
 
   @override
-  Future<void> validatePrereqs(MigrationContext ctx) async {
+  Future<void> validatePrereqs(IMigrationContext ctx) async {
     final chatCount = await count(ctx.workingDb, 'chats');
     ctx.log('[read_state] projected chats=$chatCount');
   }
 
   @override
-  Future<void> copy(MigrationContext ctx) async {
+  Future<void> copy(IMigrationContext ctx) async {
     if (ctx.dryRun) {
       ctx.log('[read_state] dry run – skipping copy');
       return;
@@ -39,7 +39,7 @@ class ReadStateMigrator extends BaseTableMigrator {
   }
 
   @override
-  Future<void> postValidate(MigrationContext ctx) async {
+  Future<void> postValidate(IMigrationContext ctx) async {
     final expectedRows = await ctx.workingDb.customSelect('''
       SELECT COUNT(*) AS c FROM (
         SELECT chat_id

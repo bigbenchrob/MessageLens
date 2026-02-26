@@ -11,12 +11,12 @@ class MessageRichTextImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['messages'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     // No-op: this importer enhances previously imported messages.
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final extractor = ctx.extractor;
     final candidates = _readCandidateIds(ctx);
     if (candidates.isEmpty) {
@@ -80,10 +80,10 @@ class MessageRichTextImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {}
+  Future<void> postValidate(IImportContext ctx) async {}
 }
 
-List<int> _readCandidateIds(ImportContext ctx) {
+List<int> _readCandidateIds(IImportContext ctx) {
   final raw = ctx.readScratch<Object?>('messages.extractionCandidates');
   if (raw is List<Object?>) {
     return raw

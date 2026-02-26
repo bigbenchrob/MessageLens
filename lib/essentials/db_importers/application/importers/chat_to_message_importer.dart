@@ -11,7 +11,7 @@ class ChatToMessageImporter extends BaseTableImporter {
   List<String> get dependsOn => const <String>['messages'];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx) async {
+  Future<void> validatePrereqs(IImportContext ctx) async {
     if (ctx.hasExistingLedgerData) {
       return;
     }
@@ -24,7 +24,7 @@ class ChatToMessageImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> copy(ImportContext ctx) async {
+  Future<void> copy(IImportContext ctx) async {
     final raw = ctx.readScratch<Object?>('messages.messageToChat');
     final entries = _decodeMessageToChat(raw);
     if (entries.isEmpty) {
@@ -61,7 +61,7 @@ class ChatToMessageImporter extends BaseTableImporter {
   }
 
   @override
-  Future<void> postValidate(ImportContext ctx) async {
+  Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
     ctx.info(
       'ChatToMessageImporter: ledger now tracks $total chat/message links.',

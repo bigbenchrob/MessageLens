@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
-import '../infrastructure/sqlite/import_context_sqlite.dart';
 import 'i_importers.dart/table_importer.dart';
+import 'ports/import_context.dart';
 
 /// Convenience base class mirroring the migration pipeline helpers.
 abstract class BaseTableImporter implements TableImporter {
@@ -16,13 +16,13 @@ abstract class BaseTableImporter implements TableImporter {
   List<String> get targetTables => <String>[name];
 
   @override
-  Future<void> validatePrereqs(ImportContext ctx);
+  Future<void> validatePrereqs(IImportContext ctx);
 
   @override
-  Future<void> copy(ImportContext ctx);
+  Future<void> copy(IImportContext ctx);
 
   @override
-  Future<void> postValidate(ImportContext ctx);
+  Future<void> postValidate(IImportContext ctx);
 
   Future<int> count(Object database, String table) async {
     final safeTable = table.replaceAll('"', '""');

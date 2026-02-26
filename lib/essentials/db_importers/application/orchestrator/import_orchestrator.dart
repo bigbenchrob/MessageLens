@@ -12,7 +12,7 @@ class ImportOrchestrator {
   final List<TableImporter> _importers;
 
   Future<void> run(
-    ImportContext ctx, {
+    IImportContext ctx, {
     TableImportProgressCallback? onTableProgress,
   }) async {
     final ordered = _sorted();
@@ -103,7 +103,7 @@ class ImportOrchestrator {
   }
 
   Future<void> _runPhase({
-    required ImportContext ctx,
+    required IImportContext ctx,
     required TableImporter importer,
     required TableImportPhase phase,
     required Future<void> Function() action,

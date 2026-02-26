@@ -66,7 +66,7 @@ class HandlesMigrationService {
       driftWorkingDatabaseProvider.future,
     );
 
-    final context = MigrationContext(
+    final context = MigrationContextSqlite(
       importDb: importDatabase,
       workingDb: workingDatabase,
       log: debugSettings.logProgress,
