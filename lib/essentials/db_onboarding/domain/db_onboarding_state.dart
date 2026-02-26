@@ -28,6 +28,12 @@ abstract class DbOnboardingState with _$DbOnboardingState {
     /// Whether the import process has completed successfully.
     required bool importComplete,
 
+    /// Whether onboarding is running in developer mode.
+    ///
+    /// When true, the fullscreen overlay is suppressed and progress
+    /// is shown inline in the developer tools panel.
+    @Default(false) bool devMode,
+
     /// Optional error message if the current phase is [DbOnboardingPhase.error].
     String? errorMessage,
 

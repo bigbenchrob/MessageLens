@@ -106,8 +106,11 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Start the onboarding flow.
   ///
   /// This checks FDA permissions first, then proceeds to locate databases.
-  Future<void> startOnboarding() async {
-    state = state.copyWith(currentPhase: DbOnboardingPhase.checkingPermissions);
+  Future<void> startOnboarding({bool devMode = false}) async {
+    state = state.copyWith(
+      currentPhase: DbOnboardingPhase.checkingPermissions,
+      devMode: devMode,
+    );
 
     // Check FDA by attempting to stat the chat.db file
     final fdaGranted = await _checkFullDiskAccess();
@@ -120,6 +123,15 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
     // FDA granted, proceed to locate messages
     await _proceedToLocateMessages();
+  }
+
+  /// Reset to initial state, optionally preserving dev mode.
+  void resetState({bool preserveDevMode = false}) {
+    final wasDevMode = state.devMode;
+    state = DbOnboardingState.initial();
+    if (preserveDevMode && wasDevMode) {
+      state = state.copyWith(devMode: true);
+    }
   }
 
   /// Retry after FDA instructions.

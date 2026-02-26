@@ -113,6 +113,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
     final showOnboarding = onboardingRequiredAsync.maybeWhen(
       data: (required) =>
           required &&
+          !onboardingState.devMode &&
           onboardingState.currentPhase != DbOnboardingPhase.complete,
       orElse: () => false,
     );

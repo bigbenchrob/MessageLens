@@ -19,12 +19,10 @@ class _DbFileInfo {
   const _DbFileInfo({
     required this.name,
     required this.filename,
-    required this.description,
   });
 
   final String name;
   final String filename;
-  final String description;
 
   String get path => '$_databaseDirectoryPath$filename';
   File get file => File(path);
@@ -32,29 +30,17 @@ class _DbFileInfo {
 }
 
 const _databases = [
-  _DbFileInfo(
-    name: 'Import Ledger',
-    filename: 'macos_import.db',
-    description: 'Raw data imported from macOS Messages & AddressBook',
-  ),
-  _DbFileInfo(
-    name: 'Working Database',
-    filename: 'working.db',
-    description: 'Drift projection used by the Flutter UI',
-  ),
-  _DbFileInfo(
-    name: 'User Overlays',
-    filename: 'user_overlays.db',
-    description: 'User preferences and manual link customizations',
-  ),
+  _DbFileInfo(name: 'Import Ledger', filename: 'macos_import.db'),
+  _DbFileInfo(name: 'Working Database', filename: 'working.db'),
+  _DbFileInfo(name: 'User Overlays', filename: 'user_overlays.db'),
 ];
 
 /// Developer panel for testing the onboarding flow.
 ///
 /// Provides controls to:
-/// - View database file status
-/// - Delete individual database files
-/// - Trigger the onboarding flow without restarting
+/// - View database file status and delete files
+/// - See all onboarding phases with their current state (always visible)
+/// - Trigger and reset onboarding without the fullscreen overlay
 class DbOnboardingDevPanel extends ConsumerStatefulWidget {
   const DbOnboardingDevPanel({super.key});
 
@@ -64,8 +50,6 @@ class DbOnboardingDevPanel extends ConsumerStatefulWidget {
 }
 
 class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
-  bool _showOnboarding = false;
-
   @override
   Widget build(BuildContext context) {
     ref.watch(themeColorsProvider);
@@ -82,7 +66,7 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
             _buildHeader(colors),
             const SizedBox(height: 24),
             _buildDatabaseSection(colors),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             _buildOnboardingSection(colors, onboardingState),
           ],
         ),
@@ -93,11 +77,7 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
   Widget _buildHeader(ThemeColors colors) {
     return Row(
       children: [
-        Icon(
-          CupertinoIcons.hammer,
-          size: 28,
-          color: colors.accents.primary,
-        ),
+        Icon(CupertinoIcons.hammer, size: 28, color: colors.accents.primary),
         const SizedBox(width: 12),
         Text(
           'Onboarding Developer Tools',
@@ -122,42 +102,35 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Database Files',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: colors.content.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Delete databases to test onboarding from scratch',
-            style: TextStyle(
-              fontSize: 13,
-              color: colors.content.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ..._databases.map((db) => _buildDatabaseRow(colors, db)),
-          const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: PushButton(
-                  controlSize: ControlSize.regular,
-                  secondary: true,
-                  color: const Color(0xFFFF3B30),
-                  onPressed: _deleteAllDatabases,
-                  child: const Text('Delete All Databases'),
+              Text(
+                'Database Files',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: colors.content.textPrimary,
                 ),
               ),
-              const SizedBox(width: 12),
+              const Spacer(),
               MacosIconButton(
                 icon: const MacosIcon(CupertinoIcons.refresh),
                 onPressed: () => setState(() {}),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          ..._databases.map((db) => _buildDatabaseRow(colors, db)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: PushButton(
+              controlSize: ControlSize.regular,
+              secondary: true,
+              color: const Color(0xFFFF3B30),
+              onPressed: _deleteAllDatabases,
+              child: const Text('Delete All Databases'),
+            ),
           ),
         ],
       ),
@@ -168,36 +141,26 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     final exists = db.exists;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Icon(
-            exists ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.xmark_circle,
-            size: 18,
-            color: exists ? const Color(0xFF34C759) : colors.content.textTertiary,
+            exists
+                ? CupertinoIcons.checkmark_circle_fill
+                : CupertinoIcons.xmark_circle,
+            size: 16,
+            color:
+                exists ? const Color(0xFF34C759) : colors.content.textTertiary,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  db.name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: colors.content.textPrimary,
-                  ),
-                ),
-                Text(
-                  db.filename,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'SF Mono',
-                    color: colors.content.textSecondary,
-                  ),
-                ),
-              ],
+            child: Text(
+              db.filename,
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'SF Mono',
+                color: colors.content.textPrimary,
+              ),
             ),
           ),
           if (exists)
@@ -209,7 +172,7 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
             )
           else
             Text(
-              'Not found',
+              'Missing',
               style: TextStyle(
                 fontSize: 12,
                 color: colors.content.textTertiary,
@@ -225,6 +188,15 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     ThemeColors colors,
     DbOnboardingState onboardingState,
   ) {
+    final isComplete =
+        onboardingState.currentPhase == DbOnboardingPhase.complete;
+    final isError = onboardingState.currentPhase == DbOnboardingPhase.error;
+    final isInitial =
+        onboardingState.currentPhase == DbOnboardingPhase.checkingPermissions &&
+            !onboardingState.fdaGranted &&
+            !onboardingState.devMode;
+    final isRunning = !isComplete && !isError && !isInitial;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -235,96 +207,149 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Onboarding Flow',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: colors.content.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Test the onboarding experience in this panel',
-            style: TextStyle(
-              fontSize: 13,
-              color: colors.content.textSecondary,
-            ),
+          Row(
+            children: [
+              Text(
+                'Onboarding Steps',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: colors.content.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              _buildStatusBadge(colors, isComplete, isError, isRunning),
+            ],
           ),
           const SizedBox(height: 16),
-          _buildOnboardingStatus(colors, onboardingState),
+          // Always show the stepper
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surfaces.canvas,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.lines.border),
+            ),
+            child: DbOnboardingStepper(state: onboardingState),
+          ),
+          // Error message if applicable
+          if (isError && onboardingState.errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF3B30).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.exclamationmark_triangle,
+                    size: 16,
+                    color: Color(0xFFFF3B30),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      onboardingState.errorMessage!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFFFF3B30),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
+          // Action buttons
           Row(
             children: [
               Expanded(
                 child: PushButton(
                   controlSize: ControlSize.regular,
-                  onPressed: _resetAndStartOnboarding,
-                  child: const Text('Reset & Start Onboarding'),
+                  secondary: true,
+                  onPressed: _resetState,
+                  child: const Text('Reset State'),
                 ),
               ),
               const SizedBox(width: 12),
-              PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () {
-                  setState(() {
-                    _showOnboarding = !_showOnboarding;
-                  });
-                },
-                child: Text(_showOnboarding ? 'Hide Stepper' : 'Show Stepper'),
+              Expanded(
+                child: PushButton(
+                  controlSize: ControlSize.regular,
+                  onPressed: isRunning ? null : _startOnboarding,
+                  child: Text(isRunning ? 'Running...' : 'Start Onboarding'),
+                ),
               ),
             ],
           ),
-          if (_showOnboarding) ...[
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colors.surfaces.canvas,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colors.lines.border),
-              ),
-              child: DbOnboardingStepper(state: onboardingState),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildOnboardingStatus(ThemeColors colors, DbOnboardingState state) {
-    final phase = state.currentPhase;
-    final isComplete = phase == DbOnboardingPhase.complete;
-    final isError = phase == DbOnboardingPhase.error;
-
-    final (IconData icon, Color color, String status) = isComplete
-        ? (CupertinoIcons.checkmark_circle_fill, const Color(0xFF34C759), 'Complete')
-        : isError
-            ? (CupertinoIcons.exclamationmark_triangle_fill, const Color(0xFFFF3B30), 'Error')
-            : (CupertinoIcons.time, colors.accents.primary, phase.name);
-
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 8),
-        Text(
-          'Current Phase: ',
-          style: TextStyle(
-            fontSize: 14,
-            color: colors.content.textSecondary,
-          ),
+  Widget _buildStatusBadge(
+    ThemeColors colors,
+    bool isComplete,
+    bool isError,
+    bool isRunning,
+  ) {
+    if (isComplete) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF34C759).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
         ),
-        Text(
-          status,
+        child: const Text(
+          'Complete',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: colors.content.textPrimary,
+            color: Color(0xFF34C759),
           ),
         ),
-      ],
-    );
+      );
+    }
+    if (isError) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Text(
+          'Error',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFFFF3B30),
+          ),
+        ),
+      );
+    }
+    if (isRunning) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colors.accents.primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          'Running',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: colors.accents.primary,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   void _deleteDatabase(_DbFileInfo db) {
@@ -351,16 +376,25 @@ class _DbOnboardingDevPanelState extends ConsumerState<DbOnboardingDevPanel> {
     setState(() {});
   }
 
-  void _resetAndStartOnboarding() {
+  void _resetState() {
     // Invalidate the bootstrap guard to re-check onboarding requirement
     ref.invalidate(dbOnboardingRequiredProvider);
 
-    // Reset the onboarding state and start fresh
-    final notifier = ref.read(dbOnboardingStateNotifierProvider.notifier);
-    notifier.startOnboarding();
+    // Reset the onboarding state (preserving dev mode)
+    ref
+        .read(dbOnboardingStateNotifierProvider.notifier)
+        .resetState(preserveDevMode: true);
 
-    setState(() {
-      _showOnboarding = true;
-    });
+    setState(() {});
+  }
+
+  void _startOnboarding() {
+    // Invalidate the bootstrap guard to re-check onboarding requirement
+    ref.invalidate(dbOnboardingRequiredProvider);
+
+    // Start onboarding in dev mode (suppresses the fullscreen overlay)
+    ref.read(dbOnboardingStateNotifierProvider.notifier).startOnboarding(
+          devMode: true,
+        );
   }
 }
