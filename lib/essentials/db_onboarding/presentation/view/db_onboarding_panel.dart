@@ -23,9 +23,13 @@ class _DbOnboardingPanelState extends ConsumerState<DbOnboardingPanel> {
   @override
   void initState() {
     super.initState();
-    // Start onboarding automatically when panel is shown
+    // Start onboarding automatically when panel is shown,
+    // but only if not already in dev mode (dev panel handles its own flow)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(dbOnboardingStateNotifierProvider.notifier).startOnboarding();
+      final currentState = ref.read(dbOnboardingStateNotifierProvider);
+      if (!currentState.devMode) {
+        ref.read(dbOnboardingStateNotifierProvider.notifier).startOnboarding();
+      }
     });
   }
 

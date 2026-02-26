@@ -128,10 +128,13 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Reset to initial state, optionally preserving dev mode.
   void resetState({bool preserveDevMode = false}) {
     final wasDevMode = state.devMode;
-    state = DbOnboardingState.initial();
+    // Single atomic state update to avoid race conditions
+    // (shell watches this state and shows overlay if devMode briefly becomes false)
+    var newState = DbOnboardingState.initial();
     if (preserveDevMode && wasDevMode) {
-      state = state.copyWith(devMode: true);
+      newState = newState.copyWith(devMode: true);
     }
+    state = newState;
   }
 
   /// Retry after FDA instructions.
