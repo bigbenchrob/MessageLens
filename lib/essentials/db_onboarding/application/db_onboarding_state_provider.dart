@@ -28,11 +28,11 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Timestamp when the current phase became active.
   DateTime _phaseStartTime = DateTime.now();
 
-  /// Queue of phases waiting to be displayed.
-  /// Each phase is shown for at least [_minPhaseDuration] before the next.
-  final List<DbOnboardingPhase> _phaseQueue = [];
+  /// The target phase we're transitioning toward.
+  /// We only transition forward (never backward) to avoid jumping around.
+  DbOnboardingPhase? _targetPhase;
 
-  /// Timer for processing the next phase in the queue.
+  /// Timer for delayed phase transitions.
   Timer? _phaseTimer;
 
   @override
@@ -126,7 +126,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     _phaseStartTime = DateTime.now();
     _phaseTimer?.cancel();
     _phaseTimer = null;
-    _phaseQueue.clear();
+    _targetPhase = null;
 
     state = state.copyWith(
       currentPhase: DbOnboardingPhase.checkingPermissions,
@@ -151,7 +151,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     // Cancel any pending phase transitions
     _phaseTimer?.cancel();
     _phaseTimer = null;
-    _phaseQueue.clear();
+    _targetPhase = null;
     _phaseStartTime = DateTime.now();
 
     final wasDevMode = state.devMode;
@@ -218,32 +218,39 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Transition to a new phase, enforcing minimum display duration.
   ///
   /// Each phase is displayed for at least [_minPhaseDuration] so users can
-  /// read the labels. Phases are queued and processed sequentially - no phase
-  /// is skipped even if multiple transitions are requested quickly.
+  /// read the labels. We only transition forward (never backward) to avoid
+  /// jumping around when import stages fire repeatedly.
   void _transitionToPhase(DbOnboardingPhase newPhase) {
-    // Don't queue the same phase twice in a row
-    final lastQueued = _phaseQueue.isNotEmpty ? _phaseQueue.last : state.currentPhase;
-    if (newPhase == lastQueued) {
+    // Only accept forward transitions (or same phase)
+    if (newPhase.stepIndex < state.currentPhase.stepIndex) {
       return;
     }
 
-    // Add to queue
-    _phaseQueue.add(newPhase);
+    // Update target if it's further ahead
+    if (_targetPhase == null || newPhase.stepIndex > _targetPhase!.stepIndex) {
+      _targetPhase = newPhase;
+    }
 
-    // Start processing if not already running
-    _scheduleNextPhaseTransition();
+    // Start stepping toward target if not already doing so
+    _scheduleNextStep();
   }
 
-  /// Schedule the next phase transition from the queue.
-  void _scheduleNextPhaseTransition() {
-    // Don't schedule if timer already running or queue empty
-    if (_phaseTimer != null || _phaseQueue.isEmpty) {
+  /// Schedule the next single-step transition toward the target phase.
+  void _scheduleNextStep() {
+    // Don't schedule if timer already running
+    if (_phaseTimer != null) {
+      return;
+    }
+
+    // Nothing to do if we've reached the target
+    if (_targetPhase == null ||
+        state.currentPhase.stepIndex >= _targetPhase!.stepIndex) {
       return;
     }
 
     // Skip throttling for the very first transition (from checkingPermissions)
     if (state.currentPhase == DbOnboardingPhase.checkingPermissions) {
-      _executeNextPhaseTransition();
+      _executeNextStep();
       return;
     }
 
@@ -251,30 +258,38 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     final remaining = _minPhaseDuration - elapsed;
 
     if (remaining <= Duration.zero) {
-      // Enough time has passed, transition immediately
-      _executeNextPhaseTransition();
+      // Enough time has passed, step immediately
+      _executeNextStep();
     } else {
-      // Wait for minimum duration before transitioning
-      _phaseTimer = Timer(remaining, _executeNextPhaseTransition);
+      // Wait for minimum duration before stepping
+      _phaseTimer = Timer(remaining, _executeNextStep);
     }
   }
 
-  /// Execute the next phase transition from the queue.
-  void _executeNextPhaseTransition() {
+  /// Execute one step toward the target phase.
+  void _executeNextStep() {
     _phaseTimer?.cancel();
     _phaseTimer = null;
 
-    if (_phaseQueue.isEmpty) {
+    // Nothing to do if we've reached the target
+    if (_targetPhase == null ||
+        state.currentPhase.stepIndex >= _targetPhase!.stepIndex) {
       return;
     }
 
-    final nextPhase = _phaseQueue.removeAt(0);
+    // Step to the next phase in sequence
+    final nextIndex = state.currentPhase.stepIndex + 1;
+    final nextPhase = kDbOnboardingPhaseOrder.firstWhere(
+      (p) => p.stepIndex == nextIndex,
+      orElse: () => _targetPhase!,
+    );
+
     _phaseStartTime = DateTime.now();
     state = state.copyWith(currentPhase: nextPhase);
 
-    // Continue processing queue if more phases are waiting
-    if (_phaseQueue.isNotEmpty) {
-      _scheduleNextPhaseTransition();
+    // Continue stepping if we haven't reached the target
+    if (nextPhase.stepIndex < _targetPhase!.stepIndex) {
+      _scheduleNextStep();
     }
   }
 
