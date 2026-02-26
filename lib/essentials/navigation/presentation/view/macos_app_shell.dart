@@ -9,7 +9,6 @@ import '../../../../providers.dart';
 import '../../../db_onboarding/application/db_onboarding_bootstrap_guard.dart';
 import '../../../db_onboarding/application/db_onboarding_state_provider.dart';
 import '../../../db_onboarding/domain/db_onboarding_phase.dart';
-import '../../../db_onboarding/presentation/view/db_onboarding_panel.dart';
 import '../../../logging/application/navigation_logger.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../application/sidebar_mode_provider.dart';
@@ -107,16 +106,33 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       }
     });
 
-    // Check if onboarding is required and get current onboarding state
-    final onboardingRequiredAsync = ref.watch(dbOnboardingRequiredProvider);
-    final onboardingState = ref.watch(dbOnboardingStateNotifierProvider);
-    final showOnboarding = onboardingRequiredAsync.maybeWhen(
-      data: (required) =>
-          required &&
-          !onboardingState.devMode &&
-          onboardingState.currentPhase != DbOnboardingPhase.complete,
-      orElse: () => false,
-    );
+    // When onboarding is required, navigate to the dev tools panel
+    // instead of showing the fullscreen overlay
+    ref.listen<AsyncValue<bool>>(dbOnboardingRequiredProvider, (previous, next) {
+      next.whenData((required) {
+        if (required) {
+          final onboardingState = ref.read(dbOnboardingStateNotifierProvider);
+          // Only auto-navigate if not already complete and not in dev mode
+          if (onboardingState.currentPhase != DbOnboardingPhase.complete &&
+              !onboardingState.devMode) {
+            // Navigate to dev tools panel
+            ref
+                .read(activeSidebarModeProvider.notifier)
+                .setMode(SidebarMode.messages);
+
+            const spec = ViewSpec.dbSetup(DbSetupSpec.developerTools());
+
+            ref
+                .read(
+                  panelsViewStateProvider(
+                    SidebarMode.messages,
+                  ).notifier,
+                )
+                .show(panel: WindowPanel.center, spec: spec);
+          }
+        }
+      });
+    });
 
     return Stack(
       children: [
@@ -323,8 +339,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             ],
           ),
         ),
-        // Onboarding overlay - shown on first run until setup is complete
-        if (showOnboarding) const Positioned.fill(child: DbOnboardingPanel()),
+        // Note: Fullscreen onboarding overlay removed - now navigates to dev tools panel
       ],
     );
   }
