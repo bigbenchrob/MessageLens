@@ -168,8 +168,9 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                 ),
             ],
           ),
-          // Progress bar for active sub-stage - show whenever active
-          if (subStage.isActive)
+          // Progress bar ONLY when we have real granular progress data
+          // Quick tasks without counts just show spinner + text (no fake progress)
+          if (subStage.isActive && subStage.hasGranularProgress)
             Padding(
               padding: const EdgeInsets.only(left: 24, top: 4),
               child: ClipRRect(
@@ -177,10 +178,7 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                 child: SizedBox(
                   height: 3,
                   child: LinearProgressIndicator(
-                    // Use progress if available, otherwise indeterminate (null)
-                    value: subStage.hasAnyProgress
-                        ? (subStage.progress ?? 0.0).clamp(0.0, 1.0)
-                        : null,
+                    value: (subStage.progress ?? 0.0).clamp(0.0, 1.0),
                     backgroundColor: colors.surfaces.controlMuted,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       colors.accents.primary,
