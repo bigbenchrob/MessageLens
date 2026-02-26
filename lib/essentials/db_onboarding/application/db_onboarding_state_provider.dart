@@ -28,10 +28,11 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Timestamp when the current phase became active.
   DateTime _phaseStartTime = DateTime.now();
 
-  /// Pending phase to transition to after minimum duration elapses.
-  DbOnboardingPhase? _pendingPhase;
+  /// Queue of phases waiting to be displayed.
+  /// Each phase is shown for at least [_minPhaseDuration] before the next.
+  final List<DbOnboardingPhase> _phaseQueue = [];
 
-  /// Timer for delayed phase transitions.
+  /// Timer for processing the next phase in the queue.
   Timer? _phaseTimer;
 
   @override
@@ -121,10 +122,11 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   ///
   /// This checks FDA permissions first, then proceeds to locate databases.
   Future<void> startOnboarding({bool devMode = false}) async {
-    // Initialize phase timing
+    // Initialize phase timing and clear any pending transitions
     _phaseStartTime = DateTime.now();
     _phaseTimer?.cancel();
-    _pendingPhase = null;
+    _phaseTimer = null;
+    _phaseQueue.clear();
 
     state = state.copyWith(
       currentPhase: DbOnboardingPhase.checkingPermissions,
@@ -146,10 +148,10 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
   /// Reset to initial state, optionally preserving dev mode.
   void resetState({bool preserveDevMode = false}) {
-    // Cancel any pending phase transition
+    // Cancel any pending phase transitions
     _phaseTimer?.cancel();
     _phaseTimer = null;
-    _pendingPhase = null;
+    _phaseQueue.clear();
     _phaseStartTime = DateTime.now();
 
     final wasDevMode = state.devMode;
@@ -216,19 +218,32 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Transition to a new phase, enforcing minimum display duration.
   ///
   /// Each phase is displayed for at least [_minPhaseDuration] so users can
-  /// read the labels. If a transition is requested before the minimum duration,
-  /// it's queued and executed when the time elapses.
+  /// read the labels. Phases are queued and processed sequentially - no phase
+  /// is skipped even if multiple transitions are requested quickly.
   void _transitionToPhase(DbOnboardingPhase newPhase) {
-    // Don't transition to the same phase
-    if (newPhase == state.currentPhase) {
+    // Don't queue the same phase twice in a row
+    final lastQueued = _phaseQueue.isNotEmpty ? _phaseQueue.last : state.currentPhase;
+    if (newPhase == lastQueued) {
       return;
     }
 
-    // Only throttle phases that come after checkingPermissions
+    // Add to queue
+    _phaseQueue.add(newPhase);
+
+    // Start processing if not already running
+    _scheduleNextPhaseTransition();
+  }
+
+  /// Schedule the next phase transition from the queue.
+  void _scheduleNextPhaseTransition() {
+    // Don't schedule if timer already running or queue empty
+    if (_phaseTimer != null || _phaseQueue.isEmpty) {
+      return;
+    }
+
+    // Skip throttling for the very first transition (from checkingPermissions)
     if (state.currentPhase == DbOnboardingPhase.checkingPermissions) {
-      // First transition - don't throttle
-      _phaseStartTime = DateTime.now();
-      state = state.copyWith(currentPhase: newPhase);
+      _executeNextPhaseTransition();
       return;
     }
 
@@ -237,22 +252,29 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
     if (remaining <= Duration.zero) {
       // Enough time has passed, transition immediately
-      _phaseTimer?.cancel();
-      _pendingPhase = null;
-      _phaseStartTime = DateTime.now();
-      state = state.copyWith(currentPhase: newPhase);
+      _executeNextPhaseTransition();
     } else {
-      // Queue the transition for later (always use latest requested phase)
-      _pendingPhase = newPhase;
-      _phaseTimer?.cancel();
-      _phaseTimer = Timer(remaining, () {
-        final pending = _pendingPhase;
-        if (pending != null) {
-          _pendingPhase = null;
-          _phaseStartTime = DateTime.now();
-          state = state.copyWith(currentPhase: pending);
-        }
-      });
+      // Wait for minimum duration before transitioning
+      _phaseTimer = Timer(remaining, _executeNextPhaseTransition);
+    }
+  }
+
+  /// Execute the next phase transition from the queue.
+  void _executeNextPhaseTransition() {
+    _phaseTimer?.cancel();
+    _phaseTimer = null;
+
+    if (_phaseQueue.isEmpty) {
+      return;
+    }
+
+    final nextPhase = _phaseQueue.removeAt(0);
+    _phaseStartTime = DateTime.now();
+    state = state.copyWith(currentPhase: nextPhase);
+
+    // Continue processing queue if more phases are waiting
+    if (_phaseQueue.isNotEmpty) {
+      _scheduleNextPhaseTransition();
     }
   }
 
