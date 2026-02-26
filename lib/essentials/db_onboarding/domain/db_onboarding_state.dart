@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'db_onboarding_phase.dart';
+import 'import_sub_stage.dart';
 
 part 'db_onboarding_state.freezed.dart';
 
@@ -41,6 +42,12 @@ abstract class DbOnboardingState with _$DbOnboardingState {
 
     /// Human-readable description of current import activity.
     String? importStatusMessage,
+
+    /// List of import sub-stages with their individual progress.
+    ///
+    /// These are the granular steps within a main phase (e.g., "Importing Messages"
+    /// contains sub-stages like "Importing handles", "Importing chats", etc.)
+    @Default(<ImportSubStage>[]) List<ImportSubStage> importSubStages,
   }) = _DbOnboardingState;
 
   /// Initial state for starting the onboarding flow.

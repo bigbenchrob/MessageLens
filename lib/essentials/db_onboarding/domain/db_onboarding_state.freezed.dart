@@ -24,7 +24,11 @@ mixin _$DbOnboardingState {
  double? get progressPercent;/// Current count for import progress (e.g., messages imported so far).
  int? get importCurrent;/// Total count for import progress (e.g., total messages to import).
  int? get importTotal;/// Human-readable description of current import activity.
- String? get importStatusMessage;
+ String? get importStatusMessage;/// List of import sub-stages with their individual progress.
+///
+/// These are the granular steps within a main phase (e.g., "Importing Messages"
+/// contains sub-stages like "Importing handles", "Importing chats", etc.)
+ List<ImportSubStage> get importSubStages;
 /// Create a copy of DbOnboardingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -35,16 +39,16 @@ $DbOnboardingStateCopyWith<DbOnboardingState> get copyWith => _$DbOnboardingStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DbOnboardingState&&(identical(other.currentPhase, currentPhase) || other.currentPhase == currentPhase)&&(identical(other.fdaGranted, fdaGranted) || other.fdaGranted == fdaGranted)&&(identical(other.messagesDbFound, messagesDbFound) || other.messagesDbFound == messagesDbFound)&&(identical(other.contactsDbFound, contactsDbFound) || other.contactsDbFound == contactsDbFound)&&(identical(other.importComplete, importComplete) || other.importComplete == importComplete)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.importCurrent, importCurrent) || other.importCurrent == importCurrent)&&(identical(other.importTotal, importTotal) || other.importTotal == importTotal)&&(identical(other.importStatusMessage, importStatusMessage) || other.importStatusMessage == importStatusMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DbOnboardingState&&(identical(other.currentPhase, currentPhase) || other.currentPhase == currentPhase)&&(identical(other.fdaGranted, fdaGranted) || other.fdaGranted == fdaGranted)&&(identical(other.messagesDbFound, messagesDbFound) || other.messagesDbFound == messagesDbFound)&&(identical(other.contactsDbFound, contactsDbFound) || other.contactsDbFound == contactsDbFound)&&(identical(other.importComplete, importComplete) || other.importComplete == importComplete)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.importCurrent, importCurrent) || other.importCurrent == importCurrent)&&(identical(other.importTotal, importTotal) || other.importTotal == importTotal)&&(identical(other.importStatusMessage, importStatusMessage) || other.importStatusMessage == importStatusMessage)&&const DeepCollectionEquality().equals(other.importSubStages, importSubStages));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentPhase,fdaGranted,messagesDbFound,contactsDbFound,importComplete,errorMessage,progressPercent,importCurrent,importTotal,importStatusMessage);
+int get hashCode => Object.hash(runtimeType,currentPhase,fdaGranted,messagesDbFound,contactsDbFound,importComplete,errorMessage,progressPercent,importCurrent,importTotal,importStatusMessage,const DeepCollectionEquality().hash(importSubStages));
 
 @override
 String toString() {
-  return 'DbOnboardingState(currentPhase: $currentPhase, fdaGranted: $fdaGranted, messagesDbFound: $messagesDbFound, contactsDbFound: $contactsDbFound, importComplete: $importComplete, errorMessage: $errorMessage, progressPercent: $progressPercent, importCurrent: $importCurrent, importTotal: $importTotal, importStatusMessage: $importStatusMessage)';
+  return 'DbOnboardingState(currentPhase: $currentPhase, fdaGranted: $fdaGranted, messagesDbFound: $messagesDbFound, contactsDbFound: $contactsDbFound, importComplete: $importComplete, errorMessage: $errorMessage, progressPercent: $progressPercent, importCurrent: $importCurrent, importTotal: $importTotal, importStatusMessage: $importStatusMessage, importSubStages: $importSubStages)';
 }
 
 
@@ -55,7 +59,7 @@ abstract mixin class $DbOnboardingStateCopyWith<$Res>  {
   factory $DbOnboardingStateCopyWith(DbOnboardingState value, $Res Function(DbOnboardingState) _then) = _$DbOnboardingStateCopyWithImpl;
 @useResult
 $Res call({
- DbOnboardingPhase currentPhase, bool fdaGranted, bool messagesDbFound, bool contactsDbFound, bool importComplete, String? errorMessage, double? progressPercent, int? importCurrent, int? importTotal, String? importStatusMessage
+ DbOnboardingPhase currentPhase, bool fdaGranted, bool messagesDbFound, bool contactsDbFound, bool importComplete, String? errorMessage, double? progressPercent, int? importCurrent, int? importTotal, String? importStatusMessage, List<ImportSubStage> importSubStages
 });
 
 
@@ -72,7 +76,7 @@ class _$DbOnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of DbOnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? currentPhase = null,Object? fdaGranted = null,Object? messagesDbFound = null,Object? contactsDbFound = null,Object? importComplete = null,Object? errorMessage = freezed,Object? progressPercent = freezed,Object? importCurrent = freezed,Object? importTotal = freezed,Object? importStatusMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? currentPhase = null,Object? fdaGranted = null,Object? messagesDbFound = null,Object? contactsDbFound = null,Object? importComplete = null,Object? errorMessage = freezed,Object? progressPercent = freezed,Object? importCurrent = freezed,Object? importTotal = freezed,Object? importStatusMessage = freezed,Object? importSubStages = null,}) {
   return _then(_self.copyWith(
 currentPhase: null == currentPhase ? _self.currentPhase : currentPhase // ignore: cast_nullable_to_non_nullable
 as DbOnboardingPhase,fdaGranted: null == fdaGranted ? _self.fdaGranted : fdaGranted // ignore: cast_nullable_to_non_nullable
@@ -84,7 +88,8 @@ as String?,progressPercent: freezed == progressPercent ? _self.progressPercent :
 as double?,importCurrent: freezed == importCurrent ? _self.importCurrent : importCurrent // ignore: cast_nullable_to_non_nullable
 as int?,importTotal: freezed == importTotal ? _self.importTotal : importTotal // ignore: cast_nullable_to_non_nullable
 as int?,importStatusMessage: freezed == importStatusMessage ? _self.importStatusMessage : importStatusMessage // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,importSubStages: null == importSubStages ? _self.importSubStages : importSubStages // ignore: cast_nullable_to_non_nullable
+as List<ImportSubStage>,
   ));
 }
 
@@ -169,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage,  List<ImportSubStage> importSubStages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DbOnboardingState() when $default != null:
-return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage);case _:
+return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage,_that.importSubStages);case _:
   return orElse();
 
 }
@@ -190,10 +195,10 @@ return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage,  List<ImportSubStage> importSubStages)  $default,) {final _that = this;
 switch (_that) {
 case _DbOnboardingState():
-return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage);case _:
+return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage,_that.importSubStages);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +215,10 @@ return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DbOnboardingPhase currentPhase,  bool fdaGranted,  bool messagesDbFound,  bool contactsDbFound,  bool importComplete,  String? errorMessage,  double? progressPercent,  int? importCurrent,  int? importTotal,  String? importStatusMessage,  List<ImportSubStage> importSubStages)?  $default,) {final _that = this;
 switch (_that) {
 case _DbOnboardingState() when $default != null:
-return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage);case _:
+return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.contactsDbFound,_that.importComplete,_that.errorMessage,_that.progressPercent,_that.importCurrent,_that.importTotal,_that.importStatusMessage,_that.importSubStages);case _:
   return null;
 
 }
@@ -225,7 +230,7 @@ return $default(_that.currentPhase,_that.fdaGranted,_that.messagesDbFound,_that.
 
 
 class _DbOnboardingState implements DbOnboardingState {
-  const _DbOnboardingState({required this.currentPhase, required this.fdaGranted, required this.messagesDbFound, required this.contactsDbFound, required this.importComplete, this.errorMessage, this.progressPercent, this.importCurrent, this.importTotal, this.importStatusMessage});
+  const _DbOnboardingState({required this.currentPhase, required this.fdaGranted, required this.messagesDbFound, required this.contactsDbFound, required this.importComplete, this.errorMessage, this.progressPercent, this.importCurrent, this.importTotal, this.importStatusMessage, final  List<ImportSubStage> importSubStages = const <ImportSubStage>[]}): _importSubStages = importSubStages;
   
 
 /// The current phase being displayed in the stepper.
@@ -248,6 +253,21 @@ class _DbOnboardingState implements DbOnboardingState {
 @override final  int? importTotal;
 /// Human-readable description of current import activity.
 @override final  String? importStatusMessage;
+/// List of import sub-stages with their individual progress.
+///
+/// These are the granular steps within a main phase (e.g., "Importing Messages"
+/// contains sub-stages like "Importing handles", "Importing chats", etc.)
+ final  List<ImportSubStage> _importSubStages;
+/// List of import sub-stages with their individual progress.
+///
+/// These are the granular steps within a main phase (e.g., "Importing Messages"
+/// contains sub-stages like "Importing handles", "Importing chats", etc.)
+@override@JsonKey() List<ImportSubStage> get importSubStages {
+  if (_importSubStages is EqualUnmodifiableListView) return _importSubStages;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_importSubStages);
+}
+
 
 /// Create a copy of DbOnboardingState
 /// with the given fields replaced by the non-null parameter values.
@@ -259,16 +279,16 @@ _$DbOnboardingStateCopyWith<_DbOnboardingState> get copyWith => __$DbOnboardingS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DbOnboardingState&&(identical(other.currentPhase, currentPhase) || other.currentPhase == currentPhase)&&(identical(other.fdaGranted, fdaGranted) || other.fdaGranted == fdaGranted)&&(identical(other.messagesDbFound, messagesDbFound) || other.messagesDbFound == messagesDbFound)&&(identical(other.contactsDbFound, contactsDbFound) || other.contactsDbFound == contactsDbFound)&&(identical(other.importComplete, importComplete) || other.importComplete == importComplete)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.importCurrent, importCurrent) || other.importCurrent == importCurrent)&&(identical(other.importTotal, importTotal) || other.importTotal == importTotal)&&(identical(other.importStatusMessage, importStatusMessage) || other.importStatusMessage == importStatusMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DbOnboardingState&&(identical(other.currentPhase, currentPhase) || other.currentPhase == currentPhase)&&(identical(other.fdaGranted, fdaGranted) || other.fdaGranted == fdaGranted)&&(identical(other.messagesDbFound, messagesDbFound) || other.messagesDbFound == messagesDbFound)&&(identical(other.contactsDbFound, contactsDbFound) || other.contactsDbFound == contactsDbFound)&&(identical(other.importComplete, importComplete) || other.importComplete == importComplete)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.progressPercent, progressPercent) || other.progressPercent == progressPercent)&&(identical(other.importCurrent, importCurrent) || other.importCurrent == importCurrent)&&(identical(other.importTotal, importTotal) || other.importTotal == importTotal)&&(identical(other.importStatusMessage, importStatusMessage) || other.importStatusMessage == importStatusMessage)&&const DeepCollectionEquality().equals(other._importSubStages, _importSubStages));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentPhase,fdaGranted,messagesDbFound,contactsDbFound,importComplete,errorMessage,progressPercent,importCurrent,importTotal,importStatusMessage);
+int get hashCode => Object.hash(runtimeType,currentPhase,fdaGranted,messagesDbFound,contactsDbFound,importComplete,errorMessage,progressPercent,importCurrent,importTotal,importStatusMessage,const DeepCollectionEquality().hash(_importSubStages));
 
 @override
 String toString() {
-  return 'DbOnboardingState(currentPhase: $currentPhase, fdaGranted: $fdaGranted, messagesDbFound: $messagesDbFound, contactsDbFound: $contactsDbFound, importComplete: $importComplete, errorMessage: $errorMessage, progressPercent: $progressPercent, importCurrent: $importCurrent, importTotal: $importTotal, importStatusMessage: $importStatusMessage)';
+  return 'DbOnboardingState(currentPhase: $currentPhase, fdaGranted: $fdaGranted, messagesDbFound: $messagesDbFound, contactsDbFound: $contactsDbFound, importComplete: $importComplete, errorMessage: $errorMessage, progressPercent: $progressPercent, importCurrent: $importCurrent, importTotal: $importTotal, importStatusMessage: $importStatusMessage, importSubStages: $importSubStages)';
 }
 
 
@@ -279,7 +299,7 @@ abstract mixin class _$DbOnboardingStateCopyWith<$Res> implements $DbOnboardingS
   factory _$DbOnboardingStateCopyWith(_DbOnboardingState value, $Res Function(_DbOnboardingState) _then) = __$DbOnboardingStateCopyWithImpl;
 @override @useResult
 $Res call({
- DbOnboardingPhase currentPhase, bool fdaGranted, bool messagesDbFound, bool contactsDbFound, bool importComplete, String? errorMessage, double? progressPercent, int? importCurrent, int? importTotal, String? importStatusMessage
+ DbOnboardingPhase currentPhase, bool fdaGranted, bool messagesDbFound, bool contactsDbFound, bool importComplete, String? errorMessage, double? progressPercent, int? importCurrent, int? importTotal, String? importStatusMessage, List<ImportSubStage> importSubStages
 });
 
 
@@ -296,7 +316,7 @@ class __$DbOnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of DbOnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? currentPhase = null,Object? fdaGranted = null,Object? messagesDbFound = null,Object? contactsDbFound = null,Object? importComplete = null,Object? errorMessage = freezed,Object? progressPercent = freezed,Object? importCurrent = freezed,Object? importTotal = freezed,Object? importStatusMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? currentPhase = null,Object? fdaGranted = null,Object? messagesDbFound = null,Object? contactsDbFound = null,Object? importComplete = null,Object? errorMessage = freezed,Object? progressPercent = freezed,Object? importCurrent = freezed,Object? importTotal = freezed,Object? importStatusMessage = freezed,Object? importSubStages = null,}) {
   return _then(_DbOnboardingState(
 currentPhase: null == currentPhase ? _self.currentPhase : currentPhase // ignore: cast_nullable_to_non_nullable
 as DbOnboardingPhase,fdaGranted: null == fdaGranted ? _self.fdaGranted : fdaGranted // ignore: cast_nullable_to_non_nullable
@@ -308,7 +328,8 @@ as String?,progressPercent: freezed == progressPercent ? _self.progressPercent :
 as double?,importCurrent: freezed == importCurrent ? _self.importCurrent : importCurrent // ignore: cast_nullable_to_non_nullable
 as int?,importTotal: freezed == importTotal ? _self.importTotal : importTotal // ignore: cast_nullable_to_non_nullable
 as int?,importStatusMessage: freezed == importStatusMessage ? _self.importStatusMessage : importStatusMessage // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,importSubStages: null == importSubStages ? _self._importSubStages : importSubStages // ignore: cast_nullable_to_non_nullable
+as List<ImportSubStage>,
   ));
 }
 

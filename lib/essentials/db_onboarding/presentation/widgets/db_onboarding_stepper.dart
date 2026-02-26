@@ -3,7 +3,30 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../domain/db_onboarding_phase.dart';
 import '../../domain/db_onboarding_state.dart';
+import '../../domain/import_sub_stage.dart';
 import 'db_onboarding_phase_row.dart';
+
+/// Import stage keys that belong to the "Importing Messages" phase.
+const _importMessagesStageKeys = <String>{
+  'clearingLedger',
+  'importingHandles',
+  'importingChats',
+  'importingParticipants',
+  'importingMessages',
+  'extractingRichContent',
+  'importingAttachments',
+  'linkingMessageArtifacts',
+};
+
+/// Import stage keys that belong to the "Locating Contacts" phase.
+const _locatingContactsStageKeys = <String>{
+  'importingAddressBook',
+};
+
+/// Import stage keys that belong to the "Linking Contacts" phase.
+const _linkingContactsStageKeys = <String>{
+  'linkingContacts',
+};
 
 /// Vertical stepper showing all onboarding phases.
 ///
@@ -25,7 +48,7 @@ class DbOnboardingStepper extends ConsumerWidget {
           DbOnboardingPhaseRow(
             label: phase.label,
             state: _rowStateForPhase(phase),
-            progress: _progressForPhase(phase),
+            subStages: _subStagesForPhase(phase),
           ),
       ],
     );
@@ -51,24 +74,27 @@ class DbOnboardingStepper extends ConsumerWidget {
     }
   }
 
-  /// Get progress data for a phase (only meaningful for active phase).
-  PhaseProgress? _progressForPhase(DbOnboardingPhase phase) {
-    // Only provide progress for the currently active phase
+  /// Get sub-stages applicable to a specific phase.
+  List<ImportSubStage> _subStagesForPhase(DbOnboardingPhase phase) {
+    // Only return sub-stages for the currently active phase
     if (phase != state.currentPhase) {
-      return null;
+      return const [];
     }
 
-    // Only certain phases have meaningful progress
-    if (phase != DbOnboardingPhase.importingMessages &&
-        phase != DbOnboardingPhase.linkingContacts) {
-      return null;
+    // Filter sub-stages by phase
+    final applicableKeys = switch (phase) {
+      DbOnboardingPhase.importingMessages => _importMessagesStageKeys,
+      DbOnboardingPhase.locatingContacts => _locatingContactsStageKeys,
+      DbOnboardingPhase.linkingContacts => _linkingContactsStageKeys,
+      _ => const <String>{},
+    };
+
+    if (applicableKeys.isEmpty) {
+      return const [];
     }
 
-    return PhaseProgress(
-      current: state.importCurrent,
-      total: state.importTotal,
-      percent: state.progressPercent,
-      statusMessage: state.importStatusMessage,
-    );
+    return state.importSubStages
+        .where((s) => applicableKeys.contains(s.key))
+        .toList();
   }
 }

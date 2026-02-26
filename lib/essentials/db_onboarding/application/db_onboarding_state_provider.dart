@@ -8,6 +8,7 @@ import '../../db_importers/domain/value_objects/db_import_stage.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../domain/db_onboarding_phase.dart';
 import '../domain/db_onboarding_state.dart';
+import '../domain/import_sub_stage.dart';
 
 part 'db_onboarding_state_provider.g.dart';
 
@@ -41,13 +42,28 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       return;
     }
 
+    // Convert UiStageProgress list to ImportSubStage list
+    final subStages = next.stages
+        .map(
+          (s) => ImportSubStage(
+            key: s.name,
+            label: s.displayName,
+            sortIndex: s.sortIndex,
+            isActive: s.isActive,
+            isComplete: s.isComplete,
+            progress: s.progress,
+            current: s.current,
+            total: s.total,
+          ),
+        )
+        .toList();
+
     // Update progress percentage and status message
-    if (next.progress != null || next.statusMessage != null) {
-      state = state.copyWith(
-        progressPercent: next.progress,
-        importStatusMessage: next.statusMessage,
-      );
-    }
+    state = state.copyWith(
+      progressPercent: next.progress,
+      importStatusMessage: next.statusMessage,
+      importSubStages: subStages,
+    );
 
     // Extract current/total from the active stage in stages list
     final activeStage = next.stages.where((s) => s.isActive).firstOrNull;
