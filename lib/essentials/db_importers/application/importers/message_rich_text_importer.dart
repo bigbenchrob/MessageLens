@@ -1,5 +1,5 @@
-import '../../../application/services/base_table_importer.dart';
-import '../../sqlite/import_context_sqlite.dart';
+import '../../domain/base_table_importer.dart';
+import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
 class MessageRichTextImporter extends BaseTableImporter {
   const MessageRichTextImporter();

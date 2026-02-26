@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../../core/util/date_converter.dart';
-import '../../../application/services/base_table_importer.dart';
-import '../../sqlite/import_context_sqlite.dart';
+import '../../domain/base_table_importer.dart';
+import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
 class MessagesImporter extends BaseTableImporter {
   const MessagesImporter();

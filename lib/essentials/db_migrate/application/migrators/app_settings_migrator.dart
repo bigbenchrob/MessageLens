@@ -1,5 +1,5 @@
-import '../../../application/services/base_table_migrator.dart';
-import '../migration_context_sqlite.dart';
+import '../../domain/base_table_migrator.dart';
+import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 
 class AppSettingsMigrator extends BaseTableMigrator {
   const AppSettingsMigrator();

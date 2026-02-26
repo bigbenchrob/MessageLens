@@ -1,8 +1,8 @@
+import '../../domain/base_table_migrator.dart';
 import '../../domain/i_migrators.dart/table_migrator.dart';
 import '../../domain/states/table_migration_progress.dart';
 import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
-import '../services/base_table_migrator.dart';
 
 class MigrationOrchestrator {
   final List<TableMigrator> _migrators;

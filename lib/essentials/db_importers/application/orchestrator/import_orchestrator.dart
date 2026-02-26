@@ -1,7 +1,7 @@
+import '../../domain/base_table_importer.dart';
 import '../../domain/i_importers.dart/table_importer.dart';
 import '../../domain/states/table_import_progress.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
-import '../services/base_table_importer.dart';
 
 /// Executes table-level importers in dependency order, dispatching phase-level
 /// updates so callers can surface granular progress information.

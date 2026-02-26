@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../../../../db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../../db/shared/handle_identifier_utils.dart';
-import '../../../application/services/base_table_migrator.dart';
-import '../migration_context_sqlite.dart';
+import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../db/shared/handle_identifier_utils.dart';
+import '../../domain/base_table_migrator.dart';
+import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 
 class HandlesMigrator extends BaseTableMigrator {
   const HandlesMigrator();

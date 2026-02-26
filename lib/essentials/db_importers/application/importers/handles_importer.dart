@@ -1,7 +1,7 @@
 import '../../../../../core/util/date_converter.dart';
-import '../../../../db/shared/handle_identifier_utils.dart';
-import '../../../application/services/base_table_importer.dart';
-import '../../sqlite/import_context_sqlite.dart';
+import '../../../db/shared/handle_identifier_utils.dart';
+import '../../domain/base_table_importer.dart';
+import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
 class HandlesImporter extends BaseTableImporter {
   const HandlesImporter();

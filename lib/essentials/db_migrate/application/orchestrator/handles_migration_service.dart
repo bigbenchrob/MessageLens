@@ -10,24 +10,24 @@ import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.d
 import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../db_importers/application/debug_settings_provider.dart';
 import '../../../search/feature_level_providers.dart';
+import '../../domain/base_table_migrator.dart';
 import '../../domain/entities/db_migration_result.dart';
 import '../../domain/states/db_migration_progress.dart';
 import '../../domain/states/table_migration_progress.dart';
 import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
-import '../../infrastructure/sqlite/migrators/attachments_migrator.dart';
-import '../../infrastructure/sqlite/migrators/chat_to_handle_migrator.dart';
-import '../../infrastructure/sqlite/migrators/chats_migrator.dart';
-import '../../infrastructure/sqlite/migrators/handle_to_participant_migrator.dart';
-import '../../infrastructure/sqlite/migrators/handles_migrator.dart';
-import '../../infrastructure/sqlite/migrators/message_read_marks_migrator.dart';
-import '../../infrastructure/sqlite/migrators/messages_migrator.dart';
-import '../../infrastructure/sqlite/migrators/participants_migrator.dart';
-import '../../infrastructure/sqlite/migrators/reaction_counts_migrator.dart';
-import '../../infrastructure/sqlite/migrators/reactions_migrator.dart';
-import '../../infrastructure/sqlite/migrators/read_state_migrator.dart';
 import '../diagnostics/migration_diagnostics.dart';
-import '../services/base_table_migrator.dart';
+import '../migrators/attachments_migrator.dart';
+import '../migrators/chat_to_handle_migrator.dart';
+import '../migrators/chats_migrator.dart';
+import '../migrators/handle_to_participant_migrator.dart';
+import '../migrators/handles_migrator.dart';
+import '../migrators/message_read_marks_migrator.dart';
+import '../migrators/messages_migrator.dart';
+import '../migrators/participants_migrator.dart';
+import '../migrators/reaction_counts_migrator.dart';
+import '../migrators/reactions_migrator.dart';
+import '../migrators/read_state_migrator.dart';
 import './migration_orchestrator.dart';
 
 class HandlesMigrationService {

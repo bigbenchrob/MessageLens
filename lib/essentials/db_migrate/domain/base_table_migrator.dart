@@ -2,11 +2,11 @@
 
 import 'package:sqflite/sqflite.dart';
 
-import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
-import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../domain/failures/migration_exception.dart';
-import '../../domain/i_migrators.dart/table_migrator.dart';
-import '../../infrastructure/sqlite/migration_context_sqlite.dart';
+import '../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
+import '../../db/infrastructure/data_sources/local/working/working_database.dart';
+import '../infrastructure/sqlite/migration_context_sqlite.dart';
+import 'failures/migration_exception.dart';
+import 'i_migrators.dart/table_migrator.dart';
 
 /// A small base that gives you handy helpers.
 abstract class BaseTableMigrator implements TableMigrator {

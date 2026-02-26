@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
-import '../../domain/i_importers.dart/table_importer.dart';
-import '../../infrastructure/sqlite/import_context_sqlite.dart';
+import '../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
+import '../infrastructure/sqlite/import_context_sqlite.dart';
+import 'i_importers.dart/table_importer.dart';
 
 /// Convenience base class mirroring the migration pipeline helpers.
 abstract class BaseTableImporter implements TableImporter {
