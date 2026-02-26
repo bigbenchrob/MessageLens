@@ -374,7 +374,8 @@ class _TablePhaseRow extends StatelessWidget {
 
     // Show row progress during in-progress copy phase
     final isInProgress = status?.status == TableMigrationStatus.inProgress;
-    final showRowProgress = isInProgress &&
+    final showRowProgress =
+        isInProgress &&
         phase == TableMigrationPhase.copy &&
         status?.rowsProcessed != null &&
         status?.totalRows != null;

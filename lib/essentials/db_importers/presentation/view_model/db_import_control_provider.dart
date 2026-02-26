@@ -149,8 +149,9 @@ class UiTableMigrationPhaseStatus {
       startedAt: startedAt ?? this.startedAt,
       completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
       message: message ?? this.message,
-      rowsProcessed:
-          clearRowsProcessed ? null : rowsProcessed ?? this.rowsProcessed,
+      rowsProcessed: clearRowsProcessed
+          ? null
+          : rowsProcessed ?? this.rowsProcessed,
       totalRows: clearTotalRows ? null : totalRows ?? this.totalRows,
       currentItem: clearCurrentItem ? null : currentItem ?? this.currentItem,
     );
