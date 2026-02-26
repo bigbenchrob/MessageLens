@@ -41,6 +41,7 @@ String? _tableNameToStageKey(String tableName) {
     'chat_to_handle' => DbImportStage.importingParticipants.key,
     'messages' => DbImportStage.importingMessages.key,
     'message_rich_text' => DbImportStage.extractingRichContent.key,
+    'chat_to_message' => DbImportStage.linkingMessageArtifacts.key,
     'attachments' => DbImportStage.importingAttachments.key,
     'message_attachments' => DbImportStage.linkingMessageArtifacts.key,
     'contacts' => DbImportStage.importingAddressBook.key,
@@ -1173,15 +1174,18 @@ that prevent migration access. Restarting the app is the best solution.''';
           clearCompletedAt: !isComplete,
         );
       }
-      return stage.copyWith(
-        isActive: false,
-        isComplete: false,
-        clearCurrent: true,
-        clearTotal: true,
-        clearProgress: true,
-        clearStartedAt: true,
-        clearCompletedAt: true,
-      );
+      // For stages after the current index:
+      // Preserve already-completed stages (execution order may differ from template order)
+      // Only reset stages that haven't started yet
+      if (stage.isComplete) {
+        return stage;
+      }
+      if (stage.isActive) {
+        // Another stage was active, mark it not active (only one active at a time)
+        return stage.copyWith(isActive: false);
+      }
+      // Stage hasn't started - leave it pending
+      return stage;
     });
   }
 
