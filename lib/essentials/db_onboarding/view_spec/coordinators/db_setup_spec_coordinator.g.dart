@@ -7,7 +7,7 @@ part of 'db_setup_spec_coordinator.dart';
 // **************************************************************************
 
 String _$dbSetupSpecCoordinatorHash() =>
-    r'cec3f006599f837fa5f751cb36f5bc2bd2419cd6';
+    r'637f187323f19dcbb24a57b8010bb488107c742c';
 
 /// Coordinates ViewSpec.dbSetup requests to the appropriate panel widget.
 ///

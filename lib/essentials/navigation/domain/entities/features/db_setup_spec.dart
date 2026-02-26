@@ -16,4 +16,10 @@ abstract class DbSetupSpec with _$DbSetupSpec {
   ///
   /// Available via Settings or debug menu for re-importing data.
   const factory DbSetupSpec.rerunImport() = _DbSetupRerunImport;
+
+  /// Developer tools panel for testing onboarding.
+  ///
+  /// Provides controls to delete database files and trigger onboarding
+  /// without restarting the app.
+  const factory DbSetupSpec.developerTools() = _DbSetupDeveloperTools;
 }

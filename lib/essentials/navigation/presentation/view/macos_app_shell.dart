@@ -15,6 +15,7 @@ import '../../../window_state/feature_level_providers.dart';
 import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
+import '../../domain/entities/features/db_setup_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
@@ -212,6 +213,34 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                         );
 
                     // Perform the navigation
+                    ref
+                        .read(
+                          panelsViewStateProvider(
+                            SidebarMode.messages,
+                          ).notifier,
+                        )
+                        .show(panel: WindowPanel.center, spec: spec);
+                  },
+                  showLabel: false,
+                ),
+                ToolBarIconButton(
+                  label: 'Onboarding Dev',
+                  icon: const MacosIcon(CupertinoIcons.person_badge_plus),
+                  onPressed: () {
+                    ref
+                        .read(activeSidebarModeProvider.notifier)
+                        .setMode(SidebarMode.messages);
+
+                    const spec = ViewSpec.dbSetup(DbSetupSpec.developerTools());
+
+                    ref
+                        .read(navigationLoggerProvider.notifier)
+                        .logToolbarClick(
+                          buttonLabel: 'Onboarding Dev',
+                          targetPanel: WindowPanel.center,
+                          viewSpec: spec,
+                        );
+
                     ref
                         .read(
                           panelsViewStateProvider(

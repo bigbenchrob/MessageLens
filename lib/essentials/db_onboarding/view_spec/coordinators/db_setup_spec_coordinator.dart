@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../navigation/domain/entities/features/db_setup_spec.dart';
+import '../../presentation/view/db_onboarding_dev_panel.dart';
 import '../../presentation/view/db_onboarding_panel.dart';
 
 part 'db_setup_spec_coordinator.g.dart';
@@ -21,6 +22,8 @@ class DbSetupSpecCoordinator extends _$DbSetupSpecCoordinator {
           const DbOnboardingPanel(key: ValueKey('db-onboarding-first-run')),
       rerunImport: () =>
           const DbOnboardingPanel(key: ValueKey('db-onboarding-rerun')),
+      developerTools: () =>
+          const DbOnboardingDevPanel(key: ValueKey('db-onboarding-dev-tools')),
     );
   }
 }

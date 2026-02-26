@@ -55,12 +55,13 @@ extension DbSetupSpecPatterns on DbSetupSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DbSetupFirstRun value)?  firstRun,TResult Function( _DbSetupRerunImport value)?  rerunImport,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DbSetupFirstRun value)?  firstRun,TResult Function( _DbSetupRerunImport value)?  rerunImport,TResult Function( _DbSetupDeveloperTools value)?  developerTools,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _DbSetupFirstRun() when firstRun != null:
 return firstRun(_that);case _DbSetupRerunImport() when rerunImport != null:
-return rerunImport(_that);case _:
+return rerunImport(_that);case _DbSetupDeveloperTools() when developerTools != null:
+return developerTools(_that);case _:
   return orElse();
 
 }
@@ -78,12 +79,13 @@ return rerunImport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DbSetupFirstRun value)  firstRun,required TResult Function( _DbSetupRerunImport value)  rerunImport,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DbSetupFirstRun value)  firstRun,required TResult Function( _DbSetupRerunImport value)  rerunImport,required TResult Function( _DbSetupDeveloperTools value)  developerTools,}){
 final _that = this;
 switch (_that) {
 case _DbSetupFirstRun():
 return firstRun(_that);case _DbSetupRerunImport():
-return rerunImport(_that);case _:
+return rerunImport(_that);case _DbSetupDeveloperTools():
+return developerTools(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -100,12 +102,13 @@ return rerunImport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DbSetupFirstRun value)?  firstRun,TResult? Function( _DbSetupRerunImport value)?  rerunImport,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DbSetupFirstRun value)?  firstRun,TResult? Function( _DbSetupRerunImport value)?  rerunImport,TResult? Function( _DbSetupDeveloperTools value)?  developerTools,}){
 final _that = this;
 switch (_that) {
 case _DbSetupFirstRun() when firstRun != null:
 return firstRun(_that);case _DbSetupRerunImport() when rerunImport != null:
-return rerunImport(_that);case _:
+return rerunImport(_that);case _DbSetupDeveloperTools() when developerTools != null:
+return developerTools(_that);case _:
   return null;
 
 }
@@ -122,11 +125,12 @@ return rerunImport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  firstRun,TResult Function()?  rerunImport,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  firstRun,TResult Function()?  rerunImport,TResult Function()?  developerTools,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DbSetupFirstRun() when firstRun != null:
 return firstRun();case _DbSetupRerunImport() when rerunImport != null:
-return rerunImport();case _:
+return rerunImport();case _DbSetupDeveloperTools() when developerTools != null:
+return developerTools();case _:
   return orElse();
 
 }
@@ -144,11 +148,12 @@ return rerunImport();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  firstRun,required TResult Function()  rerunImport,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  firstRun,required TResult Function()  rerunImport,required TResult Function()  developerTools,}) {final _that = this;
 switch (_that) {
 case _DbSetupFirstRun():
 return firstRun();case _DbSetupRerunImport():
-return rerunImport();case _:
+return rerunImport();case _DbSetupDeveloperTools():
+return developerTools();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -165,11 +170,12 @@ return rerunImport();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  firstRun,TResult? Function()?  rerunImport,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  firstRun,TResult? Function()?  rerunImport,TResult? Function()?  developerTools,}) {final _that = this;
 switch (_that) {
 case _DbSetupFirstRun() when firstRun != null:
 return firstRun();case _DbSetupRerunImport() when rerunImport != null:
-return rerunImport();case _:
+return rerunImport();case _DbSetupDeveloperTools() when developerTools != null:
+return developerTools();case _:
   return null;
 
 }
@@ -233,6 +239,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'DbSetupSpec.rerunImport()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _DbSetupDeveloperTools implements DbSetupSpec {
+  const _DbSetupDeveloperTools();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DbSetupDeveloperTools);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'DbSetupSpec.developerTools()';
 }
 
 

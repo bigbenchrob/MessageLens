@@ -127,6 +127,7 @@ class NavigationLogEntry {
         'spec': dbSetupSpec.when(
           firstRun: () => {'variant': 'firstRun'},
           rerunImport: () => {'variant': 'rerunImport'},
+          developerTools: () => {'variant': 'developerTools'},
         ),
       },
     );
