@@ -19,14 +19,10 @@ const _importMessagesStageKeys = <String>{
 };
 
 /// Import stage keys that belong to the "Locating Contacts" phase.
-const _locatingContactsStageKeys = <String>{
-  'importingAddressBook',
-};
+const _locatingContactsStageKeys = <String>{'importingAddressBook'};
 
 /// Import stage keys that belong to the "Linking Contacts" phase.
-const _linkingContactsStageKeys = <String>{
-  'linkingContacts',
-};
+const _linkingContactsStageKeys = <String>{'linkingContacts'};
 
 /// Vertical stepper showing all onboarding phases.
 ///

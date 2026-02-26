@@ -38,8 +38,12 @@ class ImportSubStage {
   /// Total item count (e.g., total rows to import).
   final int? total;
 
-  /// Whether this sub-stage has granular progress to display.
-  bool get hasGranularProgress => current != null && total != null && total! > 0;
+  /// Whether this sub-stage has granular progress (current/total counts).
+  bool get hasGranularProgress =>
+      current != null && total != null && total! > 0;
+
+  /// Whether this sub-stage has any progress to display (counts or percentage).
+  bool get hasAnyProgress => hasGranularProgress || progress != null;
 
   ImportSubStage copyWith({
     bool? isActive,

@@ -150,8 +150,9 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                     color: subStage.isActive
                         ? colors.content.textPrimary
                         : colors.content.textSecondary,
-                    fontWeight:
-                        subStage.isActive ? FontWeight.w500 : FontWeight.normal,
+                    fontWeight: subStage.isActive
+                        ? FontWeight.w500
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -167,8 +168,8 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                 ),
             ],
           ),
-          // Progress bar for active sub-stage with granular progress
-          if (subStage.isActive && subStage.hasGranularProgress)
+          // Progress bar for active sub-stage - show whenever active
+          if (subStage.isActive)
             Padding(
               padding: const EdgeInsets.only(left: 24, top: 4),
               child: ClipRRect(
@@ -176,10 +177,14 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                 child: SizedBox(
                   height: 3,
                   child: LinearProgressIndicator(
-                    value: (subStage.progress ?? 0.0).clamp(0.0, 1.0),
+                    // Use progress if available, otherwise indeterminate (null)
+                    value: subStage.hasAnyProgress
+                        ? (subStage.progress ?? 0.0).clamp(0.0, 1.0)
+                        : null,
                     backgroundColor: colors.surfaces.controlMuted,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(colors.accents.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.accents.primary,
+                    ),
                   ),
                 ),
               ),
