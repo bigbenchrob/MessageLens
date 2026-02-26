@@ -106,7 +106,7 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
         height: 4,
         child: LinearProgressIndicator(
           value: progress.clamp(0.0, 1.0),
-          backgroundColor: colors.surfaces.controlMuted,
+          backgroundColor: colors.lines.border,
           valueColor: AlwaysStoppedAnimation<Color>(colors.accents.primary),
         ),
       ),
@@ -179,7 +179,7 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
                   height: 3,
                   child: LinearProgressIndicator(
                     value: (subStage.progress ?? 0.0).clamp(0.0, 1.0),
-                    backgroundColor: colors.surfaces.controlMuted,
+                    backgroundColor: colors.lines.border,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       colors.accents.primary,
                     ),

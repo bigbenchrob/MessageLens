@@ -108,7 +108,10 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
     // When onboarding is required, navigate to the dev tools panel
     // instead of showing the fullscreen overlay
-    ref.listen<AsyncValue<bool>>(dbOnboardingRequiredProvider, (previous, next) {
+    ref.listen<AsyncValue<bool>>(dbOnboardingRequiredProvider, (
+      previous,
+      next,
+    ) {
       next.whenData((required) {
         if (required) {
           final onboardingState = ref.read(dbOnboardingStateNotifierProvider);
@@ -123,11 +126,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             const spec = ViewSpec.dbSetup(DbSetupSpec.developerTools());
 
             ref
-                .read(
-                  panelsViewStateProvider(
-                    SidebarMode.messages,
-                  ).notifier,
-                )
+                .read(panelsViewStateProvider(SidebarMode.messages).notifier)
                 .show(panel: WindowPanel.center, spec: spec);
           }
         }
@@ -146,7 +145,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                 top: _toolbarVerticalPadding,
                 bottom: _toolbarVerticalPadding,
               ),
-              title: const Text('Remember This Text'),
+              title: const Text('MessageLens'),
               centerTitle: true,
               leading: const AppModeToggle(),
               actions: [
