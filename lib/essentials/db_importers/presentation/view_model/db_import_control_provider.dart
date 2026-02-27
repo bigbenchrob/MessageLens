@@ -12,9 +12,7 @@ import '../../../db_migrate/domain/value_objects/db_migration_stage.dart';
 import '../../../db_migrate/feature_level_providers.dart';
 import '../../application/services/import_status_checker.dart';
 import '../../domain/entities/db_import_result.dart';
-import '../../domain/states/db_import_progress.dart';
 import '../../domain/states/table_import_progress.dart';
-import '../../domain/value_objects/db_import_stage.dart';
 import '../../feature_level_providers.dart';
 
 part 'db_import_control_provider.g.dart';
@@ -29,27 +27,6 @@ const List<DbMigrationStage> _handlesMigrationStages = <DbMigrationStage>[
 enum DbImportMode { import, migration }
 
 enum DbImportViewMode { progress, summary }
-
-/// Maps table/importer names to their corresponding stage key.
-///
-/// This enables row-level progress from table events to propagate
-/// up to stage-level progress for the onboarding UI.
-String? _tableNameToStageKey(String tableName) {
-  return switch (tableName) {
-    'handles' => DbImportStage.importingHandles.key,
-    'chats' => DbImportStage.importingChats.key,
-    'chat_to_handle' => DbImportStage.importingParticipants.key,
-    'messages' => DbImportStage.importingMessages.key,
-    'message_rich_text' => DbImportStage.extractingRichContent.key,
-    'chat_to_message' => DbImportStage.linkingMessageArtifacts.key,
-    'attachments' => DbImportStage.importingAttachments.key,
-    'message_attachments' => DbImportStage.linkingMessageArtifacts.key,
-    'contacts' => DbImportStage.importingAddressBook.key,
-    'contact_phone_email' => DbImportStage.importingAddressBook.key,
-    'contact_to_chat_handle' => DbImportStage.linkingContacts.key,
-    _ => null,
-  };
-}
 
 class UiStageProgress {
   const UiStageProgress({
@@ -394,6 +371,78 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     state = const DbImportControlState();
   }
 
+  /// Deletes import and working databases (preserving overlay DB),
+  /// invalidates their providers, and resets UI to virgin state.
+  Future<void> resetAllDatabases() async {
+    if (state.isProcessing) {
+      return;
+    }
+
+    state = state.copyWith(
+      isProcessing: true,
+      statusMessage: 'Resetting databases...',
+      stages: const <UiStageProgress>[],
+      clearProgress: true,
+      clearCurrentStage: true,
+      clearImportResult: true,
+      clearMigrationResult: true,
+      clearTableProgress: true,
+      viewMode: DbImportViewMode.progress,
+    );
+
+    ref.read(dbMaintenanceLockProvider.notifier).begin();
+    try {
+      // Close import database connection
+      try {
+        final ledgerDb = await ref.read(sqfliteImportDatabaseProvider.future);
+        await ledgerDb.close();
+      } catch (_) {
+        // Already closed or not available
+      }
+      ref.invalidate(sqfliteImportDatabaseProvider);
+
+      // Close working database connection
+      try {
+        final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
+        await workingDb.close();
+      } catch (_) {
+        // Already closed or not available
+      }
+      ref.invalidate(driftWorkingDatabaseProvider);
+
+      // Delete database files (NOT overlay DB)
+      const dbDir = '/Users/rob/sqlite_rmc/remember_every_text/';
+      for (final baseName in <String>['macos_import.db', 'working.db']) {
+        final basePath = '$dbDir$baseName';
+        for (final filePath in <String>[
+          basePath,
+          '$basePath-wal',
+          '$basePath-shm',
+        ]) {
+          final file = File(filePath);
+          if (file.existsSync()) {
+            await file.delete();
+          }
+        }
+      }
+
+      // Re-invalidate so next access creates fresh databases
+      ref.invalidate(sqfliteImportDatabaseProvider);
+      ref.invalidate(driftWorkingDatabaseProvider);
+
+      state = state.copyWith(
+        isProcessing: false,
+        statusMessage:
+            'Databases reset. Import and working databases deleted (overlay preserved).',
+      );
+    } catch (error) {
+      final message = _mapDatabaseError('Reset failed', error);
+      state = state.copyWith(isProcessing: false, statusMessage: message);
+    } finally {
+      ref.read(dbMaintenanceLockProvider.notifier).end();
+    }
+  }
+
   Future<void> clearImportDatabase() async {
     if (state.isProcessing) {
       return;
@@ -616,13 +665,11 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
   }
 
   Future<void> startImport() async {
-    final stages = _importStageTemplate();
-
     state = state.copyWith(
       isProcessing: true,
       statusMessage: 'Starting import...',
       progress: 0.0,
-      stages: stages,
+      stages: const <UiStageProgress>[],
       tableProgress: const <UiTableMigrationProgress>[],
       showingDebugPanel: false,
       clearImportResult: true,
@@ -631,8 +678,18 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     try {
       final service = ref.read(orchestratedLedgerImportServiceProvider);
       final result = await service.runImport(
-        onProgress: (progress) {
-          _handleImportProgress(progress);
+        onExecutionPlan: (steps) {
+          // Build UI step list from the orchestrator's topological order.
+          state = state.copyWith(
+            stages: <UiStageProgress>[
+              for (final step in steps)
+                UiStageProgress(
+                  name: step.name,
+                  displayName: step.displayName,
+                  sortIndex: step.index,
+                ),
+            ],
+          );
         },
         onTableProgress: (event) {
           _handleTableImportProgress(event);
@@ -880,44 +937,56 @@ that prevent migration access. Restarting the app is the best solution.''';
     state = state.copyWith(statusMessage: diagnosticMessage);
   }
 
-  void _handleImportProgress(DbImportProgress progress) {
-    final updatedStages = _updateStageProgress(
-      currentStages: state.stages,
-      stageName: progress.stage.key,
-      stageProgress: progress.stageProgress,
-      stageCurrent: progress.stageCurrent,
-      stageTotal: progress.stageTotal,
-    );
-
-    state = state.copyWith(
-      stages: updatedStages,
-      currentStage: progress.stage.key,
-      progress: progress.overallProgress,
-      statusMessage: progress.message,
-    );
-  }
-
-  void _handleMigrationProgress(DbMigrationProgress progress) {
-    final updatedStages = _updateStageProgress(
-      currentStages: state.stages,
-      stageName: progress.stage.key,
-      stageProgress: progress.stageProgress,
-      stageCurrent: progress.stageCurrent,
-      stageTotal: progress.stageTotal,
-    );
-
-    state = state.copyWith(
-      stages: updatedStages,
-      currentStage: progress.stage.key,
-      progress: progress.overallProgress,
-      statusMessage: progress.message,
-    );
-  }
-
   void _handleTableImportProgress(TableImportProgressEvent event) {
     final now = DateTime.now();
+
+    // Update the UI step corresponding to this importer.
+    final stageIndex = state.stages.indexWhere(
+      (s) => s.name == event.importerName,
+    );
+    if (stageIndex != -1) {
+      final stage = state.stages[stageIndex];
+      final isActive =
+          event.status == TableImportStatus.started ||
+          event.status == TableImportStatus.inProgress;
+      final isComplete =
+          event.phase == TableImportPhase.postValidate &&
+          event.status == TableImportStatus.succeeded;
+
+      double? progress;
+      if (event.rowsProcessed != null &&
+          event.totalRows != null &&
+          event.totalRows! > 0) {
+        progress = event.rowsProcessed! / event.totalRows!;
+      }
+
+      final updatedStages = List<UiStageProgress>.of(state.stages);
+      updatedStages[stageIndex] = stage.copyWith(
+        isActive: isActive && !isComplete,
+        isComplete: isComplete || stage.isComplete,
+        progress: isComplete ? 1.0 : progress ?? stage.progress,
+        current: event.rowsProcessed ?? stage.current,
+        total: event.totalRows ?? stage.total,
+        startedAt: stage.startedAt ?? now,
+        completedAt: isComplete ? now : stage.completedAt,
+      );
+
+      final completedCount = updatedStages.where((s) => s.isComplete).length;
+      final overallProgress = updatedStages.isEmpty
+          ? 0.0
+          : completedCount / updatedStages.length;
+
+      state = state.copyWith(
+        stages: updatedStages,
+        currentStage: event.importerName,
+        progress: overallProgress,
+        statusMessage: '${event.displayName}: ${event.phase.name}',
+      );
+    }
+
+    // Also maintain the detailed table-level progress for the summary view.
     final entries = List<UiTableMigrationProgress>.of(state.tableProgress);
-    final index = entries.indexWhere(
+    final tableIndex = entries.indexWhere(
       (progress) => progress.tableName == event.importerName,
     );
 
@@ -962,7 +1031,7 @@ that prevent migration access. Restarting the app is the best solution.''';
       }
     }
 
-    if (index == -1) {
+    if (tableIndex == -1) {
       final phaseStatus = buildStatus(null);
       entries.add(
         UiTableMigrationProgress(
@@ -975,32 +1044,47 @@ that prevent migration access. Restarting the app is the best solution.''';
         ),
       );
     } else {
-      final current = entries[index];
+      final current = entries[tableIndex];
       final phases = Map<TableMigrationPhase, UiTableMigrationPhaseStatus>.from(
         current.phases,
       );
       final phaseStatus = buildStatus(phases[phase]);
       phases[phase] = phaseStatus;
-      entries[index] = current.copyWith(phases: phases);
+      entries[tableIndex] = current.copyWith(phases: phases);
     }
 
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
+  }
 
-    // Propagate row counts to stage-level progress for onboarding UI
-    if (event.rowsProcessed != null &&
-        event.totalRows != null &&
-        phase == TableMigrationPhase.copy) {
-      final stageKey = _tableNameToStageKey(event.importerName);
-      if (stageKey != null) {
-        final updatedStages = _updateStageProgress(
-          currentStages: state.stages,
-          stageName: stageKey,
-          stageCurrent: event.rowsProcessed,
-          stageTotal: event.totalRows,
-        );
-        state = state.copyWith(stages: updatedStages);
-      }
+  void _handleMigrationProgress(DbMigrationProgress progress) {
+    final stageIndex = state.stages.indexWhere(
+      (s) => s.name == progress.stage.key,
+    );
+    if (stageIndex == -1) {
+      return;
     }
+    final now = DateTime.now();
+    final stage = state.stages[stageIndex];
+    final isComplete =
+        progress.stageProgress != null && progress.stageProgress! >= 1.0;
+
+    final updatedStages = List<UiStageProgress>.of(state.stages);
+    updatedStages[stageIndex] = stage.copyWith(
+      isActive: !isComplete,
+      isComplete: isComplete || stage.isComplete,
+      progress: isComplete ? 1.0 : progress.stageProgress ?? stage.progress,
+      current: progress.stageCurrent ?? stage.current,
+      total: progress.stageTotal ?? stage.total,
+      startedAt: stage.startedAt ?? now,
+      completedAt: isComplete ? now : stage.completedAt,
+    );
+
+    state = state.copyWith(
+      stages: updatedStages,
+      currentStage: progress.stage.key,
+      progress: progress.overallProgress,
+      statusMessage: progress.message,
+    );
   }
 
   void _handleTableMigrationProgress(TableMigrationProgressEvent event) {
@@ -1064,36 +1148,6 @@ that prevent migration access. Restarting the app is the best solution.''';
     }
 
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
-
-    // Propagate row counts to stage-level progress for onboarding UI
-    // Note: Migration uses table migrators which map differently
-    if (event.rowsProcessed != null &&
-        event.totalRows != null &&
-        event.phase == TableMigrationPhase.copy) {
-      final stageKey = _tableNameToStageKey(event.tableName);
-      if (stageKey != null) {
-        final updatedStages = _updateStageProgress(
-          currentStages: state.stages,
-          stageName: stageKey,
-          stageCurrent: event.rowsProcessed,
-          stageTotal: event.totalRows,
-        );
-        state = state.copyWith(stages: updatedStages);
-      }
-    }
-  }
-
-  List<UiStageProgress> _importStageTemplate() {
-    const stages = DbImportStage.values;
-    return List<UiStageProgress>.generate(stages.length, (index) {
-      final stage = stages[index];
-      return UiStageProgress(
-        name: stage.key,
-        displayName: stage.label,
-        sortIndex: index,
-        isActive: index == 0,
-      );
-    });
   }
 
   List<UiStageProgress> _migrationStageTemplate({
@@ -1108,7 +1162,6 @@ that prevent migration access. Restarting the app is the best solution.''';
         name: stage.key,
         displayName: stage.label,
         sortIndex: index,
-        isActive: index == 0,
       );
     });
   }
@@ -1119,74 +1172,6 @@ that prevent migration access. Restarting the app is the best solution.''';
     final sorted = List<UiTableMigrationProgress>.of(progress)
       ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
     return sorted;
-  }
-
-  List<UiStageProgress> _updateStageProgress({
-    required List<UiStageProgress> currentStages,
-    required String stageName,
-    double? stageProgress,
-    int? stageCurrent,
-    int? stageTotal,
-  }) {
-    if (currentStages.isEmpty) {
-      return currentStages;
-    }
-
-    final index = currentStages.indexWhere((stage) => stage.name == stageName);
-    if (index == -1) {
-      return currentStages;
-    }
-
-    final now = DateTime.now();
-    return List<UiStageProgress>.generate(currentStages.length, (i) {
-      final stage = currentStages[i];
-      if (i < index) {
-        if (stage.isComplete) {
-          return stage;
-        }
-        return stage.copyWith(
-          isActive: false,
-          isComplete: true,
-          progress: stage.progress ?? 1.0,
-          startedAt: stage.startedAt ?? now,
-          completedAt: stage.completedAt ?? now,
-        );
-      }
-      if (i == index) {
-        final isComplete = stageProgress != null && stageProgress >= 1.0;
-        final completedAt = isComplete ? stage.completedAt ?? now : null;
-        // Prefer calculating progress from current/total when available (most accurate)
-        // Fall back to explicit stageProgress, then existing stage.progress
-        double? progressValue;
-        if (stageCurrent != null && stageTotal != null && stageTotal > 0) {
-          progressValue = stageCurrent / stageTotal;
-        } else {
-          progressValue = stageProgress ?? stage.progress;
-        }
-        return stage.copyWith(
-          isActive: !isComplete,
-          isComplete: isComplete,
-          progress: isComplete ? (progressValue ?? 1.0) : progressValue,
-          current: stageCurrent,
-          total: stageTotal,
-          startedAt: stage.startedAt ?? now,
-          completedAt: completedAt,
-          clearCompletedAt: !isComplete,
-        );
-      }
-      // For stages after the current index:
-      // Preserve already-completed stages (execution order may differ from template order)
-      // Only reset stages that haven't started yet
-      if (stage.isComplete) {
-        return stage;
-      }
-      if (stage.isActive) {
-        // Another stage was active, mark it not active (only one active at a time)
-        return stage.copyWith(isActive: false);
-      }
-      // Stage hasn't started - leave it pending
-      return stage;
-    });
   }
 
   List<UiStageProgress> _markAllStagesComplete(List<UiStageProgress> stages) {

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -13,15 +12,14 @@ import '../../../db/infrastructure/data_sources/local/import/sqflite_import_data
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/i_importers.dart/table_importer.dart';
 import '../../domain/ports/message_extractor_port.dart';
-import '../../domain/states/db_import_progress.dart';
 import '../../domain/states/table_import_progress.dart';
-import '../../domain/value_objects/db_import_stage.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 import '../debug_settings_provider.dart';
 import '../importers/attachments_importer.dart';
 import '../importers/chat_to_handle_importer.dart';
 import '../importers/chat_to_message_importer.dart';
 import '../importers/chats_importer.dart';
+import '../importers/clear_ledger_importer.dart';
 import '../importers/contact_channels_importer.dart';
 import '../importers/contact_to_chat_handle_importer.dart';
 import '../importers/contacts_importer.dart';
@@ -29,9 +27,10 @@ import '../importers/handles_importer.dart';
 import '../importers/message_attachments_importer.dart';
 import '../importers/message_rich_text_importer.dart';
 import '../importers/messages_importer.dart';
+import '../importers/prepare_sources_importer.dart';
 import '../orchestrator/import_orchestrator.dart';
 
-typedef DbImportProgressCallback = void Function(DbImportProgress progress);
+typedef ExecutionPlanCallback = void Function(List<ImporterStep> steps);
 
 class OrchestratedLedgerImportService {
   OrchestratedLedgerImportService({
@@ -48,7 +47,7 @@ class OrchestratedLedgerImportService {
   static const String _logContext = 'OrchestratedLedgerImportService';
 
   Future<DbImportResult> runImport({
-    DbImportProgressCallback? onProgress,
+    ExecutionPlanCallback? onExecutionPlan,
     TableImportProgressCallback? onTableProgress,
   }) async {
     final debugSettings = ref.watch(importDebugSettingsProvider);
@@ -101,13 +100,6 @@ class OrchestratedLedgerImportService {
       (aggregate) => addressBookPath = aggregate.mostRecentFolderPath,
     );
     if (addressBookPath == null) {
-      onProgress?.call(
-        const DbImportProgress(
-          stage: DbImportStage.preparingSources,
-          overallProgress: 0.0,
-          message: 'AddressBook path resolution failed',
-        ),
-      );
       const failureMessage =
           'AddressBook path could not be resolved via getFolderAggregateEitherProvider';
       debugSettings.logError('$_logContext: $failureMessage');
@@ -121,25 +113,11 @@ class OrchestratedLedgerImportService {
     final messagesFile = File(messagesDbPath);
     final addressBookFile = File(addressBookPath!);
     if (!messagesFile.existsSync()) {
-      onProgress?.call(
-        DbImportProgress(
-          stage: DbImportStage.preparingSources,
-          overallProgress: 0.0,
-          message: 'Messages database not found at $messagesDbPath',
-        ),
-      );
       final message = 'Messages database not found at $messagesDbPath';
       debugSettings.logError('$_logContext: $message');
       return DbImportResult(batchId: -1, success: false, error: message);
     }
     if (!addressBookFile.existsSync()) {
-      onProgress?.call(
-        DbImportProgress(
-          stage: DbImportStage.preparingSources,
-          overallProgress: 0.0,
-          message: 'AddressBook database not found at ${addressBookFile.path}',
-        ),
-      );
       final message =
           'AddressBook database not found at ${addressBookFile.path}';
       debugSettings.logError('$_logContext: $message');
@@ -147,45 +125,6 @@ class OrchestratedLedgerImportService {
     }
 
     final startedAtUtc = DateTime.now().toUtc().toIso8601String();
-    void emit(
-      DbImportStage stage,
-      double progress,
-      String message, {
-      double? stageProgress,
-      int? stageCurrent,
-      int? stageTotal,
-    }) {
-      onProgress?.call(
-        DbImportProgress(
-          stage: stage,
-          overallProgress: progress.clamp(0.0, 1.0),
-          message: message,
-          stageProgress: stageProgress,
-          stageCurrent: stageCurrent,
-          stageTotal: stageTotal,
-        ),
-      );
-      if (stage == DbImportStage.completed) {
-        debugSettings.logProgress('$_logContext: $message');
-      }
-    }
-
-    emit(DbImportStage.preparingSources, 0.02, 'Preparing import sources');
-
-    if (!hasExistingLedgerData) {
-      emit(
-        DbImportStage.clearingLedger,
-        0.05,
-        'Clearing existing ledger data (fresh import)',
-      );
-      await ledgerDb.clearAllData();
-    } else {
-      emit(
-        DbImportStage.clearingLedger,
-        0.05,
-        'Preparing ledger for incremental append',
-      );
-    }
 
     final batchId = await ledgerDb.insertImportBatch(
       startedAtUtc: startedAtUtc,
@@ -237,6 +176,8 @@ class OrchestratedLedgerImportService {
       );
 
       final importers = <TableImporter>[
+        const PrepareSourcesImporter(),
+        const ClearLedgerImporter(),
         HandlesImporter(),
         ChatsImporter(),
         ChatToHandleImporter(),
@@ -251,39 +192,14 @@ class OrchestratedLedgerImportService {
       ];
 
       final orchestrator = ImportOrchestrator(importers);
-      final phaseWeights = _phaseWeights(importers.length);
-      var completedWeight = 0.15;
 
-      void handleTableEvent(TableImportProgressEvent event) {
-        final stage = _stageForImporter(event.importerName);
-        final phaseWeight = phaseWeights[event.phase] ?? 0.0;
-        final message = _messageForPhase(event);
-        var progressValue = completedWeight;
+      // Communicate the execution plan to the UI before running.
+      onExecutionPlan?.call(orchestrator.executionOrder());
 
-        switch (event.status) {
-          case TableImportStatus.started:
-          case TableImportStatus.inProgress:
-            progressValue += phaseWeight * 0.1;
-            break;
-          case TableImportStatus.succeeded:
-            completedWeight += phaseWeight;
-            progressValue = completedWeight;
-            break;
-          case TableImportStatus.failed:
-            break;
-        }
+      await orchestrator.run(context, onTableProgress: onTableProgress);
 
-        final normalized = min(progressValue, 0.9);
-        emit(stage, normalized, message);
-        onTableProgress?.call(event);
-      }
-
-      await orchestrator.run(context, onTableProgress: handleTableEvent);
-
-      emit(
-        DbImportStage.completed,
-        1.0,
-        'Ledger import completed successfully',
+      debugSettings.logProgress(
+        '$_logContext: Ledger import completed successfully',
       );
 
       await ledgerDb.updateImportBatch(
@@ -362,67 +278,10 @@ class OrchestratedLedgerImportService {
     } catch (error, stackTrace) {
       debugSettings.logError('$_logContext: import failed: $error');
       debugSettings.logProgress(stackTrace.toString());
-      emit(DbImportStage.completed, 1.0, 'Ledger import failed: $error');
       return DbImportResult(batchId: batchId, success: false, error: '$error');
     } finally {
       await messagesDb?.close();
       await addressBookDb?.close();
-    }
-  }
-
-  Map<TableImportPhase, double> _phaseWeights(int importerCount) {
-    if (importerCount == 0) {
-      return const <TableImportPhase, double>{};
-    }
-    const base = <TableImportPhase, double>{
-      TableImportPhase.validatePrereqs: 0.2,
-      TableImportPhase.copy: 0.5,
-      TableImportPhase.postValidate: 0.15,
-    };
-    return {
-      for (final entry in base.entries)
-        entry.key: (entry.value / importerCount),
-    };
-  }
-
-  DbImportStage _stageForImporter(String importerName) {
-    switch (importerName) {
-      case 'handles':
-        return DbImportStage.importingHandles;
-      case 'chats':
-        return DbImportStage.importingChats;
-      case 'chat_to_handle':
-        return DbImportStage.importingParticipants;
-      case 'messages':
-        return DbImportStage.importingMessages;
-      case 'message_rich_text':
-        return DbImportStage.extractingRichContent;
-      case 'chat_to_message':
-        return DbImportStage.linkingMessageArtifacts;
-      case 'attachments':
-        return DbImportStage.importingAttachments;
-      case 'message_attachments':
-        return DbImportStage.linkingMessageArtifacts;
-      case 'contacts':
-        return DbImportStage.importingAddressBook;
-      case 'contact_phone_email':
-        return DbImportStage.importingAddressBook;
-      case 'contact_to_chat_handle':
-        return DbImportStage.linkingContacts;
-      default:
-        return DbImportStage.importingMessages;
-    }
-  }
-
-  String _messageForPhase(TableImportProgressEvent event) {
-    final displayName = event.displayName;
-    switch (event.phase) {
-      case TableImportPhase.validatePrereqs:
-        return 'Validating $displayName prerequisites';
-      case TableImportPhase.copy:
-        return 'Copying $displayName';
-      case TableImportPhase.postValidate:
-        return 'Verifying $displayName';
     }
   }
 

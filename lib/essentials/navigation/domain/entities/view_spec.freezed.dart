@@ -55,14 +55,13 @@ extension ViewSpecPatterns on ViewSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewChats value)?  chats,TResult Function( _ViewContacts value)?  contacts,TResult Function( _ViewDbSetup value)?  dbSetup,TResult Function( _ViewImport value)?  import,TResult Function( _ViewSettings value)?  settings,TResult Function( _ViewWorkbench value)?  workbench,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewChats value)?  chats,TResult Function( _ViewContacts value)?  contacts,TResult Function( _ViewImport value)?  import,TResult Function( _ViewSettings value)?  settings,TResult Function( _ViewWorkbench value)?  workbench,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that);case _ViewChats() when chats != null:
 return chats(_that);case _ViewContacts() when contacts != null:
-return contacts(_that);case _ViewDbSetup() when dbSetup != null:
-return dbSetup(_that);case _ViewImport() when import != null:
+return contacts(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewSettings() when settings != null:
 return settings(_that);case _ViewWorkbench() when workbench != null:
 return workbench(_that);case _:
@@ -83,14 +82,13 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewChats value)  chats,required TResult Function( _ViewContacts value)  contacts,required TResult Function( _ViewDbSetup value)  dbSetup,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewSettings value)  settings,required TResult Function( _ViewWorkbench value)  workbench,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewChats value)  chats,required TResult Function( _ViewContacts value)  contacts,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewSettings value)  settings,required TResult Function( _ViewWorkbench value)  workbench,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages():
 return messages(_that);case _ViewChats():
 return chats(_that);case _ViewContacts():
-return contacts(_that);case _ViewDbSetup():
-return dbSetup(_that);case _ViewImport():
+return contacts(_that);case _ViewImport():
 return import(_that);case _ViewSettings():
 return settings(_that);case _ViewWorkbench():
 return workbench(_that);case _:
@@ -110,14 +108,13 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewChats value)?  chats,TResult? Function( _ViewContacts value)?  contacts,TResult? Function( _ViewDbSetup value)?  dbSetup,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewSettings value)?  settings,TResult? Function( _ViewWorkbench value)?  workbench,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewChats value)?  chats,TResult? Function( _ViewContacts value)?  contacts,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewSettings value)?  settings,TResult? Function( _ViewWorkbench value)?  workbench,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that);case _ViewChats() when chats != null:
 return chats(_that);case _ViewContacts() when contacts != null:
-return contacts(_that);case _ViewDbSetup() when dbSetup != null:
-return dbSetup(_that);case _ViewImport() when import != null:
+return contacts(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewSettings() when settings != null:
 return settings(_that);case _ViewWorkbench() when workbench != null:
 return workbench(_that);case _:
@@ -137,13 +134,12 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ChatsSpec spec)?  chats,TResult Function( ContactsSpec spec)?  contacts,TResult Function( DbSetupSpec spec)?  dbSetup,TResult Function( ImportSpec spec)?  import,TResult Function( SettingsSpec spec)?  settings,TResult Function( WorkbenchSpec spec)?  workbench,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ChatsSpec spec)?  chats,TResult Function( ContactsSpec spec)?  contacts,TResult Function( ImportSpec spec)?  import,TResult Function( SettingsSpec spec)?  settings,TResult Function( WorkbenchSpec spec)?  workbench,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that.spec);case _ViewChats() when chats != null:
 return chats(_that.spec);case _ViewContacts() when contacts != null:
-return contacts(_that.spec);case _ViewDbSetup() when dbSetup != null:
-return dbSetup(_that.spec);case _ViewImport() when import != null:
+return contacts(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewSettings() when settings != null:
 return settings(_that.spec);case _ViewWorkbench() when workbench != null:
 return workbench(_that.spec);case _:
@@ -164,13 +160,12 @@ return workbench(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ChatsSpec spec)  chats,required TResult Function( ContactsSpec spec)  contacts,required TResult Function( DbSetupSpec spec)  dbSetup,required TResult Function( ImportSpec spec)  import,required TResult Function( SettingsSpec spec)  settings,required TResult Function( WorkbenchSpec spec)  workbench,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ChatsSpec spec)  chats,required TResult Function( ContactsSpec spec)  contacts,required TResult Function( ImportSpec spec)  import,required TResult Function( SettingsSpec spec)  settings,required TResult Function( WorkbenchSpec spec)  workbench,}) {final _that = this;
 switch (_that) {
 case _ViewMessages():
 return messages(_that.spec);case _ViewChats():
 return chats(_that.spec);case _ViewContacts():
-return contacts(_that.spec);case _ViewDbSetup():
-return dbSetup(_that.spec);case _ViewImport():
+return contacts(_that.spec);case _ViewImport():
 return import(_that.spec);case _ViewSettings():
 return settings(_that.spec);case _ViewWorkbench():
 return workbench(_that.spec);case _:
@@ -190,13 +185,12 @@ return workbench(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ChatsSpec spec)?  chats,TResult? Function( ContactsSpec spec)?  contacts,TResult? Function( DbSetupSpec spec)?  dbSetup,TResult? Function( ImportSpec spec)?  import,TResult? Function( SettingsSpec spec)?  settings,TResult? Function( WorkbenchSpec spec)?  workbench,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ChatsSpec spec)?  chats,TResult? Function( ContactsSpec spec)?  contacts,TResult? Function( ImportSpec spec)?  import,TResult? Function( SettingsSpec spec)?  settings,TResult? Function( WorkbenchSpec spec)?  workbench,}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
 return messages(_that.spec);case _ViewChats() when chats != null:
 return chats(_that.spec);case _ViewContacts() when contacts != null:
-return contacts(_that.spec);case _ViewDbSetup() when dbSetup != null:
-return dbSetup(_that.spec);case _ViewImport() when import != null:
+return contacts(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewSettings() when settings != null:
 return settings(_that.spec);case _ViewWorkbench() when workbench != null:
 return workbench(_that.spec);case _:
@@ -427,81 +421,6 @@ as ContactsSpec,
 $ContactsSpecCopyWith<$Res> get spec {
   
   return $ContactsSpecCopyWith<$Res>(_self.spec, (value) {
-    return _then(_self.copyWith(spec: value));
-  });
-}
-}
-
-/// @nodoc
-
-
-class _ViewDbSetup implements ViewSpec {
-  const _ViewDbSetup(this.spec);
-  
-
-@override final  DbSetupSpec spec;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ViewDbSetupCopyWith<_ViewDbSetup> get copyWith => __$ViewDbSetupCopyWithImpl<_ViewDbSetup>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ViewDbSetup&&(identical(other.spec, spec) || other.spec == spec));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,spec);
-
-@override
-String toString() {
-  return 'ViewSpec.dbSetup(spec: $spec)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ViewDbSetupCopyWith<$Res> implements $ViewSpecCopyWith<$Res> {
-  factory _$ViewDbSetupCopyWith(_ViewDbSetup value, $Res Function(_ViewDbSetup) _then) = __$ViewDbSetupCopyWithImpl;
-@useResult
-$Res call({
- DbSetupSpec spec
-});
-
-
-$DbSetupSpecCopyWith<$Res> get spec;
-
-}
-/// @nodoc
-class __$ViewDbSetupCopyWithImpl<$Res>
-    implements _$ViewDbSetupCopyWith<$Res> {
-  __$ViewDbSetupCopyWithImpl(this._self, this._then);
-
-  final _ViewDbSetup _self;
-  final $Res Function(_ViewDbSetup) _then;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
-  return _then(_ViewDbSetup(
-null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as DbSetupSpec,
-  ));
-}
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$DbSetupSpecCopyWith<$Res> get spec {
-  
-  return $DbSetupSpecCopyWith<$Res>(_self.spec, (value) {
     return _then(_self.copyWith(spec: value));
   });
 }

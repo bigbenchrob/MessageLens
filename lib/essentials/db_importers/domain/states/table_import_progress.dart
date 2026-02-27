@@ -1,5 +1,3 @@
-import '../value_objects/db_import_stage.dart';
-
 /// High-level phases each table importer reports while running inside the
 /// [ImportOrchestrator].
 enum TableImportPhase { validatePrereqs, copy, postValidate }
@@ -27,7 +25,6 @@ class TableImportProgressEvent {
     required this.phase,
     required this.status,
     this.message,
-    this.stage,
     this.rowsProcessed,
     this.totalRows,
     this.currentItem,
@@ -38,7 +35,6 @@ class TableImportProgressEvent {
   final TableImportPhase phase;
   final TableImportStatus status;
   final String? message;
-  final DbImportStage? stage;
 
   /// Number of rows processed so far (only set when status is [inProgress]).
   final int? rowsProcessed;

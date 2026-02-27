@@ -8,7 +8,6 @@ import '../../../features/messages/feature_level_providers.dart'
     as messages_feature;
 import '../../db_importers/presentation/view/db_import_control_panel.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
-import '../../db_onboarding/view_spec/coordinators/db_setup_spec_coordinator.dart';
 import '../../workbench/presentation/view/workbench_panel_view.dart';
 import '../domain/entities/features/chats_spec.dart';
 import '../domain/entities/features/import_spec.dart';
@@ -80,9 +79,6 @@ class PanelCoordinator extends _$PanelCoordinator {
       contacts: (contactsSpec) => ref
           .read(contacts_feature.viewSpecCoordinatorProvider.notifier)
           .buildForSpec(contactsSpec),
-      dbSetup: (dbSetupSpec) => ref
-          .read(dbSetupSpecCoordinatorProvider.notifier)
-          .buildForSpec(dbSetupSpec),
       import: _buildImportPanel,
       settings: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),
       workbench: (_) => const WorkbenchPanelView(),

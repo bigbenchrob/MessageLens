@@ -115,7 +115,6 @@ class ChatsSidebarView extends HookConsumerWidget {
         },
         chats: (_) {},
         contacts: (_) {},
-        dbSetup: (_) {},
         import: (_) {},
         settings: (_) {},
         workbench: (_) {},

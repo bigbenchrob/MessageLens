@@ -11,7 +11,7 @@ class HandlesImporter extends BaseTableImporter with RowProgressReporter {
   String get name => 'handles';
 
   @override
-  List<String> get dependsOn => const <String>[];
+  List<String> get dependsOn => const <String>['clear_ledger'];
 
   @override
   Future<void> validatePrereqs(IImportContext ctx) async {

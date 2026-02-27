@@ -57,6 +57,24 @@ class DbImportControlPanel extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 MacosTooltip(
+                  message: 'Reset: Delete import & working databases',
+                  child: MacosIconButton(
+                    semanticLabel: 'Reset databases',
+                    icon: const MacosIcon(
+                      CupertinoIcons.trash,
+                      color: Color(0xFFCC3333),
+                    ),
+                    boxConstraints: const BoxConstraints(
+                      minWidth: 30,
+                      minHeight: 30,
+                    ),
+                    onPressed: controlState.isProcessing
+                        ? null
+                        : () => notifier.resetAllDatabases(),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                MacosTooltip(
                   message: controlState.showingDebugPanel
                       ? 'Close debug settings'
                       : 'Open debug settings',

@@ -12,6 +12,22 @@ class ImportOrchestrator {
 
   final List<TableImporter> _importers;
 
+  /// Returns the importers in topological (execution) order without running
+  /// them. Useful for building a UI step list before the import begins.
+  List<ImporterStep> executionOrder() {
+    final ordered = _sorted();
+    return <ImporterStep>[
+      for (var i = 0; i < ordered.length; i++)
+        ImporterStep(
+          index: i,
+          name: ordered[i].name,
+          displayName: ordered[i] is BaseTableImporter
+              ? (ordered[i] as BaseTableImporter).displayName
+              : _humanizeName(ordered[i].name),
+        ),
+    ];
+  }
+
   Future<void> run(
     IImportContext ctx, {
     TableImportProgressCallback? onTableProgress,
@@ -191,4 +207,22 @@ String _humanizeName(String raw) {
       .where((part) => part.isNotEmpty)
       .map((part) => part[0].toUpperCase() + part.substring(1))
       .join(' ');
+}
+
+/// Lightweight description of an importer in the execution plan.
+class ImporterStep {
+  const ImporterStep({
+    required this.index,
+    required this.name,
+    required this.displayName,
+  });
+
+  /// Position in the topological execution order (0-based).
+  final int index;
+
+  /// The importer's unique name (e.g. 'handles', 'clear_ledger').
+  final String name;
+
+  /// Human-friendly label for UI display.
+  final String displayName;
 }

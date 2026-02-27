@@ -7,7 +7,7 @@ part of 'db_import_control_provider.dart';
 // **************************************************************************
 
 String _$dbImportControlViewModelHash() =>
-    r'90471b0393d2ab141647175e51c28e01f50115a8';
+    r'4b944e81444da20a6f530f487f7944b1f9cdc5db';
 
 /// See also [DbImportControlViewModel].
 @ProviderFor(DbImportControlViewModel)
