@@ -153,11 +153,6 @@ class DbOnboardingPhaseRow extends ConsumerWidget {
   }
 
   Widget _buildSubStageRow(ImportSubStage subStage, ThemeColors colors) {
-    // Skip pending stages that haven't started to reduce clutter
-    if (!subStage.isActive && !subStage.isComplete) {
-      return const SizedBox.shrink();
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(

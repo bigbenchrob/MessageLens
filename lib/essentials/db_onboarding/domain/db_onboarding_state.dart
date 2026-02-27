@@ -34,6 +34,17 @@ abstract class DbOnboardingState with _$DbOnboardingState {
     /// is shown inline in the developer tools panel.
     @Default(false) bool devMode,
 
+    /// Minimum duration (milliseconds) each onboarding phase should be visible.
+    ///
+    /// This is primarily exposed for developer tools UX tuning.
+    @Default(1000) int phaseMinDurationMs,
+
+    /// Whether the onboarding flow has been explicitly started.
+    ///
+    /// Used by UI to differentiate a true virgin/reset state from an
+    /// active permission-check phase.
+    @Default(false) bool onboardingStarted,
+
     /// Optional error message if the current phase is [DbOnboardingPhase.error].
     String? errorMessage,
 
@@ -54,6 +65,12 @@ abstract class DbOnboardingState with _$DbOnboardingState {
     /// These are the granular steps within a main phase (e.g., "Importing Messages"
     /// contains sub-stages like "Importing handles", "Importing chats", etc.)
     @Default(<ImportSubStage>[]) List<ImportSubStage> importSubStages,
+
+    /// True while migration is running after import has completed.
+    ///
+    /// This lets the onboarding UI show a clearer "finalizing" label instead
+    /// of implying contacts import is still active.
+    @Default(false) bool migrationInProgress,
   }) = _DbOnboardingState;
 
   /// Initial state for starting the onboarding flow.

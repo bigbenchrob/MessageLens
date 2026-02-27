@@ -492,6 +492,33 @@ class SqfliteImportDatabase {
     );
   }
 
+  Future<void> insertContactHandleLinksBatch({
+    required List<Map<String, int>> links,
+    required int batchId,
+  }) async {
+    if (links.isEmpty) {
+      return;
+    }
+
+    final db = await database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final link in links) {
+        final data = _cleanMap(<String, Object?>{
+          'contact_Z_PK': link['contact_Z_PK'],
+          'chat_handle_id': link['chat_handle_id'],
+          'batch_id': batchId,
+        });
+        batch.insert(
+          'contact_to_chat_handle',
+          data,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
   Future<List<Map<String, Object?>>> handlesForBatch(int batchId) async {
     final db = await database;
     return db.query(

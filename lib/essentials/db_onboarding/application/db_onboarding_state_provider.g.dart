@@ -7,7 +7,7 @@ part of 'db_onboarding_state_provider.dart';
 // **************************************************************************
 
 String _$dbOnboardingStateNotifierHash() =>
-    r'0f140f42a9f4a8d86a2c68c3c6519716d5be1252';
+    r'f8067116e90745e761c9c59ccad04a4fb3711ed8';
 
 /// Manages the onboarding state machine and coordinates with import/migration.
 ///

@@ -35,41 +35,43 @@ enum DbOnboardingPhase {
 extension DbOnboardingPhaseX on DbOnboardingPhase {
   /// Human-readable label for this phase when pending.
   String get pendingLabel => switch (this) {
-    DbOnboardingPhase.checkingPermissions => 'System Permissions',
-    DbOnboardingPhase.messagesDatabase => 'macOS Messages Database',
+    DbOnboardingPhase.checkingPermissions =>
+      'Permission to access mac databases',
+    DbOnboardingPhase.messagesDatabase => 'Find MacOS Messages database',
     DbOnboardingPhase.conversationMetadata => 'Conversation Metadata',
     DbOnboardingPhase.importingMessages => 'Messages',
     DbOnboardingPhase.processingContent => 'Message Content',
     DbOnboardingPhase.importingAttachments => 'Attachments',
     DbOnboardingPhase.contactsDatabase => 'Contacts Database',
-    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.complete => 'Move data to the MessageLens database',
     DbOnboardingPhase.error => 'Setup Error',
   };
 
   /// Human-readable label for this phase when active.
   String get activeLabel => switch (this) {
-    DbOnboardingPhase.checkingPermissions => 'Checking system permissions...',
-    DbOnboardingPhase.messagesDatabase => 'Locating messages database...',
+    DbOnboardingPhase.checkingPermissions => 'Checking permissions...',
+    DbOnboardingPhase.messagesDatabase => 'Looking for database...',
     DbOnboardingPhase.conversationMetadata =>
       'Importing conversation metadata...',
     DbOnboardingPhase.importingMessages => 'Importing messages...',
     DbOnboardingPhase.processingContent => 'Processing message content...',
     DbOnboardingPhase.importingAttachments => 'Importing attachments...',
     DbOnboardingPhase.contactsDatabase => 'Importing contacts...',
-    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.complete => 'Moving data...',
     DbOnboardingPhase.error => 'Setup Error',
   };
 
   /// Human-readable label for this phase when complete.
   String get completeLabel => switch (this) {
-    DbOnboardingPhase.checkingPermissions => 'Permissions verified',
-    DbOnboardingPhase.messagesDatabase => 'Messages database found',
+    DbOnboardingPhase.checkingPermissions => 'Permissions okay',
+    DbOnboardingPhase.messagesDatabase => 'MacOS Messages database found',
     DbOnboardingPhase.conversationMetadata => 'Conversation metadata imported',
     DbOnboardingPhase.importingMessages => 'Messages imported',
     DbOnboardingPhase.processingContent => 'Message content processed',
     DbOnboardingPhase.importingAttachments => 'Attachments imported',
     DbOnboardingPhase.contactsDatabase => 'Contacts imported',
-    DbOnboardingPhase.complete => 'Setup Complete',
+    DbOnboardingPhase.complete =>
+      'All message and contact data loaded into MessageLens',
     DbOnboardingPhase.error => 'Setup Error',
   };
 

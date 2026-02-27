@@ -593,6 +593,32 @@ class OverlayDatabase extends _$OverlayDatabase {
     return next;
   }
 
+  Future<String?> readOverlaySetting(String settingKey) async {
+    final existing = await (select(
+      overlaySettings,
+    )..where((tbl) => tbl.key.equals(settingKey))).getSingleOrNull();
+    return existing?.value;
+  }
+
+  Future<void> writeOverlaySetting({
+    required String settingKey,
+    required String settingValue,
+  }) async {
+    final existing = await (select(
+      overlaySettings,
+    )..where((tbl) => tbl.key.equals(settingKey))).getSingleOrNull();
+
+    if (existing == null) {
+      await into(overlaySettings).insert(
+        OverlaySettingsCompanion.insert(key: settingKey, value: settingValue),
+      );
+      return;
+    }
+
+    await (update(overlaySettings)..where((tbl) => tbl.key.equals(settingKey)))
+        .write(OverlaySettingsCompanion(value: Value(settingValue)));
+  }
+
   String _deriveShortName(String name) {
     final tokens = name
         .split(RegExp(r'\s+'))

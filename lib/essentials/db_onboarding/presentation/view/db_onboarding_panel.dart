@@ -100,8 +100,10 @@ class _DbOnboardingPanelState extends ConsumerState<DbOnboardingPanel> {
   }
 
   Widget _buildContent(ThemeColors colors, DbOnboardingState state) {
-    // Show FDA instructions if permission check failed
-    if (state.currentPhase == DbOnboardingPhase.checkingPermissions &&
+    // Show FDA instructions only after onboarding has started.
+    // In a virgin/reset state we keep the stepper pending without instructions.
+    if (state.onboardingStarted &&
+        state.currentPhase == DbOnboardingPhase.checkingPermissions &&
         !state.fdaGranted) {
       return FdaInstructionsCard(
         onRetry: () {

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/util/paths_helper.dart';
 import '../../../providers.dart';
+import '../../db/feature_level_providers.dart';
 import '../../db_importers/domain/value_objects/db_import_stage.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../domain/db_onboarding_phase.dart';
@@ -13,9 +15,32 @@ import '../domain/import_sub_stage.dart';
 
 part 'db_onboarding_state_provider.g.dart';
 
-/// Minimum duration a phase should be visible before transitioning.
+/// Default minimum duration a phase should be visible before transitioning.
 /// This ensures users can read the phase labels without them flashing by.
-const _minPhaseDuration = Duration(seconds: 1);
+const _defaultPhaseMinDurationMs = 1000;
+const _phaseMinDurationOverlayKey = 'onboarding_min_phase_duration_ms';
+
+const _conversationMetadataSubStageOrder = <String>[
+  'clearingLedger',
+  'importingHandles',
+  'importingChats',
+  'importingParticipants',
+];
+
+const _importingAttachmentsSubStageOrder = <String>[
+  'importingAttachments',
+  'linkingMessageArtifacts',
+];
+
+const _contactsSubStageOrder = <String>[
+  'importingAddressBook',
+  'linkingContacts',
+];
+
+const _migrationSignalStageKeys = <String>{
+  'clearingWorking',
+  'migratingIdentities',
+};
 
 /// Manages the onboarding state machine and coordinates with import/migration.
 ///
@@ -35,8 +60,48 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Timer for delayed phase transitions.
   Timer? _phaseTimer;
 
+  /// Timer for delayed sub-stage transitions.
+  Timer? _subStageTimer;
+
+  /// Latest sub-stage snapshot from import/migration control state.
+  List<ImportSubStage> _latestRawSubStages = const <ImportSubStage>[];
+
+  /// Currently displayed active sub-stage key for paced UI transitions.
+  String? _displaySubStageKey;
+
+  /// Target active sub-stage key we are stepping toward.
+  String? _targetSubStageKey;
+
+  /// Timestamp when the current sub-stage snapshot became visible.
+  DateTime _subStageDisplayStartTime = DateTime.now();
+
+  /// Monotonic token used to invalidate stale async onboarding flows.
+  int _flowToken = 0;
+
+  String? _lastDebugMessage;
+
+  void _logDebug(String message) {
+    if (!state.devMode) {
+      return;
+    }
+
+    if (_lastDebugMessage == message) {
+      return;
+    }
+
+    _lastDebugMessage = message;
+
+    debugPrint('[OnboardingDebug] $message');
+  }
+
   @override
   DbOnboardingState build() {
+    ref.onDispose(() {
+      _cancelPendingTransitions();
+    });
+
+    unawaited(_hydratePhaseDurationPreference());
+
     // Listen to import control state changes and update onboarding phases
     ref.listen<DbImportControlState>(
       dbImportControlViewModelProvider,
@@ -46,14 +111,38 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     return DbOnboardingState.initial();
   }
 
+  Future<void> _hydratePhaseDurationPreference() async {
+    try {
+      final overlayDb = await ref.read(overlayDatabaseProvider.future);
+      final storedValue = await overlayDb.readOverlaySetting(
+        _phaseMinDurationOverlayKey,
+      );
+
+      if (storedValue == null) {
+        return;
+      }
+
+      final parsed = int.tryParse(storedValue);
+      if (parsed == null) {
+        return;
+      }
+
+      final clampedMs = parsed.clamp(200, 5000);
+      state = state.copyWith(phaseMinDurationMs: clampedMs);
+    } catch (_) {
+      // Preference hydration failure should not block onboarding.
+    }
+  }
+
   /// React to import/migration control state changes.
   void _handleImportControlChange(
     DbImportControlState? previous,
     DbImportControlState next,
   ) {
     // Only update if onboarding is active (not complete, not error)
-    if (state.currentPhase == DbOnboardingPhase.complete ||
-        state.currentPhase == DbOnboardingPhase.error) {
+    if (state.currentPhase == DbOnboardingPhase.error ||
+        (state.currentPhase == DbOnboardingPhase.complete &&
+            state.importComplete)) {
       return;
     }
 
@@ -74,11 +163,29 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
         .toList();
 
     // Update progress percentage and status message
+    final isMigrationProcessing = _isMigrationProcessing(next);
+    final contactsPhaseDone = _arePhaseSubStagesEffectivelyComplete(
+      subStages,
+      _contactsSubStageOrder,
+    );
+
     state = state.copyWith(
       progressPercent: next.progress,
       importStatusMessage: next.statusMessage,
-      importSubStages: subStages,
+      migrationInProgress: isMigrationProcessing,
     );
+
+    if (isMigrationProcessing) {
+      _logDebug('migration detected -> transitioning to migration step');
+      _transitionToPhase(DbOnboardingPhase.complete);
+    } else if (contactsPhaseDone) {
+      _logDebug(
+        'contacts substages effectively complete -> transitioning to migration step',
+      );
+      _transitionToPhase(DbOnboardingPhase.complete);
+    }
+
+    _applyOrQueueSubStageSnapshot(subStages);
 
     // Extract current/total from the active stage in stages list
     final activeStage = next.stages.where((s) => s.isActive).firstOrNull;
@@ -122,19 +229,27 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   ///
   /// This checks FDA permissions first, then proceeds to locate databases.
   Future<void> startOnboarding({bool devMode = false}) async {
-    // Initialize phase timing and clear any pending transitions
+    // Initialize phase timing and clear any pending transitions.
+    final flowToken = ++_flowToken;
     _phaseStartTime = DateTime.now();
-    _phaseTimer?.cancel();
-    _phaseTimer = null;
-    _targetPhase = null;
+    _subStageDisplayStartTime = DateTime.now();
+    _cancelPendingTransitions();
+    _resetSubStagePacing(clearDisplayedSubStages: true);
 
     state = state.copyWith(
       currentPhase: DbOnboardingPhase.checkingPermissions,
       devMode: devMode,
+      onboardingStarted: true,
+      importComplete: false,
+      migrationInProgress: false,
     );
 
     // Check FDA by attempting to stat the chat.db file
     final fdaGranted = await _checkFullDiskAccess();
+    if (flowToken != _flowToken) {
+      return;
+    }
+
     state = state.copyWith(fdaGranted: fdaGranted);
 
     if (!fdaGranted) {
@@ -143,39 +258,54 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     }
 
     // FDA granted, proceed to locate messages
-    await _proceedToLocateMessages();
+    await _proceedToLocateMessages(flowToken);
   }
 
   /// Reset to initial state, optionally preserving dev mode.
   void resetState({bool preserveDevMode = false}) {
     // Cancel any pending phase transitions
-    _phaseTimer?.cancel();
-    _phaseTimer = null;
-    _targetPhase = null;
+    ++_flowToken;
+    _cancelPendingTransitions();
     _phaseStartTime = DateTime.now();
+    _subStageDisplayStartTime = DateTime.now();
+    _resetSubStagePacing(clearDisplayedSubStages: true);
 
     final wasDevMode = state.devMode;
     // Single atomic state update to avoid race conditions
     // (shell watches this state and shows overlay if devMode briefly becomes false)
     var newState = DbOnboardingState.initial();
     if (preserveDevMode && wasDevMode) {
-      newState = newState.copyWith(devMode: true);
+      newState = newState.copyWith(
+        devMode: true,
+        phaseMinDurationMs: state.phaseMinDurationMs,
+      );
     }
-    state = newState;
+    state = newState.copyWith(phaseMinDurationMs: state.phaseMinDurationMs);
   }
 
   /// Retry after FDA instructions.
   Future<void> retryFdaCheck() async {
+    final flowToken = ++_flowToken;
+    _cancelPendingTransitions();
+    _resetSubStagePacing(clearDisplayedSubStages: true);
+
     state = state.copyWith(
       currentPhase: DbOnboardingPhase.checkingPermissions,
       errorMessage: null,
+      onboardingStarted: true,
+      importComplete: false,
+      migrationInProgress: false,
     );
 
     final fdaGranted = await _checkFullDiskAccess();
+    if (flowToken != _flowToken) {
+      return;
+    }
+
     state = state.copyWith(fdaGranted: fdaGranted);
 
     if (fdaGranted) {
-      await _proceedToLocateMessages();
+      await _proceedToLocateMessages(flowToken);
     }
   }
 
@@ -189,14 +319,16 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   void markComplete() {
     _transitionToPhase(DbOnboardingPhase.complete);
     // Also mark importComplete flag (may happen before or after phase transition)
-    state = state.copyWith(importComplete: true);
+    state = state.copyWith(importComplete: true, migrationInProgress: false);
   }
 
   /// Set an error state.
   void setError(String message) {
+    _cancelPendingTransitions();
     state = state.copyWith(
       currentPhase: DbOnboardingPhase.error,
       errorMessage: message,
+      migrationInProgress: false,
     );
   }
 
@@ -221,6 +353,10 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// read the labels. We only transition forward (never backward) to avoid
   /// jumping around when import stages fire repeatedly.
   void _transitionToPhase(DbOnboardingPhase newPhase) {
+    if (state.currentPhase.isTerminal) {
+      return;
+    }
+
     // Only accept forward transitions (or same phase)
     if (newPhase.stepIndex < state.currentPhase.stepIndex) {
       return;
@@ -229,6 +365,7 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     // Update target if it's further ahead
     if (_targetPhase == null || newPhase.stepIndex > _targetPhase!.stepIndex) {
       _targetPhase = newPhase;
+      _logDebug('phase target updated: ${newPhase.name}');
     }
 
     // Start stepping toward target if not already doing so
@@ -237,6 +374,10 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
   /// Schedule the next single-step transition toward the target phase.
   void _scheduleNextStep() {
+    if (state.currentPhase.isTerminal) {
+      return;
+    }
+
     // Don't schedule if timer already running
     if (_phaseTimer != null) {
       return;
@@ -248,14 +389,13 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       return;
     }
 
-    // Skip throttling for the very first transition (from checkingPermissions)
-    if (state.currentPhase == DbOnboardingPhase.checkingPermissions) {
-      _executeNextStep();
-      return;
-    }
-
     final elapsed = DateTime.now().difference(_phaseStartTime);
-    final remaining = _minPhaseDuration - elapsed;
+    final minPhaseDuration = Duration(
+      milliseconds: state.phaseMinDurationMs <= 0
+          ? _defaultPhaseMinDurationMs
+          : state.phaseMinDurationMs,
+    );
+    final remaining = minPhaseDuration - elapsed;
 
     if (remaining <= Duration.zero) {
       // Enough time has passed, step immediately
@@ -270,6 +410,10 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   void _executeNextStep() {
     _phaseTimer?.cancel();
     _phaseTimer = null;
+
+    if (state.currentPhase.isTerminal) {
+      return;
+    }
 
     // Nothing to do if we've reached the target
     if (_targetPhase == null ||
@@ -286,6 +430,10 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
 
     _phaseStartTime = DateTime.now();
     state = state.copyWith(currentPhase: nextPhase);
+    _logDebug(
+      'phase advance: now=${nextPhase.name} target=${_targetPhase?.name}',
+    );
+    _resetSubStagePacing(clearDisplayedSubStages: true);
 
     // Continue stepping if we haven't reached the target
     if (nextPhase.stepIndex < _targetPhase!.stepIndex) {
@@ -296,6 +444,28 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
   /// Update progress percentage.
   void updateProgress(double progress) {
     state = state.copyWith(progressPercent: progress);
+  }
+
+  /// Configure the minimum phase display duration.
+  ///
+  /// Exposed for the onboarding developer tools panel so timing can be tuned
+  /// without code edits.
+  void setPhaseMinDuration(Duration duration) {
+    final clampedMs = duration.inMilliseconds.clamp(200, 5000);
+    state = state.copyWith(phaseMinDurationMs: clampedMs);
+    unawaited(_persistPhaseDurationPreference(clampedMs));
+  }
+
+  Future<void> _persistPhaseDurationPreference(int milliseconds) async {
+    try {
+      final overlayDb = await ref.read(overlayDatabaseProvider.future);
+      await overlayDb.writeOverlaySetting(
+        settingKey: _phaseMinDurationOverlayKey,
+        settingValue: milliseconds.toString(),
+      );
+    } catch (_) {
+      // Preference persistence failure should not block onboarding.
+    }
   }
 
   Future<bool> _checkFullDiskAccess() async {
@@ -316,19 +486,34 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
     }
   }
 
-  Future<void> _proceedToLocateMessages() async {
+  Future<void> _proceedToLocateMessages(int flowToken) async {
+    if (flowToken != _flowToken) {
+      return;
+    }
+
     _transitionToPhase(DbOnboardingPhase.messagesDatabase);
 
     try {
       _pathsHelper ??= await ref.read(pathsHelperProvider.future);
+      if (flowToken != _flowToken) {
+        return;
+      }
+
       final chatDbPath = _pathsHelper!.chatDBPath;
       final file = File(chatDbPath);
 
       if (file.existsSync()) {
+        if (flowToken != _flowToken) {
+          return;
+        }
+
         state = state.copyWith(messagesDbFound: true);
 
         // Brief pause to show "found" state before proceeding
         await Future<void>.delayed(const Duration(milliseconds: 300));
+        if (flowToken != _flowToken) {
+          return;
+        }
 
         // Proceed to conversation metadata phase
         _transitionToPhase(DbOnboardingPhase.conversationMetadata);
@@ -338,10 +523,284 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
             .read(dbImportControlViewModelProvider.notifier)
             .runImportAndMigration();
       } else {
+        if (flowToken != _flowToken) {
+          return;
+        }
+
         setError('Messages database not found at expected location.');
       }
     } catch (e) {
+      if (flowToken != _flowToken) {
+        return;
+      }
+
       setError('Failed to locate Messages database: $e');
+    }
+  }
+
+  void _cancelPendingTransitions() {
+    _phaseTimer?.cancel();
+    _phaseTimer = null;
+    _targetPhase = null;
+
+    _subStageTimer?.cancel();
+    _subStageTimer = null;
+  }
+
+  void _resetSubStagePacing({required bool clearDisplayedSubStages}) {
+    _subStageTimer?.cancel();
+    _subStageTimer = null;
+    _latestRawSubStages = const <ImportSubStage>[];
+    _displaySubStageKey = null;
+    _targetSubStageKey = null;
+    _subStageDisplayStartTime = DateTime.now();
+
+    _logDebug('substage pacing reset; clearDisplayed=$clearDisplayedSubStages');
+
+    if (clearDisplayedSubStages) {
+      state = state.copyWith(importSubStages: const <ImportSubStage>[]);
+    }
+  }
+
+  List<String> _phaseSubStageOrder(DbOnboardingPhase phase) {
+    return switch (phase) {
+      DbOnboardingPhase.conversationMetadata =>
+        _conversationMetadataSubStageOrder,
+      DbOnboardingPhase.importingAttachments =>
+        _importingAttachmentsSubStageOrder,
+      DbOnboardingPhase.contactsDatabase => _contactsSubStageOrder,
+      _ => const <String>[],
+    };
+  }
+
+  void _applyOrQueueSubStageSnapshot(List<ImportSubStage> nextSubStages) {
+    _latestRawSubStages = nextSubStages;
+
+    final phaseOrder = _phaseSubStageOrder(state.currentPhase);
+    if (phaseOrder.isEmpty) {
+      state = state.copyWith(importSubStages: nextSubStages);
+      return;
+    }
+
+    final phaseKeys = phaseOrder.toSet();
+    final rawActiveKey = _resolveRawDisplayKey(
+      nextSubStages,
+      allowedKeys: phaseKeys,
+      phaseOrder: phaseOrder,
+    );
+
+    if (_displaySubStageKey == null ||
+        !phaseKeys.contains(_displaySubStageKey)) {
+      _displaySubStageKey = rawActiveKey ?? phaseOrder.first;
+      _subStageDisplayStartTime = DateTime.now();
+    }
+
+    if (rawActiveKey != null && rawActiveKey != _displaySubStageKey) {
+      _targetSubStageKey = rawActiveKey;
+      _logDebug('substage target updated: $_targetSubStageKey');
+      _scheduleNextSubStageStep(phaseOrder);
+    }
+
+    final displayed = _buildDisplayedSubStages(
+      nextSubStages,
+      phaseOrder: phaseOrder,
+      displayActiveKey: _displaySubStageKey,
+    );
+    state = state.copyWith(importSubStages: displayed);
+  }
+
+  bool _isEffectivelyComplete(ImportSubStage stage) {
+    if (stage.isComplete) {
+      return true;
+    }
+
+    if (stage.hasGranularProgress && stage.current! >= stage.total!) {
+      return true;
+    }
+
+    final progress = stage.progress;
+    if (progress != null && progress >= 1.0) {
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _arePhaseSubStagesEffectivelyComplete(
+    List<ImportSubStage> subStages,
+    List<String> phaseOrder,
+  ) {
+    final byKey = <String, ImportSubStage>{for (final s in subStages) s.key: s};
+
+    for (final key in phaseOrder) {
+      final stage = byKey[key];
+      if (stage == null) {
+        return false;
+      }
+
+      if (!_isEffectivelyComplete(stage)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  String? _resolveRawDisplayKey(
+    List<ImportSubStage> subStages, {
+    required Set<String> allowedKeys,
+    required List<String> phaseOrder,
+  }) {
+    final byKey = <String, ImportSubStage>{
+      for (final s in subStages)
+        if (allowedKeys.contains(s.key)) s.key: s,
+    };
+
+    // Prefer truly active incomplete stage from source.
+    for (final key in phaseOrder) {
+      final stage = byKey[key];
+      if (stage == null) {
+        continue;
+      }
+      if (stage.isActive && !_isEffectivelyComplete(stage)) {
+        return key;
+      }
+    }
+
+    // Otherwise, show the first incomplete stage in order.
+    for (final key in phaseOrder) {
+      final stage = byKey[key];
+      if (stage == null) {
+        continue;
+      }
+      if (!_isEffectivelyComplete(stage)) {
+        return key;
+      }
+    }
+
+    // If everything present is complete, stick to the last present stage.
+    for (final key in phaseOrder.reversed) {
+      if (byKey.containsKey(key)) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  List<ImportSubStage> _buildDisplayedSubStages(
+    List<ImportSubStage> rawSubStages, {
+    required List<String> phaseOrder,
+    required String? displayActiveKey,
+  }) {
+    if (displayActiveKey == null) {
+      return rawSubStages;
+    }
+
+    final displayIndex = phaseOrder.indexOf(displayActiveKey);
+    if (displayIndex == -1) {
+      return rawSubStages;
+    }
+
+    final phaseKeys = phaseOrder.toSet();
+
+    return rawSubStages
+        .map((stage) {
+          if (!phaseKeys.contains(stage.key)) {
+            return stage;
+          }
+
+          final idx = phaseOrder.indexOf(stage.key);
+          if (idx < displayIndex) {
+            return stage.copyWith(
+              isActive: false,
+              isComplete: true,
+              progress: 1.0,
+            );
+          }
+
+          if (idx == displayIndex) {
+            // Keep the displayed sub-stage active until we deliberately advance.
+            return stage.copyWith(isActive: true, isComplete: false);
+          }
+
+          return stage.copyWith(isActive: false, isComplete: false);
+        })
+        .toList(growable: false);
+  }
+
+  void _scheduleNextSubStageStep(List<String> phaseOrder) {
+    if (_subStageTimer != null) {
+      return;
+    }
+
+    if (_displaySubStageKey == null || _targetSubStageKey == null) {
+      return;
+    }
+
+    final displayIndex = phaseOrder.indexOf(_displaySubStageKey!);
+    final targetIndex = phaseOrder.indexOf(_targetSubStageKey!);
+    if (displayIndex == -1 ||
+        targetIndex == -1 ||
+        targetIndex <= displayIndex) {
+      _targetSubStageKey = null;
+      return;
+    }
+
+    final minPhaseDuration = Duration(
+      milliseconds: state.phaseMinDurationMs <= 0
+          ? _defaultPhaseMinDurationMs
+          : state.phaseMinDurationMs,
+    );
+    final elapsed = DateTime.now().difference(_subStageDisplayStartTime);
+    final remaining = minPhaseDuration - elapsed;
+
+    if (remaining <= Duration.zero) {
+      _advanceSubStageStep(phaseOrder);
+    } else {
+      _subStageTimer = Timer(remaining, () {
+        _advanceSubStageStep(phaseOrder);
+      });
+    }
+  }
+
+  void _advanceSubStageStep(List<String> phaseOrder) {
+    _subStageTimer?.cancel();
+    _subStageTimer = null;
+
+    if (_displaySubStageKey == null || _targetSubStageKey == null) {
+      return;
+    }
+
+    final displayIndex = phaseOrder.indexOf(_displaySubStageKey!);
+    final targetIndex = phaseOrder.indexOf(_targetSubStageKey!);
+    if (displayIndex == -1 ||
+        targetIndex == -1 ||
+        targetIndex <= displayIndex) {
+      _targetSubStageKey = null;
+      return;
+    }
+
+    final nextIndex = displayIndex + 1;
+    _displaySubStageKey = phaseOrder[nextIndex];
+    _subStageDisplayStartTime = DateTime.now();
+
+    _logDebug(
+      'substage advance: display=$_displaySubStageKey target=$_targetSubStageKey',
+    );
+
+    final displayed = _buildDisplayedSubStages(
+      _latestRawSubStages,
+      phaseOrder: phaseOrder,
+      displayActiveKey: _displaySubStageKey,
+    );
+    state = state.copyWith(importSubStages: displayed);
+
+    if (_displaySubStageKey != _targetSubStageKey) {
+      _scheduleNextSubStageStep(phaseOrder);
+    } else {
+      _logDebug('substage target reached: $_targetSubStageKey');
+      _targetSubStageKey = null;
     }
   }
 
@@ -364,5 +823,28 @@ class DbOnboardingStateNotifier extends _$DbOnboardingStateNotifier {
       DbImportStage.linkingContacts => DbOnboardingPhase.contactsDatabase,
       DbImportStage.completed => null, // Wait for migration
     };
+  }
+
+  bool _isMigrationProcessing(DbImportControlState next) {
+    if (!next.isProcessing) {
+      return false;
+    }
+
+    if (next.selectedMode == DbImportMode.migration) {
+      return true;
+    }
+
+    final current = next.currentStage;
+    if (current != null && _migrationSignalStageKeys.contains(current)) {
+      return true;
+    }
+
+    for (final stage in next.stages) {
+      if (_migrationSignalStageKeys.contains(stage.name)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
