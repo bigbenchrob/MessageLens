@@ -33,9 +33,13 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
   });
 
   /// Fixed-width trailing gutter for action buttons.
-  /// All rows reserve this space - data stops, action buttons live here.
+  /// All rows reserve this space — data stops, action buttons live here.
   /// 32pt = 24pt button + 4pt padding on each side.
   static const double actionGutterWidth = 32;
+
+  /// Extra right inset so the macOS overlay scrollbar does not obscure the
+  /// action gutter when it appears.
+  static const double _scrollbarClearance = 14;
 
   final StrayHandleFilter filter;
   final StrayHandleMode mode;
@@ -77,7 +81,8 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
           // Let ListView fill the bounded height from shouldExpand: true
           // and handle its own scrolling
           // 4pt top padding completes 12pt gap: 8pt (sectionTitle) + 4pt
-          padding: const EdgeInsets.only(top: 2),
+          // Right padding keeps content inboard of the overlay scrollbar.
+          padding: const EdgeInsets.only(top: 2, right: _scrollbarClearance),
           itemCount: filtered.length,
           // Dividers stop at the data boundary (before action gutter)
           separatorBuilder: (_, __) =>

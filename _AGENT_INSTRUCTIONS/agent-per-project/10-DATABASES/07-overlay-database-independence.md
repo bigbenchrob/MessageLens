@@ -108,7 +108,7 @@ Future<void> linkHandleToParticipant({
 }
 ```
 
-### ❌ Never Mirror Overlay into Working
+### ❌ Anti-Pattern 1: Mirror Overlay into Working
 
 ```dart
 // WRONG: Do not copy overlay rows into working.db
@@ -122,6 +122,71 @@ Future<void> syncOverlayToWorking(Ref ref) async {
   }
 }
 ```
+
+### ❌ Anti-Pattern 2: Migration Snapshot/Restore Cycle
+
+A migration step must never read overlay data before migration and write it
+back into working afterwards. This was the "Restore Overrides" anti-pattern:
+
+```dart
+// WRONG: snapshot overlay → run migration → restore into working
+final overrides = await overlayDb.getAllHandleOverrides(); // 🚫 reads overlay
+await migration.run();                                      // rebuilds working
+for (final o in overrides) {
+  await workingDb.into(workingDb.handleToParticipant).insert(
+    HandleToParticipantCompanion.insert(
+      handleId: o.handleId,
+      participantId: o.participantId!,
+      source: const Value('user_manual'),                   // 🚫 writes to working
+    ),
+  );
+}
+```
+
+**Why it's wrong:** The snapshot/restore cycle creates a hidden dependency
+between the two databases. If it's skipped (bug, crash, new code path), user
+data silently disappears. The correct approach is for providers to merge
+overlay and working at read time — migration never needs to know about overlay.
+
+### ❌ Anti-Pattern 3: Dual-Write on User Action
+
+A user action must never write the same intent to both databases:
+
+```dart
+// WRONG: writing the same link to overlay AND working
+Future<void> linkHandle(int handleId, int participantId) async {
+  await overlayDb.setHandleOverride(handleId, participantId);  // overlay ✅
+  await (workingDb.delete(workingDb.handleToParticipant)       // working 🚫
+        ..where((t) => t.handleId.equals(handleId)))
+      .go();
+  await workingDb.into(workingDb.handleToParticipant).insert(  // working 🚫
+    HandleToParticipantCompanion.insert(
+      handleId: handleId,
+      participantId: participantId,
+      source: const Value('user_manual'),
+    ),
+  );
+}
+```
+
+**Why it's wrong:** The working-DB copy is wiped on migration, creating a
+race between "last migration" and "last user action". User intent belongs
+exclusively in overlay; providers merge it at read time.
+
+### ❌ Anti-Pattern 4: User-Intent Columns on Working Tables
+
+User-controlled flags like `is_blacklisted` or `is_visible` must not live as
+columns on working-DB tables that get rebuilt by migration:
+
+```dart
+// WRONG: storing user's spam decision on a working-DB table
+await (workingDb.update(workingDb.handlesCanonical)
+      ..where((t) => t.id.equals(handleId)))
+    .write(HandlesCanonicalCompanion(isBlacklisted: const Value(true))); // 🚫
+```
+
+**Correct:** Store in overlay (`HandleVisibilityOverrides` table) and merge
+in providers via `overlayDb.getAllHandleVisibilities()`.
 
 ## Responsibilities by Database
 
@@ -141,14 +206,15 @@ Future<void> syncOverlayToWorking(Ref ref) async {
 4. Does any code attempt to mutate `db-working` in response to overlay changes? Remove it.
 5. Are migrations touching overlay tables? They must not.
 
-## ⚠️ Known Violations (To Be Fixed)
+## Resolved Violations (Historical Reference)
 
-The following existing code violates this principle and must be refactored:
+The following violations were fixed on the `Ftr.overlay-handle-visibility` branch:
 
-1. **`ManualHandleLinkService`** — Dual-writes to both overlay (`HandleToParticipantOverrides`) and working (`handle_to_participant`). Should write ONLY to overlay; providers should merge at read time.
-2. **`handles_canonical.is_blacklisted`** — Spam/hidden flag stored on working DB (which gets rebuilt on migration). User-controlled spam designation should live in overlay DB only (e.g. `overlay_handles.spam_hidden`).
-
-These violations mean that user decisions written to working DB are **lost on the next full migration** unless the migration pipeline explicitly re-applies them — which it should never need to do.
+1. **`ManualLinking.linkHandleToParticipant()`** — Was dual-writing to both overlay and working. Now writes overlay only; providers merge at read time.
+2. **`ManualLinking.unlinkHandle()`** — Was deleting from working DB. Now deletes from overlay (reverts to addressbook default).
+3. **`ManualLinking.createParticipantForHandle()`** — Was writing handle→participant link to working. Now writes link to overlay (participant record stays in working as the only participant table).
+4. **`SpamManagement.blockHandle()`/`unblockHandle()`** — Was writing `is_blacklisted`/`is_visible` to working DB's `handles_canonical`. Now writes to overlay's `HandleVisibilityOverrides`; spam providers merge at read time.
+5. **"Restore Overrides" migration step** — Snapshot/restore cycle read overlay before migration and wrote manual links back into working. Removed entirely; providers now merge overlay + working at read time.
 
 ## Related Documentation
 

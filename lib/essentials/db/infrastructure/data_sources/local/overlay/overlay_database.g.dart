@@ -3229,6 +3229,339 @@ class DismissedHandlesCompanion extends UpdateCompanion<DismissedHandle> {
   }
 }
 
+class $HandleVisibilityOverridesTable extends HandleVisibilityOverrides
+    with TableInfo<$HandleVisibilityOverridesTable, HandleVisibilityOverride> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HandleVisibilityOverridesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _handleIdMeta = const VerificationMeta(
+    'handleId',
+  );
+  @override
+  late final GeneratedColumn<int> handleId = GeneratedColumn<int>(
+    'handle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isVisibleMeta = const VerificationMeta(
+    'isVisible',
+  );
+  @override
+  late final GeneratedColumn<bool> isVisible = GeneratedColumn<bool>(
+    'is_visible',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_visible" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isBlacklistedMeta = const VerificationMeta(
+    'isBlacklisted',
+  );
+  @override
+  late final GeneratedColumn<bool> isBlacklisted = GeneratedColumn<bool>(
+    'is_blacklisted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_blacklisted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> updatedAtUtc = GeneratedColumn<String>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    handleId,
+    isVisible,
+    isBlacklisted,
+    updatedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'handle_visibility_overrides';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HandleVisibilityOverride> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('handle_id')) {
+      context.handle(
+        _handleIdMeta,
+        handleId.isAcceptableOrUnknown(data['handle_id']!, _handleIdMeta),
+      );
+    }
+    if (data.containsKey('is_visible')) {
+      context.handle(
+        _isVisibleMeta,
+        isVisible.isAcceptableOrUnknown(data['is_visible']!, _isVisibleMeta),
+      );
+    }
+    if (data.containsKey('is_blacklisted')) {
+      context.handle(
+        _isBlacklistedMeta,
+        isBlacklisted.isAcceptableOrUnknown(
+          data['is_blacklisted']!,
+          _isBlacklistedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {handleId};
+  @override
+  HandleVisibilityOverride map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HandleVisibilityOverride(
+      handleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}handle_id'],
+      )!,
+      isVisible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_visible'],
+      )!,
+      isBlacklisted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_blacklisted'],
+      )!,
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $HandleVisibilityOverridesTable createAlias(String alias) {
+    return $HandleVisibilityOverridesTable(attachedDatabase, alias);
+  }
+}
+
+class HandleVisibilityOverride extends DataClass
+    implements Insertable<HandleVisibilityOverride> {
+  /// The handle ID from handles_canonical in the working DB.
+  final int handleId;
+
+  /// Whether the handle is visible in the UI.
+  final bool isVisible;
+
+  /// Whether the handle has been blacklisted by the user.
+  final bool isBlacklisted;
+
+  /// ISO 8601 timestamp of last update.
+  final String updatedAtUtc;
+  const HandleVisibilityOverride({
+    required this.handleId,
+    required this.isVisible,
+    required this.isBlacklisted,
+    required this.updatedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['handle_id'] = Variable<int>(handleId);
+    map['is_visible'] = Variable<bool>(isVisible);
+    map['is_blacklisted'] = Variable<bool>(isBlacklisted);
+    map['updated_at_utc'] = Variable<String>(updatedAtUtc);
+    return map;
+  }
+
+  HandleVisibilityOverridesCompanion toCompanion(bool nullToAbsent) {
+    return HandleVisibilityOverridesCompanion(
+      handleId: Value(handleId),
+      isVisible: Value(isVisible),
+      isBlacklisted: Value(isBlacklisted),
+      updatedAtUtc: Value(updatedAtUtc),
+    );
+  }
+
+  factory HandleVisibilityOverride.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HandleVisibilityOverride(
+      handleId: serializer.fromJson<int>(json['handleId']),
+      isVisible: serializer.fromJson<bool>(json['isVisible']),
+      isBlacklisted: serializer.fromJson<bool>(json['isBlacklisted']),
+      updatedAtUtc: serializer.fromJson<String>(json['updatedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'handleId': serializer.toJson<int>(handleId),
+      'isVisible': serializer.toJson<bool>(isVisible),
+      'isBlacklisted': serializer.toJson<bool>(isBlacklisted),
+      'updatedAtUtc': serializer.toJson<String>(updatedAtUtc),
+    };
+  }
+
+  HandleVisibilityOverride copyWith({
+    int? handleId,
+    bool? isVisible,
+    bool? isBlacklisted,
+    String? updatedAtUtc,
+  }) => HandleVisibilityOverride(
+    handleId: handleId ?? this.handleId,
+    isVisible: isVisible ?? this.isVisible,
+    isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+  );
+  HandleVisibilityOverride copyWithCompanion(
+    HandleVisibilityOverridesCompanion data,
+  ) {
+    return HandleVisibilityOverride(
+      handleId: data.handleId.present ? data.handleId.value : this.handleId,
+      isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
+      isBlacklisted: data.isBlacklisted.present
+          ? data.isBlacklisted.value
+          : this.isBlacklisted,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleVisibilityOverride(')
+          ..write('handleId: $handleId, ')
+          ..write('isVisible: $isVisible, ')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(handleId, isVisible, isBlacklisted, updatedAtUtc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HandleVisibilityOverride &&
+          other.handleId == this.handleId &&
+          other.isVisible == this.isVisible &&
+          other.isBlacklisted == this.isBlacklisted &&
+          other.updatedAtUtc == this.updatedAtUtc);
+}
+
+class HandleVisibilityOverridesCompanion
+    extends UpdateCompanion<HandleVisibilityOverride> {
+  final Value<int> handleId;
+  final Value<bool> isVisible;
+  final Value<bool> isBlacklisted;
+  final Value<String> updatedAtUtc;
+  const HandleVisibilityOverridesCompanion({
+    this.handleId = const Value.absent(),
+    this.isVisible = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+  });
+  HandleVisibilityOverridesCompanion.insert({
+    this.handleId = const Value.absent(),
+    this.isVisible = const Value.absent(),
+    this.isBlacklisted = const Value.absent(),
+    required String updatedAtUtc,
+  }) : updatedAtUtc = Value(updatedAtUtc);
+  static Insertable<HandleVisibilityOverride> custom({
+    Expression<int>? handleId,
+    Expression<bool>? isVisible,
+    Expression<bool>? isBlacklisted,
+    Expression<String>? updatedAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (handleId != null) 'handle_id': handleId,
+      if (isVisible != null) 'is_visible': isVisible,
+      if (isBlacklisted != null) 'is_blacklisted': isBlacklisted,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+    });
+  }
+
+  HandleVisibilityOverridesCompanion copyWith({
+    Value<int>? handleId,
+    Value<bool>? isVisible,
+    Value<bool>? isBlacklisted,
+    Value<String>? updatedAtUtc,
+  }) {
+    return HandleVisibilityOverridesCompanion(
+      handleId: handleId ?? this.handleId,
+      isVisible: isVisible ?? this.isVisible,
+      isBlacklisted: isBlacklisted ?? this.isBlacklisted,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (handleId.present) {
+      map['handle_id'] = Variable<int>(handleId.value);
+    }
+    if (isVisible.present) {
+      map['is_visible'] = Variable<bool>(isVisible.value);
+    }
+    if (isBlacklisted.present) {
+      map['is_blacklisted'] = Variable<bool>(isBlacklisted.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<String>(updatedAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HandleVisibilityOverridesCompanion(')
+          ..write('handleId: $handleId, ')
+          ..write('isVisible: $isVisible, ')
+          ..write('isBlacklisted: $isBlacklisted, ')
+          ..write('updatedAtUtc: $updatedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$OverlayDatabase extends GeneratedDatabase {
   _$OverlayDatabase(QueryExecutor e) : super(e);
   $OverlayDatabaseManager get managers => $OverlayDatabaseManager(this);
@@ -3250,6 +3583,8 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
   late final $DismissedHandlesTable dismissedHandles = $DismissedHandlesTable(
     this,
   );
+  late final $HandleVisibilityOverridesTable handleVisibilityOverrides =
+      $HandleVisibilityOverridesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3263,6 +3598,7 @@ abstract class _$OverlayDatabase extends GeneratedDatabase {
     overlaySettings,
     favoriteContacts,
     dismissedHandles,
+    handleVisibilityOverrides,
   ];
 }
 
@@ -5039,6 +5375,204 @@ typedef $$DismissedHandlesTableProcessedTableManager =
       DismissedHandle,
       PrefetchHooks Function()
     >;
+typedef $$HandleVisibilityOverridesTableCreateCompanionBuilder =
+    HandleVisibilityOverridesCompanion Function({
+      Value<int> handleId,
+      Value<bool> isVisible,
+      Value<bool> isBlacklisted,
+      required String updatedAtUtc,
+    });
+typedef $$HandleVisibilityOverridesTableUpdateCompanionBuilder =
+    HandleVisibilityOverridesCompanion Function({
+      Value<int> handleId,
+      Value<bool> isVisible,
+      Value<bool> isBlacklisted,
+      Value<String> updatedAtUtc,
+    });
+
+class $$HandleVisibilityOverridesTableFilterComposer
+    extends Composer<_$OverlayDatabase, $HandleVisibilityOverridesTable> {
+  $$HandleVisibilityOverridesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get handleId => $composableBuilder(
+    column: $table.handleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HandleVisibilityOverridesTableOrderingComposer
+    extends Composer<_$OverlayDatabase, $HandleVisibilityOverridesTable> {
+  $$HandleVisibilityOverridesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get handleId => $composableBuilder(
+    column: $table.handleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isVisible => $composableBuilder(
+    column: $table.isVisible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HandleVisibilityOverridesTableAnnotationComposer
+    extends Composer<_$OverlayDatabase, $HandleVisibilityOverridesTable> {
+  $$HandleVisibilityOverridesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get handleId =>
+      $composableBuilder(column: $table.handleId, builder: (column) => column);
+
+  GeneratedColumn<bool> get isVisible =>
+      $composableBuilder(column: $table.isVisible, builder: (column) => column);
+
+  GeneratedColumn<bool> get isBlacklisted => $composableBuilder(
+    column: $table.isBlacklisted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$HandleVisibilityOverridesTableTableManager
+    extends
+        RootTableManager<
+          _$OverlayDatabase,
+          $HandleVisibilityOverridesTable,
+          HandleVisibilityOverride,
+          $$HandleVisibilityOverridesTableFilterComposer,
+          $$HandleVisibilityOverridesTableOrderingComposer,
+          $$HandleVisibilityOverridesTableAnnotationComposer,
+          $$HandleVisibilityOverridesTableCreateCompanionBuilder,
+          $$HandleVisibilityOverridesTableUpdateCompanionBuilder,
+          (
+            HandleVisibilityOverride,
+            BaseReferences<
+              _$OverlayDatabase,
+              $HandleVisibilityOverridesTable,
+              HandleVisibilityOverride
+            >,
+          ),
+          HandleVisibilityOverride,
+          PrefetchHooks Function()
+        > {
+  $$HandleVisibilityOverridesTableTableManager(
+    _$OverlayDatabase db,
+    $HandleVisibilityOverridesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HandleVisibilityOverridesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$HandleVisibilityOverridesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HandleVisibilityOverridesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> handleId = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+                Value<String> updatedAtUtc = const Value.absent(),
+              }) => HandleVisibilityOverridesCompanion(
+                handleId: handleId,
+                isVisible: isVisible,
+                isBlacklisted: isBlacklisted,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> handleId = const Value.absent(),
+                Value<bool> isVisible = const Value.absent(),
+                Value<bool> isBlacklisted = const Value.absent(),
+                required String updatedAtUtc,
+              }) => HandleVisibilityOverridesCompanion.insert(
+                handleId: handleId,
+                isVisible: isVisible,
+                isBlacklisted: isBlacklisted,
+                updatedAtUtc: updatedAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HandleVisibilityOverridesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OverlayDatabase,
+      $HandleVisibilityOverridesTable,
+      HandleVisibilityOverride,
+      $$HandleVisibilityOverridesTableFilterComposer,
+      $$HandleVisibilityOverridesTableOrderingComposer,
+      $$HandleVisibilityOverridesTableAnnotationComposer,
+      $$HandleVisibilityOverridesTableCreateCompanionBuilder,
+      $$HandleVisibilityOverridesTableUpdateCompanionBuilder,
+      (
+        HandleVisibilityOverride,
+        BaseReferences<
+          _$OverlayDatabase,
+          $HandleVisibilityOverridesTable,
+          HandleVisibilityOverride
+        >,
+      ),
+      HandleVisibilityOverride,
+      PrefetchHooks Function()
+    >;
 
 class $OverlayDatabaseManager {
   final _$OverlayDatabase _db;
@@ -5063,4 +5597,9 @@ class $OverlayDatabaseManager {
       $$FavoriteContactsTableTableManager(_db, _db.favoriteContacts);
   $$DismissedHandlesTableTableManager get dismissedHandles =>
       $$DismissedHandlesTableTableManager(_db, _db.dismissedHandles);
+  $$HandleVisibilityOverridesTableTableManager get handleVisibilityOverrides =>
+      $$HandleVisibilityOverridesTableTableManager(
+        _db,
+        _db.handleVisibilityOverrides,
+      );
 }

@@ -16,13 +16,14 @@ part 'overlay_database.g.dart';
     OverlaySettings,
     FavoriteContacts,
     DismissedHandles,
+    HandleVisibilityOverrides,
   ],
 )
 class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +66,10 @@ class OverlayDatabase extends _$OverlayDatabase {
       if (from < 7) {
         // Add dismissed_handles table for strong dismissal semantics.
         await m.createTable(dismissedHandles);
+      }
+      if (from < 8) {
+        // Add handle_visibility_overrides for user-driven visibility/blacklist.
+        await m.createTable(handleVisibilityOverrides);
       }
     },
   );
@@ -516,6 +521,46 @@ class OverlayDatabase extends _$OverlayDatabase {
           (tbl) => tbl.virtualParticipantId.equals(virtualParticipantId),
         ))
         .get();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Handle visibility overrides
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /// Get the visibility override for a single handle, or null if none exists.
+  Future<HandleVisibilityOverride?> getHandleVisibility(int handleId) {
+    return (select(
+      handleVisibilityOverrides,
+    )..where((tbl) => tbl.handleId.equals(handleId))).getSingleOrNull();
+  }
+
+  /// Get all handle visibility overrides.
+  Future<List<HandleVisibilityOverride>> getAllHandleVisibilities() {
+    return select(handleVisibilityOverrides).get();
+  }
+
+  /// Set (upsert) the visibility/blacklist state for a handle.
+  Future<void> setHandleVisibility(
+    int handleId, {
+    required bool isVisible,
+    required bool isBlacklisted,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await into(handleVisibilityOverrides).insertOnConflictUpdate(
+      HandleVisibilityOverridesCompanion(
+        handleId: Value(handleId),
+        isVisible: Value(isVisible),
+        isBlacklisted: Value(isBlacklisted),
+        updatedAtUtc: Value(now),
+      ),
+    );
+  }
+
+  /// Remove the visibility override for a handle (reverts to working defaults).
+  Future<void> deleteHandleVisibility(int handleId) async {
+    await (delete(
+      handleVisibilityOverrides,
+    )..where((tbl) => tbl.handleId.equals(handleId))).go();
   }
 
   // Helper methods for virtual participants
@@ -1065,6 +1110,33 @@ class FavoriteContacts extends Table {
 /// When a user dismisses a handle, all messages from that handle are excluded
 /// from search, All Messages, analytics, and aggregate surfaces. Dismissal is
 /// reversible via restore or by labeling the handle.
+/// User overrides for handle visibility and blacklist state.
+///
+/// When present, these values take precedence over the working DB defaults
+/// at the provider merge layer. Handles without a row here use the working
+/// DB values (visible=true, blacklisted=false).
+class HandleVisibilityOverrides extends Table {
+  @override
+  String get tableName => 'handle_visibility_overrides';
+
+  /// The handle ID from handles_canonical in the working DB.
+  IntColumn get handleId => integer().named('handle_id')();
+
+  /// Whether the handle is visible in the UI.
+  BoolColumn get isVisible =>
+      boolean().named('is_visible').withDefault(const Constant(true))();
+
+  /// Whether the handle has been blacklisted by the user.
+  BoolColumn get isBlacklisted =>
+      boolean().named('is_blacklisted').withDefault(const Constant(false))();
+
+  /// ISO 8601 timestamp of last update.
+  TextColumn get updatedAtUtc => text().named('updated_at_utc')();
+
+  @override
+  Set<Column> get primaryKey => {handleId};
+}
+
 class DismissedHandles extends Table {
   @override
   String get tableName => 'dismissed_handles';

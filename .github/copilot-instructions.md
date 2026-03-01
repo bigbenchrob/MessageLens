@@ -128,6 +128,8 @@ class MyFeature extends _$MyFeature {
 - ❌ 🔥 **Feature coordinators doing logic** (coordinators route only; resolvers own meaning)
 - ❌ 🔥 **Application-layer builders returning view models** (return widget content; coordinator wraps in chrome)
 - ❌ 🔥 **INVIOLABLE: Dual-writing to overlay AND working DB** (user intent → overlay ONLY; migration → working ONLY; providers merge at read time with overlay winning on conflict. See `10-DATABASES/07-overlay-database-independence.md`)
+- ❌ 🔥 **INVIOLABLE: Migration snapshot/restore of overlay data** (migration must NEVER read overlay, snapshot it, then restore into working. Providers merge at read time instead.)
+- ❌ 🔥 **INVIOLABLE: User-intent columns on working-DB tables** (flags like `is_blacklisted`/`is_visible` must NOT live on working tables rebuilt by migration. Store in overlay; merge in providers.)
 
 ## 🔥 MANDATORY DATABASE ACCESS RULE
 

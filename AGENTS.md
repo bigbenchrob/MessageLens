@@ -49,6 +49,8 @@ This README contains the canonical index to all project documentation including:
 - ✅ **Providers**: Merge working ∪ overlay at read time; **overlay always wins on conflict**
 - ❌ **NEVER** dual-write to both overlay AND working DB
 - ❌ **NEVER** have migration read or consult overlay DB
+- ❌ **NEVER** snapshot overlay before migration then restore into working (the old "Restore Overrides" anti-pattern)
+- ❌ **NEVER** store user-intent flags (`is_blacklisted`, `is_visible`, manual links) on working tables rebuilt by migration
 - 📖 See [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md)
 
 ### Code Standards

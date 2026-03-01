@@ -33,6 +33,11 @@ enum SidebarCardLayoutStyle {
   /// Use when horizontal space is at a premium (e.g., scrollable lists
   /// with metadata, action overlays, or long text content).
   listDense,
+
+  /// Width-aligned with naked/control items (16pt horizontal inset).
+  /// Use when a non-naked card (needing shouldExpand or title slots)
+  /// must match the horizontal width of naked cards above it.
+  controlAligned,
 }
 
 /// Presentation data for rendering a cassette inside the sidebar card shell.

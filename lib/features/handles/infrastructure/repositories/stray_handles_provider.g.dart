@@ -6,7 +6,7 @@ part of 'stray_handles_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$strayHandlesHash() => r'18618f76ee2674d535a4d78fe2bda04845eb89a6';
+String _$strayHandlesHash() => r'd198b606bee289aa82b8f46e7acccaa6c59b1db6';
 
 /// Returns all handles that are truly "stray": no participant link in the
 /// working DB AND no linked override (participant or virtual participant) in

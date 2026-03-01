@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' as drift;
-import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -32,6 +31,11 @@ class SpamHandleInfo {
 @riverpod
 Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+
+  // Load overlay visibility overrides (overlay wins on conflict).
+  final visibilityOverrides = await overlayDb.getAllHandleVisibilities();
+  final overrideMap = {for (final o in visibilityOverrides) o.handleId: o};
 
   // Query all handles with their chat counts
   final query = db.select(db.handlesCanonical).join([
@@ -68,12 +72,13 @@ Future<List<SpamHandleInfo>> spamHandles(Ref ref) async {
   }
 
   final results = uniqueHandles.values.map((handle) {
+    final overlay = overrideMap[handle.id];
     return SpamHandleInfo(
       id: handle.id,
       handleId: handle.compoundIdentifier,
       service: handle.service,
-      isBlacklisted: handle.isBlacklisted,
-      isVisible: handle.isVisible,
+      isBlacklisted: overlay?.isBlacklisted ?? handle.isBlacklisted,
+      isVisible: overlay?.isVisible ?? handle.isVisible,
       chatCount: handleChatCounts[handle.id] ?? 0,
     );
   }).toList();
@@ -99,15 +104,11 @@ class SpamManagement extends _$SpamManagement {
 
   /// Block a handle (mark as blacklisted)
   Future<void> blockHandle(int handleId) async {
-    final db = await ref.watch(driftWorkingDatabaseProvider.future);
-
-    await (db.update(
-      db.handlesCanonical,
-    )..where((h) => h.id.equals(handleId))).write(
-      const HandlesCanonicalCompanion(
-        isBlacklisted: Value(true),
-        isVisible: Value(false),
-      ),
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+    await overlayDb.setHandleVisibility(
+      handleId,
+      isVisible: false,
+      isBlacklisted: true,
     );
 
     // Refresh the spam handles list
@@ -116,16 +117,8 @@ class SpamManagement extends _$SpamManagement {
 
   /// Unblock a handle (remove from blacklist)
   Future<void> unblockHandle(int handleId) async {
-    final db = await ref.watch(driftWorkingDatabaseProvider.future);
-
-    await (db.update(
-      db.handlesCanonical,
-    )..where((h) => h.id.equals(handleId))).write(
-      const HandlesCanonicalCompanion(
-        isBlacklisted: Value(false),
-        isVisible: Value(true),
-      ),
-    );
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+    await overlayDb.deleteHandleVisibility(handleId);
 
     // Refresh the spam handles list
     ref.invalidate(spamHandlesProvider);
@@ -133,27 +126,11 @@ class SpamManagement extends _$SpamManagement {
 
   /// Get statistics about spam filtering
   Future<SpamStats> getSpamStats() async {
-    final db = await ref.watch(driftWorkingDatabaseProvider.future);
+    final handles = await ref.watch(spamHandlesProvider.future);
 
-    final totalHandles =
-        await (db.selectOnly(db.handlesCanonical)
-              ..addColumns([db.handlesCanonical.id.count()]))
-            .getSingle()
-            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
-
-    final blacklistedHandles =
-        await (db.selectOnly(db.handlesCanonical)
-              ..addColumns([db.handlesCanonical.id.count()])
-              ..where(db.handlesCanonical.isBlacklisted.equals(true)))
-            .getSingle()
-            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
-
-    final visibleHandles =
-        await (db.selectOnly(db.handlesCanonical)
-              ..addColumns([db.handlesCanonical.id.count()])
-              ..where(db.handlesCanonical.isVisible.equals(true)))
-            .getSingle()
-            .then((row) => row.read(db.handlesCanonical.id.count()) ?? 0);
+    final totalHandles = handles.length;
+    final blacklistedHandles = handles.where((h) => h.isBlacklisted).length;
+    final visibleHandles = handles.where((h) => h.isVisible).length;
 
     return SpamStats(
       totalHandles: totalHandles,

@@ -60,8 +60,16 @@ Future<List<RecentChatSummary>> chatsByAgeRecent(Ref ref, {int? limit}) async {
 @riverpod
 Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-  // Find chats whose handle_id does NOT appear in handle_to_participant
+  // Build set of handle IDs that have overlay links (participant or virtual).
+  final overlayOverrides = await overlayDb.getAllHandleOverrides();
+  final overlayLinkedHandleIds = <int>{
+    for (final o in overlayOverrides)
+      if (o.participantId != null || o.virtualParticipantId != null) o.handleId,
+  };
+
+  // Find handles with no working-DB participant link.
   final unmatchedHandleIds =
       await (db.selectOnly(db.handlesCanonical)
             ..addColumns([db.handlesCanonical.id])
@@ -75,13 +83,18 @@ Future<List<RecentChatSummary>> unmatchedChats(Ref ref, {int? limit}) async {
           .map((row) => row.read(db.handlesCanonical.id)!)
           .get();
 
-  if (unmatchedHandleIds.isEmpty) {
+  // Exclude handles that are linked via overlay.
+  final trulyUnmatched = unmatchedHandleIds
+      .where((id) => !overlayLinkedHandleIds.contains(id))
+      .toList();
+
+  if (trulyUnmatched.isEmpty) {
     return [];
   }
 
   // Now find chats using those handles
   final chatHandleQuery = db.select(db.chatToHandle)
-    ..where((tbl) => tbl.handleId.isIn(unmatchedHandleIds));
+    ..where((tbl) => tbl.handleId.isIn(trulyUnmatched));
 
   final chatHandleRows = await chatHandleQuery.get();
   final unmatchedChatIds = chatHandleRows

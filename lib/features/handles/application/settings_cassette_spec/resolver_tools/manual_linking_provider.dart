@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' as drift;
-import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -36,24 +35,37 @@ class AvailableParticipant {
   final int handleCount;
 }
 
-/// Provider that finds handles not linked to any participant
+/// Provider that finds handles not linked to any participant.
+///
+/// A handle is considered linked if it has a working-DB addressbook link OR an
+/// overlay manual link (participant or virtual participant). Overlay visibility
+/// overrides (blacklisted) are also merged here.
 @riverpod
 Future<List<UnlinkedHandle>> unlinkedHandles(Ref ref) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-  // Query handles that don't have any participant links
-  final query =
-      db.select(db.handlesCanonical).join([
-        // Left join to handle_to_participant to find unlinked handles
-        drift.leftOuterJoin(
-          db.handleToParticipant,
-          db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
-        ),
-      ])..where(
-        // Only handles with no participant links and not blacklisted
-        db.handleToParticipant.handleId.isNull() &
-            db.handlesCanonical.isBlacklisted.equals(false),
-      );
+  // Load overlay visibility overrides (overlay wins on conflict).
+  final visibilityOverrides = await overlayDb.getAllHandleVisibilities();
+  final visibilityMap = {for (final o in visibilityOverrides) o.handleId: o};
+
+  // Load overlay handle→participant overrides to exclude manually linked
+  // handles from the "unlinked" list.
+  final handleOverrides = await overlayDb.getAllHandleOverrides();
+  final overlayLinkedHandleIds = <int>{};
+  for (final o in handleOverrides) {
+    if (o.participantId != null || o.virtualParticipantId != null) {
+      overlayLinkedHandleIds.add(o.handleId);
+    }
+  }
+
+  // Query handles that don't have any working-DB participant links.
+  final query = db.select(db.handlesCanonical).join([
+    drift.leftOuterJoin(
+      db.handleToParticipant,
+      db.handleToParticipant.handleId.equalsExp(db.handlesCanonical.id),
+    ),
+  ])..where(db.handleToParticipant.handleId.isNull());
 
   final rows = await query.get();
   final results = <UnlinkedHandle>[];
@@ -61,19 +73,25 @@ Future<List<UnlinkedHandle>> unlinkedHandles(Ref ref) async {
   for (final row in rows) {
     final handle = row.readTable(db.handlesCanonical);
 
-    // Count chats for this handle
-    // Count chats for this handle via chat_to_handle join
-    final chatIds =
+    // Skip handles that are linked via overlay override.
+    if (overlayLinkedHandleIds.contains(handle.id)) {
+      continue;
+    }
+
+    // Merge overlay: skip blacklisted handles.
+    final overlay = visibilityMap[handle.id];
+    final isBlacklisted = overlay?.isBlacklisted ?? handle.isBlacklisted;
+    if (isBlacklisted) {
+      continue;
+    }
+
+    // Count chats for this handle via chat_to_handle join.
+    final chatCount =
         await (db.selectOnly(db.chatToHandle)
               ..where(db.chatToHandle.handleId.equals(handle.id))
               ..addColumns([db.chatToHandle.chatId]))
             .get()
-            .then(
-              (rows) =>
-                  rows.map((row) => row.read(db.chatToHandle.chatId)!).toList(),
-            );
-
-    final chatCount = chatIds.length;
+            .then((rows) => rows.length);
 
     results.add(
       UnlinkedHandle(
@@ -97,19 +115,31 @@ Future<List<UnlinkedHandle>> unlinkedHandles(Ref ref) async {
   return results;
 }
 
-/// Provider that gets all available participants for linking
+/// Provider that gets all available participants for linking.
+///
+/// Handle counts merge working-DB addressbook links with overlay manual links.
 @riverpod
 Future<List<AvailableParticipant>> availableParticipants(Ref ref) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-  // Query all participants with their handle counts
+  // Build overlay participant→handle count map.
+  final handleOverrides = await overlayDb.getAllHandleOverrides();
+  final overlayCountByParticipant = <int, int>{};
+  for (final o in handleOverrides) {
+    if (o.participantId != null) {
+      overlayCountByParticipant[o.participantId!] =
+          (overlayCountByParticipant[o.participantId!] ?? 0) + 1;
+    }
+  }
+
   final participantRows = await db.select(db.workingParticipants).get();
   final results = <AvailableParticipant>[];
 
   for (final participant in participantRows) {
-    // Count existing handle links for this participant
+    // Count working-DB handle links.
     final handleCountExpr = db.handleToParticipant.handleId.count();
-    final handleCount =
+    final workingCount =
         await (db.selectOnly(db.handleToParticipant)
               ..addColumns([handleCountExpr])
               ..where(
@@ -118,12 +148,15 @@ Future<List<AvailableParticipant>> availableParticipants(Ref ref) async {
             .getSingle()
             .then((row) => row.read(handleCountExpr) ?? 0);
 
+    // Merge overlay count.
+    final overlayCount = overlayCountByParticipant[participant.id] ?? 0;
+
     results.add(
       AvailableParticipant(
         id: participant.id,
         displayName: participant.displayName,
         shortName: participant.shortName,
-        handleCount: handleCount,
+        handleCount: workingCount + overlayCount,
       ),
     );
   }
@@ -142,66 +175,48 @@ class ManualLinking extends _$ManualLinking {
     // No initial state needed
   }
 
-  /// Link a handle to a participant manually
+  /// Link a handle to a participant manually.
   ///
-  /// This creates a permanent manual link that survives re-imports.
-  /// Steps:
-  /// 1. Create link in overlay database (for persistence)
-  /// 2. Update working.handle_to_participant
-  /// 3. Trigger contact message index rebuild for the participant
-  /// 4. Invalidate relevant provider caches
+  /// Writes only to the overlay DB. Merge providers combine overlay links with
+  /// working-DB addressbook links at read time (overlay wins on conflict).
   Future<void> linkHandleToParticipant({
     required int handleId,
     required int participantId,
   }) async {
-    final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
     final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-    // Step 1: Create overlay link (survives re-imports)
     await overlayDb.setHandleOverride(handleId, participantId);
 
-    // Step 2: Delete any existing AddressBook link for this handle
-    await (workingDb.delete(workingDb.handleToParticipant)
-          ..where((tbl) => tbl.handleId.equals(handleId))
-          ..where((tbl) => tbl.source.equals('addressbook')))
-        .go();
-
-    /// Unlink a handle from a participant
-    ///
-    /// This removes the manual link from both overlay and working databases.
-
-    // Step 4: Rebuild contact message index for this participant
-    await workingDb.rebuildContactMessageIndexForParticipant(participantId);
-
-    // Step 5: Invalidate affected providers
     ref.invalidate(unlinkedHandlesProvider);
     ref.invalidate(availableParticipantsProvider);
-    // TODO: Add more invalidations when implementing UI integration:
-    // ref.invalidate(contactMessagesOrdinalProvider);
-    // ref.invalidate(chatsForContactProvider);
   }
 
-  /// Unlink a handle from a participant
+  /// Unlink a handle from a participant.
+  ///
+  /// Removes the overlay override so the handle reverts to its addressbook
+  /// default (linked or unlinked).
   Future<void> unlinkHandle(int handleId) async {
-    final db = await ref.watch(driftWorkingDatabaseProvider.future);
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-    await (db.delete(
-      db.handleToParticipant,
-    )..where((htp) => htp.handleId.equals(handleId))).go();
+    await overlayDb.deleteHandleOverride(handleId);
 
-    // Refresh the lists
     ref.invalidate(unlinkedHandlesProvider);
     ref.invalidate(availableParticipantsProvider);
   }
 
-  /// Create a new participant for a handle (when no existing participant matches)
+  /// Create a new participant for a handle (when no existing participant matches).
+  ///
+  /// The participant record is created in the working DB (the only participant
+  /// table). The handle→participant link is stored in overlay so it survives
+  /// re-imports.
   Future<void> createParticipantForHandle({
     required int handleId,
     required String displayName,
   }) async {
     final db = await ref.watch(driftWorkingDatabaseProvider.future);
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-    // Insert new participant (using auto-generated ID since it's not from AddressBook)
+    // Insert new participant in working DB.
     final participantId = await db
         .into(db.workingParticipants)
         .insert(
@@ -212,28 +227,38 @@ class ManualLinking extends _$ManualLinking {
           ),
         );
 
-    // Link the handle to the new participant
-    await db
-        .into(db.handleToParticipant)
-        .insert(
-          HandleToParticipantCompanion.insert(
-            handleId: handleId,
-            participantId: participantId,
-            confidence: const Value(1.0), // High confidence for user-created
-            source: const Value('user_created'),
-          ),
-        );
+    // Store the link in overlay (survives re-imports).
+    await overlayDb.setHandleOverride(handleId, participantId);
 
-    // Refresh the lists
     ref.invalidate(unlinkedHandlesProvider);
     ref.invalidate(availableParticipantsProvider);
   }
 
-  /// Get link information for a specific handle
+  /// Get link information for a specific handle.
+  ///
+  /// Checks overlay first (manual links win), then falls back to working DB.
   Future<HandleLinkInfo?> getHandleLinkInfo(int handleId) async {
     final db = await ref.watch(driftWorkingDatabaseProvider.future);
+    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
 
-    // Query the link and participant info
+    // Check overlay first — manual links take precedence.
+    final overlayRow = await overlayDb.getHandleOverride(handleId);
+    if (overlayRow != null && overlayRow.participantId != null) {
+      final participant =
+          await (db.select(db.workingParticipants)
+                ..where((tbl) => tbl.id.equals(overlayRow.participantId!)))
+              .getSingleOrNull();
+      if (participant != null) {
+        return HandleLinkInfo(
+          participantId: participant.id,
+          participantName: participant.displayName,
+          confidence: 1.0,
+          source: 'user_manual',
+        );
+      }
+    }
+
+    // Fall back to working DB addressbook link.
     final query = db.select(db.handleToParticipant).join([
       drift.innerJoin(
         db.workingParticipants,

@@ -1,12 +1,9 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../db/feature_level_providers.dart';
-import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.dart';
-import '../../../db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../../db_importers/application/debug_settings_provider.dart';
 import '../../../search/feature_level_providers.dart';
 import '../../domain/base_table_migrator.dart';
@@ -56,7 +53,6 @@ class HandlesMigrationService {
   /// Names of synthetic (non-orchestrated) post-migration steps.
   static const String _rebuildIndexesStep = 'rebuild_indexes';
   static const String _rebuildSearchStep = 'rebuild_search';
-  static const String _restoreOverridesStep = 'restore_overrides';
 
   Future<DbMigrationResult> run({
     MigrationExecutionPlanCallback? onExecutionPlan,
@@ -110,19 +106,8 @@ class HandlesMigrationService {
         name: _rebuildSearchStep,
         displayName: 'Rebuild Search',
       ),
-      MigratorStep(
-        index: postStepBase + 2,
-        name: _restoreOverridesStep,
-        displayName: 'Restore Overrides',
-      ),
     ];
     onExecutionPlan?.call(allSteps);
-
-    final overrides = await _snapshotHandleOverrides(workingDatabase);
-    final overlayDb = await ref.watch(overlayDatabaseProvider.future);
-    final handleOverrides = await _snapshotHandleToParticipantOverrides(
-      overlayDb,
-    );
 
     try {
       // Run diagnostics before migration to help troubleshoot issues
@@ -212,44 +197,6 @@ class HandlesMigrationService {
         TableMigrationStatus.succeeded,
       );
 
-      // Restore user overrides
-      _emitSyntheticEvent(
-        onTableProgress,
-        _restoreOverridesStep,
-        'Restore Overrides',
-        TableMigrationPhase.validatePrereqs,
-        TableMigrationStatus.succeeded,
-      );
-      _emitSyntheticEvent(
-        onTableProgress,
-        _restoreOverridesStep,
-        'Restore Overrides',
-        TableMigrationPhase.copy,
-        TableMigrationStatus.started,
-      );
-      await Future<void>.delayed(Duration.zero);
-
-      await _restoreHandleOverrides(workingDatabase, overrides);
-      await _restoreHandleToParticipantOverrides(
-        workingDatabase,
-        handleOverrides,
-      );
-
-      _emitSyntheticEvent(
-        onTableProgress,
-        _restoreOverridesStep,
-        'Restore Overrides',
-        TableMigrationPhase.copy,
-        TableMigrationStatus.succeeded,
-      );
-      _emitSyntheticEvent(
-        onTableProgress,
-        _restoreOverridesStep,
-        'Restore Overrides',
-        TableMigrationPhase.postValidate,
-        TableMigrationStatus.succeeded,
-      );
-
       // Gather final counts for the result
       final handlesCount = await _handlesMigrator.count(
         context.workingDb,
@@ -327,57 +274,6 @@ class HandlesMigrationService {
     );
   }
 
-  Future<Map<int, _HandleOverride>> _snapshotHandleOverrides(
-    WorkingDatabase db,
-  ) async {
-    // Read from handles_canonical (was 'handles' before v17)
-    final rows = await db
-        .customSelect(
-          'SELECT id, is_visible, is_blacklisted FROM handles_canonical',
-        )
-        .get();
-    if (rows.isEmpty) {
-      return const <int, _HandleOverride>{};
-    }
-
-    final overrides = <int, _HandleOverride>{};
-    for (final row in rows) {
-      final id = row.data['id'] as int?;
-      if (id == null) {
-        continue;
-      }
-      final isVisible = (row.data['is_visible'] as int?) == 1;
-      final isBlacklisted = (row.data['is_blacklisted'] as int?) == 1;
-      overrides[id] = _HandleOverride(
-        isVisible: isVisible,
-        isBlacklisted: isBlacklisted,
-      );
-    }
-    return overrides;
-  }
-
-  Future<void> _restoreHandleOverrides(
-    WorkingDatabase db,
-    Map<int, _HandleOverride> overrides,
-  ) async {
-    if (overrides.isEmpty) {
-      return;
-    }
-
-    await db.batch((batch) {
-      overrides.forEach((id, override) {
-        batch.update(
-          db.handlesCanonical,
-          HandlesCanonicalCompanion(
-            isVisible: Value(override.isVisible),
-            isBlacklisted: Value(override.isBlacklisted),
-          ),
-          where: (tbl) => tbl.id.equals(id),
-        );
-      });
-    });
-  }
-
   Future<int?> _latestBatchId(Database db) async {
     final rows = await db.query(
       'import_batches',
@@ -396,72 +292,5 @@ class HandlesMigrationService {
       return value.toInt();
     }
     return int.tryParse(value.toString());
-  }
-}
-
-class _HandleOverride {
-  const _HandleOverride({required this.isVisible, required this.isBlacklisted});
-
-  final bool isVisible;
-  final bool isBlacklisted;
-}
-
-class _HandleToParticipantOverride {
-  const _HandleToParticipantOverride({
-    required this.handleId,
-    required this.participantId,
-  });
-
-  final int handleId;
-  final int participantId;
-}
-
-/// Snapshot handle-to-participant overrides from overlay DB
-Future<List<_HandleToParticipantOverride>>
-_snapshotHandleToParticipantOverrides(OverlayDatabase db) async {
-  final rows = await db.getAllHandleOverrides();
-  return rows
-      .where((row) => row.participantId != null)
-      .map(
-        (row) => _HandleToParticipantOverride(
-          handleId: row.handleId,
-          participantId: row.participantId!,
-        ),
-      )
-      .toList();
-}
-
-/// Restore handle-to-participant overrides after migration
-/// These are user-defined manual links that take precedence over AddressBook
-Future<void> _restoreHandleToParticipantOverrides(
-  WorkingDatabase db,
-  List<_HandleToParticipantOverride> overrides,
-) async {
-  if (overrides.isEmpty) {
-    return;
-  }
-
-  // Delete existing AddressBook links for these handles
-  // (Manual overrides take precedence)
-  final handleIds = overrides.map((o) => o.handleId).toList();
-  for (final handleId in handleIds) {
-    await (db.delete(db.handleToParticipant)
-          ..where((tbl) => tbl.handleId.equals(handleId))
-          ..where((tbl) => tbl.source.equals('addressbook')))
-        .go();
-  }
-
-  // Insert manual override links with source='user_manual'
-  for (final override in overrides) {
-    await db
-        .into(db.handleToParticipant)
-        .insert(
-          HandleToParticipantCompanion.insert(
-            handleId: override.handleId,
-            participantId: override.participantId,
-            confidence: const Value(1.0),
-            source: const Value('user_manual'),
-          ),
-        );
   }
 }

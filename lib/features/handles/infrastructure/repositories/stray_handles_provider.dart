@@ -68,7 +68,14 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
   // 2. Get all dismissed handles (keyed by normalized value).
   final dismissedHandles = await overlayDb.getAllDismissedHandles();
 
-  // 3. Query working-DB handles that have no working-DB participant link.
+  // 3. Get overlay visibility overrides (blacklisted handles should not appear).
+  final visibilityOverrides = await overlayDb.getAllHandleVisibilities();
+  final blacklistedHandleIds = <int>{
+    for (final o in visibilityOverrides)
+      if (o.isBlacklisted) o.handleId,
+  };
+
+  // 4. Query working-DB handles that have no working-DB participant link.
   final handlesQuery = workingDb.select(workingDb.handlesCanonical)
     ..where(
       (tbl) => drift.notExistsQuery(
@@ -84,6 +91,11 @@ Future<List<StrayHandleSummary>> strayHandles(Ref ref) async {
   for (final handle in handles) {
     // Skip handles that are linked via overlay override.
     if (linkedOverrideHandleIds.contains(handle.id)) {
+      continue;
+    }
+
+    // Skip handles that are blacklisted via overlay visibility overrides.
+    if (blacklistedHandleIds.contains(handle.id)) {
       continue;
     }
 

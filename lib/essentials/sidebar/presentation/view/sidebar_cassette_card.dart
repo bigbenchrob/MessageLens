@@ -158,6 +158,14 @@ class SidebarCassetteCard extends ConsumerWidget {
           const EdgeInsets.symmetric(horizontal: 12, vertical: AppSpacing.sm),
           AppSpacing.xs,
         ),
+        SidebarCardLayoutStyle.controlAligned => (
+          const EdgeInsets.symmetric(
+            vertical: AppSpacing.xs,
+            horizontal: AppSpacing.md,
+          ),
+          EdgeInsets.zero,
+          0.0,
+        ),
       };
     }
 
