@@ -6,9 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../features/chats/presentation/view_model/recent_chats_provider.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db_migrate/domain/entities/db_migration_result.dart';
-import '../../../db_migrate/domain/states/db_migration_progress.dart';
 import '../../../db_migrate/domain/states/table_migration_progress.dart';
-import '../../../db_migrate/domain/value_objects/db_migration_stage.dart';
 import '../../../db_migrate/feature_level_providers.dart';
 import '../../application/services/import_status_checker.dart';
 import '../../domain/entities/db_import_result.dart';
@@ -16,13 +14,6 @@ import '../../domain/states/table_import_progress.dart';
 import '../../feature_level_providers.dart';
 
 part 'db_import_control_provider.g.dart';
-
-const List<DbMigrationStage> _handlesMigrationStages = <DbMigrationStage>[
-  DbMigrationStage.preparingSources,
-  DbMigrationStage.clearingWorking,
-  DbMigrationStage.migratingIdentities,
-  DbMigrationStage.completed,
-];
 
 enum DbImportMode { import, migration }
 
@@ -696,17 +687,12 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         },
       );
 
-      final updatedStages = result.success
-          ? _markAllStagesComplete(state.stages)
-          : state.stages;
-
       state = state.copyWith(
         isProcessing: false,
         statusMessage: result.success
             ? 'Import completed successfully'
             : 'Import failed: ${result.error ?? 'Unknown error'}',
         progress: result.success ? 1.0 : state.progress,
-        stages: updatedStages,
         lastImportResult: result,
       );
     } catch (error) {
@@ -755,13 +741,11 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     // Check if working DB has existing data BEFORE closing the connection
     final useIncrementalMode = await _hasExistingMessages();
 
-    final stages = _migrationStageTemplate(stageOrder: _handlesMigrationStages);
-
     state = state.copyWith(
       isProcessing: true,
       statusMessage: 'Starting migration...',
       progress: 0.0,
-      stages: stages,
+      stages: const <UiStageProgress>[],
       tableProgress: const <UiTableMigrationProgress>[],
       showingDebugPanel: false,
       clearMigrationResult: true,
@@ -789,8 +773,17 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       final result = await ref
           .read(handlesMigrationServiceProvider)
           .run(
-            onProgress: (DbMigrationProgress progress) {
-              _handleMigrationProgress(progress);
+            onExecutionPlan: (steps) {
+              state = state.copyWith(
+                stages: <UiStageProgress>[
+                  for (final step in steps)
+                    UiStageProgress(
+                      name: step.name,
+                      displayName: step.displayName,
+                      sortIndex: step.index,
+                    ),
+                ],
+              );
             },
             onTableProgress: (TableMigrationProgressEvent event) {
               _handleTableMigrationProgress(event);
@@ -798,17 +791,12 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
             incrementalMode: useIncrementalMode,
           );
 
-      final updatedStages = result.success
-          ? _markAllStagesComplete(state.stages)
-          : state.stages;
-
       state = state.copyWith(
         isProcessing: false,
         statusMessage: result.success
             ? 'Migration completed successfully'
             : 'Migration failed: ${result.error ?? 'Unknown error'}',
         progress: result.success ? 1.0 : state.progress,
-        stages: updatedStages,
         lastMigrationResult: result,
       );
 
@@ -946,12 +934,19 @@ that prevent migration access. Restarting the app is the best solution.''';
     );
     if (stageIndex != -1) {
       final stage = state.stages[stageIndex];
-      final isActive =
-          event.status == TableImportStatus.started ||
-          event.status == TableImportStatus.inProgress;
+
+      // A step becomes complete only when its final phase succeeds.
       final isComplete =
           event.phase == TableImportPhase.postValidate &&
           event.status == TableImportStatus.succeeded;
+
+      // Once active, a step stays active until complete (no flicker
+      // between phases like validatePrereqs→copy→postValidate).
+      final isActive =
+          !isComplete &&
+          (stage.isActive ||
+              event.status == TableImportStatus.started ||
+              event.status == TableImportStatus.inProgress);
 
       double? progress;
       if (event.rowsProcessed != null &&
@@ -1056,39 +1051,58 @@ that prevent migration access. Restarting the app is the best solution.''';
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
   }
 
-  void _handleMigrationProgress(DbMigrationProgress progress) {
-    final stageIndex = state.stages.indexWhere(
-      (s) => s.name == progress.stage.key,
-    );
-    if (stageIndex == -1) {
-      return;
-    }
-    final now = DateTime.now();
-    final stage = state.stages[stageIndex];
-    final isComplete =
-        progress.stageProgress != null && progress.stageProgress! >= 1.0;
-
-    final updatedStages = List<UiStageProgress>.of(state.stages);
-    updatedStages[stageIndex] = stage.copyWith(
-      isActive: !isComplete,
-      isComplete: isComplete || stage.isComplete,
-      progress: isComplete ? 1.0 : progress.stageProgress ?? stage.progress,
-      current: progress.stageCurrent ?? stage.current,
-      total: progress.stageTotal ?? stage.total,
-      startedAt: stage.startedAt ?? now,
-      completedAt: isComplete ? now : stage.completedAt,
-    );
-
-    state = state.copyWith(
-      stages: updatedStages,
-      currentStage: progress.stage.key,
-      progress: progress.overallProgress,
-      statusMessage: progress.message,
-    );
-  }
-
   void _handleTableMigrationProgress(TableMigrationProgressEvent event) {
     final now = DateTime.now();
+
+    // Update the UI step corresponding to this migrator.
+    final stageIndex = state.stages.indexWhere(
+      (s) => s.name == event.tableName,
+    );
+    if (stageIndex != -1) {
+      final stage = state.stages[stageIndex];
+
+      final isComplete =
+          event.phase == TableMigrationPhase.postValidate &&
+          event.status == TableMigrationStatus.succeeded;
+
+      final isActive =
+          !isComplete &&
+          (stage.isActive ||
+              event.status == TableMigrationStatus.started ||
+              event.status == TableMigrationStatus.inProgress);
+
+      double? progress;
+      if (event.rowsProcessed != null &&
+          event.totalRows != null &&
+          event.totalRows! > 0) {
+        progress = event.rowsProcessed! / event.totalRows!;
+      }
+
+      final updatedStages = List<UiStageProgress>.of(state.stages);
+      updatedStages[stageIndex] = stage.copyWith(
+        isActive: isActive && !isComplete,
+        isComplete: isComplete || stage.isComplete,
+        progress: isComplete ? 1.0 : progress ?? stage.progress,
+        current: event.rowsProcessed ?? stage.current,
+        total: event.totalRows ?? stage.total,
+        startedAt: stage.startedAt ?? now,
+        completedAt: isComplete ? now : stage.completedAt,
+      );
+
+      final completedCount = updatedStages.where((s) => s.isComplete).length;
+      final overallProgress = updatedStages.isEmpty
+          ? 0.0
+          : completedCount / updatedStages.length;
+
+      state = state.copyWith(
+        stages: updatedStages,
+        currentStage: event.tableName,
+        progress: overallProgress,
+        statusMessage: '${event.displayName}: ${event.phase.name}',
+      );
+    }
+
+    // Also maintain the detailed table-level progress for the summary view.
     final entries = List<UiTableMigrationProgress>.of(state.tableProgress);
     final index = entries.indexWhere(
       (progress) => progress.tableName == event.tableName,
@@ -1150,45 +1164,11 @@ that prevent migration access. Restarting the app is the best solution.''';
     state = state.copyWith(tableProgress: _sortTableProgress(entries));
   }
 
-  List<UiStageProgress> _migrationStageTemplate({
-    Iterable<DbMigrationStage>? stageOrder,
-  }) {
-    final stages = stageOrder == null
-        ? DbMigrationStage.values
-        : List<DbMigrationStage>.from(stageOrder);
-    return List<UiStageProgress>.generate(stages.length, (index) {
-      final stage = stages[index];
-      return UiStageProgress(
-        name: stage.key,
-        displayName: stage.label,
-        sortIndex: index,
-      );
-    });
-  }
-
   List<UiTableMigrationProgress> _sortTableProgress(
     List<UiTableMigrationProgress> progress,
   ) {
     final sorted = List<UiTableMigrationProgress>.of(progress)
       ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
     return sorted;
-  }
-
-  List<UiStageProgress> _markAllStagesComplete(List<UiStageProgress> stages) {
-    if (stages.isEmpty) {
-      return stages;
-    }
-    final now = DateTime.now();
-    return stages
-        .map(
-          (stage) => stage.copyWith(
-            isActive: false,
-            isComplete: true,
-            progress: stage.progress ?? 1.0,
-            startedAt: stage.startedAt ?? now,
-            completedAt: stage.completedAt ?? now,
-          ),
-        )
-        .toList(growable: false);
   }
 }

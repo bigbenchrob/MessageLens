@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,9 +11,7 @@ import '../../../db_importers/application/debug_settings_provider.dart';
 import '../../../search/feature_level_providers.dart';
 import '../../domain/base_table_migrator.dart';
 import '../../domain/entities/db_migration_result.dart';
-import '../../domain/states/db_migration_progress.dart';
 import '../../domain/states/table_migration_progress.dart';
-import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 import '../diagnostics/migration_diagnostics.dart';
 import '../migrators/attachments_migrator.dart';
@@ -29,6 +26,9 @@ import '../migrators/reaction_counts_migrator.dart';
 import '../migrators/reactions_migrator.dart';
 import '../migrators/read_state_migrator.dart';
 import './migration_orchestrator.dart';
+
+typedef MigrationExecutionPlanCallback =
+    void Function(List<MigratorStep> steps);
 
 class HandlesMigrationService {
   HandlesMigrationService({required this.ref});
@@ -53,8 +53,13 @@ class HandlesMigrationService {
       MessageReadMarksMigrator();
   static const ReadStateMigrator _readStateMigrator = ReadStateMigrator();
 
+  /// Names of synthetic (non-orchestrated) post-migration steps.
+  static const String _rebuildIndexesStep = 'rebuild_indexes';
+  static const String _rebuildSearchStep = 'rebuild_search';
+  static const String _restoreOverridesStep = 'restore_overrides';
+
   Future<DbMigrationResult> run({
-    void Function(DbMigrationProgress progress)? onProgress,
+    MigrationExecutionPlanCallback? onExecutionPlan,
     TableMigrationProgressCallback? onTableProgress,
     bool incrementalMode = false,
   }) async {
@@ -89,76 +94,37 @@ class HandlesMigrationService {
 
     final orchestrator = MigrationOrchestrator(migrators);
 
+    // Communicate the execution plan to the UI before running.
+    // The plan includes orchestrated migrators plus post-migration steps.
+    final orchestratorSteps = orchestrator.executionOrder();
+    final postStepBase = orchestratorSteps.length;
+    final allSteps = <MigratorStep>[
+      ...orchestratorSteps,
+      MigratorStep(
+        index: postStepBase,
+        name: _rebuildIndexesStep,
+        displayName: 'Rebuild Indexes',
+      ),
+      MigratorStep(
+        index: postStepBase + 1,
+        name: _rebuildSearchStep,
+        displayName: 'Rebuild Search',
+      ),
+      MigratorStep(
+        index: postStepBase + 2,
+        name: _restoreOverridesStep,
+        displayName: 'Restore Overrides',
+      ),
+    ];
+    onExecutionPlan?.call(allSteps);
+
     final overrides = await _snapshotHandleOverrides(workingDatabase);
     final overlayDb = await ref.watch(overlayDatabaseProvider.future);
     final handleOverrides = await _snapshotHandleToParticipantOverrides(
       overlayDb,
     );
 
-    const basePhaseWeights = <TableMigrationPhase, double>{
-      TableMigrationPhase.validatePrereqs: 0.2,
-      TableMigrationPhase.copy: 0.5,
-      TableMigrationPhase.postValidate: 0.15,
-    };
-    final phaseWeights = <TableMigrationPhase, double>{
-      for (final entry in basePhaseWeights.entries)
-        entry.key: entry.value / migrators.length,
-    };
-
-    var completedWeight = 0.15; // after preparation/clearing
-
-    void emitProgress(DbMigrationStage stage, double progress, String message) {
-      onProgress?.call(
-        DbMigrationProgress(
-          stage: stage,
-          overallProgress: progress.clamp(0.0, 1.0),
-          message: message,
-        ),
-      );
-    }
-
-    DbMigrationProgress progressForTableEvent(
-      TableMigrationProgressEvent event,
-    ) {
-      final phaseLabel = switch (event.phase) {
-        TableMigrationPhase.validatePrereqs =>
-          'Validating ${event.displayName}',
-        TableMigrationPhase.copy => 'Copying ${event.displayName}',
-        TableMigrationPhase.postValidate =>
-          'Post-validating ${event.displayName}',
-      };
-
-      final phaseWeight = phaseWeights[event.phase] ?? 0.0;
-      final resolvedStage = event.stage ?? _stageForTable(event.tableName);
-      var progressValue = completedWeight;
-      switch (event.status) {
-        case TableMigrationStatus.started:
-        case TableMigrationStatus.inProgress:
-          progressValue += phaseWeight * 0.1;
-          break;
-        case TableMigrationStatus.succeeded:
-          completedWeight += phaseWeight;
-          progressValue = completedWeight;
-          break;
-        case TableMigrationStatus.failed:
-          break;
-      }
-
-      final normalized = min(progressValue, 0.9);
-      return DbMigrationProgress(
-        stage: resolvedStage,
-        overallProgress: normalized,
-        message: phaseLabel,
-      );
-    }
-
     try {
-      emitProgress(
-        DbMigrationStage.preparingSources,
-        0.05,
-        'Preparing identity + message migration',
-      );
-
       // Run diagnostics before migration to help troubleshoot issues
       if (debugSettings.logProgress == print) {
         const diagnostics = MigrationDiagnostics();
@@ -170,35 +136,98 @@ class HandlesMigrationService {
         debugSettings.logProgress('\n$formatted');
       }
 
-      emitProgress(
-        DbMigrationStage.clearingWorking,
-        0.15,
-        incrementalMode
-            ? 'Preparing incremental migration'
-            : 'Clearing identity/message projections',
-      );
+      await orchestrator.run(context, onTableProgress: onTableProgress);
 
-      await orchestrator.run(
-        context,
-        onTableProgress: (event) {
-          final progressUpdate = progressForTableEvent(event);
-          onProgress?.call(progressUpdate);
-          onTableProgress?.call(event);
-        },
-      );
+      // --- Post-orchestrator synthetic steps ---
 
-      // Rebuild indexes AFTER all messages are migrated
-      // This prevents O(N²) trigger firing during bulk message insert
-      emitProgress(DbMigrationStage.indexing, 0.92, 'Building message indexes');
+      // Rebuild indexes
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildIndexesStep,
+        'Rebuild Indexes',
+        TableMigrationPhase.validatePrereqs,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildIndexesStep,
+        'Rebuild Indexes',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.started,
+      );
+      await Future<void>.delayed(Duration.zero);
+
       await workingDatabase.rebuildGlobalMessageIndex();
       await workingDatabase.rebuildMessageIndex();
       await workingDatabase.rebuildContactMessageIndex();
-
-      // Now create the triggers AFTER indexes are built
       await workingDatabase.createMessageIndexTriggers();
+
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildIndexesStep,
+        'Rebuild Indexes',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildIndexesStep,
+        'Rebuild Indexes',
+        TableMigrationPhase.postValidate,
+        TableMigrationStatus.succeeded,
+      );
+
+      // Rebuild search indexes
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildSearchStep,
+        'Rebuild Search',
+        TableMigrationPhase.validatePrereqs,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildSearchStep,
+        'Rebuild Search',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.started,
+      );
+      await Future<void>.delayed(Duration.zero);
 
       final searchIndexOrchestrator = ref.read(searchIndexOrchestratorProvider);
       await searchIndexOrchestrator.rebuildAll();
+
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildSearchStep,
+        'Rebuild Search',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _rebuildSearchStep,
+        'Rebuild Search',
+        TableMigrationPhase.postValidate,
+        TableMigrationStatus.succeeded,
+      );
+
+      // Restore user overrides
+      _emitSyntheticEvent(
+        onTableProgress,
+        _restoreOverridesStep,
+        'Restore Overrides',
+        TableMigrationPhase.validatePrereqs,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _restoreOverridesStep,
+        'Restore Overrides',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.started,
+      );
+      await Future<void>.delayed(Duration.zero);
 
       await _restoreHandleOverrides(workingDatabase, overrides);
       await _restoreHandleToParticipantOverrides(
@@ -206,12 +235,22 @@ class HandlesMigrationService {
         handleOverrides,
       );
 
-      emitProgress(
-        DbMigrationStage.completed,
-        1.0,
-        'Identity + message migration completed successfully',
+      _emitSyntheticEvent(
+        onTableProgress,
+        _restoreOverridesStep,
+        'Restore Overrides',
+        TableMigrationPhase.copy,
+        TableMigrationStatus.succeeded,
+      );
+      _emitSyntheticEvent(
+        onTableProgress,
+        _restoreOverridesStep,
+        'Restore Overrides',
+        TableMigrationPhase.postValidate,
+        TableMigrationStatus.succeeded,
       );
 
+      // Gather final counts for the result
       final handlesCount = await _handlesMigrator.count(
         context.workingDb,
         'handles_canonical',
@@ -263,12 +302,6 @@ class HandlesMigrationService {
       debugSettings.logError('$_logContext: migration failed: $error');
       debugSettings.logProgress(stackTrace.toString());
 
-      emitProgress(
-        DbMigrationStage.completed,
-        1.0,
-        'Identity + message migration failed: $error',
-      );
-
       return DbMigrationResult(
         batchId: 0,
         success: false,
@@ -277,27 +310,21 @@ class HandlesMigrationService {
     }
   }
 
-  DbMigrationStage _stageForTable(String tableName) {
-    switch (tableName) {
-      case 'handles':
-        return DbMigrationStage.migratingIdentities;
-      case 'chats':
-      case 'chat_to_handle':
-      case 'participants':
-      case 'handle_to_participant':
-        return DbMigrationStage.migratingChats;
-      case 'messages':
-      case 'message_read_marks':
-      case 'read_state':
-        return DbMigrationStage.migratingMessages;
-      case 'attachments':
-        return DbMigrationStage.migratingAttachments;
-      case 'reactions':
-      case 'reaction_counts':
-        return DbMigrationStage.migratingReactions;
-      default:
-        return DbMigrationStage.migratingIdentities;
-    }
+  void _emitSyntheticEvent(
+    TableMigrationProgressCallback? onTableProgress,
+    String name,
+    String displayName,
+    TableMigrationPhase phase,
+    TableMigrationStatus status,
+  ) {
+    onTableProgress?.call(
+      TableMigrationProgressEvent(
+        tableName: name,
+        displayName: displayName,
+        phase: phase,
+        status: status,
+      ),
+    );
   }
 
   Future<Map<int, _HandleOverride>> _snapshotHandleOverrides(

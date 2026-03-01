@@ -137,6 +137,10 @@ class ImportOrchestrator {
       ),
     );
 
+    // Yield to the event loop so the UI framework can paint the "active"
+    // state before the (possibly long-running) phase action begins.
+    await Future<void>.delayed(Duration.zero);
+
     // Set up row-level progress callback for copy phase
     if (phase == TableImportPhase.copy &&
         importer is RowProgressReporter &&

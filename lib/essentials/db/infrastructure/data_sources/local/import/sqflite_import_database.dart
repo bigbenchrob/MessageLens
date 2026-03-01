@@ -1031,6 +1031,9 @@ AND Z_PK NOT IN (
     return int.tryParse('$value') ?? 0;
   }
 
+  /// Deletes all *ledger data* rows (handles, chats, messages, contacts, etc.)
+  /// but preserves import metadata (import_batches, source_files, import_logs)
+  /// so the current batch's FK references remain valid.
   Future<void> clearAllData() async {
     final db = await database;
     await db.transaction((txn) async {
@@ -1047,9 +1050,6 @@ AND Z_PK NOT IN (
         'handles',
         'contact_phone_email',
         'contacts',
-        'import_logs',
-        'source_files',
-        'import_batches',
       ];
 
       for (final table in tablesInDeleteOrder) {

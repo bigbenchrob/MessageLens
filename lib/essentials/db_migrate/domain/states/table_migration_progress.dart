@@ -1,5 +1,3 @@
-import '../value_objects/db_migration_stage.dart';
-
 /// High-level phases each table migrator reports while running inside the
 /// [MigrationOrchestrator].
 enum TableMigrationPhase { validatePrereqs, copy, postValidate }
@@ -27,7 +25,6 @@ class TableMigrationProgressEvent {
     required this.phase,
     required this.status,
     this.message,
-    this.stage,
     this.rowsProcessed,
     this.totalRows,
     this.currentItem,
@@ -44,9 +41,6 @@ class TableMigrationProgressEvent {
 
   /// Optional descriptive message (typically only set for failures).
   final String? message;
-
-  /// Optional overall migration stage that best represents this table phase.
-  final DbMigrationStage? stage;
 
   /// Number of rows processed so far (only set when status is [inProgress]).
   final int? rowsProcessed;

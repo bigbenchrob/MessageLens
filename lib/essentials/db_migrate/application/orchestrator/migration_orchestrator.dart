@@ -2,12 +2,25 @@ import '../../domain/base_table_migrator.dart';
 import '../../domain/i_migrators.dart/table_migrator.dart';
 import '../../domain/row_progress_reporter.dart';
 import '../../domain/states/table_migration_progress.dart';
-import '../../domain/value_objects/db_migration_stage.dart';
 import '../../infrastructure/sqlite/migration_context_sqlite.dart';
 
 class MigrationOrchestrator {
   final List<TableMigrator> _migrators;
   MigrationOrchestrator(this._migrators);
+
+  /// Returns the migrators in topological (execution) order without running
+  /// them. Useful for building a UI step list before the migration begins.
+  List<MigratorStep> executionOrder() {
+    final ordered = _sorted();
+    return <MigratorStep>[
+      for (var i = 0; i < ordered.length; i++)
+        MigratorStep(
+          index: i,
+          name: ordered[i].name,
+          displayName: _displayNameFor(ordered[i]),
+        ),
+    ];
+  }
 
   List<TableMigrator> _sorted() {
     // Kahn’s algorithm over (name -> dependsOn)
@@ -127,7 +140,6 @@ class MigrationOrchestrator {
     TableMigrationProgressCallback? onTableProgress,
   }) async {
     final displayName = _displayNameFor(migrator);
-    final stage = _stageForPhase(phase);
     final phaseLabel = '${migrator.name}::$phase';
 
     onTableProgress?.call(
@@ -136,9 +148,12 @@ class MigrationOrchestrator {
         displayName: displayName,
         phase: phase,
         status: TableMigrationStatus.started,
-        stage: stage,
       ),
     );
+
+    // Yield to the event loop so the UI framework can paint the "active"
+    // state before the (possibly long-running) phase action begins.
+    await Future<void>.delayed(Duration.zero);
 
     // Set up row-level progress callback for copy phase
     if (phase == TableMigrationPhase.copy &&
@@ -155,7 +170,6 @@ class MigrationOrchestrator {
             displayName: displayName,
             phase: phase,
             status: TableMigrationStatus.inProgress,
-            stage: stage,
             rowsProcessed: processed,
             totalRows: total,
             currentItem: currentItem,
@@ -174,7 +188,6 @@ class MigrationOrchestrator {
           displayName: displayName,
           phase: phase,
           status: TableMigrationStatus.succeeded,
-          stage: stage,
         ),
       );
     } catch (error) {
@@ -193,7 +206,6 @@ class MigrationOrchestrator {
           phase: phase,
           status: TableMigrationStatus.failed,
           message: error.toString(),
-          stage: stage,
         ),
       );
       rethrow;
@@ -206,15 +218,22 @@ class MigrationOrchestrator {
   }
 }
 
-DbMigrationStage _stageForPhase(TableMigrationPhase phase) {
-  switch (phase) {
-    case TableMigrationPhase.validatePrereqs:
-      return DbMigrationStage.migratingIdentities;
-    case TableMigrationPhase.copy:
-      return DbMigrationStage.migratingIdentities;
-    case TableMigrationPhase.postValidate:
-      return DbMigrationStage.migratingIdentities;
-  }
+/// Lightweight description of a migrator in the execution plan.
+class MigratorStep {
+  const MigratorStep({
+    required this.index,
+    required this.name,
+    required this.displayName,
+  });
+
+  /// Position in the topological execution order (0-based).
+  final int index;
+
+  /// The migrator's programmatic name.
+  final String name;
+
+  /// A human-friendly label for the UI.
+  final String displayName;
 }
 
 String _displayNameFor(TableMigrator migrator) {
