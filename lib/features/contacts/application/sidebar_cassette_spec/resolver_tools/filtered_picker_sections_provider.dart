@@ -36,9 +36,10 @@ Future<UnifiedPickerSections> filteredPickerSections(Ref ref) async {
 
     final filtered = switch (mode) {
       PickerFilterMode.all => contacts,
-      PickerFilterMode.favouritesOnly => contacts
-          .where((c) => allFavoriteIds.contains(c.participantId))
-          .toList(growable: false),
+      PickerFilterMode.favouritesOnly =>
+        contacts
+            .where((c) => allFavoriteIds.contains(c.participantId))
+            .toList(growable: false),
     };
 
     if (filtered.isNotEmpty) {

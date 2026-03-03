@@ -6,7 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../colors/theme_colors.dart';
-import '../theme.dart';
+import '../theme_typography.dart';
 
 typedef AppDropdownItemBuilder<T> =
     Widget Function(BuildContext context, T value, {required bool isSelected});
@@ -130,8 +130,10 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
       setOpen(false);
     }, [onSelected, setOpen]);
 
-    final colors = ref.watch(themeColorsProvider.notifier);
-    final typography = AppTheme.typography(context);
+    // Watch state to trigger rebuilds on brightness changes
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     final controlFill = colors.surfaces.control;
     final panelFill = colors.surfaces.surfaceRaised;

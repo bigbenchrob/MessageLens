@@ -6,7 +6,7 @@ part of 'theme_typography.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$themeTypographyHash() => r'4dcdce633f6dbbd1fde0239b393b6f959bea6602';
+String _$themeTypographyHash() => r'abfef9ac9fdf8f767ad109a51310c778b9d8e763';
 
 /// See also [themeTypography].
 @ProviderFor(themeTypography)

@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart' show ControlSize, PushButton;
 
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 
-class ContactCassetteError extends StatelessWidget {
+class ContactCassetteError extends ConsumerWidget {
   const ContactCassetteError({
     required this.onRetry,
     required this.message,
@@ -15,9 +17,10 @@ class ContactCassetteError extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) {
-    final typography = MacosTheme.of(context).typography;
-    final bbc = AppTheme.bbc(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -25,9 +28,9 @@ class ContactCassetteError extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(
+            Icon(
               CupertinoIcons.exclamationmark_triangle,
-              color: MacosColors.systemRedColor,
+              color: colors.accents.secondary,
               size: 16,
             ),
             const SizedBox(width: 8),
@@ -35,7 +38,7 @@ class ContactCassetteError extends StatelessWidget {
               child: Text(
                 'Unable to load contacts',
                 style: typography.caption1.copyWith(
-                  color: MacosColors.systemRedColor,
+                  color: colors.accents.secondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -50,7 +53,9 @@ class ContactCassetteError extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           message,
-          style: typography.caption2.copyWith(color: bbc.bbcSubheadText),
+          style: typography.caption2.copyWith(
+            color: colors.content.textSecondary,
+          ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),

@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/widgets.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart' show ControlSize;
 
-import '../theme.dart';
+import '../theme_typography.dart';
 import 'app_dropdown_menu.dart';
 import 'app_primary_button.dart';
 
@@ -95,7 +96,7 @@ abstract class AppThemeWidgets {
   /// hero cassette: regular control size, padded label, and the app primary
   /// color.
   static Widget primaryButton({
-    required BuildContext context,
+    required WidgetRef ref,
     required String label,
     required VoidCallback? onPressed,
     ControlSize controlSize = ControlSize.regular,
@@ -107,8 +108,9 @@ abstract class AppThemeWidgets {
     ),
     Widget? leading,
   }) {
-    final textStyle = AppTheme.typography(context).body.copyWith(
-      color: AppTheme.onPrimaryColor(context),
+    final typography = ref.watch(themeTypographyProvider);
+    final textStyle = typography.body.copyWith(
+      color: const Color(0xFFFFFFFF),
       fontWeight: FontWeight.w600,
       fontSize: 15,
     );

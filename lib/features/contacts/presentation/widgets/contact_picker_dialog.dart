@@ -4,7 +4,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../application/sidebar_cassette_spec/resolver_tools/participants_for_picker_provider.dart';
 
 /// Dialog for picking a contact/participant to assign to a handle
@@ -30,7 +31,9 @@ class ContactPickerDialog extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bbc = AppTheme.bbc(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
     final searchController = useTextEditingController();
     final searchQuery = useState('');
     final selectedParticipant = useState<ParticipantForPicker?>(null);
@@ -61,16 +64,14 @@ class ContactPickerDialog extends HookConsumerWidget {
               // Header
               Text(
                 'Assign to Contact',
-                style: MacosTheme.of(
-                  context,
-                ).typography.title1.copyWith(fontWeight: FontWeight.bold),
+                style: typography.title1.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 'Select the contact this handle belongs to',
-                style: MacosTheme.of(
-                  context,
-                ).typography.caption1.copyWith(color: bbc.bbcSubheadText),
+                style: typography.caption1.copyWith(
+                  color: colors.content.textSecondary,
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -94,7 +95,7 @@ class ContactPickerDialog extends HookConsumerWidget {
                             MacosIcon(
                               CupertinoIcons.person_crop_circle,
                               size: 48,
-                              color: bbc.bbcHintText,
+                              color: colors.content.textDisabled,
                             ),
                             const SizedBox(height: 16),
                             const Text('No contacts found'),
@@ -105,14 +106,14 @@ class ContactPickerDialog extends HookConsumerWidget {
 
                     return DecoratedBox(
                       decoration: BoxDecoration(
-                        border: Border.all(color: bbc.bbcBorderSubtle),
+                        border: Border.all(color: colors.lines.borderSubtle),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: MacosScrollbar(
                         child: ListView.separated(
                           itemCount: participants.length,
                           separatorBuilder: (_, __) =>
-                              Divider(height: 1, color: bbc.bbcDivider),
+                              Divider(height: 1, color: colors.lines.divider),
                           itemBuilder: (context, index) {
                             final participant = participants[index];
                             final isSelected =
@@ -138,7 +139,7 @@ class ContactPickerDialog extends HookConsumerWidget {
                         MacosIcon(
                           CupertinoIcons.exclamationmark_triangle,
                           size: 48,
-                          color: bbc.bbcPrimaryTwo,
+                          color: colors.accents.secondary,
                         ),
                         const SizedBox(height: 16),
                         Text('Error loading contacts: $error'),
@@ -183,7 +184,7 @@ class ContactPickerDialog extends HookConsumerWidget {
   }
 }
 
-class _ParticipantListItem extends StatelessWidget {
+class _ParticipantListItem extends ConsumerWidget {
   const _ParticipantListItem({
     required this.participant,
     required this.isSelected,
@@ -195,14 +196,15 @@ class _ParticipantListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final bbc = AppTheme.bbc(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     return GestureDetector(
       onTap: onTap,
       child: ColoredBox(
         color: isSelected
-            ? bbc.bbcPrimaryOne.withValues(alpha: 0.14)
-            : MacosColors.transparent,
+            ? colors.accents.primary.withValues(alpha: 0.14)
+            : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -214,18 +216,20 @@ class _ParticipantListItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? bbc.bbcPrimaryOne : bbc.bbcHintText,
+                    color: isSelected
+                        ? colors.accents.primary
+                        : colors.content.textDisabled,
                     width: 2,
                   ),
                   color: isSelected
-                      ? bbc.bbcPrimaryOne
-                      : MacosColors.transparent,
+                      ? colors.accents.primary
+                      : Colors.transparent,
                 ),
                 child: isSelected
                     ? const Icon(
                         CupertinoIcons.check_mark,
                         size: 12,
-                        color: MacosColors.white,
+                        color: Colors.white,
                       )
                     : null,
               ),
@@ -241,7 +245,7 @@ class _ParticipantListItem extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: bbc.bbcBodyText,
+                        color: colors.content.textPrimary,
                       ),
                     ),
                     if (participant.shortName.isNotEmpty &&
@@ -251,7 +255,7 @@ class _ParticipantListItem extends StatelessWidget {
                         participant.shortName,
                         style: TextStyle(
                           fontSize: 12,
-                          color: bbc.bbcSubheadText,
+                          color: colors.content.textSecondary,
                         ),
                       ),
                     ],
@@ -262,7 +266,10 @@ class _ParticipantListItem extends StatelessWidget {
               // Handle count
               Text(
                 '${participant.handleCount} ${participant.handleCount == 1 ? 'handle' : 'handles'}',
-                style: TextStyle(fontSize: 12, color: bbc.bbcSubheadText),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.content.textSecondary,
+                ),
               ),
             ],
           ),

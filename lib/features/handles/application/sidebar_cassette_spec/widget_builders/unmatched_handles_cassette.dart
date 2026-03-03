@@ -1,26 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../../../config/theme/theme.dart';
+import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../config/theme/theme_typography.dart';
 
 /// Placeholder cassette for unmatched phone numbers and emails.
-class UnmatchedHandlesCassette extends StatelessWidget {
+class UnmatchedHandlesCassette extends ConsumerWidget {
   const UnmatchedHandlesCassette({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final typography = MacosTheme.of(context).typography;
-    final bbc = AppTheme.bbc(context);
-    final badgeColor = bbc.bbcPrimaryOne;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: bbc.bbcCardBackground,
+        color: colors.cassetteCard(CassetteCard.background),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: bbc.bbcBorderSubtle),
+        border: Border.all(color: colors.lines.borderSubtle),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,7 +29,7 @@ class UnmatchedHandlesCassette extends StatelessWidget {
           Icon(
             CupertinoIcons.exclamationmark_circle,
             size: 20,
-            color: badgeColor,
+            color: colors.accents.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -46,7 +47,7 @@ class UnmatchedHandlesCassette extends StatelessWidget {
                 Text(
                   'A filtered list of unmatched handles will appear here.',
                   style: typography.caption1.copyWith(
-                    color: bbc.bbcSubheadText,
+                    color: colors.content.textSecondary,
                   ),
                 ),
               ],

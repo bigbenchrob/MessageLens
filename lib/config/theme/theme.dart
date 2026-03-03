@@ -9,14 +9,12 @@ export 'widgets/theme_widgets.dart';
 
 /// Centralized theme helpers for the app.
 ///
-/// This file intentionally keeps theme concerns in one place so UI elements can
-/// reference shared styles instead of re-inventing them per feature.
-///
-/// Sections are grouped for future growth:
-/// - Colors: dynamic colors and semantic palette accessors
-/// - Typography: app-level text styles and helpers
-/// - Components: reusable component builders (buttons, cards, etc.)
+/// **DEPRECATED**: All callers have been migrated to [themeColorsProvider] and
+/// [themeTypographyProvider]. This file is retained temporarily for reference
+/// only and will be deleted in a future cleanup pass.
+@Deprecated('Use themeColorsProvider / themeTypographyProvider instead')
 abstract class AppTheme {
+  @Deprecated('Use themeColorsProvider / themeTypographyProvider instead')
   const AppTheme._();
 
   // --------------------------------------------------------------------------

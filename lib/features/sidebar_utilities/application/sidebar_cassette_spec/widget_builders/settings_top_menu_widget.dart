@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../config/theme/colors/theme_colors.dart';
-import '../../../../../config/theme/theme.dart';
 import '../../../../../config/theme/theme_typography.dart';
+import '../../../../../config/theme/widgets/theme_widgets.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../domain/sidebar_utilities_constants.dart';
@@ -42,8 +42,9 @@ class SettingsTopMenuWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const choices = SettingsMenuChoice.values;
 
-    // Theme providers - ref.watch() is allowed in widgets
-    final colors = ref.watch(themeColorsProvider.notifier);
+    // Theme providers - watch state for brightness rebuilds, read notifier for API
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
     void handleSelectionChange(SettingsMenuChoice newChoice) {

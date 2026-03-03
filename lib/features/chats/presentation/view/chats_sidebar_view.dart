@@ -7,6 +7,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
+
 import '../../../../essentials/db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../../../../essentials/navigation/domain/entities/features/chats_spec.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
@@ -134,9 +137,10 @@ class ChatsSidebarView extends HookConsumerWidget {
             const SizedBox(height: 24),
             Text(
               headerTitle,
-              style: MacosTheme.of(
-                context,
-              ).typography.headline.copyWith(fontWeight: FontWeight.bold),
+              style: ref
+                  .watch(themeTypographyProvider)
+                  .headline
+                  .copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -223,7 +227,7 @@ class ChatsSidebarView extends HookConsumerWidget {
   }
 }
 
-class _ChatSummaryCard extends StatelessWidget {
+class _ChatSummaryCard extends ConsumerWidget {
   const _ChatSummaryCard({
     required this.summary,
     required this.dateFormatter,
@@ -243,7 +247,8 @@ class _ChatSummaryCard extends StatelessWidget {
     return dateFormatter.format(value);
   }
 
-  Widget _buildParticipantTitle(BuildContext context) {
+  Widget _buildParticipantTitle(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
     final participantCount = summary.participants.length;
 
     // Limit to 3 participants, show ellipsis if more
@@ -271,7 +276,7 @@ class _ChatSummaryCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   participant,
-                  style: MacosTheme.of(context).typography.title2.copyWith(
+                  style: typography.title2.copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: fontSize,
                   ),
@@ -296,12 +301,15 @@ class _ChatSummaryCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final captionStyle = MacosTheme.of(
-      context,
-    ).typography.caption1.copyWith(color: const Color(0xFF6B6B70));
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
+    final captionStyle = typography.caption1.copyWith(
+      color: colors.content.textSecondary,
+    );
 
-    final isDarkMode = MacosTheme.of(context).brightness == Brightness.dark;
+    final isDarkMode = colors.isDark;
     const highlightDuration = Duration(milliseconds: 160);
     final accentColor = isDarkMode
         ? const Color(0xFF5B8BFF)
@@ -353,7 +361,7 @@ class _ChatSummaryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildParticipantTitle(context),
+                      _buildParticipantTitle(context, ref),
                       const SizedBox(height: 8),
                       Text(
                         'Messages: ${summary.messageCount}',
@@ -428,7 +436,9 @@ class _SenderFilter extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final typography = MacosTheme.of(context).typography;
+    final typography = ref.watch(themeTypographyProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final options = chats
         .map(
           (chat) => _SenderFilterOption(
@@ -474,7 +484,9 @@ class _SenderFilter extends HookConsumerWidget {
           const SizedBox(height: 12),
           Text(
             'View Mode',
-            style: typography.caption1.copyWith(color: const Color(0xFF6B6B70)),
+            style: typography.caption1.copyWith(
+              color: colors.content.textSecondary,
+            ),
           ),
           const SizedBox(height: 8),
           MacosPopupButton<String>(
@@ -507,7 +519,9 @@ class _SenderFilter extends HookConsumerWidget {
           const SizedBox(height: 12),
           Text(
             'Sender',
-            style: typography.caption1.copyWith(color: const Color(0xFF6B6B70)),
+            style: typography.caption1.copyWith(
+              color: colors.content.textSecondary,
+            ),
           ),
           const SizedBox(height: 8),
           MacosPopupButton<int?>(
@@ -533,7 +547,7 @@ class _SenderFilter extends HookConsumerWidget {
                     ? 'Alphabetical order (A–Z)'
                     : 'Most messages first',
                 style: typography.caption1.copyWith(
-                  color: const Color(0xFF6B6B70),
+                  color: colors.content.textSecondary,
                 ),
               ),
             ],
@@ -638,20 +652,21 @@ class _SenderFilterError extends StatelessWidget {
   }
 }
 
-class _FilterContainer extends StatelessWidget {
+class _FilterContainer extends ConsumerWidget {
   const _FilterContainer({required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2C2C33)
-            : Colors.white,
+        color: colors.surfaces.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E2EA)),
+        border: Border.all(color: colors.lines.borderSubtle),
       ),
       child: Padding(padding: const EdgeInsets.all(12), child: child),
     );

@@ -7,7 +7,7 @@ part of 'filtered_picker_sections_provider.dart';
 // **************************************************************************
 
 String _$filteredPickerSectionsHash() =>
-    r'68a5ed0ccde25b32a46e2c531ae2760762dc15ca';
+    r'698e0f3f0451369d6a65e22793284282fec34f69';
 
 /// Produces picker sections filtered by the current [PickerFilterMode].
 ///

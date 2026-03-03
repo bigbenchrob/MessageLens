@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../application/sidebar_cassette_spec/resolver_tools/picker_filter_mode_provider.dart';
 
 /// Segmented control that toggles the contact picker between
@@ -11,21 +13,24 @@ class PickerFilterToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(pickerFilterProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: SizedBox(
         width: double.infinity,
         child: CupertinoSlidingSegmentedControl<PickerFilterMode>(
+          thumbColor: colors.accents.primary,
           groupValue: mode,
-          children: const {
-            PickerFilterMode.all: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('All'),
+          children: {
+            PickerFilterMode.all: _SegmentLabel(
+              'All',
+              isSelected: mode == PickerFilterMode.all,
             ),
-            PickerFilterMode.favouritesOnly: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('Favourites'),
+            PickerFilterMode.favouritesOnly: _SegmentLabel(
+              'Favourites',
+              isSelected: mode == PickerFilterMode.favouritesOnly,
             ),
           },
           onValueChanged: (value) {
@@ -34,6 +39,24 @@ class PickerFilterToggle extends ConsumerWidget {
             }
           },
         ),
+      ),
+    );
+  }
+}
+
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.text, {required this.isSelected});
+
+  final String text;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Text(
+        text,
+        style: isSelected ? const TextStyle(color: Colors.white) : null,
       ),
     );
   }

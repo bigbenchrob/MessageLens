@@ -4,6 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
 import '../../infrastructure/repositories/messages_for_handle_provider.dart';
 
 /// Displays ALL messages from a specific handle across all chats chronologically
@@ -46,7 +48,7 @@ class MessagesForHandleView extends HookConsumerWidget {
                         const SizedBox(height: 16),
                         Text(
                           'No messages found for this handle',
-                          style: MacosTheme.of(context).typography.headline,
+                          style: ref.watch(themeTypographyProvider).headline,
                         ),
                       ],
                     ),
@@ -75,12 +77,12 @@ class MessagesForHandleView extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     Text(
                       'Error loading messages',
-                      style: MacosTheme.of(context).typography.headline,
+                      style: ref.watch(themeTypographyProvider).headline,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       error.toString(),
-                      style: MacosTheme.of(context).typography.body,
+                      style: ref.watch(themeTypographyProvider).body,
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -94,23 +96,24 @@ class MessagesForHandleView extends HookConsumerWidget {
   }
 }
 
-class _MessageWithChatContextCard extends StatelessWidget {
+class _MessageWithChatContextCard extends ConsumerWidget {
   const _MessageWithChatContextCard({required this.message});
 
   final MessageWithChatContext message;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = MacosTheme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final dateFormatter = DateFormat('MMM d, yyyy h:mm a');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.canvasColor,
+        color: colors.surfaces.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.dividerColor, width: 1),
+        border: Border.all(color: colors.lines.borderSubtle, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +141,7 @@ class _MessageWithChatContextCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: theme.typography.body.color,
+                        color: colors.content.textPrimary,
                       ),
                     ),
                   ],
@@ -149,7 +152,7 @@ class _MessageWithChatContextCard extends StatelessWidget {
                 dateFormatter.format(message.sentAt),
                 style: TextStyle(
                   fontSize: 11,
-                  color: theme.typography.body.color?.withValues(alpha: 0.6),
+                  color: colors.content.textSecondary,
                 ),
               ),
             ],
@@ -187,7 +190,7 @@ class _MessageWithChatContextCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: theme.typography.body.color?.withValues(alpha: 0.8),
+                  color: colors.content.textPrimary.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -199,15 +202,12 @@ class _MessageWithChatContextCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: message.isFromMe
                   ? CupertinoColors.systemBlue.withValues(alpha: 0.1)
-                  : theme.dividerColor.withValues(alpha: 0.3),
+                  : colors.lines.divider.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               message.text.isEmpty ? '(No text content)' : message.text,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.typography.body.color,
-              ),
+              style: TextStyle(fontSize: 13, color: colors.content.textPrimary),
             ),
           ),
         ],

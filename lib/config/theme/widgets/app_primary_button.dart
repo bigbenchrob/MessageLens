@@ -1,9 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart' show ControlSize;
 
-import '../theme.dart';
+import '../colors/theme_colors.dart';
 
-class AppPrimaryButton extends StatefulWidget {
+class AppPrimaryButton extends ConsumerStatefulWidget {
   const AppPrimaryButton({
     required this.child,
     required this.onPressed,
@@ -16,10 +17,10 @@ class AppPrimaryButton extends StatefulWidget {
   final ControlSize controlSize;
 
   @override
-  State<AppPrimaryButton> createState() => _AppPrimaryButtonState();
+  ConsumerState<AppPrimaryButton> createState() => _AppPrimaryButtonState();
 }
 
-class _AppPrimaryButtonState extends State<AppPrimaryButton> {
+class _AppPrimaryButtonState extends ConsumerState<AppPrimaryButton> {
   bool _isHovered = false;
   bool _isPressed = false;
 
@@ -27,7 +28,9 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
   Widget build(BuildContext context) {
     final enabled = widget.onPressed != null;
 
-    final baseColor = AppTheme.primaryButtonFillColor(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final baseColor = colors.accents.primary;
     final fillColor = !enabled
         ? baseColor.withValues(alpha: 0.45)
         : _isPressed

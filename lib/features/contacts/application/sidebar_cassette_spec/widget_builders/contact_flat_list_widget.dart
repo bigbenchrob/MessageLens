@@ -59,16 +59,18 @@ class ContactFlatListWidget extends ConsumerWidget {
         const PickerFilterToggle(),
         contactsAsync.when(
           data: (contacts) {
-            final favoriteIds = favoritesAsync.valueOrNull
+            final favoriteIds =
+                favoritesAsync.valueOrNull
                     ?.map((f) => f.contact.participantId)
                     .toSet() ??
                 <int>{};
 
             final displayContacts = switch (filterMode) {
               PickerFilterMode.all => contacts,
-              PickerFilterMode.favouritesOnly => contacts
-                  .where((c) => favoriteIds.contains(c.participantId))
-                  .toList(growable: false),
+              PickerFilterMode.favouritesOnly =>
+                contacts
+                    .where((c) => favoriteIds.contains(c.participantId))
+                    .toList(growable: false),
             };
 
             if (displayContacts.isEmpty) {

@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/theme_typography.dart';
 
 class ThemePlaygroundCassette extends ConsumerWidget {
   const ThemePlaygroundCassette({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = ref.watch(themeColorsProvider.notifier);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
     final isDark = colors.isDark;
 
     Widget swatch({required String label, required Color color}) {
@@ -18,7 +20,7 @@ class ThemePlaygroundCassette extends ConsumerWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTheme.typography(context).caption1.copyWith(
+              style: typography.caption1.copyWith(
                 color: colors.content.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
@@ -43,7 +45,7 @@ class ThemePlaygroundCassette extends ConsumerWidget {
       children: [
         Text(
           isDark ? 'Dark mode' : 'Light mode',
-          style: AppTheme.typography(context).headline.copyWith(
+          style: typography.headline.copyWith(
             color: colors.content.textPrimary,
             fontWeight: FontWeight.w700,
           ),
@@ -51,9 +53,9 @@ class ThemePlaygroundCassette extends ConsumerWidget {
         const SizedBox(height: 6),
         Text(
           'This cassette is a theme playground. Values should update live when switching system appearance.',
-          style: AppTheme.typography(
-            context,
-          ).callout.copyWith(color: colors.content.textSecondary),
+          style: typography.callout.copyWith(
+            color: colors.content.textSecondary,
+          ),
         ),
         const SizedBox(height: 14),
         // Surfaces
@@ -83,7 +85,7 @@ class ThemePlaygroundCassette extends ConsumerWidget {
         const SizedBox(height: 14),
         Text(
           'Header text sample',
-          style: AppTheme.typography(context).title2.copyWith(
+          style: typography.title2.copyWith(
             color: colors.content.textPrimary,
             fontWeight: FontWeight.w700,
           ),
@@ -91,16 +93,14 @@ class ThemePlaygroundCassette extends ConsumerWidget {
         const SizedBox(height: 6),
         Text(
           'Body text sample — The quick brown fox jumps over the lazy dog.',
-          style: AppTheme.typography(
-            context,
-          ).body.copyWith(color: colors.content.textPrimary),
+          style: typography.body.copyWith(color: colors.content.textPrimary),
         ),
         const SizedBox(height: 6),
         Text(
           'Subhead text sample — Secondary labels should remain readable.',
-          style: AppTheme.typography(
-            context,
-          ).callout.copyWith(color: colors.content.textSecondary),
+          style: typography.callout.copyWith(
+            color: colors.content.textSecondary,
+          ),
         ),
       ],
     );

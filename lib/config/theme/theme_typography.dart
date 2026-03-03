@@ -8,7 +8,9 @@ part 'theme_typography.g.dart';
 
 @riverpod
 ThemeTypography themeTypography(ThemeTypographyRef ref) {
-  final colors = ref.watch(themeColorsProvider.notifier);
+  // Watch state to trigger rebuilds on brightness changes
+  ref.watch(themeColorsProvider);
+  final colors = ref.read(themeColorsProvider.notifier);
   return ThemeTypography(colors);
 }
 
@@ -111,12 +113,67 @@ class ThemeTypography {
 
   // ---------------------------------------------------------------------------
   // General-purpose text
+  //
+  // These tokens replace MacosTypography equivalents (title1–caption2) so that
+  // NO widget ever needs MacosTheme.of(context).typography.
   // ---------------------------------------------------------------------------
+
+  /// Large section title (~20 px bold).
+  /// Equivalent to MacosTypography.title1 / heroTitle.
+  TextStyle get title1 => heroTitle;
+
+  /// Medium section title (~17 px semibold).
+  /// Equivalent to MacosTypography.title2.
+  TextStyle get title2 => _base.copyWith(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    color: _colors.content.textPrimary,
+  );
+
+  /// Small section title (~15 px semibold).
+  /// Equivalent to MacosTypography.title3.
+  TextStyle get title3 => _base.copyWith(
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+    color: _colors.content.textPrimary,
+  );
+
+  /// Semibold label (~13 px).
+  /// Equivalent to MacosTypography.headline.
+  TextStyle get headline => _base.copyWith(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: _colors.content.textPrimary,
+  );
 
   TextStyle get body => _base.copyWith(
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: _colors.content.textPrimary,
+  );
+
+  /// Regular body-adjacent (~14 px, lighter weight).
+  /// Equivalent to MacosTypography.callout.
+  TextStyle get callout => _base.copyWith(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textPrimary,
+  );
+
+  /// Small descriptive text (~12 px).
+  /// Equivalent to MacosTypography.caption1.
+  TextStyle get caption1 => _base.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textSecondary,
+  );
+
+  /// Smallest descriptive text (~11 px).
+  /// Equivalent to MacosTypography.caption2.
+  TextStyle get caption2 => _base.copyWith(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: _colors.content.textTertiary,
   );
 
   TextStyle get caption => _base.copyWith(

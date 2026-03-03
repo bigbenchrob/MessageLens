@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../config/theme/theme.dart';
+import '../../../../config/theme/widgets/content_plane.dart';
+import '../../../../config/theme/widgets/sidebar_plane.dart';
 import '../../application/panel_widget_providers.dart';
 import '../../domain/sidebar_mode.dart';
 import 'sidebar_parked_overlay.dart';

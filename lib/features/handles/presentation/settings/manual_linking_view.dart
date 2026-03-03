@@ -4,6 +4,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+import '../../../../config/theme/theme_typography.dart';
+
 import '../../application/settings_cassette_spec/resolver_tools/manual_linking_provider.dart';
 
 /// UI component for manually linking handles to participants.
@@ -21,9 +24,12 @@ class ManualLinkingView extends HookConsumerWidget {
     final scrollController = useScrollController();
     final unlinkedAsync = ref.watch(unlinkedHandlesProvider);
     final participantsAsync = ref.watch(availableParticipantsProvider);
+    final typography = ref.watch(themeTypographyProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return ColoredBox(
-      color: const Color(0xFFF4F5F8),
+      color: colors.surfaces.canvas,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
@@ -32,16 +38,14 @@ class ManualLinkingView extends HookConsumerWidget {
             // Header
             Text(
               'Manual Handle Linking',
-              style: MacosTheme.of(
-                context,
-              ).typography.headline.copyWith(fontWeight: FontWeight.bold),
+              style: typography.headline.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Link unknown handles to contacts when automatic matching fails. Create new contacts for unrecognized phone numbers or emails.',
-              style: MacosTheme.of(
-                context,
-              ).typography.caption1.copyWith(color: const Color(0xFF6B6B70)),
+              style: typography.caption1.copyWith(
+                color: colors.content.textSecondary,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -119,7 +123,7 @@ class ManualLinkingView extends HookConsumerWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Failed to load unlinked handles',
-                        style: MacosTheme.of(context).typography.title3,
+                        style: typography.title3,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -150,16 +154,15 @@ class _UnlinkedHandleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
-    final typography = theme.typography;
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? const Color(0xFF2C2C33)
-            : Colors.white,
+        color: colors.surfaces.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E2EA)),
+        border: Border.all(color: colors.lines.borderSubtle),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -216,7 +219,7 @@ class _UnlinkedHandleCard extends ConsumerWidget {
                             Text(
                               '${handle.chatCount} chat${handle.chatCount == 1 ? '' : 's'}',
                               style: typography.caption1.copyWith(
-                                color: const Color(0xFF6B6B70),
+                                color: colors.content.textSecondary,
                               ),
                             ),
                           ],

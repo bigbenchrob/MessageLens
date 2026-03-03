@@ -3,6 +3,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
+
 import '../../domain/entities/workbench_view_state.dart';
 import '../view_model/workbench_view_model.dart';
 
@@ -22,12 +24,11 @@ class WorkbenchPanelView extends HookConsumerWidget {
     final viewState = ref.watch(workbenchViewModelProvider);
     final notifier = ref.watch(workbenchViewModelProvider.notifier);
 
-    final theme = MacosTheme.of(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return ColoredBox(
-      color: theme.brightness == Brightness.dark
-          ? const Color(0xFF1E1E1E)
-          : const Color(0xFFF5F5F8),
+      color: colors.surfaces.canvas,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
@@ -61,6 +62,8 @@ class _WorkbenchFormSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final definitions = notifier.fieldDefinitions;
 
     return Wrap(
@@ -108,10 +111,7 @@ class _WorkbenchFormSection extends HookConsumerWidget {
                     definition.helperText!,
                     style: TextStyle(
                       fontSize: 11,
-                      color: MacosTheme.brightnessOf(context).resolve(
-                        const Color(0xFF5C5C5C),
-                        const Color(0xFFCCCCCC),
-                      ),
+                      color: colors.content.textSecondary,
                     ),
                   ),
                 ),

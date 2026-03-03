@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:macos_ui/macos_ui.dart'
+    show MacosTextField, MacosTooltip, ProgressCircle;
 import 'package:macos_ui/macos_ui.dart' as macos_ui;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/spacing/app_spacing.dart';
+import '../../../../config/theme/theme_typography.dart';
 
 import '../../../contacts/infrastructure/repositories/contact_profile_provider.dart';
 import '../../domain/value_objects/message_timeline_scope.dart';
@@ -37,7 +40,8 @@ class MessagesTimelineView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final vm = ref.watch(messageTimelineViewModelProvider(scope: scope));
     final ordinalAsync = vm.ordinal;
 
@@ -60,7 +64,7 @@ class MessagesTimelineView extends HookConsumerWidget {
     }, [scrollToDate, ordinalAsync.hasValue]);
 
     // Color scheme: header/search get a darker chrome, message list gets lighter
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = colors.isDark;
     final chromeBg = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE8E8ED);
     final messageListBg = isDark
         ? const Color(0xFF2C2C2E)
@@ -72,7 +76,6 @@ class MessagesTimelineView extends HookConsumerWidget {
         context,
         ref,
         vm,
-        theme,
         chromeBg,
         messageListBg,
       ),
@@ -80,7 +83,6 @@ class MessagesTimelineView extends HookConsumerWidget {
         context,
         ref,
         vm,
-        theme,
         contactId,
         chromeBg,
         messageListBg,
@@ -89,7 +91,6 @@ class MessagesTimelineView extends HookConsumerWidget {
         context,
         ref,
         vm,
-        theme,
         chatId,
         chromeBg,
         messageListBg,
@@ -101,7 +102,6 @@ class MessagesTimelineView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     MessageTimelineViewModelState vm,
-    MacosThemeData theme,
     Color chromeBg,
     Color messageListBg,
   ) {
@@ -115,7 +115,7 @@ class MessagesTimelineView extends HookConsumerWidget {
           Expanded(
             child: _FadeOverlayList(
               backgroundColor: messageListBg,
-              child: _buildMessageList(context, ref, vm, theme),
+              child: _buildMessageList(context, ref, vm),
             ),
           ),
         ],
@@ -127,7 +127,6 @@ class MessagesTimelineView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     MessageTimelineViewModelState vm,
-    MacosThemeData theme,
     int contactId,
     Color chromeBg,
     Color messageListBg,
@@ -146,7 +145,7 @@ class MessagesTimelineView extends HookConsumerWidget {
           Expanded(
             child: _FadeOverlayList(
               backgroundColor: messageListBg,
-              child: _buildMessageList(context, ref, vm, theme),
+              child: _buildMessageList(context, ref, vm),
             ),
           ),
         ],
@@ -158,7 +157,6 @@ class MessagesTimelineView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     MessageTimelineViewModelState vm,
-    MacosThemeData theme,
     int chatId,
     Color chromeBg,
     Color messageListBg,
@@ -173,7 +171,7 @@ class MessagesTimelineView extends HookConsumerWidget {
           Expanded(
             child: _FadeOverlayList(
               backgroundColor: messageListBg,
-              child: _buildMessageList(context, ref, vm, theme),
+              child: _buildMessageList(context, ref, vm),
             ),
           ),
         ],
@@ -185,18 +183,17 @@ class MessagesTimelineView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     MessageTimelineViewModelState vm,
-    MacosThemeData theme,
   ) {
     if (vm.isSearching) {
       return _SearchResultsList(vm: vm);
     }
 
+    final typography = ref.watch(themeTypographyProvider);
+
     return vm.ordinal.when(
       data: (ordinalState) {
         if (ordinalState.totalCount == 0) {
-          return Center(
-            child: Text(_emptyMessage, style: theme.typography.title3),
-          );
+          return Center(child: Text(_emptyMessage, style: typography.title3));
         }
 
         return ScrollablePositionedList.builder(
@@ -380,8 +377,9 @@ class _SearchModeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final isDark = colors.isDark;
     final activeColor = CupertinoColors.systemBlue.resolveFrom(context);
     final inactiveColor = isDark
         ? const Color(0xFF98989D)
@@ -469,11 +467,9 @@ class _GlobalHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor = isDark
-        ? const Color(0xFF98989D)
-        : const Color(0xFF6E6E73);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final secondaryColor = colors.content.textSecondary;
 
     final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
     final visibleMonthAsync = ref.watch(
@@ -612,11 +608,9 @@ class _ContactHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor = isDark
-        ? const Color(0xFF98989D)
-        : const Color(0xFF6E6E73);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final secondaryColor = colors.content.textSecondary;
 
     // Get contact profile for display name
     final profileAsync = ref.watch(
@@ -689,11 +683,9 @@ class _ChatHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final secondaryColor = isDark
-        ? const Color(0xFF98989D)
-        : const Color(0xFF6E6E73);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final secondaryColor = colors.content.textSecondary;
 
     final metadataAsync = ref.watch(timelineMetadataProvider(scope: scope));
     final visibleMonthAsync = ref.watch(
@@ -756,7 +748,6 @@ class _MessageRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
     final itemAsync = ref.watch(
       messageByTimelineOrdinalProvider(scope: scope, ordinal: ordinal),
     );
@@ -764,11 +755,11 @@ class _MessageRow extends ConsumerWidget {
     return itemAsync.when(
       data: (item) {
         if (item == null) {
-          return _SkeletonRow(theme: theme);
+          return const _SkeletonRow();
         }
         return MessageCard(message: item);
       },
-      loading: () => _SkeletonRow(theme: theme),
+      loading: () => const _SkeletonRow(),
       error: (error, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: Text('Row $ordinal failed: $error'),
@@ -778,19 +769,20 @@ class _MessageRow extends ConsumerWidget {
 }
 
 /// Skeleton placeholder while message is loading.
-class _SkeletonRow extends StatelessWidget {
-  const _SkeletonRow({required this.theme});
-
-  final MacosThemeData theme;
+class _SkeletonRow extends ConsumerWidget {
+  const _SkeletonRow();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     return Container(
       height: 76,
       decoration: BoxDecoration(
-        color: theme.canvasColor,
+        color: colors.surfaces.canvas,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.35)),
+        border: Border.all(color: colors.lines.divider.withValues(alpha: 0.35)),
       ),
       child: const Center(
         child: SizedBox(
@@ -813,7 +805,8 @@ class _SearchResultsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
 
     return vm.searchResultIds.when(
       data: (resultIds) {
@@ -831,9 +824,7 @@ class _SearchResultsList extends ConsumerWidget {
                 '${resultIds.length} results',
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.brightness == Brightness.dark
-                      ? const Color(0xFF98989D)
-                      : const Color(0xFF6E6E73),
+                  color: colors.content.textSecondary,
                 ),
               ),
             ),
@@ -842,10 +833,7 @@ class _SearchResultsList extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: resultIds.length,
                 itemBuilder: (context, index) {
-                  return _SearchResultRow(
-                    messageId: resultIds[index],
-                    theme: theme,
-                  );
+                  return _SearchResultRow(messageId: resultIds[index]);
                 },
               ),
             ),
@@ -860,10 +848,9 @@ class _SearchResultsList extends ConsumerWidget {
 
 /// Single search result row with on-demand hydration.
 class _SearchResultRow extends ConsumerWidget {
-  const _SearchResultRow({required this.messageId, required this.theme});
+  const _SearchResultRow({required this.messageId});
 
   final int messageId;
-  final MacosThemeData theme;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -872,11 +859,11 @@ class _SearchResultRow extends ConsumerWidget {
     return itemAsync.when(
       data: (item) {
         if (item == null) {
-          return _SkeletonRow(theme: theme);
+          return const _SkeletonRow();
         }
         return MessageCard(message: item);
       },
-      loading: () => _SkeletonRow(theme: theme),
+      loading: () => const _SkeletonRow(),
       error: (error, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: Text('Message $messageId failed: $error'),

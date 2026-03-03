@@ -110,7 +110,8 @@ class _GlobalHeatmapContent extends HookConsumerWidget {
     }
 
     final timeline = data!;
-    final colors = ref.watch(themeColorsProvider.notifier);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
 
     final selectedMonthAsync = ref.watch(
@@ -366,7 +367,8 @@ class _EmptyHeatmapCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = ref.watch(themeColorsProvider.notifier);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final t = ref.watch(themeTypographyProvider);
 
     return Padding(

@@ -3,7 +3,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:macos_ui/macos_ui.dart'
+    show ControlSize, MacosIcon, ProgressCircle, PushButton;
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
@@ -115,8 +116,9 @@ class FullContactPicker extends ConsumerWidget {
             border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
           ),
           child: Column(
-            mainAxisSize:
-                hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: hasBoundedHeight
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             children: [
               const PickerFilterToggle(),
               if (hasBoundedHeight)
@@ -150,10 +152,10 @@ class ContactLozenge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = MacosTheme.of(context);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
     const radius = 12.0;
 
     // Slightly smaller horizontal margin prevents the halo from clipping
@@ -223,7 +225,7 @@ class ContactLozenge extends ConsumerWidget {
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.typography.body.copyWith(
+                          style: typography.body.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colors.content.textPrimary,
                           ),
@@ -548,10 +550,10 @@ class _JumpBarState extends ConsumerState<_JumpBar> {
       return const SizedBox(width: _kJumpBarWidth);
     }
 
-    final typography = MacosTheme.of(context).typography;
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -632,10 +634,10 @@ class _GroupedSelectorError extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final typography = MacosTheme.of(context).typography;
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
+    final typography = ref.watch(themeTypographyProvider);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

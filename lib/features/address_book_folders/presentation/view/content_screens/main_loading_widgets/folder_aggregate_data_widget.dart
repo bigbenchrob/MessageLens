@@ -2,17 +2,24 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../config/theme/theme_typography.dart';
 import '../../../../domain/entities/address_book_folder_aggregate.dart';
 
 /// Widget displayed when folder aggregate loads successfully
-class FolderAggregateDataWidget extends StatelessWidget {
+class FolderAggregateDataWidget extends ConsumerWidget {
   final AddressBookFolderAggregate aggregate;
 
   const FolderAggregateDataWidget({super.key, required this.aggregate});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -21,10 +28,7 @@ class FolderAggregateDataWidget extends StatelessWidget {
           children: [
             Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
             const SizedBox(height: 16),
-            Text(
-              'Address Book Loaded Successfully!',
-              style: MacosTheme.of(context).typography.title2,
-            ),
+            Text('Address Book Loaded Successfully!', style: typography.title2),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
@@ -37,25 +41,22 @@ class FolderAggregateDataWidget extends StatelessWidget {
                 children: [
                   Text(
                     'Found ${aggregate.folders.length} address book folder(s)',
-                    style: MacosTheme.of(context).typography.body,
+                    style: typography.body,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   if (aggregate.folders.isNotEmpty)
                     Text(
                       'Ready to browse ${aggregate.folders.length} folder(s)',
-                      style: MacosTheme.of(context).typography.body.copyWith(
-                        color: MacosColors.secondaryLabelColor,
+                      style: typography.body.copyWith(
+                        color: colors.content.textSecondary,
                       ),
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Ready to browse contacts!',
-              style: MacosTheme.of(context).typography.headline,
-            ),
+            Text('Ready to browse contacts!', style: typography.headline),
             const SizedBox(height: 32),
             // Navigation buttons to demonstrate go_router
             Row(
@@ -85,8 +86,8 @@ class FolderAggregateDataWidget extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Click "View Contacts" to navigate to the contacts screen',
-              style: MacosTheme.of(context).typography.body.copyWith(
-                color: MacosColors.tertiaryLabelColor,
+              style: typography.body.copyWith(
+                color: colors.content.textTertiary,
                 fontSize: 12,
               ),
               textAlign: TextAlign.center,

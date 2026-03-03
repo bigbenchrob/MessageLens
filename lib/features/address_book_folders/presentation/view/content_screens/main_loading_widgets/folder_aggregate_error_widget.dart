@@ -1,10 +1,13 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart' show ControlSize, PushButton;
+
+import '../../../../../../config/theme/theme_typography.dart';
 
 /// Widget displayed when folder aggregate loading fails
-class FolderAggregateErrorWidget extends StatelessWidget {
+class FolderAggregateErrorWidget extends ConsumerWidget {
   final String errorMessage;
   final VoidCallback? onRetry;
 
@@ -15,7 +18,9 @@ class FolderAggregateErrorWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typography = ref.watch(themeTypographyProvider);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -24,10 +29,7 @@ class FolderAggregateErrorWidget extends StatelessWidget {
           children: [
             Icon(Icons.warning_amber_rounded, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              'Address Book Error',
-              style: MacosTheme.of(context).typography.title2,
-            ),
+            Text('Address Book Error', style: typography.title2),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
@@ -38,7 +40,7 @@ class FolderAggregateErrorWidget extends StatelessWidget {
               ),
               child: Text(
                 errorMessage,
-                style: MacosTheme.of(context).typography.body,
+                style: typography.body,
                 textAlign: TextAlign.center,
               ),
             ),
