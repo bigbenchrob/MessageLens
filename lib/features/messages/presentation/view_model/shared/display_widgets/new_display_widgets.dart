@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../../../config/theme/colors/theme_colors.dart';
 import '../hydration/attachment_info.dart';
 
 // ignore: avoid_classes_with_only_static_members
@@ -17,23 +19,6 @@ class MsgTheme {
   static const textRadius = BorderRadius.all(Radius.circular(16));
   static const gapXS = SizedBox(height: 4);
   static const gapMD = SizedBox(height: 12);
-
-  static const bubbleBlue = Color(0xFF0A84FF);
-  static const bubbleGray = Color(0xFFE9E9EB);
-  static const metadataGrey = Color(0xFF6E6E73);
-  static const outline = Color(0x1F000000);
-  static const linkBannerBlack = Colors.black;
-  static const highlightOnBlue = Color(0xFF0056B3);
-  static const highlightOnGray = Color(0xFFB3D7FF);
-
-  static TextStyle get bodyOnBlue =>
-      const TextStyle(color: Colors.white, height: 1.25, fontSize: 14.5);
-
-  static TextStyle get bodyOnGray =>
-      const TextStyle(color: Colors.black, height: 1.25, fontSize: 14.5);
-
-  static TextStyle get metadata =>
-      const TextStyle(color: metadataGrey, fontSize: 11, height: 1.2);
 
   static EdgeInsets convoHPad() => const EdgeInsets.symmetric(horizontal: 14);
 }
@@ -77,7 +62,7 @@ class MessageShell extends StatelessWidget {
   }
 }
 
-class MetadataLine extends StatelessWidget {
+class MetadataLine extends ConsumerWidget {
   const MetadataLine({
     super.key,
     required this.sender,
@@ -90,11 +75,17 @@ class MetadataLine extends StatelessWidget {
   final int messageId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final formattedDateTime = _formatDateTime(sentAt);
     return Text(
       '$sender * $formattedDateTime * ID: $messageId',
-      style: MsgTheme.metadata,
+      style: TextStyle(
+        color: colors.messageBubble(MessageBubble.metadata),
+        fontSize: 11,
+        height: 1.2,
+      ),
     );
   }
 
@@ -126,7 +117,7 @@ class MetadataLine extends StatelessWidget {
   }
 }
 
-class TextMessageTile extends StatelessWidget {
+class TextMessageTile extends ConsumerWidget {
   const TextMessageTile({
     super.key,
     required this.isMe,
@@ -145,13 +136,23 @@ class TextMessageTile extends StatelessWidget {
   final String? highlight;
 
   @override
-  Widget build(BuildContext context) {
-    final bg = isMe ? MsgTheme.bubbleBlue : MsgTheme.bubbleGray;
-    final style = isMe ? MsgTheme.bodyOnBlue : MsgTheme.bodyOnGray;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+    final bg = isMe
+        ? colors.messageBubble(MessageBubble.sentBg)
+        : colors.messageBubble(MessageBubble.receivedBg);
+    final style = TextStyle(
+      color: isMe
+          ? colors.messageBubble(MessageBubble.sentText)
+          : colors.messageBubble(MessageBubble.receivedText),
+      height: 1.25,
+      fontSize: 14.5,
+    );
     final highlightStyle = style.copyWith(
       backgroundColor: isMe
-          ? MsgTheme.highlightOnBlue
-          : MsgTheme.highlightOnGray,
+          ? colors.messageBubble(MessageBubble.sentHighlight)
+          : colors.messageBubble(MessageBubble.receivedHighlight),
     );
     final contentSpan = _buildContentSpan(
       baseStyle: style,
@@ -273,7 +274,7 @@ class ImageMessageTile extends StatelessWidget {
   }
 }
 
-class VideoMessageTile extends StatefulWidget {
+class VideoMessageTile extends ConsumerStatefulWidget {
   const VideoMessageTile({
     super.key,
     required this.isMe,
@@ -290,10 +291,10 @@ class VideoMessageTile extends StatefulWidget {
   final int messageId;
 
   @override
-  State<VideoMessageTile> createState() => _VideoMessageTileState();
+  ConsumerState<VideoMessageTile> createState() => _VideoMessageTileState();
 }
 
-class _VideoMessageTileState extends State<VideoMessageTile> {
+class _VideoMessageTileState extends ConsumerState<VideoMessageTile> {
   VideoPlayerController? _controller;
   bool _ready = false;
 
@@ -340,6 +341,8 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final aspectRatio = widget.attachment.aspectRatio ?? 16 / 9;
     final hasVideo = _controller != null;
 
@@ -352,9 +355,9 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surfaces.surface,
           borderRadius: MsgTheme.mediaRadius,
-          border: Border.all(color: MsgTheme.outline),
+          border: Border.all(color: colors.lines.borderSubtle),
         ),
         child: ClipRRect(
           borderRadius: MsgTheme.mediaRadius,
@@ -431,7 +434,7 @@ class _VideoMessageTileState extends State<VideoMessageTile> {
   }
 }
 
-class LinkPreviewTile extends StatelessWidget {
+class LinkPreviewTile extends ConsumerWidget {
   const LinkPreviewTile({
     super.key,
     required this.isMe,
@@ -457,7 +460,9 @@ class LinkPreviewTile extends StatelessWidget {
   final String? previewText;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final domain = url.host;
     final image =
         previewImageWidget ??
@@ -469,9 +474,9 @@ class LinkPreviewTile extends StatelessWidget {
 
     final card = DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surfaces.surface,
         borderRadius: MsgTheme.mediaRadius,
-        border: Border.all(color: MsgTheme.outline),
+        border: Border.all(color: colors.lines.borderSubtle),
       ),
       child: ClipRRect(
         borderRadius: MsgTheme.mediaRadius,
@@ -480,12 +485,12 @@ class LinkPreviewTile extends StatelessWidget {
           children: [
             _IntrinsicSizedMedia(child: image),
             Container(
-              color: MsgTheme.linkBannerBlack,
+              color: colors.messageBubble(MessageBubble.linkBanner),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Text(
                 domain,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.messageBubble(MessageBubble.linkBannerText),
                   fontSize: 12.5,
                   height: 1.2,
                   fontWeight: FontWeight.w500,
@@ -500,10 +505,10 @@ class LinkPreviewTile extends StatelessWidget {
                   previewText!,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.25,
-                    color: Colors.black87,
+                    color: colors.content.textPrimary,
                   ),
                 ),
               ),

@@ -401,6 +401,59 @@ enum CassetteCard {
   ColorPair get pair => _palette[this]!;
 }
 
+/// Semantic tokens for iMessage-style chat bubbles.
+enum MessageBubble {
+  /// Sent (blue) bubble background.
+  sentBg,
+
+  /// Received (gray) bubble background.
+  receivedBg,
+
+  /// Text on sent (blue) bubble — always high contrast on blue.
+  sentText,
+
+  /// Text on received (gray) bubble — flips for dark mode.
+  receivedText,
+
+  /// Search highlight background on sent (blue) bubble.
+  sentHighlight,
+
+  /// Search highlight background on received (gray) bubble.
+  receivedHighlight,
+
+  /// Dark strip behind the domain label in link previews.
+  linkBanner,
+
+  /// Text on the link banner strip.
+  linkBannerText,
+
+  /// Metadata line below bubbles (sender · timestamp).
+  metadata;
+
+  static const Map<MessageBubble, ColorPair> _palette = {
+    MessageBubble.sentBg: ColorPair(Color(0xFF0A84FF), Color(0xFF0A84FF)),
+    MessageBubble.receivedBg: ColorPair(Color(0xFFE9E9EB), Color(0xFF3A3A3C)),
+    MessageBubble.sentText: ColorPair(Color(0xFFFFFFFF), Color(0xFFFFFFFF)),
+    MessageBubble.receivedText: ColorPair(Color(0xFF000000), Color(0xFFFFFFFF)),
+    MessageBubble.sentHighlight: ColorPair(
+      Color(0xFF0056B3),
+      Color(0xFF4DA3FF),
+    ),
+    MessageBubble.receivedHighlight: ColorPair(
+      Color(0xFFB3D7FF),
+      Color(0xFF1A4D80),
+    ),
+    MessageBubble.linkBanner: ColorPair(Color(0xFF1C1C1E), Color(0xFF48484A)),
+    MessageBubble.linkBannerText: ColorPair(
+      Color(0xFFFFFFFF),
+      Color(0xFFFFFFFF),
+    ),
+    MessageBubble.metadata: ColorPair(Color(0xFF6E6E73), Color(0xFF98989D)),
+  };
+
+  ColorPair get pair => _palette[this]!;
+}
+
 /// Semantic tokens for “info cards” (explanatory copy, empty-state help, etc.)
 ///
 /// Visual intent:
@@ -466,6 +519,7 @@ class ThemeColors extends _$ThemeColors {
   Color gray(GrayTone tone) => tone.pair.resolve(brightness);
   Color brandHighlight(BrandHighlight tone) => tone.pair.resolve(brightness);
   Color cassetteCard(CassetteCard tone) => tone.pair.resolve(brightness);
+  Color messageBubble(MessageBubble tone) => tone.pair.resolve(brightness);
 
   /// Resolve an InfoCard token for the current brightness.
   Color infoCard(InfoCard tone) => tone.pair.resolve(brightness);
