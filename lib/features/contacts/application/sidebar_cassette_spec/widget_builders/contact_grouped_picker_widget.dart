@@ -6,7 +6,7 @@ import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../../../presentation/widgets/grouped_contact_selector.dart';
-import '../resolver_tools/unified_picker_sections_provider.dart';
+import '../resolver_tools/filtered_picker_sections_provider.dart';
 
 /// Widget builder for the grouped contact picker display.
 ///
@@ -62,6 +62,6 @@ class ContactGroupedPickerWidget extends ConsumerWidget {
     final overlayDb = await ref.read(overlayDatabaseProvider.future);
     await overlayDb.trackContactAccess(contactId);
     ref.invalidate(recentContactsProvider);
-    ref.invalidate(unifiedPickerSectionsProvider);
+    ref.invalidate(filteredPickerSectionsProvider);
   }
 }

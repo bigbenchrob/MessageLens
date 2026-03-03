@@ -6,7 +6,7 @@ part of 'panel_widget_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$centerPanelWidgetHash() => r'c7c17f1a5aa31d76ec4c64ee0b875cd1265dc180';
+String _$isSidebarParkedHash() => r'3e78e9ac13a4c1f0fc2151cde86b0a68f04f3516';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -28,6 +28,159 @@ class _SystemHash {
     return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
   }
 }
+
+/// Whether the center panel is showing content that operates independently
+/// of the sidebar (e.g. import/migration, workbench).
+///
+/// When true, the sidebar should display a contextual overlay with a
+/// dismiss action rather than the cassette rack.
+///
+/// Copied from [isSidebarParked].
+@ProviderFor(isSidebarParked)
+const isSidebarParkedProvider = IsSidebarParkedFamily();
+
+/// Whether the center panel is showing content that operates independently
+/// of the sidebar (e.g. import/migration, workbench).
+///
+/// When true, the sidebar should display a contextual overlay with a
+/// dismiss action rather than the cassette rack.
+///
+/// Copied from [isSidebarParked].
+class IsSidebarParkedFamily extends Family<bool> {
+  /// Whether the center panel is showing content that operates independently
+  /// of the sidebar (e.g. import/migration, workbench).
+  ///
+  /// When true, the sidebar should display a contextual overlay with a
+  /// dismiss action rather than the cassette rack.
+  ///
+  /// Copied from [isSidebarParked].
+  const IsSidebarParkedFamily();
+
+  /// Whether the center panel is showing content that operates independently
+  /// of the sidebar (e.g. import/migration, workbench).
+  ///
+  /// When true, the sidebar should display a contextual overlay with a
+  /// dismiss action rather than the cassette rack.
+  ///
+  /// Copied from [isSidebarParked].
+  IsSidebarParkedProvider call(SidebarMode mode) {
+    return IsSidebarParkedProvider(mode);
+  }
+
+  @override
+  IsSidebarParkedProvider getProviderOverride(
+    covariant IsSidebarParkedProvider provider,
+  ) {
+    return call(provider.mode);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'isSidebarParkedProvider';
+}
+
+/// Whether the center panel is showing content that operates independently
+/// of the sidebar (e.g. import/migration, workbench).
+///
+/// When true, the sidebar should display a contextual overlay with a
+/// dismiss action rather than the cassette rack.
+///
+/// Copied from [isSidebarParked].
+class IsSidebarParkedProvider extends AutoDisposeProvider<bool> {
+  /// Whether the center panel is showing content that operates independently
+  /// of the sidebar (e.g. import/migration, workbench).
+  ///
+  /// When true, the sidebar should display a contextual overlay with a
+  /// dismiss action rather than the cassette rack.
+  ///
+  /// Copied from [isSidebarParked].
+  IsSidebarParkedProvider(SidebarMode mode)
+    : this._internal(
+        (ref) => isSidebarParked(ref as IsSidebarParkedRef, mode),
+        from: isSidebarParkedProvider,
+        name: r'isSidebarParkedProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$isSidebarParkedHash,
+        dependencies: IsSidebarParkedFamily._dependencies,
+        allTransitiveDependencies:
+            IsSidebarParkedFamily._allTransitiveDependencies,
+        mode: mode,
+      );
+
+  IsSidebarParkedProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.mode,
+  }) : super.internal();
+
+  final SidebarMode mode;
+
+  @override
+  Override overrideWith(bool Function(IsSidebarParkedRef provider) create) {
+    return ProviderOverride(
+      origin: this,
+      override: IsSidebarParkedProvider._internal(
+        (ref) => create(ref as IsSidebarParkedRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        mode: mode,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeProviderElement<bool> createElement() {
+    return _IsSidebarParkedProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is IsSidebarParkedProvider && other.mode == mode;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, mode.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin IsSidebarParkedRef on AutoDisposeProviderRef<bool> {
+  /// The parameter `mode` of this provider.
+  SidebarMode get mode;
+}
+
+class _IsSidebarParkedProviderElement extends AutoDisposeProviderElement<bool>
+    with IsSidebarParkedRef {
+  _IsSidebarParkedProviderElement(super.provider);
+
+  @override
+  SidebarMode get mode => (origin as IsSidebarParkedProvider).mode;
+}
+
+String _$centerPanelWidgetHash() => r'c7c17f1a5aa31d76ec4c64ee0b875cd1265dc180';
 
 /// Widget provider for center panel
 ///

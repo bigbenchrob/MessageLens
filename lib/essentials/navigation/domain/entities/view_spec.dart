@@ -18,3 +18,16 @@ abstract class ViewSpec with _$ViewSpec {
   const factory ViewSpec.settings(SettingsSpec spec) = _ViewSettings;
   const factory ViewSpec.workbench(WorkbenchSpec spec) = _ViewWorkbench;
 }
+
+/// Whether this ViewSpec represents content that operates independently of
+/// the sidebar cassette rack (e.g. import/migration panels, workbench).
+///
+/// When true, the sidebar should be replaced with a contextual overlay
+/// rather than showing stale cassette state.
+extension ViewSpecSidebarAwareness on ViewSpec {
+  bool get isSidebarIndependent => switch (this) {
+    _ViewImport() => true,
+    _ViewWorkbench() => true,
+    _ => false,
+  };
+}

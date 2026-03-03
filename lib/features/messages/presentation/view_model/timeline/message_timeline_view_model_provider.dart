@@ -138,8 +138,10 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
   }
 
   Future<void> _setDebouncedQuery(String value) async {
-    final trimmed = value.trim();
-    if (trimmed == state.debouncedQuery) {
+    // Preserve trailing whitespace: it signals that the last token is a
+    // complete word (e.g. "gus " should not prefix-match "gustav").
+    final normalized = value.trimLeft();
+    if (normalized == state.debouncedQuery) {
       return;
     }
 
@@ -147,13 +149,13 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       scope: state.scope,
       searchController: state.searchController,
       searchQuery: state.searchQuery,
-      debouncedQuery: trimmed,
+      debouncedQuery: normalized,
       searchMode: state.searchMode,
       searchResultIds: state.searchResultIds,
       ordinal: state.ordinal,
     );
 
-    if (trimmed.isEmpty) {
+    if (normalized.trim().isEmpty) {
       state = MessageTimelineViewModelState(
         scope: state.scope,
         searchController: state.searchController,
@@ -176,7 +178,7 @@ class MessageTimelineViewModel extends _$MessageTimelineViewModel {
       ordinal: state.ordinal,
     );
 
-    await _executeSearch(trimmed);
+    await _executeSearch(normalized);
   }
 
   Future<void> _executeSearch(String query) async {

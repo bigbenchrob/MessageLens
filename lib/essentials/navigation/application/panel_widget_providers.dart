@@ -8,12 +8,32 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // left panel surface.
 import '../../sidebar/feature_level_providers.dart';
 import '../domain/entities/panel_stack.dart';
+import '../domain/entities/view_spec.dart';
 import '../domain/navigation_constants.dart';
 import '../domain/sidebar_mode.dart';
 import '../feature_level_providers.dart';
 import './panel_coordinator_provider.dart';
 
 part 'panel_widget_providers.g.dart';
+
+/// Whether the center panel is showing content that operates independently
+/// of the sidebar (e.g. import/migration, workbench).
+///
+/// When true, the sidebar should display a contextual overlay with a
+/// dismiss action rather than the cassette rack.
+@riverpod
+bool isSidebarParked(Ref ref, SidebarMode mode) {
+  final stack = ref.watch(
+    panelsViewStateProvider(mode).select(
+      (stacks) => stacks[WindowPanel.center] ?? const PanelStack.empty(),
+    ),
+  );
+  final spec = stack.activePage?.spec;
+  if (spec == null) {
+    return false;
+  }
+  return spec.isSidebarIndependent;
+}
 
 /// Widget provider for center panel
 @riverpod

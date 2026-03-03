@@ -22,6 +22,7 @@ class SearchService {
     required int chatId,
     required String query,
   }) async {
+    final lastTokenComplete = _hasTrailingWhitespace(query);
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       return const [];
@@ -33,6 +34,7 @@ class SearchService {
         tokens: tokens,
         chatId: chatId,
         contactId: null,
+        lastTokenComplete: lastTokenComplete,
       );
       if (ftsResults.isNotEmpty) {
         return ftsResults;
@@ -47,6 +49,7 @@ class SearchService {
     required int contactId,
     required String query,
   }) async {
+    final lastTokenComplete = _hasTrailingWhitespace(query);
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       return const [];
@@ -58,6 +61,7 @@ class SearchService {
         tokens: tokens,
         chatId: null,
         contactId: contactId,
+        lastTokenComplete: lastTokenComplete,
       );
       if (ftsResults.isNotEmpty) {
         return ftsResults;
@@ -72,6 +76,7 @@ class SearchService {
     required String query,
     SearchMode mode = SearchMode.allTerms,
   }) async {
+    final lastTokenComplete = _hasTrailingWhitespace(query);
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       return const [];
@@ -84,6 +89,7 @@ class SearchService {
         chatId: null,
         contactId: null,
         mode: mode,
+        lastTokenComplete: lastTokenComplete,
       );
       if (ftsResults.isNotEmpty) {
         return ftsResults;
@@ -168,9 +174,14 @@ class SearchService {
     required List<String> tokens,
     required int? chatId,
     required int? contactId,
+    bool lastTokenComplete = false,
     SearchMode mode = SearchMode.allTerms,
   }) async {
-    final matchQuery = _buildMatchExpression(tokens, mode);
+    final matchQuery = _buildMatchExpression(
+      tokens,
+      mode,
+      lastTokenComplete: lastTokenComplete,
+    );
     if (matchQuery == null) {
       return const [];
     }
@@ -239,7 +250,16 @@ List<String> _tokenize(String input) {
       .toList(growable: false);
 }
 
-String? _buildMatchExpression(List<String> tokens, SearchMode mode) {
+/// Whether [input] ends with whitespace, signaling the last word is complete.
+bool _hasTrailingWhitespace(String input) {
+  return input.isNotEmpty && input != input.trimRight();
+}
+
+String? _buildMatchExpression(
+  List<String> tokens,
+  SearchMode mode, {
+  bool lastTokenComplete = false,
+}) {
   final sanitized = tokens
       .map((token) => token.replaceAll("'", ''))
       .where((token) => token.isNotEmpty)
@@ -248,7 +268,18 @@ String? _buildMatchExpression(List<String> tokens, SearchMode mode) {
     return null;
   }
   final operator = mode == SearchMode.allTerms ? ' AND ' : ' OR ';
-  return sanitized.map((token) => '$token*').join(operator);
+  // Prefix-match (*) only the last token, and only when the user hasn't
+  // signaled word completion with trailing whitespace.
+  final parts = <String>[];
+  for (var i = 0; i < sanitized.length; i++) {
+    final isLast = i == sanitized.length - 1;
+    if (isLast && !lastTokenComplete) {
+      parts.add('${sanitized[i]}*');
+    } else {
+      parts.add(sanitized[i]);
+    }
+  }
+  return parts.join(operator);
 }
 
 DateTime? _parseUtc(String? value) {

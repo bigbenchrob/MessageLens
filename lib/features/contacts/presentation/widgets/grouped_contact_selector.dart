@@ -9,10 +9,12 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 
+import '../../application/sidebar_cassette_spec/resolver_tools/filtered_picker_sections_provider.dart';
 import '../../application/sidebar_cassette_spec/resolver_tools/unified_picker_sections_provider.dart';
 import '../../infrastructure/repositories/contacts_list_repository.dart'
     show ContactSummary;
 import 'contact_highlight_row.dart';
+import 'picker_filter_toggle.dart';
 
 /// Smart header that can show either the full picker or the compact lozenge.
 class SmartContactPickerHeader extends ConsumerWidget {
@@ -71,7 +73,7 @@ class FullContactPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groupedAsync = ref.watch(unifiedPickerSectionsProvider);
+    final groupedAsync = ref.watch(filteredPickerSectionsProvider);
     // Watch the brightness state to trigger rebuilds
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
@@ -81,14 +83,6 @@ class FullContactPicker extends ConsumerWidget {
         final maxHeightOverride = maxHeight;
         final hasBoundedHeight =
             maxHeightOverride != null || constraints.maxHeight.isFinite;
-
-        Widget buildPicker(Widget child) {
-          if (hasBoundedHeight) {
-            final height = maxHeightOverride ?? constraints.maxHeight;
-            return SizedBox(height: height, child: child);
-          }
-          return child;
-        }
 
         final pickerContent = groupedAsync.when(
           data: (unified) {
@@ -108,7 +102,7 @@ class FullContactPicker extends ConsumerWidget {
           error: (error, _) => _GroupedSelectorError(
             message: '$error',
             onRetry: () {
-              ref.invalidate(unifiedPickerSectionsProvider);
+              ref.invalidate(filteredPickerSectionsProvider);
             },
           ),
         );
@@ -120,7 +114,17 @@ class FullContactPicker extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
           ),
-          child: buildPicker(pickerContent),
+          child: Column(
+            mainAxisSize:
+                hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+            children: [
+              const PickerFilterToggle(),
+              if (hasBoundedHeight)
+                Expanded(child: pickerContent)
+              else
+                pickerContent,
+            ],
+          ),
         );
 
         return Container(

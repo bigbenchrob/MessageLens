@@ -7,7 +7,7 @@ part of 'message_timeline_view_model_provider.dart';
 // **************************************************************************
 
 String _$messageTimelineViewModelHash() =>
-    r'a3ffb1c39996ccec8b59244607b79c69cfe86fef';
+    r'6ce4ba7ab012679bff6f2a9dce788ab0041eb64d';
 
 /// Copied from Dart SDK
 class _SystemHash {

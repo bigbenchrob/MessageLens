@@ -14,6 +14,9 @@ import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../../infrastructure/repositories/recent_contacts_repository.dart';
 import '../../../presentation/widgets/contact_initial_badge.dart';
+import '../../../presentation/widgets/picker_filter_toggle.dart';
+import '../resolver_tools/favorite_contacts_provider.dart';
+import '../resolver_tools/picker_filter_mode_provider.dart';
 
 /// Widget builder for the flat contact list display.
 ///
@@ -42,49 +45,68 @@ class ContactFlatListWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Widget may reactively watch data
+    final filterMode = ref.watch(pickerFilterProvider);
     final contactsAsync = ref.watch(
       contactsListRepositoryProvider(
         spec: const ContactsListSpec.alphabetical(),
       ),
     );
+    final favoritesAsync = ref.watch(favoriteContactsProvider);
 
-    return contactsAsync.when(
-      data: (contacts) {
-        if (contacts.isEmpty) {
-          return const _EmptyState();
-        }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const PickerFilterToggle(),
+        contactsAsync.when(
+          data: (contacts) {
+            final favoriteIds = favoritesAsync.valueOrNull
+                    ?.map((f) => f.contact.participantId)
+                    .toSet() ??
+                <int>{};
 
-        ref.watch(themeColorsProvider);
-        final colors = ref.read(themeColorsProvider.notifier);
-        final typography = ref.watch(themeTypographyProvider);
+            final displayContacts = switch (filterMode) {
+              PickerFilterMode.all => contacts,
+              PickerFilterMode.favouritesOnly => contacts
+                  .where((c) => favoriteIds.contains(c.participantId))
+                  .toList(growable: false),
+            };
 
-        return SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: contacts.map((contact) {
-              final isSelected = contact.participantId == chosenContactId;
+            if (displayContacts.isEmpty) {
+              return const _EmptyState();
+            }
 
-              return _ContactRow(
-                displayName: contact.displayName,
-                isSelected: isSelected,
-                onTap: () =>
-                    _handleContactSelection(ref, contact.participantId),
-                colors: colors,
-                typography: typography,
-              );
-            }).toList(),
+            ref.watch(themeColorsProvider);
+            final colors = ref.read(themeColorsProvider.notifier);
+            final typography = ref.watch(themeTypographyProvider);
+
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: displayContacts.map((contact) {
+                  final isSelected = contact.participantId == chosenContactId;
+
+                  return _ContactRow(
+                    displayName: contact.displayName,
+                    isSelected: isSelected,
+                    onTap: () =>
+                        _handleContactSelection(ref, contact.participantId),
+                    colors: colors,
+                    typography: typography,
+                  );
+                }).toList(),
+              ),
+            );
+          },
+          loading: () => const Center(child: ProgressCircle()),
+          error: (error, _) => Center(
+            child: Text(
+              'Error loading contacts: $error',
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
-        );
-      },
-      loading: () => const Center(child: ProgressCircle()),
-      error: (error, _) => Center(
-        child: Text(
-          'Error loading contacts: $error',
-          style: const TextStyle(color: Colors.red),
         ),
-      ),
+      ],
     );
   }
 
