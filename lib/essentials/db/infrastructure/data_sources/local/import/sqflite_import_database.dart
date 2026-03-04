@@ -932,6 +932,31 @@ AND Z_PK NOT IN (
     );
   }
 
+  /// Batch-insert message↔attachment join rows in a single transaction.
+  ///
+  /// Each entry must contain `message_id`, `attachment_id`, and optionally
+  /// `source_rowid`. No per-row existence validation is performed — callers
+  /// are responsible for ensuring referenced rows already exist.
+  Future<void> insertMessageAttachmentsBatch(
+    List<Map<String, Object?>> rows,
+  ) async {
+    if (rows.isEmpty) {
+      return;
+    }
+    final db = await database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final row in rows) {
+        batch.insert(
+          'message_attachments',
+          _cleanMap(row),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
   Future<int> insertReaction({
     int? id,
     required int carrierMessageId,

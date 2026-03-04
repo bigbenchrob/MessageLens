@@ -2,7 +2,6 @@ import 'package:collection/collection.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 
 part 'grouped_contacts_provider.freezed.dart';
@@ -50,11 +49,7 @@ const _alphabet = [
 
 @riverpod
 Future<GroupedContacts> groupedContacts(GroupedContactsRef ref) async {
-  final contacts = await ref.watch(
-    contactsListRepositoryProvider(
-      spec: const ContactsListSpec.alphabetical(),
-    ).future,
-  );
+  final contacts = await ref.watch(contactsListRepositoryProvider.future);
 
   final grouped = <String, List<ContactSummary>>{};
 

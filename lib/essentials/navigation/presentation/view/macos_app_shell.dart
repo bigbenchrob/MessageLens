@@ -13,7 +13,6 @@ import '../../../onboarding/presentation/onboarding_overlay.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
-import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/features/onboarding_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
@@ -140,36 +139,6 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                         .read(navigationLoggerProvider.notifier)
                         .logToolbarClick(
                           buttonLabel: 'Chats',
-                          targetPanel: WindowPanel.center,
-                          viewSpec: spec,
-                        );
-
-                    // Perform the navigation
-                    ref
-                        .read(
-                          panelsViewStateProvider(
-                            SidebarMode.messages,
-                          ).notifier,
-                        )
-                        .show(panel: WindowPanel.center, spec: spec);
-                  },
-                  showLabel: false,
-                ),
-                ToolBarIconButton(
-                  label: 'Contacts',
-                  icon: const MacosIcon(CupertinoIcons.person_2),
-                  onPressed: () {
-                    ref
-                        .read(activeSidebarModeProvider.notifier)
-                        .setMode(SidebarMode.messages);
-
-                    const spec = ViewSpec.contacts(ContactsSpec.list());
-
-                    // Log the navigation action
-                    ref
-                        .read(navigationLoggerProvider.notifier)
-                        .logToolbarClick(
-                          buttonLabel: 'Contacts',
                           targetPanel: WindowPanel.center,
                           viewSpec: spec,
                         );

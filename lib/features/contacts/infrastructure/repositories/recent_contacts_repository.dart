@@ -2,7 +2,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../domain/participant_origin.dart';
 import 'contacts_list_repository.dart';
 
@@ -43,11 +42,7 @@ Future<List<RecentContactSummary>> recentContacts(Ref ref) async {
   }
 
   // Wait for contacts to load (this properly awaits the async data)
-  final allContacts = await ref.watch(
-    contactsListRepositoryProvider(
-      spec: const ContactsListSpec.alphabetical(),
-    ).future,
-  );
+  final allContacts = await ref.watch(contactsListRepositoryProvider.future);
 
   // Map recent participant IDs to contact summaries
   final results = <RecentContactSummary>[];

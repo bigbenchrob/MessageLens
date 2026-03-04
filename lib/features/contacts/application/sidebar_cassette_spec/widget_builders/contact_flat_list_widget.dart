@@ -7,7 +7,6 @@ import '../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../essentials/db/feature_level_providers.dart';
-import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/application/cassette_rack_state_provider.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
@@ -46,11 +45,7 @@ class ContactFlatListWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filterMode = ref.watch(pickerFilterProvider);
-    final contactsAsync = ref.watch(
-      contactsListRepositoryProvider(
-        spec: const ContactsListSpec.alphabetical(),
-      ),
-    );
+    final contactsAsync = ref.watch(contactsListRepositoryProvider);
     final favoritesAsync = ref.watch(favoriteContactsProvider);
 
     return Column(

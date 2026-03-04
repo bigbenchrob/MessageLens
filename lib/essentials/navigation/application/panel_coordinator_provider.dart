@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../features/chats/presentation/view/chats_sidebar_view.dart';
-import '../../../features/contacts/feature_level_providers.dart'
-    as contacts_feature;
 import '../../../features/messages/feature_level_providers.dart'
     as messages_feature;
 import '../../db_importers/presentation/view/db_import_control_panel.dart';
@@ -77,9 +75,6 @@ class PanelCoordinator extends _$PanelCoordinator {
           forParticipant: (_) => ChatsSidebarView(spec: chatsSpec),
         );
       },
-      contacts: (contactsSpec) => ref
-          .read(contacts_feature.viewSpecCoordinatorProvider.notifier)
-          .buildForSpec(contactsSpec),
       import: _buildImportPanel,
       onboarding: (_) => const OnboardingDevPanel(),
       settings: (_) => _buildEmptyPanelPlaceholder(WindowPanel.center),

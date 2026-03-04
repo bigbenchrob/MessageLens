@@ -44,30 +44,59 @@ class MessageAttachmentsImporter extends BaseTableImporter
       return;
     }
 
-    var processed = 0;
-    var linked = 0;
+    // Bulk-validate: collect IDs that actually exist in the import DB so we
+    // don't hit FK violations (messages/attachments may have been filtered).
+    final db = await ctx.importDb.database;
+    final existingMsgRows = await db.rawQuery('SELECT id FROM messages');
+    final existingMsgIds = existingMsgRows
+        .map((r) => r['id'])
+        .whereType<int>()
+        .toSet();
+    final existingAttRows = await db.rawQuery('SELECT id FROM attachments');
+    final existingAttIds = existingAttRows
+        .map((r) => r['id'])
+        .whereType<int>()
+        .toSet();
 
-    for (final pair in joinPairs) {
-      final result = await ctx.importDb.insertMessageAttachment(
-        messageId: pair.messageId,
-        attachmentId: pair.attachmentId,
-        sourceRowid: pair.attachmentId,
+    final validPairs = joinPairs
+        .where(
+          (p) =>
+              existingMsgIds.contains(p.messageId) &&
+              existingAttIds.contains(p.attachmentId),
+        )
+        .toList(growable: false);
+
+    final skipped = joinPairs.length - validPairs.length;
+    if (skipped > 0) {
+      ctx.info(
+        'MessageAttachmentsImporter: filtered out $skipped pairs '
+        'referencing missing messages/attachments',
       );
-      if (result != -1) {
-        linked += 1;
-      }
-
-      processed += 1;
-      if (processed % 200 == 0 || processed == joinPairs.length) {
-        ctx.info(
-          'MessageAttachmentsImporter: processed $processed/${joinPairs.length} '
-          'pairs (linked $linked)',
-        );
-        reportRowProgress(processed: processed, total: joinPairs.length);
-      }
     }
 
-    ctx.writeScratch('messageAttachments.inserted', linked);
+    final total = validPairs.length;
+    var processed = 0;
+
+    const chunkSize = 500;
+    for (var offset = 0; offset < total; offset += chunkSize) {
+      final end = (offset + chunkSize > total) ? total : offset + chunkSize;
+      final chunkRows = <Map<String, Object?>>[];
+      for (var i = offset; i < end; i++) {
+        final pair = validPairs[i];
+        chunkRows.add(<String, Object?>{
+          'message_id': pair.messageId,
+          'attachment_id': pair.attachmentId,
+          'source_rowid': pair.attachmentId,
+        });
+      }
+
+      await ctx.importDb.insertMessageAttachmentsBatch(chunkRows);
+      processed = end;
+      ctx.info('MessageAttachmentsImporter: processed $processed/$total pairs');
+      reportRowProgress(processed: processed, total: total);
+    }
+
+    ctx.writeScratch('messageAttachments.inserted', total);
   }
 
   @override

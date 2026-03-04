@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../constants/domain/contact_constants.dart';
-import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../resolver_tools/picker_mode_decision.dart';
@@ -46,11 +45,7 @@ class ContactChooserResolver extends _$ContactChooserResolver {
     required int cassetteIndex,
   }) async {
     // Fetch contacts to determine count
-    final contacts = await ref.read(
-      contactsListRepositoryProvider(
-        spec: const ContactsListSpec.alphabetical(),
-      ).future,
-    );
+    final contacts = await ref.read(contactsListRepositoryProvider.future);
 
     // Use resolver tool to make the decision
     final pickerMode = determinePickerMode(contacts.length);

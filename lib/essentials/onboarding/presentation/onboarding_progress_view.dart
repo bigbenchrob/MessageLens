@@ -25,13 +25,28 @@ class OnboardingProgressView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stages.isEmpty) {
-      return Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: colors.accents.primary,
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colors.accents.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Preparing…',
+                style: typography.caption.copyWith(
+                  color: colors.content.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
       );

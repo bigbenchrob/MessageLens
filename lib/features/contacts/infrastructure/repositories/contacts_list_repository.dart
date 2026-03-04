@@ -5,7 +5,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../domain/participant_origin.dart';
 import 'participant_merge_utils.dart';
 import 'virtual_participants_provider.dart';
@@ -49,10 +48,7 @@ abstract class ContactSummary with _$ContactSummary {
 }
 
 @riverpod
-Future<List<ContactSummary>> contactsListRepository(
-  Ref ref, {
-  required ContactsListSpec spec,
-}) async {
+Future<List<ContactSummary>> contactsListRepository(Ref ref) async {
   final maintenanceLocked = ref.watch(dbMaintenanceLockProvider);
   if (maintenanceLocked) {
     return const <ContactSummary>[];
@@ -81,23 +77,9 @@ Future<List<ContactSummary>> contactsListRepository(
       ),
     );
 
-  spec.when(
-    all: () {
-      participantsQuery.orderBy([
-        (tbl) => drift.OrderingTerm(expression: tbl.displayName),
-      ]);
-    },
-    alphabetical: () {
-      participantsQuery.orderBy([
-        (tbl) => drift.OrderingTerm(expression: tbl.displayName),
-      ]);
-    },
-    favorites: () {
-      participantsQuery.orderBy([
-        (tbl) => drift.OrderingTerm(expression: tbl.displayName),
-      ]);
-    },
-  );
+  participantsQuery.orderBy([
+    (tbl) => drift.OrderingTerm(expression: tbl.displayName),
+  ]);
 
   final participants = (await participantsQuery.get())
       .where(

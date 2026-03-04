@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
-import 'package:remember_this_text/essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import 'package:remember_this_text/features/contacts/application/sidebar_cassette_spec/resolver_tools/favorite_contacts_provider.dart';
 import 'package:remember_this_text/features/contacts/application/sidebar_cassette_spec/resolver_tools/favorite_contacts_repository_provider.dart';
 import 'package:remember_this_text/features/contacts/infrastructure/repositories/contacts_list_repository.dart';
@@ -36,9 +35,7 @@ void main() {
             favoriteContactsRepositoryProvider.overrideWith(
               (ref) async => FavoriteContactsRepository(overlayDb),
             ),
-            contactsListRepositoryProvider(
-              spec: const ContactsListSpec.alphabetical(),
-            ).overrideWith(
+            contactsListRepositoryProvider.overrideWith(
               (ref) async => [
                 buildContactSummary(participantId: 1, displayName: 'Alice'),
                 buildContactSummary(participantId: 2, displayName: 'Bob'),
@@ -65,9 +62,7 @@ void main() {
           favoriteContactsRepositoryProvider.overrideWith(
             (ref) async => FavoriteContactsRepository(overlayDb),
           ),
-          contactsListRepositoryProvider(
-            spec: const ContactsListSpec.alphabetical(),
-          ).overrideWith(
+          contactsListRepositoryProvider.overrideWith(
             (ref) async => [
               buildContactSummary(participantId: 2, displayName: 'Bob'),
             ],

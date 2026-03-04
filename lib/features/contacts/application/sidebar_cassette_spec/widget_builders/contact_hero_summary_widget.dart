@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../../essentials/db/feature_level_providers.dart';
-import '../../../../../essentials/navigation/domain/entities/features/contacts_list_spec.dart';
 import '../../../infrastructure/repositories/contacts_list_repository.dart';
 import '../../../presentation/dialogs/contact_name_edit_dialog.dart';
 import '../../../presentation/widgets/contact_cassette_error.dart';
@@ -39,10 +38,7 @@ class ContactHeroSummaryWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const listSpec = ContactsListSpec.alphabetical();
-    final contactsAsync = ref.watch(
-      contactsListRepositoryProvider(spec: listSpec),
-    );
+    final contactsAsync = ref.watch(contactsListRepositoryProvider);
 
     return contactsAsync.when(
       data: (contacts) {
@@ -80,7 +76,7 @@ class ContactHeroSummaryWidget extends ConsumerWidget {
       loading: () => const Center(child: ProgressCircle()),
       error: (error, _) => ContactCassetteError(
         onRetry: () {
-          ref.invalidate(contactsListRepositoryProvider(spec: listSpec));
+          ref.invalidate(contactsListRepositoryProvider);
         },
         message: '$error',
       ),

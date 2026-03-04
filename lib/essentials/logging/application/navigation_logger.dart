@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../navigation/domain/entities/features/chats_spec.dart';
-import '../../navigation/domain/entities/features/contacts_spec.dart';
 import '../../navigation/domain/entities/features/import_spec.dart';
 import '../../navigation/domain/entities/features/onboarding_spec.dart';
 import '../../navigation/domain/entities/features/settings_spec.dart';
@@ -95,14 +94,6 @@ class NavigationLogEntry {
             'variant': 'forParticipant',
             'participantId': participantId,
           },
-        ),
-      },
-      contacts: (contactsSpec) => {
-        'type': 'contacts',
-        'spec': contactsSpec.when(
-          list: () => {'variant': 'list'},
-          detail: (contactId) => {'variant': 'detail', 'contactId': contactId},
-          search: (query) => {'variant': 'search', 'query': query},
         ),
       },
       import: (importSpec) => {

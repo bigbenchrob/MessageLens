@@ -6,7 +6,7 @@ part of 'grouped_contacts_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$groupedContactsHash() => r'f65d34c61f197c23142c1bf453dce137033c7cb3';
+String _$groupedContactsHash() => r'ecf8fcfd576c1278247b24d1f3f78fe1fd01aff5';
 
 /// See also [groupedContacts].
 @ProviderFor(groupedContacts)

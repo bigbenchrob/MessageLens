@@ -141,9 +141,7 @@ class _ProgressContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          controlState.selectedMode == DbImportMode.migration
-              ? 'Migrating data…'
-              : 'Importing data…',
+          controlState.statusMessage ?? 'Working…',
           style: typography.headline.copyWith(
             color: colors.content.textPrimary,
           ),
@@ -164,6 +162,21 @@ class _ProgressContent extends ConsumerWidget {
             stages: controlState.stages,
             colors: colors,
             typography: typography,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () {
+              ref.read(onboardingGateProvider.notifier).dismiss();
+            },
+            child: Text(
+              'Skip',
+              style: typography.caption.copyWith(
+                color: colors.content.textTertiary,
+              ),
+            ),
           ),
         ),
       ],

@@ -99,7 +99,6 @@ class SidebarParkedOverlay extends ConsumerWidget {
       workbench: (_) => 'Developer Workbench',
       messages: (_) => 'Operation in Progress',
       chats: (_) => 'Operation in Progress',
-      contacts: (_) => 'Operation in Progress',
       settings: (_) => 'Operation in Progress',
       onboarding: (_) => 'Onboarding',
     );
@@ -114,7 +113,6 @@ class SidebarParkedOverlay extends ConsumerWidget {
       workbench: (_) => CupertinoIcons.hammer,
       messages: (_) => CupertinoIcons.gear_alt,
       chats: (_) => CupertinoIcons.gear_alt,
-      contacts: (_) => CupertinoIcons.gear_alt,
       settings: (_) => CupertinoIcons.gear_alt,
       onboarding: (_) => CupertinoIcons.rocket,
     );

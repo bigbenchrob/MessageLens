@@ -103,7 +103,6 @@ class PanelsViewState extends _$PanelsViewState {
     return spec.map(
       messages: (_) => 'Messages',
       chats: (_) => 'Chats',
-      contacts: (_) => 'Contacts',
       import: (_) => 'Import',
       settings: (_) => 'Settings',
       workbench: (_) => 'Workbench',

@@ -705,37 +705,39 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     }
   }
 
-  Future<void> startMigration() async {
+  Future<void> startMigration({bool skipImportCheck = false}) async {
     // Check if there's unimported data in macOS chat.db
-    try {
-      final importDb = await ref.read(sqfliteImportDatabaseProvider.future);
+    if (!skipImportCheck) {
+      try {
+        final importDb = await ref.read(sqfliteImportDatabaseProvider.future);
 
-      // macOS Messages database is always at this location
-      final homeDir = Platform.environment['HOME'];
-      if (homeDir == null) {
-        throw Exception('Could not determine home directory');
-      }
-      final macOsChatDbPath = '$homeDir/Library/Messages/chat.db';
+        // macOS Messages database is always at this location
+        final homeDir = Platform.environment['HOME'];
+        if (homeDir == null) {
+          throw Exception('Could not determine home directory');
+        }
+        final macOsChatDbPath = '$homeDir/Library/Messages/chat.db';
 
-      const checker = ImportStatusChecker();
-      final status = await checker.checkStatus(
-        macOsChatDbPath: macOsChatDbPath,
-        importDb: importDb,
-      );
-
-      // If there's unimported data, run import first
-      if (status.hasUnimportedData) {
-        state = state.copyWith(
-          statusMessage:
-              'Found ${status.unimportedMessageCount} unimported messages. Running import first...',
+        const checker = ImportStatusChecker();
+        final status = await checker.checkStatus(
+          macOsChatDbPath: macOsChatDbPath,
+          importDb: importDb,
         );
 
-        await runImportAndMigration();
-        return;
+        // If there's unimported data, run import first
+        if (status.hasUnimportedData) {
+          state = state.copyWith(
+            statusMessage:
+                'Found ${status.unimportedMessageCount} unimported messages. Running import first...',
+          );
+
+          await runImportAndMigration();
+          return;
+        }
+      } catch (error) {
+        // Log but continue with migration - don't fail if we can't check status
+        print('Warning: Could not check import status: $error');
       }
-    } catch (error) {
-      // Log but continue with migration - don't fail if we can't check status
-      print('Warning: Could not check import status: $error');
     }
 
     // Check if working DB has existing data BEFORE closing the connection
