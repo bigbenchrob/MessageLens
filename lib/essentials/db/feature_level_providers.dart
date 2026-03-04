@@ -19,10 +19,14 @@ export 'feature_level_providers/message_data_version_provider.dart';
 
 part 'feature_level_providers.g.dart';
 
-const _databaseDirectoryPath = '/Users/rob/sqlite_rmc/remember_every_text/';
+/// The directory where all application databases are stored.
+///
+/// Exposed for use by the onboarding existence checker.
+/// All DB providers below also use this path.
+const databaseDirectoryPath = '/Users/rob/sqlite_rmc/remember_every_text/';
 
 Future<void> _ensureDatabaseDirectoryExists() async {
-  final directory = Directory(_databaseDirectoryPath);
+  final directory = Directory(databaseDirectoryPath);
   if (!directory.existsSync()) {
     await directory.create(recursive: true);
   }
@@ -35,7 +39,7 @@ Future<SqfliteImportDatabase> sqfliteImportDatabase(
 ) async {
   await _ensureDatabaseDirectoryExists();
   final database = SqfliteImportDatabase(
-    databaseDirectory: _databaseDirectoryPath,
+    databaseDirectory: databaseDirectoryPath,
     databaseName: 'macos_import.db',
     debugSettings: ref.watch(importDebugSettingsProvider),
   );
@@ -56,7 +60,7 @@ Future<WorkingDatabase> driftWorkingDatabase(
   DriftWorkingDatabaseRef ref,
 ) async {
   await _ensureDatabaseDirectoryExists();
-  final dbPath = path.join(_databaseDirectoryPath, 'working.db');
+  final dbPath = path.join(databaseDirectoryPath, 'working.db');
 
   final database = WorkingDatabase(
     NativeDatabase.createInBackground(File(dbPath)),
@@ -79,7 +83,7 @@ Future<WorkingDatabase> driftWorkingDatabase(
 @Riverpod(keepAlive: true)
 Future<OverlayDatabase> overlayDatabase(OverlayDatabaseRef ref) async {
   await _ensureDatabaseDirectoryExists();
-  final dbPath = path.join(_databaseDirectoryPath, 'user_overlays.db');
+  final dbPath = path.join(databaseDirectoryPath, 'user_overlays.db');
 
   final database = OverlayDatabase(
     NativeDatabase.createInBackground(File(dbPath)),

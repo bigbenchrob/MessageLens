@@ -121,6 +121,7 @@ class ChatsSidebarView extends HookConsumerWidget {
         import: (_) {},
         settings: (_) {},
         workbench: (_) {},
+        onboarding: (_) {},
       );
     }
 

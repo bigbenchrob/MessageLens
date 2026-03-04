@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../config/theme/colors/theme_colors.dart'
+    show DropdownMenu, themeColorsProvider;
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../config/theme/widgets/theme_widgets.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
@@ -77,8 +78,8 @@ class TopChatMenuWidget extends ConsumerWidget {
       // - controlValue for selected option (confident, primary)
       // - Brand-tinted chevron background for intentional feel
       selectedValueStyle: typography.controlValue,
-      chevronColor: colors.accents.primary,
-      chevronBackgroundColor: colors.accents.primary.withValues(alpha: 0.12),
+      chevronColor: colors.dropdownMenu(DropdownMenu.chevronIcon),
+      chevronBackgroundColor: colors.dropdownMenu(DropdownMenu.chevronBg),
     );
   }
 }

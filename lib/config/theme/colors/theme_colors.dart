@@ -454,6 +454,55 @@ enum MessageBubble {
   ColorPair get pair => _palette[this]!;
 }
 
+/// Semantic tokens for dropdown menu components.
+///
+/// Dark mode design: Selection is communicated through luminance,
+/// not hue. Selected rows are brighter surfaces with high-emphasis
+/// white text. Accent color reinforces state via checkmarks and
+/// indicators but does not carry primary contrast.
+///
+/// See: _AGENT_INSTRUCTIONS/agent-per-project/05-COLOR-AND-TYPOGRAPHY-THEMING/05-dark-mode-theming.md
+enum DropdownMenu {
+  /// Selected row background — must visibly lift from panel surface.
+  selectedBg,
+
+  /// Selected row text — high-emphasis, brightest in the menu.
+  selectedText,
+
+  /// Checkmark / selection indicator — accent reinforcement.
+  checkmark,
+
+  /// Chevron icon color.
+  chevronIcon,
+
+  /// Chevron pill background.
+  chevronBg;
+
+  static const Map<DropdownMenu, ColorPair> _palette = {
+    // Light: 16% accent blue on white. Dark: visible luminance lift.
+    DropdownMenu.selectedBg: ColorPair(
+      Color(0x290A84FF), // ~16% blue on white
+      Color(0xFF454A4C), // confident lift from surfaceRaised 0xFF323638
+    ),
+    // Light: accent blue. Dark: high-emphasis white (luminance > hue).
+    DropdownMenu.selectedText: ColorPair(Color(0xFF007AFF), Color(0xFFFFFFFF)),
+    // Checkmark: accent in both modes, but brighter in dark.
+    DropdownMenu.checkmark: ColorPair(Color(0xFF007AFF), Color(0xFF4DA6FF)),
+    // Chevron icon: accent in light, secondary content in dark.
+    DropdownMenu.chevronIcon: ColorPair(
+      Color(0xFF007AFF),
+      Color(0xFFC8CDCF), // matches gray.three dark
+    ),
+    // Chevron pill: visible tint in both modes.
+    DropdownMenu.chevronBg: ColorPair(
+      Color(0x1F007AFF), // 12% blue on white
+      Color(0x33C8CDCF), // 20% gray on dark control
+    ),
+  };
+
+  ColorPair get pair => _palette[this]!;
+}
+
 /// Semantic tokens for “info cards” (explanatory copy, empty-state help, etc.)
 ///
 /// Visual intent:
@@ -490,7 +539,7 @@ enum InfoCard {
 
     // These align with your grayscale ink intent.
     InfoCard.textPrimary: ColorPair(Color(0xFF343638), Color(0xFFDADEE0)),
-    InfoCard.textSecondary: ColorPair(Color(0xFF5B6062), Color(0xFFC8CDCF)),
+    InfoCard.textSecondary: ColorPair(Color(0xFF5B6062), Color(0xFFB0B5B7)),
     InfoCard.textTertiary: ColorPair(Color(0xFF7F8587), Color(0xFFABB0B2)),
 
     // Terminology: deliberately *not* your BrandHighlight blue.
@@ -520,6 +569,7 @@ class ThemeColors extends _$ThemeColors {
   Color brandHighlight(BrandHighlight tone) => tone.pair.resolve(brightness);
   Color cassetteCard(CassetteCard tone) => tone.pair.resolve(brightness);
   Color messageBubble(MessageBubble tone) => tone.pair.resolve(brightness);
+  Color dropdownMenu(DropdownMenu tone) => tone.pair.resolve(brightness);
 
   /// Resolve an InfoCard token for the current brightness.
   Color infoCard(InfoCard tone) => tone.pair.resolve(brightness);

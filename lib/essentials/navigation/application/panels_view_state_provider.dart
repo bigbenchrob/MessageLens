@@ -107,6 +107,7 @@ class PanelsViewState extends _$PanelsViewState {
       import: (_) => 'Import',
       settings: (_) => 'Settings',
       workbench: (_) => 'Workbench',
+      onboarding: (_) => 'Onboarding',
     );
   }
 }

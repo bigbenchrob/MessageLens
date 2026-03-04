@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../navigation/domain/entities/features/chats_spec.dart';
 import '../../navigation/domain/entities/features/contacts_spec.dart';
 import '../../navigation/domain/entities/features/import_spec.dart';
+import '../../navigation/domain/entities/features/onboarding_spec.dart';
 import '../../navigation/domain/entities/features/settings_spec.dart';
 import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
@@ -120,6 +121,10 @@ class NavigationLogEntry {
       workbench: (workbenchSpec) => {
         'type': 'workbench',
         'spec': workbenchSpec.when(panel: () => {'variant': 'panel'}),
+      },
+      onboarding: (onboardingSpec) => {
+        'type': 'onboarding',
+        'spec': onboardingSpec.when(devPanel: () => {'variant': 'devPanel'}),
       },
     );
   }

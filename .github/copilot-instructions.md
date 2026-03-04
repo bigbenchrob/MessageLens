@@ -21,14 +21,15 @@ You MUST read these files in order before any code changes:
 3. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart-code-standards.md`** - Dart linting rules, type annotations, code patterns
 4. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/flutter-code-standards.md`** - Flutter-specific standards, deprecated methods
 5. **`_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md`** - MANDATORY provider code generation patterns
-6. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md`** - Database access patterns and schema references
-7. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`** - AddressBook path resolution (CRITICAL for imports)
-8. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
-9. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
-10. **`_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/`** - 🔥 CRITICAL: How sealed spec classes coordinate UI across all surfaces
-11. **`_AGENT_INSTRUCTIONS/agent-per-project/52-FEATURE-HANDLING-OF-X-SURFACE-SPECS/`** - Universal coordinator → resolver → widget_builder pattern
-12. **`_AGENT_INSTRUCTIONS/agent-per-project/54-SIDEBAR-CASSETTE-SPEC-SYSTEM/`** - Sidebar cassette rack, cascade, card chrome
-13. **`_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/`** - ViewSpec panel navigation and feature dispatch
+6. **`_AGENT_INSTRUCTIONS/agent-per-project/05-COLOR-AND-TYPOGRAPHY-THEMING/05-dark-mode-theming.md`** - Dark mode hierarchy principles and semantic token design
+7. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md`** - Database access patterns and schema references
+8. **`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`** - AddressBook path resolution (CRITICAL for imports)
+9. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/aggregate-boundaries.md`** - DDD structure and aggregate boundaries
+10. **`_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md`** - Project architecture and DDD layer responsibilities
+11. **`_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/`** - 🔥 CRITICAL: How sealed spec classes coordinate UI across all surfaces
+12. **`_AGENT_INSTRUCTIONS/agent-per-project/52-FEATURE-HANDLING-OF-X-SURFACE-SPECS/`** - Universal coordinator → resolver → widget_builder pattern
+13. **`_AGENT_INSTRUCTIONS/agent-per-project/54-SIDEBAR-CASSETTE-SPEC-SYSTEM/`** - Sidebar cassette rack, cascade, card chrome
+14. **`_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/`** - ViewSpec panel navigation and feature dispatch
 
 ## Quick Reference Code Standards
 - **Primary import**: Always use `hooks_riverpod`, never `flutter_riverpod`

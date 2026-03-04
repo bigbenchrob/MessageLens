@@ -7,11 +7,15 @@ import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../providers.dart';
 import '../../../logging/application/navigation_logger.dart';
+import '../../../onboarding/application/onboarding_gate_provider.dart';
+import '../../../onboarding/domain/onboarding_status.dart';
+import '../../../onboarding/presentation/onboarding_overlay.dart';
 import '../../../window_state/feature_level_providers.dart';
 import '../../application/sidebar_mode_provider.dart';
 import '../../domain/entities/features/chats_spec.dart';
 import '../../domain/entities/features/contacts_spec.dart';
 import '../../domain/entities/features/import_spec.dart';
+import '../../domain/entities/features/onboarding_spec.dart';
 import '../../domain/entities/features/workbench_spec.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
@@ -101,6 +105,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         });
       }
     });
+
+    final onboardingStatus = ref.watch(onboardingGateProvider);
+    final showOnboarding = onboardingStatus != OnboardingStatus.notNeeded;
 
     return Stack(
       children: [
@@ -236,6 +243,34 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                   },
                   showLabel: false,
                 ),
+                ToolBarIconButton(
+                  label: 'Onboarding',
+                  icon: const MacosIcon(CupertinoIcons.rocket),
+                  onPressed: () {
+                    ref
+                        .read(activeSidebarModeProvider.notifier)
+                        .setMode(SidebarMode.messages);
+
+                    const spec = ViewSpec.onboarding(OnboardingSpec.devPanel());
+
+                    ref
+                        .read(navigationLoggerProvider.notifier)
+                        .logToolbarClick(
+                          buttonLabel: 'Onboarding',
+                          targetPanel: WindowPanel.center,
+                          viewSpec: spec,
+                        );
+
+                    ref
+                        .read(
+                          panelsViewStateProvider(
+                            SidebarMode.messages,
+                          ).notifier,
+                        )
+                        .show(panel: WindowPanel.center, spec: spec);
+                  },
+                  showLabel: false,
+                ),
                 () {
                   final themeMode = ref.watch(switchableDarkModeProvider);
                   final (IconData icon, String tooltip) = switch (themeMode) {
@@ -279,6 +314,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
             ],
           ),
         ),
+        if (showOnboarding) const OnboardingOverlay(),
       ],
     );
   }

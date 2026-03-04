@@ -213,8 +213,6 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
     Widget buildDefaultRow(T option, bool Function(T, T) equals) {
       final isSelected = equals(option, selectedOption);
       final optionLabel = optionLabelBuilder(option);
-      final selectedFill = colors.accents.primary;
-      final selectedTextColor = colors.accents.primary;
 
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -223,7 +221,9 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
         },
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: isSelected ? selectedFill.withValues(alpha: 0.16) : null,
+            color: isSelected
+                ? colors.dropdownMenu(DropdownMenu.selectedBg)
+                : null,
           ),
           child: Padding(
             padding: itemPadding,
@@ -233,7 +233,9 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                   child: Text(
                     optionLabel,
                     style: typography.callout.copyWith(
-                      color: isSelected ? selectedTextColor : labelColor,
+                      color: isSelected
+                          ? colors.dropdownMenu(DropdownMenu.selectedText)
+                          : labelColor,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w400,
@@ -244,7 +246,7 @@ class AppDropdownMenu<T> extends HookConsumerWidget {
                   Icon(
                     CupertinoIcons.check_mark,
                     size: 14,
-                    color: selectedTextColor,
+                    color: colors.dropdownMenu(DropdownMenu.checkmark),
                   ),
               ],
             ),

@@ -101,6 +101,7 @@ class SidebarParkedOverlay extends ConsumerWidget {
       chats: (_) => 'Operation in Progress',
       contacts: (_) => 'Operation in Progress',
       settings: (_) => 'Operation in Progress',
+      onboarding: (_) => 'Onboarding',
     );
   }
 
@@ -115,6 +116,7 @@ class SidebarParkedOverlay extends ConsumerWidget {
       chats: (_) => CupertinoIcons.gear_alt,
       contacts: (_) => CupertinoIcons.gear_alt,
       settings: (_) => CupertinoIcons.gear_alt,
+      onboarding: (_) => CupertinoIcons.rocket,
     );
   }
 }

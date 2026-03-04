@@ -330,6 +330,7 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
   String? _activeLetter;
+  bool _isScrollable = false;
 
   List<String> get _letters => widget.unified.alphabeticalLetters;
 
@@ -363,6 +364,14 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
       return;
     }
 
+    // Determine if the list is scrollable: not all sections fit in the viewport.
+    final totalSections = widget.unified.sections.length;
+    final allVisible =
+        visiblePositions.length >= totalSections &&
+        visiblePositions.first.itemLeadingEdge >= 0 &&
+        visiblePositions.last.itemTrailingEdge <= 1.0;
+    final scrollable = !allVisible;
+
     // Map section index to alphabetical letter, accounting for
     // non-alphabetical sections (FAVORITES, RECENTS) at the top.
     final firstVisibleIndex = visiblePositions.first.index;
@@ -374,9 +383,10 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
       newLetter = _letters[letterIndex];
     }
 
-    if (newLetter != _activeLetter) {
+    if (newLetter != _activeLetter || scrollable != _isScrollable) {
       setState(() {
         _activeLetter = newLetter;
+        _isScrollable = scrollable;
       });
     }
   }
@@ -436,19 +446,21 @@ class _GroupedContactsPickerState extends ConsumerState<GroupedContactsPicker> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: _kJumpBarWidth,
-                  height: jumpBarHeight,
-                  child: _JumpBar(
-                    letters: _letters,
-                    activeLetter: _activeLetter,
-                    onLetterTap: _scrollToLetter,
+              if (_isScrollable) ...[
+                const SizedBox(width: 8),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: _kJumpBarWidth,
+                    height: jumpBarHeight,
+                    child: _JumpBar(
+                      letters: _letters,
+                      activeLetter: _activeLetter,
+                      onLetterTap: _scrollToLetter,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -592,7 +604,7 @@ class _JumpBarState extends ConsumerState<_JumpBar> {
                       style: typography.caption1.copyWith(
                         color: widget.letters[i] == widget.activeLetter
                             ? Colors.white
-                            : colors.content.textSecondary,
+                            : colors.content.textTertiary,
                         fontWeight: widget.letters[i] == widget.activeLetter
                             ? FontWeight.w700
                             : FontWeight.w500,

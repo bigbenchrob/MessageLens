@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$sqfliteImportDatabaseHash() =>
-    r'e86c29a0c49f1040bb6a5eb3d1eb0607e6e299df';
+    r'55e2769da44f8cff1a868a496a7715a3080047d4';
 
 /// Provides access to the Sqflite-powered import ledger database.
 ///
@@ -28,7 +28,7 @@ final sqfliteImportDatabaseProvider =
 // ignore: unused_element
 typedef SqfliteImportDatabaseRef = FutureProviderRef<SqfliteImportDatabase>;
 String _$driftWorkingDatabaseHash() =>
-    r'2c57466d5ced27d81c8a020ffa6e15c3fdfa23b0';
+    r'd26d37d63c0d992b939b21779fdeb215dbd59254';
 
 /// Provides access to the Drift projection database used by the UI.
 ///
@@ -47,7 +47,7 @@ final driftWorkingDatabaseProvider = FutureProvider<WorkingDatabase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DriftWorkingDatabaseRef = FutureProviderRef<WorkingDatabase>;
-String _$overlayDatabaseHash() => r'11fc78fb59281beb6ce50855b80bb5662327eafd';
+String _$overlayDatabaseHash() => r'af7bedb84580f233fac919c553fd2df670e3e30c';
 
 /// Provides access to the overlay database for user preferences and customizations.
 ///
