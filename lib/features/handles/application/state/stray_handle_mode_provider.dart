@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
+import '../../domain/spec_classes/handles_cassette_spec.dart';
 
 part 'stray_handle_mode_provider.g.dart';
 

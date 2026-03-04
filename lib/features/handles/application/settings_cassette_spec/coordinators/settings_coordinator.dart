@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/handles_settings_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/handles_settings_spec.dart';
 import '../resolvers/manual_linking_resolver.dart';
 import '../resolvers/spam_management_resolver.dart';
 

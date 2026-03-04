@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/handles_cassette_spec.dart';
 import '../widget_builders/stray_handles_mode_switcher_cassette.dart';
 
 part 'stray_handles_mode_switcher_resolver.g.dart';

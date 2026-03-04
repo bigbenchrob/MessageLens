@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/handles_info_cassette_spec.dart';
+import '../../../domain/spec_classes/handles_info_cassette_spec.dart';
 
 part 'info_content_resolver.g.dart';
 

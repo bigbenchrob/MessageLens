@@ -6,28 +6,6 @@ part of 'feature_level_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$viewSpecCoordinatorHash() =>
-    r'fbdaa27a663761aa2c6775b49fcdca3051439c9d';
-
-/// Coordinator that maps [ChatsSpec] to rendered widgets for the center panel.
-///
-/// NOTE: ChatsSpec is currently handled inline in PanelCoordinator.
-/// When ready, import ChatsSpec and delegate from PanelCoordinator to here.
-///
-/// Copied from [ViewSpecCoordinator].
-@ProviderFor(ViewSpecCoordinator)
-final viewSpecCoordinatorProvider =
-    AutoDisposeNotifierProvider<ViewSpecCoordinator, void>.internal(
-      ViewSpecCoordinator.new,
-      name: r'viewSpecCoordinatorProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$viewSpecCoordinatorHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$ViewSpecCoordinator = AutoDisposeNotifier<void>;
 String _$featureCassetteSpecCoordinatorHash() =>
     r'ec177186ba98285007805dc3705740eafc588f3f';
 

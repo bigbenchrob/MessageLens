@@ -19,12 +19,6 @@ CassetteSpec sidebarUtilityToMessagesHeatMapAll() {
   );
 }
 
-CassetteSpec sidebarUtilityToPresentationThemePlayground() {
-  return const CassetteSpec.presentation(
-    PresentationCassetteSpec.themePlayground(),
-  );
-}
-
 CassetteSpec sidebarUtilitySettingsToContactsSettings() {
   return const CassetteSpec.contactsSettings(
     ContactsSettingsSpec.displayNameInfo(),

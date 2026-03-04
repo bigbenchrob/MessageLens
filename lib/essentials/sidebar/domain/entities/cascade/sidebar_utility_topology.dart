@@ -12,9 +12,6 @@ CassetteSpec? resolveSidebarUtilityChild(SidebarUtilityCassetteSpec spec) {
 
         case TopChatMenuChoice.searchAllMessages:
           return sidebarUtilityToMessagesHeatMapAll();
-
-        case TopChatMenuChoice.themePlayground:
-          return sidebarUtilityToPresentationThemePlayground();
       }
     },
     settingsMenu: (selectedChoice) {

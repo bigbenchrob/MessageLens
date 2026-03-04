@@ -10,10 +10,7 @@ enum TopChatMenuChoice {
   strayHandles(id: 'stray_handles', label: 'From unfamiliar sources'),
 
   /// Search all messages in the database (global timeline)
-  searchAllMessages(id: 'search_all_messages', label: 'Search all messages'),
-
-  /// Theme playground (for development)
-  themePlayground(id: 'theme_playground', label: 'Theme playground');
+  searchAllMessages(id: 'search_all_messages', label: 'Search all messages');
 
   const TopChatMenuChoice({required this.id, required this.label});
 

@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/contacts_settings_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/contacts_settings_spec.dart';
 import '../resolvers/display_name_info_resolver.dart';
 
 part 'contacts_settings_coordinator.g.dart';

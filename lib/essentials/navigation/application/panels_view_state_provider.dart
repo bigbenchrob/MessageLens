@@ -102,10 +102,7 @@ class PanelsViewState extends _$PanelsViewState {
   String _defaultTitleFor(ViewSpec spec) {
     return spec.map(
       messages: (_) => 'Messages',
-      chats: (_) => 'Chats',
       import: (_) => 'Import',
-      settings: (_) => 'Settings',
-      workbench: (_) => 'Workbench',
       onboarding: (_) => 'Onboarding',
     );
   }

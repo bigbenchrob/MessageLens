@@ -6,11 +6,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 // The centralized Handles info cassette spec + HandlesInfoKey enum.
-import '../../../../../essentials/sidebar/domain/entities/features/handles_info_cassette_spec.dart';
-
-// The cassette card view model used by the app-level CassetteWidgetCoordinator to
-// decide which chrome to use (standard/info/naked, etc.).
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/handles_info_cassette_spec.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local feature application logic (meaning + formatting)

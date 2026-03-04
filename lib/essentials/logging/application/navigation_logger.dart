@@ -2,14 +2,11 @@ import 'dart:convert';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../navigation/domain/entities/features/chats_spec.dart';
-import '../../navigation/domain/entities/features/import_spec.dart';
-import '../../navigation/domain/entities/features/onboarding_spec.dart';
-import '../../navigation/domain/entities/features/settings_spec.dart';
-import '../../navigation/domain/entities/features/workbench_spec.dart';
 import '../../navigation/domain/entities/view_spec.dart';
 import '../../navigation/domain/navigation_constants.dart';
 import '../../navigation/feature_level_providers.dart';
+import '../../onboarding/domain/import_spec.dart';
+import '../../onboarding/domain/spec_classes/onboarding_view_spec.dart';
 import 'message_logger.dart';
 
 part 'navigation_logger.g.dart';
@@ -78,40 +75,12 @@ class NavigationLogEntry {
           },
         ),
       },
-      chats: (chatsSpec) => {
-        'type': 'chats',
-        'spec': chatsSpec.when(
-          list: () => {'variant': 'list'},
-          forContact: (contactId) => {
-            'variant': 'forContact',
-            'contactId': contactId,
-          },
-          recent: (limit) => {'variant': 'recent', 'limit': limit},
-          byAgeOldest: (limit) => {'variant': 'byAgeOldest', 'limit': limit},
-          byAgeNewest: (limit) => {'variant': 'byAgeNewest', 'limit': limit},
-          unmatched: (limit) => {'variant': 'unmatched', 'limit': limit},
-          forParticipant: (participantId) => {
-            'variant': 'forParticipant',
-            'participantId': participantId,
-          },
-        ),
-      },
       import: (importSpec) => {
         'type': 'import',
         'spec': importSpec.when(
           forImport: () => {'variant': 'forImport'},
           forMigration: () => {'variant': 'forMigration'},
         ),
-      },
-      settings: (settingsSpec) => {
-        'type': 'settings',
-        'spec': settingsSpec.when(
-          contactDisplayNameInfo: () => {'variant': 'contactDisplayNameInfo'},
-        ),
-      },
-      workbench: (workbenchSpec) => {
-        'type': 'workbench',
-        'spec': workbenchSpec.when(panel: () => {'variant': 'panel'}),
       },
       onboarding: (onboardingSpec) => {
         'type': 'onboarding',

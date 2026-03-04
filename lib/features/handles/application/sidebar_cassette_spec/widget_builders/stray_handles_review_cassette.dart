@@ -10,7 +10,7 @@ import '../../../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../../essentials/navigation/feature_level_providers.dart';
-import '../../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
+import '../../../domain/spec_classes/handles_cassette_spec.dart';
 import '../../../domain/utilities/handle_normalizer.dart';
 import '../../../infrastructure/repositories/stray_handles_provider.dart';
 

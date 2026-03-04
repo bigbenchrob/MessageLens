@@ -4,8 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/theme_typography.dart';
+import '../../../onboarding/domain/import_spec.dart';
 import '../../application/panels_view_state_provider.dart';
-import '../../domain/entities/features/import_spec.dart';
 import '../../domain/entities/panel_stack.dart';
 import '../../domain/entities/view_spec.dart';
 import '../../domain/navigation_constants.dart';
@@ -14,7 +14,7 @@ import '../../feature_level_providers.dart';
 
 /// Overlay displayed in the sidebar when the center panel is showing
 /// content that operates independently of the cassette rack (e.g.
-/// import/migration controls, workbench).
+/// import/migration controls).
 ///
 /// Provides a prominent Cancel button so the user can dismiss the
 /// center panel operation and return to normal sidebar navigation.
@@ -96,10 +96,7 @@ class SidebarParkedOverlay extends ConsumerWidget {
         forMigration: () => 'Database Migration',
         orElse: () => 'Database Operation',
       ),
-      workbench: (_) => 'Developer Workbench',
       messages: (_) => 'Operation in Progress',
-      chats: (_) => 'Operation in Progress',
-      settings: (_) => 'Operation in Progress',
       onboarding: (_) => 'Onboarding',
     );
   }
@@ -110,10 +107,7 @@ class SidebarParkedOverlay extends ConsumerWidget {
     }
     return spec.when(
       import: (_) => CupertinoIcons.square_arrow_down,
-      workbench: (_) => CupertinoIcons.hammer,
       messages: (_) => CupertinoIcons.gear_alt,
-      chats: (_) => CupertinoIcons.gear_alt,
-      settings: (_) => CupertinoIcons.gear_alt,
       onboarding: (_) => CupertinoIcons.rocket,
     );
   }

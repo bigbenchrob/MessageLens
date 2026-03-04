@@ -55,16 +55,13 @@ extension ViewSpecPatterns on ViewSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewChats value)?  chats,TResult Function( _ViewImport value)?  import,TResult Function( _ViewOnboarding value)?  onboarding,TResult Function( _ViewSettings value)?  settings,TResult Function( _ViewWorkbench value)?  workbench,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _ViewMessages value)?  messages,TResult Function( _ViewImport value)?  import,TResult Function( _ViewOnboarding value)?  onboarding,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
-return messages(_that);case _ViewChats() when chats != null:
-return chats(_that);case _ViewImport() when import != null:
+return messages(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewOnboarding() when onboarding != null:
-return onboarding(_that);case _ViewSettings() when settings != null:
-return settings(_that);case _ViewWorkbench() when workbench != null:
-return workbench(_that);case _:
+return onboarding(_that);case _:
   return orElse();
 
 }
@@ -82,16 +79,13 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewChats value)  chats,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewOnboarding value)  onboarding,required TResult Function( _ViewSettings value)  settings,required TResult Function( _ViewWorkbench value)  workbench,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _ViewMessages value)  messages,required TResult Function( _ViewImport value)  import,required TResult Function( _ViewOnboarding value)  onboarding,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages():
-return messages(_that);case _ViewChats():
-return chats(_that);case _ViewImport():
+return messages(_that);case _ViewImport():
 return import(_that);case _ViewOnboarding():
-return onboarding(_that);case _ViewSettings():
-return settings(_that);case _ViewWorkbench():
-return workbench(_that);case _:
+return onboarding(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -108,16 +102,13 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewChats value)?  chats,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewOnboarding value)?  onboarding,TResult? Function( _ViewSettings value)?  settings,TResult? Function( _ViewWorkbench value)?  workbench,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _ViewMessages value)?  messages,TResult? Function( _ViewImport value)?  import,TResult? Function( _ViewOnboarding value)?  onboarding,}){
 final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
-return messages(_that);case _ViewChats() when chats != null:
-return chats(_that);case _ViewImport() when import != null:
+return messages(_that);case _ViewImport() when import != null:
 return import(_that);case _ViewOnboarding() when onboarding != null:
-return onboarding(_that);case _ViewSettings() when settings != null:
-return settings(_that);case _ViewWorkbench() when workbench != null:
-return workbench(_that);case _:
+return onboarding(_that);case _:
   return null;
 
 }
@@ -134,15 +125,12 @@ return workbench(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ChatsSpec spec)?  chats,TResult Function( ImportSpec spec)?  import,TResult Function( OnboardingSpec spec)?  onboarding,TResult Function( SettingsSpec spec)?  settings,TResult Function( WorkbenchSpec spec)?  workbench,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessagesSpec spec)?  messages,TResult Function( ImportSpec spec)?  import,TResult Function( OnboardingSpec spec)?  onboarding,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
-return messages(_that.spec);case _ViewChats() when chats != null:
-return chats(_that.spec);case _ViewImport() when import != null:
+return messages(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewOnboarding() when onboarding != null:
-return onboarding(_that.spec);case _ViewSettings() when settings != null:
-return settings(_that.spec);case _ViewWorkbench() when workbench != null:
-return workbench(_that.spec);case _:
+return onboarding(_that.spec);case _:
   return orElse();
 
 }
@@ -160,15 +148,12 @@ return workbench(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ChatsSpec spec)  chats,required TResult Function( ImportSpec spec)  import,required TResult Function( OnboardingSpec spec)  onboarding,required TResult Function( SettingsSpec spec)  settings,required TResult Function( WorkbenchSpec spec)  workbench,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessagesSpec spec)  messages,required TResult Function( ImportSpec spec)  import,required TResult Function( OnboardingSpec spec)  onboarding,}) {final _that = this;
 switch (_that) {
 case _ViewMessages():
-return messages(_that.spec);case _ViewChats():
-return chats(_that.spec);case _ViewImport():
+return messages(_that.spec);case _ViewImport():
 return import(_that.spec);case _ViewOnboarding():
-return onboarding(_that.spec);case _ViewSettings():
-return settings(_that.spec);case _ViewWorkbench():
-return workbench(_that.spec);case _:
+return onboarding(_that.spec);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -185,15 +170,12 @@ return workbench(_that.spec);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ChatsSpec spec)?  chats,TResult? Function( ImportSpec spec)?  import,TResult? Function( OnboardingSpec spec)?  onboarding,TResult? Function( SettingsSpec spec)?  settings,TResult? Function( WorkbenchSpec spec)?  workbench,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessagesSpec spec)?  messages,TResult? Function( ImportSpec spec)?  import,TResult? Function( OnboardingSpec spec)?  onboarding,}) {final _that = this;
 switch (_that) {
 case _ViewMessages() when messages != null:
-return messages(_that.spec);case _ViewChats() when chats != null:
-return chats(_that.spec);case _ViewImport() when import != null:
+return messages(_that.spec);case _ViewImport() when import != null:
 return import(_that.spec);case _ViewOnboarding() when onboarding != null:
-return onboarding(_that.spec);case _ViewSettings() when settings != null:
-return settings(_that.spec);case _ViewWorkbench() when workbench != null:
-return workbench(_that.spec);case _:
+return onboarding(_that.spec);case _:
   return null;
 
 }
@@ -271,81 +253,6 @@ as MessagesSpec,
 $MessagesSpecCopyWith<$Res> get spec {
   
   return $MessagesSpecCopyWith<$Res>(_self.spec, (value) {
-    return _then(_self.copyWith(spec: value));
-  });
-}
-}
-
-/// @nodoc
-
-
-class _ViewChats implements ViewSpec {
-  const _ViewChats(this.spec);
-  
-
-@override final  ChatsSpec spec;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ViewChatsCopyWith<_ViewChats> get copyWith => __$ViewChatsCopyWithImpl<_ViewChats>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ViewChats&&(identical(other.spec, spec) || other.spec == spec));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,spec);
-
-@override
-String toString() {
-  return 'ViewSpec.chats(spec: $spec)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ViewChatsCopyWith<$Res> implements $ViewSpecCopyWith<$Res> {
-  factory _$ViewChatsCopyWith(_ViewChats value, $Res Function(_ViewChats) _then) = __$ViewChatsCopyWithImpl;
-@useResult
-$Res call({
- ChatsSpec spec
-});
-
-
-$ChatsSpecCopyWith<$Res> get spec;
-
-}
-/// @nodoc
-class __$ViewChatsCopyWithImpl<$Res>
-    implements _$ViewChatsCopyWith<$Res> {
-  __$ViewChatsCopyWithImpl(this._self, this._then);
-
-  final _ViewChats _self;
-  final $Res Function(_ViewChats) _then;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
-  return _then(_ViewChats(
-null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as ChatsSpec,
-  ));
-}
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$ChatsSpecCopyWith<$Res> get spec {
-  
-  return $ChatsSpecCopyWith<$Res>(_self.spec, (value) {
     return _then(_self.copyWith(spec: value));
   });
 }
@@ -496,156 +403,6 @@ as OnboardingSpec,
 $OnboardingSpecCopyWith<$Res> get spec {
   
   return $OnboardingSpecCopyWith<$Res>(_self.spec, (value) {
-    return _then(_self.copyWith(spec: value));
-  });
-}
-}
-
-/// @nodoc
-
-
-class _ViewSettings implements ViewSpec {
-  const _ViewSettings(this.spec);
-  
-
-@override final  SettingsSpec spec;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ViewSettingsCopyWith<_ViewSettings> get copyWith => __$ViewSettingsCopyWithImpl<_ViewSettings>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ViewSettings&&(identical(other.spec, spec) || other.spec == spec));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,spec);
-
-@override
-String toString() {
-  return 'ViewSpec.settings(spec: $spec)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ViewSettingsCopyWith<$Res> implements $ViewSpecCopyWith<$Res> {
-  factory _$ViewSettingsCopyWith(_ViewSettings value, $Res Function(_ViewSettings) _then) = __$ViewSettingsCopyWithImpl;
-@useResult
-$Res call({
- SettingsSpec spec
-});
-
-
-$SettingsSpecCopyWith<$Res> get spec;
-
-}
-/// @nodoc
-class __$ViewSettingsCopyWithImpl<$Res>
-    implements _$ViewSettingsCopyWith<$Res> {
-  __$ViewSettingsCopyWithImpl(this._self, this._then);
-
-  final _ViewSettings _self;
-  final $Res Function(_ViewSettings) _then;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
-  return _then(_ViewSettings(
-null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as SettingsSpec,
-  ));
-}
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$SettingsSpecCopyWith<$Res> get spec {
-  
-  return $SettingsSpecCopyWith<$Res>(_self.spec, (value) {
-    return _then(_self.copyWith(spec: value));
-  });
-}
-}
-
-/// @nodoc
-
-
-class _ViewWorkbench implements ViewSpec {
-  const _ViewWorkbench(this.spec);
-  
-
-@override final  WorkbenchSpec spec;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ViewWorkbenchCopyWith<_ViewWorkbench> get copyWith => __$ViewWorkbenchCopyWithImpl<_ViewWorkbench>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ViewWorkbench&&(identical(other.spec, spec) || other.spec == spec));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,spec);
-
-@override
-String toString() {
-  return 'ViewSpec.workbench(spec: $spec)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ViewWorkbenchCopyWith<$Res> implements $ViewSpecCopyWith<$Res> {
-  factory _$ViewWorkbenchCopyWith(_ViewWorkbench value, $Res Function(_ViewWorkbench) _then) = __$ViewWorkbenchCopyWithImpl;
-@useResult
-$Res call({
- WorkbenchSpec spec
-});
-
-
-$WorkbenchSpecCopyWith<$Res> get spec;
-
-}
-/// @nodoc
-class __$ViewWorkbenchCopyWithImpl<$Res>
-    implements _$ViewWorkbenchCopyWith<$Res> {
-  __$ViewWorkbenchCopyWithImpl(this._self, this._then);
-
-  final _ViewWorkbench _self;
-  final $Res Function(_ViewWorkbench) _then;
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? spec = null,}) {
-  return _then(_ViewWorkbench(
-null == spec ? _self.spec : spec // ignore: cast_nullable_to_non_nullable
-as WorkbenchSpec,
-  ));
-}
-
-/// Create a copy of ViewSpec
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$WorkbenchSpecCopyWith<$Res> get spec {
-  
-  return $WorkbenchSpecCopyWith<$Res>(_self.spec, (value) {
     return _then(_self.copyWith(spec: value));
   });
 }

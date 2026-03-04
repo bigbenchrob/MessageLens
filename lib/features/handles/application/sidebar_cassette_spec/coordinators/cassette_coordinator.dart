@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/handles_cassette_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/handles_cassette_spec.dart';
 import '../../state/stray_handle_mode_provider.dart';
 import '../resolvers/stray_emails_resolver.dart';
 import '../resolvers/stray_handles_mode_switcher_resolver.dart';

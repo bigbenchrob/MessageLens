@@ -13,7 +13,6 @@ part of '../cassette_spec.dart';
 CassetteSpec? resolveCassetteChild(CassetteSpec spec) {
   return spec.when(
     sidebarUtility: (inner) => inner.childSpec(),
-    presentation: (inner) => inner.childSpec(),
     contacts: (inner) => inner.childSpec(),
     contactsSettings: (inner) => inner.childSpec(),
     contactsInfo: (inner) => inner.childSpec(),

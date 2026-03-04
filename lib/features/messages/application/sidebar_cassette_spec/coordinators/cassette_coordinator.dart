@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../../essentials/sidebar/domain/entities/features/messages_cassette_spec.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../domain/spec_classes/messages_cassette_spec.dart';
 import '../resolvers/heatmap_resolver.dart';
 
 part 'cassette_coordinator.g.dart';

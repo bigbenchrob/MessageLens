@@ -2,13 +2,12 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../../features/contacts/domain/spec_classes/contacts_info_cassette_spec.dart';
+import '../../../../features/contacts/domain/spec_classes/contacts_settings_spec.dart';
+import '../../../../features/handles/domain/spec_classes/handles_cassette_spec.dart';
+import '../../../../features/handles/domain/spec_classes/handles_info_cassette_spec.dart';
+import '../../../../features/messages/domain/spec_classes/messages_cassette_spec.dart';
 import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import '../../../../features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
-import 'features/contacts_settings_spec.dart';
-import 'features/handles_cassette_spec.dart';
-import 'features/handles_info_cassette_spec.dart';
-import 'features/messages_cassette_spec.dart';
-import 'features/presentation_cassette_spec.dart';
 
 part 'cassette_spec.freezed.dart';
 part 'cascade/cassette_child_resolver.dart';
@@ -26,8 +25,6 @@ part 'cascade/links/sidebar_utility_to_contacts.dart';
 abstract class CassetteSpec with _$CassetteSpec {
   const factory CassetteSpec.sidebarUtility(SidebarUtilityCassetteSpec spec) =
       _CassetteSidebarWidget;
-  const factory CassetteSpec.presentation(PresentationCassetteSpec spec) =
-      _CassettePresentation;
   const factory CassetteSpec.contacts(ContactsCassetteSpec spec) =
       _CassetteContacts;
   const factory CassetteSpec.contactsSettings(ContactsSettingsSpec spec) =

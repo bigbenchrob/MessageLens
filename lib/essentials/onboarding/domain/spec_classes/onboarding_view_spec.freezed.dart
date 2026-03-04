@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'settings_spec.dart';
+part of 'onboarding_view_spec.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -12,7 +12,7 @@ part of 'settings_spec.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$SettingsSpec {
+mixin _$OnboardingSpec {
 
 
 
@@ -20,7 +20,7 @@ mixin _$SettingsSpec {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SettingsSpec);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingSpec);
 }
 
 
@@ -29,20 +29,20 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'SettingsSpec()';
+  return 'OnboardingSpec()';
 }
 
 
 }
 
 /// @nodoc
-class $SettingsSpecCopyWith<$Res>  {
-$SettingsSpecCopyWith(SettingsSpec _, $Res Function(SettingsSpec) __);
+class $OnboardingSpecCopyWith<$Res>  {
+$OnboardingSpecCopyWith(OnboardingSpec _, $Res Function(OnboardingSpec) __);
 }
 
 
-/// Adds pattern-matching-related methods to [SettingsSpec].
-extension SettingsSpecPatterns on SettingsSpec {
+/// Adds pattern-matching-related methods to [OnboardingSpec].
+extension OnboardingSpecPatterns on OnboardingSpec {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -55,11 +55,11 @@ extension SettingsSpecPatterns on SettingsSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _SettingsContactDisplayNameInfo value)?  contactDisplayNameInfo,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DevPanel value)?  devPanel,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo() when contactDisplayNameInfo != null:
-return contactDisplayNameInfo(_that);case _:
+case _DevPanel() when devPanel != null:
+return devPanel(_that);case _:
   return orElse();
 
 }
@@ -77,11 +77,11 @@ return contactDisplayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _SettingsContactDisplayNameInfo value)  contactDisplayNameInfo,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DevPanel value)  devPanel,}){
 final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo():
-return contactDisplayNameInfo(_that);case _:
+case _DevPanel():
+return devPanel(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -98,11 +98,11 @@ return contactDisplayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _SettingsContactDisplayNameInfo value)?  contactDisplayNameInfo,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DevPanel value)?  devPanel,}){
 final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo() when contactDisplayNameInfo != null:
-return contactDisplayNameInfo(_that);case _:
+case _DevPanel() when devPanel != null:
+return devPanel(_that);case _:
   return null;
 
 }
@@ -119,10 +119,10 @@ return contactDisplayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  contactDisplayNameInfo,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  devPanel,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo() when contactDisplayNameInfo != null:
-return contactDisplayNameInfo();case _:
+case _DevPanel() when devPanel != null:
+return devPanel();case _:
   return orElse();
 
 }
@@ -140,10 +140,10 @@ return contactDisplayNameInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  contactDisplayNameInfo,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  devPanel,}) {final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo():
-return contactDisplayNameInfo();case _:
+case _DevPanel():
+return devPanel();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -160,10 +160,10 @@ return contactDisplayNameInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  contactDisplayNameInfo,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  devPanel,}) {final _that = this;
 switch (_that) {
-case _SettingsContactDisplayNameInfo() when contactDisplayNameInfo != null:
-return contactDisplayNameInfo();case _:
+case _DevPanel() when devPanel != null:
+return devPanel();case _:
   return null;
 
 }
@@ -174,8 +174,8 @@ return contactDisplayNameInfo();case _:
 /// @nodoc
 
 
-class _SettingsContactDisplayNameInfo extends SettingsSpec {
-  const _SettingsContactDisplayNameInfo(): super._();
+class _DevPanel implements OnboardingSpec {
+  const _DevPanel();
   
 
 
@@ -185,7 +185,7 @@ class _SettingsContactDisplayNameInfo extends SettingsSpec {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SettingsContactDisplayNameInfo);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DevPanel);
 }
 
 
@@ -194,7 +194,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'SettingsSpec.contactDisplayNameInfo()';
+  return 'OnboardingSpec.devPanel()';
 }
 
 
