@@ -1,6 +1,7 @@
 import '../../domain/base_table_importer.dart';
 import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
+import 'identifier_utils.dart';
 
 class ContactToChatHandleImporter extends BaseTableImporter
     with RowProgressReporter {
@@ -58,17 +59,9 @@ class ContactToChatHandleImporter extends BaseTableImporter
 
       final normalizedKey =
           normalizedIdentifier?.toLowerCase() ??
-          _normalizeIdentifier(rawIdentifier)?.toLowerCase();
+          normalizeIdentifier(rawIdentifier)?.toLowerCase();
       if (normalizedKey != null && normalizedKey.isNotEmpty) {
         handleIndex.putIfAbsent(normalizedKey, () => []).add(handleId);
-        if (handleId == 247) {
-          print(
-            '🔍 Handle 247: raw=$rawIdentifier, normalized=$normalizedIdentifier, key=$normalizedKey',
-          );
-          print(
-            '🔍 handleIndex now has ${handleIndex[normalizedKey]?.length} handles for key "$normalizedKey"',
-          );
-        }
       }
 
       if (rawIdentifier != null && rawIdentifier.isNotEmpty) {
@@ -77,7 +70,7 @@ class ContactToChatHandleImporter extends BaseTableImporter
       }
     }
 
-    var inserted = 0;
+    final links = <Map<String, int>>[];
     var processed = 0;
 
     for (final channel in channels) {
@@ -91,38 +84,22 @@ class ContactToChatHandleImporter extends BaseTableImporter
 
       final baseKey = value.toLowerCase();
       final normalizedKey = kind == 'phone'
-          ? _normalizeIdentifier(value)?.toLowerCase()
+          ? normalizeIdentifier(value)?.toLowerCase()
           : baseKey;
-
-      if (contactZpk == 56) {
-        print(
-          '🔍 Contact 56 channel: value=$value, kind=$kind, baseKey=$baseKey, normalizedKey=$normalizedKey',
-        );
-        print('🔍 handleIndex[$normalizedKey] = ${handleIndex[normalizedKey]}');
-        print('🔍 handleIndex[$baseKey] = ${handleIndex[baseKey]}');
-      }
 
       final handleIds =
           handleIndex[normalizedKey ?? baseKey] ?? handleIndex[baseKey];
       if (handleIds == null || handleIds.isEmpty) {
-        if (contactZpk == 56) {
-          print('🔍 Contact 56: NO handles found for this channel, skipping');
-        }
         processed += 1;
         continue;
       }
 
       // Link this contact to ALL matching handles (e.g., both iMessage and SMS)
       for (final handleId in handleIds) {
-        if (contactZpk == 56) {
-          print('🔍 Linking contact 56 to handle $handleId');
-        }
-        await ctx.importDb.insertContactHandleLink(
-          contactZpk: contactZpk,
-          handleId: handleId,
-          batchId: ctx.batchId,
-        );
-        inserted += 1;
+        links.add(<String, int>{
+          'contact_Z_PK': contactZpk,
+          'chat_handle_id': handleId,
+        });
       }
 
       processed += 1;
@@ -130,18 +107,20 @@ class ContactToChatHandleImporter extends BaseTableImporter
       if (processed % 200 == 0 || processed == channels.length) {
         ctx.info(
           'ContactToChatHandleImporter: processed '
-          '$processed/${channels.length} channels (linked $inserted)',
+          '$processed/${channels.length} channels (linked ${links.length})',
         );
         reportRowProgress(processed: processed, total: channels.length);
       }
     }
 
-    await ctx.importDb.updateContactIgnoreFlags(batchId: ctx.batchId);
-    ctx.writeScratch('contactHandleLinks.inserted', inserted);
-
-    print(
-      '✅ ContactToChatHandleImporter.copy() COMPLETED - inserted $inserted links',
+    // Batch insert all links at once
+    await ctx.importDb.insertContactHandleLinksBatch(
+      links: links,
+      batchId: ctx.batchId,
     );
+
+    await ctx.importDb.updateContactIgnoreFlags(batchId: ctx.batchId);
+    ctx.writeScratch('contactHandleLinks.inserted', links.length);
   }
 
   @override
@@ -162,26 +141,4 @@ String? _trim(Object? value) {
     return trimmed;
   }
   return null;
-}
-
-String? _normalizeIdentifier(String? value) {
-  if (value == null) {
-    return null;
-  }
-  final trimmed = value.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  if (trimmed.contains('@')) {
-    return trimmed.toLowerCase();
-  }
-  final digits = trimmed.replaceAll(RegExp(r'[^0-9+]'), '');
-  if (digits.isEmpty) {
-    return null;
-  }
-  final normalized = digits.startsWith('+') ? digits.substring(1) : digits;
-  if (normalized.length == 11 && normalized.startsWith('1')) {
-    return normalized.substring(1);
-  }
-  return normalized;
 }

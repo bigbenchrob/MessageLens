@@ -1,8 +1,9 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../../domain/base_table_importer.dart';
-import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ChatToMessageImporter extends BaseTableImporter with RowProgressReporter {
+class ChatToMessageImporter extends BaseTableImporter {
   ChatToMessageImporter();
 
   @override
@@ -34,32 +35,23 @@ class ChatToMessageImporter extends BaseTableImporter with RowProgressReporter {
       return;
     }
 
-    var processed = 0;
-    var linked = 0;
-
-    for (final entry in entries.entries) {
-      final messageId = entry.key;
-      final chatId = entry.value;
-      final result = await ctx.importDb.insertChatMessageJoinSource(
-        chatId: chatId,
-        messageId: messageId,
-        sourceRowid: messageId,
-      );
-      if (result != -1) {
-        linked += 1;
+    final db = await ctx.importDb.database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final entry in entries.entries) {
+        batch.insert('chat_to_message', <String, Object?>{
+          'chat_id': entry.value,
+          'message_id': entry.key,
+          'source_rowid': entry.key,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
+      await batch.commit(noResult: true);
+    });
 
-      processed += 1;
-      if (processed % 200 == 0 || processed == entries.length) {
-        ctx.info(
-          'ChatToMessageImporter: processed $processed/${entries.length} '
-          'links (inserted $linked)',
-        );
-        reportRowProgress(processed: processed, total: entries.length);
-      }
-    }
-
-    ctx.writeScratch('chatToMessage.inserted', linked);
+    ctx.info(
+      'ChatToMessageImporter: inserted ${entries.length} links (batched).',
+    );
+    ctx.writeScratch('chatToMessage.inserted', entries.length);
   }
 
   @override

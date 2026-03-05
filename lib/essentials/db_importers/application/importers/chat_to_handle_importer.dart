@@ -1,8 +1,9 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../../domain/base_table_importer.dart';
-import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
 
-class ChatToHandleImporter extends BaseTableImporter with RowProgressReporter {
+class ChatToHandleImporter extends BaseTableImporter {
   ChatToHandleImporter();
 
   @override
@@ -33,41 +34,35 @@ class ChatToHandleImporter extends BaseTableImporter with RowProgressReporter {
       return;
     }
 
-    var processed = 0;
-    var inserted = 0;
-
+    // Collect valid pairs, then batch-insert.
+    // PK (chat_id, handle_id) with REPLACE handles duplicates.
+    final pairs = <Map<String, Object?>>[];
     for (final row in rows) {
       final chatId = row['chat_id'] as int?;
       final handleId = row['handle_id'] as int?;
-      if (chatId == null || handleId == null) {
-        processed += 1;
-        continue;
-      }
-
-      final alreadyLinked = await ctx.importDb.chatParticipantExists(
-        chatId: chatId,
-        handleId: handleId,
-      );
-      if (!alreadyLinked) {
-        final result = await ctx.importDb.insertChatParticipant(
-          chatId: chatId,
-          handleId: handleId,
-        );
-        if (result > 0) {
-          inserted += 1;
-        }
-      }
-
-      processed += 1;
-      if (processed % 500 == 0 || processed == rows.length) {
-        ctx.info(
-          'ChatToHandleImporter: processed $processed/${rows.length} memberships',
-        );
-        reportRowProgress(processed: processed, total: rows.length);
+      if (chatId != null && handleId != null) {
+        pairs.add(<String, Object?>{'chat_id': chatId, 'handle_id': handleId});
       }
     }
 
-    ctx.writeScratch('chatMemberships.inserted', inserted);
+    final db = await ctx.importDb.database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final pair in pairs) {
+        batch.insert(
+          'chat_to_handle',
+          pair,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+
+    ctx.info(
+      'ChatToHandleImporter: inserted ${pairs.length} memberships '
+      '(batched, from ${rows.length} source rows).',
+    );
+    ctx.writeScratch('chatMemberships.inserted', pairs.length);
   }
 
   @override

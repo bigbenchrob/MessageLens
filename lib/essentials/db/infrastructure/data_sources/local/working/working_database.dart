@@ -34,7 +34,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -692,6 +692,7 @@ const List<String> _workingIndexStatements = [
   'CREATE INDEX IF NOT EXISTS idx_handles_batch ON handles_canonical(batch_id)',
   'CREATE INDEX IF NOT EXISTS idx_chat_to_handle_handle ON chat_to_handle(handle_id)',
   'CREATE INDEX IF NOT EXISTS idx_handles_canonical_to_alias_canonical ON handles_canonical_to_alias(canonical_handle_id)',
+  'CREATE INDEX IF NOT EXISTS idx_reactions_message_guid ON reactions(message_guid)',
 ];
 
 const List<String> _workingVirtualAndTriggerStatements = [

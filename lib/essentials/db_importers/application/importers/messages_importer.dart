@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:sqflite/sqflite.dart';
-
 import '../../../../../core/util/date_converter.dart';
 import '../../domain/base_table_importer.dart';
 import '../../domain/row_progress_reporter.dart';
@@ -49,7 +47,20 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
       return;
     }
 
-    final cache = <int, int>{};
+    // Pre-load all chat_message_join mappings to avoid per-row queries.
+    final chatJoinRows = await ctx.messagesDb.query(
+      'chat_message_join',
+      columns: <String>['message_id', 'chat_id'],
+    );
+    final chatIdByMessage = <int, int>{};
+    for (final jr in chatJoinRows) {
+      final msgId = jr['message_id'];
+      final chatId = jr['chat_id'];
+      if (msgId is int && chatId is int) {
+        chatIdByMessage[msgId] = chatId;
+      }
+    }
+
     final insertedIds = <int>[];
     final extractionCandidates = <int>{};
     final messageToChat = <int, int>{};
@@ -65,7 +76,7 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
         continue;
       }
 
-      final chatId = await _resolveChatId(ctx.messagesDb, cache, sourceRowId);
+      final chatId = chatIdByMessage[sourceRowId];
       if (chatId == null) {
         processed += 1;
         continue;
@@ -144,39 +155,6 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
     final total = await count(ctx.importDb, name);
     ctx.info('MessagesImporter: ledger now tracks $total messages.');
   }
-}
-
-Future<int?> _resolveChatId(
-  Database messagesDb,
-  Map<int, int> cache,
-  int messageId,
-) async {
-  final cached = cache[messageId];
-  if (cached != null) {
-    return cached;
-  }
-
-  final rows = await messagesDb.query(
-    'chat_message_join',
-    columns: <String>['chat_id'],
-    where: 'message_id = ?',
-    whereArgs: <Object>[messageId],
-    limit: 1,
-  );
-  if (rows.isEmpty) {
-    return null;
-  }
-
-  final value = rows.first['chat_id'];
-  final chatId = value is int
-      ? value
-      : value is num
-      ? value.toInt()
-      : int.tryParse('$value');
-  if (chatId != null) {
-    cache[messageId] = chatId;
-  }
-  return chatId;
 }
 
 String _inferItemType(Map<String, Object?> row) {

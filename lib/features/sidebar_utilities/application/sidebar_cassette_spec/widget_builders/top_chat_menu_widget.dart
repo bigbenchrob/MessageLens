@@ -5,6 +5,7 @@ import '../../../../../config/theme/colors/theme_colors.dart'
     show DropdownMenu, themeColorsProvider;
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../config/theme/widgets/theme_widgets.dart';
+import '../../../../../essentials/db/feature_level_providers/working_db_populated_provider.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../domain/sidebar_utilities_constants.dart';
@@ -48,6 +49,12 @@ class TopChatMenuWidget extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
+    // When contacts is selected but the working DB is empty (e.g. first launch
+    // before migration finishes), show a prompt instead of the choice label.
+    final isPopulated = ref.watch(workingDbPopulatedProvider);
+    final showPrompt =
+        currentChoice == TopChatMenuChoice.contacts && !isPopulated;
+
     void handleSelectionChange(TopChatMenuChoice newChoice) {
       // Construct the new spec locally - this is OUTPUT, not interpretation
       final newSpec = CassetteSpec.sidebarUtility(
@@ -64,7 +71,12 @@ class TopChatMenuWidget extends ConsumerWidget {
       options: choices,
       selectedOption: currentChoice,
       onSelected: handleSelectionChange,
-      optionLabelBuilder: (choice) => choice.label,
+      optionLabelBuilder: (choice) {
+        if (showPrompt && choice == TopChatMenuChoice.contacts) {
+          return 'Show messages from:';
+        }
+        return choice.label;
+      },
       // Naked card wrapper provides 12px horizontal margin
       outerPadding: EdgeInsets.zero,
       // Match card internal padding: 12px left for text alignment

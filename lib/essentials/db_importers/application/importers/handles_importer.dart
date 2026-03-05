@@ -3,6 +3,7 @@ import '../../../db/shared/handle_identifier_utils.dart';
 import '../../domain/base_table_importer.dart';
 import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
+import 'identifier_utils.dart';
 
 class HandlesImporter extends BaseTableImporter with RowProgressReporter {
   HandlesImporter();
@@ -46,7 +47,7 @@ class HandlesImporter extends BaseTableImporter with RowProgressReporter {
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
       final rawIdentifier = (row['id'] as String?)?.trim();
-      final normalizedIdentifier = _normalizeIdentifier(rawIdentifier);
+      final normalizedIdentifier = normalizeIdentifier(rawIdentifier);
       final service = sanitizeHandleService(row['service'] as String?);
       final compoundIdentifier = buildCompoundIdentifier(
         normalizedIdentifier: normalizedIdentifier,
@@ -98,26 +99,4 @@ class HandlesImporter extends BaseTableImporter with RowProgressReporter {
       message: 'Handles table should contain rows after import.',
     );
   }
-}
-
-String? _normalizeIdentifier(String? value) {
-  if (value == null) {
-    return null;
-  }
-  final trimmed = value.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  if (trimmed.contains('@')) {
-    return trimmed.toLowerCase();
-  }
-  final digits = trimmed.replaceAll(RegExp(r'[^0-9+]'), '');
-  if (digits.isEmpty) {
-    return null;
-  }
-  final normalized = digits.startsWith('+') ? digits.substring(1) : digits;
-  if (normalized.length == 11 && normalized.startsWith('1')) {
-    return normalized.substring(1);
-  }
-  return normalized;
 }

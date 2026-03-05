@@ -5,6 +5,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' as sched;
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
+    show ExternalLibrary;
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:media_kit/media_kit.dart';
@@ -86,8 +89,6 @@ class _MyDelegate extends NSWindowDelegate {
 }
 
 void main() async {
-  print('🎯 APP STARTING - main() called');
-
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize sqflite FFI for desktop platforms
@@ -106,8 +107,32 @@ void main() async {
     );
   }
 
-  // Initialize Rust library for URL preview parsing
-  await RustLib.init();
+  // Initialize Rust library for URL preview parsing.
+  // FRB's default loader uses Directory.current to resolve the ioDirectory,
+  // which breaks when launched via macOS LaunchServices (CWD is /).
+  // We resolve the dylib from the app bundle's Frameworks directory first,
+  // falling back to the default (works during development from project dir).
+  try {
+    final bundlePath =
+        Platform.resolvedExecutable; // .../MacOS/remember_every_text
+    final frameworksDir = Directory(
+      '${File(bundlePath).parent.parent.path}/Frameworks',
+    );
+    final bundledDylib = File(
+      '${frameworksDir.path}/attributed_string_decoder.framework/attributed_string_decoder',
+    );
+    if (bundledDylib.existsSync()) {
+      await RustLib.init(
+        externalLibrary: ExternalLibrary.open(bundledDylib.path),
+      );
+    } else {
+      await RustLib.init();
+    }
+  } catch (e) {
+    debugPrint(
+      'RustLib.init failed: $e — URL preview parsing will be unavailable',
+    );
+  }
 
   await _configureMacosWindowUtils();
 
@@ -147,11 +172,6 @@ void main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     container.read(windowStateServiceProvider).enforceMinSize();
   });
-
-  ///todo: remove
-  /// Slow down scrolling so jumps are observable during debugging
-  //sched.timeDilation = 5.0;
-
   runApp(UncontrolledProviderScope(container: container, child: const App()));
 }
 

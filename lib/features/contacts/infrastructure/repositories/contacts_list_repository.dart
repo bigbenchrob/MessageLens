@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/db/feature_level_providers/message_data_version_provider.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import '../../domain/participant_origin.dart';
 import 'participant_merge_utils.dart';
@@ -53,6 +54,9 @@ Future<List<ContactSummary>> contactsListRepository(Ref ref) async {
   if (maintenanceLocked) {
     return const <ContactSummary>[];
   }
+
+  // Rebuild when migration or import populates new data.
+  ref.watch(messageDataVersionProvider);
 
   final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
   final overlayDb = await ref.watch(overlayDatabaseProvider.future);

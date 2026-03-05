@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../db/feature_level_providers.dart' show databaseDirectoryPath;
+import '../../db/feature_level_providers/message_data_version_provider.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../domain/onboarding_status.dart';
 import 'database_existence_checker.dart';
@@ -66,6 +67,10 @@ class OnboardingGate extends _$OnboardingGate {
     } catch (_) {
       // Swallow — land on complete so user can dismiss.
     }
+
+    // Signal all data-dependent providers (contacts, messages, etc.) to
+    // rebuild with the freshly-populated working database.
+    ref.read(messageDataVersionProvider.notifier).bump();
 
     state = OnboardingStatus.complete;
   }

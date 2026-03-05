@@ -4,7 +4,7 @@
 /// cassette spec.
 enum TopChatMenuChoice {
   /// Contacts list
-  contacts(id: 'contacts', label: 'From contacts'),
+  contacts(id: 'contacts', label: 'Messages from contacts'),
 
   /// Handles not matched to any contact (phone #, email, business URN)
   strayHandles(id: 'stray_handles', label: 'From unfamiliar sources'),

@@ -32,7 +32,7 @@ class ReactionsMigrator extends BaseTableMigrator {
           'reactions: import has $joinable rows but working database has no messages',
     );
 
-    final projectedHandles = await count(ctx.workingDb, 'handles');
+    final projectedHandles = await count(ctx.workingDb, 'handles_canonical');
     await expectTrueOrThrow(
       ok: projectedHandles > 0,
       errorCode: 'REACTIONS_REQUIRES_HANDLES',
@@ -100,7 +100,7 @@ class ReactionsMigrator extends BaseTableMigrator {
         JOIN messages wm ON wm.id = carrier.id
         LEFT JOIN handles_canonical_to_alias map
           ON map.source_handle_id = r.reactor_handle_id
-        LEFT JOIN handles rh ON rh.id = map.canonical_handle_id
+        LEFT JOIN handles_canonical rh ON rh.id = map.canonical_handle_id
         WHERE wm.guid IS NOT NULL AND LENGTH(TRIM(wm.guid)) > 0;
       ''');
 

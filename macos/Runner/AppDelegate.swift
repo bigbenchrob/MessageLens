@@ -8,6 +8,7 @@
 
   @main
   class AppDelegate: FlutterAppDelegate {
+
     override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
       return true
     }
@@ -20,14 +21,17 @@
       // Register the LinkPreviewPlugin
       let controller =
         NSApplication.shared.windows.first?.contentViewController as! FlutterViewController
-      let channel = FlutterMethodChannel(
-        name: "com.remember_this_text/link_preview",
-        binaryMessenger: controller.engine.binaryMessenger
-      )
+      let messenger = controller.engine.binaryMessenger
 
-      channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+      let linkChannel = FlutterMethodChannel(
+        name: "com.remember_this_text/link_preview",
+        binaryMessenger: messenger
+      )
+      linkChannel.setMethodCallHandler {
+        (call: FlutterMethodCall, result: @escaping FlutterResult) in
         self.handleMethodCall(call, result: result)
       }
+
     }
 
     private func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

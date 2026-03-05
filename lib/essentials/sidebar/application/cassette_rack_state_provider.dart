@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../db/feature_level_providers/working_db_populated_provider.dart';
 import '../../navigation/domain/sidebar_mode.dart';
 import '../feature_level_providers.dart';
 
@@ -67,8 +68,18 @@ abstract class CassetteRack with _$CassetteRack {
 class CassetteRackState extends _$CassetteRackState {
   @override
   CassetteRack build(SidebarMode mode) {
+    final isPopulated = ref.watch(workingDbPopulatedProvider);
     switch (mode) {
       case SidebarMode.messages:
+        if (!isPopulated) {
+          return const CassetteRack(
+            cassettes: [
+              CassetteSpec.sidebarUtility(
+                SidebarUtilityCassetteSpec.topChatMenu(),
+              ),
+            ],
+          );
+        }
         return CassetteRack.initial();
       case SidebarMode.settings:
         return CassetteRack.settingsInitial();
@@ -193,7 +204,10 @@ class CassetteRackState extends _$CassetteRackState {
       return;
     }
     final preserved = state.cassettes.take(index).toList(growable: false);
-    final cascaded = _cascadeFromSpec(newSpec);
+    final isPopulated = ref.read(workingDbPopulatedProvider);
+    final cascaded = isPopulated
+        ? _cascadeFromSpec(newSpec)
+        : <CassetteSpec>[newSpec];
     state = state.copyWith(
       cassettes: List<CassetteSpec>.unmodifiable([...preserved, ...cascaded]),
     );

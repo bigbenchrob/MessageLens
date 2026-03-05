@@ -1,6 +1,7 @@
 import '../../domain/base_table_importer.dart';
 import '../../domain/row_progress_reporter.dart';
 import '../../infrastructure/sqlite/import_context_sqlite.dart';
+import 'identifier_utils.dart';
 
 class ContactChannelsImporter extends BaseTableImporter
     with RowProgressReporter {
@@ -29,16 +30,32 @@ class ContactChannelsImporter extends BaseTableImporter
   Future<void> copy(IImportContext ctx) async {
     var inserted = 0;
 
+    // Pre-load valid contact Z_PKs so we can skip channels whose ZOWNER
+    // doesn't match an imported contact (avoids FK violation).
+    final importDb = await ctx.importDb.database;
+    final contactRows = await importDb.query('contacts', columns: ['Z_PK']);
+    final validOwners = <int>{};
+    for (final r in contactRows) {
+      final zpk = r['Z_PK'];
+      if (zpk is int) {
+        validOwners.add(zpk);
+      }
+    }
+
     // Collect row counts for combined progress
     final emailRows = await ctx.addressBookDb.query('ZABCDEMAILADDRESS');
     final phoneRows = await ctx.addressBookDb.query('ZABCDPHONENUMBER');
     final totalRows = emailRows.length + phoneRows.length;
     var overallProcessed = 0;
+    var skippedOrphan = 0;
 
     // Process email rows
     for (final row in emailRows) {
       final owner = row['ZOWNER'] as int?;
-      if (owner == null) {
+      if (owner == null || !validOwners.contains(owner)) {
+        if (owner != null) {
+          skippedOrphan += 1;
+        }
         overallProcessed += 1;
         continue;
       }
@@ -51,15 +68,8 @@ class ContactChannelsImporter extends BaseTableImporter
       }
 
       final normalized = address.toLowerCase();
-      final alreadyImported = await ctx.importDb.contactChannelExists(
-        kind: 'email',
-        value: normalized,
-      );
-      if (alreadyImported) {
-        overallProcessed += 1;
-        continue;
-      }
 
+      // INSERT OR IGNORE relies on UNIQUE(kind, value) — no existence check needed.
       await ctx.importDb.insertContactChannel(
         zOwner: owner,
         kind: 'email',
@@ -81,7 +91,10 @@ class ContactChannelsImporter extends BaseTableImporter
     // Process phone rows
     for (final row in phoneRows) {
       final owner = row['ZOWNER'] as int?;
-      if (owner == null) {
+      if (owner == null || !validOwners.contains(owner)) {
+        if (owner != null) {
+          skippedOrphan += 1;
+        }
         overallProcessed += 1;
         continue;
       }
@@ -92,16 +105,9 @@ class ContactChannelsImporter extends BaseTableImporter
         continue;
       }
 
-      final normalized = _normalizeIdentifier(rawNumber) ?? rawNumber;
-      final alreadyImported = await ctx.importDb.contactChannelExists(
-        kind: 'phone',
-        value: normalized,
-      );
-      if (alreadyImported) {
-        overallProcessed += 1;
-        continue;
-      }
+      final normalized = normalizeIdentifier(rawNumber) ?? rawNumber;
 
+      // INSERT OR IGNORE relies on UNIQUE(kind, value) — no existence check needed.
       await ctx.importDb.insertContactChannel(
         zOwner: owner,
         kind: 'phone',
@@ -125,6 +131,13 @@ class ContactChannelsImporter extends BaseTableImporter
       reportRowProgress(processed: overallProcessed, total: totalRows);
     }
 
+    if (skippedOrphan > 0) {
+      ctx.info(
+        'ContactChannelsImporter: skipped $skippedOrphan channels '
+        'with unknown ZOWNER (no matching contact).',
+      );
+    }
+
     ctx.writeScratch('contactChannels.inserted', inserted);
   }
 
@@ -146,26 +159,4 @@ String? _trim(Object? value) {
     return trimmed;
   }
   return null;
-}
-
-String? _normalizeIdentifier(String? value) {
-  if (value == null) {
-    return null;
-  }
-  final trimmed = value.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  if (trimmed.contains('@')) {
-    return trimmed.toLowerCase();
-  }
-  final digits = trimmed.replaceAll(RegExp(r'[^0-9+]'), '');
-  if (digits.isEmpty) {
-    return null;
-  }
-  final normalized = digits.startsWith('+') ? digits.substring(1) : digits;
-  if (normalized.length == 11 && normalized.startsWith('1')) {
-    return normalized.substring(1);
-  }
-  return normalized;
 }

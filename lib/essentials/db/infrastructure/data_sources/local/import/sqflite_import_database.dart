@@ -611,19 +611,7 @@ AND Z_PK NOT IN (
   }) async {
     final db = await database;
 
-    // Verify the batch exists before inserting handle
-    final batchExists = await db.query(
-      'import_batches',
-      where: 'id = ?',
-      whereArgs: [batchId],
-    );
-
-    if (batchExists.isEmpty) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase.insertHandle: ERROR - batch $batchId does not exist!',
-      );
-      throw Exception('Cannot insert handle: batch $batchId does not exist');
-    }
+    // FK constraint on batch_id → import_batches(id) enforces existence.
 
     final safeService = sanitizeHandleService(service);
     final trimmedCompound = compoundIdentifier.trim();
@@ -747,19 +735,7 @@ AND Z_PK NOT IN (
   }) async {
     final db = await database;
 
-    // Validate that the chat exists
-    final chatExists = await db.query(
-      'chats',
-      where: 'id = ?',
-      whereArgs: [chatId],
-    );
-
-    if (chatExists.isEmpty) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase.insertMessage: ERROR - chat $chatId does not exist!',
-      );
-      throw Exception('Cannot insert message: chat $chatId does not exist');
-    }
+    // FK constraint on chat_id → chats(id) enforces existence.
 
     // Handle sender_handle_id = 0 (treat as NULL)
     // All handles are now imported, so no need to validate existence
@@ -1286,6 +1262,10 @@ AND Z_PK NOT IN (
     'CREATE INDEX IF NOT EXISTS idx_attach_created ON attachments(created_at_utc)',
     'CREATE INDEX IF NOT EXISTS idx_reactions_target ON reactions(target_message_guid)',
     'CREATE INDEX IF NOT EXISTS idx_reactions_reactor ON reactions(reactor_handle_id)',
+    'CREATE INDEX IF NOT EXISTS idx_contact_phone_email_owner ON contact_phone_email(ZOWNER)',
+    'CREATE INDEX IF NOT EXISTS idx_message_attachments_attachment ON message_attachments(attachment_id)',
+    'CREATE INDEX IF NOT EXISTS idx_reactions_carrier ON reactions(carrier_message_id)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_to_message_message ON chat_to_message(message_id)',
   ];
 
   static const String _expandedMessagesViewStatement =
