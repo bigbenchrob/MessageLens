@@ -29,7 +29,6 @@ const _$TopChatMenuChoiceEnumMap = {
   TopChatMenuChoice.contacts: 'contacts',
   TopChatMenuChoice.strayHandles: 'strayHandles',
   TopChatMenuChoice.searchAllMessages: 'searchAllMessages',
-  TopChatMenuChoice.themePlayground: 'themePlayground',
 };
 
 _SidebarUtilityCassetteSpecSettingsMenu

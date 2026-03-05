@@ -213,7 +213,6 @@ class CassetteRackState extends _$CassetteRackState {
     for (final spec in state.cassettes.reversed) {
       final result = spec.when(
         sidebarUtility: (_) => null,
-        presentation: (_) => null,
         contacts: (contactsSpec) {
           return contactsSpec.when(
             contactChooser: (chosenContactId) => chosenContactId,
