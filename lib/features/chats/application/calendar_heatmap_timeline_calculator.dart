@@ -14,14 +14,11 @@ Future<CalendarHeatmapTimelineData?> calculateCalendarHeatmapTimeline(
   DateTime? lastMessageDate,
 ) async {
   if (firstMessageDate == null || lastMessageDate == null) {
-    print('[HEATMAP] Chat $chatId: Missing dates, skipping timeline');
     return null;
   }
 
   final firstYear = firstMessageDate.year;
   final lastYear = lastMessageDate.year;
-
-  print('[HEATMAP] Chat $chatId: Years $firstYear-$lastYear');
 
   // Query message counts by year-month
   final query = db.customSelect(
@@ -44,13 +41,8 @@ Future<CalendarHeatmapTimelineData?> calculateCalendarHeatmapTimeline(
   final results = await query.get();
 
   if (results.isEmpty) {
-    print('[HEATMAP] Chat $chatId: No messages found in query results');
     return null;
   }
-
-  print(
-    '[HEATMAP] Chat $chatId: Query returned ${results.length} month records',
-  );
 
   // Build a map of year-month to count
   final counts = <String, int>{};
@@ -59,10 +51,7 @@ Future<CalendarHeatmapTimelineData?> calculateCalendarHeatmapTimeline(
     final month = row.read<String>('month');
     final count = row.read<int>('count');
     counts['$year-$month'] = count;
-    print('[HEATMAP] Chat $chatId: $year-$month = $count messages');
   }
-
-  print('[HEATMAP] Chat $chatId: Total months with data: ${counts.length}');
 
   // Build year rows
   final yearRows = <YearRow>[];
@@ -125,11 +114,6 @@ Future<CalendarHeatmapTimelineData?> calculateCalendarHeatmapTimeline(
   if (yearRows.isEmpty) {
     return null;
   }
-
-  print(
-    '[HEATMAP] Chat $chatId: Built ${yearRows.length} year rows, '
-    'total=$totalMessages, maxMonth=$maxMonthCount',
-  );
 
   return CalendarHeatmapTimelineData(
     yearRows: yearRows,

@@ -5,7 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import 'package:remember_this_text/essentials/logging/application/message_logger.dart';
+import 'package:remember_this_text/essentials/logging/application/app_logger.dart';
+import 'package:remember_this_text/essentials/logging/domain/log_entry.dart';
 import 'package:remember_this_text/features/contacts/application/services/manual_handle_link_service.dart';
 import 'package:remember_this_text/features/contacts/infrastructure/repositories/virtual_participants_provider.dart';
 
@@ -71,8 +72,8 @@ void main() {
         await service.createVirtualParticipant(displayName: 'Jamie');
         await service.createVirtualParticipant(displayName: 'jamie');
 
-        final logs = container.read(messageLoggerProvider);
-        final warningLog = logs.where((entry) => entry.level == 'warn');
+        final logs = container.read(appLoggerProvider);
+        final warningLog = logs.where((entry) => entry.level == LogLevel.warn);
         expect(warningLog, isNotEmpty);
         expect(
           warningLog.last.message,

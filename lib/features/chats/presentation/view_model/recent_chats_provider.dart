@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 import '../../application/calendar_heatmap_timeline_calculator.dart';
 import '../../domain/calendar_heatmap_timeline_data.dart';
 import '../../domain/chat_timeline_data.dart';
@@ -42,6 +43,8 @@ class RecentChatSummary {
 @riverpod
 Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final nameOverrides = await displayNameOverridesMap(overlayDb);
 
   List<WorkingChat> chatRows;
   final chatsQuery = db.select(db.workingChats)
@@ -98,8 +101,6 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
 
   final results = <RecentChatSummary>[];
 
-  print('[CHATS] Processing ${chatRows.length} chats...');
-
   for (final chat in chatRows) {
     final stats =
         await (db.selectOnly(db.workingMessages)
@@ -139,10 +140,9 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
       ),
     ])..where(db.chatToHandle.chatId.equals(chat.id));
 
-    // Display name (including any user override) is resolved directly
-    // in the participant's displayName field by the contacts repository
+    // Display name: overlay override wins, then working DB
     String resolveParticipantName(WorkingParticipant participant) =>
-        participant.displayName;
+        nameOverrides[participant.id] ?? participant.displayName;
 
     final participantRows = await participantsQuery.get();
     final participantNames = <String>[];
@@ -156,25 +156,10 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
       // Store the display name (formatted phone number or email)
       handleIdentifiers.add(handle.displayName);
 
-      // Debug logging for chat 279
-      if (chat.id == 279) {
-        print(
-          '[DEBUG] Chat 279 - Handle ID: ${handle.id}, Raw: ${handle.rawIdentifier}, Display: ${handle.displayName}',
-        );
-        print(
-          '[DEBUG] Chat 279 - Participant: ${participant?.id}, Display: ${participant?.displayName}',
-        );
-      }
-
       String resolvedName;
       if (participant != null) {
         // We have a matched participant (contact) - use their display name
         resolvedName = resolveParticipantName(participant);
-        if (chat.id == 279) {
-          print(
-            '[DEBUG] Chat 279 - Resolved name from participant: $resolvedName',
-          );
-        }
       } else {
         // No matched participant - fall back to handle identifier
         final displayName = handle.displayName.trim();
@@ -189,29 +174,17 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
             : compoundIdentifier.isNotEmpty
             ? compoundIdentifier
             : 'Unknown Contact';
-
-        if (chat.id == 279) {
-          print(
-            '[DEBUG] Chat 279 - No participant, using handle: $resolvedName',
-          );
-        }
       }
 
       final normalized = resolvedName.toLowerCase();
       final isSelfAlias = normalized == 'me';
       if (!isSelfAlias || chat.isGroup) {
         if (!seenNames.add(normalized)) {
-          if (chat.id == 279) {
-            print('[DEBUG] Chat 279 - Skipping duplicate name: $resolvedName');
-          }
           continue;
         }
       }
 
       participantNames.add(resolvedName);
-      if (chat.id == 279) {
-        print('[DEBUG] Chat 279 - Added participant name: $resolvedName');
-      }
     }
     if (participantNames.isEmpty) {
       participantNames.add('Unknown Contact');
@@ -250,6 +223,5 @@ Future<List<RecentChatSummary>> recentChats(Ref ref, {int? limit}) async {
     );
   }
 
-  print('[CHATS] Returning ${results.length} chat summaries');
   return results;
 }

@@ -6,9 +6,11 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../db_importers/application/debug_settings_provider.dart';
+import '../logging/application/app_logger.dart';
 
 import 'infrastructure/data_sources/local/import/sqflite_import_database.dart';
 import 'infrastructure/data_sources/local/overlay/overlay_database.dart';
@@ -21,9 +23,16 @@ part 'feature_level_providers.g.dart';
 
 /// The directory where all application databases are stored.
 ///
+/// Initialized once at app startup via [initDatabaseDirectoryPath].
 /// Exposed for use by the onboarding existence checker.
 /// All DB providers below also use this path.
-const databaseDirectoryPath = '/Users/rob/sqlite_rmc/remember_every_text/';
+late final String databaseDirectoryPath; //~/Library/Application Support/com.bigbenchsoftware.MessageLens/
+
+/// Must be called once in `main()` after `WidgetsFlutterBinding.ensureInitialized()`.
+Future<void> initDatabaseDirectoryPath() async {
+  final appSupportDir = await getApplicationSupportDirectory();
+  databaseDirectoryPath = appSupportDir.path;
+}
 
 Future<void> _ensureDatabaseDirectoryExists() async {
   final directory = Directory(databaseDirectoryPath);
@@ -71,8 +80,12 @@ Future<WorkingDatabase> driftWorkingDatabase(
   });
 
   ref.onDispose(() async {
-    // ignore: avoid_print
-    print('[WorkingDbProvider] disposing WorkingDatabase for $dbPath');
+    ref
+        .read(appLoggerProvider.notifier)
+        .debug(
+          'Disposing WorkingDatabase for $dbPath',
+          source: 'WorkingDbProvider',
+        );
     await database.close();
   });
 

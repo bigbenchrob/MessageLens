@@ -7,7 +7,7 @@ part of 'manual_handle_link_service.dart';
 // **************************************************************************
 
 String _$manualHandleLinkServiceHash() =>
-    r'd1d71f2fade5087d281850ab60dc9afbd0da5747';
+    r'5b2b03ded1acd4265a2fc74007768a4b8762d5dd';
 
 /// Service for managing manual handle-to-contact links.
 ///

@@ -27,10 +27,12 @@ class PickerFilterToggle extends ConsumerWidget {
             PickerFilterMode.all: _SegmentLabel(
               'All',
               isSelected: mode == PickerFilterMode.all,
+              selectedColor: colors.buttons.primaryForeground,
             ),
             PickerFilterMode.favouritesOnly: _SegmentLabel(
               'Favourites',
               isSelected: mode == PickerFilterMode.favouritesOnly,
+              selectedColor: colors.buttons.primaryForeground,
             ),
           },
           onValueChanged: (value) {
@@ -45,10 +47,15 @@ class PickerFilterToggle extends ConsumerWidget {
 }
 
 class _SegmentLabel extends StatelessWidget {
-  const _SegmentLabel(this.text, {required this.isSelected});
+  const _SegmentLabel(
+    this.text, {
+    required this.isSelected,
+    this.selectedColor,
+  });
 
   final String text;
   final bool isSelected;
+  final Color? selectedColor;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +63,7 @@ class _SegmentLabel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Text(
         text,
-        style: isSelected ? const TextStyle(color: Colors.white) : null,
+        style: isSelected ? TextStyle(color: selectedColor) : null,
       ),
     );
   }

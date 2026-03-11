@@ -6,9 +6,10 @@ import '../shared/hydration/attachment_info_loader.dart';
 import '../shared/hydration/messages_for_handle_provider.dart';
 
 class MessageRowMapper {
-  MessageRowMapper(this._db);
+  MessageRowMapper(this._db, this._displayNameOverrides);
 
   final WorkingDatabase _db;
+  final Map<int, String> _displayNameOverrides;
 
   Future<List<MessageListItem>> mapRows(List<drift.TypedResult> rows) async {
     if (rows.isEmpty) {
@@ -62,6 +63,10 @@ class MessageRowMapper {
     }
     if (participant == null) {
       return 'Unknown sender';
+    }
+    final override = _displayNameOverrides[participant.id];
+    if (override != null) {
+      return override;
     }
     return participant.displayName;
   }

@@ -264,7 +264,7 @@ void main() {
 
   group('Schema Migration', () {
     test('database has correct schema version', () {
-      expect(testDb.schemaVersion, equals(6));
+      expect(testDb.schemaVersion, equals(1));
     });
 
     test('can create annotation with all fields', () async {

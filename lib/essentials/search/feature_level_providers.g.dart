@@ -80,7 +80,7 @@ final useFtsSearchByDefaultProvider = AutoDisposeProvider<bool>.internal(
 // ignore: unused_element
 typedef UseFtsSearchByDefaultRef = AutoDisposeProviderRef<bool>;
 String _$searchIndexOrchestratorHash() =>
-    r'4ba74fb597e55347bc2ae33fe712479a824dae7c';
+    r'8acac6542aa0dbae5614cd04b0e5640f80f822e9';
 
 /// See also [searchIndexOrchestrator].
 @ProviderFor(searchIndexOrchestrator)

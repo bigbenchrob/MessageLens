@@ -7,7 +7,7 @@ import '../../navigation/domain/navigation_constants.dart';
 import '../../navigation/feature_level_providers.dart';
 import '../../onboarding/domain/import_spec.dart';
 import '../../onboarding/domain/spec_classes/onboarding_view_spec.dart';
-import 'message_logger.dart';
+import 'app_logger.dart';
 
 part 'navigation_logger.g.dart';
 
@@ -120,12 +120,12 @@ class NavigationLogger extends _$NavigationLogger {
     _navigationLogs.add(entry);
     state = List.of(_navigationLogs);
 
-    // Also log to the general message logger for unified logging
+    // Also log to the unified app logger for persistent file output.
     ref
-        .read(messageLoggerProvider.notifier)
+        .read(appLoggerProvider.notifier)
         .info(
           'Navigation: $action via $trigger to ${targetPanel.name} panel',
-          source: 'NavigationLogger',
+          source: 'Navigation',
           context: {
             'navigationId': entry.id,
             'targetPanel': targetPanel.name,
@@ -197,27 +197,34 @@ class NavigationLogger extends _$NavigationLogger {
 
   /// Debug method to print current logs to console
   void debugPrintLogs() {
-    final messageLogger = ref.read(messageLoggerProvider.notifier);
+    final logger = ref.read(appLoggerProvider.notifier);
 
     if (_navigationLogs.isEmpty) {
-      messageLogger.info('NavigationLogger: No logs recorded yet');
+      logger.info(
+        'NavigationLogger: No logs recorded yet',
+        source: 'Navigation',
+      );
       return;
     }
 
-    messageLogger.info(
+    logger.info(
       'NavigationLogger: ${_navigationLogs.length} events recorded',
+      source: 'Navigation',
     );
-    messageLogger.info('Usage Stats: ${getUsageStats()}');
 
     for (var i = 0; i < _navigationLogs.length && i < 5; i++) {
       final log = _navigationLogs[i];
-      messageLogger.info(
+      logger.info(
         'Event ${i + 1}: ${log.action} -> ${log.targetPanel.name} at ${log.timestamp}',
+        source: 'Navigation',
       );
     }
 
     if (_navigationLogs.length > 5) {
-      messageLogger.info('... and ${_navigationLogs.length - 5} more events');
+      logger.info(
+        '... and ${_navigationLogs.length - 5} more events',
+        source: 'Navigation',
+      );
     }
   }
 

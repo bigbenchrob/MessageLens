@@ -18,7 +18,7 @@ class SqfliteImportDatabase {
        _databaseName = databaseName,
        _debugSettings = debugSettings;
 
-  static const int _schemaVersion = 9;
+  static const int _schemaVersion = 1;
 
   final String _databaseDirectory;
   final String _databaseName;
@@ -127,85 +127,7 @@ class SqfliteImportDatabase {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    _debugSettings.logDatabase(
-      'SqfliteImportDatabase._onUpgrade: oldVersion=$oldVersion newVersion=$newVersion',
-    );
-    if (oldVersion == newVersion) {
-      return;
-    }
-
-    // Apply migrations based on version
-    if (oldVersion < 6) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase._onUpgrade: applying migration to v6 (add contact_to_chat_handle table)',
-      );
-      await db.execute(
-        'CREATE TABLE IF NOT EXISTS contact_to_chat_handle (id INTEGER PRIMARY KEY, contact_Z_PK INTEGER NOT NULL REFERENCES contacts(Z_PK) ON DELETE CASCADE, chat_handle_id INTEGER NOT NULL REFERENCES handles(id) ON DELETE CASCADE, batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT, UNIQUE(contact_Z_PK, chat_handle_id))',
-      );
-    }
-    if (oldVersion < 7) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase._onUpgrade: applying migration to v7 (extend contacts with display_name, short_name, is_ignored)',
-      );
-      await db.execute(
-        'CREATE TABLE IF NOT EXISTS contacts_new (id INTEGER PRIMARY KEY, Z_PK INTEGER NOT NULL UNIQUE, first_name TEXT, last_name TEXT, organization TEXT, display_name TEXT NOT NULL, short_name TEXT, created_at_utc TEXT, is_ignored INTEGER NOT NULL DEFAULT 0 CHECK(is_ignored IN (0,1)), batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE RESTRICT)',
-      );
-      await db.execute(
-        'INSERT INTO contacts_new (id, Z_PK, first_name, last_name, organization, display_name, short_name, created_at_utc, is_ignored, batch_id) '
-        'SELECT id, Z_PK, first_name, last_name, organization, '
-        "COALESCE(TRIM(COALESCE(first_name, '') || CASE WHEN first_name IS NOT NULL AND last_name IS NOT NULL THEN ' ' ELSE '' END || COALESCE(last_name, '')), organization, 'Unknown Contact') AS display_name, "
-        'NULL AS short_name, created_at_utc, 0 AS is_ignored, batch_id '
-        'FROM contacts',
-      );
-      await db.execute('DROP TABLE contacts');
-      await db.execute('ALTER TABLE contacts_new RENAME TO contacts');
-    }
-    if (oldVersion < 9) {
-      _debugSettings.logDatabase(
-        'SqfliteImportDatabase._onUpgrade: applying migration to v9 (add compound_identifier to handles)',
-      );
-      await db.execute(
-        "ALTER TABLE handles ADD COLUMN compound_identifier TEXT NOT NULL DEFAULT ''",
-      );
-      await _backfillCompoundIdentifiers(db);
-    }
-
-    // Recreate indexes/views to ensure consistency
-    final batch = db.batch();
-    _indexStatements.forEach(batch.execute);
-    batch.execute(_expandedMessagesViewStatement);
-    await batch.commit(noResult: true);
-
-    await db.insert('schema_migrations', <String, Object?>{
-      'version': newVersion,
-      'applied_at_utc': DateTime.now().toUtc().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
-  Future<void> _backfillCompoundIdentifiers(Database db) async {
-    final rows = await db.query('handles');
-    for (final row in rows) {
-      final id = row['id'] as int?;
-      if (id == null) {
-        continue;
-      }
-
-      final rawIdentifier = row['raw_identifier'] as String?;
-      final normalizedIdentifier = row['normalized_identifier'] as String?;
-      final service = sanitizeHandleService(row['service'] as String?);
-      final compound = buildCompoundIdentifier(
-        normalizedIdentifier: normalizedIdentifier,
-        rawIdentifier: rawIdentifier,
-        service: service,
-      );
-
-      await db.update(
-        'handles',
-        <String, Object?>{'compound_identifier': compound},
-        where: 'id = ?',
-        whereArgs: <Object>[id],
-      );
-    }
+    // No legacy databases to migrate — all users start fresh.
   }
 
   Future<void> close() async {

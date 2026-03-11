@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../db/feature_level_providers.dart' show databaseDirectoryPath;
@@ -88,6 +90,64 @@ class OnboardingGate extends _$OnboardingGate {
       completer.complete();
     });
     return completer.future;
+  }
+
+  /// Abort the in-progress import, delete the partially-created database
+  /// files, and reset state to [OnboardingStatus.awaitingUserAction] so the
+  /// next launch triggers a clean onboarding.
+  Future<void> abortImport() async {
+    // Delete import and working DB files (plus WAL/SHM companions).
+    for (final name in ['macos_import.db', 'working.db']) {
+      final basePath = path.join(databaseDirectoryPath, name);
+      for (final suffix in ['', '-wal', '-shm']) {
+        final file = File('$basePath$suffix');
+        if (file.existsSync()) {
+          await file.delete();
+        }
+      }
+    }
+
+    // Reset to awaiting so the next launch shows the welcome screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      state = OnboardingStatus.awaitingUserAction;
+    });
+  }
+
+  /// Trigger a full reimport from settings.
+  ///
+  /// Unlike [startImportAndMigration], this can be called when the app is
+  /// already running with populated databases.  It shows the same
+  /// progress overlay but uses the reimport-specific status values so the
+  /// UI can distinguish first-run from settings-triggered reimport.
+  Future<void> startReimport() async {
+    if (state != OnboardingStatus.notNeeded) {
+      return;
+    }
+
+    // ── Import phase ──
+    state = OnboardingStatus.reimporting;
+    await _waitForEndOfFrame();
+    try {
+      await ref.read(dbImportControlViewModelProvider.notifier).startImport();
+    } catch (_) {
+      state = OnboardingStatus.reimportComplete;
+      return;
+    }
+
+    // ── Migration phase ──
+    state = OnboardingStatus.reimportMigrating;
+    await _waitForEndOfFrame();
+    try {
+      await ref
+          .read(dbImportControlViewModelProvider.notifier)
+          .startMigration(skipImportCheck: true);
+    } catch (_) {
+      // Swallow — land on complete so user can dismiss.
+    }
+
+    ref.read(messageDataVersionProvider.notifier).bump();
+
+    state = OnboardingStatus.reimportComplete;
   }
 
   /// Dismiss the overlay.

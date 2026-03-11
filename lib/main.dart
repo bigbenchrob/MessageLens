@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' as sched;
@@ -14,7 +15,9 @@ import 'package:media_kit/media_kit.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import './providers.dart';
+import 'essentials/db/feature_level_providers.dart';
 import 'essentials/db_importers/application/monitor/chat_db_change_monitor_provider.dart';
+import 'essentials/logging/application/app_logger.dart';
 import 'essentials/navigation/application/router.dart';
 import 'essentials/window_state/feature_level_providers.dart';
 import 'frb_generated.dart';
@@ -91,6 +94,9 @@ class _MyDelegate extends NSWindowDelegate {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Resolve the Application Support directory for all database files.
+  await initDatabaseDirectoryPath();
+
   // Initialize sqflite FFI for desktop platforms
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
@@ -160,12 +166,38 @@ void main() async {
   // Set up the delegate to access the container
   delegate.setContainer(container);
 
+  // Initialize the app logger early so all subsequent operations are captured.
+  final logger = container.read(appLoggerProvider.notifier);
+  logger.info('App launch', source: 'App');
+
+  // Capture Flutter framework errors (layout, rendering, gestures).
+  FlutterError.onError = (details) {
+    logger.error(
+      details.exceptionAsString(),
+      source: 'FlutterError',
+      context: {
+        'library': details.library ?? 'unknown',
+        'stack':
+            details.stack?.toString().split('\n').take(10).join('\n') ?? '',
+      },
+    );
+  };
+
+  // Capture platform-level errors (plugin crashes, isolate errors).
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.error(
+      error.toString(),
+      source: 'PlatformDispatcher',
+      context: {'stack': stack.toString().split('\n').take(10).join('\n')},
+    );
+    return true; // Prevent app termination.
+  };
+
   // Restore window state
   try {
     await container.read(windowStateServiceProvider).restoreWindowState();
   } catch (e) {
-    // If window state restoration fails, continue with default state
-    debugPrint('Failed to restore window state: $e');
+    logger.warn('Failed to restore window state: $e', source: 'WindowState');
   }
 
   // Reassert minimum window size after the first frame when the NSWindow exists.

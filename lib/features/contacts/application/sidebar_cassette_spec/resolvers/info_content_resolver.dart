@@ -49,8 +49,9 @@ class ContactsInfoContentResolver extends _$ContactsInfoContentResolver {
       case ContactsInfoKey.favouritesVsRecents:
         return const ContactsInfoContent(
           body:
-              'Contacts are ordered by message frequency. '
-              'Favorites marked in macOS Contacts appear at the top.',
+              'These are contacts from your Address Book as well as those '
+              "you've created to identify messages from unfamiliar phone "
+              'numbers and email addresses.',
         );
       case ContactsInfoKey.chosenContact:
         return ContactsInfoContent(

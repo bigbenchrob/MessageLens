@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 import '../../shared/hydration/messages_for_handle_provider.dart';
 import '../../shared/message_row_mapper.dart';
 
@@ -17,6 +18,8 @@ Future<MessageListItem?> messageById(
   required int messageId,
 }) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final nameOverrides = await displayNameOverridesMap(overlayDb);
 
   final query =
       db.select(db.workingMessages).join([
@@ -43,7 +46,7 @@ Future<MessageListItem?> messageById(
     return null;
   }
 
-  final mapper = MessageRowMapper(db);
+  final mapper = MessageRowMapper(db, nameOverrides);
   final messages = await mapper.mapRows([row]);
 
   return messages.isEmpty ? null : messages.first;

@@ -2,7 +2,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import '../../../domain/spec_classes/contacts_settings_spec.dart';
+import '../resolvers/actions_info_resolver.dart';
+import '../resolvers/actions_sub_menu_resolver.dart';
 import '../resolvers/display_name_info_resolver.dart';
+import '../resolvers/reimport_data_info_resolver.dart';
 
 part 'contacts_settings_coordinator.g.dart';
 
@@ -30,6 +33,15 @@ class ContactsSettingsCoordinator extends _$ContactsSettingsCoordinator {
     return spec.when(
       displayNameInfo: () => ref
           .read(displayNameInfoResolverProvider.notifier)
+          .resolve(cassetteIndex: cassetteIndex),
+      actionsMenu: (selectedChoice) => ref
+          .read(actionsSubMenuResolverProvider.notifier)
+          .resolve(currentChoice: selectedChoice, cassetteIndex: cassetteIndex),
+      sendLogsInfo: () => ref
+          .read(actionsInfoResolverProvider.notifier)
+          .resolve(cassetteIndex: cassetteIndex),
+      reimportDataInfo: () => ref
+          .read(reimportDataInfoResolverProvider.notifier)
           .resolve(cassetteIndex: cassetteIndex),
     );
   }

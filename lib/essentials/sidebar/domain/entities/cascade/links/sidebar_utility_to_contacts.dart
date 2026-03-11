@@ -19,8 +19,8 @@ CassetteSpec sidebarUtilityToMessagesHeatMapAll() {
   );
 }
 
-CassetteSpec sidebarUtilitySettingsToContactsSettings() {
+CassetteSpec sidebarUtilitySettingsToActionsMenu() {
   return const CassetteSpec.contactsSettings(
-    ContactsSettingsSpec.displayNameInfo(),
+    ContactsSettingsSpec.actionsMenu(),
   );
 }

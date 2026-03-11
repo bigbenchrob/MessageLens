@@ -17,7 +17,6 @@ Future<YearBasedTimelineData?> calculateYearBasedTimeline(
   DateTime? lastMessageDate,
 ) async {
   if (firstMessageDate == null || lastMessageDate == null) {
-    print('[YEAR_TIMELINE] Chat $chatId: Missing dates, skipping timeline');
     return null;
   }
 
@@ -25,15 +24,10 @@ Future<YearBasedTimelineData?> calculateYearBasedTimeline(
   final lastYear = lastMessageDate.year;
   final totalSpanYears = (lastYear - firstYear) + 1;
 
-  print(
-    '[YEAR_TIMELINE] Chat $chatId: Years $firstYear-$lastYear (span=$totalSpanYears)',
-  );
-
   // Query message counts by year and month
   final yearMonthCounts = await _queryMessageCountsByYearMonth(db, chatId);
 
   if (yearMonthCounts.isEmpty) {
-    print('[YEAR_TIMELINE] Chat $chatId: No messages found');
     return null;
   }
 
@@ -44,8 +38,6 @@ Future<YearBasedTimelineData?> calculateYearBasedTimeline(
     firstMessageDate,
     lastMessageDate,
   );
-
-  print('[YEAR_TIMELINE] Chat $chatId: Using granularity $granularity');
 
   // Build year timelines
   final yearTimelines = <YearTimeline>[];
@@ -71,10 +63,6 @@ Future<YearBasedTimelineData?> calculateYearBasedTimeline(
   if (yearTimelines.isEmpty) {
     return null;
   }
-
-  print(
-    '[YEAR_TIMELINE] Chat $chatId: Built ${yearTimelines.length} year timelines, max=$overallMaxCount',
-  );
 
   return YearBasedTimelineData(
     yearTimelines: yearTimelines,

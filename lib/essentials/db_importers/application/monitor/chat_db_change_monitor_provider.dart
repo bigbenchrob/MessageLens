@@ -7,6 +7,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../../../../providers.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db_migrate/feature_level_providers.dart';
+import '../../../logging/application/app_logger.dart';
 import '../../feature_level_providers.dart';
 
 part 'chat_db_change_monitor_provider.g.dart';
@@ -89,16 +90,26 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
       final previousMaxRowId = state.lastMaxRowId;
 
       if (previousMaxRowId != null && currentMaxRowId > previousMaxRowId) {
-        print(
-          'Startup check: new messages detected (MAX ROWID: $previousMaxRowId → $currentMaxRowId)',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .info(
+              'Startup check: new messages detected (MAX ROWID: $previousMaxRowId → $currentMaxRowId)',
+              source: 'ChatDbMonitor',
+            );
         _scheduleProbe();
       } else {
-        print('Startup check: no new messages (MAX ROWID: $currentMaxRowId)');
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'Startup check: no new messages (MAX ROWID: $currentMaxRowId)',
+              source: 'ChatDbMonitor',
+            );
       }
     } catch (error) {
       // Non-fatal - polling will catch up
-      print('Startup check failed: $error');
+      ref
+          .read(appLoggerProvider.notifier)
+          .warn('Startup check failed: $error', source: 'ChatDbMonitor');
     }
   }
 
@@ -175,25 +186,43 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
           lastChangeDetected: now,
         );
 
-        print(
-          'New message(s) detected in Messages database: $newMessageCount message(s), MAX(ROWID): $previousMaxRowId → $currentMaxRowId',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .info(
+              'New messages detected: $newMessageCount message(s), MAX(ROWID): $previousMaxRowId → $currentMaxRowId',
+              source: 'ChatDbMonitor',
+            );
 
         // Trigger incremental import and migration
-        print('Triggering incremental import and migration...');
+        ref
+            .read(appLoggerProvider.notifier)
+            .info(
+              'Triggering incremental import and migration',
+              source: 'ChatDbMonitor',
+            );
 
         final importService = ref.read(orchestratedLedgerImportServiceProvider);
         final importResult = await importService.runImport();
 
         if (importResult.success) {
-          print('Incremental import successful. Triggering migration...');
+          ref
+              .read(appLoggerProvider.notifier)
+              .info(
+                'Incremental import successful. Triggering migration',
+                source: 'ChatDbMonitor',
+              );
           final migrationService = ref.read(handlesMigrationServiceProvider);
           final migrationResult = await migrationService.run(
             incrementalMode: true,
           );
 
           if (migrationResult.success) {
-            print('Incremental migration successful.');
+            ref
+                .read(appLoggerProvider.notifier)
+                .info(
+                  'Incremental migration successful',
+                  source: 'ChatDbMonitor',
+                );
             // Signal to UI providers that new message data is available
             // This causes message list providers to rebuild with updated counts
             ref.read(messageDataVersionProvider.notifier).bump();
@@ -258,10 +287,12 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
   void _handleError(String message, StackTrace? stackTrace) {
     state = state.copyWith(lastError: message);
-    if (stackTrace != null) {
-      stderr.writeln('$message\n$stackTrace');
-    } else {
-      stderr.writeln(message);
-    }
+    ref
+        .read(appLoggerProvider.notifier)
+        .error(
+          message,
+          source: 'ChatDbMonitor',
+          context: {if (stackTrace != null) 'stackTrace': '$stackTrace'},
+        );
   }
 }

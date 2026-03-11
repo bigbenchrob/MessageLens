@@ -121,13 +121,10 @@ class NativeLinkPreviewService {
       // Cache the result (even null results to avoid repeat failures)
       _addToCache(url, metadata);
       return metadata;
-    } on PlatformException catch (e) {
-      // Log but don't throw - we'll fall back to HTTP scraping
-      print('LinkPresentation failed: ${e.code} - ${e.message}');
+    } on PlatformException catch (_) {
       _addToCache(url, null);
       return null;
-    } catch (e) {
-      print('Unexpected error in LinkPresentation: $e');
+    } catch (_) {
       _addToCache(url, null);
       return null;
     } finally {

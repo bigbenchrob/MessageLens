@@ -6,7 +6,7 @@ part of 'navigation_logger.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$navigationLoggerHash() => r'9532a28851a8d9d803ae643fd776e3bdce80bd21';
+String _$navigationLoggerHash() => r'92a36c7b27543ee7e7926b4e68053985a9cec84e';
 
 /// See also [NavigationLogger].
 @ProviderFor(NavigationLogger)

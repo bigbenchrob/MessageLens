@@ -38,12 +38,16 @@ Future<ContactProfileSummary?> contactProfile(
       overlayDb.participantOverrides,
     )..where((tbl) => tbl.participantId.equals(contactId))).getSingleOrNull();
 
-    final displayName = participantRow.displayName;
+    final displayNameOverride = overrideRow?.displayNameOverride?.trim();
+    final displayName =
+        (displayNameOverride != null && displayNameOverride.isNotEmpty)
+        ? displayNameOverride
+        : participantRow.displayName;
     final nickname = overrideRow?.nickname?.trim();
     final shortName = (nickname?.isNotEmpty ?? false)
         ? nickname!
         : participantRow.shortName.trim().isEmpty
-        ? participantRow.displayName
+        ? displayName
         : participantRow.shortName;
 
     final origin = overrideRow != null

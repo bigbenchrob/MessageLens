@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 import '../../../../infrastructure/data_sources/message_index_data_source.dart';
 import '../message_row_mapper.dart';
 import 'messages_for_handle_provider.dart';
@@ -18,6 +19,8 @@ Future<MessageListItem?> messageByOrdinal(
   required int ordinal,
 }) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final nameOverrides = await displayNameOverridesMap(overlayDb);
   final indexSource = MessageIndexDataSource(db);
 
   // Get message ID for this ordinal
@@ -53,7 +56,7 @@ Future<MessageListItem?> messageByOrdinal(
   }
 
   // Use existing mapper to convert row to MessageListItem
-  final mapper = MessageRowMapper(db);
+  final mapper = MessageRowMapper(db, nameOverrides);
   final messages = await mapper.mapRows([row]);
 
   return messages.isEmpty ? null : messages.first;

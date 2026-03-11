@@ -30,14 +30,14 @@ class _AppPrimaryButtonState extends ConsumerState<AppPrimaryButton> {
 
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
-    final baseColor = colors.accents.primary;
+    final btn = colors.buttons;
     final fillColor = !enabled
-        ? baseColor.withValues(alpha: 0.45)
+        ? btn.primaryBackgroundDisabled
         : _isPressed
-        ? baseColor.withValues(alpha: 0.82)
+        ? btn.primaryBackground.withValues(alpha: 0.82)
         : _isHovered
-        ? baseColor.withValues(alpha: 0.92)
-        : baseColor;
+        ? btn.primaryBackground.withValues(alpha: 0.92)
+        : btn.primaryBackground;
 
     final height = switch (widget.controlSize) {
       ControlSize.large => 32.0,
@@ -92,11 +92,11 @@ class _AppPrimaryButtonState extends ConsumerState<AppPrimaryButton> {
             color: fillColor,
             borderRadius: BorderRadius.circular(8),
             boxShadow: enabled
-                ? const [
+                ? [
                     BoxShadow(
-                      color: Color(0x1A000000),
+                      color: colors.overlays.shadow,
                       blurRadius: 2,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ]
                 : null,

@@ -11,15 +11,11 @@ Future<ChatTimelineData?> calculateChatTimeline(
   DateTime? lastMessageDate,
 ) async {
   if (firstMessageDate == null || lastMessageDate == null) {
-    print('[TIMELINE] Chat $chatId: Missing dates, skipping timeline');
     return null;
   }
 
   // Calculate total span
   final spanDays = lastMessageDate.difference(firstMessageDate).inDays;
-  print(
-    '[TIMELINE] Chat $chatId: Span = $spanDays days (${firstMessageDate.toIso8601String()} → ${lastMessageDate.toIso8601String()})',
-  );
 
   // Determine bucketing strategy based on span
   final BucketStrategy strategy;
@@ -40,12 +36,7 @@ Future<ChatTimelineData?> calculateChatTimeline(
   // Query message counts grouped by the appropriate time period
   final bucketCounts = await _queryBucketedCounts(db, chatId, strategy);
 
-  print(
-    '[TIMELINE] Chat $chatId: Strategy = $strategy, Found ${bucketCounts.length} buckets',
-  );
-
   if (bucketCounts.isEmpty) {
-    print('[TIMELINE] Chat $chatId: No buckets found, returning null');
     return null;
   }
 
@@ -74,10 +65,6 @@ Future<ChatTimelineData?> calculateChatTimeline(
 
   // Sort buckets by date
   buckets.sort((a, b) => a.startDate.compareTo(b.startDate));
-
-  print(
-    '[TIMELINE] Chat $chatId: Created ${buckets.length} buckets, max count = $maxCount',
-  );
 
   return ChatTimelineData(
     buckets: buckets,

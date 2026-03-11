@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../providers.dart';
 import '../db/feature_level_providers.dart';
-import '../logging/application/message_logger.dart';
+import '../logging/application/app_logger.dart';
 import 'application/search_service.dart';
 import 'indexing/fts_multi_term_indexer.dart';
 import 'indexing/search_index_metrics_repository.dart';
@@ -39,7 +39,7 @@ SearchIndexOrchestrator searchIndexOrchestrator(
 ) {
   final indexers = ref.watch(searchIndexersProvider);
   final metricsRepository = ref.watch(searchIndexMetricsRepositoryProvider);
-  final logger = ref.read(messageLoggerProvider.notifier);
+  final logger = ref.read(appLoggerProvider.notifier);
 
   Future<SearchIndexContext> buildContext() async {
     final db = await ref.read(driftWorkingDatabaseProvider.future);

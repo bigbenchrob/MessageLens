@@ -229,48 +229,4 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
   }
 }
 
-class _SimpleHoverTest extends StatefulWidget {
-  @override
-  State<_SimpleHoverTest> createState() => _SimpleHoverTestState();
-}
-
-class _SimpleHoverTestState extends State<_SimpleHoverTest> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          print('🔥 SHELL TEST: Tapped');
-        },
-        onHover: (hovering) {
-          print('🔥 SHELL TEST InkWell: onHover=$hovering');
-          setState(() {
-            _isHovered = hovering;
-          });
-        },
-        child: Container(
-          width: 300,
-          height: 60,
-          decoration: BoxDecoration(
-            color: _isHovered ? Colors.red : Colors.yellow,
-            border: Border.all(color: Colors.black, width: 2),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            _isHovered ? 'HOVERING IN SHELL!' : 'Hover over me (InkWell test)',
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // Legacy placeholder widgets removed; dynamic providers now supply content.

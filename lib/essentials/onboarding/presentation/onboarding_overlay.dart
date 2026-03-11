@@ -61,11 +61,25 @@ class OnboardingOverlay extends ConsumerWidget {
                   colors: colors,
                   typography: typography,
                 ),
-                OnboardingStatus.importing || OnboardingStatus.migrating =>
-                  _ProgressContent(colors: colors, typography: typography),
+                OnboardingStatus.importing ||
+                OnboardingStatus.migrating ||
+                OnboardingStatus.reimporting ||
+                OnboardingStatus.reimportMigrating => _ProgressContent(
+                  colors: colors,
+                  typography: typography,
+                  isReimport:
+                      status == OnboardingStatus.reimporting ||
+                      status == OnboardingStatus.reimportMigrating,
+                ),
                 OnboardingStatus.complete => _CompleteContent(
                   colors: colors,
                   typography: typography,
+                  dismissLabel: 'Get Started',
+                ),
+                OnboardingStatus.reimportComplete => _CompleteContent(
+                  colors: colors,
+                  typography: typography,
+                  dismissLabel: 'Done',
                 ),
                 OnboardingStatus.notNeeded => const SizedBox.shrink(),
               },
@@ -111,8 +125,8 @@ class _WelcomeContent extends ConsumerWidget {
             ref.read(onboardingGateProvider.notifier).startImportAndMigration();
           },
           style: FilledButton.styleFrom(
-            backgroundColor: colors.accents.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -127,10 +141,15 @@ class _WelcomeContent extends ConsumerWidget {
 
 /// Progress panel: overall progress bar + per-stage list.
 class _ProgressContent extends ConsumerWidget {
-  const _ProgressContent({required this.colors, required this.typography});
+  const _ProgressContent({
+    required this.colors,
+    required this.typography,
+    this.isReimport = false,
+  });
 
   final ThemeColors colors;
   final ThemeTypography typography;
+  final bool isReimport;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -164,32 +183,39 @@ class _ProgressContent extends ConsumerWidget {
             typography: typography,
           ),
         ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () {
-              ref.read(onboardingGateProvider.notifier).dismiss();
-            },
-            child: Text(
-              'Skip',
-              style: typography.caption.copyWith(
-                color: colors.content.textTertiary,
+        if (!isReimport) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                ref.read(onboardingGateProvider.notifier).abortImport();
+              },
+              child: Text(
+                'Abort Import',
+                style: typography.caption.copyWith(
+                  color: colors.content.textTertiary,
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
 }
 
-/// Success panel: summary metrics + "Get Started" button.
+/// Success panel: summary metrics + dismiss button.
 class _CompleteContent extends ConsumerWidget {
-  const _CompleteContent({required this.colors, required this.typography});
+  const _CompleteContent({
+    required this.colors,
+    required this.typography,
+    required this.dismissLabel,
+  });
 
   final ThemeColors colors;
   final ThemeTypography typography;
+  final String dismissLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,14 +254,14 @@ class _CompleteContent extends ConsumerWidget {
             ref.read(onboardingGateProvider.notifier).dismiss();
           },
           style: FilledButton.styleFrom(
-            backgroundColor: colors.accents.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text('Get Started'),
+          child: Text(dismissLabel),
         ),
       ],
     );

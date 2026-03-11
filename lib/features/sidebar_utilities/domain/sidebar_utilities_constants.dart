@@ -32,8 +32,8 @@ enum TopChatMenuChoice {
 /// For the "Settings" menu in the sidebar (SidebarUtilityCassetteSpec.settingsMenu).
 /// Defines the possible choices for the menu.
 enum SettingsMenuChoice {
-  /// Contacts-related settings
-  contacts(id: 'contacts', label: 'Contacts');
+  /// Actions panel with Send Logs and other utilities
+  actions(id: 'actions', label: 'Actions');
 
   const SettingsMenuChoice({required this.id, required this.label});
 
@@ -47,7 +47,29 @@ enum SettingsMenuChoice {
   static SettingsMenuChoice fromId(String id) {
     return SettingsMenuChoice.values.firstWhere(
       (c) => c.id == id,
-      orElse: () => SettingsMenuChoice.contacts,
+      orElse: () => SettingsMenuChoice.actions,
+    );
+  }
+}
+
+/// For the "Actions" submenu in settings mode.
+/// Defines the possible actions available to the user.
+enum ActionsMenuChoice {
+  /// Send diagnostic logs for troubleshooting
+  sendLogs(id: 'send_logs', label: 'Send Logs\u2026'),
+
+  /// Reimport all chat and address book data
+  reimportData(id: 'reimport_data', label: 'Reimport Data\u2026');
+
+  const ActionsMenuChoice({required this.id, required this.label});
+
+  final String id;
+  final String label;
+
+  static ActionsMenuChoice fromId(String id) {
+    return ActionsMenuChoice.values.firstWhere(
+      (c) => c.id == id,
+      orElse: () => ActionsMenuChoice.sendLogs,
     );
   }
 }

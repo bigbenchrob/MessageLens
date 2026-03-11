@@ -59,14 +59,6 @@ class ContactToChatHandleImporter extends BaseTableImporter {
           _normalizeIdentifier(rawIdentifier)?.toLowerCase();
       if (normalizedKey != null && normalizedKey.isNotEmpty) {
         handleIndex.putIfAbsent(normalizedKey, () => []).add(handleId);
-        if (handleId == 247) {
-          print(
-            '🔍 Handle 247: raw=$rawIdentifier, normalized=$normalizedIdentifier, key=$normalizedKey',
-          );
-          print(
-            '🔍 handleIndex now has ${handleIndex[normalizedKey]?.length} handles for key "$normalizedKey"',
-          );
-        }
       }
 
       if (rawIdentifier != null && rawIdentifier.isNotEmpty) {
@@ -92,29 +84,15 @@ class ContactToChatHandleImporter extends BaseTableImporter {
           ? _normalizeIdentifier(value)?.toLowerCase()
           : baseKey;
 
-      if (contactZpk == 56) {
-        print(
-          '🔍 Contact 56 channel: value=$value, kind=$kind, baseKey=$baseKey, normalizedKey=$normalizedKey',
-        );
-        print('🔍 handleIndex[$normalizedKey] = ${handleIndex[normalizedKey]}');
-        print('🔍 handleIndex[$baseKey] = ${handleIndex[baseKey]}');
-      }
-
       final handleIds =
           handleIndex[normalizedKey ?? baseKey] ?? handleIndex[baseKey];
       if (handleIds == null || handleIds.isEmpty) {
-        if (contactZpk == 56) {
-          print('🔍 Contact 56: NO handles found for this channel, skipping');
-        }
         processed += 1;
         continue;
       }
 
       // Link this contact to ALL matching handles (e.g., both iMessage and SMS)
       for (final handleId in handleIds) {
-        if (contactZpk == 56) {
-          print('🔍 Linking contact 56 to handle $handleId');
-        }
         await ctx.importDb.insertContactHandleLink(
           contactZpk: contactZpk,
           handleId: handleId,
@@ -135,10 +113,6 @@ class ContactToChatHandleImporter extends BaseTableImporter {
 
     await ctx.importDb.updateContactIgnoreFlags(batchId: ctx.batchId);
     ctx.writeScratch('contactHandleLinks.inserted', inserted);
-
-    print(
-      '✅ ContactToChatHandleImporter.copy() COMPLETED - inserted $inserted links',
-    );
   }
 
   @override

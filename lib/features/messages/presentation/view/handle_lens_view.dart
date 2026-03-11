@@ -8,6 +8,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/db/feature_level_providers.dart';
+import '../../../../essentials/logging/application/app_logger.dart';
 import '../../../contacts/application/services/manual_handle_link_service.dart';
 import '../../../contacts/presentation/widgets/contact_picker_dialog.dart';
 import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
@@ -433,7 +434,9 @@ class _ActionBar extends HookConsumerWidget {
       result.fold(
         (failure) {
           // Show error — kept simple for Phase 2.
-          debugPrint('Link failed: ${failure.message}');
+          ref
+              .read(appLoggerProvider.notifier)
+              .warn('Link failed: ${failure.message}', source: 'HandleLens');
         },
         (_) {
           ref.invalidate(strayHandlesProvider);
@@ -521,7 +524,12 @@ class _CreateContactForm extends HookConsumerWidget {
 
       await createResult.fold(
         (failure) async {
-          debugPrint('Create virtual participant failed: ${failure.message}');
+          ref
+              .read(appLoggerProvider.notifier)
+              .warn(
+                'Create virtual participant failed: ${failure.message}',
+                source: 'HandleLens',
+              );
         },
         (virtualParticipantId) async {
           // Link handle to virtual participant.
@@ -532,7 +540,12 @@ class _CreateContactForm extends HookConsumerWidget {
 
           linkResult.fold(
             (failure) {
-              debugPrint('Link to virtual failed: ${failure.message}');
+              ref
+                  .read(appLoggerProvider.notifier)
+                  .warn(
+                    'Link to virtual failed: ${failure.message}',
+                    source: 'HandleLens',
+                  );
             },
             (_) {
               ref.invalidate(strayHandlesProvider);

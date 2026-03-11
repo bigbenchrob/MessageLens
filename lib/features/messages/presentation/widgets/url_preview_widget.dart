@@ -289,7 +289,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
                 _PreviewMedia(metadata: metadata, mediaHeight: _mediaHeight),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -303,7 +303,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Expanded(
                           child: _AdaptivePreviewText(
                             text: normalizedTitle ?? widget.url,
@@ -314,8 +314,8 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
                                   : FontWeight.w500,
                               color: Colors.black,
                             ),
-                            maxLines: normalizedTitle != null ? 3 : 2,
-                            minFontSize: normalizedTitle != null ? 12 : 11,
+                            maxLines: normalizedTitle != null ? 2 : 2,
+                            minFontSize: normalizedTitle != null ? 10 : 11,
                           ),
                         ),
                       ],
@@ -349,10 +349,7 @@ class _UrlPreviewWidgetState extends State<UrlPreviewWidget> {
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched) {
-      debugPrint('Could not launch $url');
-    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   BoxDecoration get _cardDecoration {

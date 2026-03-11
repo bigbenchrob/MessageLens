@@ -364,22 +364,30 @@ class _DialogButton extends ConsumerWidget {
     final typography = ref.watch(themeTypographyProvider);
 
     final isEnabled = onPressed != null;
+    final btn = colors.buttons;
 
     Color backgroundColor;
     Color textColor;
+    Border? border;
 
-    if (!isEnabled) {
-      backgroundColor = colors.surfaces.controlMuted;
-      textColor = colors.content.textDisabled;
-    } else if (isPrimary) {
-      backgroundColor = colors.accents.primary;
-      textColor = Colors.white;
-    } else if (isDestructive) {
+    if (isDestructive) {
       backgroundColor = Colors.transparent;
-      textColor = Colors.red;
+      textColor = btn.destructiveForeground;
+      border = Border.all(color: btn.destructiveBorder);
+    } else if (isPrimary) {
+      backgroundColor = isEnabled
+          ? btn.primaryBackground
+          : btn.primaryBackgroundDisabled;
+      textColor = isEnabled
+          ? btn.primaryForeground
+          : btn.primaryForegroundDisabled;
     } else {
-      backgroundColor = colors.surfaces.control;
-      textColor = colors.content.textPrimary;
+      backgroundColor = isEnabled
+          ? btn.secondaryBackground
+          : btn.secondaryBackgroundDisabled;
+      textColor = isEnabled
+          ? btn.secondaryForeground
+          : btn.secondaryForegroundDisabled;
     }
 
     return GestureDetector(
@@ -389,9 +397,7 @@ class _DialogButton extends ConsumerWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(6),
-          border: isDestructive
-              ? Border.all(color: Colors.red.withValues(alpha: 0.3))
-              : null,
+          border: border,
         ),
         child: Text(
           label,

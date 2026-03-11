@@ -226,10 +226,10 @@ class _ParticipantListItem extends ConsumerWidget {
                       : Colors.transparent,
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                         CupertinoIcons.check_mark,
                         size: 12,
-                        color: Colors.white,
+                        color: colors.buttons.primaryForeground,
                       )
                     : null,
               ),

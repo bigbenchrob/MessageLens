@@ -11,7 +11,7 @@ enum PickerFilterMode {
   favouritesOnly,
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class PickerFilter extends _$PickerFilter {
   @override
   PickerFilterMode build() => PickerFilterMode.all;

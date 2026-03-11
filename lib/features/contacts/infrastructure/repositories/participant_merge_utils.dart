@@ -125,6 +125,20 @@ Future<Map<int, ParticipantOverride>> participantOverridesById(
   return {for (final row in rows) row.participantId: row};
 }
 
+/// Returns participantId → display name for all participants with a
+/// non-empty `displayNameOverride` in the overlay database.
+Future<Map<int, String>> displayNameOverridesMap(OverlayDatabase db) async {
+  final rows = await db.select(db.participantOverrides).get();
+  final map = <int, String>{};
+  for (final row in rows) {
+    final name = row.displayNameOverride?.trim();
+    if (name != null && name.isNotEmpty) {
+      map[row.participantId] = name;
+    }
+  }
+  return map;
+}
+
 bool isPlaceholderDisplayName(String value) {
   final trimmed = value.trim();
   if (trimmed.isEmpty) {

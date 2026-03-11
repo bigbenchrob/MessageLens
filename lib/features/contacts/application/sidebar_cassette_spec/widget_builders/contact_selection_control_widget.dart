@@ -63,14 +63,12 @@ class _ContactSelectionControlWidgetState
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
-    // Tertiary at rest — one step lighter than info body text.
-    // Chevron even lighter. Both rise to secondary on hover.
-    final textColor = _isHovered
-        ? colors.content.textSecondary
-        : colors.content.textTertiary;
-    final iconColor = _isHovered
-        ? colors.content.textSecondary
-        : colors.content.textTertiary.withValues(alpha: 0.6);
+    // Subtle accent tint at rest so the control reads as interactive
+    // without competing with the hero card above.
+    // Hover: full accent strength for confident feedback.
+    final accent = colors.accents.primary;
+    final textColor = _isHovered ? accent : accent.withValues(alpha: 0.80);
+    final iconColor = _isHovered ? accent : accent.withValues(alpha: 0.60);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,

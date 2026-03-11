@@ -41,12 +41,6 @@ class SharedPreferencesWindowStorage implements WindowStoragePort {
           sidebarWidth: sidebarWidth ?? 320.0,
         );
 
-        if (clampedWidth != width || clampedHeight != height) {
-          print(
-            '🚨 Window dimensions out of range: ${width}x$height. Clamped to ${clampedWidth}x$clampedHeight.',
-          );
-        }
-
         return state;
       }
 

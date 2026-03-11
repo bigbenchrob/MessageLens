@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/animation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -95,15 +95,9 @@ class MessageTimelineOrdinal extends _$MessageTimelineOrdinal {
   Future<void> jumpToLatest() async {
     final currentState = state.value;
     if (currentState == null || currentState.totalCount == 0) {
-      debugPrint(
-        '⚠️ MessageTimelineOrdinal.jumpToLatest: state is null or empty',
-      );
       return;
     }
 
-    debugPrint(
-      '🔍 MessageTimelineOrdinal.jumpToLatest: jumping to index ${currentState.totalCount - 1}',
-    );
     currentState.itemScrollController.jumpTo(
       index: currentState.totalCount - 1,
     );
@@ -120,15 +114,9 @@ class MessageTimelineOrdinal extends _$MessageTimelineOrdinal {
 
     final ordinal = await _strategy.getFirstOrdinalForMonth(monthKey);
     if (ordinal == null) {
-      debugPrint(
-        '⚠️ MessageTimelineOrdinal.jumpToMonth: no messages in $monthKey',
-      );
       return;
     }
 
-    debugPrint(
-      '🔍 MessageTimelineOrdinal.jumpToMonth: jumping to ordinal $ordinal for $monthKey',
-    );
     currentState.itemScrollController.jumpTo(index: ordinal);
   }
 
@@ -143,15 +131,9 @@ class MessageTimelineOrdinal extends _$MessageTimelineOrdinal {
 
     final ordinal = await _strategy.getFirstOrdinalOnOrAfter(date);
     if (ordinal == null) {
-      debugPrint(
-        '⚠️ MessageTimelineOrdinal.jumpToDate: no messages on or after $date',
-      );
       return;
     }
 
-    debugPrint(
-      '🔍 MessageTimelineOrdinal.jumpToDate: jumping to ordinal $ordinal for $date',
-    );
     currentState.itemScrollController.jumpTo(index: ordinal);
   }
 
@@ -159,13 +141,9 @@ class MessageTimelineOrdinal extends _$MessageTimelineOrdinal {
   Future<void> scrollTo(int ordinal, {Duration? duration}) async {
     final currentState = state.value;
     if (currentState == null) {
-      debugPrint('⚠️ MessageTimelineOrdinal.scrollTo: state is null');
       return;
     }
 
-    debugPrint(
-      '🔍 MessageTimelineOrdinal.scrollTo: scrolling to index $ordinal',
-    );
     await currentState.itemScrollController.scrollTo(
       index: ordinal,
       duration: duration ?? const Duration(milliseconds: 300),

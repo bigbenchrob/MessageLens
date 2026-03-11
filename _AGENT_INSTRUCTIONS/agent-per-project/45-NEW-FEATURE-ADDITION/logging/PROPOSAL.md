@@ -149,12 +149,12 @@ Add a production-grade diagnostic logging system that captures everything releva
 ### Log File Location & Rotation
 
 ```
-~/Library/Logs/RememberEveryText/
+~/Library/Logs/MessageLens/
 ├── app.log          ← current session (append-only)
 └── app.log.1        ← previous session (rotated on start)
 ```
 
-**Why `~/Library/Logs/`**: This is the macOS-standard location for application logs. It's accessible without sandbox entitlements, survives app updates, and is where a macOS user (or AppleCare) would naturally look. Console.app can also browse this directory.
+**Why `~/Library/Logs/`**: This is the macOS-standard location for application logs. It's accessible without sandbox entitlements, survives app updates, and is where a macOS user (or AppleCare) would naturally look. Console.app can also browse this directory. The folder is named `MessageLens` to match the app's distribution name.
 
 **Rotation strategy**:
 - On app launch, if `app.log` exists and exceeds 2 MB, rename to `app.log.1` (overwriting any existing `.1`)
@@ -253,7 +253,7 @@ When the user selects **Settings → Send Logs**:
    - Read `app.log` + `app.log.1` (if exists)
    - Prepend a system info header:
      ```
-     === Remember Every Text — Diagnostic Log ===
+     === MessageLens — Diagnostic Log ===
      App Version: 1.2.3 (build 45)
      macOS: 15.3.1 (24D70)
      Dart: 3.9.2 / Flutter: 3.35.4
@@ -263,7 +263,7 @@ When the user selects **Settings → Send Logs**:
      =============================================
      ```
    - Write combined output to a timestamped file in a temp location:
-     `~/Library/Logs/RememberEveryText/diagnostic_2026-03-05_143000.log`
+     `~/Library/Logs/MessageLens/diagnostic_2026-03-05_143000.log`
 
 3. **Present to user**:
    - Open `mailto:` URI via `url_launcher`:
@@ -422,7 +422,7 @@ The action itself fires from the widget builder's `onSelected` callback, which c
 - Import logging: run a mock import step → verify structured log entry
 
 ### Manual Verification
-- Launch release build via Finder → verify `~/Library/Logs/RememberEveryText/app.log` exists after 30 seconds
+- Launch release build via Finder → verify `~/Library/Logs/MessageLens/app.log` exists after 30 seconds
 - Use the app for 5 minutes → verify log has navigation, polling, and any error entries
 - Select "Send Logs" → verify email opens and Finder reveals the file
 - Restart app → verify log rotation (old entries in `.log.1`, fresh entries in `.log`)

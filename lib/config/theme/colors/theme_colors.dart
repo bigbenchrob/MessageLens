@@ -261,6 +261,63 @@ class Overlays {
   Color get shadow => _r(const ColorPair(Color(0x1F000000), Color(0x33000000)));
 }
 
+/// Semantic button-state tokens for consistent button appearance everywhere.
+///
+/// Covers primary (accent-coloured), secondary (neutral), and destructive
+/// buttons in both enabled and disabled states.
+class ButtonColors {
+  const ButtonColors(this._t);
+  final ThemeColors _t;
+
+  Color _r(ColorPair p) => _t.resolvePair(p);
+
+  // -- Primary (accent) --------------------------------------------------
+
+  /// Enabled primary button background (brand accent).
+  Color get primaryBackground => _t.accents.primary;
+
+  /// Enabled primary button text (always white on accent).
+  Color get primaryForeground =>
+      _r(const ColorPair(Color(0xFFFFFFFF), Color(0xFFFFFFFF)));
+
+  /// Disabled primary button background — still identifiable as the action
+  /// button but clearly muted.
+  Color get primaryBackgroundDisabled =>
+      _t.accents.primary.withValues(alpha: _t.isDark ? 0.25 : 0.35);
+
+  /// Disabled primary button text.
+  Color get primaryForegroundDisabled => _r(
+    const ColorPair(Color(0xFFFFFFFF), Color(0xFFFFFFFF)),
+  ).withValues(alpha: _t.isDark ? 0.40 : 0.55);
+
+  // -- Secondary (neutral) ------------------------------------------------
+
+  /// Enabled secondary button background.
+  Color get secondaryBackground => _t.surfaces.control;
+
+  /// Enabled secondary button text.
+  Color get secondaryForeground => _t.content.textPrimary;
+
+  /// Disabled secondary button background.
+  Color get secondaryBackgroundDisabled =>
+      _r(const ColorPair(Color(0xFFE7EAEC), Color(0xFF383C3E)));
+
+  /// Disabled secondary button text.
+  Color get secondaryForegroundDisabled =>
+      _r(const ColorPair(Color(0xFFA8AEB0), Color(0xFF6B7072)));
+
+  // -- Destructive --------------------------------------------------------
+
+  /// Destructive button text (enabled).
+  Color get destructiveForeground =>
+      _r(const ColorPair(Color(0xFFFF3B30), Color(0xFFFF453A)));
+
+  /// Destructive button border (enabled).
+  Color get destructiveBorder => _r(
+    const ColorPair(Color(0xFFFF3B30), Color(0xFFFF453A)),
+  ).withValues(alpha: 0.30);
+}
+
 /// Interactive hint tokens for subtle hover/focus affordances.
 ///
 /// Use these for "text-as-control" patterns where the primary content
@@ -604,6 +661,7 @@ class ThemeColors extends _$ThemeColors {
   Lines get lines => Lines(this);
   Accents get accents => Accents(this);
   Overlays get overlays => Overlays(this);
+  ButtonColors get buttons => ButtonColors(this);
   InteractiveHints get interactiveHints => InteractiveHints(this);
   ContactBadge get contactBadge => ContactBadge(this);
 

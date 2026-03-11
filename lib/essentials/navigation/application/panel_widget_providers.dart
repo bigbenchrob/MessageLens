@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../logging/application/app_logger.dart';
+
 // Import the sidebar feature barrel to access cassette widget coordinator and card.
 // The provider (cassetteWidgetCoordinatorProvider) exposes the list of cassette
 // widgets that compose the sidebar. We wrap these in a Column to produce the
@@ -139,10 +141,16 @@ Widget leftPanelWidget(Ref ref, SidebarMode mode) {
   // subtle inline indicator rather than silently swallowing them.
   if (asyncCassettes.hasError) {
     // TODO(sidebar): Add user-visible error indicator or recovery UI.
-    debugPrint(
-      'Sidebar cassette error: ${asyncCassettes.error}\n'
-      '${asyncCassettes.stackTrace}',
-    );
+    ref
+        .read(appLoggerProvider.notifier)
+        .error(
+          'Sidebar cassette error: ${asyncCassettes.error}',
+          source: 'SidebarPanel',
+          context: {
+            if (asyncCassettes.stackTrace != null)
+              'stackTrace': '${asyncCassettes.stackTrace}',
+          },
+        );
   }
 
   // Show a centered loading indicator only during the initial load.

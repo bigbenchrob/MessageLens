@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 import '../../../../domain/message_timeline_scope_extensions.dart';
 import '../../../../domain/value_objects/message_timeline_scope.dart';
 import '../../shared/hydration/messages_for_handle_provider.dart';
@@ -21,6 +22,8 @@ Future<MessageListItem?> messageByTimelineOrdinal(
   required int ordinal,
 }) async {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final nameOverrides = await displayNameOverridesMap(overlayDb);
   final strategy = scope.toOrdinalStrategy(db);
 
   // Get message ID from the appropriate index
@@ -55,7 +58,7 @@ Future<MessageListItem?> messageByTimelineOrdinal(
     return null;
   }
 
-  final mapper = MessageRowMapper(db);
+  final mapper = MessageRowMapper(db, nameOverrides);
   final messages = await mapper.mapRows([row]);
 
   return messages.isEmpty ? null : messages.first;

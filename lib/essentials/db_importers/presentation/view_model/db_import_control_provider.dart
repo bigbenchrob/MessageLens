@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../features/chats/presentation/view_model/recent_chats_provider.dart';
@@ -8,6 +9,7 @@ import '../../../db/feature_level_providers.dart';
 import '../../../db_migrate/domain/entities/db_migration_result.dart';
 import '../../../db_migrate/domain/states/table_migration_progress.dart';
 import '../../../db_migrate/feature_level_providers.dart';
+import '../../../logging/application/app_logger.dart';
 import '../../application/services/import_status_checker.dart';
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/states/table_import_progress.dart';
@@ -402,9 +404,9 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       ref.invalidate(driftWorkingDatabaseProvider);
 
       // Delete database files (NOT overlay DB)
-      const dbDir = '/Users/rob/sqlite_rmc/remember_every_text/';
+      final dbDir = databaseDirectoryPath;
       for (final baseName in <String>['macos_import.db', 'working.db']) {
-        final basePath = '$dbDir$baseName';
+        final basePath = path.join(dbDir, baseName);
         for (final filePath in <String>[
           basePath,
           '$basePath-wal',
@@ -452,37 +454,54 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
 
     try {
       final startedAt = DateTime.now();
-      // ignore: avoid_print
-      print('[DbImportControl] clearImportDatabase: start @ $startedAt');
+      ref
+          .read(appLoggerProvider.notifier)
+          .info(
+            'clearImportDatabase: start @ $startedAt',
+            source: 'DbImportControl',
+          );
 
       // Close the import DB connection so the file can be deleted.
       try {
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearImportDatabase: acquiring sqfliteImportDatabaseProvider.future',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearImportDatabase: acquiring sqfliteImportDatabaseProvider.future',
+              source: 'DbImportControl',
+            );
         final ledgerDb = await ref.read(sqfliteImportDatabaseProvider.future);
-        // ignore: avoid_print
-        print('[DbImportControl] clearImportDatabase: closing import DB...');
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearImportDatabase: closing import DB',
+              source: 'DbImportControl',
+            );
         await ledgerDb.close();
-        // ignore: avoid_print
-        print('[DbImportControl] clearImportDatabase: import DB closed');
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearImportDatabase: import DB closed',
+              source: 'DbImportControl',
+            );
       } catch (_) {
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearImportDatabase: import DB close skipped (already closed / not available)',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearImportDatabase: import DB close skipped (already closed / not available)',
+              source: 'DbImportControl',
+            );
       }
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearImportDatabase: invalidating sqfliteImportDatabaseProvider (pre-clear)',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .debug(
+            'clearImportDatabase: invalidating sqfliteImportDatabaseProvider (pre-clear)',
+            source: 'DbImportControl',
+          );
       ref.invalidate(sqfliteImportDatabaseProvider);
 
       try {
-        const importDbDir = '/Users/rob/sqlite_rmc/remember_every_text/';
-        const basePath = '${importDbDir}macos_import.db';
+        final basePath = path.join(databaseDirectoryPath, 'macos_import.db');
         final candidates = <String>[basePath, '$basePath-wal', '$basePath-shm'];
 
         for (final filePath in candidates) {
@@ -490,33 +509,45 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
           if (!file.existsSync()) {
             continue;
           }
-          // ignore: avoid_print
-          print('[DbImportControl] clearImportDatabase: deleting $filePath');
+          ref
+              .read(appLoggerProvider.notifier)
+              .debug(
+                'clearImportDatabase: deleting $filePath',
+                source: 'DbImportControl',
+              );
           await file.delete();
         }
 
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearImportDatabase: macos_import.db files deleted',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .info(
+              'clearImportDatabase: macos_import.db files deleted',
+              source: 'DbImportControl',
+            );
       } catch (error) {
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearImportDatabase: delete files FAILED error=$error',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .error(
+              'clearImportDatabase: delete files FAILED error=$error',
+              source: 'DbImportControl',
+            );
         rethrow;
       }
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearImportDatabase: invalidating sqfliteImportDatabaseProvider (post-clear)',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .debug(
+            'clearImportDatabase: invalidating sqfliteImportDatabaseProvider (post-clear)',
+            source: 'DbImportControl',
+          );
       ref.invalidate(sqfliteImportDatabaseProvider);
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearImportDatabase: success in ${DateTime.now().difference(startedAt).inMilliseconds}ms',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .info(
+            'clearImportDatabase: success in ${DateTime.now().difference(startedAt).inMilliseconds}ms',
+            source: 'DbImportControl',
+          );
 
       state = state.copyWith(
         isProcessing: false,
@@ -554,37 +585,53 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
     ref.read(dbMaintenanceLockProvider.notifier).begin();
     try {
       final startedAt = DateTime.now();
-      // ignore: avoid_print
-      print('[DbImportControl] clearWorkingDatabase: start @ $startedAt');
+      ref
+          .read(appLoggerProvider.notifier)
+          .info(
+            'clearWorkingDatabase: start @ $startedAt',
+            source: 'DbImportControl',
+          );
 
       // CRITICAL: Close the Drift working database connection BEFORE issuing
       // bulk deletes. Otherwise, the background isolate can get stuck and the
       // UI will hang waiting for the worker to respond.
       try {
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearWorkingDatabase: acquiring driftWorkingDatabaseProvider.future',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearWorkingDatabase: acquiring driftWorkingDatabaseProvider.future',
+              source: 'DbImportControl',
+            );
         final workingDb = await ref.read(driftWorkingDatabaseProvider.future);
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearWorkingDatabase: closing WorkingDatabase...',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearWorkingDatabase: closing WorkingDatabase',
+              source: 'DbImportControl',
+            );
         await workingDb.close();
-        // ignore: avoid_print
-        print('[DbImportControl] clearWorkingDatabase: WorkingDatabase closed');
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearWorkingDatabase: WorkingDatabase closed',
+              source: 'DbImportControl',
+            );
       } catch (_) {
         // Database might not exist yet or already be closed.
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearWorkingDatabase: WorkingDatabase close skipped (already closed / not available)',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .debug(
+              'clearWorkingDatabase: WorkingDatabase close skipped (already closed / not available)',
+              source: 'DbImportControl',
+            );
       }
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearWorkingDatabase: invalidating driftWorkingDatabaseProvider (pre-clear)',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .debug(
+            'clearWorkingDatabase: invalidating driftWorkingDatabaseProvider (pre-clear)',
+            source: 'DbImportControl',
+          );
       ref.invalidate(driftWorkingDatabaseProvider);
 
       // FAST PATH:
@@ -592,8 +639,7 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
       // some SQLite setups (FTS triggers, WAL contention, long-lived readers).
       // Deleting the database files is deterministic and much faster.
       try {
-        const workingDbDir = '/Users/rob/sqlite_rmc/remember_every_text/';
-        const basePath = '${workingDbDir}working.db';
+        final basePath = path.join(databaseDirectoryPath, 'working.db');
         final candidates = <String>[basePath, '$basePath-wal', '$basePath-shm'];
 
         for (final filePath in candidates) {
@@ -601,38 +647,52 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
           if (!file.existsSync()) {
             continue;
           }
-          // ignore: avoid_print
-          print('[DbImportControl] clearWorkingDatabase: deleting $filePath');
+          ref
+              .read(appLoggerProvider.notifier)
+              .debug(
+                'clearWorkingDatabase: deleting $filePath',
+                source: 'DbImportControl',
+              );
           await file.delete();
         }
 
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearWorkingDatabase: working.db files deleted',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .info(
+              'clearWorkingDatabase: working.db files deleted',
+              source: 'DbImportControl',
+            );
       } catch (error) {
-        // ignore: avoid_print
-        print(
-          '[DbImportControl] clearWorkingDatabase: delete files FAILED error=$error',
-        );
+        ref
+            .read(appLoggerProvider.notifier)
+            .error(
+              'clearWorkingDatabase: delete files FAILED error=$error',
+              source: 'DbImportControl',
+            );
         rethrow;
       }
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearWorkingDatabase: skipping SQL clearWorkingProjection (fast delete-on-disk strategy)',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .debug(
+            'clearWorkingDatabase: skipping SQL clearWorkingProjection (fast delete-on-disk strategy)',
+            source: 'DbImportControl',
+          );
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearWorkingDatabase: invalidating driftWorkingDatabaseProvider (post-clear)',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .debug(
+            'clearWorkingDatabase: invalidating driftWorkingDatabaseProvider (post-clear)',
+            source: 'DbImportControl',
+          );
       ref.invalidate(driftWorkingDatabaseProvider);
 
-      // ignore: avoid_print
-      print(
-        '[DbImportControl] clearWorkingDatabase: success in ${DateTime.now().difference(startedAt).inMilliseconds}ms',
-      );
+      ref
+          .read(appLoggerProvider.notifier)
+          .info(
+            'clearWorkingDatabase: success in ${DateTime.now().difference(startedAt).inMilliseconds}ms',
+            source: 'DbImportControl',
+          );
 
       state = state.copyWith(
         isProcessing: false,
@@ -643,8 +703,12 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         clearTableProgress: true,
       );
     } catch (error) {
-      // ignore: avoid_print
-      print('[DbImportControl] clearWorkingDatabase: FAILED with error=$error');
+      ref
+          .read(appLoggerProvider.notifier)
+          .error(
+            'clearWorkingDatabase: FAILED with error=$error',
+            source: 'DbImportControl',
+          );
       final message = _mapDatabaseError(
         'Failed to clear working database',
         error,
@@ -736,7 +800,12 @@ class DbImportControlViewModel extends _$DbImportControlViewModel {
         }
       } catch (error) {
         // Log but continue with migration - don't fail if we can't check status
-        print('Warning: Could not check import status: $error');
+        ref
+            .read(appLoggerProvider.notifier)
+            .warn(
+              'Could not check import status: $error',
+              source: 'DbImportControl',
+            );
       }
     }
 

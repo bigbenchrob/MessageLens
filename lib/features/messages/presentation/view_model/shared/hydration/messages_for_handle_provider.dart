@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../../essentials/db/feature_level_providers.dart';
 import '../../../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
+import '../../../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 import 'attachment_info.dart';
 import 'attachment_info_loader.dart';
 
@@ -38,6 +39,8 @@ Stream<List<MessageListItem>> messagesForHandle(
   required int handleId,
 }) async* {
   final db = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
+  final nameOverrides = await displayNameOverridesMap(overlayDb);
 
   DateTime? parseUtc(String? value) {
     if (value == null || value.isEmpty) {
@@ -56,6 +59,10 @@ Stream<List<MessageListItem>> messagesForHandle(
     }
     if (participant == null) {
       return 'Unknown sender';
+    }
+    final override = nameOverrides[participant.id];
+    if (override != null) {
+      return override;
     }
     return participant.displayName;
   }

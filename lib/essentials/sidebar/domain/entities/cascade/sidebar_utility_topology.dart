@@ -16,8 +16,8 @@ CassetteSpec? resolveSidebarUtilityChild(SidebarUtilityCassetteSpec spec) {
     },
     settingsMenu: (selectedChoice) {
       switch (selectedChoice) {
-        case SettingsMenuChoice.contacts:
-          return sidebarUtilitySettingsToContactsSettings();
+        case SettingsMenuChoice.actions:
+          return sidebarUtilitySettingsToActionsMenu();
       }
     },
   );

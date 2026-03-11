@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../../essentials/logging/application/message_logger.dart';
+import '../../../../essentials/logging/application/app_logger.dart';
 import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
 import '../../infrastructure/repositories/virtual_participants_provider.dart';
 
@@ -58,7 +58,7 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
 
       if (hasDuplicate) {
         ref
-            .read(messageLoggerProvider.notifier)
+            .read(appLoggerProvider.notifier)
             .warn(
               'Duplicate virtual contact name requested: $normalizedName',
               source: 'ManualHandleLinkService',

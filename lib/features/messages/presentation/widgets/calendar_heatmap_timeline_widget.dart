@@ -208,12 +208,6 @@ class _MonthCell extends StatelessWidget {
       59,
     );
 
-    print(
-      '[TIMELINE_TAP] Clicked ${monthData.year}-${monthData.month.toString().padLeft(2, '0')} '
-      '(${monthData.messageCount} messages). '
-      'startDate=$startDate, endDate=$endDate',
-    );
-
     // Always navigate with forChatInDateRange
     // The view will detect if it's the same chat and just scroll instead of reloading
     ref

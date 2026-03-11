@@ -19,7 +19,7 @@ abstract class SidebarUtilityCassetteSpec with _$SidebarUtilityCassetteSpec {
 
   /// Top-level menu for settings mode.
   const factory SidebarUtilityCassetteSpec.settingsMenu({
-    @Default(SettingsMenuChoice.contacts) SettingsMenuChoice selectedChoice,
+    @Default(SettingsMenuChoice.actions) SettingsMenuChoice selectedChoice,
   }) = _SidebarUtilityCassetteSpecSettingsMenu;
 
   factory SidebarUtilityCassetteSpec.fromJson(Map<String, dynamic> json) =>

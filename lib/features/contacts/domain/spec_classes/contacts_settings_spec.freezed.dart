@@ -55,11 +55,14 @@ extension ContactsSettingsSpecPatterns on ContactsSettingsSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DisplayNameInfo value)?  displayNameInfo,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DisplayNameInfo value)?  displayNameInfo,TResult Function( _ActionsMenu value)?  actionsMenu,TResult Function( _SendLogsInfo value)?  sendLogsInfo,TResult Function( _ReimportDataInfo value)?  reimportDataInfo,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
-return displayNameInfo(_that);case _:
+return displayNameInfo(_that);case _ActionsMenu() when actionsMenu != null:
+return actionsMenu(_that);case _SendLogsInfo() when sendLogsInfo != null:
+return sendLogsInfo(_that);case _ReimportDataInfo() when reimportDataInfo != null:
+return reimportDataInfo(_that);case _:
   return orElse();
 
 }
@@ -77,11 +80,14 @@ return displayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DisplayNameInfo value)  displayNameInfo,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DisplayNameInfo value)  displayNameInfo,required TResult Function( _ActionsMenu value)  actionsMenu,required TResult Function( _SendLogsInfo value)  sendLogsInfo,required TResult Function( _ReimportDataInfo value)  reimportDataInfo,}){
 final _that = this;
 switch (_that) {
 case _DisplayNameInfo():
-return displayNameInfo(_that);case _:
+return displayNameInfo(_that);case _ActionsMenu():
+return actionsMenu(_that);case _SendLogsInfo():
+return sendLogsInfo(_that);case _ReimportDataInfo():
+return reimportDataInfo(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -98,11 +104,14 @@ return displayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DisplayNameInfo value)?  displayNameInfo,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DisplayNameInfo value)?  displayNameInfo,TResult? Function( _ActionsMenu value)?  actionsMenu,TResult? Function( _SendLogsInfo value)?  sendLogsInfo,TResult? Function( _ReimportDataInfo value)?  reimportDataInfo,}){
 final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
-return displayNameInfo(_that);case _:
+return displayNameInfo(_that);case _ActionsMenu() when actionsMenu != null:
+return actionsMenu(_that);case _SendLogsInfo() when sendLogsInfo != null:
+return sendLogsInfo(_that);case _ReimportDataInfo() when reimportDataInfo != null:
+return reimportDataInfo(_that);case _:
   return null;
 
 }
@@ -119,10 +128,13 @@ return displayNameInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  displayNameInfo,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  displayNameInfo,TResult Function( ActionsMenuChoice selectedChoice)?  actionsMenu,TResult Function()?  sendLogsInfo,TResult Function()?  reimportDataInfo,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
-return displayNameInfo();case _:
+return displayNameInfo();case _ActionsMenu() when actionsMenu != null:
+return actionsMenu(_that.selectedChoice);case _SendLogsInfo() when sendLogsInfo != null:
+return sendLogsInfo();case _ReimportDataInfo() when reimportDataInfo != null:
+return reimportDataInfo();case _:
   return orElse();
 
 }
@@ -140,10 +152,13 @@ return displayNameInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  displayNameInfo,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  displayNameInfo,required TResult Function( ActionsMenuChoice selectedChoice)  actionsMenu,required TResult Function()  sendLogsInfo,required TResult Function()  reimportDataInfo,}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo():
-return displayNameInfo();case _:
+return displayNameInfo();case _ActionsMenu():
+return actionsMenu(_that.selectedChoice);case _SendLogsInfo():
+return sendLogsInfo();case _ReimportDataInfo():
+return reimportDataInfo();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -160,10 +175,13 @@ return displayNameInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  displayNameInfo,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  displayNameInfo,TResult? Function( ActionsMenuChoice selectedChoice)?  actionsMenu,TResult? Function()?  sendLogsInfo,TResult? Function()?  reimportDataInfo,}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
-return displayNameInfo();case _:
+return displayNameInfo();case _ActionsMenu() when actionsMenu != null:
+return actionsMenu(_that.selectedChoice);case _SendLogsInfo() when sendLogsInfo != null:
+return sendLogsInfo();case _ReimportDataInfo() when reimportDataInfo != null:
+return reimportDataInfo();case _:
   return null;
 
 }
@@ -195,6 +213,136 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'ContactsSettingsSpec.displayNameInfo()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _ActionsMenu implements ContactsSettingsSpec {
+  const _ActionsMenu({this.selectedChoice = ActionsMenuChoice.sendLogs});
+  
+
+@JsonKey() final  ActionsMenuChoice selectedChoice;
+
+/// Create a copy of ContactsSettingsSpec
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ActionsMenuCopyWith<_ActionsMenu> get copyWith => __$ActionsMenuCopyWithImpl<_ActionsMenu>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActionsMenu&&(identical(other.selectedChoice, selectedChoice) || other.selectedChoice == selectedChoice));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,selectedChoice);
+
+@override
+String toString() {
+  return 'ContactsSettingsSpec.actionsMenu(selectedChoice: $selectedChoice)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ActionsMenuCopyWith<$Res> implements $ContactsSettingsSpecCopyWith<$Res> {
+  factory _$ActionsMenuCopyWith(_ActionsMenu value, $Res Function(_ActionsMenu) _then) = __$ActionsMenuCopyWithImpl;
+@useResult
+$Res call({
+ ActionsMenuChoice selectedChoice
+});
+
+
+
+
+}
+/// @nodoc
+class __$ActionsMenuCopyWithImpl<$Res>
+    implements _$ActionsMenuCopyWith<$Res> {
+  __$ActionsMenuCopyWithImpl(this._self, this._then);
+
+  final _ActionsMenu _self;
+  final $Res Function(_ActionsMenu) _then;
+
+/// Create a copy of ContactsSettingsSpec
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? selectedChoice = null,}) {
+  return _then(_ActionsMenu(
+selectedChoice: null == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
+as ActionsMenuChoice,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _SendLogsInfo implements ContactsSettingsSpec {
+  const _SendLogsInfo();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SendLogsInfo);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ContactsSettingsSpec.sendLogsInfo()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class _ReimportDataInfo implements ContactsSettingsSpec {
+  const _ReimportDataInfo();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReimportDataInfo);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ContactsSettingsSpec.reimportDataInfo()';
 }
 
 

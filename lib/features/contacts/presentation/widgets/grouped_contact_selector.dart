@@ -603,7 +603,7 @@ class _JumpBarState extends ConsumerState<_JumpBar> {
                       widget.letters[i],
                       style: typography.caption1.copyWith(
                         color: widget.letters[i] == widget.activeLetter
-                            ? Colors.white
+                            ? colors.buttons.primaryForeground
                             : colors.content.textTertiary,
                         fontWeight: widget.letters[i] == widget.activeLetter
                             ? FontWeight.w700

@@ -23,7 +23,7 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,46 +31,7 @@ class OverlayDatabase extends _$OverlayDatabase {
       await m.createAll();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 5) {
-        // Add is_favorited column; existing rows become non-favorited recents.
-        await m.addColumn(favoriteContacts, favoriteContacts.isFavorited);
-      }
-      if (from < 6) {
-        // Recreate handle_to_participant_overrides with new schema:
-        // - participant_id becomes nullable
-        // - add virtual_participant_id (nullable)
-        // - add reviewed_at (nullable)
-        // - remove source and confidence (redundant for overlay)
-        await customStatement('''
-          CREATE TABLE handle_to_participant_overrides_new (
-            handle_id INTEGER NOT NULL PRIMARY KEY,
-            participant_id INTEGER,
-            virtual_participant_id INTEGER,
-            reviewed_at TEXT,
-            created_at_utc TEXT NOT NULL,
-            updated_at_utc TEXT NOT NULL
-          )
-        ''');
-        await customStatement('''
-          INSERT INTO handle_to_participant_overrides_new
-            (handle_id, participant_id, created_at_utc, updated_at_utc)
-          SELECT handle_id, participant_id, created_at_utc, updated_at_utc
-          FROM handle_to_participant_overrides
-        ''');
-        await customStatement('DROP TABLE handle_to_participant_overrides');
-        await customStatement('''
-          ALTER TABLE handle_to_participant_overrides_new
-          RENAME TO handle_to_participant_overrides
-        ''');
-      }
-      if (from < 7) {
-        // Add dismissed_handles table for strong dismissal semantics.
-        await m.createTable(dismissedHandles);
-      }
-      if (from < 8) {
-        // Add handle_visibility_overrides for user-driven visibility/blacklist.
-        await m.createTable(handleVisibilityOverrides);
-      }
+      // No legacy databases to migrate — all users start fresh.
     },
   );
 

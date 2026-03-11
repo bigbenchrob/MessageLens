@@ -336,11 +336,25 @@ class _SearchBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
+
     final placeholder = switch (scope) {
       GlobalTimelineScope() => 'Search all messages',
       ContactTimelineScope() => 'Search messages with this contact',
       ChatTimelineScope() => 'Search this conversation',
     };
+
+    final decoration = BoxDecoration(
+      color: colors.surfaces.control,
+      border: Border.all(color: colors.lines.borderSubtle),
+      borderRadius: const BorderRadius.all(Radius.circular(7)),
+    );
+    final focusedDecoration = BoxDecoration(
+      color: colors.surfaces.control,
+      border: Border.all(color: colors.accents.focusRing, width: 2),
+      borderRadius: const BorderRadius.all(Radius.circular(7)),
+    );
 
     return Padding(
       // Top: tight gap from header; bottom: looser gap to content
@@ -358,6 +372,8 @@ class _SearchBar extends ConsumerWidget {
               controller: vm.searchController,
               placeholder: placeholder,
               clearButtonMode: macos_ui.OverlayVisibilityMode.editing,
+              decoration: decoration,
+              focusedDecoration: focusedDecoration,
             ),
           ),
           const SizedBox(width: 12),
@@ -479,14 +495,20 @@ class _GlobalHeader extends ConsumerWidget {
     final metadata = metadataAsync.valueOrNull;
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
+    final primaryColor = colors.content.textPrimary;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'All Messages',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
           ),
           const SizedBox(height: 4),
           if (metadata != null) ...[
@@ -625,6 +647,8 @@ class _ContactHeader extends ConsumerWidget {
     final metadata = metadataAsync.valueOrNull;
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
+    final primaryColor = colors.content.textPrimary;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
@@ -632,7 +656,11 @@ class _ContactHeader extends ConsumerWidget {
         children: [
           Text(
             'All messages from $displayName',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
           ),
           const SizedBox(height: 4),
           if (metadata != null) ...[
@@ -695,14 +723,20 @@ class _ChatHeader extends ConsumerWidget {
     final metadata = metadataAsync.valueOrNull;
     final visibleMonth = visibleMonthAsync.valueOrNull;
 
+    final primaryColor = colors.content.textPrimary;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Conversation',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: primaryColor,
+            ),
           ),
           const SizedBox(height: 4),
           if (metadata != null) ...[

@@ -310,7 +310,7 @@ class _CenterPanelWidgetProviderElement
   SidebarMode get mode => (origin as CenterPanelWidgetProvider).mode;
 }
 
-String _$leftPanelWidgetHash() => r'70a3a202ff6f0be082527f42367165de8e98a50b';
+String _$leftPanelWidgetHash() => r'b3958721d618342de7294ec48f49fd84fdf7075b';
 
 /// Widget provider for left panel (sidebar).
 ///

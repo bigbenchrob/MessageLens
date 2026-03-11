@@ -61,7 +61,7 @@ class OnboardingDevPanel extends ConsumerWidget {
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  color: const Color(0xFFCC3333),
+                  color: colors.buttons.destructiveForeground,
                   onPressed: controlState.isProcessing
                       ? null
                       : () async {
@@ -74,7 +74,9 @@ class OnboardingDevPanel extends ConsumerWidget {
                         },
                   child: Text(
                     'Reset DBs & Re-trigger',
-                    style: typography.body.copyWith(color: Colors.white),
+                    style: typography.body.copyWith(
+                      color: colors.buttons.primaryForeground,
+                    ),
                   ),
                 ),
               ],
@@ -93,12 +95,15 @@ class OnboardingDevPanel extends ConsumerWidget {
                       typography: typography,
                     ),
                     OnboardingStatus.importing ||
-                    OnboardingStatus.migrating => _DevProgressContent(
+                    OnboardingStatus.migrating ||
+                    OnboardingStatus.reimporting ||
+                    OnboardingStatus.reimportMigrating => _DevProgressContent(
                       colors: colors,
                       typography: typography,
                       controlState: controlState,
                     ),
-                    OnboardingStatus.complete => _DevCompleteContent(
+                    OnboardingStatus.complete ||
+                    OnboardingStatus.reimportComplete => _DevCompleteContent(
                       colors: colors,
                       typography: typography,
                       controlState: controlState,
@@ -151,8 +156,8 @@ class _DevWelcomeContent extends ConsumerWidget {
             ref.read(onboardingGateProvider.notifier).startImportAndMigration();
           },
           style: FilledButton.styleFrom(
-            backgroundColor: colors.accents.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -268,8 +273,8 @@ class _DevCompleteContent extends ConsumerWidget {
             ref.read(onboardingGateProvider.notifier).dismiss();
           },
           style: FilledButton.styleFrom(
-            backgroundColor: colors.accents.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

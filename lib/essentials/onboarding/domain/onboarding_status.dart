@@ -12,6 +12,15 @@ enum OnboardingStatus {
   /// Migration orchestrator is running.
   migrating,
 
-  /// Both pipelines succeeded — show summary with "Get Started".
+  /// Both pipelines succeeded — show summary with "Get Started" or "Done".
   complete,
+
+  /// Reimport triggered from settings — skip welcome, go straight to import.
+  reimporting,
+
+  /// Reimport migration phase.
+  reimportMigrating,
+
+  /// Reimport finished — show summary with "Done" button.
+  reimportComplete,
 }
