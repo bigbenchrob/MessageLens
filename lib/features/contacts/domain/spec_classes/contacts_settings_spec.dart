@@ -21,8 +21,9 @@ abstract class ContactsSettingsSpec with _$ContactsSettingsSpec {
   ///
   /// Displayed when user navigates to Settings → Actions.
   /// Cascades to [sendLogsInfo] or [reimportDataInfo] based on choice.
+  /// When [selectedChoice] is null, no child cassette is shown.
   const factory ContactsSettingsSpec.actionsMenu({
-    @Default(ActionsMenuChoice.sendLogs) ActionsMenuChoice selectedChoice,
+    ActionsMenuChoice? selectedChoice,
   }) = _ActionsMenu;
 
   /// Info card with diagnostic log export action.

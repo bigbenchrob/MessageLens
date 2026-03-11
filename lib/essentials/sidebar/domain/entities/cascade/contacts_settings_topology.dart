@@ -4,6 +4,9 @@ CassetteSpec? resolveContactsSettingsChild(ContactsSettingsSpec spec) {
   return spec.when(
     displayNameInfo: () => null,
     actionsMenu: (selectedChoice) {
+      if (selectedChoice == null) {
+        return null;
+      }
       switch (selectedChoice) {
         case ActionsMenuChoice.sendLogs:
           return const CassetteSpec.contactsSettings(

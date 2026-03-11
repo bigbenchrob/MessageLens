@@ -22,7 +22,7 @@ class ActionsSubMenuWidget extends ConsumerWidget {
     required this.sidebarMode,
   });
 
-  final ActionsMenuChoice currentChoice;
+  final ActionsMenuChoice? currentChoice;
   final int cassetteIndex;
   final SidebarMode sidebarMode;
 
@@ -44,11 +44,15 @@ class ActionsSubMenuWidget extends ConsumerWidget {
           .replaceAtIndexAndCascade(cassetteIndex, newSpec);
     }
 
-    return AppThemeWidgets.dropdownMenu<ActionsMenuChoice>(
+    return AppThemeWidgets.dropdownMenu<ActionsMenuChoice?>(
       options: choices,
       selectedOption: currentChoice,
-      onSelected: handleSelectionChange,
-      optionLabelBuilder: (choice) => choice.label,
+      onSelected: (choice) {
+        if (choice != null) {
+          handleSelectionChange(choice);
+        }
+      },
+      optionLabelBuilder: (choice) => choice?.label ?? '',
       leadingLabel: 'Choose an action:',
       outerPadding: EdgeInsets.zero,
       triggerPadding: const EdgeInsets.only(

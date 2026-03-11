@@ -5,7 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../db/feature_level_providers.dart' show databaseDirectoryPath;
+import '../../db/feature_level_providers.dart'
+    show databaseDirectoryPath, sqfliteImportDatabaseProvider;
 import '../../db/feature_level_providers/message_data_version_provider.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
 import '../domain/onboarding_status.dart';
@@ -43,6 +44,10 @@ class OnboardingGate extends _$OnboardingGate {
     if (state != OnboardingStatus.awaitingUserAction) {
       return;
     }
+
+    // Remove stale import DB files from a previous failed or aborted run
+    // so the pipeline starts from a clean slate.
+    await _deleteImportDatabaseFiles();
 
     // ── Import phase ──
     state = OnboardingStatus.importing;
@@ -124,6 +129,9 @@ class OnboardingGate extends _$OnboardingGate {
       return;
     }
 
+    // Clean out the previous import DB so the pipeline reimports everything.
+    await _deleteImportDatabaseFiles();
+
     // ── Import phase ──
     state = OnboardingStatus.reimporting;
     await _waitForEndOfFrame();
@@ -162,5 +170,28 @@ class OnboardingGate extends _$OnboardingGate {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       state = OnboardingStatus.notNeeded;
     });
+  }
+
+  /// Close any open import DB connection, delete the files, and
+  /// invalidate the provider so the next access creates a fresh instance.
+  Future<void> _deleteImportDatabaseFiles() async {
+    // Close an existing connection if the provider was already accessed.
+    try {
+      final ledgerDb = await ref.read(sqfliteImportDatabaseProvider.future);
+      await ledgerDb.close();
+    } catch (_) {
+      // No connection open — safe to proceed.
+    }
+    ref.invalidate(sqfliteImportDatabaseProvider);
+
+    // Delete the file and WAL/SHM companions.
+    final basePath = path.join(databaseDirectoryPath, 'macos_import.db');
+    for (final suffix in ['', '-wal', '-shm']) {
+      final file = File('$basePath$suffix');
+      if (file.existsSync()) {
+        await file.delete();
+      }
+    }
+    ref.invalidate(sqfliteImportDatabaseProvider);
   }
 }

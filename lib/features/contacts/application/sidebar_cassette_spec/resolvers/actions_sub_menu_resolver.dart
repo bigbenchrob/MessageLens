@@ -16,7 +16,7 @@ class ActionsSubMenuResolver extends _$ActionsSubMenuResolver {
   void build() {}
 
   SidebarCassetteCardViewModel resolve({
-    required ActionsMenuChoice currentChoice,
+    required ActionsMenuChoice? currentChoice,
     required int cassetteIndex,
   }) {
     return SidebarCassetteCardViewModel(

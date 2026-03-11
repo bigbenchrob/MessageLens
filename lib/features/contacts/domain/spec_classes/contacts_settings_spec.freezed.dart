@@ -128,7 +128,7 @@ return reimportDataInfo(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  displayNameInfo,TResult Function( ActionsMenuChoice selectedChoice)?  actionsMenu,TResult Function()?  sendLogsInfo,TResult Function()?  reimportDataInfo,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  displayNameInfo,TResult Function( ActionsMenuChoice? selectedChoice)?  actionsMenu,TResult Function()?  sendLogsInfo,TResult Function()?  reimportDataInfo,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
 return displayNameInfo();case _ActionsMenu() when actionsMenu != null:
@@ -152,7 +152,7 @@ return reimportDataInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  displayNameInfo,required TResult Function( ActionsMenuChoice selectedChoice)  actionsMenu,required TResult Function()  sendLogsInfo,required TResult Function()  reimportDataInfo,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  displayNameInfo,required TResult Function( ActionsMenuChoice? selectedChoice)  actionsMenu,required TResult Function()  sendLogsInfo,required TResult Function()  reimportDataInfo,}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo():
 return displayNameInfo();case _ActionsMenu():
@@ -175,7 +175,7 @@ return reimportDataInfo();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  displayNameInfo,TResult? Function( ActionsMenuChoice selectedChoice)?  actionsMenu,TResult? Function()?  sendLogsInfo,TResult? Function()?  reimportDataInfo,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  displayNameInfo,TResult? Function( ActionsMenuChoice? selectedChoice)?  actionsMenu,TResult? Function()?  sendLogsInfo,TResult? Function()?  reimportDataInfo,}) {final _that = this;
 switch (_that) {
 case _DisplayNameInfo() when displayNameInfo != null:
 return displayNameInfo();case _ActionsMenu() when actionsMenu != null:
@@ -225,10 +225,10 @@ String toString() {
 
 
 class _ActionsMenu implements ContactsSettingsSpec {
-  const _ActionsMenu({this.selectedChoice = ActionsMenuChoice.sendLogs});
+  const _ActionsMenu({this.selectedChoice});
   
 
-@JsonKey() final  ActionsMenuChoice selectedChoice;
+ final  ActionsMenuChoice? selectedChoice;
 
 /// Create a copy of ContactsSettingsSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -260,7 +260,7 @@ abstract mixin class _$ActionsMenuCopyWith<$Res> implements $ContactsSettingsSpe
   factory _$ActionsMenuCopyWith(_ActionsMenu value, $Res Function(_ActionsMenu) _then) = __$ActionsMenuCopyWithImpl;
 @useResult
 $Res call({
- ActionsMenuChoice selectedChoice
+ ActionsMenuChoice? selectedChoice
 });
 
 
@@ -277,10 +277,10 @@ class __$ActionsMenuCopyWithImpl<$Res>
 
 /// Create a copy of ContactsSettingsSpec
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? selectedChoice = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? selectedChoice = freezed,}) {
   return _then(_ActionsMenu(
-selectedChoice: null == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
-as ActionsMenuChoice,
+selectedChoice: freezed == selectedChoice ? _self.selectedChoice : selectedChoice // ignore: cast_nullable_to_non_nullable
+as ActionsMenuChoice?,
   ));
 }
 

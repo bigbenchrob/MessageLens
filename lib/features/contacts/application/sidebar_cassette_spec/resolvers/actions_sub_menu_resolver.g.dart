@@ -7,7 +7,7 @@ part of 'actions_sub_menu_resolver.dart';
 // **************************************************************************
 
 String _$actionsSubMenuResolverHash() =>
-    r'8cfb35f6c5db7df97fbc969c0afd3de630eec5d6';
+    r'ae2b8289fdf84f9e7d04755ab311cec6dd56cb7b';
 
 /// Resolver for ContactsSettingsSpec.actionsMenu().
 ///
