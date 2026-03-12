@@ -1,0 +1,51 @@
+name: Bug Report
+description: Report something that isn't working correctly
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Describe what should have happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the problem?
+      value: |
+        1. 
+        2. 
+        3.
+    validations:
+      required: false
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot / screen recording
+      description: Paste or drag an image here if applicable.
+    validations:
+      required: false
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: e.g. Ventura 13.6.1
+    validations:
+      required: false
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model
+      placeholder: e.g. MacBook Air 2019
+    validations:
+      required: false
