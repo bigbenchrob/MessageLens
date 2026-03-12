@@ -11,6 +11,9 @@ import '../application/onboarding_gate_provider.dart';
 import '../domain/onboarding_status.dart';
 import 'onboarding_progress_view.dart';
 
+/// Amber tone for FDA warning icon.
+const _kWarningAmber = Color(0xFFFF9500);
+
 /// Developer panel that mirrors the onboarding overlay UI in the center panel.
 ///
 /// Includes a "Reset & Re-trigger" button that deletes both databases and
@@ -90,6 +93,10 @@ class OnboardingDevPanel extends ConsumerWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
                   child: switch (status) {
+                    OnboardingStatus.awaitingFda => _DevFdaContent(
+                      colors: colors,
+                      typography: typography,
+                    ),
                     OnboardingStatus.awaitingUserAction => _DevWelcomeContent(
                       colors: colors,
                       typography: typography,
@@ -119,6 +126,53 @@ class OnboardingDevPanel extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DevFdaContent extends ConsumerWidget {
+  const _DevFdaContent({required this.colors, required this.typography});
+
+  final ThemeColors colors;
+  final ThemeTypography typography;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.lock_outline_rounded, size: 56, color: _kWarningAmber),
+        const SizedBox(height: 20),
+        Text(
+          'Full Disk Access Required',
+          style: typography.headline.copyWith(
+            color: colors.content.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'The app cannot read the Messages database.\n'
+          'Grant Full Disk Access in System Settings, then relaunch the app.',
+          style: typography.body.copyWith(color: colors.content.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: () {
+            ref.read(onboardingGateProvider.notifier).openFdaSettings();
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text('Open System Settings'),
+        ),
+      ],
     );
   }
 }

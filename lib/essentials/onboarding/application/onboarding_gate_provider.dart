@@ -9,24 +9,41 @@ import '../../db/feature_level_providers.dart'
     show databaseDirectoryPath, sqfliteImportDatabaseProvider;
 import '../../db/feature_level_providers/message_data_version_provider.dart';
 import '../../db_importers/presentation/view_model/db_import_control_provider.dart';
+import '../../navigation/application/sidebar_mode_provider.dart';
+import '../../navigation/domain/sidebar_mode.dart';
 import '../domain/onboarding_status.dart';
 import 'database_existence_checker.dart';
+import 'fda_checker.dart';
 
 part 'onboarding_gate_provider.g.dart';
 
 /// Controls the onboarding overlay lifecycle.
 ///
-/// On [build], checks whether both import and working databases exist with data.
-/// If not, exposes [OnboardingStatus.awaitingUserAction] so the overlay appears.
+/// Gate 1 — Full Disk Access:
+/// On [build], checks whether the app can read `~/Library/Messages/chat.db`.
+/// If not, exposes [OnboardingStatus.awaitingFda] so the FDA instruction
+/// screen is shown.  Nothing else can proceed until FDA is confirmed.
+///
+/// Gate 2 — Data import:
+/// Once FDA is confirmed, checks whether both import and working databases
+/// exist with data.  If not, exposes [OnboardingStatus.awaitingUserAction]
+/// so the import overlay appears.
 ///
 /// [startImportAndMigration] delegates to [DbImportControlViewModel] and
 /// watches its state to transition through importing → migrating → complete.
 @Riverpod(keepAlive: true)
 class OnboardingGate extends _$OnboardingGate {
   static const _checker = DatabaseExistenceChecker();
+  static const _fdaChecker = FdaChecker();
 
   @override
   OnboardingStatus build() {
+    // Gate 1: Full Disk Access.
+    if (!_fdaChecker.canReadMessagesDatabase()) {
+      return OnboardingStatus.awaitingFda;
+    }
+
+    // Gate 2: populated databases.
     final hasData = _checker.hasPopulatedDatabases(databaseDirectoryPath);
     if (hasData) {
       return OnboardingStatus.notNeeded;
@@ -42,6 +59,14 @@ class OnboardingGate extends _$OnboardingGate {
   /// guard. Wrapped in try/catch so the user is **never** stranded.
   Future<void> startImportAndMigration() async {
     if (state != OnboardingStatus.awaitingUserAction) {
+      return;
+    }
+
+    // Gate 2 safety check: verify we can still read chat.db before
+    // committing to the import.  If FDA was revoked after the earlier
+    // check, fall back to the FDA screen.
+    if (!_fdaChecker.canReadMessagesDatabase()) {
+      state = OnboardingStatus.awaitingFda;
       return;
     }
 
@@ -95,6 +120,11 @@ class OnboardingGate extends _$OnboardingGate {
       completer.complete();
     });
     return completer.future;
+  }
+
+  /// Open System Settings to the Full Disk Access pane.
+  Future<void> openFdaSettings() async {
+    await FdaChecker.openFdaSettings();
   }
 
   /// Abort the in-progress import, delete the partially-created database
@@ -158,16 +188,16 @@ class OnboardingGate extends _$OnboardingGate {
     state = OnboardingStatus.reimportComplete;
   }
 
-  /// Dismiss the overlay.
+  /// Dismiss the overlay and switch to the Messages sidebar.
   ///
   /// Deferred to the next frame so the [ModalBarrier] in the overlay is not
   /// removed during an active gesture callback (avoids the
   /// `!_debugDuringDeviceUpdate` assertion in mouse_tracker.dart).
-  ///
-  /// Does not navigate — the center panel stays empty until the user
-  /// picks something from the sidebar.
   void dismiss() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(activeSidebarModeProvider.notifier)
+          .setMode(SidebarMode.messages);
       state = OnboardingStatus.notNeeded;
     });
   }

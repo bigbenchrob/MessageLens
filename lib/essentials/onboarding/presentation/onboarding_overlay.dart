@@ -10,6 +10,9 @@ import '../application/onboarding_gate_provider.dart';
 import '../domain/onboarding_status.dart';
 import 'onboarding_progress_view.dart';
 
+/// Amber tone for FDA warning icon and alert text.
+const _kWarningAmber = Color(0xFFFF9500);
+
 /// Full-window blocking overlay shown during first-run onboarding.
 ///
 /// Renders a semi-transparent barrier over the entire app and presents
@@ -57,6 +60,10 @@ class OnboardingOverlay extends ConsumerWidget {
                 ],
               ),
               child: switch (status) {
+                OnboardingStatus.awaitingFda => _FdaContent(
+                  colors: colors,
+                  typography: typography,
+                ),
                 OnboardingStatus.awaitingUserAction => _WelcomeContent(
                   colors: colors,
                   typography: typography,
@@ -83,6 +90,158 @@ class OnboardingOverlay extends ConsumerWidget {
                 ),
                 OnboardingStatus.notNeeded => const SizedBox.shrink(),
               },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// FDA instruction panel: explains why FDA is needed and how to grant it.
+///
+/// macOS requires an app restart after granting FDA, so this screen only
+/// shows the "Open System Settings" button.  On relaunch the FDA check
+/// in [OnboardingGate.build] will pass and the import welcome screen
+/// appears automatically.
+class _FdaContent extends ConsumerWidget {
+  const _FdaContent({required this.colors, required this.typography});
+
+  final ThemeColors colors;
+  final ThemeTypography typography;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.lock_outline_rounded, size: 56, color: _kWarningAmber),
+        const SizedBox(height: 20),
+        Text(
+          'Full Disk Access Required',
+          style: typography.headline.copyWith(
+            color: colors.content.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'MessageLens needs Full Disk Access to read your Messages and '
+          'Contacts databases. Without it, the app cannot import your data.',
+          style: typography.body.copyWith(color: colors.content.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        // Step-by-step instructions.
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surfaces.control,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.lines.borderSubtle, width: 0.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _InstructionStep(
+                number: '1',
+                text: 'Click "Open System Settings" below',
+                colors: colors,
+                typography: typography,
+              ),
+              const SizedBox(height: 8),
+              _InstructionStep(
+                number: '2',
+                text:
+                    'Add MessageLens: click the "+" button and find it, '
+                    'or drag the app onto the list',
+                colors: colors,
+                typography: typography,
+              ),
+              const SizedBox(height: 8),
+              _InstructionStep(
+                number: '3',
+                text:
+                    'Toggle MessageLens ON and enter your password '
+                    'when prompted',
+                colors: colors,
+                typography: typography,
+              ),
+              const SizedBox(height: 8),
+              _InstructionStep(
+                number: '4',
+                text:
+                    'macOS will ask you to quit and reopen the app \u2014 '
+                    'when it restarts, setup will continue automatically',
+                colors: colors,
+                typography: typography,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: () {
+            ref.read(onboardingGateProvider.notifier).openFdaSettings();
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: colors.buttons.primaryBackground,
+            foregroundColor: colors.buttons.primaryForeground,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text('Open System Settings'),
+        ),
+      ],
+    );
+  }
+}
+
+class _InstructionStep extends StatelessWidget {
+  const _InstructionStep({
+    required this.number,
+    required this.text,
+    required this.colors,
+    required this.typography,
+  });
+
+  final String number;
+  final String text;
+  final ThemeColors colors;
+  final ThemeTypography typography;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: colors.accents.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: typography.caption.copyWith(
+              color: colors.buttons.primaryForeground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              text,
+              style: typography.body.copyWith(
+                color: colors.content.textPrimary,
+              ),
             ),
           ),
         ),

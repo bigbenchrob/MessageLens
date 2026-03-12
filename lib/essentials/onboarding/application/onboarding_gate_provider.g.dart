@@ -6,12 +6,19 @@ part of 'onboarding_gate_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$onboardingGateHash() => r'256d4486a68c380154a5319367d5acb4f8654e13';
+String _$onboardingGateHash() => r'6ccd00f40a4dda8c629b12c80c0e331bb57a3269';
 
 /// Controls the onboarding overlay lifecycle.
 ///
-/// On [build], checks whether both import and working databases exist with data.
-/// If not, exposes [OnboardingStatus.awaitingUserAction] so the overlay appears.
+/// Gate 1 — Full Disk Access:
+/// On [build], checks whether the app can read `~/Library/Messages/chat.db`.
+/// If not, exposes [OnboardingStatus.awaitingFda] so the FDA instruction
+/// screen is shown.  Nothing else can proceed until FDA is confirmed.
+///
+/// Gate 2 — Data import:
+/// Once FDA is confirmed, checks whether both import and working databases
+/// exist with data.  If not, exposes [OnboardingStatus.awaitingUserAction]
+/// so the import overlay appears.
 ///
 /// [startImportAndMigration] delegates to [DbImportControlViewModel] and
 /// watches its state to transition through importing → migrating → complete.
