@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
-import '../../../../essentials/logging/application/app_logger.dart';
 import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
 import '../../infrastructure/repositories/virtual_participants_provider.dart';
 
@@ -57,13 +56,9 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
       );
 
       if (hasDuplicate) {
-        ref
-            .read(appLoggerProvider.notifier)
-            .warn(
-              'Duplicate virtual contact name requested: $normalizedName',
-              source: 'ManualHandleLinkService',
-              context: {'displayName': normalizedName},
-            );
+        return Left(
+          Failure('A contact named "$normalizedName" already exists.'),
+        );
       }
 
       final created = await overlayDb.createVirtualParticipant(
@@ -158,7 +153,13 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
   ///
   /// Deletes the overlay override only. The working database is not touched.
   /// The handle reverts to its automatic link (if any) or unlinked status.
-  Future<Either<Failure, Unit>> unlinkHandle({required int handleId}) async {
+  ///
+  /// If the handle was linked to a virtual participant and that participant
+  /// has no remaining handles, the virtual participant is also deleted.
+  ///
+  /// Returns `true` in the Right payload when the virtual participant was
+  /// deleted (i.e. the contact no longer exists), `false` otherwise.
+  Future<Either<Failure, bool>> unlinkHandle({required int handleId}) async {
     try {
       final overlayDb = await ref.read(overlayDatabaseProvider.future);
 
@@ -169,13 +170,29 @@ class ManualHandleLinkService extends _$ManualHandleLinkService {
         return const Left(Failure('No manual link found for this handle.'));
       }
 
+      final virtualParticipantId = existingOverride.virtualParticipantId;
+
       // Remove overlay link only
       await overlayDb.deleteHandleOverride(handleId);
+
+      // If this handle was linked to a virtual participant, check whether
+      // the virtual participant still has any remaining handles.
+      var contactDeleted = false;
+      if (virtualParticipantId != null) {
+        final remaining = await overlayDb.getOverridesForVirtualParticipant(
+          virtualParticipantId,
+        );
+        if (remaining.isEmpty) {
+          await overlayDb.deleteVirtualParticipant(virtualParticipantId);
+          contactDeleted = true;
+          ref.invalidate(virtualParticipantsProvider);
+        }
+      }
 
       // Invalidate cached providers
       ref.invalidate(strayHandlesProvider);
 
-      return const Right(unit);
+      return Right(contactDeleted);
     } catch (e, stackTrace) {
       return Left(
         Failure('Failed to unlink handle: $e', stackTrace: stackTrace),

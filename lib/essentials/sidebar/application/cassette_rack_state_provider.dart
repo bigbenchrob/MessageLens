@@ -232,6 +232,7 @@ class CassetteRackState extends _$CassetteRackState {
             contactChooser: (chosenContactId) => chosenContactId,
             contactSelectionControl: (chosenContactId) => chosenContactId,
             contactHeroSummary: (chosenContactId) => chosenContactId,
+            handleFilter: (contactId, _) => contactId,
           );
         },
         contactsSettings: (_) => null,

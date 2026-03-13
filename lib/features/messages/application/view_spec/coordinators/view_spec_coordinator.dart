@@ -32,8 +32,12 @@ class ViewSpecCoordinator extends _$ViewSpecCoordinator {
           ),
         ),
       ),
-      forContact: (contactId, scrollToDate) => MessagesForContactResolver()
-          .resolve(contactId: contactId, scrollToDate: scrollToDate),
+      forContact: (contactId, scrollToDate, filterHandleId) =>
+          MessagesForContactResolver().resolve(
+            contactId: contactId,
+            scrollToDate: scrollToDate,
+            filterHandleId: filterHandleId,
+          ),
       globalTimeline: (scrollToDate) =>
           GlobalTimelineResolver().resolve(scrollToDate: scrollToDate),
       forHandle: (handleId) =>

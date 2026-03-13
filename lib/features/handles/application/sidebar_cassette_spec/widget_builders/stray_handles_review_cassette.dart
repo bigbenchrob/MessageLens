@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../config/theme/colors/theme_colors.dart';
 import '../../../../../../config/theme/theme_typography.dart';
 import '../../../../../../essentials/db/feature_level_providers.dart';
+import '../../../../../../essentials/navigation/domain/entities/panel_stack.dart';
 import '../../../../../../essentials/navigation/domain/entities/view_spec.dart';
 import '../../../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../../../essentials/navigation/domain/sidebar_mode.dart';
@@ -61,6 +62,22 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
       data: (handles) {
         final filtered = _applyFilter(handles);
 
+        // Determine which handle is currently displayed in the center panel.
+        final centerStack = ref.watch(
+          panelsViewStateProvider(SidebarMode.messages).select(
+            (stacks) => stacks[WindowPanel.center] ?? const PanelStack.empty(),
+          ),
+        );
+        final activeHandleId = centerStack.activePage?.spec.map(
+          messages: (m) => m.spec.maybeMap(
+            handleLens: (hl) => hl.handleId,
+            forHandle: (fh) => fh.handleId,
+            orElse: () => null,
+          ),
+          import: (_) => null,
+          onboarding: (_) => null,
+        );
+
         if (filtered.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
@@ -92,6 +109,7 @@ class StrayHandlesReviewCassette extends HookConsumerWidget {
             return _StrayHandleRow(
               handle: handle,
               mode: mode,
+              isSelected: handle.handleId == activeHandleId,
               onTap: () => _openHandleLens(ref, handle.handleId),
               onDismiss: mode != StrayHandleMode.dismissed
                   ? () => _dismissHandle(ref, handle)
@@ -192,6 +210,7 @@ class _StrayHandleRow extends ConsumerWidget {
   const _StrayHandleRow({
     required this.handle,
     required this.mode,
+    required this.isSelected,
     required this.onTap,
     this.onDismiss,
     this.onRestore,
@@ -199,6 +218,7 @@ class _StrayHandleRow extends ConsumerWidget {
 
   final StrayHandleSummary handle;
   final StrayHandleMode mode;
+  final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onDismiss;
   final VoidCallback? onRestore;
@@ -233,6 +253,17 @@ class _StrayHandleRow extends ConsumerWidget {
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
+          // Selection highlight — inset to match divider width
+          // (stops before the action gutter).
+          if (isSelected)
+            Positioned.fill(
+              right: StrayHandlesReviewCassette.actionGutterWidth,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.accents.primary.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
           // Data container: no left padding (card wrapper provides inset)
           // Fixed right inset reserves action gutter for all rows
           Padding(

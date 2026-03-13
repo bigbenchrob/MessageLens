@@ -10,9 +10,13 @@ import '../../../presentation/view/messages_timeline_view.dart';
 Widget buildMessagesForContactView({
   required int contactId,
   DateTime? scrollToDate,
+  int? filterHandleId,
 }) {
   return MessagesTimelineView(
-    scope: MessageTimelineScope.contact(contactId: contactId),
+    scope: MessageTimelineScope.contact(
+      contactId: contactId,
+      filterHandleId: filterHandleId,
+    ),
     scrollToDate: scrollToDate,
   );
 }

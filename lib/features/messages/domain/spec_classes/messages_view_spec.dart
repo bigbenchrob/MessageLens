@@ -9,6 +9,7 @@ class MessagesSpec with _$MessagesSpec {
   const factory MessagesSpec.forContact({
     required int contactId,
     DateTime? scrollToDate,
+    int? filterHandleId,
   }) = _MessagesForContact;
 
   /// Show every message across all chats ordered by the global ordinal index.

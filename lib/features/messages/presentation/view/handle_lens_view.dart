@@ -11,6 +11,7 @@ import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/logging/application/app_logger.dart';
 import '../../../contacts/application/services/manual_handle_link_service.dart';
 import '../../../contacts/presentation/widgets/contact_picker_dialog.dart';
+import '../../../handles/infrastructure/repositories/handle_display_name_provider.dart';
 import '../../../handles/infrastructure/repositories/stray_handles_provider.dart';
 import '../../infrastructure/repositories/messages_for_handle_provider.dart';
 
@@ -33,6 +34,9 @@ class HandleLensView extends HookConsumerWidget {
       messagesForHandleProvider(handleId: handleId),
     );
     final asyncHandles = ref.watch(strayHandlesProvider);
+    final asyncDisplayName = ref.watch(
+      handleDisplayNameProvider(handleId: handleId),
+    );
     final isCreating = useState(false);
     final nameController = useTextEditingController();
     final isBusy = useState(false);
@@ -46,7 +50,8 @@ class HandleLensView extends HookConsumerWidget {
       },
     );
 
-    final handleValue = handleSummary?.handleValue ?? 'Handle #$handleId';
+    // Use resolved display name (virtual contact > real contact > raw handle).
+    final handleValue = asyncDisplayName.valueOrNull ?? 'Handle #$handleId';
     final serviceType = handleSummary?.serviceType ?? '';
 
     return MacosScaffold(
@@ -440,6 +445,7 @@ class _ActionBar extends HookConsumerWidget {
         },
         (_) {
           ref.invalidate(strayHandlesProvider);
+          ref.invalidate(handleDisplayNameProvider(handleId: handleId));
         },
       );
     } finally {
@@ -482,37 +488,61 @@ class _CreateContactForm extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final errorMessage = useState<String?>(null);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: MacosTextField(
-              controller: nameController,
-              placeholder: 'Contact name...',
-              autofocus: true,
-              onSubmitted: (_) => _submit(ref),
+          Row(
+            children: [
+              Expanded(
+                child: MacosTextField(
+                  controller: nameController,
+                  placeholder: 'Contact name...',
+                  autofocus: true,
+                  onSubmitted: (_) => _submit(ref, errorMessage),
+                ),
+              ),
+              const SizedBox(width: 8),
+              PushButton(
+                controlSize: ControlSize.regular,
+                onPressed: isBusy.value
+                    ? null
+                    : () => _submit(ref, errorMessage),
+                child: isBusy.value
+                    ? const CupertinoActivityIndicator()
+                    : const Text('Create & Link'),
+              ),
+            ],
+          ),
+          if (errorMessage.value != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                errorMessage.value!,
+                style: typography.caption.copyWith(
+                  color: const Color(0xFFD64545),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          PushButton(
-            controlSize: ControlSize.regular,
-            onPressed: isBusy.value ? null : () => _submit(ref),
-            child: isBusy.value
-                ? const CupertinoActivityIndicator()
-                : const Text('Create & Link'),
-          ),
         ],
       ),
     );
   }
 
-  Future<void> _submit(WidgetRef ref) async {
+  Future<void> _submit(
+    WidgetRef ref,
+    ValueNotifier<String?> errorMessage,
+  ) async {
     final name = nameController.text.trim();
     if (name.isEmpty) {
       return;
     }
 
+    errorMessage.value = null;
     isBusy.value = true;
     try {
       final service = ref.read(manualHandleLinkServiceProvider.notifier);
@@ -524,12 +554,7 @@ class _CreateContactForm extends HookConsumerWidget {
 
       await createResult.fold(
         (failure) async {
-          ref
-              .read(appLoggerProvider.notifier)
-              .warn(
-                'Create virtual participant failed: ${failure.message}',
-                source: 'HandleLens',
-              );
+          errorMessage.value = failure.message;
         },
         (virtualParticipantId) async {
           // Link handle to virtual participant.
@@ -549,6 +574,7 @@ class _CreateContactForm extends HookConsumerWidget {
             },
             (_) {
               ref.invalidate(strayHandlesProvider);
+              ref.invalidate(handleDisplayNameProvider(handleId: handleId));
               isCreating.value = false;
               nameController.clear();
             },

@@ -6,7 +6,9 @@ import '../../../../../config/theme/colors/theme_colors.dart'
 import '../../../../../config/theme/theme_typography.dart';
 import '../../../../../config/theme/widgets/theme_widgets.dart';
 import '../../../../../essentials/db/feature_level_providers/working_db_populated_provider.dart';
+import '../../../../../essentials/navigation/domain/navigation_constants.dart';
 import '../../../../../essentials/navigation/domain/sidebar_mode.dart';
+import '../../../../../essentials/navigation/feature_level_providers.dart';
 import '../../../../../essentials/sidebar/feature_level_providers.dart';
 import '../../../domain/sidebar_utilities_constants.dart';
 
@@ -60,6 +62,13 @@ class TopChatMenuWidget extends ConsumerWidget {
       final newSpec = CassetteSpec.sidebarUtility(
         SidebarUtilityCassetteSpec.topChatMenu(selectedChoice: newChoice),
       );
+
+      // Clear the center panel so stale content from the previous mode
+      // does not persist (e.g. a handle lens view staying visible after
+      // switching to "Messages from contacts").
+      ref
+          .read(panelsViewStateProvider(sidebarMode).notifier)
+          .clear(panel: WindowPanel.center);
 
       // Update the rack using index-based method (no need to hold old spec)
       ref

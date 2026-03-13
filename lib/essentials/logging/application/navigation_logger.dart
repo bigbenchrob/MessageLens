@@ -48,11 +48,12 @@ class NavigationLogEntry {
         'type': 'messages',
         'spec': messagesSpec.when(
           forChat: (chatId) => {'variant': 'forChat', 'chatId': chatId},
-          forContact: (contactId, scrollToDate) => {
+          forContact: (contactId, scrollToDate, filterHandleId) => {
             'variant': 'forContact',
             'contactId': contactId,
             if (scrollToDate != null)
               'scrollToDate': scrollToDate.toIso8601String(),
+            if (filterHandleId != null) 'filterHandleId': filterHandleId,
           },
           globalTimeline: (scrollToDate) => {
             'variant': 'globalTimeline',

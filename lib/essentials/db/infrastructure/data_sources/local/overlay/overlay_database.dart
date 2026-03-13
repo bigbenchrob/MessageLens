@@ -566,6 +566,13 @@ class OverlayDatabase extends _$OverlayDatabase {
     )..orderBy([(tbl) => OrderingTerm.asc(tbl.displayName)])).get();
   }
 
+  /// Get a single virtual participant by ID.
+  Future<VirtualParticipant?> getVirtualParticipant(int id) {
+    return (select(
+      virtualParticipants,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+  }
+
   Future<int> deleteVirtualParticipant(int id) async {
     return (delete(
       virtualParticipants,

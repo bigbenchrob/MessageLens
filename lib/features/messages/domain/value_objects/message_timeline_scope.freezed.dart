@@ -122,11 +122,11 @@ return chat(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  global,TResult Function( int contactId)?  contact,TResult Function( int chatId)?  chat,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  global,TResult Function( int contactId,  int? filterHandleId)?  contact,TResult Function( int chatId)?  chat,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case GlobalTimelineScope() when global != null:
 return global();case ContactTimelineScope() when contact != null:
-return contact(_that.contactId);case ChatTimelineScope() when chat != null:
+return contact(_that.contactId,_that.filterHandleId);case ChatTimelineScope() when chat != null:
 return chat(_that.chatId);case _:
   return orElse();
 
@@ -145,11 +145,11 @@ return chat(_that.chatId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  global,required TResult Function( int contactId)  contact,required TResult Function( int chatId)  chat,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  global,required TResult Function( int contactId,  int? filterHandleId)  contact,required TResult Function( int chatId)  chat,}) {final _that = this;
 switch (_that) {
 case GlobalTimelineScope():
 return global();case ContactTimelineScope():
-return contact(_that.contactId);case ChatTimelineScope():
+return contact(_that.contactId,_that.filterHandleId);case ChatTimelineScope():
 return chat(_that.chatId);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -164,11 +164,11 @@ return chat(_that.chatId);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  global,TResult? Function( int contactId)?  contact,TResult? Function( int chatId)?  chat,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  global,TResult? Function( int contactId,  int? filterHandleId)?  contact,TResult? Function( int chatId)?  chat,}) {final _that = this;
 switch (_that) {
 case GlobalTimelineScope() when global != null:
 return global();case ContactTimelineScope() when contact != null:
-return contact(_that.contactId);case ChatTimelineScope() when chat != null:
+return contact(_that.contactId,_that.filterHandleId);case ChatTimelineScope() when chat != null:
 return chat(_that.chatId);case _:
   return null;
 
@@ -213,10 +213,11 @@ String toString() {
 
 
 class ContactTimelineScope extends MessageTimelineScope {
-  const ContactTimelineScope({required this.contactId}): super._();
+  const ContactTimelineScope({required this.contactId, this.filterHandleId}): super._();
   
 
  final  int contactId;
+ final  int? filterHandleId;
 
 /// Create a copy of MessageTimelineScope
 /// with the given fields replaced by the non-null parameter values.
@@ -228,16 +229,16 @@ $ContactTimelineScopeCopyWith<ContactTimelineScope> get copyWith => _$ContactTim
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactTimelineScope&&(identical(other.contactId, contactId) || other.contactId == contactId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ContactTimelineScope&&(identical(other.contactId, contactId) || other.contactId == contactId)&&(identical(other.filterHandleId, filterHandleId) || other.filterHandleId == filterHandleId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,contactId);
+int get hashCode => Object.hash(runtimeType,contactId,filterHandleId);
 
 @override
 String toString() {
-  return 'MessageTimelineScope.contact(contactId: $contactId)';
+  return 'MessageTimelineScope.contact(contactId: $contactId, filterHandleId: $filterHandleId)';
 }
 
 
@@ -248,7 +249,7 @@ abstract mixin class $ContactTimelineScopeCopyWith<$Res> implements $MessageTime
   factory $ContactTimelineScopeCopyWith(ContactTimelineScope value, $Res Function(ContactTimelineScope) _then) = _$ContactTimelineScopeCopyWithImpl;
 @useResult
 $Res call({
- int contactId
+ int contactId, int? filterHandleId
 });
 
 
@@ -265,10 +266,11 @@ class _$ContactTimelineScopeCopyWithImpl<$Res>
 
 /// Create a copy of MessageTimelineScope
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? contactId = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? contactId = null,Object? filterHandleId = freezed,}) {
   return _then(ContactTimelineScope(
 contactId: null == contactId ? _self.contactId : contactId // ignore: cast_nullable_to_non_nullable
-as int,
+as int,filterHandleId: freezed == filterHandleId ? _self.filterHandleId : filterHandleId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

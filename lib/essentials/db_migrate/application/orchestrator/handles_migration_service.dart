@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../db/feature_level_providers.dart';
 import '../../../db_importers/application/debug_settings_provider.dart';
+import '../../../logging/application/migration_audit_writer.dart';
 import '../../../search/feature_level_providers.dart';
 import '../../domain/base_table_migrator.dart';
 import '../../domain/entities/db_migration_result.dart';
@@ -234,6 +235,20 @@ class HandlesMigrationService {
         'participant links=$participantLinksCount',
       );
 
+      // Write detailed audit log
+      try {
+        await const MigrationAuditWriter().writeReport(
+          importDb: importDatabase,
+          workingDb: workingDatabase,
+          incrementalMode: incrementalMode,
+          success: true,
+        );
+      } catch (auditError) {
+        debugSettings.logProgress(
+          '$_logContext: audit log write failed (non-fatal): $auditError',
+        );
+      }
+
       return DbMigrationResult(
         batchId: latestBatch ?? 0,
         success: true,
@@ -248,6 +263,19 @@ class HandlesMigrationService {
     } catch (error, stackTrace) {
       debugSettings.logError('$_logContext: migration failed: $error');
       debugSettings.logProgress(stackTrace.toString());
+
+      // Write audit log even on failure
+      try {
+        await const MigrationAuditWriter().writeReport(
+          importDb: importDatabase,
+          workingDb: workingDatabase,
+          incrementalMode: incrementalMode,
+          success: false,
+          errorMessage: '$error',
+        );
+      } catch (_) {
+        // Audit logging is best-effort; don't mask the real error.
+      }
 
       return DbMigrationResult(
         batchId: 0,

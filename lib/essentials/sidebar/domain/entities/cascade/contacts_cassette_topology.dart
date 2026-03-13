@@ -9,7 +9,7 @@ CassetteSpec? resolveContactsChild(ContactsCassetteSpec spec) {
     },
     contactSelectionControl: (chosenContactId) {
       // Selection control sits below info card, cascades to hero summary.
-      // Chain: infoCard(chosenContact) → selectionControl → heroSummary → heatMap
+      // Chain: infoCard(chosenContact) → selectionControl → heroSummary → handleFilter → heatMap
       return CassetteSpec.contacts(
         ContactsCassetteSpec.contactHeroSummary(
           chosenContactId: chosenContactId,
@@ -17,8 +17,14 @@ CassetteSpec? resolveContactsChild(ContactsCassetteSpec spec) {
       );
     },
     contactHeroSummary: (chosenContactId) {
-      // Hero summary cascades to messages heat map
-      return contactsToMessagesHeatMap(chosenContactId);
+      // Hero summary cascades to handle filter dropdown
+      return CassetteSpec.contacts(
+        ContactsCassetteSpec.handleFilter(contactId: chosenContactId),
+      );
+    },
+    handleFilter: (contactId, _) {
+      // Handle filter cascades to messages heat map
+      return contactsToMessagesHeatMap(contactId);
     },
   );
 }

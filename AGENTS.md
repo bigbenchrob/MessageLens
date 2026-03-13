@@ -55,6 +55,17 @@ This README contains the canonical index to all project documentation including:
 - ❌ **NEVER** store user-intent flags (`is_blacklisted`, `is_visible`, manual links) on working tables rebuilt by migration
 - 📖 See [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/07-overlay-database-independence.md)
 
+### 🔥 INVIOLABLE: Record-Level Data Fidelity — No Suppression of Anomalous Records
+- ✅ **Every source record** MUST be faithfully imported, migrated, and **rendered visibly** in the UI
+- ✅ **Anomalies are diagnostic signals** — a NULL-text message may be attachment-only, a reaction, a system event, or evidence of a pipeline bug
+- ✅ **Correct response to anomalous data**: log it, render it (even imperfectly), flag it, investigate the root cause
+- ❌ **NEVER** skip/filter records in importers (`if (text == null) continue;`)
+- ❌ **NEVER** add WHERE clauses in migrators that exclude anomalous rows (`WHERE text IS NOT NULL`)
+- ❌ **NEVER** hide records in UI with `SizedBox.shrink()`, empty containers, or zero-height boxes
+- ❌ **NEVER** silently exclude records in providers before returning query results
+- ❌ **NEVER** swallow exceptions during record processing — log them and include the record with error metadata
+- 📖 See [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/INVIOLATE_RULES.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/INVIOLATE_RULES.md) Rule 2
+
 ### Code Standards
 - ✅ Color opacity: `withValues(alpha: 0.5)` (never `withOpacity`)
 - ✅ Control flow: Always use braces (never single-line statements)

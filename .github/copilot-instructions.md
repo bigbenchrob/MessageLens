@@ -131,6 +131,7 @@ class MyFeature extends _$MyFeature {
 - ❌ 🔥 **INVIOLABLE: Dual-writing to overlay AND working DB** (user intent → overlay ONLY; migration → working ONLY; providers merge at read time with overlay winning on conflict. See `10-DATABASES/07-overlay-database-independence.md`)
 - ❌ 🔥 **INVIOLABLE: Migration snapshot/restore of overlay data** (migration must NEVER read overlay, snapshot it, then restore into working. Providers merge at read time instead.)
 - ❌ 🔥 **INVIOLABLE: User-intent columns on working-DB tables** (flags like `is_blacklisted`/`is_visible` must NOT live on working tables rebuilt by migration. Store in overlay; merge in providers.)
+- ❌ 🔥 **INVIOLABLE: Suppressing anomalous records** (NEVER skip, hide, filter, or `SizedBox.shrink()` any record at ANY layer — import, migration, provider, or UI. Anomalous data MUST be rendered visibly and investigated, never concealed. See `10-DATABASES/INVIOLATE_RULES.md` Rule 2)
 
 ## 🔥 MANDATORY DATABASE ACCESS RULE
 

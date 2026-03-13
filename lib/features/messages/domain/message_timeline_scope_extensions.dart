@@ -1,6 +1,7 @@
 import '../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
 import '../application/strategies/chat_ordinal_strategy.dart';
 import '../application/strategies/contact_ordinal_strategy.dart';
+import '../application/strategies/filtered_contact_ordinal_strategy.dart';
 import '../application/strategies/global_ordinal_strategy.dart';
 import '../application/strategies/ordinal_strategy.dart';
 import 'value_objects/message_timeline_scope.dart';
@@ -14,10 +15,10 @@ extension MessageTimelineScopeOrdinal on MessageTimelineScope {
   OrdinalStrategy toOrdinalStrategy(WorkingDatabase db) {
     return switch (this) {
       GlobalTimelineScope() => GlobalOrdinalStrategy(db),
-      ContactTimelineScope(:final contactId) => ContactOrdinalStrategy(
-        db,
-        contactId,
-      ),
+      ContactTimelineScope(:final contactId, :final filterHandleId) =>
+        filterHandleId != null
+            ? FilteredContactOrdinalStrategy(db, contactId, filterHandleId)
+            : ContactOrdinalStrategy(db, contactId),
       ChatTimelineScope(:final chatId) => ChatOrdinalStrategy(db, chatId),
     };
   }

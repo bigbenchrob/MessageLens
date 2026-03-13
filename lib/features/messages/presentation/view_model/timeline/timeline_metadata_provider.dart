@@ -77,10 +77,10 @@ Future<TimelineMetadata> timelineMetadata(
 
   return switch (scope) {
     GlobalTimelineScope() => _fetchGlobalMetadata(db),
-    ContactTimelineScope(:final contactId) => _fetchContactMetadata(
-      db,
-      contactId,
-    ),
+    ContactTimelineScope(:final contactId, :final filterHandleId) =>
+      filterHandleId != null
+          ? _fetchFilteredContactMetadata(db, contactId, filterHandleId)
+          : _fetchContactMetadata(db, contactId),
     ChatTimelineScope(:final chatId) => _fetchChatMetadata(db, chatId),
   };
 }
@@ -137,6 +137,56 @@ Future<TimelineMetadata> _fetchContactMetadata(
         ''',
         variables: [drift.Variable.withInt(contactId)],
         readsFrom: {db.contactMessageIndex},
+      )
+      .getSingleOrNull();
+
+  if (result == null) {
+    return const TimelineMetadata(
+      totalMessages: 0,
+      firstMessageDate: null,
+      lastMessageDate: null,
+    );
+  }
+
+  final count = result.read<int?>('total_count') ?? 0;
+  final firstUtc = result.read<String?>('first_date');
+  final lastUtc = result.read<String?>('last_date');
+
+  return TimelineMetadata(
+    totalMessages: count,
+    firstMessageDate: firstUtc != null ? DateTime.tryParse(firstUtc) : null,
+    lastMessageDate: lastUtc != null ? DateTime.tryParse(lastUtc) : null,
+  );
+}
+
+Future<TimelineMetadata> _fetchFilteredContactMetadata(
+  WorkingDatabase db,
+  int contactId,
+  int filterHandleId,
+) async {
+  final result = await db
+      .customSelect(
+        '''
+        SELECT 
+          COUNT(*) as total_count,
+          MIN(cmi.sent_at_utc) as first_date,
+          MAX(cmi.sent_at_utc) as last_date
+        FROM contact_message_index cmi
+        JOIN messages m ON m.id = cmi.message_id
+        JOIN chat_to_handle cth ON cth.chat_id = m.chat_id AND cth.handle_id = ?
+        WHERE cmi.contact_id = ?
+          AND cmi.sent_at_utc IS NOT NULL 
+          AND cmi.sent_at_utc != ''
+        ''',
+        variables: [
+          drift.Variable.withInt(filterHandleId),
+          drift.Variable.withInt(contactId),
+        ],
+        readsFrom: {
+          db.contactMessageIndex,
+          db.workingMessages,
+          db.chatToHandle,
+        },
       )
       .getSingleOrNull();
 

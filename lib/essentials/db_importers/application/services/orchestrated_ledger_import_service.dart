@@ -9,6 +9,7 @@ import '../../../../features/address_book_folders/feature_level_providers.dart';
 import '../../../../providers.dart';
 import '../../../db/feature_level_providers.dart';
 import '../../../db/infrastructure/data_sources/local/import/sqflite_import_database.dart';
+import '../../../logging/application/import_audit_writer.dart';
 import '../../domain/entities/db_import_result.dart';
 import '../../domain/i_importers.dart/table_importer.dart';
 import '../../domain/ports/message_extractor_port.dart';
@@ -229,6 +230,25 @@ class OrchestratedLedgerImportService {
       final messageAttachmentLinks =
           context.readScratch<int>('messageAttachments.inserted') ?? 0;
 
+      // Write detailed audit log
+      try {
+        await const ImportAuditWriter().writeReport(
+          messagesDb: messagesDb,
+          addressBookDb: addressBookDb,
+          importDb: ledgerDb,
+          scratchpad: scratchpad,
+          batchId: batchId,
+          startedAt: startedAtUtc,
+          success: true,
+          hasExistingLedgerData: hasExistingLedgerData,
+          previousMaxMessageRowId: previousMaxMessageRowId,
+        );
+      } catch (auditError) {
+        debugSettings.logProgress(
+          '$_logContext: audit log write failed (non-fatal): $auditError',
+        );
+      }
+
       final handlesCount = await ledgerDb.countRows('handles');
       final chatsCount = await ledgerDb.countRows('chats');
       final membershipsCount = await ledgerDb.countRows('chat_to_handle');
@@ -278,6 +298,27 @@ class OrchestratedLedgerImportService {
     } catch (error, stackTrace) {
       debugSettings.logError('$_logContext: import failed: $error');
       debugSettings.logProgress(stackTrace.toString());
+
+      // Write audit log even on failure — source DBs may already be closed
+      if (messagesDb != null && addressBookDb != null) {
+        try {
+          await const ImportAuditWriter().writeReport(
+            messagesDb: messagesDb,
+            addressBookDb: addressBookDb,
+            importDb: ledgerDb,
+            scratchpad: scratchpad,
+            batchId: batchId,
+            startedAt: startedAtUtc,
+            success: false,
+            errorMessage: '$error',
+            hasExistingLedgerData: hasExistingLedgerData,
+            previousMaxMessageRowId: previousMaxMessageRowId,
+          );
+        } catch (_) {
+          // Audit logging is best-effort; don't mask the real error.
+        }
+      }
+
       return DbImportResult(batchId: batchId, success: false, error: '$error');
     } finally {
       await messagesDb?.close();

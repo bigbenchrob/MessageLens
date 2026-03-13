@@ -44,4 +44,14 @@ abstract class ContactsCassetteSpec with _$ContactsCassetteSpec {
   const factory ContactsCassetteSpec.contactHeroSummary({
     required int chosenContactId,
   }) = _ContactHeroSummarySpec;
+
+  /// Dropdown to filter messages by a specific handle (phone/email) linked
+  /// to this contact. Defaults to showing all handles.
+  ///
+  /// When [selectedHandleId] is non-null, the center panel shows only
+  /// messages from that handle, and an "Unlink" action becomes available.
+  const factory ContactsCassetteSpec.handleFilter({
+    required int contactId,
+    int? selectedHandleId,
+  }) = _HandleFilterSpec;
 }

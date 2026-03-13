@@ -90,27 +90,6 @@ class PanelCoordinator extends _$PanelCoordinator {
 
   /// Placeholder for empty panels
   Widget _buildEmptyPanelPlaceholder(WindowPanel panel) {
-    return Container(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.inbox_outlined, size: 48, color: Color(0xFFCCCCCC)),
-          const SizedBox(height: 16),
-          Text(
-            '${panel.name.toUpperCase()} PANEL',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF999999).withValues(alpha: 0.8),
-            ),
-          ),
-          const Text(
-            'No content selected',
-            style: TextStyle(fontSize: 12, color: Color(0xFFCCCCCC)),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }

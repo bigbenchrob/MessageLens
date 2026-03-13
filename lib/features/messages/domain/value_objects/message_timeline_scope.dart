@@ -12,8 +12,12 @@ sealed class MessageTimelineScope with _$MessageTimelineScope {
   const factory MessageTimelineScope.global() = GlobalTimelineScope;
 
   /// Messages with a specific contact across all their handles/chats.
-  const factory MessageTimelineScope.contact({required int contactId}) =
-      ContactTimelineScope;
+  /// When [filterHandleId] is provided, only messages involving that handle
+  /// are shown.
+  const factory MessageTimelineScope.contact({
+    required int contactId,
+    int? filterHandleId,
+  }) = ContactTimelineScope;
 
   /// Messages from a specific chat (single conversation thread).
   const factory MessageTimelineScope.chat({required int chatId}) =

@@ -134,11 +134,11 @@ return forChatInDateRange(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult Function( DateTime? scrollToDate)?  globalTimeline,TResult Function( int handleId)?  forHandle,TResult Function( int handleId)?  handleLens,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int chatId)?  forChat,TResult Function( int contactId,  DateTime? scrollToDate,  int? filterHandleId)?  forContact,TResult Function( DateTime? scrollToDate)?  globalTimeline,TResult Function( int handleId)?  forHandle,TResult Function( int handleId)?  handleLens,TResult Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
-return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline() when globalTimeline != null:
+return forContact(_that.contactId,_that.scrollToDate,_that.filterHandleId);case _MessagesGlobalTimeline() when globalTimeline != null:
 return globalTimeline(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
@@ -160,11 +160,11 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate)  forContact,required TResult Function( DateTime? scrollToDate)  globalTimeline,required TResult Function( int handleId)  forHandle,required TResult Function( int handleId)  handleLens,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int chatId)  forChat,required TResult Function( int contactId,  DateTime? scrollToDate,  int? filterHandleId)  forContact,required TResult Function( DateTime? scrollToDate)  globalTimeline,required TResult Function( int handleId)  forHandle,required TResult Function( int handleId)  handleLens,required TResult Function( int chatId,  DateTime startDate,  DateTime endDate)  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat():
 return forChat(_that.chatId);case _MessagesForContact():
-return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline():
+return forContact(_that.contactId,_that.scrollToDate,_that.filterHandleId);case _MessagesGlobalTimeline():
 return globalTimeline(_that.scrollToDate);case _MessagesForHandle():
 return forHandle(_that.handleId);case _MessagesHandleLens():
 return handleLens(_that.handleId);case _MessagesForChatInDateRange():
@@ -185,11 +185,11 @@ return forChatInDateRange(_that.chatId,_that.startDate,_that.endDate);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate)?  forContact,TResult? Function( DateTime? scrollToDate)?  globalTimeline,TResult? Function( int handleId)?  forHandle,TResult? Function( int handleId)?  handleLens,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int chatId)?  forChat,TResult? Function( int contactId,  DateTime? scrollToDate,  int? filterHandleId)?  forContact,TResult? Function( DateTime? scrollToDate)?  globalTimeline,TResult? Function( int handleId)?  forHandle,TResult? Function( int handleId)?  handleLens,TResult? Function( int chatId,  DateTime startDate,  DateTime endDate)?  forChatInDateRange,}) {final _that = this;
 switch (_that) {
 case _MessagesForChat() when forChat != null:
 return forChat(_that.chatId);case _MessagesForContact() when forContact != null:
-return forContact(_that.contactId,_that.scrollToDate);case _MessagesGlobalTimeline() when globalTimeline != null:
+return forContact(_that.contactId,_that.scrollToDate,_that.filterHandleId);case _MessagesGlobalTimeline() when globalTimeline != null:
 return globalTimeline(_that.scrollToDate);case _MessagesForHandle() when forHandle != null:
 return forHandle(_that.handleId);case _MessagesHandleLens() when handleLens != null:
 return handleLens(_that.handleId);case _MessagesForChatInDateRange() when forChatInDateRange != null:
@@ -271,11 +271,12 @@ as int,
 
 
 class _MessagesForContact implements MessagesSpec {
-  const _MessagesForContact({required this.contactId, this.scrollToDate});
+  const _MessagesForContact({required this.contactId, this.scrollToDate, this.filterHandleId});
   
 
  final  int contactId;
  final  DateTime? scrollToDate;
+ final  int? filterHandleId;
 
 /// Create a copy of MessagesSpec
 /// with the given fields replaced by the non-null parameter values.
@@ -287,16 +288,16 @@ _$MessagesForContactCopyWith<_MessagesForContact> get copyWith => __$MessagesFor
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesForContact&&(identical(other.contactId, contactId) || other.contactId == contactId)&&(identical(other.scrollToDate, scrollToDate) || other.scrollToDate == scrollToDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessagesForContact&&(identical(other.contactId, contactId) || other.contactId == contactId)&&(identical(other.scrollToDate, scrollToDate) || other.scrollToDate == scrollToDate)&&(identical(other.filterHandleId, filterHandleId) || other.filterHandleId == filterHandleId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,contactId,scrollToDate);
+int get hashCode => Object.hash(runtimeType,contactId,scrollToDate,filterHandleId);
 
 @override
 String toString() {
-  return 'MessagesSpec.forContact(contactId: $contactId, scrollToDate: $scrollToDate)';
+  return 'MessagesSpec.forContact(contactId: $contactId, scrollToDate: $scrollToDate, filterHandleId: $filterHandleId)';
 }
 
 
@@ -307,7 +308,7 @@ abstract mixin class _$MessagesForContactCopyWith<$Res> implements $MessagesSpec
   factory _$MessagesForContactCopyWith(_MessagesForContact value, $Res Function(_MessagesForContact) _then) = __$MessagesForContactCopyWithImpl;
 @useResult
 $Res call({
- int contactId, DateTime? scrollToDate
+ int contactId, DateTime? scrollToDate, int? filterHandleId
 });
 
 
@@ -324,11 +325,12 @@ class __$MessagesForContactCopyWithImpl<$Res>
 
 /// Create a copy of MessagesSpec
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? contactId = null,Object? scrollToDate = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? contactId = null,Object? scrollToDate = freezed,Object? filterHandleId = freezed,}) {
   return _then(_MessagesForContact(
 contactId: null == contactId ? _self.contactId : contactId // ignore: cast_nullable_to_non_nullable
 as int,scrollToDate: freezed == scrollToDate ? _self.scrollToDate : scrollToDate // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,filterHandleId: freezed == filterHandleId ? _self.filterHandleId : filterHandleId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
