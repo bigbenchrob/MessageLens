@@ -26,7 +26,8 @@ part 'feature_level_providers.g.dart';
 /// Initialized once at app startup via [initDatabaseDirectoryPath].
 /// Exposed for use by the onboarding existence checker.
 /// All DB providers below also use this path.
-late final String databaseDirectoryPath; //~/Library/Application Support/com.bigbenchsoftware.MessageLens/
+/// FOR DEVELOPER'S REFERENCE ONLY: path is ~/Library/Application Support/com.bigbenchsoftware.MessageLens/ on macOS.
+late final String databaseDirectoryPath;
 
 /// Must be called once in `main()` after `WidgetsFlutterBinding.ensureInitialized()`.
 Future<void> initDatabaseDirectoryPath() async {

@@ -22,10 +22,10 @@ This README contains the canonical index to all project documentation including:
 2. **[Project README](_AGENT_INSTRUCTIONS/agent-per-project/README.md)** - Canonical index
 3. **[Dart Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/dart.md)** - Language rules, async patterns, null-safety expectations
 4. **[Flutter Widget Guidelines](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/widgets.md)** - Composition, navigation, and state management rules
-5. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-riverpod/provider-patterns.md)** - MANDATORY code generation patterns
-6. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/README.md)** - Critical: Use centralized providers only
+5. **[Riverpod Patterns](_AGENT_INSTRUCTIONS/agent-instructions-shared/20-flutter/riverpod-provider-patterns.md)** - MANDATORY code generation patterns
+6. **[Database Access](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/00-all-databases-accessed.md)** - Critical: Use centralized providers only
 7. **[Dark Mode Theming](_AGENT_INSTRUCTIONS/agent-per-project/05-COLOR-AND-TYPOGRAPHY-THEMING/05-dark-mode-theming.md)** - Luminance hierarchy, selection contrast, semantic token rules
-8. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-project/architecture-overview.md)** - DDD layers and responsibilities
+8. **[Architecture Overview](_AGENT_INSTRUCTIONS/agent-per-project/00-PROJECT/02-architecture-overview.md)** - DDD layers and responsibilities
 9. **[Cross-Surface Spec Systems](_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/)** - 🔥 CRITICAL: How sealed spec classes coordinate UI across all surfaces
 10. **[Feature Spec Handling](_AGENT_INSTRUCTIONS/agent-per-project/52-FEATURE-HANDLING-OF-X-SURFACE-SPECS/)** - Universal coordinator → resolver → widget_builder pattern
 11. **[Sidebar Cassette System](_AGENT_INSTRUCTIONS/agent-per-project/54-SIDEBAR-CASSETTE-SPEC-SYSTEM/)** - Rack state, cascade, card chrome
@@ -34,7 +34,7 @@ This README contains the canonical index to all project documentation including:
 ### Quick Reference
 - **Lint Antipatterns**: [`_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md`](_AGENT_INSTRUCTIONS/agent-instructions-shared/10-language/linter-antipatterns.md) - One-stop list of analyzer tripwires
 - **Navigation / View Spec System**: [`_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/`](_AGENT_INSTRUCTIONS/agent-per-project/56-VIEW-SPEC-PANEL-CONTENT-SYSTEM/)
-- **AddressBook Imports**: [`_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md`](_AGENT_INSTRUCTIONS/agent-per-project/05-databases/addressbook-path-resolution.md)
+- **AddressBook Imports**: [`_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/06-addressbook-path-resolution.md`](_AGENT_INSTRUCTIONS/agent-per-project/10-DATABASES/06-addressbook-path-resolution.md)
 - **Dark Mode Theming**: [`_AGENT_INSTRUCTIONS/agent-per-project/05-COLOR-AND-TYPOGRAPHY-THEMING/05-dark-mode-theming.md`](_AGENT_INSTRUCTIONS/agent-per-project/05-COLOR-AND-TYPOGRAPHY-THEMING/05-dark-mode-theming.md) - Luminance hierarchy and dark mode selection rules
 - **Cross-Surface Spec Systems**: [`_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/`](_AGENT_INSTRUCTIONS/agent-per-project/50-CROSS-SURFACE-SPEC-SYSTEMS-OVERVIEW/) - Architecture overview and inviolate rules
 
@@ -42,7 +42,7 @@ This README contains the canonical index to all project documentation including:
 
 ### Imports & Dependencies
 - ✅ **Always use**: `hooks_riverpod` (never `flutter_riverpod`)
-- ✅ **Database access**: Use `importDatabaseProvider` & `workingDatabaseProvider` from `essentials/databases/feature_level_providers.dart`
+- ✅ **Database access**: Use `sqfliteImportDatabaseProvider` & `driftWorkingDatabaseProvider` from `lib/essentials/db/feature_level_providers.dart`
 - ❌ **Never**: Create direct database instances (causes SQLite locking)
 
 ### 🔥 INVIOLABLE: Overlay / Working DB Separation

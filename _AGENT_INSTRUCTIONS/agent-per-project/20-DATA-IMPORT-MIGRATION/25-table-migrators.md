@@ -60,7 +60,7 @@ Migrators receive a shared `MigrationContext` instance from `HandlesMigrationSer
    - Perform `INSERT ... SELECT` statements from the attached ledger into `working.db`.
    - Use `INSERT OR REPLACE` semantics unless the table is append-only by design.
    - Respect `ctx.dryRun`; always log planned work when skipping writes.
-   - Restore user overrides after copying (for example, handle visibility flags) if the migrator clears those columns.
+   - Do not restore or replay user overrides into `working.db`. User intent lives in `user_overlays.db` and is merged at read time by providers.
 3. **postValidate**
    - Recount rows to confirm the projection matches the ledger.
    - Rebuild derived indexes if the migrator invalidates them (handled in the service once messages and attachments finish).
@@ -87,7 +87,7 @@ Migrators receive a shared `MigrationContext` instance from `HandlesMigrationSer
 2. Add dependency edges via `dependsOn` so ordering remains valid.
 3. Update `targetTables` to ensure preparation truncates the correct working tables when not in dry-run mode.
 4. Document schema changes in `02-import-migration-schema-reference.md` and confirm matching Drift table updates in `working_database.dart`.
-5. Verify overlay restoration logic still replays user overrides after migration, updating `HandlesMigrationService` if needed.
+5. Verify the migrator does not introduce any overlay coupling. User overrides must remain in `user_overlays.db` and appear only through provider-layer merges.
 6. Exercise the migration via the admin UI or targeted tests, capturing progress logs to confirm all phases succeed.
 
 ## Related References
@@ -95,5 +95,5 @@ Migrators receive a shared `MigrationContext` instance from `HandlesMigrationSer
 - `./20-migration-orchestrator.md` for orchestrator flow and phase details.
 - `./10-import-orchestrator.md` to compare importer responsibilities with projection work.
 - `../10-DATABASES/02-db-working.md` for working database schema highlights.
-- `lib/essentials/db_migrate/application/orchestrator/handles_migration_service.dart` for the service that sequences migrators and restores overrides.
+- `lib/essentials/db_migrate/application/orchestrator/handles_migration_service.dart` for the service that sequences migrators and coordinates projection rebuilds.
 - `lib/essentials/db_migrate/infrastructure/sqlite/migrators/messages_migrator.dart` as the canonical example.

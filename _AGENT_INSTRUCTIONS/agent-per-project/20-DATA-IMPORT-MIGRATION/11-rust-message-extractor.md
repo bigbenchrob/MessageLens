@@ -62,7 +62,7 @@ links:
   #!/usr/bin/env bash
   set -euo pipefail
 
-  APP_ROOT="build/macos/Build/Products/Release/remember_every_text.app"
+  APP_ROOT="build/macos/Build/Products/Release/MessageLens.app"
   DEST="$APP_ROOT/Contents/MacOS/extract_messages_limited"
   SRC="target/release/extract_messages_limited"
 

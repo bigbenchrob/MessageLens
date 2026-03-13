@@ -23,14 +23,14 @@ tests: []
 `db-import` stores an append-only ledger of data extracted from macOS Messages (`db-chat`) and AddressBook (`db-address-book`). It preserves every source ROWID and batch, acting as the immutable bridge between the raw Apple databases and the app-facing projection in `db-working`.
 
 - **Alias**: `db-import`
-- **Physical File**: `~/sqlite_rmc/remember_every_text/macos_import.db`
+- **Physical File**: `~/Library/Application Support/com.bigbenchsoftware.MessageLens/macos_import.db`
 - **Primary Consumers**: Import orchestrator, migration orchestrator, analytics/debug tooling
 
 ## File Location
 
 | Item | Value |
 | --- | --- |
-| Directory | `~/sqlite_rmc/remember_every_text/`
+| Directory | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/`
 | Filename | `macos_import.db`
 | Provisioning | Created on demand by `sqfliteImportDatabaseProvider` (see below) |
 | Backups | Nightly copy to `~/sqlite_rmc/backups/` via launchd cron |

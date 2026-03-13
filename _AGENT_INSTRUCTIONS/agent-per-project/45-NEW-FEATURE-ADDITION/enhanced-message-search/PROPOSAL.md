@@ -1,7 +1,7 @@
 # Feature Proposal: Enhanced Message Search
 
 ## 1. Summary
-We propose to overhaul the message search capability in `remember_every_text`. The current implementation relies on simple substring matching (`LIKE '%query%'`), which limits users to single contiguous strings. The new system will support multi-term search (e.g., "quick lazy" matches "the quick brown fox... lazy dog") and establish a modular architecture for future enhancements like semantic search, synonym expansion, and metadata-based filtering (e.g., emotional intensity).
+We propose to overhaul the message search capability in MessageLens. The current implementation relies on simple substring matching (`LIKE '%query%'`), which limits users to single contiguous strings. The new system will support multi-term search (e.g., "quick lazy" matches "the quick brown fox... lazy dog") and establish a modular architecture for future enhancements like semantic search, synonym expansion, and metadata-based filtering (e.g., emotional intensity).
 
 ## 2. Goals
 1.  **Multi-term Search**: Enable users to find messages containing multiple distinct terms (AND logic) with ranking based on relevance.

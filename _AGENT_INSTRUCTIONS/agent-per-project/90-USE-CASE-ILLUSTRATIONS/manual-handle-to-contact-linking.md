@@ -84,8 +84,8 @@ Future<List<ContactMessage>> contactMessagesForParticipant(
   ContactMessagesForParticipantRef ref,
   int participantId,
 ) async {
-  final workingDb = ref.watch(workingDatabaseProvider);
-  final overlayDb = ref.watch(overlayDatabaseProvider);
+  final workingDb = await ref.watch(driftWorkingDatabaseProvider.future);
+  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
   
   // 1. Get automatic handle links from working DB
   final autoHandles = await workingDb.getHandlesForParticipant(participantId);
@@ -106,52 +106,7 @@ Future<List<ContactMessage>> contactMessagesForParticipant(
 - Provider invalidation automatically refreshes UI when links change
 - Clear separation of concerns (migration = import, overlay = user prefs)
 
-### 4. Contact Message Index Rebuild
-
-**The Problem**: When a user manually links handle #123 to participant #456, the `contact_message_index` table needs updating. This table contains **every message in the database** (potentially millions of rows) with a `contact_id` column for fast contact-based queries.
-
-**Why This Table Exists**: Before manual linking was added, we implemented a "show all messages for a contact" feature. Without an index, querying all messages for a contact required:
-```sql
--- Slow: Must scan entire messages table
-SELECT * FROM messages 
-WHERE handle_id IN (
-  SELECT handle_id FROM handle_to_participant WHERE participant_id = 456
-)
-```
-
-With the index:
-```sql
--- Fast: Uses indexed column
-SELECT * FROM contact_message_index WHERE contact_id = 456
-```
-
-**Performance Constraint**: Rebuilding the entire index (millions of rows) takes 30+ seconds. Users can't wait that long after linking one handle.
-
-**Solution**: Partial index rebuild for only the affected participant:
-```dart
-Future<void> rebuildContactMessageIndexForParticipant(int participantId) async {
-  // 1. Delete old entries for this participant only
-  await db.delete(contactMessageIndex)
-    .where((tbl) => tbl.contactId.equals(participantId))
-    .go();
-  
-  // 2. Rebuild using same SQL as full migration, filtered to participant
-  await db.execute('''
-    INSERT INTO contact_message_index (message_id, contact_id, ...)
-    SELECT m.id, hp.participant_id, ...
-    FROM messages m
-    JOIN handle_to_participant hp ON m.handle_id = hp.handle_id
-    WHERE hp.participant_id = ?
-  ''', [participantId]);
-  
-  // 3. Update triggers (same as migration)
-  await _recreateTriggers();
-}
-```
-
-**Performance**: Completes in <1 second for typical contact (vs. 30+ seconds for full rebuild).
-
-### 5. UI Flow
+### 4. UI Flow
 
 **Entry Point**: Right-click menu on unmatched handle cards in sidebar
 
@@ -163,9 +118,7 @@ Future<void> rebuildContactMessageIndexForParticipant(int participantId) async {
 5. Clicks "Assign"
 6. System performs:
    - Write to `overlay.handle_to_participant_overrides`
-   - Update `working.handle_to_participant` (for immediate UI refresh)
-   - Rebuild `contact_message_index` for Rusung only
-   - Invalidate relevant providers (messages, chats, unmatched handles)
+  - Invalidate relevant providers so merged working + overlay reads refresh immediately
 7. Success message shown
 8. UI automatically updates:
    - Handle removed from "Unmatched Handles" sidebar
@@ -200,13 +153,13 @@ id: Value(row['id'] as int),
 
 **Chosen Approach**: Use stable IDs directly, no normalization needed. Simpler architecture, fewer moving parts.
 
-### Why Partial Index Rebuild?
+### Why Provider-Layer Merge?
 
-**Alternative Considered**: Rebuild entire `contact_message_index` after every manual link.
+**Alternative Considered**: Write the manual link into working-db read models so contact views update immediately.
 
-**Problem**: Users wait 30+ seconds every time they link a handle. Unacceptable UX.
+**Problem**: That creates dual-write behavior and makes user intent vulnerable to the next migration rebuild.
 
-**Chosen Approach**: Rebuild only affected participant's entries. 99% faster, same end result.
+**Chosen Approach**: Keep the manual link in `user_overlays.db` only, then let providers merge automatic and manual links on read. This preserves overlay independence and still updates the UI immediately after provider invalidation.
 
 ## Data Flow Example
 
@@ -228,24 +181,17 @@ Let's trace what happens when user assigns handle #123 to participant #456:
    └─> linkHandleToParticipant(handleId: 123, participantId: 456)
        ├─> Check for conflicts (existing manual link?)
        ├─> Write to overlay DB: handle_to_participant_overrides
-       ├─> Update working DB: handle_to_participant
-       ├─> Rebuild index: rebuildContactMessageIndexForParticipant(456)
-       └─> Invalidate providers:
+  └─> Invalidate providers:
            ├─> contactMessagesOrdinalProvider
            ├─> chatsForContactProvider
            └─> unmatchedHandlesProvider
 
 4. Database Layer
-   ├─> overlay_database.dart: INSERT/UPDATE override
-   ├─> working_database.dart: UPDATE handle_to_participant
-   └─> working_database.dart: Partial index rebuild
-       ├─> DELETE FROM contact_message_index WHERE contact_id = 456
-       ├─> INSERT INTO contact_message_index ... (filtered to participant 456)
-       └─> Recreate triggers
+   └─> overlay_database.dart: INSERT/UPDATE override
 
 5. Provider Layer (auto-refresh via invalidation)
    ├─> contactMessagesOrdinalProvider re-runs
-   │   └─> Now includes messages from handle #123
+   │   └─> Merges automatic + manual handle links, then includes messages from handle #123
    ├─> unmatchedHandlesProvider re-runs
    │   └─> Handle #123 no longer in list
    └─> UI automatically updates
@@ -253,7 +199,7 @@ Let's trace what happens when user assigns handle #123 to participant #456:
 
 ## Performance Characteristics
 
-- **Manual link creation**: <1 second (overlay write + partial index rebuild)
+- **Manual link creation**: <1 second (overlay write + provider invalidation)
 - **Contact picker search**: <100ms (indexed query on participants table)
 - **Message list refresh**: <500ms (indexed query on contact_message_index)
 - **Full migration with 100 manual links**: No impact (overlay DB untouched)
@@ -280,13 +226,13 @@ Let's trace what happens when user assigns handle #123 to participant #456:
 ## Cross-References
 
 **Implementation Details**:
-- [Feature Proposal](../20-new-features/manual-handle-to-contact-linking/PROPOSAL.md) - Architecture decisions, alternatives considered
-- [Implementation Checklist](../20-new-features/manual-handle-to-contact-linking/CHECKLIST.md) - 47 tasks covering all layers
+- [Feature Proposal](../45-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/PROPOSAL.md) - Architecture decisions, alternatives considered
+- [Implementation Checklist](../45-NEW-FEATURE-ADDITION/manual-handle-to-contact-linking/CHECKLIST.md) - 47 tasks covering all layers
 
 **Related Architecture Docs**:
-- [Overlay Database Extensions](../05-databases/overlay-database-extensions.md) - Pattern for user preferences
-- [Contact-to-Chat Linking](../05-databases/contact-to-chat-linking.md) - Automatic handle matching background
-- [Architecture Overview](../00-project/architecture-overview.md) - System layer responsibilities
+- [Overlay Database Independence](../10-DATABASES/07-overlay-database-independence.md) - Inviolable overlay/working separation rules
+- [Contact-to-Chat Linking](../10-DATABASES/11-contact-to-chat-linking.md) - Automatic handle matching background
+- [Architecture Overview](../00-PROJECT/02-architecture-overview.md) - System layer responsibilities
 
 **Code References**:
 - `lib/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart` - Overlay DB schema

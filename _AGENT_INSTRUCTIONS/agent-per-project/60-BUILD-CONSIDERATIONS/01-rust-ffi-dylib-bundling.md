@@ -28,8 +28,8 @@ tests: []
 ### Symptom
 
 After `flutter build macos --release`, the app:
-- ✅ Launches instantly from terminal: `./build/macos/Build/Products/Release/remember_every_text.app/Contents/MacOS/remember_every_text`
-- ❌ Shows a permanent **black window** when launched via: `open build/macos/Build/Products/Release/remember_every_text.app`, Finder double-click, or Dock
+- ✅ Launches instantly from terminal: `./build/macos/Build/Products/Release/MessageLens.app/Contents/MacOS/MessageLens`
+- ❌ Shows a permanent **black window** when launched via: `open build/macos/Build/Products/Release/MessageLens.app`, Finder double-click, or Dock
 
 No crash, no error, no log output. The window opens but the Flutter engine never renders.
 
@@ -77,7 +77,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
 
 // In main():
 try {
-  final bundlePath = Platform.resolvedExecutable; // .../MacOS/remember_every_text
+  final bundlePath = Platform.resolvedExecutable; // .../MacOS/MessageLens
   final frameworksDir = Directory(
     '${File(bundlePath).parent.parent.path}/Frameworks',
   );
@@ -100,7 +100,7 @@ try {
 
 **Key details:**
 - `Platform.resolvedExecutable` resolves symlinks and returns the absolute path to the binary inside the `.app` bundle.
-- The `Frameworks/` directory is at `Contents/Frameworks/` — two levels up from the binary at `Contents/MacOS/remember_every_text`.
+- The `Frameworks/` directory is at `Contents/Frameworks/` — two levels up from the binary at `Contents/MacOS/MessageLens`.
 - The `existsSync()` check lets development builds (where no framework is bundled) fall through to the default FRB loader, which works because the CWD is the project root.
 - The `try/catch` ensures the app launches even if Rust integration fails entirely.
 

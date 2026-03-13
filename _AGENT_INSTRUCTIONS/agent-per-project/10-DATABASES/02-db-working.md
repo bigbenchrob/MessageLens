@@ -22,14 +22,14 @@ tests: []
 `db-working` is the Drift-managed projection the Flutter application reads from. Migrators translate the immutable ledger in `db-import` into normalized tables tailored for UI queries, analytics, and provider-backed state.
 
 - **Alias**: `db-working`
-- **Physical File**: `~/sqlite_rmc/remember_every_text/working.db`
+- **Physical File**: `~/Library/Application Support/com.bigbenchsoftware.MessageLens/working.db`
 - **Primary Consumers**: Flutter UI, background services, analytics tooling
 
 ## File Location
 
 | Item | Value |
 | --- | --- |
-| Directory | `~/sqlite_rmc/remember_every_text/`
+| Directory | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/`
 | Filename | `working.db`
 | Provisioning | Created/opened by `driftWorkingDatabaseProvider` using Drift + `NativeDatabase.createInBackground` |
 | Backups | Nightly copy to `~/sqlite_rmc/backups/` |

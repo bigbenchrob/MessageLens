@@ -34,9 +34,9 @@ Use these aliases consistently across docs, code comments, and conversations.
 | --- | --- | --- | --- | --- |
 | `db-address-book` | `AddressBook-v22.abcddb` inside the most recent `/Library/Application Support/AddressBook/Sources/<UUID>/` | macOS contact source of truth | `getFolderAggregateEitherProvider` → `AddressBookFolderAggregate.mostRecentFolderPath` | Resolved dynamically at runtime |
 | `db-chat` | `chat.db` | macOS Messages source ledger | `PathsHelper.messagesDatabasePath` (import pipeline) | `~/Library/Messages/chat.db` |
-| `db-import` | `macos_import.db` | Immutable staging register of Messages + AddressBook data | `sqfliteImportDatabaseProvider` | `~/sqlite_rmc/remember_every_text/macos_import.db` |
-| `db-working` | `working.db` | Drift projection consumed by the Flutter UI | `driftWorkingDatabaseProvider` | `~/sqlite_rmc/remember_every_text/working.db` |
-| `db-overlay` | `user_overlays.db` | Long-lived user overrides and preferences | `overlayDatabaseProvider` | `~/sqlite_rmc/remember_every_text/user_overlays.db` |
+| `db-import` | `macos_import.db` | Immutable staging register of Messages + AddressBook data | `sqfliteImportDatabaseProvider` | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/macos_import.db` |
+| `db-working` | `working.db` | Drift projection consumed by the Flutter UI | `driftWorkingDatabaseProvider` | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/working.db` |
+| `db-overlay` | `user_overlays.db` | Long-lived user overrides and preferences | `overlayDatabaseProvider` | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/user_overlays.db` |
 
 ## Coupled Database Groups
 

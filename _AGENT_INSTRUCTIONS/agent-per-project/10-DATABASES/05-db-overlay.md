@@ -17,14 +17,14 @@ tests: []
 `db-overlay` stores long-lived user customisations that must survive import/migration cycles. It pairs with `db-working` at the provider layer—never through direct database synchronization.
 
 - **Alias**: `db-overlay`
-- **Physical File**: `~/sqlite_rmc/remember_every_text/user_overlays.db`
+- **Physical File**: `~/Library/Application Support/com.bigbenchsoftware.MessageLens/user_overlays.db`
 - **Primary Consumers**: Overlay services, presentation providers
 
 ## File Location
 
 | Item | Value |
 | --- | --- |
-| Directory | `~/sqlite_rmc/remember_every_text/` |
+| Directory | `~/Library/Application Support/com.bigbenchsoftware.MessageLens/` |
 | Filename | `user_overlays.db` |
 | Provisioning | Created/opened by `overlayDatabaseProvider` (Drift) |
 | Backups | Included in nightly `/sqlite_rmc/backups/` snapshot |

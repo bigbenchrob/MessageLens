@@ -23,7 +23,7 @@ Consult this note before running ad-hoc SQL or modifying migrators.
 
 ## macos_import.db (Ingest Ledger)
 
-Location: `~/sqlite_rmc/remember_every_text/macos_import.db`
+Location: `~/Library/Application Support/com.bigbenchsoftware.MessageLens/macos_import.db`
 Schema source: `lib/essentials/db/infrastructure/data_sources/local/import/sqflite_import_database.dart`
 
 | Table | Purpose / Notes |
@@ -53,7 +53,7 @@ Schema source: `lib/essentials/db/infrastructure/data_sources/local/import/sqfli
 
 ## working.db (Projection / Runtime)
 
-Location: `~/sqlite_rmc/remember_every_text/working.db`
+Location: `~/Library/Application Support/com.bigbenchsoftware.MessageLens/working.db`
 Schema source: `lib/essentials/db/infrastructure/data_sources/local/working/working_database.dart`
 
 | Table | Purpose / Notes |

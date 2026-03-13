@@ -10,12 +10,14 @@ tests: []
 # Data Locations (No Secrets)
 
 ## Local SQLite Stores
-- **Import ledger** (`macos_import.db`): `~/sqlite_rmc/remember_every_text/macos_import.db`
+- **Import ledger** (`macos_import.db`): `~/Library/Application Support/com.bigbenchsoftware.MessageLens/macos_import.db`
   - Staging copy populated directly from macOS `chat.db` and AddressBook exports.
   - Immutable history: each ingest appends to `import_batches`; never edit rows in place.
-- **Working projection** (`working.db`): `~/sqlite_rmc/remember_every_text/working.db`
+- **Working projection** (`working.db`): `~/Library/Application Support/com.bigbenchsoftware.MessageLens/working.db`
   - Drift-managed database consumed by the Flutter app.
   - Always let migrators/projectors write to it; opening it in another SQLite client while the app runs will deadlock the orchestrators.
+- **Overlay database** (`user_overlays.db`): `~/Library/Application Support/com.bigbenchsoftware.MessageLens/user_overlays.db`
+  - Stores user intent and overrides that survive rebuilds of `working.db`.
 
 ## macOS Source Files
 - Messages: `~/Library/Messages/chat.db`
@@ -23,6 +25,7 @@ tests: []
   - The `<UUID>` folder varies per machine. Resolve it via `getFolderAggregateEitherProvider` (see `_AGENT_CONTEXT/01-addressbook-database-resolution.md` until the integration note migrates) instead of hard-coding a path.
 
 ## Operational Notes
+- The production macOS bundle stores runtime databases under the MessageLens application-support directory shown above. The repository folder may still be named `remember_every_text`; do not confuse the repo path with runtime storage paths.
 - Keep both `macos_import.db` and `working.db` backed up under `~/sqlite_rmc/backups` (daily cron job runs via `launchd`; check the repo scripts if it fails).
 - Before running manual SQL, shut down the Flutter app and any tooling that might hold a lock.
 - Schema definitions live in:

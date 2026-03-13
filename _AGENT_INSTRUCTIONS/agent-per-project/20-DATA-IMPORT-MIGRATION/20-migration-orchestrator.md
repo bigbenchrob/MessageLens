@@ -28,7 +28,7 @@ links:
 
 ## Execution Model
 1. **HandlesMigrationService** assembles the ordered migrator list (handles -> chats -> memberships -> participants -> messages -> attachments -> reactions -> read-state) and instantiates `MigrationOrchestrator`.
-2. **Preparation** - Working tables are truncated (unless `dryRun`) while preserving user-managed overrides (`is_visible`, `is_blacklisted`) so they can be restored after projection.
+2. **Preparation** - Working tables are truncated (unless `dryRun`) and rebuilt strictly from ledger data. User-managed overrides remain in `user_overlays.db` and are never copied into `working.db`.
 3. **Dependency sorting** - `_sorted()` runs a Kahn algorithm across every migrator's `dependsOn`. Cycles throw immediately.
 4. **Phase lifecycle** - For each migrator the orchestrator executes:
   - `validatePrereqs(ctx)` - no writes allowed; run anti-joins, integrity checks, duplicate detection.
@@ -53,4 +53,4 @@ links:
 3. Attach the import database once per phase and detach in `finally` blocks when using custom SQL helpers.
 4. Update `../10-DATABASES/10-group-import-working.md` if stage ordering changes.
 5. Extend the progress stage mapping in `HandlesMigrationService._stageForTable` when introducing new table groups.
-6. Verify overlay restoration logic still replays user overrides after the new migrator runs.
+6. Verify the change preserves overlay independence: migration must not read from or write to `user_overlays.db`, and provider-layer merges must continue to surface overlay values after rebuilds.
