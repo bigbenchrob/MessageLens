@@ -2,7 +2,7 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-03-13
 source_of_truth: code
 links:
   - ./01-overview.md
@@ -85,7 +85,8 @@ This ensures the monitor starts at app launch and runs continuously.
   - `postValidate(ctx)` - confirms row counts, FK integrity, and any importer-specific invariants.
 4. **Progress events** - `_runPhase()` publishes `TableImportProgressEvent`s (`started`, `succeeded`, `failed`) with human-friendly names via `BaseTableImporter.displayName`. UI view models surface these updates in the import control panel.
 5. **Structured logging** - Every phase prints a timestamped banner (`=== [ISO8601] importer :: phase ===`) through `ImportContext.info()`, giving a chronological trace in console logs and batch notes.
-6. **Dry-run support** - Validation and post-validation still execute while copy is skipped, enabling "check everything" workflows on user machines without mutating the ledger.
+6. **Filesystem audit report** - At the end of each run the orchestrated service writes `import_log` in the MessageLens app-support directory, capturing source counts, ledger counts, rich-text extraction stats, and source-vs-destination deltas.
+7. **Dry-run support** - Validation and post-validation still execute while copy is skipped, enabling "check everything" workflows on user machines without mutating the ledger.
 
 ## Import Context Facts
 - Exposes the `SqfliteImportDatabase`, live `chat.db` / AddressBook handles, active `batchId`, and an optional `MessageExtractorPort`.
@@ -98,9 +99,21 @@ This ensures the monitor starts at app launch and runs continuously.
 - Use `BaseTableImporter` helpers (`count`, `expectTrueOrThrow`, `expectZeroOrThrow`) to keep validation consistent.
 - Emit progress names that help the UI explain which portion of the pipeline is running.
 
+## Message Import Specifics
+
+- Chat-linked source rows are staged into the normal `messages` ledger path.
+- Source `message` rows that lack a `chat_message_join` mapping are now preserved on a dedicated recovery path instead of being left outside the app entirely.
+- The current ledger split is:
+  - `messages` for thread-linked rows
+  - `recovered_unlinked_messages` for source rows that remain materially present but are no longer reachable through normal chat linkage
+- Attachment joins and rich-text extraction now operate on both paths.
+- This distinction matters operationally: a source row can be absent from the visible conversation graph while still surviving in `chat.db` with meaningful payloads.
+- When rich-text extraction succeeds, the importer updates text-bearing rows on both the normal and recovered paths so later migration and diagnostics do not continue reporting them as `attachment-only`, `unknown`, or otherwise misleadingly sparse.
+
 ## Error Handling
 - Any exception from an importer phase causes `_runPhase()` to emit a failure event, log the error context, and rethrow so the orchestrator stops immediately.
 - Downstream consumers should surface the failure message and encourage reviewing importer-specific logs for details.
+- If the run completes but the data looks wrong, inspect `import_log` before querying tables manually. In practice it is the fastest way to distinguish extractor failure, source orphan rows, and schema/count mismatches.
 
 ## When Adding Importers
 1. Implement the `TableImporter` contract (prefer extending `BaseTableImporter`).

@@ -5917,6 +5917,1134 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
   }
 }
 
+class $RecoveredUnlinkedMessagesTable extends RecoveredUnlinkedMessages
+    with TableInfo<$RecoveredUnlinkedMessagesTable, RecoveredUnlinkedMessage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecoveredUnlinkedMessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _guidMeta = const VerificationMeta('guid');
+  @override
+  late final GeneratedColumn<String> guid = GeneratedColumn<String>(
+    'guid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _senderHandleIdMeta = const VerificationMeta(
+    'senderHandleId',
+  );
+  @override
+  late final GeneratedColumn<int> senderHandleId = GeneratedColumn<int>(
+    'sender_handle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES handles_canonical (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _senderAddressMeta = const VerificationMeta(
+    'senderAddress',
+  );
+  @override
+  late final GeneratedColumn<String> senderAddress = GeneratedColumn<String>(
+    'sender_address',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _serviceMeta = const VerificationMeta(
+    'service',
+  );
+  @override
+  late final GeneratedColumn<String> service = GeneratedColumn<String>(
+    'service',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'NOT NULL DEFAULT \'Unknown\' CHECK(service IN (\'iMessage\',\'iMessageLite\',\'SMS\',\'RCS\',\'Unknown\'))',
+    defaultValue: const CustomExpression('\'Unknown\''),
+  );
+  static const VerificationMeta _isFromMeMeta = const VerificationMeta(
+    'isFromMe',
+  );
+  @override
+  late final GeneratedColumn<bool> isFromMe = GeneratedColumn<bool>(
+    'is_from_me',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_from_me" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sentAtUtcMeta = const VerificationMeta(
+    'sentAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> sentAtUtc = GeneratedColumn<String>(
+    'sent_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deliveredAtUtcMeta = const VerificationMeta(
+    'deliveredAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> deliveredAtUtc = GeneratedColumn<String>(
+    'delivered_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _readAtUtcMeta = const VerificationMeta(
+    'readAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> readAtUtc = GeneratedColumn<String>(
+    'read_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _textContentMeta = const VerificationMeta(
+    'textContent',
+  );
+  @override
+  late final GeneratedColumn<String> textContent = GeneratedColumn<String>(
+    'text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _itemTypeMeta = const VerificationMeta(
+    'itemType',
+  );
+  @override
+  late final GeneratedColumn<String> itemType = GeneratedColumn<String>(
+    'item_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK(item_type IN (\'text\',\'attachment-only\',\'sticker\',\'reaction-carrier\',\'system\',\'unknown\',\'balloon\') OR item_type IS NULL)',
+  );
+  static const VerificationMeta _isSystemMessageMeta = const VerificationMeta(
+    'isSystemMessage',
+  );
+  @override
+  late final GeneratedColumn<bool> isSystemMessage = GeneratedColumn<bool>(
+    'is_system_message',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system_message" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<int> errorCode = GeneratedColumn<int>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hasAttachmentsMeta = const VerificationMeta(
+    'hasAttachments',
+  );
+  @override
+  late final GeneratedColumn<bool> hasAttachments = GeneratedColumn<bool>(
+    'has_attachments',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_attachments" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _associatedMessageGuidMeta =
+      const VerificationMeta('associatedMessageGuid');
+  @override
+  late final GeneratedColumn<String> associatedMessageGuid =
+      GeneratedColumn<String>(
+        'associated_message_guid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _threadOriginatorGuidMeta =
+      const VerificationMeta('threadOriginatorGuid');
+  @override
+  late final GeneratedColumn<String> threadOriginatorGuid =
+      GeneratedColumn<String>(
+        'thread_originator_guid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _balloonBundleIdMeta = const VerificationMeta(
+    'balloonBundleId',
+  );
+  @override
+  late final GeneratedColumn<String> balloonBundleId = GeneratedColumn<String>(
+    'balloon_bundle_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    guid,
+    senderHandleId,
+    senderAddress,
+    service,
+    isFromMe,
+    sentAtUtc,
+    deliveredAtUtc,
+    readAtUtc,
+    textContent,
+    itemType,
+    isSystemMessage,
+    errorCode,
+    hasAttachments,
+    associatedMessageGuid,
+    threadOriginatorGuid,
+    balloonBundleId,
+    payloadJson,
+    batchId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recovered_unlinked_messages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecoveredUnlinkedMessage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('guid')) {
+      context.handle(
+        _guidMeta,
+        guid.isAcceptableOrUnknown(data['guid']!, _guidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_guidMeta);
+    }
+    if (data.containsKey('sender_handle_id')) {
+      context.handle(
+        _senderHandleIdMeta,
+        senderHandleId.isAcceptableOrUnknown(
+          data['sender_handle_id']!,
+          _senderHandleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sender_address')) {
+      context.handle(
+        _senderAddressMeta,
+        senderAddress.isAcceptableOrUnknown(
+          data['sender_address']!,
+          _senderAddressMeta,
+        ),
+      );
+    }
+    if (data.containsKey('service')) {
+      context.handle(
+        _serviceMeta,
+        service.isAcceptableOrUnknown(data['service']!, _serviceMeta),
+      );
+    }
+    if (data.containsKey('is_from_me')) {
+      context.handle(
+        _isFromMeMeta,
+        isFromMe.isAcceptableOrUnknown(data['is_from_me']!, _isFromMeMeta),
+      );
+    }
+    if (data.containsKey('sent_at_utc')) {
+      context.handle(
+        _sentAtUtcMeta,
+        sentAtUtc.isAcceptableOrUnknown(data['sent_at_utc']!, _sentAtUtcMeta),
+      );
+    }
+    if (data.containsKey('delivered_at_utc')) {
+      context.handle(
+        _deliveredAtUtcMeta,
+        deliveredAtUtc.isAcceptableOrUnknown(
+          data['delivered_at_utc']!,
+          _deliveredAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('read_at_utc')) {
+      context.handle(
+        _readAtUtcMeta,
+        readAtUtc.isAcceptableOrUnknown(data['read_at_utc']!, _readAtUtcMeta),
+      );
+    }
+    if (data.containsKey('text')) {
+      context.handle(
+        _textContentMeta,
+        textContent.isAcceptableOrUnknown(data['text']!, _textContentMeta),
+      );
+    }
+    if (data.containsKey('item_type')) {
+      context.handle(
+        _itemTypeMeta,
+        itemType.isAcceptableOrUnknown(data['item_type']!, _itemTypeMeta),
+      );
+    }
+    if (data.containsKey('is_system_message')) {
+      context.handle(
+        _isSystemMessageMeta,
+        isSystemMessage.isAcceptableOrUnknown(
+          data['is_system_message']!,
+          _isSystemMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    if (data.containsKey('has_attachments')) {
+      context.handle(
+        _hasAttachmentsMeta,
+        hasAttachments.isAcceptableOrUnknown(
+          data['has_attachments']!,
+          _hasAttachmentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('associated_message_guid')) {
+      context.handle(
+        _associatedMessageGuidMeta,
+        associatedMessageGuid.isAcceptableOrUnknown(
+          data['associated_message_guid']!,
+          _associatedMessageGuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('thread_originator_guid')) {
+      context.handle(
+        _threadOriginatorGuidMeta,
+        threadOriginatorGuid.isAcceptableOrUnknown(
+          data['thread_originator_guid']!,
+          _threadOriginatorGuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('balloon_bundle_id')) {
+      context.handle(
+        _balloonBundleIdMeta,
+        balloonBundleId.isAcceptableOrUnknown(
+          data['balloon_bundle_id']!,
+          _balloonBundleIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {guid},
+  ];
+  @override
+  RecoveredUnlinkedMessage map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecoveredUnlinkedMessage(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      guid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}guid'],
+      )!,
+      senderHandleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sender_handle_id'],
+      ),
+      senderAddress: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sender_address'],
+      ),
+      service: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service'],
+      )!,
+      isFromMe: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_from_me'],
+      )!,
+      sentAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sent_at_utc'],
+      ),
+      deliveredAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivered_at_utc'],
+      ),
+      readAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}read_at_utc'],
+      ),
+      textContent: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}text'],
+      ),
+      itemType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_type'],
+      ),
+      isSystemMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system_message'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}error_code'],
+      ),
+      hasAttachments: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_attachments'],
+      )!,
+      associatedMessageGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}associated_message_guid'],
+      ),
+      threadOriginatorGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thread_originator_guid'],
+      ),
+      balloonBundleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balloon_bundle_id'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      ),
+    );
+  }
+
+  @override
+  $RecoveredUnlinkedMessagesTable createAlias(String alias) {
+    return $RecoveredUnlinkedMessagesTable(attachedDatabase, alias);
+  }
+}
+
+class RecoveredUnlinkedMessage extends DataClass
+    implements Insertable<RecoveredUnlinkedMessage> {
+  final int id;
+  final String guid;
+  final int? senderHandleId;
+  final String? senderAddress;
+  final String service;
+  final bool isFromMe;
+  final String? sentAtUtc;
+  final String? deliveredAtUtc;
+  final String? readAtUtc;
+  final String? textContent;
+  final String? itemType;
+  final bool isSystemMessage;
+  final int? errorCode;
+  final bool hasAttachments;
+  final String? associatedMessageGuid;
+  final String? threadOriginatorGuid;
+  final String? balloonBundleId;
+  final String? payloadJson;
+  final int? batchId;
+  const RecoveredUnlinkedMessage({
+    required this.id,
+    required this.guid,
+    this.senderHandleId,
+    this.senderAddress,
+    required this.service,
+    required this.isFromMe,
+    this.sentAtUtc,
+    this.deliveredAtUtc,
+    this.readAtUtc,
+    this.textContent,
+    this.itemType,
+    required this.isSystemMessage,
+    this.errorCode,
+    required this.hasAttachments,
+    this.associatedMessageGuid,
+    this.threadOriginatorGuid,
+    this.balloonBundleId,
+    this.payloadJson,
+    this.batchId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['guid'] = Variable<String>(guid);
+    if (!nullToAbsent || senderHandleId != null) {
+      map['sender_handle_id'] = Variable<int>(senderHandleId);
+    }
+    if (!nullToAbsent || senderAddress != null) {
+      map['sender_address'] = Variable<String>(senderAddress);
+    }
+    map['service'] = Variable<String>(service);
+    map['is_from_me'] = Variable<bool>(isFromMe);
+    if (!nullToAbsent || sentAtUtc != null) {
+      map['sent_at_utc'] = Variable<String>(sentAtUtc);
+    }
+    if (!nullToAbsent || deliveredAtUtc != null) {
+      map['delivered_at_utc'] = Variable<String>(deliveredAtUtc);
+    }
+    if (!nullToAbsent || readAtUtc != null) {
+      map['read_at_utc'] = Variable<String>(readAtUtc);
+    }
+    if (!nullToAbsent || textContent != null) {
+      map['text'] = Variable<String>(textContent);
+    }
+    if (!nullToAbsent || itemType != null) {
+      map['item_type'] = Variable<String>(itemType);
+    }
+    map['is_system_message'] = Variable<bool>(isSystemMessage);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<int>(errorCode);
+    }
+    map['has_attachments'] = Variable<bool>(hasAttachments);
+    if (!nullToAbsent || associatedMessageGuid != null) {
+      map['associated_message_guid'] = Variable<String>(associatedMessageGuid);
+    }
+    if (!nullToAbsent || threadOriginatorGuid != null) {
+      map['thread_originator_guid'] = Variable<String>(threadOriginatorGuid);
+    }
+    if (!nullToAbsent || balloonBundleId != null) {
+      map['balloon_bundle_id'] = Variable<String>(balloonBundleId);
+    }
+    if (!nullToAbsent || payloadJson != null) {
+      map['payload_json'] = Variable<String>(payloadJson);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
+    }
+    return map;
+  }
+
+  RecoveredUnlinkedMessagesCompanion toCompanion(bool nullToAbsent) {
+    return RecoveredUnlinkedMessagesCompanion(
+      id: Value(id),
+      guid: Value(guid),
+      senderHandleId: senderHandleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(senderHandleId),
+      senderAddress: senderAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(senderAddress),
+      service: Value(service),
+      isFromMe: Value(isFromMe),
+      sentAtUtc: sentAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentAtUtc),
+      deliveredAtUtc: deliveredAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveredAtUtc),
+      readAtUtc: readAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readAtUtc),
+      textContent: textContent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(textContent),
+      itemType: itemType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(itemType),
+      isSystemMessage: Value(isSystemMessage),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+      hasAttachments: Value(hasAttachments),
+      associatedMessageGuid: associatedMessageGuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(associatedMessageGuid),
+      threadOriginatorGuid: threadOriginatorGuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(threadOriginatorGuid),
+      balloonBundleId: balloonBundleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(balloonBundleId),
+      payloadJson: payloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payloadJson),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
+    );
+  }
+
+  factory RecoveredUnlinkedMessage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecoveredUnlinkedMessage(
+      id: serializer.fromJson<int>(json['id']),
+      guid: serializer.fromJson<String>(json['guid']),
+      senderHandleId: serializer.fromJson<int?>(json['senderHandleId']),
+      senderAddress: serializer.fromJson<String?>(json['senderAddress']),
+      service: serializer.fromJson<String>(json['service']),
+      isFromMe: serializer.fromJson<bool>(json['isFromMe']),
+      sentAtUtc: serializer.fromJson<String?>(json['sentAtUtc']),
+      deliveredAtUtc: serializer.fromJson<String?>(json['deliveredAtUtc']),
+      readAtUtc: serializer.fromJson<String?>(json['readAtUtc']),
+      textContent: serializer.fromJson<String?>(json['textContent']),
+      itemType: serializer.fromJson<String?>(json['itemType']),
+      isSystemMessage: serializer.fromJson<bool>(json['isSystemMessage']),
+      errorCode: serializer.fromJson<int?>(json['errorCode']),
+      hasAttachments: serializer.fromJson<bool>(json['hasAttachments']),
+      associatedMessageGuid: serializer.fromJson<String?>(
+        json['associatedMessageGuid'],
+      ),
+      threadOriginatorGuid: serializer.fromJson<String?>(
+        json['threadOriginatorGuid'],
+      ),
+      balloonBundleId: serializer.fromJson<String?>(json['balloonBundleId']),
+      payloadJson: serializer.fromJson<String?>(json['payloadJson']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'guid': serializer.toJson<String>(guid),
+      'senderHandleId': serializer.toJson<int?>(senderHandleId),
+      'senderAddress': serializer.toJson<String?>(senderAddress),
+      'service': serializer.toJson<String>(service),
+      'isFromMe': serializer.toJson<bool>(isFromMe),
+      'sentAtUtc': serializer.toJson<String?>(sentAtUtc),
+      'deliveredAtUtc': serializer.toJson<String?>(deliveredAtUtc),
+      'readAtUtc': serializer.toJson<String?>(readAtUtc),
+      'textContent': serializer.toJson<String?>(textContent),
+      'itemType': serializer.toJson<String?>(itemType),
+      'isSystemMessage': serializer.toJson<bool>(isSystemMessage),
+      'errorCode': serializer.toJson<int?>(errorCode),
+      'hasAttachments': serializer.toJson<bool>(hasAttachments),
+      'associatedMessageGuid': serializer.toJson<String?>(
+        associatedMessageGuid,
+      ),
+      'threadOriginatorGuid': serializer.toJson<String?>(threadOriginatorGuid),
+      'balloonBundleId': serializer.toJson<String?>(balloonBundleId),
+      'payloadJson': serializer.toJson<String?>(payloadJson),
+      'batchId': serializer.toJson<int?>(batchId),
+    };
+  }
+
+  RecoveredUnlinkedMessage copyWith({
+    int? id,
+    String? guid,
+    Value<int?> senderHandleId = const Value.absent(),
+    Value<String?> senderAddress = const Value.absent(),
+    String? service,
+    bool? isFromMe,
+    Value<String?> sentAtUtc = const Value.absent(),
+    Value<String?> deliveredAtUtc = const Value.absent(),
+    Value<String?> readAtUtc = const Value.absent(),
+    Value<String?> textContent = const Value.absent(),
+    Value<String?> itemType = const Value.absent(),
+    bool? isSystemMessage,
+    Value<int?> errorCode = const Value.absent(),
+    bool? hasAttachments,
+    Value<String?> associatedMessageGuid = const Value.absent(),
+    Value<String?> threadOriginatorGuid = const Value.absent(),
+    Value<String?> balloonBundleId = const Value.absent(),
+    Value<String?> payloadJson = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
+  }) => RecoveredUnlinkedMessage(
+    id: id ?? this.id,
+    guid: guid ?? this.guid,
+    senderHandleId: senderHandleId.present
+        ? senderHandleId.value
+        : this.senderHandleId,
+    senderAddress: senderAddress.present
+        ? senderAddress.value
+        : this.senderAddress,
+    service: service ?? this.service,
+    isFromMe: isFromMe ?? this.isFromMe,
+    sentAtUtc: sentAtUtc.present ? sentAtUtc.value : this.sentAtUtc,
+    deliveredAtUtc: deliveredAtUtc.present
+        ? deliveredAtUtc.value
+        : this.deliveredAtUtc,
+    readAtUtc: readAtUtc.present ? readAtUtc.value : this.readAtUtc,
+    textContent: textContent.present ? textContent.value : this.textContent,
+    itemType: itemType.present ? itemType.value : this.itemType,
+    isSystemMessage: isSystemMessage ?? this.isSystemMessage,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+    hasAttachments: hasAttachments ?? this.hasAttachments,
+    associatedMessageGuid: associatedMessageGuid.present
+        ? associatedMessageGuid.value
+        : this.associatedMessageGuid,
+    threadOriginatorGuid: threadOriginatorGuid.present
+        ? threadOriginatorGuid.value
+        : this.threadOriginatorGuid,
+    balloonBundleId: balloonBundleId.present
+        ? balloonBundleId.value
+        : this.balloonBundleId,
+    payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
+    batchId: batchId.present ? batchId.value : this.batchId,
+  );
+  RecoveredUnlinkedMessage copyWithCompanion(
+    RecoveredUnlinkedMessagesCompanion data,
+  ) {
+    return RecoveredUnlinkedMessage(
+      id: data.id.present ? data.id.value : this.id,
+      guid: data.guid.present ? data.guid.value : this.guid,
+      senderHandleId: data.senderHandleId.present
+          ? data.senderHandleId.value
+          : this.senderHandleId,
+      senderAddress: data.senderAddress.present
+          ? data.senderAddress.value
+          : this.senderAddress,
+      service: data.service.present ? data.service.value : this.service,
+      isFromMe: data.isFromMe.present ? data.isFromMe.value : this.isFromMe,
+      sentAtUtc: data.sentAtUtc.present ? data.sentAtUtc.value : this.sentAtUtc,
+      deliveredAtUtc: data.deliveredAtUtc.present
+          ? data.deliveredAtUtc.value
+          : this.deliveredAtUtc,
+      readAtUtc: data.readAtUtc.present ? data.readAtUtc.value : this.readAtUtc,
+      textContent: data.textContent.present
+          ? data.textContent.value
+          : this.textContent,
+      itemType: data.itemType.present ? data.itemType.value : this.itemType,
+      isSystemMessage: data.isSystemMessage.present
+          ? data.isSystemMessage.value
+          : this.isSystemMessage,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+      hasAttachments: data.hasAttachments.present
+          ? data.hasAttachments.value
+          : this.hasAttachments,
+      associatedMessageGuid: data.associatedMessageGuid.present
+          ? data.associatedMessageGuid.value
+          : this.associatedMessageGuid,
+      threadOriginatorGuid: data.threadOriginatorGuid.present
+          ? data.threadOriginatorGuid.value
+          : this.threadOriginatorGuid,
+      balloonBundleId: data.balloonBundleId.present
+          ? data.balloonBundleId.value
+          : this.balloonBundleId,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecoveredUnlinkedMessage(')
+          ..write('id: $id, ')
+          ..write('guid: $guid, ')
+          ..write('senderHandleId: $senderHandleId, ')
+          ..write('senderAddress: $senderAddress, ')
+          ..write('service: $service, ')
+          ..write('isFromMe: $isFromMe, ')
+          ..write('sentAtUtc: $sentAtUtc, ')
+          ..write('deliveredAtUtc: $deliveredAtUtc, ')
+          ..write('readAtUtc: $readAtUtc, ')
+          ..write('textContent: $textContent, ')
+          ..write('itemType: $itemType, ')
+          ..write('isSystemMessage: $isSystemMessage, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('hasAttachments: $hasAttachments, ')
+          ..write('associatedMessageGuid: $associatedMessageGuid, ')
+          ..write('threadOriginatorGuid: $threadOriginatorGuid, ')
+          ..write('balloonBundleId: $balloonBundleId, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    guid,
+    senderHandleId,
+    senderAddress,
+    service,
+    isFromMe,
+    sentAtUtc,
+    deliveredAtUtc,
+    readAtUtc,
+    textContent,
+    itemType,
+    isSystemMessage,
+    errorCode,
+    hasAttachments,
+    associatedMessageGuid,
+    threadOriginatorGuid,
+    balloonBundleId,
+    payloadJson,
+    batchId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecoveredUnlinkedMessage &&
+          other.id == this.id &&
+          other.guid == this.guid &&
+          other.senderHandleId == this.senderHandleId &&
+          other.senderAddress == this.senderAddress &&
+          other.service == this.service &&
+          other.isFromMe == this.isFromMe &&
+          other.sentAtUtc == this.sentAtUtc &&
+          other.deliveredAtUtc == this.deliveredAtUtc &&
+          other.readAtUtc == this.readAtUtc &&
+          other.textContent == this.textContent &&
+          other.itemType == this.itemType &&
+          other.isSystemMessage == this.isSystemMessage &&
+          other.errorCode == this.errorCode &&
+          other.hasAttachments == this.hasAttachments &&
+          other.associatedMessageGuid == this.associatedMessageGuid &&
+          other.threadOriginatorGuid == this.threadOriginatorGuid &&
+          other.balloonBundleId == this.balloonBundleId &&
+          other.payloadJson == this.payloadJson &&
+          other.batchId == this.batchId);
+}
+
+class RecoveredUnlinkedMessagesCompanion
+    extends UpdateCompanion<RecoveredUnlinkedMessage> {
+  final Value<int> id;
+  final Value<String> guid;
+  final Value<int?> senderHandleId;
+  final Value<String?> senderAddress;
+  final Value<String> service;
+  final Value<bool> isFromMe;
+  final Value<String?> sentAtUtc;
+  final Value<String?> deliveredAtUtc;
+  final Value<String?> readAtUtc;
+  final Value<String?> textContent;
+  final Value<String?> itemType;
+  final Value<bool> isSystemMessage;
+  final Value<int?> errorCode;
+  final Value<bool> hasAttachments;
+  final Value<String?> associatedMessageGuid;
+  final Value<String?> threadOriginatorGuid;
+  final Value<String?> balloonBundleId;
+  final Value<String?> payloadJson;
+  final Value<int?> batchId;
+  const RecoveredUnlinkedMessagesCompanion({
+    this.id = const Value.absent(),
+    this.guid = const Value.absent(),
+    this.senderHandleId = const Value.absent(),
+    this.senderAddress = const Value.absent(),
+    this.service = const Value.absent(),
+    this.isFromMe = const Value.absent(),
+    this.sentAtUtc = const Value.absent(),
+    this.deliveredAtUtc = const Value.absent(),
+    this.readAtUtc = const Value.absent(),
+    this.textContent = const Value.absent(),
+    this.itemType = const Value.absent(),
+    this.isSystemMessage = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.hasAttachments = const Value.absent(),
+    this.associatedMessageGuid = const Value.absent(),
+    this.threadOriginatorGuid = const Value.absent(),
+    this.balloonBundleId = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.batchId = const Value.absent(),
+  });
+  RecoveredUnlinkedMessagesCompanion.insert({
+    this.id = const Value.absent(),
+    required String guid,
+    this.senderHandleId = const Value.absent(),
+    this.senderAddress = const Value.absent(),
+    this.service = const Value.absent(),
+    this.isFromMe = const Value.absent(),
+    this.sentAtUtc = const Value.absent(),
+    this.deliveredAtUtc = const Value.absent(),
+    this.readAtUtc = const Value.absent(),
+    this.textContent = const Value.absent(),
+    this.itemType = const Value.absent(),
+    this.isSystemMessage = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.hasAttachments = const Value.absent(),
+    this.associatedMessageGuid = const Value.absent(),
+    this.threadOriginatorGuid = const Value.absent(),
+    this.balloonBundleId = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.batchId = const Value.absent(),
+  }) : guid = Value(guid);
+  static Insertable<RecoveredUnlinkedMessage> custom({
+    Expression<int>? id,
+    Expression<String>? guid,
+    Expression<int>? senderHandleId,
+    Expression<String>? senderAddress,
+    Expression<String>? service,
+    Expression<bool>? isFromMe,
+    Expression<String>? sentAtUtc,
+    Expression<String>? deliveredAtUtc,
+    Expression<String>? readAtUtc,
+    Expression<String>? textContent,
+    Expression<String>? itemType,
+    Expression<bool>? isSystemMessage,
+    Expression<int>? errorCode,
+    Expression<bool>? hasAttachments,
+    Expression<String>? associatedMessageGuid,
+    Expression<String>? threadOriginatorGuid,
+    Expression<String>? balloonBundleId,
+    Expression<String>? payloadJson,
+    Expression<int>? batchId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (guid != null) 'guid': guid,
+      if (senderHandleId != null) 'sender_handle_id': senderHandleId,
+      if (senderAddress != null) 'sender_address': senderAddress,
+      if (service != null) 'service': service,
+      if (isFromMe != null) 'is_from_me': isFromMe,
+      if (sentAtUtc != null) 'sent_at_utc': sentAtUtc,
+      if (deliveredAtUtc != null) 'delivered_at_utc': deliveredAtUtc,
+      if (readAtUtc != null) 'read_at_utc': readAtUtc,
+      if (textContent != null) 'text': textContent,
+      if (itemType != null) 'item_type': itemType,
+      if (isSystemMessage != null) 'is_system_message': isSystemMessage,
+      if (errorCode != null) 'error_code': errorCode,
+      if (hasAttachments != null) 'has_attachments': hasAttachments,
+      if (associatedMessageGuid != null)
+        'associated_message_guid': associatedMessageGuid,
+      if (threadOriginatorGuid != null)
+        'thread_originator_guid': threadOriginatorGuid,
+      if (balloonBundleId != null) 'balloon_bundle_id': balloonBundleId,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (batchId != null) 'batch_id': batchId,
+    });
+  }
+
+  RecoveredUnlinkedMessagesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? guid,
+    Value<int?>? senderHandleId,
+    Value<String?>? senderAddress,
+    Value<String>? service,
+    Value<bool>? isFromMe,
+    Value<String?>? sentAtUtc,
+    Value<String?>? deliveredAtUtc,
+    Value<String?>? readAtUtc,
+    Value<String?>? textContent,
+    Value<String?>? itemType,
+    Value<bool>? isSystemMessage,
+    Value<int?>? errorCode,
+    Value<bool>? hasAttachments,
+    Value<String?>? associatedMessageGuid,
+    Value<String?>? threadOriginatorGuid,
+    Value<String?>? balloonBundleId,
+    Value<String?>? payloadJson,
+    Value<int?>? batchId,
+  }) {
+    return RecoveredUnlinkedMessagesCompanion(
+      id: id ?? this.id,
+      guid: guid ?? this.guid,
+      senderHandleId: senderHandleId ?? this.senderHandleId,
+      senderAddress: senderAddress ?? this.senderAddress,
+      service: service ?? this.service,
+      isFromMe: isFromMe ?? this.isFromMe,
+      sentAtUtc: sentAtUtc ?? this.sentAtUtc,
+      deliveredAtUtc: deliveredAtUtc ?? this.deliveredAtUtc,
+      readAtUtc: readAtUtc ?? this.readAtUtc,
+      textContent: textContent ?? this.textContent,
+      itemType: itemType ?? this.itemType,
+      isSystemMessage: isSystemMessage ?? this.isSystemMessage,
+      errorCode: errorCode ?? this.errorCode,
+      hasAttachments: hasAttachments ?? this.hasAttachments,
+      associatedMessageGuid:
+          associatedMessageGuid ?? this.associatedMessageGuid,
+      threadOriginatorGuid: threadOriginatorGuid ?? this.threadOriginatorGuid,
+      balloonBundleId: balloonBundleId ?? this.balloonBundleId,
+      payloadJson: payloadJson ?? this.payloadJson,
+      batchId: batchId ?? this.batchId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (guid.present) {
+      map['guid'] = Variable<String>(guid.value);
+    }
+    if (senderHandleId.present) {
+      map['sender_handle_id'] = Variable<int>(senderHandleId.value);
+    }
+    if (senderAddress.present) {
+      map['sender_address'] = Variable<String>(senderAddress.value);
+    }
+    if (service.present) {
+      map['service'] = Variable<String>(service.value);
+    }
+    if (isFromMe.present) {
+      map['is_from_me'] = Variable<bool>(isFromMe.value);
+    }
+    if (sentAtUtc.present) {
+      map['sent_at_utc'] = Variable<String>(sentAtUtc.value);
+    }
+    if (deliveredAtUtc.present) {
+      map['delivered_at_utc'] = Variable<String>(deliveredAtUtc.value);
+    }
+    if (readAtUtc.present) {
+      map['read_at_utc'] = Variable<String>(readAtUtc.value);
+    }
+    if (textContent.present) {
+      map['text'] = Variable<String>(textContent.value);
+    }
+    if (itemType.present) {
+      map['item_type'] = Variable<String>(itemType.value);
+    }
+    if (isSystemMessage.present) {
+      map['is_system_message'] = Variable<bool>(isSystemMessage.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<int>(errorCode.value);
+    }
+    if (hasAttachments.present) {
+      map['has_attachments'] = Variable<bool>(hasAttachments.value);
+    }
+    if (associatedMessageGuid.present) {
+      map['associated_message_guid'] = Variable<String>(
+        associatedMessageGuid.value,
+      );
+    }
+    if (threadOriginatorGuid.present) {
+      map['thread_originator_guid'] = Variable<String>(
+        threadOriginatorGuid.value,
+      );
+    }
+    if (balloonBundleId.present) {
+      map['balloon_bundle_id'] = Variable<String>(balloonBundleId.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecoveredUnlinkedMessagesCompanion(')
+          ..write('id: $id, ')
+          ..write('guid: $guid, ')
+          ..write('senderHandleId: $senderHandleId, ')
+          ..write('senderAddress: $senderAddress, ')
+          ..write('service: $service, ')
+          ..write('isFromMe: $isFromMe, ')
+          ..write('sentAtUtc: $sentAtUtc, ')
+          ..write('deliveredAtUtc: $deliveredAtUtc, ')
+          ..write('readAtUtc: $readAtUtc, ')
+          ..write('textContent: $textContent, ')
+          ..write('itemType: $itemType, ')
+          ..write('isSystemMessage: $isSystemMessage, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('hasAttachments: $hasAttachments, ')
+          ..write('associatedMessageGuid: $associatedMessageGuid, ')
+          ..write('threadOriginatorGuid: $threadOriginatorGuid, ')
+          ..write('balloonBundleId: $balloonBundleId, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $GlobalMessageIndexTable extends GlobalMessageIndex
     with TableInfo<$GlobalMessageIndexTable, GlobalMessageIndexData> {
   @override
@@ -7858,6 +8986,790 @@ class WorkingAttachmentsCompanion extends UpdateCompanion<WorkingAttachment> {
           ..write('sizeBytes: $sizeBytes, ')
           ..write('isSticker: $isSticker, ')
           ..write('thumbPath: $thumbPath, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('isOutgoing: $isOutgoing, ')
+          ..write('sha256Hex: $sha256Hex, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecoveredUnlinkedAttachmentsTable extends RecoveredUnlinkedAttachments
+    with
+        TableInfo<
+          $RecoveredUnlinkedAttachmentsTable,
+          RecoveredUnlinkedAttachment
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecoveredUnlinkedAttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _messageGuidMeta = const VerificationMeta(
+    'messageGuid',
+  );
+  @override
+  late final GeneratedColumn<String> messageGuid = GeneratedColumn<String>(
+    'message_guid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _importAttachmentIdMeta =
+      const VerificationMeta('importAttachmentId');
+  @override
+  late final GeneratedColumn<int> importAttachmentId = GeneratedColumn<int>(
+    'import_attachment_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _localPathMeta = const VerificationMeta(
+    'localPath',
+  );
+  @override
+  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
+    'local_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _utiMeta = const VerificationMeta('uti');
+  @override
+  late final GeneratedColumn<String> uti = GeneratedColumn<String>(
+    'uti',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _transferNameMeta = const VerificationMeta(
+    'transferName',
+  );
+  @override
+  late final GeneratedColumn<String> transferName = GeneratedColumn<String>(
+    'transfer_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isStickerMeta = const VerificationMeta(
+    'isSticker',
+  );
+  @override
+  late final GeneratedColumn<bool> isSticker = GeneratedColumn<bool>(
+    'is_sticker',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_sticker" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<String> createdAtUtc = GeneratedColumn<String>(
+    'created_at_utc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isOutgoingMeta = const VerificationMeta(
+    'isOutgoing',
+  );
+  @override
+  late final GeneratedColumn<bool> isOutgoing = GeneratedColumn<bool>(
+    'is_outgoing',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_outgoing" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sha256HexMeta = const VerificationMeta(
+    'sha256Hex',
+  );
+  @override
+  late final GeneratedColumn<String> sha256Hex = GeneratedColumn<String>(
+    'sha256_hex',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<int> batchId = GeneratedColumn<int>(
+    'batch_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    messageGuid,
+    importAttachmentId,
+    localPath,
+    mimeType,
+    uti,
+    transferName,
+    sizeBytes,
+    isSticker,
+    createdAtUtc,
+    isOutgoing,
+    sha256Hex,
+    batchId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recovered_unlinked_attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecoveredUnlinkedAttachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('message_guid')) {
+      context.handle(
+        _messageGuidMeta,
+        messageGuid.isAcceptableOrUnknown(
+          data['message_guid']!,
+          _messageGuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_messageGuidMeta);
+    }
+    if (data.containsKey('import_attachment_id')) {
+      context.handle(
+        _importAttachmentIdMeta,
+        importAttachmentId.isAcceptableOrUnknown(
+          data['import_attachment_id']!,
+          _importAttachmentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('local_path')) {
+      context.handle(
+        _localPathMeta,
+        localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta),
+      );
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    }
+    if (data.containsKey('uti')) {
+      context.handle(
+        _utiMeta,
+        uti.isAcceptableOrUnknown(data['uti']!, _utiMeta),
+      );
+    }
+    if (data.containsKey('transfer_name')) {
+      context.handle(
+        _transferNameMeta,
+        transferName.isAcceptableOrUnknown(
+          data['transfer_name']!,
+          _transferNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    }
+    if (data.containsKey('is_sticker')) {
+      context.handle(
+        _isStickerMeta,
+        isSticker.isAcceptableOrUnknown(data['is_sticker']!, _isStickerMeta),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_outgoing')) {
+      context.handle(
+        _isOutgoingMeta,
+        isOutgoing.isAcceptableOrUnknown(data['is_outgoing']!, _isOutgoingMeta),
+      );
+    }
+    if (data.containsKey('sha256_hex')) {
+      context.handle(
+        _sha256HexMeta,
+        sha256Hex.isAcceptableOrUnknown(data['sha256_hex']!, _sha256HexMeta),
+      );
+    }
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecoveredUnlinkedAttachment map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecoveredUnlinkedAttachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      messageGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_guid'],
+      )!,
+      importAttachmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}import_attachment_id'],
+      ),
+      localPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_path'],
+      ),
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      ),
+      uti: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uti'],
+      ),
+      transferName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transfer_name'],
+      ),
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      ),
+      isSticker: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_sticker'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at_utc'],
+      ),
+      isOutgoing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_outgoing'],
+      )!,
+      sha256Hex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256_hex'],
+      ),
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_id'],
+      ),
+    );
+  }
+
+  @override
+  $RecoveredUnlinkedAttachmentsTable createAlias(String alias) {
+    return $RecoveredUnlinkedAttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class RecoveredUnlinkedAttachment extends DataClass
+    implements Insertable<RecoveredUnlinkedAttachment> {
+  final int id;
+  final String messageGuid;
+  final int? importAttachmentId;
+  final String? localPath;
+  final String? mimeType;
+  final String? uti;
+  final String? transferName;
+  final int? sizeBytes;
+  final bool isSticker;
+  final String? createdAtUtc;
+  final bool isOutgoing;
+  final String? sha256Hex;
+  final int? batchId;
+  const RecoveredUnlinkedAttachment({
+    required this.id,
+    required this.messageGuid,
+    this.importAttachmentId,
+    this.localPath,
+    this.mimeType,
+    this.uti,
+    this.transferName,
+    this.sizeBytes,
+    required this.isSticker,
+    this.createdAtUtc,
+    required this.isOutgoing,
+    this.sha256Hex,
+    this.batchId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['message_guid'] = Variable<String>(messageGuid);
+    if (!nullToAbsent || importAttachmentId != null) {
+      map['import_attachment_id'] = Variable<int>(importAttachmentId);
+    }
+    if (!nullToAbsent || localPath != null) {
+      map['local_path'] = Variable<String>(localPath);
+    }
+    if (!nullToAbsent || mimeType != null) {
+      map['mime_type'] = Variable<String>(mimeType);
+    }
+    if (!nullToAbsent || uti != null) {
+      map['uti'] = Variable<String>(uti);
+    }
+    if (!nullToAbsent || transferName != null) {
+      map['transfer_name'] = Variable<String>(transferName);
+    }
+    if (!nullToAbsent || sizeBytes != null) {
+      map['size_bytes'] = Variable<int>(sizeBytes);
+    }
+    map['is_sticker'] = Variable<bool>(isSticker);
+    if (!nullToAbsent || createdAtUtc != null) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc);
+    }
+    map['is_outgoing'] = Variable<bool>(isOutgoing);
+    if (!nullToAbsent || sha256Hex != null) {
+      map['sha256_hex'] = Variable<String>(sha256Hex);
+    }
+    if (!nullToAbsent || batchId != null) {
+      map['batch_id'] = Variable<int>(batchId);
+    }
+    return map;
+  }
+
+  RecoveredUnlinkedAttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return RecoveredUnlinkedAttachmentsCompanion(
+      id: Value(id),
+      messageGuid: Value(messageGuid),
+      importAttachmentId: importAttachmentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(importAttachmentId),
+      localPath: localPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localPath),
+      mimeType: mimeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mimeType),
+      uti: uti == null && nullToAbsent ? const Value.absent() : Value(uti),
+      transferName: transferName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transferName),
+      sizeBytes: sizeBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeBytes),
+      isSticker: Value(isSticker),
+      createdAtUtc: createdAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAtUtc),
+      isOutgoing: Value(isOutgoing),
+      sha256Hex: sha256Hex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sha256Hex),
+      batchId: batchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(batchId),
+    );
+  }
+
+  factory RecoveredUnlinkedAttachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecoveredUnlinkedAttachment(
+      id: serializer.fromJson<int>(json['id']),
+      messageGuid: serializer.fromJson<String>(json['messageGuid']),
+      importAttachmentId: serializer.fromJson<int?>(json['importAttachmentId']),
+      localPath: serializer.fromJson<String?>(json['localPath']),
+      mimeType: serializer.fromJson<String?>(json['mimeType']),
+      uti: serializer.fromJson<String?>(json['uti']),
+      transferName: serializer.fromJson<String?>(json['transferName']),
+      sizeBytes: serializer.fromJson<int?>(json['sizeBytes']),
+      isSticker: serializer.fromJson<bool>(json['isSticker']),
+      createdAtUtc: serializer.fromJson<String?>(json['createdAtUtc']),
+      isOutgoing: serializer.fromJson<bool>(json['isOutgoing']),
+      sha256Hex: serializer.fromJson<String?>(json['sha256Hex']),
+      batchId: serializer.fromJson<int?>(json['batchId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'messageGuid': serializer.toJson<String>(messageGuid),
+      'importAttachmentId': serializer.toJson<int?>(importAttachmentId),
+      'localPath': serializer.toJson<String?>(localPath),
+      'mimeType': serializer.toJson<String?>(mimeType),
+      'uti': serializer.toJson<String?>(uti),
+      'transferName': serializer.toJson<String?>(transferName),
+      'sizeBytes': serializer.toJson<int?>(sizeBytes),
+      'isSticker': serializer.toJson<bool>(isSticker),
+      'createdAtUtc': serializer.toJson<String?>(createdAtUtc),
+      'isOutgoing': serializer.toJson<bool>(isOutgoing),
+      'sha256Hex': serializer.toJson<String?>(sha256Hex),
+      'batchId': serializer.toJson<int?>(batchId),
+    };
+  }
+
+  RecoveredUnlinkedAttachment copyWith({
+    int? id,
+    String? messageGuid,
+    Value<int?> importAttachmentId = const Value.absent(),
+    Value<String?> localPath = const Value.absent(),
+    Value<String?> mimeType = const Value.absent(),
+    Value<String?> uti = const Value.absent(),
+    Value<String?> transferName = const Value.absent(),
+    Value<int?> sizeBytes = const Value.absent(),
+    bool? isSticker,
+    Value<String?> createdAtUtc = const Value.absent(),
+    bool? isOutgoing,
+    Value<String?> sha256Hex = const Value.absent(),
+    Value<int?> batchId = const Value.absent(),
+  }) => RecoveredUnlinkedAttachment(
+    id: id ?? this.id,
+    messageGuid: messageGuid ?? this.messageGuid,
+    importAttachmentId: importAttachmentId.present
+        ? importAttachmentId.value
+        : this.importAttachmentId,
+    localPath: localPath.present ? localPath.value : this.localPath,
+    mimeType: mimeType.present ? mimeType.value : this.mimeType,
+    uti: uti.present ? uti.value : this.uti,
+    transferName: transferName.present ? transferName.value : this.transferName,
+    sizeBytes: sizeBytes.present ? sizeBytes.value : this.sizeBytes,
+    isSticker: isSticker ?? this.isSticker,
+    createdAtUtc: createdAtUtc.present ? createdAtUtc.value : this.createdAtUtc,
+    isOutgoing: isOutgoing ?? this.isOutgoing,
+    sha256Hex: sha256Hex.present ? sha256Hex.value : this.sha256Hex,
+    batchId: batchId.present ? batchId.value : this.batchId,
+  );
+  RecoveredUnlinkedAttachment copyWithCompanion(
+    RecoveredUnlinkedAttachmentsCompanion data,
+  ) {
+    return RecoveredUnlinkedAttachment(
+      id: data.id.present ? data.id.value : this.id,
+      messageGuid: data.messageGuid.present
+          ? data.messageGuid.value
+          : this.messageGuid,
+      importAttachmentId: data.importAttachmentId.present
+          ? data.importAttachmentId.value
+          : this.importAttachmentId,
+      localPath: data.localPath.present ? data.localPath.value : this.localPath,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      uti: data.uti.present ? data.uti.value : this.uti,
+      transferName: data.transferName.present
+          ? data.transferName.value
+          : this.transferName,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      isSticker: data.isSticker.present ? data.isSticker.value : this.isSticker,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      isOutgoing: data.isOutgoing.present
+          ? data.isOutgoing.value
+          : this.isOutgoing,
+      sha256Hex: data.sha256Hex.present ? data.sha256Hex.value : this.sha256Hex,
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecoveredUnlinkedAttachment(')
+          ..write('id: $id, ')
+          ..write('messageGuid: $messageGuid, ')
+          ..write('importAttachmentId: $importAttachmentId, ')
+          ..write('localPath: $localPath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('uti: $uti, ')
+          ..write('transferName: $transferName, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('isSticker: $isSticker, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('isOutgoing: $isOutgoing, ')
+          ..write('sha256Hex: $sha256Hex, ')
+          ..write('batchId: $batchId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    messageGuid,
+    importAttachmentId,
+    localPath,
+    mimeType,
+    uti,
+    transferName,
+    sizeBytes,
+    isSticker,
+    createdAtUtc,
+    isOutgoing,
+    sha256Hex,
+    batchId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecoveredUnlinkedAttachment &&
+          other.id == this.id &&
+          other.messageGuid == this.messageGuid &&
+          other.importAttachmentId == this.importAttachmentId &&
+          other.localPath == this.localPath &&
+          other.mimeType == this.mimeType &&
+          other.uti == this.uti &&
+          other.transferName == this.transferName &&
+          other.sizeBytes == this.sizeBytes &&
+          other.isSticker == this.isSticker &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.isOutgoing == this.isOutgoing &&
+          other.sha256Hex == this.sha256Hex &&
+          other.batchId == this.batchId);
+}
+
+class RecoveredUnlinkedAttachmentsCompanion
+    extends UpdateCompanion<RecoveredUnlinkedAttachment> {
+  final Value<int> id;
+  final Value<String> messageGuid;
+  final Value<int?> importAttachmentId;
+  final Value<String?> localPath;
+  final Value<String?> mimeType;
+  final Value<String?> uti;
+  final Value<String?> transferName;
+  final Value<int?> sizeBytes;
+  final Value<bool> isSticker;
+  final Value<String?> createdAtUtc;
+  final Value<bool> isOutgoing;
+  final Value<String?> sha256Hex;
+  final Value<int?> batchId;
+  const RecoveredUnlinkedAttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.messageGuid = const Value.absent(),
+    this.importAttachmentId = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.uti = const Value.absent(),
+    this.transferName = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.isSticker = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.isOutgoing = const Value.absent(),
+    this.sha256Hex = const Value.absent(),
+    this.batchId = const Value.absent(),
+  });
+  RecoveredUnlinkedAttachmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String messageGuid,
+    this.importAttachmentId = const Value.absent(),
+    this.localPath = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.uti = const Value.absent(),
+    this.transferName = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.isSticker = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.isOutgoing = const Value.absent(),
+    this.sha256Hex = const Value.absent(),
+    this.batchId = const Value.absent(),
+  }) : messageGuid = Value(messageGuid);
+  static Insertable<RecoveredUnlinkedAttachment> custom({
+    Expression<int>? id,
+    Expression<String>? messageGuid,
+    Expression<int>? importAttachmentId,
+    Expression<String>? localPath,
+    Expression<String>? mimeType,
+    Expression<String>? uti,
+    Expression<String>? transferName,
+    Expression<int>? sizeBytes,
+    Expression<bool>? isSticker,
+    Expression<String>? createdAtUtc,
+    Expression<bool>? isOutgoing,
+    Expression<String>? sha256Hex,
+    Expression<int>? batchId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (messageGuid != null) 'message_guid': messageGuid,
+      if (importAttachmentId != null)
+        'import_attachment_id': importAttachmentId,
+      if (localPath != null) 'local_path': localPath,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (uti != null) 'uti': uti,
+      if (transferName != null) 'transfer_name': transferName,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (isSticker != null) 'is_sticker': isSticker,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (isOutgoing != null) 'is_outgoing': isOutgoing,
+      if (sha256Hex != null) 'sha256_hex': sha256Hex,
+      if (batchId != null) 'batch_id': batchId,
+    });
+  }
+
+  RecoveredUnlinkedAttachmentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? messageGuid,
+    Value<int?>? importAttachmentId,
+    Value<String?>? localPath,
+    Value<String?>? mimeType,
+    Value<String?>? uti,
+    Value<String?>? transferName,
+    Value<int?>? sizeBytes,
+    Value<bool>? isSticker,
+    Value<String?>? createdAtUtc,
+    Value<bool>? isOutgoing,
+    Value<String?>? sha256Hex,
+    Value<int?>? batchId,
+  }) {
+    return RecoveredUnlinkedAttachmentsCompanion(
+      id: id ?? this.id,
+      messageGuid: messageGuid ?? this.messageGuid,
+      importAttachmentId: importAttachmentId ?? this.importAttachmentId,
+      localPath: localPath ?? this.localPath,
+      mimeType: mimeType ?? this.mimeType,
+      uti: uti ?? this.uti,
+      transferName: transferName ?? this.transferName,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      isSticker: isSticker ?? this.isSticker,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      isOutgoing: isOutgoing ?? this.isOutgoing,
+      sha256Hex: sha256Hex ?? this.sha256Hex,
+      batchId: batchId ?? this.batchId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (messageGuid.present) {
+      map['message_guid'] = Variable<String>(messageGuid.value);
+    }
+    if (importAttachmentId.present) {
+      map['import_attachment_id'] = Variable<int>(importAttachmentId.value);
+    }
+    if (localPath.present) {
+      map['local_path'] = Variable<String>(localPath.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (uti.present) {
+      map['uti'] = Variable<String>(uti.value);
+    }
+    if (transferName.present) {
+      map['transfer_name'] = Variable<String>(transferName.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (isSticker.present) {
+      map['is_sticker'] = Variable<bool>(isSticker.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<String>(createdAtUtc.value);
+    }
+    if (isOutgoing.present) {
+      map['is_outgoing'] = Variable<bool>(isOutgoing.value);
+    }
+    if (sha256Hex.present) {
+      map['sha256_hex'] = Variable<String>(sha256Hex.value);
+    }
+    if (batchId.present) {
+      map['batch_id'] = Variable<int>(batchId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecoveredUnlinkedAttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('messageGuid: $messageGuid, ')
+          ..write('importAttachmentId: $importAttachmentId, ')
+          ..write('localPath: $localPath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('uti: $uti, ')
+          ..write('transferName: $transferName, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('isSticker: $isSticker, ')
           ..write('createdAtUtc: $createdAtUtc, ')
           ..write('isOutgoing: $isOutgoing, ')
           ..write('sha256Hex: $sha256Hex, ')
@@ -10377,6 +12289,8 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
   late final $WorkingMessagesTable workingMessages = $WorkingMessagesTable(
     this,
   );
+  late final $RecoveredUnlinkedMessagesTable recoveredUnlinkedMessages =
+      $RecoveredUnlinkedMessagesTable(this);
   late final $GlobalMessageIndexTable globalMessageIndex =
       $GlobalMessageIndexTable(this);
   late final $MessageIndexTable messageIndex = $MessageIndexTable(this);
@@ -10384,6 +12298,8 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
       $ContactMessageIndexTable(this);
   late final $WorkingAttachmentsTable workingAttachments =
       $WorkingAttachmentsTable(this);
+  late final $RecoveredUnlinkedAttachmentsTable recoveredUnlinkedAttachments =
+      $RecoveredUnlinkedAttachmentsTable(this);
   late final $WorkingReactionsTable workingReactions = $WorkingReactionsTable(
     this,
   );
@@ -10412,10 +12328,12 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
     workingChats,
     chatToHandle,
     workingMessages,
+    recoveredUnlinkedMessages,
     globalMessageIndex,
     messageIndex,
     contactMessageIndex,
     workingAttachments,
+    recoveredUnlinkedAttachments,
     workingReactions,
     reactionCounts,
     readState,
@@ -10482,6 +12400,15 @@ abstract class _$WorkingDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('messages', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'handles_canonical',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('recovered_unlinked_messages', kind: UpdateKind.update),
+      ],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -11221,6 +13148,34 @@ final class $$HandlesCanonicalTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $RecoveredUnlinkedMessagesTable,
+    List<RecoveredUnlinkedMessage>
+  >
+  _recoveredUnlinkedMessagesRefsTable(_$WorkingDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.recoveredUnlinkedMessages,
+        aliasName: $_aliasNameGenerator(
+          db.handlesCanonical.id,
+          db.recoveredUnlinkedMessages.senderHandleId,
+        ),
+      );
+
+  $$RecoveredUnlinkedMessagesTableProcessedTableManager
+  get recoveredUnlinkedMessagesRefs {
+    final manager = $$RecoveredUnlinkedMessagesTableTableManager(
+      $_db,
+      $_db.recoveredUnlinkedMessages,
+    ).filter((f) => f.senderHandleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _recoveredUnlinkedMessagesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$WorkingReactionsTable, List<WorkingReaction>>
   _workingReactionsRefsTable(_$WorkingDatabase db) =>
       MultiTypedResultKey.fromTable(
@@ -11433,6 +13388,33 @@ class $$HandlesCanonicalTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> recoveredUnlinkedMessagesRefs(
+    Expression<bool> Function($$RecoveredUnlinkedMessagesTableFilterComposer f)
+    f,
+  ) {
+    final $$RecoveredUnlinkedMessagesTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recoveredUnlinkedMessages,
+          getReferencedColumn: (t) => t.senderHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecoveredUnlinkedMessagesTableFilterComposer(
+                $db: $db,
+                $table: $db.recoveredUnlinkedMessages,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -11707,6 +13689,33 @@ class $$HandlesCanonicalTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> recoveredUnlinkedMessagesRefs<T extends Object>(
+    Expression<T> Function($$RecoveredUnlinkedMessagesTableAnnotationComposer a)
+    f,
+  ) {
+    final $$RecoveredUnlinkedMessagesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recoveredUnlinkedMessages,
+          getReferencedColumn: (t) => t.senderHandleId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecoveredUnlinkedMessagesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.recoveredUnlinkedMessages,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> workingReactionsRefs<T extends Object>(
     Expression<T> Function($$WorkingReactionsTableAnnotationComposer a) f,
   ) {
@@ -11752,6 +13761,7 @@ class $$HandlesCanonicalTableTableManager
             bool workingChatsRefs,
             bool chatToHandleRefs,
             bool workingMessagesRefs,
+            bool recoveredUnlinkedMessagesRefs,
             bool workingReactionsRefs,
           })
         > {
@@ -11835,6 +13845,7 @@ class $$HandlesCanonicalTableTableManager
                 workingChatsRefs = false,
                 chatToHandleRefs = false,
                 workingMessagesRefs = false,
+                recoveredUnlinkedMessagesRefs = false,
                 workingReactionsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -11845,6 +13856,8 @@ class $$HandlesCanonicalTableTableManager
                     if (workingChatsRefs) db.workingChats,
                     if (chatToHandleRefs) db.chatToHandle,
                     if (workingMessagesRefs) db.workingMessages,
+                    if (recoveredUnlinkedMessagesRefs)
+                      db.recoveredUnlinkedMessages,
                     if (workingReactionsRefs) db.workingReactions,
                   ],
                   addJoins: null,
@@ -11955,6 +13968,27 @@ class $$HandlesCanonicalTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (recoveredUnlinkedMessagesRefs)
+                        await $_getPrefetchedData<
+                          HandlesCanonicalData,
+                          $HandlesCanonicalTable,
+                          RecoveredUnlinkedMessage
+                        >(
+                          currentTable: table,
+                          referencedTable: $$HandlesCanonicalTableReferences
+                              ._recoveredUnlinkedMessagesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$HandlesCanonicalTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).recoveredUnlinkedMessagesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.senderHandleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (workingReactionsRefs)
                         await $_getPrefetchedData<
                           HandlesCanonicalData,
@@ -12002,6 +14036,7 @@ typedef $$HandlesCanonicalTableProcessedTableManager =
         bool workingChatsRefs,
         bool chatToHandleRefs,
         bool workingMessagesRefs,
+        bool recoveredUnlinkedMessagesRefs,
         bool workingReactionsRefs,
       })
     >;
@@ -16107,6 +18142,631 @@ typedef $$WorkingMessagesTableProcessedTableManager =
         bool workingReactionsRefs,
       })
     >;
+typedef $$RecoveredUnlinkedMessagesTableCreateCompanionBuilder =
+    RecoveredUnlinkedMessagesCompanion Function({
+      Value<int> id,
+      required String guid,
+      Value<int?> senderHandleId,
+      Value<String?> senderAddress,
+      Value<String> service,
+      Value<bool> isFromMe,
+      Value<String?> sentAtUtc,
+      Value<String?> deliveredAtUtc,
+      Value<String?> readAtUtc,
+      Value<String?> textContent,
+      Value<String?> itemType,
+      Value<bool> isSystemMessage,
+      Value<int?> errorCode,
+      Value<bool> hasAttachments,
+      Value<String?> associatedMessageGuid,
+      Value<String?> threadOriginatorGuid,
+      Value<String?> balloonBundleId,
+      Value<String?> payloadJson,
+      Value<int?> batchId,
+    });
+typedef $$RecoveredUnlinkedMessagesTableUpdateCompanionBuilder =
+    RecoveredUnlinkedMessagesCompanion Function({
+      Value<int> id,
+      Value<String> guid,
+      Value<int?> senderHandleId,
+      Value<String?> senderAddress,
+      Value<String> service,
+      Value<bool> isFromMe,
+      Value<String?> sentAtUtc,
+      Value<String?> deliveredAtUtc,
+      Value<String?> readAtUtc,
+      Value<String?> textContent,
+      Value<String?> itemType,
+      Value<bool> isSystemMessage,
+      Value<int?> errorCode,
+      Value<bool> hasAttachments,
+      Value<String?> associatedMessageGuid,
+      Value<String?> threadOriginatorGuid,
+      Value<String?> balloonBundleId,
+      Value<String?> payloadJson,
+      Value<int?> batchId,
+    });
+
+final class $$RecoveredUnlinkedMessagesTableReferences
+    extends
+        BaseReferences<
+          _$WorkingDatabase,
+          $RecoveredUnlinkedMessagesTable,
+          RecoveredUnlinkedMessage
+        > {
+  $$RecoveredUnlinkedMessagesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $HandlesCanonicalTable _senderHandleIdTable(_$WorkingDatabase db) =>
+      db.handlesCanonical.createAlias(
+        $_aliasNameGenerator(
+          db.recoveredUnlinkedMessages.senderHandleId,
+          db.handlesCanonical.id,
+        ),
+      );
+
+  $$HandlesCanonicalTableProcessedTableManager? get senderHandleId {
+    final $_column = $_itemColumn<int>('sender_handle_id');
+    if ($_column == null) return null;
+    final manager = $$HandlesCanonicalTableTableManager(
+      $_db,
+      $_db.handlesCanonical,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_senderHandleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RecoveredUnlinkedMessagesTableFilterComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedMessagesTable> {
+  $$RecoveredUnlinkedMessagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get guid => $composableBuilder(
+    column: $table.guid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get senderAddress => $composableBuilder(
+    column: $table.senderAddress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFromMe => $composableBuilder(
+    column: $table.isFromMe,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sentAtUtc => $composableBuilder(
+    column: $table.sentAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get readAtUtc => $composableBuilder(
+    column: $table.readAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get textContent => $composableBuilder(
+    column: $table.textContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemType => $composableBuilder(
+    column: $table.itemType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasAttachments => $composableBuilder(
+    column: $table.hasAttachments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balloonBundleId => $composableBuilder(
+    column: $table.balloonBundleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$HandlesCanonicalTableFilterComposer get senderHandleId {
+    final $$HandlesCanonicalTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.handlesCanonical,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HandlesCanonicalTableFilterComposer(
+            $db: $db,
+            $table: $db.handlesCanonical,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecoveredUnlinkedMessagesTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedMessagesTable> {
+  $$RecoveredUnlinkedMessagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get guid => $composableBuilder(
+    column: $table.guid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get senderAddress => $composableBuilder(
+    column: $table.senderAddress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get service => $composableBuilder(
+    column: $table.service,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isFromMe => $composableBuilder(
+    column: $table.isFromMe,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sentAtUtc => $composableBuilder(
+    column: $table.sentAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get readAtUtc => $composableBuilder(
+    column: $table.readAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get textContent => $composableBuilder(
+    column: $table.textContent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemType => $composableBuilder(
+    column: $table.itemType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasAttachments => $composableBuilder(
+    column: $table.hasAttachments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balloonBundleId => $composableBuilder(
+    column: $table.balloonBundleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$HandlesCanonicalTableOrderingComposer get senderHandleId {
+    final $$HandlesCanonicalTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.handlesCanonical,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HandlesCanonicalTableOrderingComposer(
+            $db: $db,
+            $table: $db.handlesCanonical,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecoveredUnlinkedMessagesTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedMessagesTable> {
+  $$RecoveredUnlinkedMessagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get guid =>
+      $composableBuilder(column: $table.guid, builder: (column) => column);
+
+  GeneratedColumn<String> get senderAddress => $composableBuilder(
+    column: $table.senderAddress,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get service =>
+      $composableBuilder(column: $table.service, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFromMe =>
+      $composableBuilder(column: $table.isFromMe, builder: (column) => column);
+
+  GeneratedColumn<String> get sentAtUtc =>
+      $composableBuilder(column: $table.sentAtUtc, builder: (column) => column);
+
+  GeneratedColumn<String> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get readAtUtc =>
+      $composableBuilder(column: $table.readAtUtc, builder: (column) => column);
+
+  GeneratedColumn<String> get textContent => $composableBuilder(
+    column: $table.textContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get itemType =>
+      $composableBuilder(column: $table.itemType, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystemMessage => $composableBuilder(
+    column: $table.isSystemMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasAttachments => $composableBuilder(
+    column: $table.hasAttachments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get associatedMessageGuid => $composableBuilder(
+    column: $table.associatedMessageGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get threadOriginatorGuid => $composableBuilder(
+    column: $table.threadOriginatorGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get balloonBundleId => $composableBuilder(
+    column: $table.balloonBundleId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
+
+  $$HandlesCanonicalTableAnnotationComposer get senderHandleId {
+    final $$HandlesCanonicalTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.senderHandleId,
+      referencedTable: $db.handlesCanonical,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HandlesCanonicalTableAnnotationComposer(
+            $db: $db,
+            $table: $db.handlesCanonical,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RecoveredUnlinkedMessagesTableTableManager
+    extends
+        RootTableManager<
+          _$WorkingDatabase,
+          $RecoveredUnlinkedMessagesTable,
+          RecoveredUnlinkedMessage,
+          $$RecoveredUnlinkedMessagesTableFilterComposer,
+          $$RecoveredUnlinkedMessagesTableOrderingComposer,
+          $$RecoveredUnlinkedMessagesTableAnnotationComposer,
+          $$RecoveredUnlinkedMessagesTableCreateCompanionBuilder,
+          $$RecoveredUnlinkedMessagesTableUpdateCompanionBuilder,
+          (
+            RecoveredUnlinkedMessage,
+            $$RecoveredUnlinkedMessagesTableReferences,
+          ),
+          RecoveredUnlinkedMessage,
+          PrefetchHooks Function({bool senderHandleId})
+        > {
+  $$RecoveredUnlinkedMessagesTableTableManager(
+    _$WorkingDatabase db,
+    $RecoveredUnlinkedMessagesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecoveredUnlinkedMessagesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RecoveredUnlinkedMessagesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RecoveredUnlinkedMessagesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> guid = const Value.absent(),
+                Value<int?> senderHandleId = const Value.absent(),
+                Value<String?> senderAddress = const Value.absent(),
+                Value<String> service = const Value.absent(),
+                Value<bool> isFromMe = const Value.absent(),
+                Value<String?> sentAtUtc = const Value.absent(),
+                Value<String?> deliveredAtUtc = const Value.absent(),
+                Value<String?> readAtUtc = const Value.absent(),
+                Value<String?> textContent = const Value.absent(),
+                Value<String?> itemType = const Value.absent(),
+                Value<bool> isSystemMessage = const Value.absent(),
+                Value<int?> errorCode = const Value.absent(),
+                Value<bool> hasAttachments = const Value.absent(),
+                Value<String?> associatedMessageGuid = const Value.absent(),
+                Value<String?> threadOriginatorGuid = const Value.absent(),
+                Value<String?> balloonBundleId = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => RecoveredUnlinkedMessagesCompanion(
+                id: id,
+                guid: guid,
+                senderHandleId: senderHandleId,
+                senderAddress: senderAddress,
+                service: service,
+                isFromMe: isFromMe,
+                sentAtUtc: sentAtUtc,
+                deliveredAtUtc: deliveredAtUtc,
+                readAtUtc: readAtUtc,
+                textContent: textContent,
+                itemType: itemType,
+                isSystemMessage: isSystemMessage,
+                errorCode: errorCode,
+                hasAttachments: hasAttachments,
+                associatedMessageGuid: associatedMessageGuid,
+                threadOriginatorGuid: threadOriginatorGuid,
+                balloonBundleId: balloonBundleId,
+                payloadJson: payloadJson,
+                batchId: batchId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String guid,
+                Value<int?> senderHandleId = const Value.absent(),
+                Value<String?> senderAddress = const Value.absent(),
+                Value<String> service = const Value.absent(),
+                Value<bool> isFromMe = const Value.absent(),
+                Value<String?> sentAtUtc = const Value.absent(),
+                Value<String?> deliveredAtUtc = const Value.absent(),
+                Value<String?> readAtUtc = const Value.absent(),
+                Value<String?> textContent = const Value.absent(),
+                Value<String?> itemType = const Value.absent(),
+                Value<bool> isSystemMessage = const Value.absent(),
+                Value<int?> errorCode = const Value.absent(),
+                Value<bool> hasAttachments = const Value.absent(),
+                Value<String?> associatedMessageGuid = const Value.absent(),
+                Value<String?> threadOriginatorGuid = const Value.absent(),
+                Value<String?> balloonBundleId = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => RecoveredUnlinkedMessagesCompanion.insert(
+                id: id,
+                guid: guid,
+                senderHandleId: senderHandleId,
+                senderAddress: senderAddress,
+                service: service,
+                isFromMe: isFromMe,
+                sentAtUtc: sentAtUtc,
+                deliveredAtUtc: deliveredAtUtc,
+                readAtUtc: readAtUtc,
+                textContent: textContent,
+                itemType: itemType,
+                isSystemMessage: isSystemMessage,
+                errorCode: errorCode,
+                hasAttachments: hasAttachments,
+                associatedMessageGuid: associatedMessageGuid,
+                threadOriginatorGuid: threadOriginatorGuid,
+                balloonBundleId: balloonBundleId,
+                payloadJson: payloadJson,
+                batchId: batchId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RecoveredUnlinkedMessagesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({senderHandleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (senderHandleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.senderHandleId,
+                                referencedTable:
+                                    $$RecoveredUnlinkedMessagesTableReferences
+                                        ._senderHandleIdTable(db),
+                                referencedColumn:
+                                    $$RecoveredUnlinkedMessagesTableReferences
+                                        ._senderHandleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RecoveredUnlinkedMessagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $RecoveredUnlinkedMessagesTable,
+      RecoveredUnlinkedMessage,
+      $$RecoveredUnlinkedMessagesTableFilterComposer,
+      $$RecoveredUnlinkedMessagesTableOrderingComposer,
+      $$RecoveredUnlinkedMessagesTableAnnotationComposer,
+      $$RecoveredUnlinkedMessagesTableCreateCompanionBuilder,
+      $$RecoveredUnlinkedMessagesTableUpdateCompanionBuilder,
+      (RecoveredUnlinkedMessage, $$RecoveredUnlinkedMessagesTableReferences),
+      RecoveredUnlinkedMessage,
+      PrefetchHooks Function({bool senderHandleId})
+    >;
 typedef $$GlobalMessageIndexTableCreateCompanionBuilder =
     GlobalMessageIndexCompanion Function({
       Value<int> ordinal,
@@ -17765,6 +20425,381 @@ typedef $$WorkingAttachmentsTableProcessedTableManager =
         >,
       ),
       WorkingAttachment,
+      PrefetchHooks Function()
+    >;
+typedef $$RecoveredUnlinkedAttachmentsTableCreateCompanionBuilder =
+    RecoveredUnlinkedAttachmentsCompanion Function({
+      Value<int> id,
+      required String messageGuid,
+      Value<int?> importAttachmentId,
+      Value<String?> localPath,
+      Value<String?> mimeType,
+      Value<String?> uti,
+      Value<String?> transferName,
+      Value<int?> sizeBytes,
+      Value<bool> isSticker,
+      Value<String?> createdAtUtc,
+      Value<bool> isOutgoing,
+      Value<String?> sha256Hex,
+      Value<int?> batchId,
+    });
+typedef $$RecoveredUnlinkedAttachmentsTableUpdateCompanionBuilder =
+    RecoveredUnlinkedAttachmentsCompanion Function({
+      Value<int> id,
+      Value<String> messageGuid,
+      Value<int?> importAttachmentId,
+      Value<String?> localPath,
+      Value<String?> mimeType,
+      Value<String?> uti,
+      Value<String?> transferName,
+      Value<int?> sizeBytes,
+      Value<bool> isSticker,
+      Value<String?> createdAtUtc,
+      Value<bool> isOutgoing,
+      Value<String?> sha256Hex,
+      Value<int?> batchId,
+    });
+
+class $$RecoveredUnlinkedAttachmentsTableFilterComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedAttachmentsTable> {
+  $$RecoveredUnlinkedAttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get messageGuid => $composableBuilder(
+    column: $table.messageGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get importAttachmentId => $composableBuilder(
+    column: $table.importAttachmentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uti => $composableBuilder(
+    column: $table.uti,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transferName => $composableBuilder(
+    column: $table.transferName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSticker => $composableBuilder(
+    column: $table.isSticker,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256Hex => $composableBuilder(
+    column: $table.sha256Hex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecoveredUnlinkedAttachmentsTableOrderingComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedAttachmentsTable> {
+  $$RecoveredUnlinkedAttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get messageGuid => $composableBuilder(
+    column: $table.messageGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get importAttachmentId => $composableBuilder(
+    column: $table.importAttachmentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localPath => $composableBuilder(
+    column: $table.localPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uti => $composableBuilder(
+    column: $table.uti,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get transferName => $composableBuilder(
+    column: $table.transferName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSticker => $composableBuilder(
+    column: $table.isSticker,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256Hex => $composableBuilder(
+    column: $table.sha256Hex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecoveredUnlinkedAttachmentsTableAnnotationComposer
+    extends Composer<_$WorkingDatabase, $RecoveredUnlinkedAttachmentsTable> {
+  $$RecoveredUnlinkedAttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get messageGuid => $composableBuilder(
+    column: $table.messageGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get importAttachmentId => $composableBuilder(
+    column: $table.importAttachmentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get localPath =>
+      $composableBuilder(column: $table.localPath, builder: (column) => column);
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<String> get uti =>
+      $composableBuilder(column: $table.uti, builder: (column) => column);
+
+  GeneratedColumn<String> get transferName => $composableBuilder(
+    column: $table.transferName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSticker =>
+      $composableBuilder(column: $table.isSticker, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isOutgoing => $composableBuilder(
+    column: $table.isOutgoing,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sha256Hex =>
+      $composableBuilder(column: $table.sha256Hex, builder: (column) => column);
+
+  GeneratedColumn<int> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
+}
+
+class $$RecoveredUnlinkedAttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$WorkingDatabase,
+          $RecoveredUnlinkedAttachmentsTable,
+          RecoveredUnlinkedAttachment,
+          $$RecoveredUnlinkedAttachmentsTableFilterComposer,
+          $$RecoveredUnlinkedAttachmentsTableOrderingComposer,
+          $$RecoveredUnlinkedAttachmentsTableAnnotationComposer,
+          $$RecoveredUnlinkedAttachmentsTableCreateCompanionBuilder,
+          $$RecoveredUnlinkedAttachmentsTableUpdateCompanionBuilder,
+          (
+            RecoveredUnlinkedAttachment,
+            BaseReferences<
+              _$WorkingDatabase,
+              $RecoveredUnlinkedAttachmentsTable,
+              RecoveredUnlinkedAttachment
+            >,
+          ),
+          RecoveredUnlinkedAttachment,
+          PrefetchHooks Function()
+        > {
+  $$RecoveredUnlinkedAttachmentsTableTableManager(
+    _$WorkingDatabase db,
+    $RecoveredUnlinkedAttachmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecoveredUnlinkedAttachmentsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RecoveredUnlinkedAttachmentsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RecoveredUnlinkedAttachmentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> messageGuid = const Value.absent(),
+                Value<int?> importAttachmentId = const Value.absent(),
+                Value<String?> localPath = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<String?> uti = const Value.absent(),
+                Value<String?> transferName = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<bool> isSticker = const Value.absent(),
+                Value<String?> createdAtUtc = const Value.absent(),
+                Value<bool> isOutgoing = const Value.absent(),
+                Value<String?> sha256Hex = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => RecoveredUnlinkedAttachmentsCompanion(
+                id: id,
+                messageGuid: messageGuid,
+                importAttachmentId: importAttachmentId,
+                localPath: localPath,
+                mimeType: mimeType,
+                uti: uti,
+                transferName: transferName,
+                sizeBytes: sizeBytes,
+                isSticker: isSticker,
+                createdAtUtc: createdAtUtc,
+                isOutgoing: isOutgoing,
+                sha256Hex: sha256Hex,
+                batchId: batchId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String messageGuid,
+                Value<int?> importAttachmentId = const Value.absent(),
+                Value<String?> localPath = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<String?> uti = const Value.absent(),
+                Value<String?> transferName = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<bool> isSticker = const Value.absent(),
+                Value<String?> createdAtUtc = const Value.absent(),
+                Value<bool> isOutgoing = const Value.absent(),
+                Value<String?> sha256Hex = const Value.absent(),
+                Value<int?> batchId = const Value.absent(),
+              }) => RecoveredUnlinkedAttachmentsCompanion.insert(
+                id: id,
+                messageGuid: messageGuid,
+                importAttachmentId: importAttachmentId,
+                localPath: localPath,
+                mimeType: mimeType,
+                uti: uti,
+                transferName: transferName,
+                sizeBytes: sizeBytes,
+                isSticker: isSticker,
+                createdAtUtc: createdAtUtc,
+                isOutgoing: isOutgoing,
+                sha256Hex: sha256Hex,
+                batchId: batchId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecoveredUnlinkedAttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$WorkingDatabase,
+      $RecoveredUnlinkedAttachmentsTable,
+      RecoveredUnlinkedAttachment,
+      $$RecoveredUnlinkedAttachmentsTableFilterComposer,
+      $$RecoveredUnlinkedAttachmentsTableOrderingComposer,
+      $$RecoveredUnlinkedAttachmentsTableAnnotationComposer,
+      $$RecoveredUnlinkedAttachmentsTableCreateCompanionBuilder,
+      $$RecoveredUnlinkedAttachmentsTableUpdateCompanionBuilder,
+      (
+        RecoveredUnlinkedAttachment,
+        BaseReferences<
+          _$WorkingDatabase,
+          $RecoveredUnlinkedAttachmentsTable,
+          RecoveredUnlinkedAttachment
+        >,
+      ),
+      RecoveredUnlinkedAttachment,
       PrefetchHooks Function()
     >;
 typedef $$WorkingReactionsTableCreateCompanionBuilder =
@@ -19483,6 +22518,11 @@ class $WorkingDatabaseManager {
       $$ChatToHandleTableTableManager(_db, _db.chatToHandle);
   $$WorkingMessagesTableTableManager get workingMessages =>
       $$WorkingMessagesTableTableManager(_db, _db.workingMessages);
+  $$RecoveredUnlinkedMessagesTableTableManager get recoveredUnlinkedMessages =>
+      $$RecoveredUnlinkedMessagesTableTableManager(
+        _db,
+        _db.recoveredUnlinkedMessages,
+      );
   $$GlobalMessageIndexTableTableManager get globalMessageIndex =>
       $$GlobalMessageIndexTableTableManager(_db, _db.globalMessageIndex);
   $$MessageIndexTableTableManager get messageIndex =>
@@ -19491,6 +22531,12 @@ class $WorkingDatabaseManager {
       $$ContactMessageIndexTableTableManager(_db, _db.contactMessageIndex);
   $$WorkingAttachmentsTableTableManager get workingAttachments =>
       $$WorkingAttachmentsTableTableManager(_db, _db.workingAttachments);
+  $$RecoveredUnlinkedAttachmentsTableTableManager
+  get recoveredUnlinkedAttachments =>
+      $$RecoveredUnlinkedAttachmentsTableTableManager(
+        _db,
+        _db.recoveredUnlinkedAttachments,
+      );
   $$WorkingReactionsTableTableManager get workingReactions =>
       $$WorkingReactionsTableTableManager(_db, _db.workingReactions);
   $$ReactionCountsTableTableManager get reactionCounts =>

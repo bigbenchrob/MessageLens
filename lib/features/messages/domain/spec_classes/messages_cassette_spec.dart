@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'messages_cassette_spec.freezed.dart';
 
-/// Specification for the contacts-related cassette types.
+/// Specification for the messages-related cassette types.
 ///
 /// This file resides in the `features` folder to align with the directory
 /// structure described in the essentials/sidebar domain. It mirrors the

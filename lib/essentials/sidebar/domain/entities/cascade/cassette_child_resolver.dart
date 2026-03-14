@@ -19,5 +19,6 @@ CassetteSpec? resolveCassetteChild(CassetteSpec spec) {
     handles: (inner) => inner.childSpec(),
     handlesInfo: (inner) => inner.childSpec(),
     messages: (inner) => inner.childSpec(),
+    messagesInfo: (inner) => inner.childSpec(),
   );
 }

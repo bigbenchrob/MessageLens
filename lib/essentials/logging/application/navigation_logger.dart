@@ -64,6 +64,13 @@ class NavigationLogEntry {
             'variant': 'forHandle',
             'handleId': handleId,
           },
+          recoveredUnlinkedMessages: (contactId) => {
+            'variant': 'recoveredUnlinkedMessages',
+            if (contactId != null) 'contactId': contactId,
+          },
+          recoveredNoHandleFromMeMessages: () => {
+            'variant': 'recoveredNoHandleFromMeMessages',
+          },
           forChatInDateRange: (chatId, startDate, endDate) => {
             'variant': 'forChatInDateRange',
             'chatId': chatId,

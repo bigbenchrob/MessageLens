@@ -10,6 +10,12 @@ CassetteSpec? resolveSidebarUtilityChild(SidebarUtilityCassetteSpec spec) {
         case TopChatMenuChoice.strayHandles:
           return sidebarUtilityToStrayHandlesTypeSwitcher();
 
+        case TopChatMenuChoice.recoveredUnlinkedMessages:
+          return sidebarUtilityToRecoveredUnlinkedNavigator();
+
+        case TopChatMenuChoice.recoveredNoHandleFromMeMessages:
+          return sidebarUtilityToRecoveredNoHandleFromMeNavigator();
+
         case TopChatMenuChoice.searchAllMessages:
           return sidebarUtilityToMessagesHeatMapAll();
       }

@@ -9,6 +9,18 @@ enum TopChatMenuChoice {
   /// Handles not matched to any contact (phone #, email, business URN)
   strayHandles(id: 'stray_handles', label: 'From unfamiliar sources'),
 
+  /// Source messages recovered outside the normal chat linkage model.
+  recoveredUnlinkedMessages(
+    id: 'recovered_unlinked_messages',
+    label: 'Recovered Deleted Messages',
+  ),
+
+  /// Recovered orphaned records with no surviving handle linkage.
+  recoveredNoHandleFromMeMessages(
+    id: 'recovered_no_handle_from_me_messages',
+    label: 'Recovered No-Handle Messages',
+  ),
+
   /// Search all messages in the database (global timeline)
   searchAllMessages(id: 'search_all_messages', label: 'Search all messages');
 

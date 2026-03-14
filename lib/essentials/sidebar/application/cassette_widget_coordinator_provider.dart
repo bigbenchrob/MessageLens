@@ -109,6 +109,15 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
             cassetteIndex: cassetteIndex,
           );
         },
+        messagesInfo: (messagesInfoSpec) async {
+          final coordinator = ref.read(
+            messages_feature.messagesInfoCassetteCoordinatorProvider.notifier,
+          );
+          return coordinator.buildViewModel(
+            messagesInfoSpec,
+            cassetteIndex: cassetteIndex,
+          );
+        },
       );
     }
 
@@ -124,33 +133,40 @@ class CassetteWidgetCoordinator extends _$CassetteWidgetCoordinator {
         cassetteIndex: cassetteIndex,
       );
 
+      Widget widget;
+
       switch (viewModel.cardType) {
         case CassetteCardType.standard:
-          widgets.add(
-            SidebarCassetteCard(
-              title: viewModel.title,
-              subtitle: viewModel.subtitle,
-              sectionTitle: viewModel.sectionTitle,
-              footerText: viewModel.footerText,
-              isControl: viewModel.isControl,
-              isNaked: viewModel.isNaked,
-              shouldExpand: viewModel.shouldExpand,
-              layoutStyle: viewModel.layoutStyle,
-              child: viewModel.child,
-            ),
+          widget = SidebarCassetteCard(
+            title: viewModel.title,
+            subtitle: viewModel.subtitle,
+            sectionTitle: viewModel.sectionTitle,
+            footerText: viewModel.footerText,
+            isControl: viewModel.isControl,
+            isNaked: viewModel.isNaked,
+            shouldExpand: viewModel.shouldExpand,
+            layoutStyle: viewModel.layoutStyle,
+            child: viewModel.child,
           );
         case CassetteCardType.info:
-          widgets.add(
-            SidebarInfoCard(
-              title: viewModel.title.isEmpty ? null : viewModel.title,
-              body: TextSpan(text: viewModel.infoBodyText ?? ''),
-              footnote: viewModel.footerText,
-              action: viewModel.infoAction,
-            ),
+          widget = SidebarInfoCard(
+            title: viewModel.title.isEmpty ? null : viewModel.title,
+            body: TextSpan(text: viewModel.infoBodyText ?? ''),
+            footnote: viewModel.footerText,
+            action: viewModel.infoAction,
           );
         case CassetteCardType.sidebarNavigation:
-          widgets.add(SidebarNavigationCard(child: viewModel.child));
+          widget = SidebarNavigationCard(child: viewModel.child);
       }
+
+      if (viewModel.topSpacing > 0) {
+        widget = Padding(
+          padding: EdgeInsets.only(top: viewModel.topSpacing),
+          child: widget,
+        );
+      }
+
+      widgets.add(widget);
     }
 
     // Build widgets for the explicit rack cassettes.

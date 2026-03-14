@@ -2,7 +2,7 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-03-13
 source_of_truth: doc
 links:
        - ./00-all-databases-accessed.md
@@ -63,15 +63,29 @@ If a proposed change requires remapping IDs, stop and revisit this contract—re
 - **Projection is disposable**: `db-working` may be dropped and rebuilt at any time; migrators re-materialize it from the ledger.
 - **Write policy**: Runtime features never mutate `db-import`. `db-working` writes happen only through sanctioned services (e.g., overlay merges) and must respect the overlay independence rules.
 
-## 5. Debugging Checklist
+## 5. Current Import Reality: Source Message Orphans
+
+The macOS source database may contain `message` rows that do not appear in `chat_message_join`. MessageLens now preserves those rows on a dedicated recovered path rather than leaving them outside the app's data model.
+
+- `chat.db.message` count can exceed thread-linked `db-import.messages`
+- the orphan portion should appear in `db-import.recovered_unlinked_messages`
+- migration should carry that preserved orphan set forward into `db-working.recovered_unlinked_messages`
+- audit logs should distinguish thread-linked counts from recovered preserved counts
+
+This is the practical implication of the current Apple data shape: source visibility in `chat.db.message` and thread visibility via `chat_message_join` are not the same thing.
+
+## 6. Debugging Checklist
 
 1. Confirm the row exists in `db-import` before suspecting migration bugs.
+       For source orphan rows, check both `messages` and `recovered_unlinked_messages`.
 2. Verify the corresponding row in `db-working` retains the same ID.
+       For recovered rows, check `recovered_unlinked_messages` and `recovered_unlinked_attachments` rather than normal chat-linked tables.
 3. Check `handle_to_participant` and `chat_to_handle` join paths using the preserved IDs.
 4. Re-run the migration orchestrator if the projection is stale or corrupted.
-5. If IDs differ at any step, halt—someone attempted to remap during migration.
+5. Inspect `import_log` and `migrate_log` before manual SQL diffing; they already report source-vs-ledger-vs-working row deltas, text counts, and join-drop diagnostics.
+6. If IDs differ at any step, halt—someone attempted to remap during migration.
 
-## 6. Related Documents
+## 7. Related Documents
 
 - `01-db-import.md` — Ledger details and provider access.
 - `02-db-working.md` — Projection schema and usage.

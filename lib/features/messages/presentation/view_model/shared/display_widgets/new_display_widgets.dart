@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../../config/theme/colors/theme_colors.dart';
+import '../../../../../../essentials/debug/application/developer_mode_provider.dart';
 import '../hydration/attachment_info.dart';
 
 // ignore: avoid_classes_with_only_static_members
@@ -78,9 +79,15 @@ class MetadataLine extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
+    final developerMode = ref.watch(developerModeProvider).valueOrNull;
+    final isDeveloperMode = developerMode == DeveloperModeValue.developer;
     final formattedDateTime = _formatDateTime(sentAt);
+    final metadataText = isDeveloperMode
+        ? '$sender * $formattedDateTime * ID: $messageId'
+        : '$sender * $formattedDateTime';
+
     return Text(
-      '$sender * $formattedDateTime * ID: $messageId',
+      metadataText,
       style: TextStyle(
         color: colors.messageBubble(MessageBubble.metadata),
         fontSize: 11,

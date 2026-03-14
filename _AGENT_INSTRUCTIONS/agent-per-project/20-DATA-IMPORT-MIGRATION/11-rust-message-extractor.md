@@ -2,7 +2,7 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-03-13
 source_of_truth: code
 links:
   - ./01-overview.md
@@ -33,7 +33,7 @@ links:
    ```json
   {"messages":[{"rowid":123,"text":"..."}]}
    ```
-5. `_applyExtractedMessageText` trims each string and updates `messages.text` inside `macos_import.db`.
+5. `SqfliteImportDatabase.updateMessageText` trims each string, writes it to `messages.text`, and promotes misclassified text-bearing rows from `attachment-only` / `unknown` / `balloon` to `text` while preserving meaningful types like `reaction-carrier`.
 6. The orchestrated importer persists scratchpad stats (`messages.richTextApplied`) so migration and UI telemetry can confirm the extractor ran.
 
 ## Binary Interface
@@ -79,13 +79,17 @@ links:
 - Rebuild whenever the extractor CLI schema changes to avoid protocol mismatches between Dart and Rust.
 
 ## Logging & Failure Modes
-- Availability checks print to stdout:
-  - `Checking Rust extractor availability at: ...`
-  - `File exists: true/false`
-  - `File mode: 100755`
-- Missing binary -> `_extractRichText` logs "extractor not available" and returns an empty map; import still succeeds but text stays blank.
-- Non-zero exit codes bubble up as exceptions in `extractAllMessageTexts`; orchestrators catch the error, log, and continue without rich text.
-- Watch `messages.richTextApplied` in import summaries to confirm the extractor ran and updated rows.
+- The extractor now writes structured diagnostics through `AppLogger` with source `RustMessageExtractor`.
+- Logged context includes:
+  - resolved `extractorPath`
+  - current working directory
+  - `chat.db` path passed to the helper
+  - extraction limit
+  - availability result
+  - exit code, stderr, and decoded message count
+- Missing binary or unreadable helper -> the importer logs extractor unavailability, writes `messages.richTextApplied = 0`, and the run still succeeds structurally with mostly blank message text.
+- Non-zero exit codes bubble up as exceptions in `extractAllMessageTexts`; the rich-text importer catches the exception, records the failure in import logs, and continues without rich text.
+- Watch both `messages.richTextApplied` and the message text counts in `import_log` to confirm the extractor ran and meaningfully updated rows.
 
 ## Validation Checklist
 - `target/release/extract_messages_limited` exists and is executable.

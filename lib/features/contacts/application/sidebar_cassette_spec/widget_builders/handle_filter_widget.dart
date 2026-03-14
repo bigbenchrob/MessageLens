@@ -66,6 +66,8 @@ class HandleFilterWidget extends ConsumerWidget {
 }
 
 class _HandleFilterDropdown extends ConsumerWidget {
+  static const _popupMenuMaxHeight = 320.0;
+
   const _HandleFilterDropdown({
     required this.contactId,
     required this.handles,
@@ -169,21 +171,47 @@ class _HandleFilterDropdown extends ConsumerWidget {
         children: [
           Text('From phone # / email:', style: label),
           const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: MacosPopupButton<int?>(
-              value: selectedHandleId,
-              onChanged: (value) => _onHandleSelected(ref, value),
-              items: [
-                const MacosPopupMenuItem<int?>(value: null, child: Text('All')),
-                ...handles.map(
-                  (handle) => MacosPopupMenuItem<int?>(
-                    value: handle.handleId,
-                    child: Text('${handle.displayValue} (${handle.service})'),
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth - 36;
+
+              return SizedBox(
+                width: double.infinity,
+                child: MacosPopupButton<int?>(
+                  value: selectedHandleId,
+                  onChanged: (value) => _onHandleSelected(ref, value),
+                  menuMaxHeight: _popupMenuMaxHeight,
+                  selectedItemBuilder: (context) {
+                    return [
+                      _HandlePopupLabel(
+                        text: 'All linked handles',
+                        width: itemWidth,
+                      ),
+                      for (final handle in handles)
+                        _HandlePopupLabel(
+                          text: _handleMenuLabel(handle),
+                          width: itemWidth,
+                        ),
+                    ];
+                  },
+                  items: [
+                    const MacosPopupMenuItem<int?>(
+                      value: null,
+                      child: _HandlePopupLabel(text: 'All linked handles'),
+                    ),
+                    ...handles.map(
+                      (handle) => MacosPopupMenuItem<int?>(
+                        value: handle.handleId,
+                        child: _HandlePopupLabel(
+                          text: _handleMenuLabel(handle),
+                          width: itemWidth,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
           if (canUnlink) ...[
             const SizedBox(height: 6),
@@ -200,5 +228,32 @@ class _HandleFilterDropdown extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+String _handleMenuLabel(LinkedHandle handle) {
+  return '${handle.displayValue} (${handle.service})';
+}
+
+class _HandlePopupLabel extends StatelessWidget {
+  const _HandlePopupLabel({required this.text, this.width});
+
+  final String text;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      softWrap: false,
+    );
+
+    if (width == null) {
+      return child;
+    }
+
+    return SizedBox(width: width, child: child);
   }
 }

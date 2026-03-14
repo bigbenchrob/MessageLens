@@ -19,6 +19,22 @@ CassetteSpec sidebarUtilityToMessagesHeatMapAll() {
   );
 }
 
+CassetteSpec sidebarUtilityToRecoveredUnlinkedNavigator() {
+  return const CassetteSpec.messagesInfo(
+    MessagesInfoCassetteSpec.infoCard(
+      key: MessagesInfoKey.recoveredDeletedMessages,
+    ),
+  );
+}
+
+CassetteSpec sidebarUtilityToRecoveredNoHandleFromMeNavigator() {
+  return const CassetteSpec.messagesInfo(
+    MessagesInfoCassetteSpec.infoCard(
+      key: MessagesInfoKey.recoveredNoHandleMessages,
+    ),
+  );
+}
+
 CassetteSpec sidebarUtilitySettingsToActionsMenu() {
   return const CassetteSpec.contactsSettings(
     ContactsSettingsSpec.actionsMenu(),

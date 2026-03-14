@@ -2,7 +2,7 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-03-13
 source_of_truth: code
 links:
   - ./01-overview.md
@@ -18,6 +18,7 @@ links:
 - Project staged ledger data (`macos_import.db`) into the UI-ready projection (`working.db`).
 - Delegate work to focused migrators so validation, data movement, and error reporting stay table-specific.
 - Preserve all source identifiers created during import (chat ROWIDs, handle ROWIDs, message ROWIDs, AddressBook `Z_PK` values).
+- Preserve recovered unlinked source records as a separate projection path instead of coercing them into the normal chat model.
 
 ## Entry Points
 - Orchestrator: `lib/essentials/db_migrate/application/orchestrator/migration_orchestrator.dart`
@@ -27,7 +28,7 @@ links:
 - Progress events: `lib/essentials/db_migrate/domain/states/table_migration_progress.dart`
 
 ## Execution Model
-1. **HandlesMigrationService** assembles the ordered migrator list (handles -> chats -> memberships -> participants -> messages -> attachments -> reactions -> read-state) and instantiates `MigrationOrchestrator`.
+1. **HandlesMigrationService** assembles the ordered migrator list (handles -> chats -> memberships -> participants -> messages -> recovered-unlinked messages -> attachments -> recovered-unlinked attachments -> reactions -> read-state) and instantiates `MigrationOrchestrator`.
 2. **Preparation** - Working tables are truncated (unless `dryRun`) and rebuilt strictly from ledger data. User-managed overrides remain in `user_overlays.db` and are never copied into `working.db`.
 3. **Dependency sorting** - `_sorted()` runs a Kahn algorithm across every migrator's `dependsOn`. Cycles throw immediately.
 4. **Phase lifecycle** - For each migrator the orchestrator executes:
@@ -42,6 +43,13 @@ links:
 - Use canonical ID maps supplied by `MigrationContext` (e.g., `handleIdCanonicalMap`) rather than recalculating merges.
 - Keep copy logic idempotent so reruns overwrite the same rows without duplication.
 - Apply consistent validation using `BaseTableMigrator` helpers (`count`, `expectTrueOrThrow`, `expectZeroOrThrow`).
+
+## Recovered Message Projection Specifics
+
+- Recovered unlinked rows are projected into dedicated working tables rather than merged into `messages` with a fabricated `chat_id`.
+- Attachment hydration for recovered rows is likewise kept on a separate projection path.
+- Contact-scoped recovered browsing may later add conservative best-guess context in the provider/UI layer, but migration itself must remain a faithful projection of ledger facts.
+- This separation is deliberate: migration preserves what survived in the source databases; any conversational reconstruction remains an app-side interpretation layered on top.
 
 ## Error Handling
 - Migrator exceptions are wrapped by `_runPhase()`, logged with the phase label, and rethrown as `MigrationException` so the orchestrator halts immediately.

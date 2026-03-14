@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../../providers.dart';
+import '../../../debug/application/developer_mode_provider.dart';
 import '../../../logging/application/navigation_logger.dart';
 import '../../../onboarding/application/onboarding_gate_provider.dart';
 import '../../../onboarding/domain/import_spec.dart';
@@ -105,6 +107,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
     final onboardingStatus = ref.watch(onboardingGateProvider);
     final showOnboarding = onboardingStatus != OnboardingStatus.notNeeded;
+    final showDeveloperToolbarActions = !kReleaseMode;
 
     return Stack(
       children: [
@@ -152,34 +155,59 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                   },
                   showLabel: false,
                 ),
-                ToolBarIconButton(
-                  label: 'Onboarding',
-                  icon: const MacosIcon(CupertinoIcons.rocket),
-                  onPressed: () {
-                    ref
-                        .read(activeSidebarModeProvider.notifier)
-                        .setMode(SidebarMode.messages);
+                if (showDeveloperToolbarActions)
+                  ToolBarIconButton(
+                    label: 'Onboarding',
+                    icon: const MacosIcon(CupertinoIcons.rocket),
+                    onPressed: () {
+                      ref
+                          .read(activeSidebarModeProvider.notifier)
+                          .setMode(SidebarMode.messages);
 
-                    const spec = ViewSpec.onboarding(OnboardingSpec.devPanel());
+                      const spec = ViewSpec.onboarding(
+                        OnboardingSpec.devPanel(),
+                      );
 
-                    ref
-                        .read(navigationLoggerProvider.notifier)
-                        .logToolbarClick(
-                          buttonLabel: 'Onboarding',
-                          targetPanel: WindowPanel.center,
-                          viewSpec: spec,
-                        );
+                      ref
+                          .read(navigationLoggerProvider.notifier)
+                          .logToolbarClick(
+                            buttonLabel: 'Onboarding',
+                            targetPanel: WindowPanel.center,
+                            viewSpec: spec,
+                          );
 
-                    ref
-                        .read(
-                          panelsViewStateProvider(
-                            SidebarMode.messages,
-                          ).notifier,
-                        )
-                        .show(panel: WindowPanel.center, spec: spec);
-                  },
-                  showLabel: false,
-                ),
+                      ref
+                          .read(
+                            panelsViewStateProvider(
+                              SidebarMode.messages,
+                            ).notifier,
+                          )
+                          .show(panel: WindowPanel.center, spec: spec);
+                    },
+                    showLabel: false,
+                  ),
+                if (showDeveloperToolbarActions)
+                  () {
+                    final developerMode = ref.watch(developerModeProvider);
+                    final isDeveloperMode =
+                        developerMode.valueOrNull ==
+                        DeveloperModeValue.developer;
+
+                    return ToolBarIconButton(
+                      label: isDeveloperMode
+                          ? 'Developer Mode: On (click to switch to User Mode)'
+                          : 'Developer Mode: Off (click to switch to Developer Mode)',
+                      icon: MacosIcon(
+                        isDeveloperMode
+                            ? CupertinoIcons.chevron_left_slash_chevron_right
+                            : CupertinoIcons.person,
+                      ),
+                      onPressed: () {
+                        ref.read(developerModeProvider.notifier).toggleMode();
+                      },
+                      showLabel: false,
+                    );
+                  }(),
                 () {
                   final themeMode = ref.watch(switchableDarkModeProvider);
                   final (IconData icon, String tooltip) = switch (themeMode) {

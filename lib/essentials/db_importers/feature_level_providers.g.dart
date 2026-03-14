@@ -7,7 +7,7 @@ part of 'feature_level_providers.dart';
 // **************************************************************************
 
 String _$dbImportMessageExtractorHash() =>
-    r'cb9fa581030cfa90ef4455cfa6aa680207883dd6';
+    r'258eb7e7bdaeef245ca6d3656b21e9637e094bca';
 
 /// Provides the Rust-backed message extractor used to decode attributed blobs
 /// during the database import pipeline.

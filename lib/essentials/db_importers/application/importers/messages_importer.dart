@@ -44,6 +44,12 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
       ctx.writeScratch('messages.insertedIds', <int>[]);
       ctx.writeScratch('messages.extractionCandidates', <int>[]);
       ctx.writeScratch('messages.messageToChat', <String, int>{});
+      ctx.writeScratch('recoveredUnlinkedMessages.inserted', 0);
+      ctx.writeScratch('recoveredUnlinkedMessages.insertedIds', <int>[]);
+      ctx.writeScratch(
+        'recoveredUnlinkedMessages.extractionCandidates',
+        <int>[],
+      );
       return;
     }
 
@@ -64,9 +70,12 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
     final insertedIds = <int>[];
     final extractionCandidates = <int>{};
     final messageToChat = <int, int>{};
+    final recoveredInsertedIds = <int>[];
+    final recoveredExtractionCandidates = <int>{};
 
     var processed = 0;
     var inserted = 0;
+    var recoveredInserted = 0;
 
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
@@ -77,48 +86,82 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
       }
 
       final chatId = chatIdByMessage[sourceRowId];
-      if (chatId == null) {
-        processed += 1;
-        continue;
-      }
 
       final text = row['text'] as String?;
       final attributed = row['attributedBody'] as Uint8List?;
       final resolvedText = (text == null || text.isEmpty) ? null : text;
       final needsExtraction =
           (resolvedText == null || resolvedText.isEmpty) && attributed != null;
-      if (needsExtraction) {
-        extractionCandidates.add(sourceRowId);
-      }
+      if (chatId == null) {
+        if (needsExtraction) {
+          recoveredExtractionCandidates.add(sourceRowId);
+        }
 
-      final insertedId = await ctx.importDb.insertMessage(
-        id: sourceRowId,
-        sourceRowid: sourceRowId,
-        guid: guid,
-        chatId: chatId,
-        senderHandleId: row['handle_id'] as int?,
-        service: (row['service'] as String?)?.trim() ?? 'Unknown',
-        isFromMe: (row['is_from_me'] as int? ?? 0) == 1,
-        dateUtc: DateConverter.appleToIsoString(row['date']),
-        dateReadUtc: DateConverter.appleToIsoString(row['date_read']),
-        dateDeliveredUtc: DateConverter.appleToIsoString(row['date_delivered']),
-        subject: (row['subject'] as String?)?.trim(),
-        text: resolvedText,
-        attributedBodyBlob: attributed,
-        itemType: _inferItemType(row),
-        errorCode: row['error'] as int?,
-        isSystemMessage: (row['is_system_message'] as int? ?? 0) == 1,
-        threadOriginatorGuid: row['thread_originator_guid'] as String?,
-        associatedMessageGuid: row['associated_message_guid'] as String?,
-        balloonBundleId: row['balloon_bundle_id'] as String?,
-        payloadJson: _decodeOptionalBlob(row['payload_data']),
-        batchId: ctx.batchId,
-      );
+        final insertedId = await ctx.importDb.insertRecoveredUnlinkedMessage(
+          id: sourceRowId,
+          sourceRowid: sourceRowId,
+          guid: guid,
+          senderHandleId: row['handle_id'] as int?,
+          service: (row['service'] as String?)?.trim() ?? 'Unknown',
+          isFromMe: (row['is_from_me'] as int? ?? 0) == 1,
+          dateUtc: DateConverter.appleToIsoString(row['date']),
+          dateReadUtc: DateConverter.appleToIsoString(row['date_read']),
+          dateDeliveredUtc: DateConverter.appleToIsoString(
+            row['date_delivered'],
+          ),
+          subject: (row['subject'] as String?)?.trim(),
+          text: resolvedText,
+          attributedBodyBlob: attributed,
+          itemType: _inferItemType(row),
+          errorCode: row['error'] as int?,
+          isSystemMessage: (row['is_system_message'] as int? ?? 0) == 1,
+          threadOriginatorGuid: row['thread_originator_guid'] as String?,
+          associatedMessageGuid: row['associated_message_guid'] as String?,
+          balloonBundleId: row['balloon_bundle_id'] as String?,
+          payloadJson: _decodeOptionalBlob(row['payload_data']),
+          batchId: ctx.batchId,
+        );
 
-      if (insertedId > 0) {
-        inserted += 1;
-        insertedIds.add(sourceRowId);
-        messageToChat[sourceRowId] = chatId;
+        if (insertedId > 0) {
+          recoveredInserted += 1;
+          recoveredInsertedIds.add(sourceRowId);
+        }
+      } else {
+        if (needsExtraction) {
+          extractionCandidates.add(sourceRowId);
+        }
+
+        final insertedId = await ctx.importDb.insertMessage(
+          id: sourceRowId,
+          sourceRowid: sourceRowId,
+          guid: guid,
+          chatId: chatId,
+          senderHandleId: row['handle_id'] as int?,
+          service: (row['service'] as String?)?.trim() ?? 'Unknown',
+          isFromMe: (row['is_from_me'] as int? ?? 0) == 1,
+          dateUtc: DateConverter.appleToIsoString(row['date']),
+          dateReadUtc: DateConverter.appleToIsoString(row['date_read']),
+          dateDeliveredUtc: DateConverter.appleToIsoString(
+            row['date_delivered'],
+          ),
+          subject: (row['subject'] as String?)?.trim(),
+          text: resolvedText,
+          attributedBodyBlob: attributed,
+          itemType: _inferItemType(row),
+          errorCode: row['error'] as int?,
+          isSystemMessage: (row['is_system_message'] as int? ?? 0) == 1,
+          threadOriginatorGuid: row['thread_originator_guid'] as String?,
+          associatedMessageGuid: row['associated_message_guid'] as String?,
+          balloonBundleId: row['balloon_bundle_id'] as String?,
+          payloadJson: _decodeOptionalBlob(row['payload_data']),
+          batchId: ctx.batchId,
+        );
+
+        if (insertedId > 0) {
+          inserted += 1;
+          insertedIds.add(sourceRowId);
+          messageToChat[sourceRowId] = chatId;
+        }
       }
 
       processed += 1;
@@ -141,6 +184,15 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
       'messages.messageToChat',
       messageToChat.map((key, value) => MapEntry(key.toString(), value)),
     );
+    ctx.writeScratch('recoveredUnlinkedMessages.inserted', recoveredInserted);
+    ctx.writeScratch(
+      'recoveredUnlinkedMessages.insertedIds',
+      recoveredInsertedIds,
+    );
+    ctx.writeScratch(
+      'recoveredUnlinkedMessages.extractionCandidates',
+      recoveredExtractionCandidates.toList(),
+    );
 
     if (rows.isNotEmpty) {
       final lastRowId = rows.last['ROWID'];
@@ -153,7 +205,14 @@ class MessagesImporter extends BaseTableImporter with RowProgressReporter {
   @override
   Future<void> postValidate(IImportContext ctx) async {
     final total = await count(ctx.importDb, name);
-    ctx.info('MessagesImporter: ledger now tracks $total messages.');
+    final recoveredTotal = await count(
+      ctx.importDb,
+      'recovered_unlinked_messages',
+    );
+    ctx.info(
+      'MessagesImporter: ledger now tracks $total linked messages and '
+      '$recoveredTotal recovered unlinked messages.',
+    );
   }
 }
 

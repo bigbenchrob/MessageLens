@@ -20,7 +20,22 @@ class MessageRichTextImporter extends BaseTableImporter
   @override
   Future<void> copy(IImportContext ctx) async {
     final extractor = ctx.extractor;
-    final candidates = _readCandidateIds(ctx);
+    final linkedCandidates = _readCandidateIds(
+      ctx,
+      'messages.extractionCandidates',
+    );
+    final recoveredCandidates = _readCandidateIds(
+      ctx,
+      'recoveredUnlinkedMessages.extractionCandidates',
+    );
+    final candidates = <int>{
+      ...linkedCandidates,
+      ...recoveredCandidates,
+    }.toList(growable: false);
+    ctx.info(
+      'MessageRichTextImporter: starting with ${candidates.length} extraction candidates '
+      '(messagesDbPath=${ctx.messagesDbPath}, rustExtractionLimit=${ctx.rustExtractionLimit}).',
+    );
     if (candidates.isEmpty) {
       ctx.info('MessageRichTextImporter: no extraction candidates detected.');
       ctx.writeScratch('messages.richTextApplied', 0);
@@ -36,6 +51,9 @@ class MessageRichTextImporter extends BaseTableImporter
     }
 
     final available = await extractor.isAvailable();
+    ctx.info(
+      'MessageRichTextImporter: extractor availability result = $available.',
+    );
     if (!available) {
       ctx.info(
         'MessageRichTextImporter: extractor reported unavailable, skipping.',
@@ -52,11 +70,15 @@ class MessageRichTextImporter extends BaseTableImporter
       );
     } catch (error) {
       ctx.info(
-        'MessageRichTextImporter: extraction failed (${error.runtimeType}), skipping.',
+        'MessageRichTextImporter: extraction failed (${error.runtimeType}): $error',
       );
       ctx.writeScratch('messages.richTextApplied', 0);
       return;
     }
+
+    ctx.info(
+      'MessageRichTextImporter: extractor returned ${extracted.length} decoded message payloads.',
+    );
 
     if (extracted.isEmpty) {
       ctx.info('MessageRichTextImporter: extractor returned no results.');
@@ -64,17 +86,39 @@ class MessageRichTextImporter extends BaseTableImporter
       return;
     }
 
-    var applied = 0;
+    var linkedApplied = 0;
+    var recoveredApplied = 0;
     var processed = 0;
-    for (final id in candidates) {
+    var emptyOrMissingResults = 0;
+    for (final id in linkedCandidates) {
       final text = extracted[id];
       final normalized = text?.trim();
       if (normalized == null || normalized.isEmpty) {
+        emptyOrMissingResults += 1;
         processed += 1;
         continue;
       }
       await ctx.importDb.updateMessageText(messageId: id, text: normalized);
-      applied += 1;
+      linkedApplied += 1;
+      processed += 1;
+      if (processed % 200 == 0 || processed == candidates.length) {
+        reportRowProgress(processed: processed, total: candidates.length);
+      }
+    }
+
+    for (final id in recoveredCandidates) {
+      final text = extracted[id];
+      final normalized = text?.trim();
+      if (normalized == null || normalized.isEmpty) {
+        emptyOrMissingResults += 1;
+        processed += 1;
+        continue;
+      }
+      await ctx.importDb.updateRecoveredUnlinkedMessageText(
+        messageId: id,
+        text: normalized,
+      );
+      recoveredApplied += 1;
       processed += 1;
       if (processed % 200 == 0 || processed == candidates.length) {
         reportRowProgress(processed: processed, total: candidates.length);
@@ -82,17 +126,23 @@ class MessageRichTextImporter extends BaseTableImporter
     }
 
     ctx.info(
-      'MessageRichTextImporter: applied extracted text to $applied/${candidates.length} messages.',
+      'MessageRichTextImporter: applied extracted text to '
+      '${linkedApplied + recoveredApplied}/${candidates.length} messages '
+      '($emptyOrMissingResults empty-or-missing results).',
     );
-    ctx.writeScratch('messages.richTextApplied', applied);
+    ctx.writeScratch('messages.richTextApplied', linkedApplied);
+    ctx.writeScratch(
+      'recoveredUnlinkedMessages.richTextApplied',
+      recoveredApplied,
+    );
   }
 
   @override
   Future<void> postValidate(IImportContext ctx) async {}
 }
 
-List<int> _readCandidateIds(IImportContext ctx) {
-  final raw = ctx.readScratch<Object?>('messages.extractionCandidates');
+List<int> _readCandidateIds(IImportContext ctx, String key) {
+  final raw = ctx.readScratch<Object?>(key);
   if (raw is List<Object?>) {
     return raw
         .map(

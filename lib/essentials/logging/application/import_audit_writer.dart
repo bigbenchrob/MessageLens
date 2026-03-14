@@ -178,9 +178,11 @@ class ImportAuditWriter {
       'contact_phone_email',
       'contact_to_chat_handle',
       'messages',
+      'recovered_unlinked_messages',
       'chat_to_message',
       'attachments',
       'message_attachments',
+      'recovered_unlinked_message_attachments',
       'message_links',
       'reactions',
     ];
@@ -291,6 +293,19 @@ class ImportAuditWriter {
         _extractCount(destRows),
       );
 
+      final sourceOrphans = await messagesDb.rawQuery(
+        'SELECT COUNT(*) AS c FROM message '
+        'WHERE ROWID NOT IN (SELECT message_id FROM chat_message_join)',
+      );
+      final recoveredRows = await db.rawQuery(
+        'SELECT COUNT(*) AS c FROM recovered_unlinked_messages',
+      );
+      log.compare(
+        'source orphan messages → recovered_unlinked_messages',
+        _extractCount(sourceOrphans),
+        _extractCount(recoveredRows),
+      );
+
       // Messages with text in source vs destination
       final srcWithText = await messagesDb.rawQuery(
         "SELECT COUNT(*) AS c FROM message WHERE text IS NOT NULL AND text != ''",
@@ -302,6 +317,14 @@ class ImportAuditWriter {
         'messages with text',
         _extractCount(srcWithText),
         _extractCount(dstWithText),
+      );
+
+      final recoveredWithText = await db.rawQuery(
+        "SELECT COUNT(*) AS c FROM recovered_unlinked_messages WHERE text IS NOT NULL AND text != ''",
+      );
+      log.stat(
+        'recovered_unlinked_messages with text',
+        _extractCount(recoveredWithText),
       );
     } catch (e) {
       log.warn('Could not compare messages: $e');

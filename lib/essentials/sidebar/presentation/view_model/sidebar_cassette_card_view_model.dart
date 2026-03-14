@@ -54,6 +54,7 @@ class SidebarCassetteCardViewModel {
     this.infoAction,
     this.isControl = false,
     this.isNaked = false,
+    this.topSpacing = 0,
     bool? shouldExpand,
   }) : shouldExpand = shouldExpand ?? false;
 
@@ -106,6 +107,12 @@ class SidebarCassetteCardViewModel {
   /// Use for dropdown menus and other controls that should align flush with
   /// cassette card edges.
   final bool isNaked;
+
+  /// Extra vertical space to insert above this cassette in the sidebar stack.
+  ///
+  /// Shared sidebar wrappers own the capability; features opt into it for
+  /// layouts that need more breathing room than the default cassette rhythm.
+  final double topSpacing;
 
   /// Whether this cassette should expand to fill available vertical space.
   ///

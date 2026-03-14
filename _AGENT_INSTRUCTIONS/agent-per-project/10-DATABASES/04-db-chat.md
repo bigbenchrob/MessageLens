@@ -2,12 +2,14 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2025-11-06
+last_reviewed: 2026-03-13
 source_of_truth: doc
 links:
   - ./00-all-databases-accessed.md
   - ./01-db-import.md
   - ./10-group-import-working.md
+  - ../15-MACOS-SOURCE-DATABASES/00-overview.md
+  - ../15-MACOS-SOURCE-DATABASES/10-chat-db-orphan-messages.md
   - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
 tests: []
 ---
@@ -29,6 +31,19 @@ tests: []
 | Permissions | Requires Full Disk Access |
 
 The Flutter application never opens `chat.db` directly. The import pipeline copies data into `db-import`, where migrations can safely project it forward.
+
+## Important Reality Check
+
+Direct source-db inspection showed that `chat.db` contains a substantial population of message rows that are not linked by `chat_message_join`.
+
+These orphan rows can still contain:
+
+- plain text
+- `attributedBody` rich text blobs
+- attachment joins
+- real handle linkage
+
+Do not assume `message` plus `chat_message_join` gives a complete picture of all potentially meaningful source content. See `../15-MACOS-SOURCE-DATABASES/10-chat-db-orphan-messages.md`.
 
 ## Tables Consumed During Import
 
@@ -55,3 +70,4 @@ Importers persist these tables into ledger equivalents (`chats`, `handles`, `mes
 - `01-db-import.md` — Ledger schema seeded from `chat.db`.
 - `10-group-import-working.md` — Contract ensuring IDs survive into `db-working`.
 - `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Detailed ledger table definitions.
+- `../15-MACOS-SOURCE-DATABASES/README.md` — Source-database behavior and reverse-engineering notes.

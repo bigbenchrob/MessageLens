@@ -240,6 +240,7 @@ class CassetteRackState extends _$CassetteRackState {
         handles: (_) => null,
         handlesInfo: (_) => null,
         messages: (_) => null,
+        messagesInfo: (_) => null,
       );
       if (result != null) {
         return result;

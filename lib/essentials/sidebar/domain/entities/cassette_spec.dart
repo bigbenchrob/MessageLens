@@ -6,6 +6,7 @@ import '../../../../features/contacts/domain/spec_classes/contacts_settings_spec
 import '../../../../features/handles/domain/spec_classes/handles_cassette_spec.dart';
 import '../../../../features/handles/domain/spec_classes/handles_info_cassette_spec.dart';
 import '../../../../features/messages/domain/spec_classes/messages_cassette_spec.dart';
+import '../../../../features/messages/domain/spec_classes/messages_info_cassette_spec.dart';
 import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import '../../../../features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
 
@@ -18,6 +19,7 @@ part 'cascade/contacts_settings_topology.dart';
 part 'cascade/handles_cassette_topology.dart';
 part 'cascade/handles_info_topology.dart';
 part 'cascade/messages_cassette_topology.dart';
+part 'cascade/messages_info_topology.dart';
 part 'cascade/links/contacts_to_messages.dart';
 part 'cascade/links/sidebar_utility_to_contacts.dart';
 
@@ -37,6 +39,8 @@ abstract class CassetteSpec with _$CassetteSpec {
       _CassetteHandlesInfo;
   const factory CassetteSpec.messages(MessagesCassetteSpec spec) =
       _CassetteMessages;
+  const factory CassetteSpec.messagesInfo(MessagesInfoCassetteSpec spec) =
+      _CassetteMessagesInfo;
 }
 
 extension CassetteSpecX on CassetteSpec {

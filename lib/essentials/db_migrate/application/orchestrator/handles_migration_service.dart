@@ -23,6 +23,8 @@ import '../migrators/participants_migrator.dart';
 import '../migrators/reaction_counts_migrator.dart';
 import '../migrators/reactions_migrator.dart';
 import '../migrators/read_state_migrator.dart';
+import '../migrators/recovered_unlinked_attachments_migrator.dart';
+import '../migrators/recovered_unlinked_messages_migrator.dart';
 import './migration_orchestrator.dart';
 
 typedef MigrationExecutionPlanCallback =
@@ -43,7 +45,12 @@ class HandlesMigrationService {
   static const HandleToParticipantMigrator _handleToParticipantMigrator =
       HandleToParticipantMigrator();
   static const MessagesMigrator _messagesMigrator = MessagesMigrator();
+  static const RecoveredUnlinkedMessagesMigrator
+  _recoveredUnlinkedMessagesMigrator = RecoveredUnlinkedMessagesMigrator();
   static const AttachmentsMigrator _attachmentsMigrator = AttachmentsMigrator();
+  static const RecoveredUnlinkedAttachmentsMigrator
+  _recoveredUnlinkedAttachmentsMigrator =
+      RecoveredUnlinkedAttachmentsMigrator();
   static const ReactionsMigrator _reactionsMigrator = ReactionsMigrator();
   static const ReactionCountsMigrator _reactionCountsMigrator =
       ReactionCountsMigrator();
@@ -82,7 +89,9 @@ class HandlesMigrationService {
       _participantsMigrator,
       _handleToParticipantMigrator,
       _messagesMigrator,
+      _recoveredUnlinkedMessagesMigrator,
       _attachmentsMigrator,
+      _recoveredUnlinkedAttachmentsMigrator,
       _reactionsMigrator,
       _reactionCountsMigrator,
       _messageReadMarksMigrator,

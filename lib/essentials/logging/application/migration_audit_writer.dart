@@ -123,7 +123,9 @@ class MigrationAuditWriter {
       'participants',
       'handle_to_participant',
       'messages',
+      'recovered_unlinked_messages',
       'attachments',
+      'recovered_unlinked_attachments',
       'reactions',
       'reaction_counts',
       'message_read_marks',
@@ -159,7 +161,9 @@ class MigrationAuditWriter {
       'chat_to_handle': 'chat_to_handle',
       'contacts': 'participants',
       'messages': 'messages',
+      'recovered_unlinked_messages': 'recovered_unlinked_messages',
       'attachments': 'attachments',
+      'recovered_unlinked_attachments': 'recovered_unlinked_attachments',
       'reactions': 'reactions',
     };
 
@@ -241,7 +245,7 @@ class MigrationAuditWriter {
         'SELECT COUNT(*) AS c FROM messages m '
         'WHERE m.sender_handle_id IS NOT NULL '
         'AND m.sender_handle_id != 0 '
-        'AND m.sender_handle_id NOT IN (SELECT source_row_id FROM handles)',
+        'AND m.sender_handle_id NOT IN (SELECT id FROM handles)',
       );
       log.stat(
         'import messages with unmappable sender_handle_id',
@@ -259,7 +263,7 @@ class MigrationAuditWriter {
       );
       final missingHandle = await db.rawQuery(
         'SELECT COUNT(*) AS c FROM chat_to_handle cth '
-        'WHERE cth.handle_id NOT IN (SELECT source_row_id FROM handles)',
+        'WHERE cth.handle_id NOT IN (SELECT id FROM handles)',
       );
       log.stat('chat_to_handle with missing chat', _extractCount(missingChat));
       log.stat(
@@ -274,7 +278,7 @@ class MigrationAuditWriter {
     try {
       final missingMsg = await db.rawQuery(
         'SELECT COUNT(*) AS c FROM message_attachments ma '
-        'WHERE ma.message_id NOT IN (SELECT source_row_id FROM messages)',
+        'WHERE ma.message_id NOT IN (SELECT id FROM messages)',
       );
       log.stat(
         'message_attachments with missing message',
