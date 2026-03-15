@@ -44,7 +44,7 @@ class HandlesImporter extends BaseTableImporter {
     var processed = 0;
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
-      final rawIdentifier = (row['id'] as String?)?.trim();
+      final rawIdentifier = stripMeaninglessHandlePrefix(row['id'] as String?);
       final normalizedIdentifier = _normalizeIdentifier(rawIdentifier);
       final service = sanitizeHandleService(row['service'] as String?);
       final compoundIdentifier = buildCompoundIdentifier(
@@ -102,7 +102,7 @@ String? _normalizeIdentifier(String? value) {
   if (value == null) {
     return null;
   }
-  final trimmed = value.trim();
+  final trimmed = stripMeaninglessHandlePrefix(value)?.trim() ?? '';
   if (trimmed.isEmpty) {
     return null;
   }

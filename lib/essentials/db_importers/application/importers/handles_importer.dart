@@ -46,7 +46,7 @@ class HandlesImporter extends BaseTableImporter with RowProgressReporter {
     var processed = 0;
     for (final row in rows) {
       final sourceRowId = row['ROWID'] as int?;
-      final rawIdentifier = (row['id'] as String?)?.trim();
+      final rawIdentifier = stripMeaninglessHandlePrefix(row['id'] as String?);
       final normalizedIdentifier = normalizeIdentifier(rawIdentifier);
       final service = sanitizeHandleService(row['service'] as String?);
       final compoundIdentifier = buildCompoundIdentifier(

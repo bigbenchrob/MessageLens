@@ -12,7 +12,7 @@ enum TopChatMenuChoice {
   /// Source messages recovered outside the normal chat linkage model.
   recoveredUnlinkedMessages(
     id: 'recovered_unlinked_messages',
-    label: 'Recovered Deleted Messages',
+    label: 'Recovered deleted messages',
   ),
 
   /// Recovered orphaned records with no surviving handle linkage.

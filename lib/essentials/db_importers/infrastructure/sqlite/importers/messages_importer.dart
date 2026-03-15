@@ -72,6 +72,10 @@ class MessagesImporter extends BaseTableImporter {
 
       final text = row['text'] as String?;
       final attributed = row['attributedBody'] as Uint8List?;
+      final messageSummaryInfo = row['message_summary_info'] as Uint8List?;
+      final payloadData = row['payload_data'] as Uint8List?;
+      final rawItemType = row['item_type'] as int?;
+      final rawAssociatedMessageType = row['associated_message_type'] as int?;
       final resolvedText = (text == null || text.isEmpty) ? null : text;
       final needsExtraction =
           (resolvedText == null || resolvedText.isEmpty) && attributed != null;
@@ -93,6 +97,13 @@ class MessagesImporter extends BaseTableImporter {
         subject: (row['subject'] as String?)?.trim(),
         text: resolvedText,
         attributedBodyBlob: attributed,
+        rawItemType: rawItemType,
+        rawAssociatedMessageType: rawAssociatedMessageType,
+        messageSummaryInfoBlob: messageSummaryInfo,
+        payloadDataBlob: payloadData,
+        hasAttributedBodySource: attributed != null,
+        hasMessageSummaryInfo: messageSummaryInfo != null,
+        hasPayloadDataSource: payloadData != null,
         itemType: _inferItemType(row),
         errorCode: row['error'] as int?,
         isSystemMessage: (row['is_system_message'] as int? ?? 0) == 1,

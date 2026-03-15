@@ -34,7 +34,7 @@ class WorkingDatabase extends _$WorkingDatabase {
   WorkingDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +49,12 @@ class WorkingDatabase extends _$WorkingDatabase {
         await m.createTable(recoveredUnlinkedMessages);
         await m.createTable(recoveredUnlinkedAttachments);
         for (final statement in _v2WorkingIndexStatements) {
+          await customStatement(statement);
+        }
+      }
+
+      if (from < 3) {
+        for (final statement in _v3WorkingAlterStatements) {
           await customStatement(statement);
         }
       }
@@ -873,11 +879,32 @@ class WorkingMessages extends Table {
         "NOT NULL DEFAULT 'unknown' CHECK(status IN ('unknown','sent','delivered','read','failed'))",
       )();
   TextColumn get textContent => text().named('text').nullable()();
+  IntColumn get rawItemType => integer().named('raw_item_type').nullable()();
+  IntColumn get rawAssociatedMessageType =>
+      integer().named('raw_associated_message_type').nullable()();
+  TextColumn get semanticKind => text()
+      .named('semantic_kind')
+      .nullable()
+      .customConstraint(
+        "CHECK(semantic_kind IN ('plain-text','rich-text','edited-or-unsent','associated','balloon-or-app','attachment-only','system','unknown-variant','sparse-artifact') OR semantic_kind IS NULL)",
+      )();
+  BoolColumn get isSparseArtifact => boolean()
+      .named('is_sparse_artifact')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasAttributedBodySource => boolean()
+      .named('has_attributed_body_source')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasMessageSummaryInfo => boolean()
+      .named('has_message_summary_info')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasPayloadDataSource => boolean()
+      .named('has_payload_data_source')
+      .withDefault(const Constant(false))();
   TextColumn get itemType => text()
       .named('item_type')
       .nullable()
       .customConstraint(
-        "CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown') OR item_type IS NULL)",
+        "CHECK(item_type IN ('text','attachment-only','sticker','reaction-carrier','system','unknown','balloon') OR item_type IS NULL)",
       )();
   BoolColumn get isSystemMessage =>
       boolean().named('is_system_message').withDefault(const Constant(false))();
@@ -933,6 +960,27 @@ class RecoveredUnlinkedMessages extends Table {
       text().named('delivered_at_utc').nullable()();
   TextColumn get readAtUtc => text().named('read_at_utc').nullable()();
   TextColumn get textContent => text().named('text').nullable()();
+  IntColumn get rawItemType => integer().named('raw_item_type').nullable()();
+  IntColumn get rawAssociatedMessageType =>
+      integer().named('raw_associated_message_type').nullable()();
+  TextColumn get semanticKind => text()
+      .named('semantic_kind')
+      .nullable()
+      .customConstraint(
+        "CHECK(semantic_kind IN ('plain-text','rich-text','edited-or-unsent','associated','balloon-or-app','attachment-only','system','unknown-variant','sparse-artifact') OR semantic_kind IS NULL)",
+      )();
+  BoolColumn get isSparseArtifact => boolean()
+      .named('is_sparse_artifact')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasAttributedBodySource => boolean()
+      .named('has_attributed_body_source')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasMessageSummaryInfo => boolean()
+      .named('has_message_summary_info')
+      .withDefault(const Constant(false))();
+  BoolColumn get hasPayloadDataSource => boolean()
+      .named('has_payload_data_source')
+      .withDefault(const Constant(false))();
   TextColumn get itemType => text()
       .named('item_type')
       .nullable()
@@ -961,6 +1009,23 @@ class RecoveredUnlinkedMessages extends Table {
     {guid},
   ];
 }
+
+const List<String> _v3WorkingAlterStatements = <String>[
+  'ALTER TABLE messages ADD COLUMN raw_item_type INTEGER',
+  'ALTER TABLE messages ADD COLUMN raw_associated_message_type INTEGER',
+  "ALTER TABLE messages ADD COLUMN semantic_kind TEXT CHECK(semantic_kind IN ('plain-text','rich-text','edited-or-unsent','associated','balloon-or-app','attachment-only','system','unknown-variant','sparse-artifact') OR semantic_kind IS NULL)",
+  'ALTER TABLE messages ADD COLUMN is_sparse_artifact INTEGER NOT NULL DEFAULT 0 CHECK(is_sparse_artifact IN (0,1))',
+  'ALTER TABLE messages ADD COLUMN has_attributed_body_source INTEGER NOT NULL DEFAULT 0 CHECK(has_attributed_body_source IN (0,1))',
+  'ALTER TABLE messages ADD COLUMN has_message_summary_info INTEGER NOT NULL DEFAULT 0 CHECK(has_message_summary_info IN (0,1))',
+  'ALTER TABLE messages ADD COLUMN has_payload_data_source INTEGER NOT NULL DEFAULT 0 CHECK(has_payload_data_source IN (0,1))',
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN raw_item_type INTEGER',
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN raw_associated_message_type INTEGER',
+  "ALTER TABLE recovered_unlinked_messages ADD COLUMN semantic_kind TEXT CHECK(semantic_kind IN ('plain-text','rich-text','edited-or-unsent','associated','balloon-or-app','attachment-only','system','unknown-variant','sparse-artifact') OR semantic_kind IS NULL)",
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN is_sparse_artifact INTEGER NOT NULL DEFAULT 0 CHECK(is_sparse_artifact IN (0,1))',
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN has_attributed_body_source INTEGER NOT NULL DEFAULT 0 CHECK(has_attributed_body_source IN (0,1))',
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN has_message_summary_info INTEGER NOT NULL DEFAULT 0 CHECK(has_message_summary_info IN (0,1))',
+  'ALTER TABLE recovered_unlinked_messages ADD COLUMN has_payload_data_source INTEGER NOT NULL DEFAULT 0 CHECK(has_payload_data_source IN (0,1))',
+];
 
 /// Ordinal index for stable message ordering in large chats.
 /// Maps each message to a zero-based sequential position within its chat.

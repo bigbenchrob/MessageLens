@@ -4,8 +4,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../essentials/db/feature_level_providers.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/working/working_database.dart';
-import '../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
+import '../../../../essentials/db/shared/handle_identifier_utils.dart';
 import '../../../contacts/infrastructure/repositories/handles_for_contact_provider.dart';
+import '../../../contacts/infrastructure/repositories/participant_merge_utils.dart';
 
 part 'recovered_unlinked_messages_provider.g.dart';
 
@@ -15,6 +16,10 @@ class RecoveredUnlinkedMessageItem {
     required this.guid,
     required this.senderHandleId,
     this.contactName,
+    this.rawItemType,
+    this.rawAssociatedMessageType,
+    required this.semanticKind,
+    required this.isSparseArtifact,
     required this.isFromMe,
     required this.isInferred,
     required this.senderLabel,
@@ -31,6 +36,10 @@ class RecoveredUnlinkedMessageItem {
   final String guid;
   final int? senderHandleId;
   final String? contactName;
+  final int? rawItemType;
+  final int? rawAssociatedMessageType;
+  final String semanticKind;
+  final bool isSparseArtifact;
   final bool isFromMe;
   final bool isInferred;
   final String senderLabel;
@@ -109,6 +118,9 @@ Stream<List<RecoveredUnlinkedMessageItem>> recoveredUnlinkedMessages(
 
       final hasText = row.textContent?.trim().isNotEmpty ?? false;
       final hasSenderAddress = row.senderAddress?.trim().isNotEmpty ?? false;
+      final formattedSenderAddress = formatPhoneNumberForDisplay(
+        row.senderAddress,
+      );
       final attachments = row.hasAttachments
           ? await (db.select(db.recoveredUnlinkedAttachments)..where(
                   (attachment) => attachment.messageGuid.equals(row.guid),
@@ -131,15 +143,23 @@ Stream<List<RecoveredUnlinkedMessageItem>> recoveredUnlinkedMessages(
             contactName: row.senderHandleId == null
                 ? null
                 : contactNameByHandleId[row.senderHandleId!],
+            rawItemType: row.rawItemType,
+            rawAssociatedMessageType: row.rawAssociatedMessageType,
+            semanticKind: row.semanticKind ?? 'unknown-variant',
+            isSparseArtifact: row.isSparseArtifact,
             isFromMe: row.isFromMe,
             isInferred: false,
             senderLabel: row.isFromMe
                 ? 'You'
                 : hasSenderAddress
-                ? row.senderAddress!.trim()
-                : 'Unknown sender',
+                ? formattedSenderAddress
+                : 'Unknown Sender',
             service: row.service,
-            text: hasText ? row.textContent!.trim() : '(No text content)',
+            text: hasText
+                ? row.textContent!.trim()
+                : _fallbackRecoveredMessageText(
+                    semanticKind: row.semanticKind ?? 'unknown-variant',
+                  ),
             sentAt: parseUtc(row.sentAtUtc),
             itemType: row.itemType ?? 'unknown',
             hasAttachments: row.hasAttachments,
@@ -184,6 +204,10 @@ Stream<List<RecoveredUnlinkedMessageItem>> recoveredUnlinkedMessages(
             guid: entry.item.guid,
             senderHandleId: entry.item.senderHandleId,
             contactName: entry.item.contactName,
+            rawItemType: entry.item.rawItemType,
+            rawAssociatedMessageType: entry.item.rawAssociatedMessageType,
+            semanticKind: entry.item.semanticKind,
+            isSparseArtifact: entry.item.isSparseArtifact,
             isFromMe: entry.item.isFromMe,
             isInferred: true,
             senderLabel: entry.item.senderLabel,
@@ -198,6 +222,19 @@ Stream<List<RecoveredUnlinkedMessageItem>> recoveredUnlinkedMessages(
         })
         .toList(growable: false);
   });
+}
+
+String _fallbackRecoveredMessageText({required String semanticKind}) {
+  return switch (semanticKind) {
+    'sparse-artifact' => '(Sparse artifact: no preserved text or payload)',
+    'edited-or-unsent' => '(No plain text content; summary metadata preserved)',
+    'balloon-or-app' =>
+      '(No plain text content; app or balloon payload preserved)',
+    'associated' => '(Associated message carrier without plain text)',
+    'attachment-only' => '(No text content)',
+    'rich-text' => '(No plain text content)',
+    _ => '(No preserved content)',
+  };
 }
 
 Future<Map<int, String>> _loadContactNameByHandleId({

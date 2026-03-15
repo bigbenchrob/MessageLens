@@ -1,3 +1,5 @@
+import '../../../../essentials/db/shared/handle_identifier_utils.dart';
+
 /// Utilities for normalizing handle identifiers.
 ///
 /// Normalization ensures that dismissal state persists across re-imports even
@@ -11,7 +13,7 @@
 /// - **Email addresses**: Lowercases and trims whitespace.
 ///   E.g., `Test@Example.COM` → `test@example.com`
 String normalizeHandleIdentifier(String raw) {
-  final trimmed = raw.trim();
+  final trimmed = stripMeaninglessHandlePrefix(raw)?.trim() ?? '';
   if (trimmed.isEmpty) {
     return trimmed;
   }

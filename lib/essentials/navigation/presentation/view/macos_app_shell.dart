@@ -107,7 +107,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
 
     final onboardingStatus = ref.watch(onboardingGateProvider);
     final showOnboarding = onboardingStatus != OnboardingStatus.notNeeded;
-    final showDeveloperToolbarActions = !kReleaseMode;
+    const showDeveloperToolbarActions = !kReleaseMode;
 
     return Stack(
       children: [

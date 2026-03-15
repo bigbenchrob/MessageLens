@@ -4549,6 +4549,100 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _rawItemTypeMeta = const VerificationMeta(
+    'rawItemType',
+  );
+  @override
+  late final GeneratedColumn<int> rawItemType = GeneratedColumn<int>(
+    'raw_item_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawAssociatedMessageTypeMeta =
+      const VerificationMeta('rawAssociatedMessageType');
+  @override
+  late final GeneratedColumn<int> rawAssociatedMessageType =
+      GeneratedColumn<int>(
+        'raw_associated_message_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _semanticKindMeta = const VerificationMeta(
+    'semanticKind',
+  );
+  @override
+  late final GeneratedColumn<String> semanticKind = GeneratedColumn<String>(
+    'semantic_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK(semantic_kind IN (\'plain-text\',\'rich-text\',\'edited-or-unsent\',\'associated\',\'balloon-or-app\',\'attachment-only\',\'system\',\'unknown-variant\',\'sparse-artifact\') OR semantic_kind IS NULL)',
+  );
+  static const VerificationMeta _isSparseArtifactMeta = const VerificationMeta(
+    'isSparseArtifact',
+  );
+  @override
+  late final GeneratedColumn<bool> isSparseArtifact = GeneratedColumn<bool>(
+    'is_sparse_artifact',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_sparse_artifact" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _hasAttributedBodySourceMeta =
+      const VerificationMeta('hasAttributedBodySource');
+  @override
+  late final GeneratedColumn<bool> hasAttributedBodySource =
+      GeneratedColumn<bool>(
+        'has_attributed_body_source',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_attributed_body_source" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _hasMessageSummaryInfoMeta =
+      const VerificationMeta('hasMessageSummaryInfo');
+  @override
+  late final GeneratedColumn<bool> hasMessageSummaryInfo =
+      GeneratedColumn<bool>(
+        'has_message_summary_info',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_message_summary_info" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _hasPayloadDataSourceMeta =
+      const VerificationMeta('hasPayloadDataSource');
+  @override
+  late final GeneratedColumn<bool> hasPayloadDataSource = GeneratedColumn<bool>(
+    'has_payload_data_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_payload_data_source" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _itemTypeMeta = const VerificationMeta(
     'itemType',
   );
@@ -4560,7 +4654,7 @@ class $WorkingMessagesTable extends WorkingMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     $customConstraints:
-        'CHECK(item_type IN (\'text\',\'attachment-only\',\'sticker\',\'reaction-carrier\',\'system\',\'unknown\') OR item_type IS NULL)',
+        'CHECK(item_type IN (\'text\',\'attachment-only\',\'sticker\',\'reaction-carrier\',\'system\',\'unknown\',\'balloon\') OR item_type IS NULL)',
   );
   static const VerificationMeta _isSystemMessageMeta = const VerificationMeta(
     'isSystemMessage',
@@ -4759,6 +4853,13 @@ class $WorkingMessagesTable extends WorkingMessages
     readAtUtc,
     status,
     textContent,
+    rawItemType,
+    rawAssociatedMessageType,
+    semanticKind,
+    isSparseArtifact,
+    hasAttributedBodySource,
+    hasMessageSummaryInfo,
+    hasPayloadDataSource,
     itemType,
     isSystemMessage,
     errorCode,
@@ -4853,6 +4954,69 @@ class $WorkingMessagesTable extends WorkingMessages
       context.handle(
         _textContentMeta,
         textContent.isAcceptableOrUnknown(data['text']!, _textContentMeta),
+      );
+    }
+    if (data.containsKey('raw_item_type')) {
+      context.handle(
+        _rawItemTypeMeta,
+        rawItemType.isAcceptableOrUnknown(
+          data['raw_item_type']!,
+          _rawItemTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('raw_associated_message_type')) {
+      context.handle(
+        _rawAssociatedMessageTypeMeta,
+        rawAssociatedMessageType.isAcceptableOrUnknown(
+          data['raw_associated_message_type']!,
+          _rawAssociatedMessageTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('semantic_kind')) {
+      context.handle(
+        _semanticKindMeta,
+        semanticKind.isAcceptableOrUnknown(
+          data['semantic_kind']!,
+          _semanticKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_sparse_artifact')) {
+      context.handle(
+        _isSparseArtifactMeta,
+        isSparseArtifact.isAcceptableOrUnknown(
+          data['is_sparse_artifact']!,
+          _isSparseArtifactMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_attributed_body_source')) {
+      context.handle(
+        _hasAttributedBodySourceMeta,
+        hasAttributedBodySource.isAcceptableOrUnknown(
+          data['has_attributed_body_source']!,
+          _hasAttributedBodySourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_message_summary_info')) {
+      context.handle(
+        _hasMessageSummaryInfoMeta,
+        hasMessageSummaryInfo.isAcceptableOrUnknown(
+          data['has_message_summary_info']!,
+          _hasMessageSummaryInfoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_payload_data_source')) {
+      context.handle(
+        _hasPayloadDataSourceMeta,
+        hasPayloadDataSource.isAcceptableOrUnknown(
+          data['has_payload_data_source']!,
+          _hasPayloadDataSourceMeta,
+        ),
       );
     }
     if (data.containsKey('item_type')) {
@@ -5037,6 +5201,34 @@ class $WorkingMessagesTable extends WorkingMessages
         DriftSqlType.string,
         data['${effectivePrefix}text'],
       ),
+      rawItemType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}raw_item_type'],
+      ),
+      rawAssociatedMessageType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}raw_associated_message_type'],
+      ),
+      semanticKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}semantic_kind'],
+      ),
+      isSparseArtifact: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_sparse_artifact'],
+      )!,
+      hasAttributedBodySource: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_attributed_body_source'],
+      )!,
+      hasMessageSummaryInfo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_message_summary_info'],
+      )!,
+      hasPayloadDataSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_payload_data_source'],
+      )!,
       itemType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}item_type'],
@@ -5121,6 +5313,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
   final String? readAtUtc;
   final String status;
   final String? textContent;
+  final int? rawItemType;
+  final int? rawAssociatedMessageType;
+  final String? semanticKind;
+  final bool isSparseArtifact;
+  final bool hasAttributedBodySource;
+  final bool hasMessageSummaryInfo;
+  final bool hasPayloadDataSource;
   final String? itemType;
   final bool isSystemMessage;
   final int? errorCode;
@@ -5148,6 +5347,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     this.readAtUtc,
     required this.status,
     this.textContent,
+    this.rawItemType,
+    this.rawAssociatedMessageType,
+    this.semanticKind,
+    required this.isSparseArtifact,
+    required this.hasAttributedBodySource,
+    required this.hasMessageSummaryInfo,
+    required this.hasPayloadDataSource,
     this.itemType,
     required this.isSystemMessage,
     this.errorCode,
@@ -5188,6 +5394,21 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     if (!nullToAbsent || textContent != null) {
       map['text'] = Variable<String>(textContent);
     }
+    if (!nullToAbsent || rawItemType != null) {
+      map['raw_item_type'] = Variable<int>(rawItemType);
+    }
+    if (!nullToAbsent || rawAssociatedMessageType != null) {
+      map['raw_associated_message_type'] = Variable<int>(
+        rawAssociatedMessageType,
+      );
+    }
+    if (!nullToAbsent || semanticKind != null) {
+      map['semantic_kind'] = Variable<String>(semanticKind);
+    }
+    map['is_sparse_artifact'] = Variable<bool>(isSparseArtifact);
+    map['has_attributed_body_source'] = Variable<bool>(hasAttributedBodySource);
+    map['has_message_summary_info'] = Variable<bool>(hasMessageSummaryInfo);
+    map['has_payload_data_source'] = Variable<bool>(hasPayloadDataSource);
     if (!nullToAbsent || itemType != null) {
       map['item_type'] = Variable<String>(itemType);
     }
@@ -5251,6 +5472,19 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       textContent: textContent == null && nullToAbsent
           ? const Value.absent()
           : Value(textContent),
+      rawItemType: rawItemType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawItemType),
+      rawAssociatedMessageType: rawAssociatedMessageType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawAssociatedMessageType),
+      semanticKind: semanticKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(semanticKind),
+      isSparseArtifact: Value(isSparseArtifact),
+      hasAttributedBodySource: Value(hasAttributedBodySource),
+      hasMessageSummaryInfo: Value(hasMessageSummaryInfo),
+      hasPayloadDataSource: Value(hasPayloadDataSource),
       itemType: itemType == null && nullToAbsent
           ? const Value.absent()
           : Value(itemType),
@@ -5308,6 +5542,21 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       readAtUtc: serializer.fromJson<String?>(json['readAtUtc']),
       status: serializer.fromJson<String>(json['status']),
       textContent: serializer.fromJson<String?>(json['textContent']),
+      rawItemType: serializer.fromJson<int?>(json['rawItemType']),
+      rawAssociatedMessageType: serializer.fromJson<int?>(
+        json['rawAssociatedMessageType'],
+      ),
+      semanticKind: serializer.fromJson<String?>(json['semanticKind']),
+      isSparseArtifact: serializer.fromJson<bool>(json['isSparseArtifact']),
+      hasAttributedBodySource: serializer.fromJson<bool>(
+        json['hasAttributedBodySource'],
+      ),
+      hasMessageSummaryInfo: serializer.fromJson<bool>(
+        json['hasMessageSummaryInfo'],
+      ),
+      hasPayloadDataSource: serializer.fromJson<bool>(
+        json['hasPayloadDataSource'],
+      ),
       itemType: serializer.fromJson<String?>(json['itemType']),
       isSystemMessage: serializer.fromJson<bool>(json['isSystemMessage']),
       errorCode: serializer.fromJson<int?>(json['errorCode']),
@@ -5346,6 +5595,17 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       'readAtUtc': serializer.toJson<String?>(readAtUtc),
       'status': serializer.toJson<String>(status),
       'textContent': serializer.toJson<String?>(textContent),
+      'rawItemType': serializer.toJson<int?>(rawItemType),
+      'rawAssociatedMessageType': serializer.toJson<int?>(
+        rawAssociatedMessageType,
+      ),
+      'semanticKind': serializer.toJson<String?>(semanticKind),
+      'isSparseArtifact': serializer.toJson<bool>(isSparseArtifact),
+      'hasAttributedBodySource': serializer.toJson<bool>(
+        hasAttributedBodySource,
+      ),
+      'hasMessageSummaryInfo': serializer.toJson<bool>(hasMessageSummaryInfo),
+      'hasPayloadDataSource': serializer.toJson<bool>(hasPayloadDataSource),
       'itemType': serializer.toJson<String?>(itemType),
       'isSystemMessage': serializer.toJson<bool>(isSystemMessage),
       'errorCode': serializer.toJson<int?>(errorCode),
@@ -5378,6 +5638,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     Value<String?> readAtUtc = const Value.absent(),
     String? status,
     Value<String?> textContent = const Value.absent(),
+    Value<int?> rawItemType = const Value.absent(),
+    Value<int?> rawAssociatedMessageType = const Value.absent(),
+    Value<String?> semanticKind = const Value.absent(),
+    bool? isSparseArtifact,
+    bool? hasAttributedBodySource,
+    bool? hasMessageSummaryInfo,
+    bool? hasPayloadDataSource,
     Value<String?> itemType = const Value.absent(),
     bool? isSystemMessage,
     Value<int?> errorCode = const Value.absent(),
@@ -5409,6 +5676,16 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     readAtUtc: readAtUtc.present ? readAtUtc.value : this.readAtUtc,
     status: status ?? this.status,
     textContent: textContent.present ? textContent.value : this.textContent,
+    rawItemType: rawItemType.present ? rawItemType.value : this.rawItemType,
+    rawAssociatedMessageType: rawAssociatedMessageType.present
+        ? rawAssociatedMessageType.value
+        : this.rawAssociatedMessageType,
+    semanticKind: semanticKind.present ? semanticKind.value : this.semanticKind,
+    isSparseArtifact: isSparseArtifact ?? this.isSparseArtifact,
+    hasAttributedBodySource:
+        hasAttributedBodySource ?? this.hasAttributedBodySource,
+    hasMessageSummaryInfo: hasMessageSummaryInfo ?? this.hasMessageSummaryInfo,
+    hasPayloadDataSource: hasPayloadDataSource ?? this.hasPayloadDataSource,
     itemType: itemType.present ? itemType.value : this.itemType,
     isSystemMessage: isSystemMessage ?? this.isSystemMessage,
     errorCode: errorCode.present ? errorCode.value : this.errorCode,
@@ -5452,6 +5729,27 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
       textContent: data.textContent.present
           ? data.textContent.value
           : this.textContent,
+      rawItemType: data.rawItemType.present
+          ? data.rawItemType.value
+          : this.rawItemType,
+      rawAssociatedMessageType: data.rawAssociatedMessageType.present
+          ? data.rawAssociatedMessageType.value
+          : this.rawAssociatedMessageType,
+      semanticKind: data.semanticKind.present
+          ? data.semanticKind.value
+          : this.semanticKind,
+      isSparseArtifact: data.isSparseArtifact.present
+          ? data.isSparseArtifact.value
+          : this.isSparseArtifact,
+      hasAttributedBodySource: data.hasAttributedBodySource.present
+          ? data.hasAttributedBodySource.value
+          : this.hasAttributedBodySource,
+      hasMessageSummaryInfo: data.hasMessageSummaryInfo.present
+          ? data.hasMessageSummaryInfo.value
+          : this.hasMessageSummaryInfo,
+      hasPayloadDataSource: data.hasPayloadDataSource.present
+          ? data.hasPayloadDataSource.value
+          : this.hasPayloadDataSource,
       itemType: data.itemType.present ? data.itemType.value : this.itemType,
       isSystemMessage: data.isSystemMessage.present
           ? data.isSystemMessage.value
@@ -5508,6 +5806,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           ..write('readAtUtc: $readAtUtc, ')
           ..write('status: $status, ')
           ..write('textContent: $textContent, ')
+          ..write('rawItemType: $rawItemType, ')
+          ..write('rawAssociatedMessageType: $rawAssociatedMessageType, ')
+          ..write('semanticKind: $semanticKind, ')
+          ..write('isSparseArtifact: $isSparseArtifact, ')
+          ..write('hasAttributedBodySource: $hasAttributedBodySource, ')
+          ..write('hasMessageSummaryInfo: $hasMessageSummaryInfo, ')
+          ..write('hasPayloadDataSource: $hasPayloadDataSource, ')
           ..write('itemType: $itemType, ')
           ..write('isSystemMessage: $isSystemMessage, ')
           ..write('errorCode: $errorCode, ')
@@ -5540,6 +5845,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
     readAtUtc,
     status,
     textContent,
+    rawItemType,
+    rawAssociatedMessageType,
+    semanticKind,
+    isSparseArtifact,
+    hasAttributedBodySource,
+    hasMessageSummaryInfo,
+    hasPayloadDataSource,
     itemType,
     isSystemMessage,
     errorCode,
@@ -5571,6 +5883,13 @@ class WorkingMessage extends DataClass implements Insertable<WorkingMessage> {
           other.readAtUtc == this.readAtUtc &&
           other.status == this.status &&
           other.textContent == this.textContent &&
+          other.rawItemType == this.rawItemType &&
+          other.rawAssociatedMessageType == this.rawAssociatedMessageType &&
+          other.semanticKind == this.semanticKind &&
+          other.isSparseArtifact == this.isSparseArtifact &&
+          other.hasAttributedBodySource == this.hasAttributedBodySource &&
+          other.hasMessageSummaryInfo == this.hasMessageSummaryInfo &&
+          other.hasPayloadDataSource == this.hasPayloadDataSource &&
           other.itemType == this.itemType &&
           other.isSystemMessage == this.isSystemMessage &&
           other.errorCode == this.errorCode &&
@@ -5600,6 +5919,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
   final Value<String?> readAtUtc;
   final Value<String> status;
   final Value<String?> textContent;
+  final Value<int?> rawItemType;
+  final Value<int?> rawAssociatedMessageType;
+  final Value<String?> semanticKind;
+  final Value<bool> isSparseArtifact;
+  final Value<bool> hasAttributedBodySource;
+  final Value<bool> hasMessageSummaryInfo;
+  final Value<bool> hasPayloadDataSource;
   final Value<String?> itemType;
   final Value<bool> isSystemMessage;
   final Value<int?> errorCode;
@@ -5627,6 +5953,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.readAtUtc = const Value.absent(),
     this.status = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.rawItemType = const Value.absent(),
+    this.rawAssociatedMessageType = const Value.absent(),
+    this.semanticKind = const Value.absent(),
+    this.isSparseArtifact = const Value.absent(),
+    this.hasAttributedBodySource = const Value.absent(),
+    this.hasMessageSummaryInfo = const Value.absent(),
+    this.hasPayloadDataSource = const Value.absent(),
     this.itemType = const Value.absent(),
     this.isSystemMessage = const Value.absent(),
     this.errorCode = const Value.absent(),
@@ -5655,6 +5988,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     this.readAtUtc = const Value.absent(),
     this.status = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.rawItemType = const Value.absent(),
+    this.rawAssociatedMessageType = const Value.absent(),
+    this.semanticKind = const Value.absent(),
+    this.isSparseArtifact = const Value.absent(),
+    this.hasAttributedBodySource = const Value.absent(),
+    this.hasMessageSummaryInfo = const Value.absent(),
+    this.hasPayloadDataSource = const Value.absent(),
     this.itemType = const Value.absent(),
     this.isSystemMessage = const Value.absent(),
     this.errorCode = const Value.absent(),
@@ -5684,6 +6024,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Expression<String>? readAtUtc,
     Expression<String>? status,
     Expression<String>? textContent,
+    Expression<int>? rawItemType,
+    Expression<int>? rawAssociatedMessageType,
+    Expression<String>? semanticKind,
+    Expression<bool>? isSparseArtifact,
+    Expression<bool>? hasAttributedBodySource,
+    Expression<bool>? hasMessageSummaryInfo,
+    Expression<bool>? hasPayloadDataSource,
     Expression<String>? itemType,
     Expression<bool>? isSystemMessage,
     Expression<int>? errorCode,
@@ -5712,6 +6059,17 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       if (readAtUtc != null) 'read_at_utc': readAtUtc,
       if (status != null) 'status': status,
       if (textContent != null) 'text': textContent,
+      if (rawItemType != null) 'raw_item_type': rawItemType,
+      if (rawAssociatedMessageType != null)
+        'raw_associated_message_type': rawAssociatedMessageType,
+      if (semanticKind != null) 'semantic_kind': semanticKind,
+      if (isSparseArtifact != null) 'is_sparse_artifact': isSparseArtifact,
+      if (hasAttributedBodySource != null)
+        'has_attributed_body_source': hasAttributedBodySource,
+      if (hasMessageSummaryInfo != null)
+        'has_message_summary_info': hasMessageSummaryInfo,
+      if (hasPayloadDataSource != null)
+        'has_payload_data_source': hasPayloadDataSource,
       if (itemType != null) 'item_type': itemType,
       if (isSystemMessage != null) 'is_system_message': isSystemMessage,
       if (errorCode != null) 'error_code': errorCode,
@@ -5745,6 +6103,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     Value<String?>? readAtUtc,
     Value<String>? status,
     Value<String?>? textContent,
+    Value<int?>? rawItemType,
+    Value<int?>? rawAssociatedMessageType,
+    Value<String?>? semanticKind,
+    Value<bool>? isSparseArtifact,
+    Value<bool>? hasAttributedBodySource,
+    Value<bool>? hasMessageSummaryInfo,
+    Value<bool>? hasPayloadDataSource,
     Value<String?>? itemType,
     Value<bool>? isSystemMessage,
     Value<int?>? errorCode,
@@ -5773,6 +6138,16 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
       readAtUtc: readAtUtc ?? this.readAtUtc,
       status: status ?? this.status,
       textContent: textContent ?? this.textContent,
+      rawItemType: rawItemType ?? this.rawItemType,
+      rawAssociatedMessageType:
+          rawAssociatedMessageType ?? this.rawAssociatedMessageType,
+      semanticKind: semanticKind ?? this.semanticKind,
+      isSparseArtifact: isSparseArtifact ?? this.isSparseArtifact,
+      hasAttributedBodySource:
+          hasAttributedBodySource ?? this.hasAttributedBodySource,
+      hasMessageSummaryInfo:
+          hasMessageSummaryInfo ?? this.hasMessageSummaryInfo,
+      hasPayloadDataSource: hasPayloadDataSource ?? this.hasPayloadDataSource,
       itemType: itemType ?? this.itemType,
       isSystemMessage: isSystemMessage ?? this.isSystemMessage,
       errorCode: errorCode ?? this.errorCode,
@@ -5825,6 +6200,35 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
     }
     if (textContent.present) {
       map['text'] = Variable<String>(textContent.value);
+    }
+    if (rawItemType.present) {
+      map['raw_item_type'] = Variable<int>(rawItemType.value);
+    }
+    if (rawAssociatedMessageType.present) {
+      map['raw_associated_message_type'] = Variable<int>(
+        rawAssociatedMessageType.value,
+      );
+    }
+    if (semanticKind.present) {
+      map['semantic_kind'] = Variable<String>(semanticKind.value);
+    }
+    if (isSparseArtifact.present) {
+      map['is_sparse_artifact'] = Variable<bool>(isSparseArtifact.value);
+    }
+    if (hasAttributedBodySource.present) {
+      map['has_attributed_body_source'] = Variable<bool>(
+        hasAttributedBodySource.value,
+      );
+    }
+    if (hasMessageSummaryInfo.present) {
+      map['has_message_summary_info'] = Variable<bool>(
+        hasMessageSummaryInfo.value,
+      );
+    }
+    if (hasPayloadDataSource.present) {
+      map['has_payload_data_source'] = Variable<bool>(
+        hasPayloadDataSource.value,
+      );
     }
     if (itemType.present) {
       map['item_type'] = Variable<String>(itemType.value);
@@ -5896,6 +6300,13 @@ class WorkingMessagesCompanion extends UpdateCompanion<WorkingMessage> {
           ..write('readAtUtc: $readAtUtc, ')
           ..write('status: $status, ')
           ..write('textContent: $textContent, ')
+          ..write('rawItemType: $rawItemType, ')
+          ..write('rawAssociatedMessageType: $rawAssociatedMessageType, ')
+          ..write('semanticKind: $semanticKind, ')
+          ..write('isSparseArtifact: $isSparseArtifact, ')
+          ..write('hasAttributedBodySource: $hasAttributedBodySource, ')
+          ..write('hasMessageSummaryInfo: $hasMessageSummaryInfo, ')
+          ..write('hasPayloadDataSource: $hasPayloadDataSource, ')
           ..write('itemType: $itemType, ')
           ..write('isSystemMessage: $isSystemMessage, ')
           ..write('errorCode: $errorCode, ')
@@ -6039,6 +6450,100 @@ class $RecoveredUnlinkedMessagesTable extends RecoveredUnlinkedMessages
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _rawItemTypeMeta = const VerificationMeta(
+    'rawItemType',
+  );
+  @override
+  late final GeneratedColumn<int> rawItemType = GeneratedColumn<int>(
+    'raw_item_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawAssociatedMessageTypeMeta =
+      const VerificationMeta('rawAssociatedMessageType');
+  @override
+  late final GeneratedColumn<int> rawAssociatedMessageType =
+      GeneratedColumn<int>(
+        'raw_associated_message_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _semanticKindMeta = const VerificationMeta(
+    'semanticKind',
+  );
+  @override
+  late final GeneratedColumn<String> semanticKind = GeneratedColumn<String>(
+    'semantic_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK(semantic_kind IN (\'plain-text\',\'rich-text\',\'edited-or-unsent\',\'associated\',\'balloon-or-app\',\'attachment-only\',\'system\',\'unknown-variant\',\'sparse-artifact\') OR semantic_kind IS NULL)',
+  );
+  static const VerificationMeta _isSparseArtifactMeta = const VerificationMeta(
+    'isSparseArtifact',
+  );
+  @override
+  late final GeneratedColumn<bool> isSparseArtifact = GeneratedColumn<bool>(
+    'is_sparse_artifact',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_sparse_artifact" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _hasAttributedBodySourceMeta =
+      const VerificationMeta('hasAttributedBodySource');
+  @override
+  late final GeneratedColumn<bool> hasAttributedBodySource =
+      GeneratedColumn<bool>(
+        'has_attributed_body_source',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_attributed_body_source" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _hasMessageSummaryInfoMeta =
+      const VerificationMeta('hasMessageSummaryInfo');
+  @override
+  late final GeneratedColumn<bool> hasMessageSummaryInfo =
+      GeneratedColumn<bool>(
+        'has_message_summary_info',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_message_summary_info" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _hasPayloadDataSourceMeta =
+      const VerificationMeta('hasPayloadDataSource');
+  @override
+  late final GeneratedColumn<bool> hasPayloadDataSource = GeneratedColumn<bool>(
+    'has_payload_data_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_payload_data_source" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _itemTypeMeta = const VerificationMeta(
     'itemType',
   );
@@ -6160,6 +6665,13 @@ class $RecoveredUnlinkedMessagesTable extends RecoveredUnlinkedMessages
     deliveredAtUtc,
     readAtUtc,
     textContent,
+    rawItemType,
+    rawAssociatedMessageType,
+    semanticKind,
+    isSparseArtifact,
+    hasAttributedBodySource,
+    hasMessageSummaryInfo,
+    hasPayloadDataSource,
     itemType,
     isSystemMessage,
     errorCode,
@@ -6248,6 +6760,69 @@ class $RecoveredUnlinkedMessagesTable extends RecoveredUnlinkedMessages
       context.handle(
         _textContentMeta,
         textContent.isAcceptableOrUnknown(data['text']!, _textContentMeta),
+      );
+    }
+    if (data.containsKey('raw_item_type')) {
+      context.handle(
+        _rawItemTypeMeta,
+        rawItemType.isAcceptableOrUnknown(
+          data['raw_item_type']!,
+          _rawItemTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('raw_associated_message_type')) {
+      context.handle(
+        _rawAssociatedMessageTypeMeta,
+        rawAssociatedMessageType.isAcceptableOrUnknown(
+          data['raw_associated_message_type']!,
+          _rawAssociatedMessageTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('semantic_kind')) {
+      context.handle(
+        _semanticKindMeta,
+        semanticKind.isAcceptableOrUnknown(
+          data['semantic_kind']!,
+          _semanticKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_sparse_artifact')) {
+      context.handle(
+        _isSparseArtifactMeta,
+        isSparseArtifact.isAcceptableOrUnknown(
+          data['is_sparse_artifact']!,
+          _isSparseArtifactMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_attributed_body_source')) {
+      context.handle(
+        _hasAttributedBodySourceMeta,
+        hasAttributedBodySource.isAcceptableOrUnknown(
+          data['has_attributed_body_source']!,
+          _hasAttributedBodySourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_message_summary_info')) {
+      context.handle(
+        _hasMessageSummaryInfoMeta,
+        hasMessageSummaryInfo.isAcceptableOrUnknown(
+          data['has_message_summary_info']!,
+          _hasMessageSummaryInfoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_payload_data_source')) {
+      context.handle(
+        _hasPayloadDataSourceMeta,
+        hasPayloadDataSource.isAcceptableOrUnknown(
+          data['has_payload_data_source']!,
+          _hasPayloadDataSourceMeta,
+        ),
       );
     }
     if (data.containsKey('item_type')) {
@@ -6378,6 +6953,34 @@ class $RecoveredUnlinkedMessagesTable extends RecoveredUnlinkedMessages
         DriftSqlType.string,
         data['${effectivePrefix}text'],
       ),
+      rawItemType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}raw_item_type'],
+      ),
+      rawAssociatedMessageType: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}raw_associated_message_type'],
+      ),
+      semanticKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}semantic_kind'],
+      ),
+      isSparseArtifact: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_sparse_artifact'],
+      )!,
+      hasAttributedBodySource: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_attributed_body_source'],
+      )!,
+      hasMessageSummaryInfo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_message_summary_info'],
+      )!,
+      hasPayloadDataSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_payload_data_source'],
+      )!,
       itemType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}item_type'],
@@ -6435,6 +7038,13 @@ class RecoveredUnlinkedMessage extends DataClass
   final String? deliveredAtUtc;
   final String? readAtUtc;
   final String? textContent;
+  final int? rawItemType;
+  final int? rawAssociatedMessageType;
+  final String? semanticKind;
+  final bool isSparseArtifact;
+  final bool hasAttributedBodySource;
+  final bool hasMessageSummaryInfo;
+  final bool hasPayloadDataSource;
   final String? itemType;
   final bool isSystemMessage;
   final int? errorCode;
@@ -6455,6 +7065,13 @@ class RecoveredUnlinkedMessage extends DataClass
     this.deliveredAtUtc,
     this.readAtUtc,
     this.textContent,
+    this.rawItemType,
+    this.rawAssociatedMessageType,
+    this.semanticKind,
+    required this.isSparseArtifact,
+    required this.hasAttributedBodySource,
+    required this.hasMessageSummaryInfo,
+    required this.hasPayloadDataSource,
     this.itemType,
     required this.isSystemMessage,
     this.errorCode,
@@ -6490,6 +7107,21 @@ class RecoveredUnlinkedMessage extends DataClass
     if (!nullToAbsent || textContent != null) {
       map['text'] = Variable<String>(textContent);
     }
+    if (!nullToAbsent || rawItemType != null) {
+      map['raw_item_type'] = Variable<int>(rawItemType);
+    }
+    if (!nullToAbsent || rawAssociatedMessageType != null) {
+      map['raw_associated_message_type'] = Variable<int>(
+        rawAssociatedMessageType,
+      );
+    }
+    if (!nullToAbsent || semanticKind != null) {
+      map['semantic_kind'] = Variable<String>(semanticKind);
+    }
+    map['is_sparse_artifact'] = Variable<bool>(isSparseArtifact);
+    map['has_attributed_body_source'] = Variable<bool>(hasAttributedBodySource);
+    map['has_message_summary_info'] = Variable<bool>(hasMessageSummaryInfo);
+    map['has_payload_data_source'] = Variable<bool>(hasPayloadDataSource);
     if (!nullToAbsent || itemType != null) {
       map['item_type'] = Variable<String>(itemType);
     }
@@ -6540,6 +7172,19 @@ class RecoveredUnlinkedMessage extends DataClass
       textContent: textContent == null && nullToAbsent
           ? const Value.absent()
           : Value(textContent),
+      rawItemType: rawItemType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawItemType),
+      rawAssociatedMessageType: rawAssociatedMessageType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawAssociatedMessageType),
+      semanticKind: semanticKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(semanticKind),
+      isSparseArtifact: Value(isSparseArtifact),
+      hasAttributedBodySource: Value(hasAttributedBodySource),
+      hasMessageSummaryInfo: Value(hasMessageSummaryInfo),
+      hasPayloadDataSource: Value(hasPayloadDataSource),
       itemType: itemType == null && nullToAbsent
           ? const Value.absent()
           : Value(itemType),
@@ -6582,6 +7227,21 @@ class RecoveredUnlinkedMessage extends DataClass
       deliveredAtUtc: serializer.fromJson<String?>(json['deliveredAtUtc']),
       readAtUtc: serializer.fromJson<String?>(json['readAtUtc']),
       textContent: serializer.fromJson<String?>(json['textContent']),
+      rawItemType: serializer.fromJson<int?>(json['rawItemType']),
+      rawAssociatedMessageType: serializer.fromJson<int?>(
+        json['rawAssociatedMessageType'],
+      ),
+      semanticKind: serializer.fromJson<String?>(json['semanticKind']),
+      isSparseArtifact: serializer.fromJson<bool>(json['isSparseArtifact']),
+      hasAttributedBodySource: serializer.fromJson<bool>(
+        json['hasAttributedBodySource'],
+      ),
+      hasMessageSummaryInfo: serializer.fromJson<bool>(
+        json['hasMessageSummaryInfo'],
+      ),
+      hasPayloadDataSource: serializer.fromJson<bool>(
+        json['hasPayloadDataSource'],
+      ),
       itemType: serializer.fromJson<String?>(json['itemType']),
       isSystemMessage: serializer.fromJson<bool>(json['isSystemMessage']),
       errorCode: serializer.fromJson<int?>(json['errorCode']),
@@ -6611,6 +7271,17 @@ class RecoveredUnlinkedMessage extends DataClass
       'deliveredAtUtc': serializer.toJson<String?>(deliveredAtUtc),
       'readAtUtc': serializer.toJson<String?>(readAtUtc),
       'textContent': serializer.toJson<String?>(textContent),
+      'rawItemType': serializer.toJson<int?>(rawItemType),
+      'rawAssociatedMessageType': serializer.toJson<int?>(
+        rawAssociatedMessageType,
+      ),
+      'semanticKind': serializer.toJson<String?>(semanticKind),
+      'isSparseArtifact': serializer.toJson<bool>(isSparseArtifact),
+      'hasAttributedBodySource': serializer.toJson<bool>(
+        hasAttributedBodySource,
+      ),
+      'hasMessageSummaryInfo': serializer.toJson<bool>(hasMessageSummaryInfo),
+      'hasPayloadDataSource': serializer.toJson<bool>(hasPayloadDataSource),
       'itemType': serializer.toJson<String?>(itemType),
       'isSystemMessage': serializer.toJson<bool>(isSystemMessage),
       'errorCode': serializer.toJson<int?>(errorCode),
@@ -6636,6 +7307,13 @@ class RecoveredUnlinkedMessage extends DataClass
     Value<String?> deliveredAtUtc = const Value.absent(),
     Value<String?> readAtUtc = const Value.absent(),
     Value<String?> textContent = const Value.absent(),
+    Value<int?> rawItemType = const Value.absent(),
+    Value<int?> rawAssociatedMessageType = const Value.absent(),
+    Value<String?> semanticKind = const Value.absent(),
+    bool? isSparseArtifact,
+    bool? hasAttributedBodySource,
+    bool? hasMessageSummaryInfo,
+    bool? hasPayloadDataSource,
     Value<String?> itemType = const Value.absent(),
     bool? isSystemMessage,
     Value<int?> errorCode = const Value.absent(),
@@ -6662,6 +7340,16 @@ class RecoveredUnlinkedMessage extends DataClass
         : this.deliveredAtUtc,
     readAtUtc: readAtUtc.present ? readAtUtc.value : this.readAtUtc,
     textContent: textContent.present ? textContent.value : this.textContent,
+    rawItemType: rawItemType.present ? rawItemType.value : this.rawItemType,
+    rawAssociatedMessageType: rawAssociatedMessageType.present
+        ? rawAssociatedMessageType.value
+        : this.rawAssociatedMessageType,
+    semanticKind: semanticKind.present ? semanticKind.value : this.semanticKind,
+    isSparseArtifact: isSparseArtifact ?? this.isSparseArtifact,
+    hasAttributedBodySource:
+        hasAttributedBodySource ?? this.hasAttributedBodySource,
+    hasMessageSummaryInfo: hasMessageSummaryInfo ?? this.hasMessageSummaryInfo,
+    hasPayloadDataSource: hasPayloadDataSource ?? this.hasPayloadDataSource,
     itemType: itemType.present ? itemType.value : this.itemType,
     isSystemMessage: isSystemMessage ?? this.isSystemMessage,
     errorCode: errorCode.present ? errorCode.value : this.errorCode,
@@ -6700,6 +7388,27 @@ class RecoveredUnlinkedMessage extends DataClass
       textContent: data.textContent.present
           ? data.textContent.value
           : this.textContent,
+      rawItemType: data.rawItemType.present
+          ? data.rawItemType.value
+          : this.rawItemType,
+      rawAssociatedMessageType: data.rawAssociatedMessageType.present
+          ? data.rawAssociatedMessageType.value
+          : this.rawAssociatedMessageType,
+      semanticKind: data.semanticKind.present
+          ? data.semanticKind.value
+          : this.semanticKind,
+      isSparseArtifact: data.isSparseArtifact.present
+          ? data.isSparseArtifact.value
+          : this.isSparseArtifact,
+      hasAttributedBodySource: data.hasAttributedBodySource.present
+          ? data.hasAttributedBodySource.value
+          : this.hasAttributedBodySource,
+      hasMessageSummaryInfo: data.hasMessageSummaryInfo.present
+          ? data.hasMessageSummaryInfo.value
+          : this.hasMessageSummaryInfo,
+      hasPayloadDataSource: data.hasPayloadDataSource.present
+          ? data.hasPayloadDataSource.value
+          : this.hasPayloadDataSource,
       itemType: data.itemType.present ? data.itemType.value : this.itemType,
       isSystemMessage: data.isSystemMessage.present
           ? data.isSystemMessage.value
@@ -6737,6 +7446,13 @@ class RecoveredUnlinkedMessage extends DataClass
           ..write('deliveredAtUtc: $deliveredAtUtc, ')
           ..write('readAtUtc: $readAtUtc, ')
           ..write('textContent: $textContent, ')
+          ..write('rawItemType: $rawItemType, ')
+          ..write('rawAssociatedMessageType: $rawAssociatedMessageType, ')
+          ..write('semanticKind: $semanticKind, ')
+          ..write('isSparseArtifact: $isSparseArtifact, ')
+          ..write('hasAttributedBodySource: $hasAttributedBodySource, ')
+          ..write('hasMessageSummaryInfo: $hasMessageSummaryInfo, ')
+          ..write('hasPayloadDataSource: $hasPayloadDataSource, ')
           ..write('itemType: $itemType, ')
           ..write('isSystemMessage: $isSystemMessage, ')
           ..write('errorCode: $errorCode, ')
@@ -6751,7 +7467,7 @@ class RecoveredUnlinkedMessage extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     guid,
     senderHandleId,
@@ -6762,6 +7478,13 @@ class RecoveredUnlinkedMessage extends DataClass
     deliveredAtUtc,
     readAtUtc,
     textContent,
+    rawItemType,
+    rawAssociatedMessageType,
+    semanticKind,
+    isSparseArtifact,
+    hasAttributedBodySource,
+    hasMessageSummaryInfo,
+    hasPayloadDataSource,
     itemType,
     isSystemMessage,
     errorCode,
@@ -6771,7 +7494,7 @@ class RecoveredUnlinkedMessage extends DataClass
     balloonBundleId,
     payloadJson,
     batchId,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6786,6 +7509,13 @@ class RecoveredUnlinkedMessage extends DataClass
           other.deliveredAtUtc == this.deliveredAtUtc &&
           other.readAtUtc == this.readAtUtc &&
           other.textContent == this.textContent &&
+          other.rawItemType == this.rawItemType &&
+          other.rawAssociatedMessageType == this.rawAssociatedMessageType &&
+          other.semanticKind == this.semanticKind &&
+          other.isSparseArtifact == this.isSparseArtifact &&
+          other.hasAttributedBodySource == this.hasAttributedBodySource &&
+          other.hasMessageSummaryInfo == this.hasMessageSummaryInfo &&
+          other.hasPayloadDataSource == this.hasPayloadDataSource &&
           other.itemType == this.itemType &&
           other.isSystemMessage == this.isSystemMessage &&
           other.errorCode == this.errorCode &&
@@ -6809,6 +7539,13 @@ class RecoveredUnlinkedMessagesCompanion
   final Value<String?> deliveredAtUtc;
   final Value<String?> readAtUtc;
   final Value<String?> textContent;
+  final Value<int?> rawItemType;
+  final Value<int?> rawAssociatedMessageType;
+  final Value<String?> semanticKind;
+  final Value<bool> isSparseArtifact;
+  final Value<bool> hasAttributedBodySource;
+  final Value<bool> hasMessageSummaryInfo;
+  final Value<bool> hasPayloadDataSource;
   final Value<String?> itemType;
   final Value<bool> isSystemMessage;
   final Value<int?> errorCode;
@@ -6829,6 +7566,13 @@ class RecoveredUnlinkedMessagesCompanion
     this.deliveredAtUtc = const Value.absent(),
     this.readAtUtc = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.rawItemType = const Value.absent(),
+    this.rawAssociatedMessageType = const Value.absent(),
+    this.semanticKind = const Value.absent(),
+    this.isSparseArtifact = const Value.absent(),
+    this.hasAttributedBodySource = const Value.absent(),
+    this.hasMessageSummaryInfo = const Value.absent(),
+    this.hasPayloadDataSource = const Value.absent(),
     this.itemType = const Value.absent(),
     this.isSystemMessage = const Value.absent(),
     this.errorCode = const Value.absent(),
@@ -6850,6 +7594,13 @@ class RecoveredUnlinkedMessagesCompanion
     this.deliveredAtUtc = const Value.absent(),
     this.readAtUtc = const Value.absent(),
     this.textContent = const Value.absent(),
+    this.rawItemType = const Value.absent(),
+    this.rawAssociatedMessageType = const Value.absent(),
+    this.semanticKind = const Value.absent(),
+    this.isSparseArtifact = const Value.absent(),
+    this.hasAttributedBodySource = const Value.absent(),
+    this.hasMessageSummaryInfo = const Value.absent(),
+    this.hasPayloadDataSource = const Value.absent(),
     this.itemType = const Value.absent(),
     this.isSystemMessage = const Value.absent(),
     this.errorCode = const Value.absent(),
@@ -6871,6 +7622,13 @@ class RecoveredUnlinkedMessagesCompanion
     Expression<String>? deliveredAtUtc,
     Expression<String>? readAtUtc,
     Expression<String>? textContent,
+    Expression<int>? rawItemType,
+    Expression<int>? rawAssociatedMessageType,
+    Expression<String>? semanticKind,
+    Expression<bool>? isSparseArtifact,
+    Expression<bool>? hasAttributedBodySource,
+    Expression<bool>? hasMessageSummaryInfo,
+    Expression<bool>? hasPayloadDataSource,
     Expression<String>? itemType,
     Expression<bool>? isSystemMessage,
     Expression<int>? errorCode,
@@ -6892,6 +7650,17 @@ class RecoveredUnlinkedMessagesCompanion
       if (deliveredAtUtc != null) 'delivered_at_utc': deliveredAtUtc,
       if (readAtUtc != null) 'read_at_utc': readAtUtc,
       if (textContent != null) 'text': textContent,
+      if (rawItemType != null) 'raw_item_type': rawItemType,
+      if (rawAssociatedMessageType != null)
+        'raw_associated_message_type': rawAssociatedMessageType,
+      if (semanticKind != null) 'semantic_kind': semanticKind,
+      if (isSparseArtifact != null) 'is_sparse_artifact': isSparseArtifact,
+      if (hasAttributedBodySource != null)
+        'has_attributed_body_source': hasAttributedBodySource,
+      if (hasMessageSummaryInfo != null)
+        'has_message_summary_info': hasMessageSummaryInfo,
+      if (hasPayloadDataSource != null)
+        'has_payload_data_source': hasPayloadDataSource,
       if (itemType != null) 'item_type': itemType,
       if (isSystemMessage != null) 'is_system_message': isSystemMessage,
       if (errorCode != null) 'error_code': errorCode,
@@ -6917,6 +7686,13 @@ class RecoveredUnlinkedMessagesCompanion
     Value<String?>? deliveredAtUtc,
     Value<String?>? readAtUtc,
     Value<String?>? textContent,
+    Value<int?>? rawItemType,
+    Value<int?>? rawAssociatedMessageType,
+    Value<String?>? semanticKind,
+    Value<bool>? isSparseArtifact,
+    Value<bool>? hasAttributedBodySource,
+    Value<bool>? hasMessageSummaryInfo,
+    Value<bool>? hasPayloadDataSource,
     Value<String?>? itemType,
     Value<bool>? isSystemMessage,
     Value<int?>? errorCode,
@@ -6938,6 +7714,16 @@ class RecoveredUnlinkedMessagesCompanion
       deliveredAtUtc: deliveredAtUtc ?? this.deliveredAtUtc,
       readAtUtc: readAtUtc ?? this.readAtUtc,
       textContent: textContent ?? this.textContent,
+      rawItemType: rawItemType ?? this.rawItemType,
+      rawAssociatedMessageType:
+          rawAssociatedMessageType ?? this.rawAssociatedMessageType,
+      semanticKind: semanticKind ?? this.semanticKind,
+      isSparseArtifact: isSparseArtifact ?? this.isSparseArtifact,
+      hasAttributedBodySource:
+          hasAttributedBodySource ?? this.hasAttributedBodySource,
+      hasMessageSummaryInfo:
+          hasMessageSummaryInfo ?? this.hasMessageSummaryInfo,
+      hasPayloadDataSource: hasPayloadDataSource ?? this.hasPayloadDataSource,
       itemType: itemType ?? this.itemType,
       isSystemMessage: isSystemMessage ?? this.isSystemMessage,
       errorCode: errorCode ?? this.errorCode,
@@ -6983,6 +7769,35 @@ class RecoveredUnlinkedMessagesCompanion
     }
     if (textContent.present) {
       map['text'] = Variable<String>(textContent.value);
+    }
+    if (rawItemType.present) {
+      map['raw_item_type'] = Variable<int>(rawItemType.value);
+    }
+    if (rawAssociatedMessageType.present) {
+      map['raw_associated_message_type'] = Variable<int>(
+        rawAssociatedMessageType.value,
+      );
+    }
+    if (semanticKind.present) {
+      map['semantic_kind'] = Variable<String>(semanticKind.value);
+    }
+    if (isSparseArtifact.present) {
+      map['is_sparse_artifact'] = Variable<bool>(isSparseArtifact.value);
+    }
+    if (hasAttributedBodySource.present) {
+      map['has_attributed_body_source'] = Variable<bool>(
+        hasAttributedBodySource.value,
+      );
+    }
+    if (hasMessageSummaryInfo.present) {
+      map['has_message_summary_info'] = Variable<bool>(
+        hasMessageSummaryInfo.value,
+      );
+    }
+    if (hasPayloadDataSource.present) {
+      map['has_payload_data_source'] = Variable<bool>(
+        hasPayloadDataSource.value,
+      );
     }
     if (itemType.present) {
       map['item_type'] = Variable<String>(itemType.value);
@@ -7031,6 +7846,13 @@ class RecoveredUnlinkedMessagesCompanion
           ..write('deliveredAtUtc: $deliveredAtUtc, ')
           ..write('readAtUtc: $readAtUtc, ')
           ..write('textContent: $textContent, ')
+          ..write('rawItemType: $rawItemType, ')
+          ..write('rawAssociatedMessageType: $rawAssociatedMessageType, ')
+          ..write('semanticKind: $semanticKind, ')
+          ..write('isSparseArtifact: $isSparseArtifact, ')
+          ..write('hasAttributedBodySource: $hasAttributedBodySource, ')
+          ..write('hasMessageSummaryInfo: $hasMessageSummaryInfo, ')
+          ..write('hasPayloadDataSource: $hasPayloadDataSource, ')
           ..write('itemType: $itemType, ')
           ..write('isSystemMessage: $isSystemMessage, ')
           ..write('errorCode: $errorCode, ')
@@ -16895,6 +17717,13 @@ typedef $$WorkingMessagesTableCreateCompanionBuilder =
       Value<String?> readAtUtc,
       Value<String> status,
       Value<String?> textContent,
+      Value<int?> rawItemType,
+      Value<int?> rawAssociatedMessageType,
+      Value<String?> semanticKind,
+      Value<bool> isSparseArtifact,
+      Value<bool> hasAttributedBodySource,
+      Value<bool> hasMessageSummaryInfo,
+      Value<bool> hasPayloadDataSource,
       Value<String?> itemType,
       Value<bool> isSystemMessage,
       Value<int?> errorCode,
@@ -16924,6 +17753,13 @@ typedef $$WorkingMessagesTableUpdateCompanionBuilder =
       Value<String?> readAtUtc,
       Value<String> status,
       Value<String?> textContent,
+      Value<int?> rawItemType,
+      Value<int?> rawAssociatedMessageType,
+      Value<String?> semanticKind,
+      Value<bool> isSparseArtifact,
+      Value<bool> hasAttributedBodySource,
+      Value<bool> hasMessageSummaryInfo,
+      Value<bool> hasPayloadDataSource,
       Value<String?> itemType,
       Value<bool> isSystemMessage,
       Value<int?> errorCode,
@@ -17142,6 +17978,41 @@ class $$WorkingMessagesTableFilterComposer
 
   ColumnFilters<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17421,6 +18292,41 @@ class $$WorkingMessagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get itemType => $composableBuilder(
     column: $table.itemType,
     builder: (column) => ColumnOrderings(column),
@@ -17582,6 +18488,41 @@ class $$WorkingMessagesTableAnnotationComposer
 
   GeneratedColumn<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
     builder: (column) => column,
   );
 
@@ -17853,6 +18794,13 @@ class $$WorkingMessagesTableTableManager
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<int?> rawItemType = const Value.absent(),
+                Value<int?> rawAssociatedMessageType = const Value.absent(),
+                Value<String?> semanticKind = const Value.absent(),
+                Value<bool> isSparseArtifact = const Value.absent(),
+                Value<bool> hasAttributedBodySource = const Value.absent(),
+                Value<bool> hasMessageSummaryInfo = const Value.absent(),
+                Value<bool> hasPayloadDataSource = const Value.absent(),
                 Value<String?> itemType = const Value.absent(),
                 Value<bool> isSystemMessage = const Value.absent(),
                 Value<int?> errorCode = const Value.absent(),
@@ -17880,6 +18828,13 @@ class $$WorkingMessagesTableTableManager
                 readAtUtc: readAtUtc,
                 status: status,
                 textContent: textContent,
+                rawItemType: rawItemType,
+                rawAssociatedMessageType: rawAssociatedMessageType,
+                semanticKind: semanticKind,
+                isSparseArtifact: isSparseArtifact,
+                hasAttributedBodySource: hasAttributedBodySource,
+                hasMessageSummaryInfo: hasMessageSummaryInfo,
+                hasPayloadDataSource: hasPayloadDataSource,
                 itemType: itemType,
                 isSystemMessage: isSystemMessage,
                 errorCode: errorCode,
@@ -17909,6 +18864,13 @@ class $$WorkingMessagesTableTableManager
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<int?> rawItemType = const Value.absent(),
+                Value<int?> rawAssociatedMessageType = const Value.absent(),
+                Value<String?> semanticKind = const Value.absent(),
+                Value<bool> isSparseArtifact = const Value.absent(),
+                Value<bool> hasAttributedBodySource = const Value.absent(),
+                Value<bool> hasMessageSummaryInfo = const Value.absent(),
+                Value<bool> hasPayloadDataSource = const Value.absent(),
                 Value<String?> itemType = const Value.absent(),
                 Value<bool> isSystemMessage = const Value.absent(),
                 Value<int?> errorCode = const Value.absent(),
@@ -17936,6 +18898,13 @@ class $$WorkingMessagesTableTableManager
                 readAtUtc: readAtUtc,
                 status: status,
                 textContent: textContent,
+                rawItemType: rawItemType,
+                rawAssociatedMessageType: rawAssociatedMessageType,
+                semanticKind: semanticKind,
+                isSparseArtifact: isSparseArtifact,
+                hasAttributedBodySource: hasAttributedBodySource,
+                hasMessageSummaryInfo: hasMessageSummaryInfo,
+                hasPayloadDataSource: hasPayloadDataSource,
                 itemType: itemType,
                 isSystemMessage: isSystemMessage,
                 errorCode: errorCode,
@@ -18154,6 +19123,13 @@ typedef $$RecoveredUnlinkedMessagesTableCreateCompanionBuilder =
       Value<String?> deliveredAtUtc,
       Value<String?> readAtUtc,
       Value<String?> textContent,
+      Value<int?> rawItemType,
+      Value<int?> rawAssociatedMessageType,
+      Value<String?> semanticKind,
+      Value<bool> isSparseArtifact,
+      Value<bool> hasAttributedBodySource,
+      Value<bool> hasMessageSummaryInfo,
+      Value<bool> hasPayloadDataSource,
       Value<String?> itemType,
       Value<bool> isSystemMessage,
       Value<int?> errorCode,
@@ -18176,6 +19152,13 @@ typedef $$RecoveredUnlinkedMessagesTableUpdateCompanionBuilder =
       Value<String?> deliveredAtUtc,
       Value<String?> readAtUtc,
       Value<String?> textContent,
+      Value<int?> rawItemType,
+      Value<int?> rawAssociatedMessageType,
+      Value<String?> semanticKind,
+      Value<bool> isSparseArtifact,
+      Value<bool> hasAttributedBodySource,
+      Value<bool> hasMessageSummaryInfo,
+      Value<bool> hasPayloadDataSource,
       Value<String?> itemType,
       Value<bool> isSystemMessage,
       Value<int?> errorCode,
@@ -18274,6 +19257,41 @@ class $$RecoveredUnlinkedMessagesTableFilterComposer
 
   ColumnFilters<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18400,6 +19418,41 @@ class $$RecoveredUnlinkedMessagesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get itemType => $composableBuilder(
     column: $table.itemType,
     builder: (column) => ColumnOrderings(column),
@@ -18508,6 +19561,41 @@ class $$RecoveredUnlinkedMessagesTableAnnotationComposer
 
   GeneratedColumn<String> get textContent => $composableBuilder(
     column: $table.textContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rawItemType => $composableBuilder(
+    column: $table.rawItemType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rawAssociatedMessageType => $composableBuilder(
+    column: $table.rawAssociatedMessageType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get semanticKind => $composableBuilder(
+    column: $table.semanticKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSparseArtifact => $composableBuilder(
+    column: $table.isSparseArtifact,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasAttributedBodySource => $composableBuilder(
+    column: $table.hasAttributedBodySource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasMessageSummaryInfo => $composableBuilder(
+    column: $table.hasMessageSummaryInfo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasPayloadDataSource => $composableBuilder(
+    column: $table.hasPayloadDataSource,
     builder: (column) => column,
   );
 
@@ -18626,6 +19714,13 @@ class $$RecoveredUnlinkedMessagesTableTableManager
                 Value<String?> deliveredAtUtc = const Value.absent(),
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<int?> rawItemType = const Value.absent(),
+                Value<int?> rawAssociatedMessageType = const Value.absent(),
+                Value<String?> semanticKind = const Value.absent(),
+                Value<bool> isSparseArtifact = const Value.absent(),
+                Value<bool> hasAttributedBodySource = const Value.absent(),
+                Value<bool> hasMessageSummaryInfo = const Value.absent(),
+                Value<bool> hasPayloadDataSource = const Value.absent(),
                 Value<String?> itemType = const Value.absent(),
                 Value<bool> isSystemMessage = const Value.absent(),
                 Value<int?> errorCode = const Value.absent(),
@@ -18646,6 +19741,13 @@ class $$RecoveredUnlinkedMessagesTableTableManager
                 deliveredAtUtc: deliveredAtUtc,
                 readAtUtc: readAtUtc,
                 textContent: textContent,
+                rawItemType: rawItemType,
+                rawAssociatedMessageType: rawAssociatedMessageType,
+                semanticKind: semanticKind,
+                isSparseArtifact: isSparseArtifact,
+                hasAttributedBodySource: hasAttributedBodySource,
+                hasMessageSummaryInfo: hasMessageSummaryInfo,
+                hasPayloadDataSource: hasPayloadDataSource,
                 itemType: itemType,
                 isSystemMessage: isSystemMessage,
                 errorCode: errorCode,
@@ -18668,6 +19770,13 @@ class $$RecoveredUnlinkedMessagesTableTableManager
                 Value<String?> deliveredAtUtc = const Value.absent(),
                 Value<String?> readAtUtc = const Value.absent(),
                 Value<String?> textContent = const Value.absent(),
+                Value<int?> rawItemType = const Value.absent(),
+                Value<int?> rawAssociatedMessageType = const Value.absent(),
+                Value<String?> semanticKind = const Value.absent(),
+                Value<bool> isSparseArtifact = const Value.absent(),
+                Value<bool> hasAttributedBodySource = const Value.absent(),
+                Value<bool> hasMessageSummaryInfo = const Value.absent(),
+                Value<bool> hasPayloadDataSource = const Value.absent(),
                 Value<String?> itemType = const Value.absent(),
                 Value<bool> isSystemMessage = const Value.absent(),
                 Value<int?> errorCode = const Value.absent(),
@@ -18688,6 +19797,13 @@ class $$RecoveredUnlinkedMessagesTableTableManager
                 deliveredAtUtc: deliveredAtUtc,
                 readAtUtc: readAtUtc,
                 textContent: textContent,
+                rawItemType: rawItemType,
+                rawAssociatedMessageType: rawAssociatedMessageType,
+                semanticKind: semanticKind,
+                isSparseArtifact: isSparseArtifact,
+                hasAttributedBodySource: hasAttributedBodySource,
+                hasMessageSummaryInfo: hasMessageSummaryInfo,
+                hasPayloadDataSource: hasPayloadDataSource,
                 itemType: itemType,
                 isSystemMessage: isSystemMessage,
                 errorCode: errorCode,

@@ -10,6 +10,66 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../essentials/debug/application/developer_mode_provider.dart';
 import '../../infrastructure/repositories/recovered_unlinked_messages_provider.dart';
 
+String _formatRecoveredSemanticKind(String semanticKind) {
+  return switch (semanticKind) {
+    'plain-text' => 'text',
+    'rich-text' => 'rich text',
+    'edited-or-unsent' => 'edited / unsent',
+    'associated' => 'associated',
+    'balloon-or-app' => 'balloon / app',
+    'attachment-only' => 'attachment only',
+    'system' => 'system',
+    'sparse-artifact' => 'sparse artifact',
+    _ => 'unknown variant',
+  };
+}
+
+bool _isRecoveredFallbackText(String text) {
+  return switch (text) {
+    '(Sparse artifact: no preserved text or payload)' => true,
+    '(No plain text content; summary metadata preserved)' => true,
+    '(No plain text content; app or balloon payload preserved)' => true,
+    '(Associated message carrier without plain text)' => true,
+    '(No text content)' => true,
+    '(No plain text content)' => true,
+    '(No preserved content)' => true,
+    _ => false,
+  };
+}
+
+bool _hasMeaningfulRecoveredText(RecoveredUnlinkedMessageItem message) {
+  final trimmed = message.text.trim();
+  if (trimmed.isEmpty) {
+    return false;
+  }
+
+  return !_isRecoveredFallbackText(trimmed);
+}
+
+String _buildRecoveredStatusLine(RecoveredUnlinkedMessageItem message) {
+  final hasMeaningfulText = _hasMeaningfulRecoveredText(message);
+  final hasAttachments = message.hasAttachments;
+  final service = message.service;
+
+  if (message.semanticKind == 'attachment-only' && hasAttachments) {
+    return '$service associated with recovered attachments';
+  }
+
+  if (hasMeaningfulText && hasAttachments) {
+    return '$service with recovered text and attachments';
+  }
+
+  if (hasMeaningfulText) {
+    return '$service with recovered text';
+  }
+
+  if (hasAttachments) {
+    return '$service associated with recovered attachments';
+  }
+
+  return '$service with no recoverable text or attachments';
+}
+
 /// Center-panel view for recovered unlinked messages.
 class RecoveredUnlinkedMessagesPlaceholderView extends HookConsumerWidget {
   const RecoveredUnlinkedMessagesPlaceholderView({
@@ -35,8 +95,8 @@ class RecoveredUnlinkedMessagesPlaceholderView extends HookConsumerWidget {
     final title = onlyNoHandleFromMe
         ? 'Recovered No-Handle Messages'
         : isContactScoped
-        ? 'Recovered Deleted Messages'
-        : 'Recovered Deleted Messages';
+        ? 'Recovered deleted messages'
+        : 'Recovered deleted messages';
     final description = onlyNoHandleFromMe
         ? 'Recovered orphaned records that still look like outgoing messages but no longer retain handle linkage. This is an experimental slice of the recovered dataset.'
         : isContactScoped
@@ -235,6 +295,28 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
 
   final RecoveredUnlinkedMessageItem message;
 
+  String _buildHeaderTitle() {
+    if (message.isFromMe) {
+      return 'You';
+    }
+
+    final contactName = message.contactName?.trim();
+    final senderLabel = message.senderLabel.trim();
+    final hasContactName = contactName != null && contactName.isNotEmpty;
+    final hasConcreteSenderLabel =
+        senderLabel.isNotEmpty && senderLabel != 'Unknown Sender';
+
+    if (hasContactName && hasConcreteSenderLabel) {
+      return '$contactName • $senderLabel';
+    }
+
+    if (hasContactName) {
+      return 'Contact: $contactName';
+    }
+
+    return 'Unknown Sender';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(themeColorsProvider);
@@ -243,11 +325,23 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
     final developerMode = ref.watch(developerModeProvider).valueOrNull;
     final isDeveloperMode = developerMode == DeveloperModeValue.developer;
     final dateFormatter = DateFormat('MMM d, yyyy h:mm a');
+    final isSparseArtifact = message.isSparseArtifact;
+    final isFromMe = message.isFromMe;
+    final hasMeaningfulText = _hasMeaningfulRecoveredText(message);
+    final statusLine = _buildRecoveredStatusLine(message);
     final backgroundColor = message.isInferred
         ? colors.accents.primary.withValues(alpha: 0.10)
+        : isFromMe
+        ? colors.accents.primary.withValues(alpha: 0.06)
+        : isSparseArtifact
+        ? colors.content.textTertiary.withValues(alpha: 0.08)
         : colors.surfaces.surface;
     final borderColor = message.isInferred
         ? colors.accents.primary.withValues(alpha: 0.28)
+        : isFromMe
+        ? colors.accents.primary.withValues(alpha: 0.16)
+        : isSparseArtifact
+        ? colors.content.textTertiary.withValues(alpha: 0.24)
         : colors.lines.borderSubtle;
 
     return Container(
@@ -263,7 +357,7 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: Text(message.senderLabel, style: typography.headline),
+                child: Text(_buildHeaderTitle(), style: typography.headline),
               ),
               Text(
                 message.sentAt == null
@@ -275,20 +369,11 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '${message.service} • ${message.itemType}',
-            style: typography.caption1,
-          ),
-          if (isDeveloperMode) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              message.contactName == null
-                  ? 'Message ID: ${message.id}'
-                  : 'Contact: ${message.contactName} • Message ID: ${message.id}',
-              style: typography.caption1.copyWith(
-                color: colors.content.textSecondary,
-              ),
+            statusLine,
+            style: typography.caption1.copyWith(
+              color: colors.content.textSecondary,
             ),
-          ],
+          ),
           if (message.isInferred) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -298,18 +383,13 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: AppSpacing.sm),
-          Text(message.text, style: typography.body),
+          if (hasMeaningfulText) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(message.text, style: typography.body),
+          ],
           if (message.hasAttachments) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              message.attachmentCount == 1
-                  ? '1 attachment preserved'
-                  : '${message.attachmentCount} attachments preserved',
-              style: typography.caption,
-            ),
             if (message.attachmentNames.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
               Wrap(
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
@@ -329,6 +409,23 @@ class _RecoveredUnlinkedMessageCard extends ConsumerWidget {
                 ],
               ),
             ],
+          ],
+          if (isDeveloperMode) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              [
+                'Message ID: ${message.id}',
+                'Semantic: ${_formatRecoveredSemanticKind(message.semanticKind)}',
+                if (isSparseArtifact) 'Sparse artifact',
+                if (message.rawItemType != null)
+                  'Raw item_type: ${message.rawItemType}',
+                if (message.rawAssociatedMessageType != null)
+                  'Raw associated_message_type: ${message.rawAssociatedMessageType}',
+              ].join(' • '),
+              style: typography.caption1.copyWith(
+                color: colors.content.textSecondary,
+              ),
+            ),
           ],
         ],
       ),

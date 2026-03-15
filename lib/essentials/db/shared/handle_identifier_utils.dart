@@ -6,6 +6,24 @@ String sanitizeHandleService(String? rawService) {
   return trimmed;
 }
 
+String? stripMeaninglessHandlePrefix(String? rawIdentifier) {
+  if (rawIdentifier == null) {
+    return null;
+  }
+
+  final trimmed = rawIdentifier.trim();
+  if (trimmed.isEmpty) {
+    return trimmed;
+  }
+
+  final lower = trimmed.toLowerCase();
+  if (lower.startsWith('mailto:')) {
+    return trimmed.substring(trimmed.indexOf(':') + 1).trim();
+  }
+
+  return trimmed;
+}
+
 String buildCompoundIdentifier({
   String? normalizedIdentifier,
   String? rawIdentifier,
@@ -29,7 +47,7 @@ String? _fallbackCompoundBase(String? rawIdentifier) {
     return null;
   }
 
-  var candidate = rawIdentifier.trim();
+  var candidate = stripMeaninglessHandlePrefix(rawIdentifier) ?? '';
   if (candidate.isEmpty) {
     return null;
   }

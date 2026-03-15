@@ -1,5 +1,7 @@
 /// Shared identifier-normalization logic used by multiple importers.
 
+import '../../../db/shared/handle_identifier_utils.dart';
+
 /// Normalizes a phone number or email to a canonical form for matching.
 ///
 /// - Emails are lower-cased.
@@ -9,7 +11,7 @@ String? normalizeIdentifier(String? value) {
   if (value == null) {
     return null;
   }
-  final trimmed = value.trim();
+  final trimmed = stripMeaninglessHandlePrefix(value)?.trim() ?? '';
   if (trimmed.isEmpty) {
     return null;
   }

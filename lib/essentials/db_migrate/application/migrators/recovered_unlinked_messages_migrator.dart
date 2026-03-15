@@ -46,6 +46,13 @@ class RecoveredUnlinkedMessagesMigrator extends BaseTableMigrator {
           delivered_at_utc,
           read_at_utc,
           text,
+          raw_item_type,
+          raw_associated_message_type,
+          semantic_kind,
+          is_sparse_artifact,
+          has_attributed_body_source,
+          has_message_summary_info,
+          has_payload_data_source,
           item_type,
           is_system_message,
           error_code,
@@ -67,6 +74,37 @@ class RecoveredUnlinkedMessagesMigrator extends BaseTableMigrator {
           m.date_delivered_utc,
           m.date_read_utc,
           m.text,
+          m.raw_item_type,
+          m.raw_associated_message_type,
+          CASE
+            WHEN COALESCE(m.is_system_message, 0) = 1 OR m.item_type = 'system' THEN 'system'
+            WHEN COALESCE(m.has_message_summary_info, 0) = 1 THEN 'edited-or-unsent'
+            WHEN m.item_type = 'reaction-carrier'
+              OR m.associated_message_guid IS NOT NULL
+              OR COALESCE(m.raw_associated_message_type, 0) != 0 THEN 'associated'
+            WHEN m.item_type = 'balloon'
+              OR COALESCE(m.has_payload_data_source, 0) = 1
+              OR COALESCE(LENGTH(TRIM(m.balloon_bundle_id)), 0) > 0 THEN 'balloon-or-app'
+            WHEN m.item_type = 'attachment-only' THEN 'attachment-only'
+            WHEN COALESCE(m.has_attributed_body_source, 0) = 1 THEN 'rich-text'
+            WHEN COALESCE(LENGTH(TRIM(m.text)), 0) > 0 THEN 'plain-text'
+            WHEN COALESCE(m.raw_item_type, -1) >= 0 THEN 'sparse-artifact'
+            ELSE 'unknown-variant'
+          END AS semantic_kind,
+          CASE
+            WHEN COALESCE(LENGTH(TRIM(m.text)), 0) = 0
+              AND COALESCE(m.has_attributed_body_source, 0) = 0
+              AND COALESCE(m.has_message_summary_info, 0) = 0
+              AND COALESCE(m.has_payload_data_source, 0) = 0
+              AND NOT EXISTS (
+                SELECT 1 FROM $_attachAlias.recovered_unlinked_message_attachments ma
+                WHERE ma.message_id = m.id
+              )
+            THEN 1 ELSE 0
+          END AS is_sparse_artifact,
+          COALESCE(m.has_attributed_body_source, 0),
+          COALESCE(m.has_message_summary_info, 0),
+          COALESCE(m.has_payload_data_source, 0),
           CASE m.item_type
             WHEN 'text' THEN 'text'
             WHEN 'attachment-only' THEN 'attachment-only'
