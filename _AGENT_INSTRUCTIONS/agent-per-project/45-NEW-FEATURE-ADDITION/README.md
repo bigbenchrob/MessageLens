@@ -2,7 +2,7 @@
 tier: project
 scope: workflow
 owner: agent-per-project
-last_reviewed: 2026-08-12
+last_reviewed: 2026-09-08
 source_of_truth: doc
 links:
   - ../../agent-instructions-shared/INDEX.md
@@ -76,3 +76,4 @@ current project roadmap, or the user's latest instruction before implementing.
 | `08-CROSS-COLUMN-LAYOUT-TRACKS/` | Exploratory successor model for cross-column title/context wrappers using shared layout tracks: [`PROPOSAL.md`](08-CROSS-COLUMN-LAYOUT-TRACKS/PROPOSAL.md), [`CHECKLIST.md`](08-CROSS-COLUMN-LAYOUT-TRACKS/CHECKLIST.md), [`DESIGN_NOTES.md`](08-CROSS-COLUMN-LAYOUT-TRACKS/DESIGN_NOTES.md), [`TESTS.md`](08-CROSS-COLUMN-LAYOUT-TRACKS/TESTS.md) |
 | `23-PRESENCE-CONSOLIDATION-AND-ONBOARDING-OWNERSHIP/` | Completed generic Boolean Test and `ChoiceStep` consolidation. The active Onboarding Schedule now uses the generic grammar for Messages-history sufficiency and is rendered in production by the permanent Presence runner, with FDA Settings opening retained as an explicit specialist exception. Start with [`00-START-HERE.md`](23-PRESENCE-CONSOLIDATION-AND-ONBOARDING-OWNERSHIP/00-START-HERE.md); implementation record [`20`](23-PRESENCE-CONSOLIDATION-AND-ONBOARDING-OWNERSHIP/20-DURABLE-ACCEPTED-READINESS-IMPORT-HANDOFF-IMPLEMENTATION.md) records the durable accepted-readiness import handoff. |
 | `28-ONBOARDING/` | Active Onboarding completion work covering the first-launch Journey, typed durable operation state, liveness, source anomalies, interruption, recovery, Presence projection, and a preservation-safe future Start Fresh contract. Start with [`README.md`](28-ONBOARDING/README.md). |
+| `29-CONVERSATION-HEATMAP/` | Documentation-only planning for selected Conversation Card expansion and reuse of the existing calendar renderer, evidence-skeleton month lookup, exact-message anchor, and indexed timeline jump. Start with [`PROPOSAL.md`](29-CONVERSATION-HEATMAP/PROPOSAL.md). |

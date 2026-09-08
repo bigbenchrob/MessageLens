@@ -2,7 +2,7 @@
 tier: project
 scope: navigation
 owner: agent-per-project
-last_reviewed: 2026-08-14
+last_reviewed: 2026-09-08
 source_of_truth: doc
 links:
   - ./README.md
@@ -68,6 +68,7 @@ corrections; it is no longer the active home for that work.
 | [`26-PRODUCTION-ARCHIVE-RECOVERY/`](26-PRODUCTION-ARCHIVE-RECOVERY/) | Temporarily reopened for a separate historical-message recovery task. The March attachment [relational bridge audit](26-PRODUCTION-ARCHIVE-RECOVERY/responses/01-MARCH-2026-ATTACHMENT-RELATIONAL-BRIDGE-AUDIT.md) and [closure](26-PRODUCTION-ARCHIVE-RECOVERY/responses/02-MARCH-2026-RECOVERY-MANIFEST-AND-CLOSURE.md) remain final and authorize no payload recovery. The 8,882-message 2012-2017 donor has now completed a successful disposable staging rehearsal; the [post-correction verification](26-PRODUCTION-ARCHIVE-RECOVERY/responses/06-HISTORICAL-IMPORT-POST-CORRECTION-VERIFICATION.md) confirms source-scoped import, timestamps, and graph projection. Owner-aware graph admission has replaced the provisional pre-open workaround. Historical Archives UX/lifecycle behavior is the next concern. |
 | [`27-MESSAGE-HISTORY-COVERAGE/`](27-MESSAGE-HISTORY-COVERAGE/) | Active current-Mac coverage work package. The exact source-identity partition and fast set query are implemented; the product presentation now gives complete results a calm conclusion and compact evidence surface while making real unaccounted exceptions primary. |
 | [`28-ONBOARDING/`](28-ONBOARDING/) | Active Onboarding completion work. The opening audit reconstructs the Journey and release blockers; the first implementation slice adds one typed durable operation snapshot, terminal failure routing, process-restart interruption, durable reconciliation, and a Presence projection seam without a schema change. |
+| [`29-CONVERSATION-HEATMAP/`](29-CONVERSATION-HEATMAP/) | Active documentation-only planning package for expanding the selected Conversation Card into the existing year-by-month heatmap and reusing the evidence skeleton plus exact-message anchor path for coarse temporal navigation. |
 | [`archive-canonical-attachments/`](archive-canonical-attachments/) | Attachment/archive planning material. Verify against `25-ONBOARDING-AND-ARCHIVE/`, `55/84`, and current archive/recovery work before implementation. |
 | [`ephemeral-sidebar-projection/`](ephemeral-sidebar-projection/) | Sidebar projection planning material. Verify against the canonical spec/cassette system and current UI-walk direction before implementation. |
 

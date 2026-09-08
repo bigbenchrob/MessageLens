@@ -2,7 +2,7 @@
 tier: project
 scope: navigation
 owner: agent-per-project
-last_reviewed: 2026-07-29
+last_reviewed: 2026-08-30
 source_of_truth: doc
 links:
   - ./README.md
@@ -67,6 +67,7 @@ correctness, or an active UI-walk review.
 | Cross-surface specs and ViewSpec/cassette architecture | `42-SPEC-SYSTEM/` |
 | Project-wide Presence interaction system | `43-PRESENCE/` |
 | Message Evidence Spine and graph-migration history | `55-READERS-INTEGRATORS-ORCHESTRATORS/` |
+| Tester release publication and public download | `65-DISTRIBUTION/` |
 | Active UI/UX walk and design language | `95-WALK-UI-TREE/` |
 
 ## Historical Reference Areas

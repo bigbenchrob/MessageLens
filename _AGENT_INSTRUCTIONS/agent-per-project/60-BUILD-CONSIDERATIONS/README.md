@@ -2,17 +2,22 @@
 tier: project
 scope: build
 owner: agent-per-project
-last_reviewed: 2026-06-06
+last_reviewed: 2026-08-30
 source_of_truth: doc
 links:
   - ./01-rust-ffi-dylib-bundling.md
   - ./02-macos-fda-grant-continuity.md
+  - ../65-DISTRIBUTION/README.md
 tests: []
 ---
 
 # Build Considerations
 
 This folder documents platform-specific build requirements, release packaging gotchas, and build phase configurations that are critical for the app to function correctly outside of development.
+
+After a release artifact has been built, signed, notarized, and packaged, use
+[`65-DISTRIBUTION/`](../65-DISTRIBUTION/README.md) for tester-portal publication
+through Render. Preparing the website checkout is not deployment.
 
 ## Contents
 

@@ -1,0 +1,140 @@
+The tester hit the exact failure described in the brief: startup examined an old `working.db`, rejected it because it did not match the experimental 4/3/3 fingerprint, and displayed the internal `nonEmptyUnmarkedArchive` exception. Deleting Application Support worked because the next launch followed the ordinary virgin-install path.
+
+No files were changed.
+
+> Slow down and reason explicitly. This is a high-risk change.
+
+The solution should remove that database-archeology system—not expand its catalogue of recognized old installations.
+
+## Proposed implementation plan
+
+1. Prove the current-installation distinction
+
+Before editing code, perform a read-only check that:
+
+- Rob’s valuable production installation has a valid `.messagelens-archive.json` ownership marker.
+- The April 2026 tester build could not have created that current marker.
+- Production and development roots remain distinct.
+- No database needs to be opened to establish these facts.
+
+The marker—not a database schema—is the proposed simple “current installation established” fact.
+
+If repository/release history cannot prove that distinction, implementation stops. The fallback will be instructions telling the two remaining testers to move the old Application Support folder to Trash manually.
+
+2. Replace the startup classifier with this exact rule
+
+Before SQLite, Drift, Rust, repositories, or archive contents are opened:
+
+- Root absent, or containing only `MessageLens.instance.lock`:
+  - Create the current ownership marker.
+  - Classify as Virgin.
+  - Begin normal onboarding.
+- Root contains a valid current ownership marker:
+  - Treat it as a current installation.
+  - Never offer to remove it.
+  - Continue through normal startup.
+- Production root contains meaningful data but no marker:
+  - Classify only as `temporaryEarlyTesterCleanupRequired`.
+  - Do not inspect `working.db`, table names, schema columns, or archive contents.
+  - Present the temporary cleanup prompt.
+- Marker present but malformed, incompatible, or for the wrong environment:
+  - Fail closed with a friendly support message.
+  - Do not offer cleanup and do not display the raw exception.
+
+The “lock-only” qualification matters because macOS native startup creates the Application Support directory in order to acquire `MessageLens.instance.lock`. Literal folder existence therefore cannot reliably mean “old installation.”
+
+3. Add the temporary cleanup prompt
+
+Use the wording from the brief:
+
+**Old MessageLens test data found**
+
+> MessageLens found data left by an earlier test version. This release needs to start with a clean setup. I can move the old MessageLens data to the Trash and continue. Your Apple Messages and Contacts will not be changed.
+
+Actions:
+
+- **Cancel** — quit without changing anything.
+- **Move Old Data to Trash and Continue** — perform the bounded cleanup.
+
+No exception names, database filenames, fingerprints, or technical diagnostic text should appear in this dialog.
+
+4. Implement a narrow Trash operation
+
+The existing complete-erasure implementation permanently deletes files. It must not be reused unchanged.
+
+The preferred implementation is a small native macOS operation using `FileManager.trashItem` or `NSWorkspace.recycle`:
+
+- The target comes exclusively from the signed native archive claim.
+- Dart cannot supply an arbitrary path.
+- Verify the target is the canonical MessageLens production root.
+- Reject symlinks, nested Apple source databases, or any path that escapes the owned root.
+- Open no databases.
+- Move the entire old MessageLens root to Trash.
+- On failure, leave the old root in place and report a friendly error.
+- On success, relaunch. Native startup recreates the root and lock; normal marker creation then produces Virgin onboarding.
+- A crash after a successful move is naturally recoverable: the following launch sees a virgin root.
+
+This is the first implementation gate. If moving the root to Trash requires a large generalized subsystem, work stops and the testers receive manual instructions, as the brief requires.
+
+5. Make the preservation exception explicit
+
+Moving an entire root also moves any `attachment_archive/` it might contain. That is normally forbidden by the attachment-preservation invariant.
+
+This operation will therefore be documented as a narrowly authorized, temporary whole-installation replacement—equivalent in authority to “Erase MessageLens Setup and Start Over,” but only available for a meaningful unmarked early-tester root. It must never become part of ordinary onboarding, reset, or reimport.
+
+6. Remove the discarded fingerprint regime
+
+Delete production code, tests, fixtures, providers, UI, and architectural tripwires whose only purpose is the old classification experiment, including:
+
+- `LegacyTesterInstallInspector`
+- `ReadOnlySqliteLegacyTesterInstallInspector`
+- legacy 4/3/3 schema constants and fingerprints
+- `legacyTesterInstall` and `legacyTesterInstallDetected`
+- `missingMarker`, `nonEmptyUnmarkedArchive`, and legacy-inspection failures
+- the exact-legacy deletion action, service, provider, and screen
+- legacy-only archive access and mutation modes
+
+`ArchiveAdmissionException` currently also contains legitimate claim and marker failures. To satisfy the requested removal without weakening those protections, its remaining current-purpose cases should move to a current-focused identity-validation result or exception; the old admission type and name can then disappear completely.
+
+Retain:
+
+- Canonical root resolution
+- Native archive claim validation
+- The ownership marker and marker validator
+- Environment separation
+- Process locking
+- `ArchiveAccessAuthority` or a simplified current-purpose equivalent
+- Mutation serialization and checkpoints
+- Historical Archive donor protection
+- The existing user-requested complete-installation erase feature
+- Attachment archive protections outside this explicit temporary operation
+
+7. Replace raw startup failures
+
+The current path stringifies startup exceptions into a native dialog. Replace that with small user-facing categories while recording technical diagnostics only in logs.
+
+The early-tester case gets the cleanup prompt. Invalid current ownership state gets a non-destructive support message.
+
+8. Verification
+
+Add focused tests for all fourteen scenarios required by the brief, plus the Trash bridge:
+
+- Virgin root and lock-only root
+- Unmarked old root prompts without opening SQLite
+- Cancel changes nothing
+- Confirmation targets only the canonical owned root
+- Trash failure leaves the root intact
+- Apple Messages, Contacts, external Historical Archives, and development data remain untouched
+- Success converges to Virgin onboarding
+- Current marked installation is never prompted
+- Malformed marker is never treated as disposable
+- Development and production remain isolated
+- No raw exception reaches UI
+- Startup performs no legacy schema inspection
+- No discarded legacy/fingerprint symbols remain
+
+Then run formatting, focused tests, architecture tests, the complete Flutter suite, analysis, and a macOS debug build. This is release-worthy, so it also requires a version bump, `CHANGELOG.md`, and the requested implementation document.
+
+The existing uncommitted instruction documents will be preserved and not overwritten.
+
+If you approve this plan, reply **approved**.
