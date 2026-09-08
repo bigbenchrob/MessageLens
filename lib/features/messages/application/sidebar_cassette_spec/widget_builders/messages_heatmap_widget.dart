@@ -135,6 +135,7 @@ class _ContactEvidenceContent extends ConsumerWidget {
       ),
       _ContactEvidenceMode.conversations => ContactGraphConversationSection(
         contactId: contactId,
+        selectedConversationId: flowState.selectedConversationId,
         padding: EdgeInsets.zero,
         maxHeight: 360,
       ),

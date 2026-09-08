@@ -6,6 +6,7 @@ import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/widgets/layout/cross_column_track_plan.dart';
 import '../../../../core/util/date_label_formatter.dart';
 import '../../../../essentials/conversation_graph/application/conversation_signatures/conversation_signature.dart';
+import 'conversation_signature_calendar_heatmap.dart';
 
 class ConversationSignatureCardData {
   const ConversationSignatureCardData({
@@ -107,6 +108,7 @@ class ConversationSignatureCard extends StatefulWidget {
     required this.style,
     required this.monthColorForMessageCount,
     this.onPressed,
+    this.onMonthTap,
     this.isSelected = false,
     this.trailing,
     this.horizontalPlacement = Alignment.centerLeft,
@@ -117,6 +119,7 @@ class ConversationSignatureCard extends StatefulWidget {
   final ConversationSignatureCardStyle style;
   final Color Function(int messageCount) monthColorForMessageCount;
   final VoidCallback? onPressed;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
   final bool isSelected;
   final Widget? trailing;
   final AlignmentGeometry horizontalPlacement;
@@ -243,16 +246,27 @@ class _ConversationSignatureCardState extends State<ConversationSignatureCard> {
                       height: ConversationSignatureCardPresentationMetrics
                           .identityGlyphGap,
                     ),
-                    _ConversationMonthGlyph(
-                      months: signature.activityMonths,
-                      highlightedMonth: signature.highlightedMonth,
-                      monthColorForMessageCount:
-                          widget.monthColorForMessageCount,
-                      monthHighlightColor:
-                          widget.style.monthHighlightColor ??
-                          widget.style.emptyMonthBorderColor,
-                      emptyMonthBorderColor: widget.style.emptyMonthBorderColor,
-                    ),
+                    if (widget.isSelected)
+                      ConversationSignatureCalendarHeatmap(
+                        conversationId: signature.conversationId,
+                        activityMonths: signature.activityMonths,
+                        focusBorderColor:
+                            widget.style.monthHighlightColor ??
+                            widget.style.emptyMonthBorderColor,
+                        onMonthTap: widget.onMonthTap,
+                      )
+                    else
+                      _ConversationMonthGlyph(
+                        months: signature.activityMonths,
+                        highlightedMonth: signature.highlightedMonth,
+                        monthColorForMessageCount:
+                            widget.monthColorForMessageCount,
+                        monthHighlightColor:
+                            widget.style.monthHighlightColor ??
+                            widget.style.emptyMonthBorderColor,
+                        emptyMonthBorderColor:
+                            widget.style.emptyMonthBorderColor,
+                      ),
                     const SizedBox(
                       height: ConversationSignatureCardPresentationMetrics
                           .glyphSummaryGap,

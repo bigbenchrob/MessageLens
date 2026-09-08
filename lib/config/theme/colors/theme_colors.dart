@@ -196,6 +196,13 @@ class Surfaces {
   /// competing with foreground selection indicators.
   Color get selected =>
       _t.accents.primary.withValues(alpha: _t.isDark ? 0.22 : 0.12);
+
+  /// Durable selected-region surface for information-dense cards.
+  ///
+  /// Unlike [selected], this is an opaque blue-gray surface so embedded pale
+  /// indicators remain distinct while the complete card reads as selected.
+  Color get selectedRegion =>
+      _r(const ColorPair(Color(0xFFD6EDFB), Color(0xFF3A5064)));
 }
 
 /// Text + icon content colors.
@@ -231,6 +238,14 @@ class Lines {
   Color get border => _base().withValues(alpha: _t.isDark ? 0.65 : 0.70);
   Color get borderStrong =>
       _t.globals.gray.four.withValues(alpha: _t.isDark ? 0.85 : 0.85);
+
+  /// Structural outline for empty calendar-heatmap month cells.
+  ///
+  /// Light mode uses an opaque mid-gray so the calendar matrix remains clear
+  /// on both selected blue surfaces and ordinary pale surfaces. Dark mode
+  /// preserves the existing light-gray outline.
+  Color get heatmapEmptyMonthOutline =>
+      _t.resolvePair(const ColorPair(Color(0xFFA8AEB0), Color(0xFFD0D0D0)));
 
   /// Vertical divider for content control panel (more subtle than standard divider).
   Color get contentControlDivider =>

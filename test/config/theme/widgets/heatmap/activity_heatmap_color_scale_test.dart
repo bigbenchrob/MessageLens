@@ -1,7 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:remember_this_text/config/theme/colors/theme_colors.dart';
 import 'package:remember_this_text/config/theme/widgets/heatmap/activity_heatmap_color_scale.dart';
+import 'package:remember_this_text/essentials/app_mode/application/app_mode_providers.dart';
 import 'package:remember_this_text/features/conversations/presentation/widgets/conversation_signature_card_presentation.dart';
 import 'package:remember_this_text/features/messages/domain/calendar_heatmap_timeline_data.dart';
 
@@ -52,6 +55,26 @@ void main() {
         color,
         reason: 'Conversation glyph diverged at $count messages',
       );
+    }
+  });
+
+  test('empty-month structural outline resolves independently by mode', () {
+    const expectations = <Brightness, Color>{
+      Brightness.light: Color(0xFFA8AEB0),
+      Brightness.dark: Color(0xFFD0D0D0),
+    };
+
+    for (final MapEntry(key: brightness, value: expected)
+        in expectations.entries) {
+      final container = ProviderContainer(
+        overrides: [
+          platformBrightnessProvider.overrideWith((ref) => brightness),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final colors = container.read(themeColorsProvider.notifier);
+      expect(colors.lines.heatmapEmptyMonthOutline, expected);
     }
   });
 }

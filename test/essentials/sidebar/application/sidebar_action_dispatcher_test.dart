@@ -128,6 +128,7 @@ void main() {
           intent: const ContactConversationSelected(
             contactId: 24,
             conversationId: 8796093022216,
+            anchorMessageId: 45,
           ),
           context: const SidebarActionDispatchContext(
             sidebarMode: SidebarMode.messages,
@@ -140,12 +141,14 @@ void main() {
         expect(flowState.topMenuChoice, TopChatMenuChoice.contacts);
         expect(flowState.chosenContactId, 24);
         expect(flowState.selectedConversationId, 8796093022216);
+        expect(flowState.selectedConversationAnchorMessageId, 45);
         expect(
           _activeSpec(container, WindowPanel.center),
           equals(
             const ViewSpec.conversations(
               ConversationsSpec.conversationMessages(
                 conversationId: 8796093022216,
+                anchorMessageId: 45,
               ),
             ),
           ),

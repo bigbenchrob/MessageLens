@@ -305,6 +305,7 @@ class _ConversationSignatureListAsync extends ConsumerWidget {
           itemBuilder: (context, index) {
             final signature = signatures[index];
             return ConversationSignatureCard(
+              key: ValueKey<int>(signature.conversationId),
               signature: conversationSignatureCardDataFromDisplay(
                 signature,
                 titleContextLabel: titleContextForSignature?.call(signature),
@@ -321,15 +322,27 @@ class _ConversationSignatureListAsync extends ConsumerWidget {
               monthColorForMessageCount:
                   conversationSignatureMonthColorForMessageCount,
               isSelected: signature.conversationId == selectedConversationId,
+              onMonthTap: (year, month, _) {
+                unawaited(
+                  ref
+                      .read(conversationNavigationActionsProvider.notifier)
+                      .selectConversationMonth(
+                        conversationId: signature.conversationId,
+                        monthAnchor: DateTime(year, month),
+                      ),
+                );
+              },
               trailing: _ConversationIntentActions(
                 conversationId: signature.conversationId,
               ),
               onPressed: () {
-                ref
-                    .read(conversationNavigationActionsProvider.notifier)
-                    .selectConversation(
-                      conversationId: signature.conversationId,
-                    );
+                unawaited(
+                  ref
+                      .read(conversationNavigationActionsProvider.notifier)
+                      .selectConversation(
+                        conversationId: signature.conversationId,
+                      ),
+                );
               },
             );
           },

@@ -10,6 +10,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Selected Conversation cards now replace their compact activity glyph with
+  the shared year-by-month heat map in both the main and Contact-derived
+  Conversation lists. Populated months jump within the complete Conversation
+  to that month's first message through the existing exact-message indexed
+  anchor path; empty and pre-start months remain inert. Mode-aware selected
+  surfaces and shared structural outlines keep sparse calendar grids legible
+  in both light and dark appearances.
+
 - Removed the obsolete Complete Erase whole-root replacement runtime. Every
   supported mutation now targets named resources, while Start Fresh preserves
   archive identity, durable user state, and archived attachments. A temporary

@@ -44,7 +44,7 @@ ConversationSignatureCardStyle conversationSignatureCardStyle(
   return ConversationSignatureCardStyle(
     backgroundColor: colors.surfaces.surface.withValues(alpha: 0.14),
     hoverBackgroundColor: colors.surfaces.hover,
-    selectedBackgroundColor: colors.surfaces.selected,
+    selectedBackgroundColor: colors.surfaces.selectedRegion,
     borderColor: colors.lines.borderSubtle.withValues(alpha: 0),
     hoverBorderColor: colors.lines.borderSubtle.withValues(alpha: 0.38),
     selectedBorderColor: colors.accents.selection.withValues(alpha: 0.58),
@@ -93,7 +93,7 @@ ConversationSignatureCardStyle favouriteConversationSignatureCardStyle(
   return ConversationSignatureCardStyle(
     backgroundColor: colors.surfaces.surface.withValues(alpha: 0.38),
     hoverBackgroundColor: colors.surfaces.hover,
-    selectedBackgroundColor: colors.surfaces.selected,
+    selectedBackgroundColor: colors.surfaces.selectedRegion,
     borderColor: colors.lines.borderSubtle.withValues(alpha: 0.18),
     hoverBorderColor: colors.lines.borderSubtle.withValues(alpha: 0.42),
     selectedBorderColor: colors.accents.selection.withValues(alpha: 0.6),

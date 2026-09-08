@@ -3,8 +3,8 @@ tier: project
 scope: feature-proposal
 owner: agent-per-project
 last_reviewed: 2026-09-08
-source_of_truth: draft
-status: planning
+source_of_truth: both
+status: implemented
 links:
   - ./seed.md
   - ./DESIGN_NOTES.md
@@ -195,7 +195,7 @@ insufficient.
 - Add a selected/unselected heatmap presentation mode to the shared
   Conversation Card.
 - Add a thin adapter from `ConversationSignatureCardData.activityMonths` and
-  date/count metadata to the existing full heatmap input.
+  count metadata to the existing full heatmap input.
 - Expose `CalendarHeatmapTimelineWidget` through the smallest architecturally
   valid dependency seam if it is not already reachable from Conversations.
 - Resolve populated month taps through the active Conversation skeleton's
@@ -248,32 +248,31 @@ insufficient.
 - **Over-broad extraction:** moving shared domain models would increase the
   diff and blur ownership. Prefer a pure adapter and narrow public seam.
 
-## Likely Production Files In A Later Approved Phase
+## Implemented Production Files
 
-Expected modifications:
+Modified:
 
 - `lib/features/conversations/presentation/widgets/conversation_signature_card.dart`
-- `lib/features/conversations/presentation/widgets/conversation_signature_card_presentation.dart`
 - `lib/features/conversations/application/sidebar_cassette_spec/widget_builders/conversation_signatures_widget.dart`
 - `lib/features/conversations/presentation/widgets/contact_conversations/contact_graph_conversation_section.dart`
 - `lib/features/conversations/application/sidebar_cassette_spec/resolver_tools/conversation_navigation_actions_provider.dart`
 - `lib/features/conversations/application/contact_conversations/contact_conversation_navigation_actions_provider.dart`
+- `lib/features/messages/application/sidebar_cassette_spec/widget_builders/messages_heatmap_widget.dart`
 - `lib/features/messages/feature_level_providers.dart`
-- `lib/features/messages/domain/message_evidence/message_evidence_skeleton.dart`
 - `lib/features/messages/presentation/widgets/calendar_heatmap_timeline_widget.dart`
 - `lib/essentials/sidebar/domain/sidebar_action_intent.dart`
 - `lib/essentials/sidebar/application/sidebar_action_dispatcher.dart`
+- `pubspec.yaml`
+- `CHANGELOG.md`
 
-Possible new Conversation-owned files:
+Added:
 
-- a pure `ConversationSignatureMonth` -> `CalendarHeatmapTimelineData` adapter;
-- a narrow action/helper that reads the existing Conversation evidence
-  skeleton and returns its already-defined month anchor message.
+- `lib/features/conversations/presentation/widgets/conversation_signature_calendar_heatmap.dart`
 
-`ConversationMessagesView` and `SidebarFlowState` already carry and consume an
-exact message anchor, so they may need only regression tests. Generated files
-would change only if a Riverpod or Freezed declaration changes during the later
-approved implementation.
+`ConversationMessagesView`, `MessageEvidenceTimelineSkeleton`,
+`MessageEvidenceTimelineView`, and `SidebarFlowState` required no production
+changes. Their existing exact-message and indexed-positioning contracts were
+reused. No generated files changed.
 
 ## Success Criteria
 
@@ -298,3 +297,50 @@ approved implementation.
 - Whether an expanded card needs a maximum internal height for unusually long
   histories. Default to natural card height inside the existing list until
   manual testing demonstrates a concrete usability problem.
+
+## First Slice Implementation Record — 2026-09-08
+
+The approved first slice is implemented with the planned reuse-first shape:
+
+- `ConversationSignatureCalendarHeatmap` is a thin Conversation-owned adapter
+  from `ConversationSignatureMonth` values to
+  `CalendarHeatmapTimelineData`.
+- Conversations consumes `CalendarHeatmapTimelineWidget`, its presentation
+  DTOs, and the existing Conversation evidence skeleton provider through
+  explicit narrow exports from the Messages public seam. The architecture
+  suite accepted this dependency direction; no shared-type extraction was
+  needed.
+- Both semantic action providers call
+  `MessageEvidenceTimelineSkeleton.indexForMonth()`, verify the returned
+  entry's exact month key, and dispatch that entry's message ID through the
+  existing anchor-message selection intent. No query, second resolver, or
+  month-navigation state was added.
+- Contact selection is projected by the existing Messages parent and passed as
+  presentation data to `ContactGraphConversationSection`. The section does not
+  read or mutate global flow directly.
+- Each list gives the shared stateful card a stable Conversation ID key. An
+  in-flight month lookup also rechecks the current branch and selected ID so a
+  stale result cannot recreate or restore a previous selection.
+- The shared renderer now supports an optional transparent hit target and
+  caller-supplied focus ring. Conversation cards retain 12-pixel visual cells
+  inside 18-pixel targets, with month/count tooltips, isolated semantics, and
+  keyboard activation. Empty and pre-start cells absorb the surrounding card
+  gesture without exposing a navigation action.
+- Natural variable-height list behavior was retained. The main list has no
+  fixed extent, and the Contact list remains the existing scrollable
+  360-pixel viewport. No internal heatmap scroller or expansion cap was added.
+
+Implementation discoveries and deviations:
+
+- The adapter uses `ConversationSignatureMonth` as the authoritative dated
+  bounds instead of parsing optional summary date strings. This keeps invalid
+  optional metadata from inventing or suppressing calendar activity.
+- The architecture tripwire correctly rejected a direct `sidebarFlowProvider`
+  read in the Contact presentation section. Passing the already-projected
+  selected ID from `MessagesHeatmapWidget` preserved the intended boundary.
+- The test-first ordering item in `CHECKLIST.md` was not met: the initial
+  adapter and card composition were written before their focused tests. The
+  completed automated coverage now exercises the adapter and presentation.
+- Live light/dark, VoiceOver, and production-data validation of a 15+ year or
+  roughly 27,000-message Conversation remains a manual follow-up. No automated
+  or architectural evidence required extra scrolling machinery in this slice.

@@ -289,6 +289,7 @@ const Set<String> _unawaitedAllowedFiles = {
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/picker_filter_mode_provider.dart',
   'lib/features/conversations/application/sidebar_cassette_spec/resolver_tools/conversation_signature_preferences_provider.dart',
   'lib/features/conversations/application/sidebar_cassette_spec/widget_builders/conversation_signatures_widget.dart',
+  'lib/features/conversations/presentation/widgets/contact_conversations/contact_graph_conversation_section.dart',
   'lib/features/messages/presentation/view_model/shared/display_widgets/new_display_widgets.dart',
   'lib/features/settings/presentation/view/historical_archives_panel.dart',
   'lib/main.dart',
@@ -520,6 +521,8 @@ const Set<String> _messageEvidenceInitialRowsProviderAllowedFiles = {
 };
 
 const Set<String> _messageEvidenceTimelineSkeletonProviderAllowedFiles = {
+  'lib/features/conversations/application/contact_conversations/contact_conversation_navigation_actions_provider.dart',
+  'lib/features/conversations/application/sidebar_cassette_spec/resolver_tools/conversation_navigation_actions_provider.dart',
   'lib/features/conversations/presentation/view/conversation_messages_view.dart',
   'lib/features/conversations/presentation/view/conversation_excerpt_panel_view.dart',
   'lib/features/messages/application/sidebar_cassette_spec/resolver_tools/prewarm_contact_messages_provider.dart',

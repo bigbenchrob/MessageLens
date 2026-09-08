@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart' show MacosTooltip;
 
+import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../config/theme/widgets/heatmap/activity_heatmap_color_scale.dart';
 import '../../../../core/util/date_label_formatter.dart';
@@ -28,6 +29,8 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
     this.monthSize = 14.0,
     this.monthSpacing = 2.0,
     required this.onMonthTap,
+    this.monthHitTargetSize,
+    this.focusBorderColor,
     this.selectedMonthKey,
     this.monthTooltipBuilder,
     super.key,
@@ -39,7 +42,14 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
 
   /// Caller-owned tap handler. Heatmap widgets render timeline data; they do
   /// not choose message evidence routes.
-  final void Function(int year, int month, int messageCount) onMonthTap;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
+
+  /// Optional transparent interaction target around the visual month cell.
+  /// Defaults to [monthSize] so existing layouts retain their dimensions.
+  final double? monthHitTargetSize;
+
+  /// Optional keyboard-focus ring color supplied by the owning presentation.
+  final Color? focusBorderColor;
 
   /// Currently selected/visible month in format "YYYY-MM"
   final String? selectedMonthKey;
@@ -65,6 +75,8 @@ class CalendarHeatmapTimelineWidget extends ConsumerWidget {
             yearRows: group,
             monthSize: monthSize,
             monthSpacing: monthSpacing,
+            monthHitTargetSize: monthHitTargetSize ?? monthSize,
+            focusBorderColor: focusBorderColor,
             onMonthTap: onMonthTap,
             selectedMonthKey: selectedMonthKey,
             monthTooltipBuilder: monthTooltipBuilder,
@@ -80,6 +92,8 @@ class _YearRowsGroup extends StatelessWidget {
     required this.yearRows,
     required this.monthSize,
     required this.monthSpacing,
+    required this.monthHitTargetSize,
+    required this.focusBorderColor,
     required this.onMonthTap,
     this.selectedMonthKey,
     this.monthTooltipBuilder,
@@ -88,7 +102,9 @@ class _YearRowsGroup extends StatelessWidget {
   final List<YearRow> yearRows;
   final double monthSize;
   final double monthSpacing;
-  final void Function(int year, int month, int messageCount) onMonthTap;
+  final double monthHitTargetSize;
+  final Color? focusBorderColor;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
   final String? selectedMonthKey;
   final String? Function(MonthData monthData)? monthTooltipBuilder;
 
@@ -103,6 +119,8 @@ class _YearRowsGroup extends StatelessWidget {
             yearRow: yearRow,
             monthSize: monthSize,
             monthSpacing: monthSpacing,
+            monthHitTargetSize: monthHitTargetSize,
+            focusBorderColor: focusBorderColor,
             onMonthTap: onMonthTap,
             selectedMonthKey: selectedMonthKey,
             monthTooltipBuilder: monthTooltipBuilder,
@@ -120,6 +138,8 @@ class _SingleYearRow extends ConsumerWidget {
     required this.yearRow,
     required this.monthSize,
     required this.monthSpacing,
+    required this.monthHitTargetSize,
+    required this.focusBorderColor,
     required this.onMonthTap,
     this.selectedMonthKey,
     this.monthTooltipBuilder,
@@ -128,12 +148,16 @@ class _SingleYearRow extends ConsumerWidget {
   final YearRow yearRow;
   final double monthSize;
   final double monthSpacing;
-  final void Function(int year, int month, int messageCount) onMonthTap;
+  final double monthHitTargetSize;
+  final Color? focusBorderColor;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
   final String? selectedMonthKey;
   final String? Function(MonthData monthData)? monthTooltipBuilder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(themeColorsProvider);
+    final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
     return Row(
@@ -156,6 +180,9 @@ class _SingleYearRow extends ConsumerWidget {
           _MonthCell(
             monthData: yearRow.months[i],
             size: monthSize,
+            hitTargetSize: monthHitTargetSize,
+            focusBorderColor: focusBorderColor,
+            emptyMonthOutlineColor: colors.lines.heatmapEmptyMonthOutline,
             onMonthTap: onMonthTap,
             isSelected: _isMonthSelected(yearRow.months[i]),
             monthTooltipBuilder: monthTooltipBuilder,
@@ -177,10 +204,13 @@ class _SingleYearRow extends ConsumerWidget {
 }
 
 /// A single month cell - clickable, shows dots or colored rectangle
-class _MonthCell extends StatelessWidget {
+class _MonthCell extends StatefulWidget {
   const _MonthCell({
     required this.monthData,
     required this.size,
+    required this.hitTargetSize,
+    required this.focusBorderColor,
+    required this.emptyMonthOutlineColor,
     required this.onMonthTap,
     this.isSelected = false,
     this.monthTooltipBuilder,
@@ -188,59 +218,80 @@ class _MonthCell extends StatelessWidget {
 
   final MonthData monthData;
   final double size;
-  final void Function(int year, int month, int messageCount) onMonthTap;
+  final double hitTargetSize;
+  final Color? focusBorderColor;
+  final Color emptyMonthOutlineColor;
+  final void Function(int year, int month, int messageCount)? onMonthTap;
   final bool isSelected;
   final String? Function(MonthData monthData)? monthTooltipBuilder;
 
+  @override
+  State<_MonthCell> createState() => _MonthCellState();
+}
+
+class _MonthCellState extends State<_MonthCell> {
+  var _showFocusHighlight = false;
+
+  bool get _isInteractive {
+    return !widget.monthData.intensity.isNotYetStarted &&
+        widget.monthData.messageCount > 0 &&
+        widget.onMonthTap != null;
+  }
+
   void _handleTap() {
-    // Don't navigate for notYetStarted or empty months
-    if (monthData.intensity.isNotYetStarted || monthData.messageCount == 0) {
+    if (!_isInteractive) {
       return;
     }
 
-    onMonthTap(monthData.year, monthData.month, monthData.messageCount);
+    widget.onMonthTap?.call(
+      widget.monthData.year,
+      widget.monthData.month,
+      widget.monthData.messageCount,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     Widget cellContent;
 
-    if (monthData.intensity.isNotYetStarted) {
+    if (widget.monthData.intensity.isNotYetStarted) {
       // Month before chat started - show empty space
-      cellContent = SizedBox(width: size, height: size);
-    } else if (monthData.intensity.isEmpty) {
+      cellContent = SizedBox(width: widget.size, height: widget.size);
+    } else if (widget.monthData.intensity.isEmpty) {
       // Chat active but no messages - show empty square with light grey border
       cellContent = Container(
-        width: size,
-        height: size,
+        width: widget.size,
+        height: widget.size,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFD0D0D0), width: 0.5),
+          border: Border.all(color: widget.emptyMonthOutlineColor, width: 0.5),
           borderRadius: BorderRadius.circular(2),
         ),
       );
-    } else if (monthData.intensity.shouldRenderAsDots) {
+    } else if (widget.monthData.intensity.shouldRenderAsDots) {
       // 1-3 messages: Show as 6×6 dot matrix
       cellContent = _DotMatrixIndicator(
-        count: monthData.messageCount,
-        size: size,
+        count: widget.monthData.messageCount,
+        size: widget.size,
       );
     } else {
       // 4+ messages: Show as colored rectangle
       cellContent = Container(
-        width: size,
-        height: size,
+        width: widget.size,
+        height: widget.size,
         decoration: BoxDecoration(
-          color: activityHeatmapColorForMessageCount(monthData.messageCount),
+          color: activityHeatmapColorForMessageCount(
+            widget.monthData.messageCount,
+          ),
           borderRadius: BorderRadius.circular(2),
         ),
       );
     }
 
     // Add pink border if selected
-    if (isSelected) {
+    if (widget.isSelected) {
       cellContent = Container(
-        width: size,
-        height: size,
+        width: widget.size,
+        height: widget.size,
         decoration: BoxDecoration(
           border: Border.all(
             color: const Color(0xFFFF1493), // Deep pink
@@ -252,26 +303,86 @@ class _MonthCell extends StatelessWidget {
       );
     }
 
-    // Wrap in GestureDetector for click handling (except notYetStarted)
-    if (monthData.intensity.isNotYetStarted) {
-      return cellContent;
+    final hitTargetSize = widget.hitTargetSize > widget.size
+        ? widget.hitTargetSize
+        : widget.size;
+    Widget hitTarget = SizedBox(
+      key: ValueKey(
+        'calendar-heatmap-month-'
+        '${widget.monthData.year}-${widget.monthData.month}',
+      ),
+      width: hitTargetSize,
+      height: hitTargetSize,
+      child: Center(child: cellContent),
+    );
+
+    final focusBorderColor = widget.focusBorderColor;
+    if (_showFocusHighlight && focusBorderColor != null) {
+      hitTarget = DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: focusBorderColor),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: hitTarget,
+      );
     }
 
-    final tooltipMessage = monthTooltipBuilder?.call(monthData);
+    if (widget.monthData.intensity.isNotYetStarted) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: _handleTap,
+        child: ExcludeSemantics(child: hitTarget),
+      );
+    }
 
-    Widget interactiveCell = GestureDetector(
-      onTap: _handleTap,
-      child: MouseRegion(
-        cursor: monthData.messageCount > 0
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        child: cellContent,
-      ),
+    final tooltipMessage = widget.monthTooltipBuilder?.call(widget.monthData);
+    final normalizedTooltip = tooltipMessage?.trim();
+    final semanticLabel = normalizedTooltip == null || normalizedTooltip.isEmpty
+        ? '${DateLabelFormatter.longMonthYear(DateTime(widget.monthData.year, widget.monthData.month, 15))}: '
+              '${widget.monthData.messageCount} '
+              '${widget.monthData.messageCount == 1 ? 'message' : 'messages'}'
+        : normalizedTooltip;
+
+    Widget interactiveCell = Semantics(
+      container: true,
+      label: semanticLabel,
+      button: _isInteractive,
+      onTap: _isInteractive ? _handleTap : null,
+      child: hitTarget,
     );
+
+    if (_isInteractive) {
+      interactiveCell = FocusableActionDetector(
+        mouseCursor: SystemMouseCursors.click,
+        onShowFocusHighlight: (value) {
+          setState(() {
+            _showFocusHighlight = value;
+          });
+        },
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              _handleTap();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(onTap: _handleTap, child: interactiveCell),
+      );
+    } else {
+      interactiveCell = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: _handleTap,
+        child: interactiveCell,
+      );
+    }
 
     if (tooltipMessage != null && tooltipMessage.trim().isNotEmpty) {
       interactiveCell = MacosTooltip(
         message: tooltipMessage,
+        excludeFromSemantics: true,
         child: interactiveCell,
       );
     }

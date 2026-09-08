@@ -160,12 +160,19 @@ class SidebarActionDispatcher extends _$SidebarActionDispatcher {
               anchorMessageId: anchorMessageId,
               searchQuery: searchQuery,
             );
-      case ContactConversationSelected(:final contactId, :final conversationId):
+      case ContactConversationSelected(
+        :final contactId,
+        :final conversationId,
+        :final anchorMessageId,
+        :final searchQuery,
+      ):
         ref
             .read(sidebarFlowProvider.notifier)
             .selectContactConversation(
               contactId: contactId,
               conversationId: conversationId,
+              anchorMessageId: anchorMessageId,
+              searchQuery: searchQuery,
             );
       case RecoveredMonthFocused(
         :final monthAnchor,

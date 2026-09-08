@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -16,12 +18,14 @@ import '../conversation_signature_card_presentation.dart';
 class ContactGraphConversationSection extends ConsumerWidget {
   const ContactGraphConversationSection({
     required this.contactId,
+    required this.selectedConversationId,
     this.padding = const EdgeInsets.fromLTRB(20, 0, 20, 12),
     this.maxHeight = 220,
     super.key,
   });
 
   final int contactId;
+  final int? selectedConversationId;
   final EdgeInsetsGeometry padding;
   final double maxHeight;
 
@@ -44,6 +48,7 @@ class ContactGraphConversationSection extends ConsumerWidget {
 
         return _ContactGraphConversationContent(
           contactId: contactId,
+          selectedConversationId: selectedConversationId,
           signatureDisplays: signatureDisplays,
           padding: padding,
           maxHeight: maxHeight,
@@ -107,12 +112,14 @@ class _ContactGraphConversationNotice extends ConsumerWidget {
 class _ContactGraphConversationContent extends ConsumerStatefulWidget {
   const _ContactGraphConversationContent({
     required this.contactId,
+    required this.selectedConversationId,
     required this.signatureDisplays,
     required this.padding,
     required this.maxHeight,
   });
 
   final int contactId;
+  final int? selectedConversationId;
   final List<ConversationSignatureDisplayModel> signatureDisplays;
   final EdgeInsetsGeometry padding;
   final double maxHeight;
@@ -147,6 +154,7 @@ class _ContactGraphConversationContentState
             itemBuilder: (context, index) {
               final signature = signatureDisplays[index];
               return ConversationSignatureCard(
+                key: ValueKey<int>(signature.conversationId),
                 signature: conversationSignatureCardDataFromDisplay(
                   signature,
                   includeChatHook: conversationIdsWithChatHooks.contains(
@@ -156,18 +164,35 @@ class _ContactGraphConversationContentState
                 style: cardStyle,
                 monthColorForMessageCount:
                     conversationSignatureMonthColorForMessageCount,
+                isSelected:
+                    signature.conversationId == widget.selectedConversationId,
+                onMonthTap: (year, month, _) {
+                  unawaited(
+                    ref
+                        .read(
+                          contactConversationNavigationActionsProvider.notifier,
+                        )
+                        .selectContactConversationMonth(
+                          contactId: widget.contactId,
+                          conversationId: signature.conversationId,
+                          monthAnchor: DateTime(year, month),
+                        ),
+                  );
+                },
                 trailing: ConversationFavouriteButton(
                   conversationId: signature.conversationId,
                 ),
                 onPressed: () {
-                  ref
-                      .read(
-                        contactConversationNavigationActionsProvider.notifier,
-                      )
-                      .selectContactConversation(
-                        contactId: widget.contactId,
-                        conversationId: signature.conversationId,
-                      );
+                  unawaited(
+                    ref
+                        .read(
+                          contactConversationNavigationActionsProvider.notifier,
+                        )
+                        .selectContactConversation(
+                          contactId: widget.contactId,
+                          conversationId: signature.conversationId,
+                        ),
+                  );
                 },
               );
             },

@@ -1,9 +1,17 @@
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:remember_this_text/config/theme/colors/theme_colors.dart';
 import 'package:remember_this_text/config/theme/widgets/layout/cross_column_track_plan.dart';
+import 'package:remember_this_text/essentials/app_mode/application/app_mode_providers.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversation_signatures/conversation_signature.dart';
+import 'package:remember_this_text/features/conversations/presentation/widgets/conversation_signature_calendar_heatmap.dart';
 import 'package:remember_this_text/features/conversations/presentation/widgets/conversation_signature_card.dart';
 import 'package:remember_this_text/features/conversations/presentation/widgets/conversation_signature_card_track_occupant.dart';
+import 'package:remember_this_text/features/messages/presentation/widgets/calendar_heatmap_timeline_widget.dart';
 
 void main() {
   testWidgets('renders supplied data and slot without provider dependencies', (
@@ -59,6 +67,7 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.byType(CalendarHeatmapTimelineWidget), findsNothing);
     expect(
       find.textContaining(
         '12 messages • 2026-05-01 - 2026-05-20',
@@ -163,6 +172,290 @@ void main() {
 
     expect(find.text('Claire'), findsOneWidget);
     expect(find.text('claire@student.ubco.ca'), findsOneWidget);
+  });
+
+  testWidgets(
+    'selected card replaces the compact glyph with the shared calendar heatmap',
+    (tester) async {
+      const firstSignature = ConversationSignatureCardData(
+        conversationId: 42,
+        title: 'Claire',
+        chatHookLabel: 'claire@example.com',
+        participantCount: 1,
+        messageCount: 8,
+        firstMessageAtUtc: '2025-12-01T10:00:00.000Z',
+        lastMessageAtUtc: '2026-05-20T10:00:00.000Z',
+        activityMonths: [
+          ConversationSignatureMonth(year: 2025, month: 12, messageCount: 3),
+          ConversationSignatureMonth(year: 2026, month: 5, messageCount: 5),
+        ],
+        tagLabels: ['Family'],
+      );
+      const secondSignature = ConversationSignatureCardData(
+        conversationId: 43,
+        title: 'Cathie',
+        participantCount: 1,
+        messageCount: 2,
+        firstMessageAtUtc: '2026-04-01T10:00:00.000Z',
+        lastMessageAtUtc: '2026-04-02T10:00:00.000Z',
+        activityMonths: [
+          ConversationSignatureMonth(year: 2026, month: 4, messageCount: 2),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MacosApp(
+            home: SingleChildScrollView(
+              child: Column(
+                children: [
+                  ConversationSignatureCard(
+                    key: const ValueKey<int>(42),
+                    signature: firstSignature,
+                    style: _testStyle,
+                    monthColorForMessageCount: (_) => const Color(0xFF00AA00),
+                    isSelected: true,
+                    onMonthTap: (_, _, _) {},
+                    trailing: const Text('primary action'),
+                  ),
+                  ConversationSignatureCard(
+                    key: const ValueKey<int>(43),
+                    signature: secondSignature,
+                    style: _testStyle,
+                    monthColorForMessageCount: (_) => const Color(0xFF00AA00),
+                    onMonthTap: (_, _, _) {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(CalendarHeatmapTimelineWidget), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('conversation-signature-calendar-42')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('conversation-signature-calendar-43')),
+        findsNothing,
+      );
+      expect(find.text('Claire'), findsOneWidget);
+      expect(find.text('claire@example.com'), findsOneWidget);
+      expect(find.text('primary action'), findsOneWidget);
+      expect(find.text('Family'), findsOneWidget);
+      expect(
+        find.textContaining('8 messages', findRichText: true),
+        findsOneWidget,
+      );
+      final selectedCard = find.descendant(
+        of: find.byKey(const ValueKey<int>(42)),
+        matching: find.byType(AnimatedContainer),
+      );
+      final unselectedCard = find.descendant(
+        of: find.byKey(const ValueKey<int>(43)),
+        matching: find.byType(AnimatedContainer),
+      );
+      final selectedDecoration = tester
+          .widget<AnimatedContainer>(selectedCard)
+          .decoration;
+      expect(
+        selectedDecoration,
+        isA<BoxDecoration>().having(
+          (decoration) => decoration.color,
+          'color',
+          _testStyle.selectedBackgroundColor,
+        ),
+      );
+      expect(
+        tester.getSize(selectedCard).height,
+        greaterThan(tester.getSize(unselectedCard).height),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MacosApp(
+            home: SingleChildScrollView(
+              child: Column(
+                children: [
+                  ConversationSignatureCard(
+                    key: const ValueKey<int>(42),
+                    signature: firstSignature,
+                    style: _testStyle,
+                    monthColorForMessageCount: (_) => const Color(0xFF00AA00),
+                    onMonthTap: (_, _, _) {},
+                  ),
+                  ConversationSignatureCard(
+                    key: const ValueKey<int>(43),
+                    signature: secondSignature,
+                    style: _testStyle,
+                    monthColorForMessageCount: (_) => const Color(0xFF00AA00),
+                    isSelected: true,
+                    onMonthTap: (_, _, _) {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(CalendarHeatmapTimelineWidget), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('conversation-signature-calendar-42')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('conversation-signature-calendar-43')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('only populated calendar months expose and invoke navigation', (
+    tester,
+  ) async {
+    final navigatedMonths = <String>[];
+    var cardPressCount = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          platformBrightnessProvider.overrideWith((ref) => Brightness.light),
+        ],
+        child: MacosApp(
+          home: ConversationSignatureCard(
+            signature: const ConversationSignatureCardData(
+              conversationId: 42,
+              title: 'Claire',
+              participantCount: 1,
+              messageCount: 5,
+              firstMessageAtUtc: '2026-05-01T10:00:00.000Z',
+              lastMessageAtUtc: '2026-07-01T10:00:00.000Z',
+              activityMonths: [
+                ConversationSignatureMonth(
+                  year: 2026,
+                  month: 5,
+                  messageCount: 4,
+                ),
+                ConversationSignatureMonth(
+                  year: 2026,
+                  month: 6,
+                  messageCount: 0,
+                ),
+                ConversationSignatureMonth(
+                  year: 2026,
+                  month: 7,
+                  messageCount: 1,
+                ),
+              ],
+            ),
+            style: _testStyle,
+            monthColorForMessageCount: (_) => const Color(0xFF00AA00),
+            isSelected: true,
+            onMonthTap: (year, month, count) {
+              navigatedMonths.add('$year-$month-$count');
+            },
+            onPressed: () {
+              cardPressCount++;
+            },
+          ),
+        ),
+      ),
+    );
+
+    final populated = find.byKey(
+      const ValueKey('calendar-heatmap-month-2026-5'),
+    );
+    final empty = find.byKey(const ValueKey('calendar-heatmap-month-2026-6'));
+    final preStart = find.byKey(
+      const ValueKey('calendar-heatmap-month-2026-1'),
+    );
+
+    expect(tester.getSize(populated), const Size.square(18));
+    expect(find.bySemanticsLabel('May 2026: 4 messages'), findsOneWidget);
+    final populatedSemantics = tester.getSemantics(
+      find.bySemanticsLabel('May 2026: 4 messages'),
+    );
+    final emptySemantics = tester.getSemantics(
+      find.bySemanticsLabel('June 2026: 0 messages'),
+    );
+    expect(
+      populatedSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+      isTrue,
+    );
+    expect(
+      emptySemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+      isFalse,
+    );
+    expect(find.bySemanticsLabel('January 2026: 0 messages'), findsNothing);
+    expect(
+      tester.getCenter(empty).dx - tester.getCenter(populated).dx,
+      greaterThanOrEqualTo(19),
+    );
+    final emptyCellContainer = find.descendant(
+      of: empty,
+      matching: find.byWidgetPredicate((widget) {
+        if (widget is! Container) {
+          return false;
+        }
+        final decoration = widget.decoration;
+        return decoration is BoxDecoration && decoration.border != null;
+      }),
+    );
+    expect(emptyCellContainer, findsOneWidget);
+    final emptyDecoration = tester
+        .widget<Container>(emptyCellContainer)
+        .decoration;
+    if (emptyDecoration is! BoxDecoration) {
+      fail('Expected the empty month to have a box decoration.');
+    }
+    final emptyBorder = emptyDecoration.border;
+    if (emptyBorder is! Border) {
+      fail('Expected the empty month to have a structural border.');
+    }
+    final providerContainer = ProviderScope.containerOf(tester.element(empty));
+    final colors = providerContainer.read(themeColorsProvider.notifier);
+    expect(emptyBorder.top.color, colors.lines.heatmapEmptyMonthOutline);
+
+    await tester.tap(populated);
+    await tester.tap(empty);
+    await tester.tapAt(tester.getCenter(preStart));
+
+    expect(navigatedMonths, ['2026-5-4']);
+    expect(cardPressCount, 0);
+
+    FocusScope.of(
+      tester.element(find.byType(ConversationSignatureCard)),
+    ).nextFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+
+    expect(navigatedMonths, ['2026-5-4', '2026-5-4']);
+    expect(cardPressCount, 0);
+  });
+
+  test('conversation activity adapts to the existing month semantics', () {
+    final data = conversationSignatureCalendarHeatmapData(
+      conversationId: 42,
+      activityMonths: const [
+        ConversationSignatureMonth(year: 2025, month: 12, messageCount: 3),
+        ConversationSignatureMonth(year: 2026, month: 1, messageCount: 51),
+      ],
+    );
+
+    if (data == null) {
+      fail('Expected valid conversation activity to produce timeline data.');
+    }
+    expect(data.yearRows, hasLength(2));
+    expect(data.yearRows.every((row) => row.months.length == 12), isTrue);
+    expect(data.totalMessages, 54);
+    expect(data.maxMonthCount, 51);
+    expect(data.yearRows.first.months.first.intensity.isNotYetStarted, isTrue);
+    expect(data.yearRows.first.months[11].intensity.shouldRenderAsDots, isTrue);
+    expect(data.yearRows.last.months.first.messageCount, 51);
+    expect(data.yearRows.last.months[1].intensity.isEmpty, isTrue);
   });
 
   testWidgets(

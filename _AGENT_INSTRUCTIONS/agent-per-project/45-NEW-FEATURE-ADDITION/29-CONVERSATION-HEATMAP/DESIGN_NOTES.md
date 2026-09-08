@@ -3,8 +3,8 @@ tier: project
 scope: architecture-audit
 owner: agent-per-project
 last_reviewed: 2026-09-08
-source_of_truth: draft
-status: planning
+source_of_truth: both
+status: implemented
 links:
   - ./PROPOSAL.md
   - ./CHECKLIST.md
@@ -195,13 +195,17 @@ The Conversation signature already provides:
 
 A thin pure adapter can:
 
-1. parse the first and last dates already normalized in graph storage;
-2. group `ConversationSignatureMonth` values by year;
+1. sort and validate the authoritative `ConversationSignatureMonth` values;
+2. use the first and last valid activity months as calendar bounds;
 3. emit twelve `MonthData` values per `YearRow`;
 4. mark months before the first activity month as `notYetStarted`;
 5. map other zero counts to `empty`;
 6. call `MonthIntensity.fromMessageCount()` for populated months; and
 7. retain the Conversation ID as the renderer's navigation context value.
+
+The implementation deliberately does not parse optional summary date strings
+for calendar bounds. Activity months already own the year/month truth, so
+malformed optional date metadata cannot invent or suppress a calendar cell.
 
 No new query/provider is required for month counts. Do not extract shared
 domain types merely to remove this small presentation conversion.
@@ -228,6 +232,10 @@ Messages, and Conversation-specific adaptation/navigation in Conversations.
 - Replace only the compact glyph region with the full year x month renderer.
 - Keep the card's selected background and border around the entire expanded
   content.
+- The approved selected-region surface is `#D6EDFB` in light mode and
+  `#3A5064` in dark mode. The shared empty-month structural outline is
+  `#A8AEB0` in light mode and preserves its existing `#D0D0D0` dark value so
+  the calendar matrix remains visible without changing activity colors.
 - Populated cells are interactive; empty and pre-start cells are inert.
 - Tooltip and semantics should identify month, year, and exact message count.
 - Clicking a month keeps the same Conversation selected and changes only the
@@ -270,6 +278,14 @@ March 2018, 246 messages. Jump to first message in this month.
 Keyboard activation and focus traversal should be tested if the current
 gesture-only implementation is extended. Do not solve accessibility by
 creating a separate renderer.
+
+Implemented result: Conversation cards use 12-pixel visual cells centered in
+18-pixel hit targets with one pixel between targets. Populated cells expose an
+isolated month/year/count button semantic, tooltip, traversal target,
+activation action, and themed focus ring. Empty cells retain informational
+month/count semantics without an action. Pre-start cells are excluded from
+semantics. Inert cells consume the surrounding selected-card pointer gesture,
+preventing an accidental ordinary selection from clearing an existing anchor.
 
 ## Layout Findings
 
@@ -348,3 +364,33 @@ Validate before adding complexity.
 No product reason was found. Both use `ConversationSignatureCard` and the same
 activity model. Their semantic navigation actions must remain branch-aware,
 but presentation and month behavior should match.
+
+## Implemented Dependency And Navigation Path
+
+```text
+ConversationSignatureMonth
+  -> ConversationSignatureCalendarHeatmap adapter
+  -> CalendarHeatmapTimelineData
+  -> CalendarHeatmapTimelineWidget
+  -> existing Conversation evidence skeleton provider
+  -> MessageEvidenceTimelineSkeleton.indexForMonth()
+  -> exact month-key verification
+  -> existing branch-aware Conversation selection intent with message ID
+  -> ConversationMessagesView anchorMessageId
+  -> MessageEvidenceTimelineView.indexForMessageId()
+  -> ScrollablePositionedList indexed jump and lazy visible-row hydration
+```
+
+No alternative renderer, resolver, repository query, evidence scope, message
+filter, or positioning mechanism was introduced.
+
+The renderer and its DTOs are exposed through explicit `show` exports on the
+Messages public seam. The same seam exposes only the existing skeleton provider
+and model needed by the two Conversation navigation actions. Architecture
+checks passed without moving Messages-owned types to a neutral package.
+
+Contact selected state follows the existing rendering boundary:
+`_ContactEvidenceContent` already reads the authoritative flow projection and
+now passes `selectedConversationId` to `ContactGraphConversationSection`, which
+passes `isSelected` into the shared card. Main Browse and Favourites continue
+to use the same `_ConversationSignatureListAsync` selected-ID contract.

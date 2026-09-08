@@ -3,14 +3,16 @@ tier: project
 scope: test-plan
 owner: agent-per-project
 last_reviewed: 2026-09-08
-source_of_truth: draft
-status: planning
+source_of_truth: both
+status: implemented
 links:
   - ./PROPOSAL.md
   - ./DESIGN_NOTES.md
   - ./CHECKLIST.md
 tests:
   - test/features/conversations/presentation/widgets/conversation_signature_card_test.dart
+  - test/features/conversations/presentation/widgets/contact_conversations/contact_graph_conversation_section_test.dart
+  - test/features/conversations/application/sidebar_cassette_spec/resolver_tools/conversation_navigation_actions_provider_test.dart
   - test/features/conversations/presentation/view/conversation_messages_view_test.dart
   - test/features/messages/presentation/widgets/message_evidence/message_evidence_timeline_view_test.dart
   - test/essentials/sidebar/application/sidebar_action_dispatcher_test.dart
@@ -46,7 +48,8 @@ Add focused tests for the thin Conversation activity adapter:
 - marks zero-count months after the start as `empty`;
 - preserves sparse-dot and count-bin semantics through
   `MonthIntensity.fromMessageCount()`;
-- preserves per-month counts, total count, first/last dates, and maximum count;
+- preserves per-month counts, total count, first/last activity-month bounds,
+  and maximum count;
 - handles a Conversation beginning late in a year and ending early in another;
 - does not extend past the Conversation's last dated year;
 - handles a one-month Conversation;
@@ -220,7 +223,7 @@ the evidence spine or introduce pagination.
 - Favourite and Tag controls on compact and expanded cards.
 - New-message arrival while viewing an older month.
 
-## Required Commands For The Later Implementation Phase
+## Verification Commands
 
 ```bash
 flutter test test/features/conversations/presentation/widgets/conversation_signature_card_test.dart
@@ -231,3 +234,54 @@ flutter test test/essentials/sidebar/application/sidebar_flow_state_provider_tes
 flutter test test/architecture/forbidden_imports_test.dart
 flutter analyze
 ```
+
+## First Slice Automated Coverage
+
+Added or extended coverage proves:
+
+- the unselected card retains the compact glyph and the selected card renders
+  exactly one shared `CalendarHeatmapTimelineWidget`;
+- moving selection between stable Conversation-keyed cards collapses the old
+  card and expands the new one;
+- Contact -> Conversations receives the selected ID as decided presentation
+  input and renders the same expanded shared card;
+- the adapter emits twelve months per year and preserves pre-start, empty,
+  sparse-dot, active-intensity, total-count, and maximum-count semantics;
+- Conversation visual cells remain 12 pixels while their non-overlapping
+  transparent targets are 18 pixels;
+- populated cells expose tooltip/semantic action data and keyboard activation;
+  empty/pre-start cells cannot invoke month or surrounding-card navigation;
+- the shared empty-month structural outline resolves to an approved darker
+  light-mode value while preserving the existing dark-mode value;
+- both branch actions use the first skeleton entry in a month, preserve their
+  originating branch, and carry the existing exact message anchor;
+- a no-match fallback and an in-flight stale selection are inert rather than
+  navigating to the latest message or restoring an old selection; and
+- the Contact selection intent transports an exact anchor through the existing
+  sidebar flow projection.
+
+The existing Conversation message/timeline regression tests remain the proof
+that arbitrary anchors use `indexForMessageId()`, the
+`ScrollablePositionedList` indexed jump, and lazy visible-row hydration rather
+than eager corpus hydration.
+
+Live light/dark, both Conversation-list contexts, sparse histories, and a
+roughly 27,700-message Conversation were validated and approved. VoiceOver
+remains open. Static layout reasoning found no fixed item extent: the main
+list accepts natural height, while the Contact list keeps its existing
+scrollable 360-pixel constraint. The first slice therefore adds no nested
+heatmap scroller or height cap.
+
+## Verification Results — 2026-09-08
+
+- Feature 29 and adjacent regression selection: 104 tests passed.
+- Architecture tripwires: 385 tests passed.
+- `flutter analyze`: no issues found.
+- `git diff --check`: passed during implementation; rerun at final handoff.
+
+The 104-test selection included the card/adapter, selected-surface and shared
+empty-outline styling, Contact list (including a
+17-year selected heatmap inside its existing 360-pixel viewport), main and
+Contact navigation actions, Conversation message view, shared message evidence
+timeline, Messages heatmap widget/provider/navigation, activity color scale,
+sidebar flow, and full sidebar action dispatcher tests.
