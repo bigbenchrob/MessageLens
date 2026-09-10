@@ -13,6 +13,7 @@ import 'package:remember_this_text/essentials/navigation/domain/navigation_const
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
 import 'package:remember_this_text/essentials/search/application/graph_message_search.dart';
 import 'package:remember_this_text/essentials/search/application/graph_search_repository_provider.dart';
+import 'package:remember_this_text/essentials/search/application/message_text_search_query.dart';
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_state_provider.dart';
 import 'package:remember_this_text/features/conversations/application/actions/conversation_excerpt_navigation_actions_provider.dart';
 import 'package:remember_this_text/features/conversations/domain/spec_classes/conversations_view_spec.dart';
@@ -432,15 +433,15 @@ class _FakeGraphSearchRepository implements GraphSearchRepository {
   @override
   Future<List<int>> searchMessageIds({
     required GraphMessageSearchScope scope,
-    required String query,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
     required bool filterSaved,
-    bool lastTokenComplete = false,
     int limit = graphSearchResultLimit,
   }) async {
     if (scope.type != GraphMessageSearchScopeType.global) {
       return const <int>[];
     }
+    final query = textTokens.map((token) => token.normalizedText).join(' ');
     return globalMatchesByQuery[query] ?? const <int>[];
   }
 }

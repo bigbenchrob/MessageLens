@@ -10,15 +10,18 @@ class ConversationGraphDatabase extends _$ConversationGraphDatabase {
   ConversationGraphDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (_) async {
       await _createSchema();
     },
-    onUpgrade: (_, _, _) async {
+    onUpgrade: (_, from, to) async {
       await _createSchema();
+      if (from < 3 && to >= 3) {
+        await _rebuildMessageTextSearchIndex();
+      }
     },
   );
 
@@ -91,6 +94,8 @@ class ConversationGraphDatabase extends _$ConversationGraphDatabase {
         error_code INTEGER
       )
     ''');
+    await _addColumnIfMissing('messages', 'text TEXT');
+    await _createMessageTextSearchSchema();
     await _createHandleSchema();
     await _createHandleAliasSchema();
     await _createChatSchema();
@@ -100,6 +105,50 @@ class ConversationGraphDatabase extends _$ConversationGraphDatabase {
     await _createContactToHandleSchema();
     await _createAttachmentSchema();
     await _createMessageToAttachmentSchema();
+  }
+
+  Future<void> _createMessageTextSearchSchema() async {
+    await customStatement('''
+      CREATE VIRTUAL TABLE IF NOT EXISTS message_text_fts USING fts5(
+        text,
+        content='messages',
+        content_rowid='ss_id',
+        tokenize='unicode61 remove_diacritics 2',
+        prefix='2 3 4'
+      )
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS message_text_fts_after_insert
+      AFTER INSERT ON messages
+      BEGIN
+        INSERT INTO message_text_fts(rowid, text)
+        VALUES (new.ss_id, new.text);
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS message_text_fts_after_delete
+      AFTER DELETE ON messages
+      BEGIN
+        INSERT INTO message_text_fts(message_text_fts, rowid, text)
+        VALUES ('delete', old.ss_id, old.text);
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS message_text_fts_after_text_update
+      AFTER UPDATE OF text ON messages
+      BEGIN
+        INSERT INTO message_text_fts(message_text_fts, rowid, text)
+        VALUES ('delete', old.ss_id, old.text);
+        INSERT INTO message_text_fts(rowid, text)
+        VALUES (new.ss_id, new.text);
+      END
+    ''');
+  }
+
+  Future<void> _rebuildMessageTextSearchIndex() {
+    return customStatement(
+      "INSERT INTO message_text_fts(message_text_fts) VALUES ('rebuild')",
+    );
   }
 
   static List<Variable> _variables(List<Object?> args) {

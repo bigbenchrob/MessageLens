@@ -132,6 +132,10 @@ void main() {
   test(
     'refreshes existing working text after import ledger enrichment',
     () async {
+      final messageSsId = SourceScopedRowKey.pack(
+        sourceId: liveChatDbSourceId,
+        sourceRowId: 101,
+      );
       await _insertImportMessage(
         importLedgerDatabase,
         sourceId: liveChatDbSourceId,
@@ -158,6 +162,48 @@ void main() {
 
       expect(secondResult.insertedMessageCount, 0);
       expect(rows.single['text'], 'decoded text');
+      expect(await _messageTextMatchIds(graphDatabase, '"decoded"'), <int>[
+        messageSsId,
+      ]);
+    },
+  );
+
+  test(
+    'graph reset and reprojection restore searchable message text',
+    () async {
+      final messageSsId = SourceScopedRowKey.pack(
+        sourceId: liveChatDbSourceId,
+        sourceRowId: 103,
+      );
+      await _insertImportMessage(
+        importLedgerDatabase,
+        sourceId: liveChatDbSourceId,
+        sourceRowId: 103,
+        guid: 'message-103',
+        text: 'reprojection searchable',
+      );
+      final projector = MessageProjector(
+        repository: SqliteMessageProjectionRepository(
+          importLedgerDatabase: importLedgerDatabase,
+          graphDatabase: graphDatabase,
+        ),
+      );
+
+      await projector.projectMessages();
+      expect(await _messageTextMatchIds(graphDatabase, '"reprojection"'), <int>[
+        messageSsId,
+      ]);
+
+      await graphDatabase.clearProjectionRows();
+      expect(
+        await _messageTextMatchIds(graphDatabase, '"reprojection"'),
+        isEmpty,
+      );
+
+      await projector.projectMessages();
+      expect(await _messageTextMatchIds(graphDatabase, '"reprojection"'), <int>[
+        messageSsId,
+      ]);
     },
   );
 
@@ -486,4 +532,20 @@ Future<void> _insertImportMessage(
     'error_code': errorCode,
     'batch_id': batchId,
   });
+}
+
+Future<List<int>> _messageTextMatchIds(
+  ConversationGraphDatabase database,
+  String expression,
+) async {
+  final rows = await database.selectRows(
+    '''
+    SELECT rowid
+    FROM message_text_fts
+    WHERE message_text_fts MATCH ?
+    ORDER BY rowid
+    ''',
+    <Object?>[expression],
+  );
+  return <int>[for (final row in rows) row['rowid']! as int];
 }

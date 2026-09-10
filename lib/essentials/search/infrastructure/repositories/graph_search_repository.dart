@@ -4,6 +4,7 @@ import '../../../../core/util/message_tag_normalizer.dart';
 import '../../../db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
 import '../../../db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../application/graph_message_search.dart';
+import '../../application/message_text_search_query.dart';
 
 class SqliteGraphSearchRepository implements GraphSearchRepository {
   const SqliteGraphSearchRepository({
@@ -17,33 +18,30 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
   @override
   Future<List<int>> searchMessageIds({
     required GraphMessageSearchScope scope,
-    required String query,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
     required bool filterSaved,
-    bool lastTokenComplete = false,
     int limit = graphSearchResultLimit,
   }) async {
-    final terms = _searchTerms(query);
-    if (terms.isEmpty && !filterSaved) {
+    if (textTokens.isEmpty && !filterSaved) {
       return const <int>[];
     }
 
-    final textResultIds = terms.isEmpty
+    final textResultIds = textTokens.isEmpty
         ? const <int>[]
-        : await _searchTextMessageIds(
+        : await _searchMessageTextIds(
             scope: scope,
-            terms: terms,
+            textTokens: textTokens,
             matchAnyTerm: matchAnyTerm,
             limit: limit,
           );
 
-    final tagResultIds = terms.isEmpty
+    final tagResultIds = textTokens.isEmpty
         ? const <int>[]
         : await _searchTagMessageIds(
             scope: scope,
-            terms: terms,
+            textTokens: textTokens,
             matchAnyTerm: matchAnyTerm,
-            lastTokenComplete: lastTokenComplete,
             limit: limit,
           );
 
@@ -51,7 +49,7 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
 
     if (filterSaved) {
       final savedIds = await _readSavedMessageIds(scope: scope, limit: limit);
-      if (terms.isEmpty) {
+      if (textTokens.isEmpty) {
         resultIds = savedIds;
       } else {
         final savedSet = savedIds.toSet();
@@ -65,50 +63,33 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
     return resultIds.take(limit).toList(growable: false);
   }
 
-  Future<List<int>> _searchTextMessageIds({
+  Future<List<int>> _searchMessageTextIds({
     required GraphMessageSearchScope scope,
-    required List<String> terms,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
     required int limit,
   }) async {
-    final searchClauses = <String>[];
-    final searchArgs = <Object?>[];
-    for (final term in terms) {
-      searchClauses.add('''
-        (
-          lower(COALESCE(m.text, '')) LIKE ?
-          OR lower(COALESCE(m.guid, '')) LIKE ?
-          OR lower(COALESCE(sender_handle.id, '')) LIKE ?
-          OR lower(COALESCE(sender_canonical.display_handle, '')) LIKE ?
-          OR lower(COALESCE(m.semantic_kind, '')) LIKE ?
-          OR lower(COALESCE(m.item_kind, '')) LIKE ?
-        )
-        ''');
-      final pattern = '%$term%';
-      searchArgs.addAll([pattern, pattern, pattern, pattern, pattern, pattern]);
-    }
-
     final scoped = _scopeSql(scope);
     if (scoped == null) {
       return const <int>[];
     }
+    final matchExpression = _messageTextFtsExpression(
+      textTokens: textTokens,
+      matchAnyTerm: matchAnyTerm,
+    );
 
     final rows = await graphDatabase.selectRows(
       '''
       SELECT DISTINCT m.ss_id AS message_id
-      FROM messages m
+      FROM message_text_fts
+      JOIN messages m ON m.ss_id = message_text_fts.rowid
       ${scoped.joinSql}
-      LEFT JOIN handles sender_handle ON sender_handle.ss_id =
-        m.sender_handle_ss_id
-      LEFT JOIN canonical_handles sender_canonical
-        ON sender_canonical.canonical_handle_ss_id =
-          m.sender_canonical_handle_ss_id
-      WHERE ${scoped.whereSql}
-        AND (${searchClauses.join(matchAnyTerm ? ' OR ' : ' AND ')})
+      WHERE message_text_fts MATCH ?
+        AND ${scoped.whereSql}
       ORDER BY COALESCE(m.date_utc, '') DESC, m.ss_id DESC
       LIMIT ?
       ''',
-      <Object?>[...scoped.args, ...searchArgs, limit],
+      <Object?>[matchExpression, ...scoped.args, limit],
     );
 
     return [for (final row in rows) _readInt(row['message_id'])];
@@ -116,20 +97,17 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
 
   Future<List<int>> _searchTagMessageIds({
     required GraphMessageSearchScope scope,
-    required List<String> terms,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
-    required bool lastTokenComplete,
     required int limit,
   }) async {
     final graphTagIds = await _searchGraphNativeTagIds(
-      terms: terms,
+      textTokens: textTokens,
       matchAnyTerm: matchAnyTerm,
-      lastTokenComplete: lastTokenComplete,
     );
     final guidKeyedTagIds = await _searchGuidKeyedTagIds(
-      terms: terms,
+      textTokens: textTokens,
       matchAnyTerm: matchAnyTerm,
-      lastTokenComplete: lastTokenComplete,
     );
 
     final merged = _mergeIds(graphTagIds, guidKeyedTagIds, limit: limit);
@@ -137,9 +115,8 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
   }
 
   Future<List<int>> _searchGraphNativeTagIds({
-    required List<String> terms,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
-    required bool lastTokenComplete,
   }) async {
     final rows = await overlayDatabase.customSelect('''
       SELECT message_ss_id, tag_display, tag_normalized
@@ -152,9 +129,8 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
       final normalizedTag = row.data['tag_normalized'] as String? ?? '';
       final score = _tagMatchScore(
         normalizedTag: normalizedTag,
-        terms: terms,
+        textTokens: textTokens,
         matchAnyTerm: matchAnyTerm,
-        lastTokenComplete: lastTokenComplete,
       );
       if (score == 0) {
         continue;
@@ -171,18 +147,16 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
   }
 
   Future<List<int>> _searchGuidKeyedTagIds({
-    required List<String> terms,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
-    required bool lastTokenComplete,
   }) async {
     final guidKeyedTags = await overlayDatabase.getAllMessageUserTags();
     final matchingGuids = <String, int>{};
     for (final tag in guidKeyedTags) {
       final score = _tagMatchScore(
         normalizedTag: tag.tagNormalized,
-        terms: terms,
+        textTokens: textTokens,
         matchAnyTerm: matchAnyTerm,
-        lastTokenComplete: lastTokenComplete,
       );
       if (score == 0) {
         continue;
@@ -360,6 +334,25 @@ class SqliteGraphSearchRepository implements GraphSearchRepository {
   }
 }
 
+String _messageTextFtsExpression({
+  required List<MessageTextSearchToken> textTokens,
+  required bool matchAnyTerm,
+}) {
+  final operator = matchAnyTerm ? ' OR ' : ' AND ';
+  return textTokens.map(_messageTextFtsClause).join(operator);
+}
+
+String _messageTextFtsClause(MessageTextSearchToken token) {
+  // FTS5 escapes quotes inside phrase strings by doubling them. Wrapping every
+  // application token prevents user text from becoming FTS query syntax.
+  final escapedText = token.normalizedText.replaceAll('"', '""');
+  final quotedText = '"$escapedText"';
+  if (token is PrefixMessageTextSearchToken) {
+    return '$quotedText*';
+  }
+  return quotedText;
+}
+
 class _GraphScopeSql {
   const _GraphScopeSql({
     required this.joinSql,
@@ -379,35 +372,28 @@ class _ScoredMessageId {
   final int score;
 }
 
-List<String> _searchTerms(String query) {
-  return query
-      .split(RegExp(r'\s+'))
-      .map(normalizeMessageTagValue)
-      .where((term) => term.isNotEmpty)
-      .toList(growable: false);
-}
-
 int _tagMatchScore({
   required String normalizedTag,
-  required List<String> terms,
+  required List<MessageTextSearchToken> textTokens,
   required bool matchAnyTerm,
-  required bool lastTokenComplete,
 }) {
-  if (normalizedTag.isEmpty || terms.isEmpty) {
+  if (normalizedTag.isEmpty || textTokens.isEmpty) {
     return 0;
   }
 
   var score = 0;
   var matchedTerms = 0;
   final words = normalizedTag.split(' ');
-  for (var index = 0; index < terms.length; index++) {
-    final term = terms[index];
-    final allowPrefix = index == terms.length - 1 && !lastTokenComplete;
+  for (final token in textTokens) {
+    final term = normalizeMessageTagValue(token.normalizedText);
+    if (term.isEmpty) {
+      continue;
+    }
     final strength = _normalizedTagTokenMatchStrength(
       normalizedTag: normalizedTag,
       words: words,
       normalizedToken: term,
-      allowPrefix: allowPrefix,
+      allowPrefix: token is PrefixMessageTextSearchToken,
     );
     if (strength == 0) {
       continue;
@@ -419,7 +405,7 @@ int _tagMatchScore({
   if (matchAnyTerm) {
     return matchedTerms > 0 ? score : 0;
   }
-  return matchedTerms == terms.length ? score : 0;
+  return matchedTerms == textTokens.length ? score : 0;
 }
 
 int _normalizedTagTokenMatchStrength({

@@ -1,4 +1,5 @@
 import 'graph_message_search.dart';
+import 'message_text_search_query.dart';
 
 enum SearchMode { allTerms, anyTerm }
 
@@ -13,38 +14,17 @@ class SearchService {
     required String query,
     SearchMode mode = SearchMode.allTerms,
   }) async {
-    final parsedQuery = _parseSearchQuery(query);
-    final trimmed = parsedQuery.query;
-    if (trimmed.isEmpty && !parsedQuery.filterSaved) {
+    final parsedQuery = MessageTextSearchQuery.parse(query);
+    if (parsedQuery.tokens.isEmpty && !parsedQuery.filterSaved) {
       return const [];
     }
 
     final repository = await readRepository();
     return repository.searchMessageIds(
       scope: scope,
-      query: trimmed,
+      textTokens: parsedQuery.tokens,
       matchAnyTerm: mode == SearchMode.anyTerm,
       filterSaved: parsedQuery.filterSaved,
-      lastTokenComplete: _hasTrailingWhitespace(query),
     );
   }
-}
-
-({String query, bool filterSaved}) _parseSearchQuery(String query) {
-  final tokens = query.split(RegExp(r'\s+'));
-  final queryTokens = <String>[];
-  var filterSaved = false;
-  for (final token in tokens) {
-    if (token.trim().toLowerCase() == 'is:saved') {
-      filterSaved = true;
-      continue;
-    }
-    queryTokens.add(token);
-  }
-  return (query: queryTokens.join(' ').trim(), filterSaved: filterSaved);
-}
-
-/// Whether [input] ends with whitespace, signaling the last word is complete.
-bool _hasTrailingWhitespace(String input) {
-  return input.isNotEmpty && input != input.trimRight();
 }

@@ -1,3 +1,5 @@
+import 'message_text_search_query.dart';
+
 const int graphSearchResultLimit = 500;
 
 enum GraphMessageSearchScopeType { global, conversation, handle, contact }
@@ -36,10 +38,9 @@ class GraphMessageSearchScope {
 abstract interface class GraphSearchRepository {
   Future<List<int>> searchMessageIds({
     required GraphMessageSearchScope scope,
-    required String query,
+    required List<MessageTextSearchToken> textTokens,
     required bool matchAnyTerm,
     required bool filterSaved,
-    bool lastTokenComplete = false,
     int limit = graphSearchResultLimit,
   });
 }

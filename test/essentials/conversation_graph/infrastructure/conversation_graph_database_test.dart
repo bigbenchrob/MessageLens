@@ -65,6 +65,82 @@ void main() {
     expect(columnNames, isNot(contains('reply_to_guid')));
   });
 
+  test(
+    'creates the graph-owned message text FTS5 index and triggers',
+    () async {
+      final schemaRows = await graphDatabase.selectRows('''
+      SELECT type, name, sql
+      FROM sqlite_master
+      WHERE name IN (
+        'message_text_fts',
+        'message_text_fts_after_insert',
+        'message_text_fts_after_delete',
+        'message_text_fts_after_text_update'
+      )
+      ORDER BY name
+    ''');
+
+      expect(schemaRows, hasLength(4));
+      final ftsSql = schemaRows
+          .singleWhere((row) => row['name'] == 'message_text_fts')['sql']
+          .toString();
+      final ftsColumns = await graphDatabase.selectRows(
+        'PRAGMA table_info(message_text_fts)',
+      );
+      expect(ftsSql, contains("content='messages'"));
+      expect(ftsSql, contains("content_rowid='ss_id'"));
+      expect(ftsSql, contains('unicode61 remove_diacritics 2'));
+      expect(ftsSql, contains("prefix='2 3 4'"));
+      expect(ftsColumns.map((row) => row['name']), <Object?>['text']);
+      expect(schemaRows.where((row) => row['type'] == 'trigger'), hasLength(3));
+    },
+  );
+
+  test('synchronizes message INSERT, text UPDATE, and DELETE', () async {
+    await graphDatabase.executeSql('''
+      INSERT INTO messages (ss_id, is_from_me, text)
+      VALUES (101, 0, 'first searchable value')
+    ''');
+
+    expect(await _messageTextMatchIds(graphDatabase, '"first"'), <int>[101]);
+
+    await graphDatabase.executeSql('''
+      UPDATE messages
+      SET text = 'replacement searchable value'
+      WHERE ss_id = 101
+    ''');
+
+    expect(await _messageTextMatchIds(graphDatabase, '"first"'), isEmpty);
+    expect(await _messageTextMatchIds(graphDatabase, '"replacement"'), <int>[
+      101,
+    ]);
+
+    await graphDatabase.executeSql('DELETE FROM messages WHERE ss_id = 101');
+
+    expect(await _messageTextMatchIds(graphDatabase, '"replacement"'), isEmpty);
+  });
+
+  test(
+    'graph clearing removes indexed text and later inserts are indexed',
+    () async {
+      await graphDatabase.executeSql('''
+      INSERT INTO messages (ss_id, is_from_me, text)
+      VALUES (201, 0, 'before reset')
+    ''');
+      expect(await _messageTextMatchIds(graphDatabase, '"before"'), <int>[201]);
+
+      await graphDatabase.clearProjectionRows();
+
+      expect(await _messageTextMatchIds(graphDatabase, '"before"'), isEmpty);
+
+      await graphDatabase.executeSql('''
+      INSERT INTO messages (ss_id, is_from_me, text)
+      VALUES (202, 0, 'after reset')
+    ''');
+      expect(await _messageTextMatchIds(graphDatabase, '"after"'), <int>[202]);
+    },
+  );
+
   test('selectRows accepts only read queries', () async {
     expect(
       await graphDatabase.selectRows('SELECT 1 AS ok'),
@@ -279,4 +355,62 @@ void main() {
     expect(columns.map((row) => row['name']), contains('is_me'));
     expect(rows.single['is_me'], 0);
   });
+
+  test('upgrades version 2 and backfills existing message text', () async {
+    final dbPath = appDatabasePath(
+      AppDatabaseFile.conversationGraph,
+      databaseDirectory: tempDir.path,
+    );
+    final existingDatabase = await databaseFactoryFfi.openDatabase(dbPath);
+    await existingDatabase.execute('''
+      CREATE TABLE messages (
+        ss_id INTEGER PRIMARY KEY,
+        guid TEXT,
+        text TEXT
+      )
+    ''');
+    await existingDatabase.insert('messages', <String, Object?>{
+      'ss_id': 301,
+      'guid': 'pre-migration-guid',
+      'text': 'preexisting searchable text',
+    });
+    await existingDatabase.execute('PRAGMA user_version = 2');
+    await existingDatabase.close();
+
+    await graphDatabase.close();
+    graphDatabase = ConversationGraphDatabase(NativeDatabase(File(dbPath)));
+
+    expect(await _messageTextMatchIds(graphDatabase, '"preexisting"'), <int>[
+      301,
+    ]);
+    final messages = await graphDatabase.selectRows(
+      'SELECT ss_id, guid, text FROM messages',
+    );
+    final version = await graphDatabase.selectRows('PRAGMA user_version');
+
+    expect(messages, <Map<String, Object?>>[
+      <String, Object?>{
+        'ss_id': 301,
+        'guid': 'pre-migration-guid',
+        'text': 'preexisting searchable text',
+      },
+    ]);
+    expect(version.single['user_version'], 3);
+  });
+}
+
+Future<List<int>> _messageTextMatchIds(
+  ConversationGraphDatabase database,
+  String expression,
+) async {
+  final rows = await database.selectRows(
+    '''
+    SELECT rowid
+    FROM message_text_fts
+    WHERE message_text_fts MATCH ?
+    ORDER BY rowid
+    ''',
+    <Object?>[expression],
+  );
+  return <int>[for (final row in rows) row['rowid']! as int];
 }
