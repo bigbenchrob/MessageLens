@@ -2,25 +2,35 @@
 tier: feature
 scope: testing-monitoring
 owner: agent-per-project
-last_reviewed: 2026-07-18
+last_reviewed: 2026-09-11
 links:
 	- ./STATE_AND_PROVIDER_INVENTORY.md
+	- ./SEARCH_SEMANTICS.md
 	- ./WORK_LOG.md
 tests: []
 feature: search
 doc_type: testing-monitoring
 status: current
-last_updated: 2026-07-18
+last_updated: 2026-09-11
 ---
 
 # Testing & Monitoring — Search
 
-> Current conformance note (2026-06-06): current search is graph-backed through `lib/essentials/search` and the Message Evidence Spine. Tests should target graph `message_ss_id` scopes, full-scope skeleton/search behavior, result-context navigation, and overlay saved/tag search semantics. Do not reintroduce retired `working.db` FTS/index fallback as ordinary search behavior.
+> Current conformance note (2026-09-11): current search is graph-backed through
+> `lib/essentials/search` and the Message Evidence Spine. Tests should target
+> structured exact/prefix parsing, FTS5 runtime behavior, graph `message_ss_id`
+> scopes, cross-domain AND/OR composition, final result selection, highlighting,
+> and overlay saved/tag semantics. Do not reintroduce retired `working.db`
+> search fallback as ordinary behavior.
 
 ## Automated Coverage Targets
-- Unit: query parser, ranking heuristics, filter logic.
+- Unit: raw-query preservation, exact/prefix parsing, one-character completion,
+  AND/OR composition, saved filtering, and highlighting.
+- Runtime database: FTS creation, migration/rebuild, exact token matching,
+  word-initial prefix matching, update triggers, and visible-text-only evidence.
 - Integration: source-scoped graph build/data-version update to queryable graph evidence state.
-- Widget: search UI interactions, keyboard shortcuts, result navigation.
+- Widget: first-space preservation, AND/OR accessibility and tooltips, result
+  filtering/counts, keyboard shortcuts, and result navigation.
 - Compatibility: stored-versus-effective panel state, query editing, actual
   clear-button behavior, AND/OR changes, month browsing, navigation away/back,
   repeated equal queries, and replacement by another result in the unchanged
@@ -45,6 +55,14 @@ Current investigation compatibility coverage is concentrated in:
 - Error logging for failed navigation conversions.
 
 ## Manual Verification Checklist
+- `p` does not launch broad search, while `p ` searches the exact token `p`.
+- `post` and `bass` match word-initial extensions; `post ` and `bass ` restrict
+  matching to the completed exact token, and the first space stays visible.
+- AND requires every term and allows different terms to be satisfied by text
+  or separate tags; OR accepts any term. `is:saved` remains mandatory.
+- Handle Messages and Handle Lens remove nonmatching rows, and displayed counts
+  agree with membership.
+- Highlighting follows the same exact/prefix interpretation as selection.
 - Queries return expected top results for curated corpus.
 - Filters (date range, participant) produce consistent subsets.
 - Navigation to chat/message from search maintains user context.
@@ -57,4 +75,4 @@ Current investigation compatibility coverage is concentrated in:
 
 ## Open Stewardship Items
 - Establish baseline performance targets for macOS release hardware.
-- Integrate telemetry dashboards once indexing backend is chosen.
+- Integrate telemetry dashboards if product-level query monitoring is adopted.

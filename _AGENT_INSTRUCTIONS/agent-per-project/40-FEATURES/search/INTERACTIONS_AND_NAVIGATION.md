@@ -2,16 +2,17 @@
 tier: feature
 scope: interactions
 owner: agent-per-project
-last_reviewed: 2026-07-19
+last_reviewed: 2026-09-11
 links:
 	- ./CHARTER.md
 	- ./STATE_AND_PROVIDER_INVENTORY.md
+	- ./SEARCH_SEMANTICS.md
 	- ../../42-SPEC-SYSTEM/CANONICAL-ARCHITECTURE/30-panel-viewspec-system.md
 tests: []
 feature: search
 doc_type: interactions
 status: current
-last_updated: 2026-07-19
+last_updated: 2026-09-11
 ---
 
 # Interactions & Navigation — Search
@@ -20,6 +21,12 @@ last_updated: 2026-07-19
 > `lib/essentials/search` and rendered through the Message Evidence Spine.
 > Source-specific search controls may choose scope, but result evidence must
 > remain graph `message_ss_id` evidence, not legacy `working.db` ids.
+
+Query fields preserve the editor text exactly, including trailing whitespace.
+That whitespace completes the preceding token for exact matching. AND means
+**Match all terms** and OR means **Match any term** across visible message text
+and message tags; `is:saved` and the selected scope remain mandatory filters.
+See [`SEARCH_SEMANTICS.md`](SEARCH_SEMANTICS.md) for the complete contract.
 
 ## Primary Entry Points
 - Message evidence header search within the selected logical scope.
