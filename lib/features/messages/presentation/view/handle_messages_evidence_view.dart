@@ -76,22 +76,30 @@ class _HandleMessagesEvidenceViewState
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (skeleton) {
+        final matchingIds = matchingIdsAsync?.valueOrNull;
+        final isMatchingLoaded = matchingIdsAsync?.hasValue ?? false;
+        final visibleSkeleton = _visibleSkeleton(
+          skeleton: skeleton,
+          query: displayQuery,
+          matchingIds: matchingIds,
+          isMatchingLoaded: isMatchingLoaded,
+        );
         return MessageEvidenceTimelineView(
           evidenceScope: evidenceScope,
-          skeleton: skeleton,
+          skeleton: visibleSkeleton,
           headerData: MessageEvidenceHeaderModel(
             title: 'Messages for ${_handleLabel(displayNameAsync.valueOrNull)}',
-            dateRangeLabel: _dateSpan(skeleton.entries),
+            dateRangeLabel: _dateSpan(visibleSkeleton.entries),
             countLabel: _countLabel(
               totalCount: skeleton.totalCount,
               query: displayQuery,
-              matchingIds: matchingIdsAsync?.valueOrNull,
-              isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
+              matchingIds: matchingIds,
+              isMatchingLoaded: isMatchingLoaded,
             ),
             scopeContextLine: 'Handle scope',
             activeScopeLabel: displayQuery.isEmpty
                 ? null
-                : 'Message text contains "$displayQuery"',
+                : 'Messages matching "$displayQuery"',
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: _searchController,
               placeholder: 'Search messages from this handle',
@@ -103,7 +111,10 @@ class _HandleMessagesEvidenceViewState
               },
             ),
           ),
-          emptyMessage: 'No messages found for this handle.',
+          emptyMessage: _emptyMessage(
+            query: displayQuery,
+            isMatchingLoaded: isMatchingLoaded,
+          ),
           highlightQuery: _query,
         );
       },
@@ -112,6 +123,31 @@ class _HandleMessagesEvidenceViewState
           Center(child: Text('Handle messages failed: $error')),
     );
   }
+}
+
+MessageEvidenceTimelineSkeleton _visibleSkeleton({
+  required MessageEvidenceTimelineSkeleton skeleton,
+  required String query,
+  required List<int>? matchingIds,
+  required bool isMatchingLoaded,
+}) {
+  if (query.isEmpty) {
+    return skeleton;
+  }
+  if (!isMatchingLoaded) {
+    return const MessageEvidenceTimelineSkeleton(entries: []);
+  }
+  return skeleton.filteredByMessageIds(matchingIds ?? const <int>[]);
+}
+
+String _emptyMessage({required String query, required bool isMatchingLoaded}) {
+  if (query.isEmpty) {
+    return 'No messages found for this handle.';
+  }
+  if (!isMatchingLoaded) {
+    return 'Matching handle messages...';
+  }
+  return 'No handle messages match "$query".';
 }
 
 String _handleLabel(String? value) {

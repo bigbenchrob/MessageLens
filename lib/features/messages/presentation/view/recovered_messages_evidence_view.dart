@@ -113,7 +113,7 @@ class _RecoveredMessagesEvidenceViewState
               ),
               activeScopeLabel: displayQuery.isEmpty
                   ? null
-                  : 'Message text contains "$displayQuery"',
+                  : 'Messages matching "$displayQuery"',
               activeScopeIndicator: widget.scrollToDate == null
                   ? null
                   : _RecoveredScrollIndicator(

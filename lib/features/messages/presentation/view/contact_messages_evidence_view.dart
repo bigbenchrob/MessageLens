@@ -298,7 +298,7 @@ class _ContactMessagesEvidenceTimeline extends ConsumerWidget {
 
   String? _activeScopeLabel() {
     if (searchQuery.isNotEmpty) {
-      return 'Message text contains "$searchQuery"';
+      return 'Messages matching "$searchQuery"';
     }
     if (monthAnchor != null) {
       return 'Selected month';

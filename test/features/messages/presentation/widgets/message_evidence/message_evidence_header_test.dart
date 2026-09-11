@@ -96,6 +96,26 @@ void main() {
     expect(find.text('Search messages from Claire'), findsOneWidget);
     expect(find.text('AND'), findsOneWidget);
     expect(find.text('OR'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'AND — Match all terms' &&
+            widget.properties.button == true &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'OR — Match any term' &&
+            widget.properties.button == true &&
+            widget.properties.selected == false,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Copy evidence summary'), findsOneWidget);
 
     await tester.tap(find.text('OR'));
@@ -246,7 +266,7 @@ void main() {
   testWidgets(
     'investigation status aligns with the field and delays activity chrome',
     (tester) async {
-      const description = 'Message text contains "family"';
+      const description = 'Messages matching "family"';
       const style = TextStyle(fontSize: 13, height: 1);
 
       Widget subject({required bool isSearching}) {

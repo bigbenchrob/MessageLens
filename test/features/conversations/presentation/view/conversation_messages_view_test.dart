@@ -239,7 +239,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.textContaining('Message text contains "settlement"'),
+      find.textContaining('Messages matching "settlement"'),
       findsOneWidget,
     );
     expect(find.textContaining('Anchored at message 101'), findsOneWidget);

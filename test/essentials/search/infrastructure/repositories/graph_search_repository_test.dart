@@ -674,6 +674,433 @@ void main() {
 
     expect(results, <int>[6103, 6102]);
   });
+
+  test('combines text and tag evidence per term in AND and OR modes', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6201,
+      guid: 'guid-6201',
+      text: 'Invoice from accountant.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6202,
+      guid: 'guid-6202',
+      text: 'Invoice only.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6203,
+      guid: 'guid-6203',
+      text: 'Holiday plans.',
+      dateUtc: '2026-05-03T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6201,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6203,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    const tokens = <MessageTextSearchToken>[
+      ExactMessageTextSearchToken('invoice'),
+      PrefixMessageTextSearchToken('tax'),
+    ];
+
+    final allResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: false,
+      filterSaved: false,
+    );
+    final anyResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: true,
+      filterSaved: false,
+    );
+
+    expect(allResults, <int>[6201]);
+    expect(anyResults, <int>[6203, 6202, 6201]);
+  });
+
+  test('combines separate tags on one message in AND and OR modes', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6301,
+      guid: 'guid-6301',
+      text: 'Unrelated text.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6301,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6301,
+      display: 'Urgent',
+      normalized: 'urgent',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6302,
+      guid: 'guid-6302',
+      text: 'Other unrelated text.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6302,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    const tokens = <MessageTextSearchToken>[
+      ExactMessageTextSearchToken('tax'),
+      ExactMessageTextSearchToken('urgent'),
+    ];
+
+    final allResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: false,
+      filterSaved: false,
+    );
+    final anyResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: true,
+      filterSaved: false,
+    );
+
+    expect(allResults, <int>[6301]);
+    expect(anyResults, <int>[6302, 6301]);
+  });
+
+  test('deduplicates a term matched by both text and tags', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6401,
+      guid: 'guid-6401',
+      text: 'Invoice in message text.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6401,
+      display: 'Invoice',
+      normalized: 'invoice',
+    );
+
+    final results = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: const <MessageTextSearchToken>[
+        ExactMessageTextSearchToken('invoice'),
+      ],
+      matchAnyTerm: true,
+      filterSaved: false,
+    );
+
+    expect(results, <int>[6401]);
+  });
+
+  test('applies saved filtering before the final result limit', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6501,
+      guid: 'guid-6501',
+      text: 'Invoice saved.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6502,
+      guid: 'guid-6502',
+      text: 'Invoice unsaved.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await overlayDatabase.customStatement(
+      '''
+      INSERT INTO message_intent_overlays (
+        message_ss_id,
+        is_saved,
+        created_at_utc,
+        updated_at_utc
+      ) VALUES (?, 1, ?, ?)
+      ''',
+      <Object?>[6501, _now, _now],
+    );
+
+    for (final matchAnyTerm in <bool>[false, true]) {
+      final results = await repository.searchMessageIds(
+        scope: const GraphMessageSearchScope.global(),
+        textTokens: const <MessageTextSearchToken>[
+          ExactMessageTextSearchToken('invoice'),
+        ],
+        matchAnyTerm: matchAnyTerm,
+        filterSaved: true,
+        limit: 1,
+      );
+
+      expect(results, <int>[6501]);
+    }
+  });
+
+  test(
+    'does not lose saved matches beyond 500 preliminary text candidates',
+    () async {
+      await graphDatabase.transaction(() async {
+        for (var index = 1; index <= 501; index++) {
+          await _insertMessage(
+            graphDatabase,
+            messageId: 6550 + index,
+            guid: 'guid-saved-cap-$index',
+            text: 'Invoice candidate.',
+            dateUtc: '2026-05-02T12:00:00Z',
+          );
+        }
+        await _insertMessage(
+          graphDatabase,
+          messageId: 6550,
+          guid: 'guid-saved-cap-target',
+          text: 'Invoice saved target.',
+          dateUtc: '2026-05-01T12:00:00Z',
+        );
+      });
+      await overlayDatabase.customStatement(
+        '''
+        INSERT INTO message_intent_overlays (
+          message_ss_id,
+          is_saved,
+          created_at_utc,
+          updated_at_utc
+        ) VALUES (?, 1, ?, ?)
+        ''',
+        <Object?>[6550, _now, _now],
+      );
+
+      final results = await repository.searchMessageIds(
+        scope: const GraphMessageSearchScope.global(),
+        textTokens: const <MessageTextSearchToken>[
+          ExactMessageTextSearchToken('invoice'),
+        ],
+        matchAnyTerm: false,
+        filterSaved: true,
+      );
+
+      expect(results, <int>[6550]);
+    },
+  );
+
+  test('orders cross-domain matches before applying the final limit', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6601,
+      guid: 'guid-6601',
+      text: 'Unrelated older text.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6602,
+      guid: 'guid-6602',
+      text: 'Invoice in newer text.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6601,
+      display: 'Invoice',
+      normalized: 'invoice',
+    );
+
+    final results = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: const <MessageTextSearchToken>[
+        ExactMessageTextSearchToken('invoice'),
+      ],
+      matchAnyTerm: false,
+      filterSaved: false,
+      limit: 1,
+    );
+
+    expect(results, <int>[6602]);
+  });
+
+  test('applies scope before limiting tag results', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6701,
+      guid: 'guid-6701',
+      text: 'Scoped message.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6702,
+      guid: 'guid-6702',
+      text: 'Outside message.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await _insertChatMessage(graphDatabase, chatId: 671, messageId: 6701);
+    await _insertChatMessage(graphDatabase, chatId: 672, messageId: 6702);
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6701,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6702,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+
+    final results = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.conversation(671),
+      textTokens: const <MessageTextSearchToken>[
+        ExactMessageTextSearchToken('tax'),
+      ],
+      matchAnyTerm: false,
+      filterSaved: false,
+      limit: 1,
+    );
+
+    expect(results, <int>[6701]);
+  });
+
+  test('keeps saved as a filter in multi-term AND and OR modes', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6801,
+      guid: 'guid-6801',
+      text: 'Invoice saved cross-domain.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6802,
+      guid: 'guid-6802',
+      text: 'Invoice saved text-only.',
+      dateUtc: '2026-05-02T12:00:00Z',
+    );
+    await _insertMessage(
+      graphDatabase,
+      messageId: 6803,
+      guid: 'guid-6803',
+      text: 'Invoice unsaved.',
+      dateUtc: '2026-05-03T12:00:00Z',
+    );
+    await _insertGraphNativeTag(
+      overlayDatabase,
+      messageId: 6801,
+      display: 'Tax',
+      normalized: 'tax',
+    );
+    for (final messageId in <int>[6801, 6802]) {
+      await overlayDatabase.customStatement(
+        '''
+        INSERT INTO message_intent_overlays (
+          message_ss_id,
+          is_saved,
+          created_at_utc,
+          updated_at_utc
+        ) VALUES (?, 1, ?, ?)
+        ''',
+        <Object?>[messageId, _now, _now],
+      );
+    }
+    const tokens = <MessageTextSearchToken>[
+      ExactMessageTextSearchToken('invoice'),
+      ExactMessageTextSearchToken('tax'),
+    ];
+
+    final allResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: false,
+      filterSaved: true,
+    );
+    final anyResults = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: tokens,
+      matchAnyTerm: true,
+      filterSaved: true,
+    );
+
+    expect(allResults, <int>[6801]);
+    expect(anyResults, <int>[6802, 6801]);
+  });
+
+  test('evaluates cross-domain AND inside the selected scope', () async {
+    for (final messageId in <int>[6901, 6902]) {
+      await _insertMessage(
+        graphDatabase,
+        messageId: messageId,
+        guid: 'guid-$messageId',
+        text: 'Invoice in scoped text.',
+        dateUtc: messageId == 6901
+            ? '2026-05-01T12:00:00Z'
+            : '2026-05-02T12:00:00Z',
+      );
+      await _insertGraphNativeTag(
+        overlayDatabase,
+        messageId: messageId,
+        display: 'Tax',
+        normalized: 'tax',
+      );
+    }
+    await _insertChatMessage(graphDatabase, chatId: 691, messageId: 6901);
+    await _insertChatMessage(graphDatabase, chatId: 692, messageId: 6902);
+
+    final results = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.conversation(691),
+      textTokens: const <MessageTextSearchToken>[
+        ExactMessageTextSearchToken('invoice'),
+        ExactMessageTextSearchToken('tax'),
+      ],
+      matchAnyTerm: false,
+      filterSaved: false,
+    );
+
+    expect(results, <int>[6901]);
+  });
+
+  test('includes unique GUID-keyed tags in per-term composition', () async {
+    await _insertMessage(
+      graphDatabase,
+      messageId: 7001,
+      guid: 'guid-7001',
+      text: 'Invoice from compatibility message.',
+      dateUtc: '2026-05-01T12:00:00Z',
+    );
+    await overlayDatabase.addMessageUserTags(
+      messageGuid: 'guid-7001',
+      tags: const <String>['Tax'],
+    );
+
+    final results = await repository.searchMessageIds(
+      scope: const GraphMessageSearchScope.global(),
+      textTokens: const <MessageTextSearchToken>[
+        ExactMessageTextSearchToken('invoice'),
+        ExactMessageTextSearchToken('tax'),
+      ],
+      matchAnyTerm: false,
+      filterSaved: false,
+    );
+
+    expect(results, <int>[7001]);
+  });
 }
 
 const _now = '2026-05-30T12:00:00Z';
@@ -696,6 +1123,26 @@ Future<void> _insertMessage(
     'sender_handle_ss_id': senderHandleId,
     'sender_canonical_handle_ss_id': senderCanonicalHandleId,
   });
+}
+
+Future<void> _insertGraphNativeTag(
+  OverlayDatabase overlayDatabase, {
+  required int messageId,
+  required String display,
+  required String normalized,
+}) {
+  return overlayDatabase.customStatement(
+    '''
+    INSERT INTO message_intent_tags (
+      message_ss_id,
+      tag_display,
+      tag_normalized,
+      created_at_utc,
+      updated_at_utc
+    ) VALUES (?, ?, ?, ?, ?)
+    ''',
+    <Object?>[messageId, display, normalized, _now, _now],
+  );
 }
 
 Future<void> _insertHandle(

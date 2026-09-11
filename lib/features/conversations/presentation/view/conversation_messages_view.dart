@@ -189,7 +189,7 @@ class _ConversationMessagesViewState
   String? _activeScopeLabel(String query) {
     final parts = <String>[];
     if (query.isNotEmpty) {
-      parts.add('Message text contains "$query"');
+      parts.add('Messages matching "$query"');
     }
     if (widget.anchorMessageId != null) {
       parts.add('Anchored at message ${widget.anchorMessageId}');

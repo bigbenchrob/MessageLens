@@ -61,7 +61,7 @@ searchInvestigationStatusPresentationModel({
 }) {
   if (query.isNotEmpty) {
     return SearchInvestigationStatusPresentationModel(
-      description: 'Message text contains "$query"',
+      description: 'Messages matching "$query"',
       isSearching: isSearching,
     );
   }

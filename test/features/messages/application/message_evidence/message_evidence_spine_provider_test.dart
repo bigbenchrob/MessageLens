@@ -26,6 +26,7 @@ import 'package:remember_this_text/features/messages/application/message_evidenc
 import 'package:remember_this_text/features/messages/application/message_evidence/recovered_message_evidence_provider.dart';
 import 'package:remember_this_text/features/messages/domain/entities/attachment_info.dart';
 import 'package:remember_this_text/features/messages/domain/message_evidence/message_evidence_scope.dart';
+import 'package:remember_this_text/features/messages/domain/message_evidence/message_evidence_search_mode.dart';
 import 'package:remember_this_text/features/messages/domain/message_evidence/recovered_message_evidence.dart';
 
 Override _displayIdentityResolverOverride() {
@@ -860,9 +861,25 @@ void main() {
         searchIntent: _intent('invoice '),
       ).future,
     );
+    final allTermMatches = await container.read(
+      messageEvidenceTextMatchIdsProvider(
+        scope: scope,
+        searchIntent: _intent('invoice note '),
+        mode: MessageEvidenceSearchMode.allTerms,
+      ).future,
+    );
+    final anyTermMatches = await container.read(
+      messageEvidenceTextMatchIdsProvider(
+        scope: scope,
+        searchIntent: _intent('invoice note '),
+        mode: MessageEvidenceSearchMode.anyTerm,
+      ).future,
+    );
 
     expect(matches, [30, 50]);
     expect(exactMatches, [30]);
+    expect(allTermMatches, isEmpty);
+    expect(anyTermMatches, [30, 40]);
   });
 
   test(
