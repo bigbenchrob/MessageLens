@@ -15,6 +15,8 @@ import 'package:remember_this_text/essentials/search/application/graph_search_re
 import 'package:remember_this_text/essentials/search/application/message_text_search_query.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
+import 'package:remember_this_text/features/contacts/application/read_models/handles_for_contact_provider.dart';
+import 'package:remember_this_text/features/contacts/application/read_models/linked_handle.dart';
 import 'package:remember_this_text/features/conversations/feature_level_providers.dart'
     show
         ConversationSignatureDisplayByIdsRequest,
@@ -46,6 +48,26 @@ Override _graphSearchRepositoryOverride({
 }
 
 void main() {
+  test('text-match provider identity follows structured search intent', () {
+    const scope = GlobalMessagesEvidenceScope();
+    final prefix = messageEvidenceTextMatchIdsProvider(
+      scope: scope,
+      searchIntent: _intent('post'),
+    );
+    final exact = messageEvidenceTextMatchIdsProvider(
+      scope: scope,
+      searchIntent: _intent('post '),
+    );
+    final equivalentExact = messageEvidenceTextMatchIdsProvider(
+      scope: scope,
+      searchIntent: _intent('  post   '),
+    );
+
+    expect(prefix, isNot(exact));
+    expect(exact, equivalentExact);
+    expect(exact.hashCode, equivalentExact.hashCode);
+  });
+
   test(
     'contact evidence skeleton preserves full graph timeline entries',
     () async {
@@ -292,6 +314,21 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           _displayIdentityResolverOverride(),
+          _graphSearchRepositoryOverride(
+            globalMatchesByQuery: const {
+              'settlement': [2],
+            },
+          ),
+          handlesForContactProvider(contactId: 24).overrideWith((ref) async {
+            return const [
+              LinkedHandle(
+                handleId: 12,
+                displayValue: 'claire@example.com',
+                service: 'iMessage',
+                isOverrideLink: false,
+              ),
+            ];
+          }),
           contactPageGraphMessageTimelineProvider(contactId: 24).overrideWith((
             ref,
           ) async {
@@ -307,12 +344,6 @@ void main() {
                 monthKey: '2026-05',
               ),
             ];
-          }),
-          contactPageGraphMessageIdsMatchingTextProvider(
-            contactId: 24,
-            query: 'settlement',
-          ).overrideWith((ref) async {
-            return const [2];
           }),
           contactPageGraphMessageByIdProvider(
             contactId: 24,
@@ -475,11 +506,14 @@ void main() {
     final matches = await container.read(
       messageEvidenceTextMatchIdsProvider(
         scope: scope,
-        query: 'settlement',
+        searchIntent: _intent('settlement'),
       ).future,
     );
     final emptyMatches = await container.read(
-      messageEvidenceTextMatchIdsProvider(scope: scope, query: '  ').future,
+      messageEvidenceTextMatchIdsProvider(
+        scope: scope,
+        searchIntent: _intent('  '),
+      ).future,
     );
 
     expect(matches, [11, 12]);
@@ -641,7 +675,7 @@ void main() {
       final matches = await container.read(
         messageEvidenceTextMatchIdsProvider(
           scope: scope,
-          query: 'context',
+          searchIntent: _intent('context'),
         ).future,
       );
 
@@ -775,6 +809,26 @@ void main() {
               attachmentCount: 0,
               attachments: const <AttachmentInfo>[],
             ),
+            RecoveredUnlinkedMessageItem(
+              id: 50,
+              guid: 'recovered-50',
+              senderHandleId: null,
+              contactName: null,
+              rawItemType: null,
+              rawAssociatedMessageType: null,
+              semanticKind: 'plain-text',
+              isSparseArtifact: false,
+              isFromMe: false,
+              isInferred: false,
+              senderLabel: 'Other sender',
+              service: 'SMS',
+              text: 'invoiced yesterday',
+              sentAt: DateTime.utc(2026, 5, 22, 10),
+              itemType: 'text',
+              hasAttachments: false,
+              attachmentCount: 0,
+              attachments: const <AttachmentInfo>[],
+            ),
           ]);
         }),
       ],
@@ -784,7 +838,10 @@ void main() {
       (_, _) {},
     );
     final matchesSubscription = container.listen(
-      messageEvidenceTextMatchIdsProvider(scope: scope, query: 'invoice'),
+      messageEvidenceTextMatchIdsProvider(
+        scope: scope,
+        searchIntent: _intent('invoice'),
+      ),
       (_, _) {},
     );
     addTearDown(subscription.close);
@@ -794,11 +851,18 @@ void main() {
     final matches = await container.read(
       messageEvidenceTextMatchIdsProvider(
         scope: scope,
-        query: 'invoice',
+        searchIntent: _intent('invoice'),
+      ).future,
+    );
+    final exactMatches = await container.read(
+      messageEvidenceTextMatchIdsProvider(
+        scope: scope,
+        searchIntent: _intent('invoice '),
       ).future,
     );
 
-    expect(matches, [30]);
+    expect(matches, [30, 50]);
+    expect(exactMatches, [30]);
   });
 
   test(
@@ -885,17 +949,24 @@ void main() {
       final matches = await container.read(
         messageEvidenceTextMatchIdsProvider(
           scope: scope,
-          query: 'settlement',
+          searchIntent: _intent('settlement'),
         ).future,
       );
       final emptyMatches = await container.read(
-        messageEvidenceTextMatchIdsProvider(scope: scope, query: '  ').future,
+        messageEvidenceTextMatchIdsProvider(
+          scope: scope,
+          searchIntent: _intent('  '),
+        ).future,
       );
 
       expect(matches, [1, 2]);
       expect(emptyMatches, isEmpty);
     },
   );
+}
+
+MessageTextSearchExecutionIntent _intent(String rawInput) {
+  return MessageTextSearchQuery.parse(rawInput).executionIntent;
 }
 
 class _FakeGraphSearchRepository implements GraphSearchRepository {
@@ -921,8 +992,9 @@ class _FakeGraphSearchRepository implements GraphSearchRepository {
         globalMatchesByQuery[query] ?? const <int>[],
       GraphMessageSearchScopeType.conversation =>
         conversationMatchesByQuery[query] ?? const <int>[],
-      GraphMessageSearchScopeType.handle ||
-      GraphMessageSearchScopeType.contact => const <int>[],
+      GraphMessageSearchScopeType.contact =>
+        globalMatchesByQuery[query] ?? const <int>[],
+      GraphMessageSearchScopeType.handle => const <int>[],
     };
   }
 }

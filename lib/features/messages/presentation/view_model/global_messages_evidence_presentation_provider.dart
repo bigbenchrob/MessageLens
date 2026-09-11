@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../application/message_evidence/global_messages_search_session_provider.dart';
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
 import '../../domain/message_evidence/message_evidence_scope.dart';
@@ -18,6 +19,7 @@ part 'global_messages_evidence_presentation_provider.g.dart';
 final class GlobalMessagesEvidencePresentationState {
   const GlobalMessagesEvidencePresentationState({
     required this.query,
+    required this.hasExecutableSearch,
     required this.mode,
     required this.evidenceScope,
     required this.allMessagesSkeleton,
@@ -27,6 +29,7 @@ final class GlobalMessagesEvidencePresentationState {
   });
 
   final String query;
+  final bool hasExecutableSearch;
   final MessageEvidenceSearchMode mode;
   final MessageEvidenceScope evidenceScope;
   final AsyncValue<MessageEvidenceTimelineSkeleton> allMessagesSkeleton;
@@ -43,15 +46,18 @@ GlobalMessagesEvidencePresentationState globalMessagesEvidencePresentation(
   final session = ref.watch(
     globalMessagesSearchSessionProvider(monthAnchor: monthAnchor),
   );
-  final query = session.query.trim();
+  final query = session.query;
+  final parsedQuery = MessageTextSearchQuery.parse(query);
+  final hasExecutableSearch = parsedQuery.executionIntent.isExecutable;
+  final displayQuery = query.trim();
   const allMessagesScope = GlobalMessagesEvidenceScope();
-  final evidenceScope = query.isEmpty
+  final evidenceScope = !hasExecutableSearch
       ? allMessagesScope
       : MessageSearchEvidenceScope(query: query, mode: session.mode);
   final allMessagesSkeleton = ref.watch(
     messageEvidenceTimelineSkeletonProvider(scope: allMessagesScope),
   );
-  final visibleSkeleton = query.isEmpty
+  final visibleSkeleton = !hasExecutableSearch
       ? allMessagesSkeleton
       : ref.watch(
           messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
@@ -65,21 +71,22 @@ GlobalMessagesEvidencePresentationState globalMessagesEvidencePresentation(
           visibleSkeleton:
               visibleMessages ??
               const MessageEvidenceTimelineSkeleton(entries: []),
-          query: query,
-          hasMatchesLoaded: query.isEmpty || visibleSkeleton.hasValue,
+          query: hasExecutableSearch ? displayQuery : '',
+          hasMatchesLoaded: !hasExecutableSearch || visibleSkeleton.hasValue,
           monthAnchor: monthAnchor,
         );
   final investigationStatus = searchInvestigationStatusPresentationModel(
-    query: query,
+    query: hasExecutableSearch ? displayQuery : '',
     monthAnchor: monthAnchor,
     isSearching:
-        query.isNotEmpty &&
+        hasExecutableSearch &&
         visibleSkeleton.isLoading &&
         !visibleSkeleton.hasValue,
   );
 
   return GlobalMessagesEvidencePresentationState(
     query: query,
+    hasExecutableSearch: hasExecutableSearch,
     mode: session.mode,
     evidenceScope: evidenceScope,
     allMessagesSkeleton: allMessagesSkeleton,

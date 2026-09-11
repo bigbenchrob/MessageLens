@@ -6,6 +6,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../config/theme/widgets/buttons/buttons.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../contacts/feature_level_providers.dart'
     show ContactPickerDialog;
 import '../../../handles/domain/spec_classes/handles_cassette_spec.dart';
@@ -87,7 +88,7 @@ class HandleLensView extends HookConsumerWidget {
                     investigation: investigation,
                     sourcePresentation: sourcePresentation,
                     searchController: searchController,
-                    searchQuery: session.query.trim(),
+                    searchQuery: session.query,
                     searchMode: session.searchMode,
                     onSearchModeChanged: sessionActions.setSearchMode,
                     actions: HandleLensActionBar(handleId: handleId),
@@ -319,15 +320,19 @@ class _HandleLensEvidencePane extends ConsumerWidget {
       investigation,
     );
     final evidenceScope = HandleMessagesEvidenceScope(handleId: handleId);
+    final searchIntent = MessageTextSearchQuery.parse(
+      searchQuery,
+    ).executionIntent;
+    final displayQuery = searchIntent.isExecutable ? searchQuery.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
     );
-    final matchingIdsAsync = searchQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: searchQuery,
+              searchIntent: searchIntent,
               mode: searchMode,
             ),
           );
@@ -348,13 +353,13 @@ class _HandleLensEvidencePane extends ConsumerWidget {
               totalCount: (sourcePresentation?.messageCount ?? 0) == 0
                   ? skeleton.totalCount
                   : sourcePresentation!.messageCount,
-              query: searchQuery,
+              query: displayQuery,
               matchingIds: matchingIdsAsync?.valueOrNull,
               isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
             ),
-            activeScopeLabel: searchQuery.isEmpty
+            activeScopeLabel: displayQuery.isEmpty
                 ? null
-                : 'Message text contains "$searchQuery"',
+                : 'Message text contains "$displayQuery"',
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: searchController,
               placeholder: 'Search messages from this handle',

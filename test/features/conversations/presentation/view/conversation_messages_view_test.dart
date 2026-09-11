@@ -7,6 +7,7 @@ import 'package:remember_this_text/config/theme/widgets/layout/page_track_layout
 import 'package:remember_this_text/config/theme/widgets/layout/resolved_track_layout_matrix.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversations/conversation.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversations/conversation_reader_provider.dart';
+import 'package:remember_this_text/essentials/search/application/message_text_search_query.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
 import 'package:remember_this_text/features/conversations/presentation/view/conversation_messages_view.dart';
@@ -279,7 +280,7 @@ void main() {
           }),
           messageEvidenceTextMatchIdsProvider(
             scope: scope,
-            query: 'settlement',
+            searchIntent: _intent('settlement  '),
             mode: MessageEvidenceSearchMode.allTerms,
           ).overrideWith((ref) async {
             return [101];
@@ -301,7 +302,7 @@ void main() {
           home: ConversationMessagesView(
             conversationId: 42,
             anchorMessageId: 101,
-            searchQuery: 'settlement',
+            searchQuery: 'settlement  ',
           ),
         ),
       ),
@@ -311,6 +312,13 @@ void main() {
     await tester.pump();
 
     expect(find.text('settlement authority'), findsOneWidget);
+    expect(
+      tester
+          .widget<MacosTextField>(find.byType(MacosTextField))
+          .controller
+          ?.text,
+      'settlement  ',
+    );
   });
 
   testWidgets('conversation search displays only matching scope rows', (
@@ -356,7 +364,7 @@ void main() {
           }),
           messageEvidenceTextMatchIdsProvider(
             scope: scope,
-            query: 'settlement',
+            searchIntent: _intent('settlement'),
             mode: MessageEvidenceSearchMode.allTerms,
           ).overrideWith((ref) async {
             return [1];
@@ -402,6 +410,10 @@ void main() {
     expect(find.text('other message'), findsNothing);
     expect(find.text('1 of 2 messages match "settlement"'), findsOneWidget);
   });
+}
+
+MessageTextSearchExecutionIntent _intent(String rawInput) {
+  return MessageTextSearchQuery.parse(rawInput).executionIntent;
 }
 
 ResolvedTrackLayoutMatrix _resolvedConversationHeaderMatrix({

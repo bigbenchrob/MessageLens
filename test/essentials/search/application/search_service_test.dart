@@ -97,6 +97,26 @@ void main() {
   });
 
   test(
+    'executes an existing structured intent without reparsing raw text',
+    () async {
+      final repository = _FakeGraphSearchRepository(resultIds: const [8]);
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      final service = container.read(searchServiceProvider);
+      final intent = MessageTextSearchQuery.parse('post ').executionIntent;
+
+      await service.searchGraphMessageIdsForIntent(
+        scope: const GraphMessageSearchScope.global(),
+        intent: intent,
+      );
+
+      expect(repository.requests.single.textTokens, const [
+        ExactMessageTextSearchToken('post'),
+      ]);
+    },
+  );
+
+  test(
     'searchGraphMessageIds structurally parses saved operator and text intent',
     () async {
       final repository = _FakeGraphSearchRepository(resultIds: const [77]);

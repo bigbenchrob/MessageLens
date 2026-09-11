@@ -15,16 +15,28 @@ class SearchService {
     SearchMode mode = SearchMode.allTerms,
   }) async {
     final parsedQuery = MessageTextSearchQuery.parse(query);
-    if (parsedQuery.tokens.isEmpty && !parsedQuery.filterSaved) {
+    return searchGraphMessageIdsForIntent(
+      scope: scope,
+      intent: parsedQuery.executionIntent,
+      mode: mode,
+    );
+  }
+
+  Future<List<int>> searchGraphMessageIdsForIntent({
+    required GraphMessageSearchScope scope,
+    required MessageTextSearchExecutionIntent intent,
+    SearchMode mode = SearchMode.allTerms,
+  }) async {
+    if (!intent.isExecutable) {
       return const [];
     }
 
     final repository = await readRepository();
     return repository.searchMessageIds(
       scope: scope,
-      textTokens: parsedQuery.tokens,
+      textTokens: intent.tokens,
       matchAnyTerm: mode == SearchMode.anyTerm,
-      filterSaved: parsedQuery.filterSaved,
+      filterSaved: intent.filterSaved,
     );
   }
 }

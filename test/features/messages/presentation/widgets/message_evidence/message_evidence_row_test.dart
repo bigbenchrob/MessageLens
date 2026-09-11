@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -192,6 +192,34 @@ void main() {
 
     expect(anchorDecorations, isNotEmpty);
   });
+
+  testWidgets('message body highlighting uses structured token boundaries', (
+    tester,
+  ) async {
+    await _pumpRow(
+      tester,
+      developerMode: DeveloperModeValue.user,
+      scope: const MessageSearchEvidenceScope(query: 'post '),
+      message: _message(text: 'post postmaster crosspost'),
+      searchQuery: 'post ',
+    );
+
+    final selectableText = tester.widget<SelectableText>(
+      find.byType(SelectableText),
+    );
+    final rootSpan = selectableText.textSpan!;
+    final highlightedText = rootSpan.children!
+        .whereType<TextSpan>()
+        .where((span) {
+          return span.style?.backgroundColor != null;
+        })
+        .map((span) {
+          return span.text;
+        })
+        .toList(growable: false);
+
+    expect(highlightedText, ['post']);
+  });
 }
 
 Future<void> _pumpRow(
@@ -201,6 +229,7 @@ Future<void> _pumpRow(
   required MessageEvidenceRowData message,
   bool isAnchorMessage = false,
   VoidCallback? onOpenConversationContext,
+  String searchQuery = '',
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -214,6 +243,7 @@ Future<void> _pumpRow(
           message: message,
           evidenceScope: scope,
           isAnchorMessage: isAnchorMessage,
+          searchQuery: searchQuery,
           onOpenConversationContext: onOpenConversationContext,
         ),
       ),
@@ -227,6 +257,7 @@ MessageEvidenceRowData _message({
   bool isSelfConversation = false,
   bool senderIsMe = false,
   String senderDisplayHandle = 'Claire',
+  String text = 'hello',
   String? conversationDisplayTitle,
   String? semanticKind,
   String? itemKind,
@@ -240,7 +271,7 @@ MessageEvidenceRowData _message({
     messageId: 8796093170832,
     dateUtc: '2026-05-20T18:58:00Z',
     isFromMe: isFromMe,
-    text: 'hello',
+    text: text,
     associatedMessageId: associatedMessageId,
     attachmentCount: 0,
     sourceConversationId: sourceConversationId,

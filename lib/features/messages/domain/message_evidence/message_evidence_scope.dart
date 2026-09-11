@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import 'message_evidence_search_mode.dart';
 
 enum MessageEvidenceScopeKind { timeline, contextWindow }
@@ -84,27 +85,25 @@ final class ContactMessageSearchEvidenceScope extends MessageEvidenceScope {
   final String query;
   final int? handleId;
 
+  MessageTextSearchExecutionIntent get searchIntent =>
+      MessageTextSearchQuery.parse(query).executionIntent;
+
   @override
   String get stableKey =>
       'contact-message-search:$contactId:${handleId ?? 'all'}:'
-      '${query.trim().toLowerCase()}';
+      '${searchIntent.stableKey}';
 
   @override
   bool operator ==(Object other) {
     return other is ContactMessageSearchEvidenceScope &&
         other.contactId == contactId &&
         other.handleId == handleId &&
-        other.query.trim().toLowerCase() == query.trim().toLowerCase();
+        other.searchIntent == searchIntent;
   }
 
   @override
   int get hashCode {
-    return Object.hash(
-      runtimeType,
-      contactId,
-      handleId,
-      query.trim().toLowerCase(),
-    );
+    return Object.hash(runtimeType, contactId, handleId, searchIntent);
   }
 
   @override
@@ -149,21 +148,23 @@ final class MessageSearchEvidenceScope extends MessageEvidenceScope {
   final String query;
   final MessageEvidenceSearchMode mode;
 
+  MessageTextSearchExecutionIntent get searchIntent =>
+      MessageTextSearchQuery.parse(query).executionIntent;
+
   @override
   String get stableKey =>
       'message-search:${mode.name}:'
-      '${query.trim().toLowerCase()}';
+      '${searchIntent.stableKey}';
 
   @override
   bool operator ==(Object other) {
     return other is MessageSearchEvidenceScope &&
         other.mode == mode &&
-        other.query.trim().toLowerCase() == query.trim().toLowerCase();
+        other.searchIntent == searchIntent;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, mode, query.trim().toLowerCase());
+  int get hashCode => Object.hash(runtimeType, mode, searchIntent);
 
   @override
   String toString() {

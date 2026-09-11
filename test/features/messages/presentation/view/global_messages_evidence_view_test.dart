@@ -18,11 +18,13 @@ import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_s
 import 'package:remember_this_text/features/conversations/application/actions/conversation_excerpt_navigation_actions_provider.dart';
 import 'package:remember_this_text/features/conversations/domain/spec_classes/conversations_view_spec.dart';
 import 'package:remember_this_text/features/messages/application/message_evidence/current_search_investigation_provider.dart';
+import 'package:remember_this_text/features/messages/application/message_evidence/global_messages_search_session_provider.dart';
 import 'package:remember_this_text/features/messages/application/message_evidence/message_evidence_spine_provider.dart';
 import 'package:remember_this_text/features/messages/domain/message_evidence/message_evidence_row_data.dart';
 import 'package:remember_this_text/features/messages/domain/message_evidence/message_evidence_scope.dart';
 import 'package:remember_this_text/features/messages/domain/search_investigation_id.dart';
 import 'package:remember_this_text/features/messages/presentation/view/global_messages_evidence_view.dart';
+import 'package:remember_this_text/features/messages/presentation/view_model/global_messages_evidence_presentation_provider.dart';
 import 'package:remember_this_text/features/messages/presentation/widgets/message_evidence/message_evidence_row.dart';
 
 void main() {
@@ -287,6 +289,97 @@ void main() {
     expect(find.text('other global message'), findsNothing);
     expect(find.text('1 of 2 messages match "needle"'), findsOneWidget);
     expect(find.text('In conversation'), findsOneWidget);
+  });
+
+  testWidgets('global search keeps raw input while execution intent changes', (
+    tester,
+  ) async {
+    const repository = _FakeMessageGraphRepository(
+      timeline: [],
+      messagesById: {},
+    );
+    final container = ProviderContainer(
+      overrides: [
+        messageGraphReaderProvider.overrideWith((ref) async {
+          return const MessageGraphReader(repository: repository);
+        }),
+        graphSearchRepositoryProvider.overrideWith((ref) async {
+          return const _FakeGraphSearchRepository();
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MacosApp(home: GlobalMessagesEvidenceView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fieldFinder = find.byType(MacosTextField);
+    await tester.enterText(fieldFinder, 'post');
+    await tester.pump();
+    final prefixPresentation = container.read(
+      globalMessagesEvidencePresentationProvider(),
+    );
+    expect(prefixPresentation.query, 'post');
+    expect(
+      (prefixPresentation.evidenceScope as MessageSearchEvidenceScope)
+          .searchIntent
+          .tokens,
+      const [PrefixMessageTextSearchToken('post')],
+    );
+
+    await tester.enterText(fieldFinder, 'post ');
+    await tester.pump();
+    final exactPresentation = container.read(
+      globalMessagesEvidencePresentationProvider(),
+    );
+    expect(
+      tester.widget<MacosTextField>(fieldFinder).controller?.text,
+      'post ',
+    );
+    expect(
+      container.read(globalMessagesSearchSessionProvider()).query,
+      'post ',
+    );
+    expect(
+      (exactPresentation.evidenceScope as MessageSearchEvidenceScope)
+          .searchIntent
+          .tokens,
+      const [ExactMessageTextSearchToken('post')],
+    );
+
+    await tester.enterText(fieldFinder, 'post   ');
+    await tester.pump();
+    expect(
+      tester.widget<MacosTextField>(fieldFinder).controller?.text,
+      'post   ',
+    );
+    expect(
+      container.read(globalMessagesSearchSessionProvider()).query,
+      'post   ',
+    );
+
+    await tester.enterText(fieldFinder, 'p');
+    await tester.pump();
+    expect(
+      container
+          .read(globalMessagesEvidencePresentationProvider())
+          .hasExecutableSearch,
+      isFalse,
+    );
+    await tester.enterText(fieldFinder, 'p ');
+    await tester.pump();
+    expect(tester.widget<MacosTextField>(fieldFinder).controller?.text, 'p ');
+    expect(
+      container
+          .read(globalMessagesEvidencePresentationProvider())
+          .hasExecutableSearch,
+      isTrue,
+    );
   });
 
   testWidgets(

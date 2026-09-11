@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_range_formatter.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../handles/feature_level_providers.dart'
     show handleDisplayNameProvider;
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
@@ -52,19 +53,21 @@ class _HandleMessagesEvidenceViewState
     final evidenceScope = HandleMessagesEvidenceScope(
       handleId: widget.handleId,
     );
-    final normalizedQuery = _query.trim();
+    final parsedQuery = MessageTextSearchQuery.parse(_query);
+    final searchIntent = parsedQuery.executionIntent;
+    final displayQuery = searchIntent.isExecutable ? _query.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
     );
     final displayNameAsync = ref.watch(
       handleDisplayNameProvider(handleId: widget.handleId),
     );
-    final matchingIdsAsync = normalizedQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: normalizedQuery,
+              searchIntent: searchIntent,
               mode: _searchMode,
             ),
           );
@@ -81,14 +84,14 @@ class _HandleMessagesEvidenceViewState
             dateRangeLabel: _dateSpan(skeleton.entries),
             countLabel: _countLabel(
               totalCount: skeleton.totalCount,
-              query: normalizedQuery,
+              query: displayQuery,
               matchingIds: matchingIdsAsync?.valueOrNull,
               isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
             ),
             scopeContextLine: 'Handle scope',
-            activeScopeLabel: normalizedQuery.isEmpty
+            activeScopeLabel: displayQuery.isEmpty
                 ? null
-                : 'Message text contains "$normalizedQuery"',
+                : 'Message text contains "$displayQuery"',
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: _searchController,
               placeholder: 'Search messages from this handle',
@@ -101,7 +104,7 @@ class _HandleMessagesEvidenceViewState
             ),
           ),
           emptyMessage: 'No messages found for this handle.',
-          highlightQuery: normalizedQuery,
+          highlightQuery: _query,
         );
       },
       loading: () => const Center(child: Text('Loading handle messages...')),

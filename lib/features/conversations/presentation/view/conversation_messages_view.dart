@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_range_formatter.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../messages/application/message_evidence/message_evidence_spine_provider.dart';
 import '../../../messages/domain/message_evidence/message_evidence_scope.dart';
 import '../../../messages/domain/message_evidence/message_evidence_search_mode.dart';
@@ -32,7 +33,7 @@ class ConversationMessagesView extends ConsumerStatefulWidget {
 class _ConversationMessagesViewState
     extends ConsumerState<ConversationMessagesView> {
   late final TextEditingController _searchController = TextEditingController(
-    text: widget.searchQuery?.trim() ?? '',
+    text: widget.searchQuery ?? '',
   );
   var _query = '';
   var _searchMode = MessageEvidenceSearchMode.allTerms;
@@ -62,16 +63,18 @@ class _ConversationMessagesViewState
     final evidenceScope = ConversationEvidenceScope(
       conversationId: widget.conversationId,
     );
-    final normalizedQuery = _query.trim();
+    final parsedQuery = MessageTextSearchQuery.parse(_query);
+    final searchIntent = parsedQuery.executionIntent;
+    final displayQuery = searchIntent.isExecutable ? _query.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
     );
-    final matchingIdsAsync = normalizedQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: normalizedQuery,
+              searchIntent: searchIntent,
               mode: _searchMode,
             ),
           );
@@ -93,7 +96,7 @@ class _ConversationMessagesViewState
         final isMatchingLoaded = matchingIdsAsync?.hasValue ?? false;
         final visibleSkeleton = _visibleSkeleton(
           skeleton: skeleton,
-          query: normalizedQuery,
+          query: displayQuery,
           matchingIds: matchingIds,
           isMatchingLoaded: isMatchingLoaded,
         );
@@ -108,11 +111,11 @@ class _ConversationMessagesViewState
             countLabel: _countLabel(
               headerContext,
               skeleton.totalCount,
-              normalizedQuery,
+              displayQuery,
               matchingIds,
               isMatchingLoaded,
             ),
-            activeScopeLabel: _activeScopeLabel(normalizedQuery),
+            activeScopeLabel: _activeScopeLabel(displayQuery),
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: _searchController,
               placeholder: 'Search this conversation',
@@ -125,11 +128,11 @@ class _ConversationMessagesViewState
             ),
           ),
           emptyMessage: _emptyMessage(
-            query: normalizedQuery,
+            query: displayQuery,
             isMatchingLoaded: isMatchingLoaded,
           ),
           anchorMessageId: widget.anchorMessageId,
-          highlightQuery: normalizedQuery,
+          highlightQuery: _query,
           useFixedPanelFrame: true,
           continueHeaderInNativeFlowAfterTracks: true,
         );
@@ -140,7 +143,7 @@ class _ConversationMessagesViewState
         headerData: MessageEvidenceHeaderModel(title: headerPresentation.title),
         emptyMessage: 'Loading conversation graph timeline...',
         anchorMessageId: widget.anchorMessageId,
-        highlightQuery: normalizedQuery,
+        highlightQuery: _query,
         useFixedPanelFrame: true,
         continueHeaderInNativeFlowAfterTracks: true,
       ),
@@ -150,7 +153,7 @@ class _ConversationMessagesViewState
         headerData: MessageEvidenceHeaderModel(title: headerPresentation.title),
         emptyMessage: 'Conversation graph timeline failed: $error',
         anchorMessageId: widget.anchorMessageId,
-        highlightQuery: normalizedQuery,
+        highlightQuery: _query,
         useFixedPanelFrame: true,
         continueHeaderInNativeFlowAfterTracks: true,
       ),

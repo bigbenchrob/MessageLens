@@ -166,6 +166,30 @@ void main() {
       expect(active.hashCode, isNot(completed.hashCode));
       expect(active.tokens, const [PrefixMessageTextSearchToken('post')]);
       expect(completed.tokens, const [ExactMessageTextSearchToken('post')]);
+      expect(active.executionIntent, isNot(completed.executionIntent));
+      expect(
+        active.executionIntent.stableKey,
+        isNot(completed.executionIntent.stableKey),
+      );
+    });
+
+    test('raw spacing is excluded from equivalent execution identity', () {
+      final first = MessageTextSearchQuery.parse('  post ');
+      final second = MessageTextSearchQuery.parse('post    ');
+
+      expect(first.rawInput, isNot(second.rawInput));
+      expect(first, isNot(second));
+      expect(first.executionIntent, second.executionIntent);
+      expect(first.executionIntent.stableKey, second.executionIntent.stableKey);
+    });
+
+    test('p and completed p have distinct executable behavior', () {
+      final active = MessageTextSearchQuery.parse('p');
+      final completed = MessageTextSearchQuery.parse('p ');
+
+      expect(active.executionIntent.isExecutable, isFalse);
+      expect(completed.executionIntent.isExecutable, isTrue);
+      expect(active.executionIntent, isNot(completed.executionIntent));
     });
 
     test('equivalent parsed queries have value equality', () {

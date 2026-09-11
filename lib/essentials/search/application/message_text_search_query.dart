@@ -8,7 +8,11 @@ final class MessageTextSearchQuery {
     required List<MessageTextSearchToken> tokens,
     required this.hasTrailingWhitespace,
     required this.filterSaved,
-  }) : tokens = List<MessageTextSearchToken>.unmodifiable(tokens);
+  }) : tokens = List<MessageTextSearchToken>.unmodifiable(tokens),
+       executionIntent = MessageTextSearchExecutionIntent._(
+         tokens: tokens,
+         filterSaved: filterSaved,
+       );
 
   factory MessageTextSearchQuery.parse(String rawInput) {
     final tokens = <MessageTextSearchToken>[];
@@ -58,6 +62,9 @@ final class MessageTextSearchQuery {
   /// Whether the existing `is:saved` operator was present in [rawInput].
   final bool filterSaved;
 
+  /// Stable search semantics, independent of editor-only whitespace choices.
+  final MessageTextSearchExecutionIntent executionIntent;
+
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
@@ -75,6 +82,49 @@ final class MessageTextSearchQuery {
     hasTrailingWhitespace,
     filterSaved,
   );
+}
+
+/// Cache-safe search identity derived only from parsed execution semantics.
+///
+/// Raw input remains owned by [MessageTextSearchQuery]. Two visibly different
+/// editor strings may therefore share this value when they execute the same
+/// search, while exact and prefix forms always remain distinct.
+@immutable
+final class MessageTextSearchExecutionIntent {
+  MessageTextSearchExecutionIntent._({
+    required List<MessageTextSearchToken> tokens,
+    required this.filterSaved,
+  }) : tokens = List<MessageTextSearchToken>.unmodifiable(tokens);
+
+  final List<MessageTextSearchToken> tokens;
+  final bool filterSaved;
+
+  bool get isExecutable => tokens.isNotEmpty || filterSaved;
+
+  String get stableKey {
+    final parts = <String>[];
+    if (filterSaved) {
+      parts.add('saved:1');
+    } else {
+      parts.add('saved:0');
+    }
+    for (final token in tokens) {
+      final kind = token is PrefixMessageTextSearchToken ? 'prefix' : 'exact';
+      parts.add('$kind:${token.normalizedText.length}:${token.normalizedText}');
+    }
+    return parts.join('|');
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is MessageTextSearchExecutionIntent &&
+            _tokensEqual(other.tokens, tokens) &&
+            other.filterSaved == filterSaved;
+  }
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(tokens), filterSaved);
 }
 
 @immutable
