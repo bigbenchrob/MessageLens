@@ -10,6 +10,8 @@ import '../../../../../../essentials/debug/feature_level_providers.dart'
     show DeveloperModeValue, developerModeProvider;
 import '../../../../../../essentials/external_links/feature_level_providers.dart'
     show externalLinkActionsProvider;
+import '../../../../../../essentials/search/application/message_text_search_matching.dart';
+import '../../../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../../../attachments/domain/constants/attachment_provenance.dart';
 import '../../../../../attachments/domain/constants/resolved_attachment_availability.dart';
 import '../../../../../attachments/feature_level_providers.dart'
@@ -533,32 +535,35 @@ class TextMessageTile extends ConsumerWidget {
     required TextStyle baseStyle,
     required TextStyle highlightStyle,
   }) {
-    final query = highlight?.trim();
-    if (query == null || query.isEmpty) {
+    final rawQuery = highlight;
+    if (rawQuery == null) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+    final intent = MessageTextSearchQuery.parse(rawQuery).executionIntent;
+    final matches = messageTextSearchHighlightMatches(
+      text: text,
+      intent: intent,
+    );
+    if (matches.isEmpty) {
       return TextSpan(text: text, style: baseStyle);
     }
 
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.toLowerCase();
     final spans = <TextSpan>[];
     var start = 0;
-    var matchIndex = lowerText.indexOf(lowerQuery, start);
-
-    while (matchIndex != -1) {
-      if (matchIndex > start) {
+    for (final match in matches) {
+      if (match.start > start) {
         spans.add(
-          TextSpan(text: text.substring(start, matchIndex), style: baseStyle),
+          TextSpan(text: text.substring(start, match.start), style: baseStyle),
         );
       }
 
       spans.add(
         TextSpan(
-          text: text.substring(matchIndex, matchIndex + query.length),
+          text: text.substring(match.start, match.end),
           style: highlightStyle,
         ),
       );
-      start = matchIndex + query.length;
-      matchIndex = lowerText.indexOf(lowerQuery, start);
+      start = match.end;
     }
 
     if (start < text.length) {

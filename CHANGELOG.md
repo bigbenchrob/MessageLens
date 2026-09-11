@@ -562,6 +562,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   preflight and import share the same canonical `DateConverter` normalization,
   while modern Apple-nanosecond timestamps remain unchanged.
 
+## [0.2.37] — 2026-09-11
+
+### Added
+
+- Message search now uses responsive word-prefix matching while a word is being
+  typed and exact whole-token matching after whitespace, including completed
+  one-character terms. FTS5 searches visible message text only, while message
+  tags remain a separate participating search domain.
+
+### Fixed
+
+- Search fields now preserve the first trailing space immediately, eliminating
+  the need to press Space twice, and highlighting follows the same prefix and
+  exact-token rules as result selection.
+- AND and OR now mean **Match all terms** and **Match any term** across visible
+  message text and tags. Saved-message filtering remains mandatory in either
+  mode.
+- Search now composes and filters the complete candidate set before selecting
+  the final 500 newest results. Nonmatching rows no longer remain visible in
+  Handle Messages or Handle Lens, and result counts agree with displayed
+  membership.
+- Ordinary message-text queries no longer produce hidden matches from message
+  identifiers, sender metadata, or semantic classification fields.
+
 ## [0.2.36] — 2026-08-15
 
 ### Fixed

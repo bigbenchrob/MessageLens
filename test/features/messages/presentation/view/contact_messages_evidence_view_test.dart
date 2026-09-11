@@ -8,6 +8,9 @@ import 'package:remember_this_text/config/theme/widgets/layout/resolved_track_la
 import 'package:remember_this_text/essentials/conversation_graph/application/contacts/contact_graph.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/contacts/contact_graph_provider.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversations/conversation.dart';
+import 'package:remember_this_text/essentials/search/application/graph_message_search.dart';
+import 'package:remember_this_text/essentials/search/application/graph_search_repository_provider.dart';
+import 'package:remember_this_text/essentials/search/application/message_text_search_query.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
 import 'package:remember_this_text/features/contacts/application/read_models/handles_for_contact_provider.dart';
@@ -353,17 +356,16 @@ List<Override> _contactGraphOverrides({
           ),
       ];
     }),
-    if (filterHandleId != null)
-      handlesForContactProvider(contactId: 24).overrideWith((ref) async {
-        return const [
-          LinkedHandle(
-            handleId: 12,
-            displayValue: 'clairemc@gmail.com',
-            service: 'iMessage',
-            isOverrideLink: false,
-          ),
-        ];
-      }),
+    handlesForContactProvider(contactId: 24).overrideWith((ref) async {
+      return const [
+        LinkedHandle(
+          handleId: 12,
+          displayValue: 'clairemc@gmail.com',
+          service: 'iMessage',
+          isOverrideLink: false,
+        ),
+      ];
+    }),
     if (filterHandleId != null)
       contactPageGraphHandleMessageTimelineProvider(
         contactId: 24,
@@ -378,14 +380,9 @@ List<Override> _contactGraphOverrides({
             ),
         ];
       }),
-    for (final entry in matchingIdsByQuery.entries)
-      contactPageGraphMessageIdsMatchingTextProvider(
-        contactId: 24,
-        query: entry.key,
-        handleId: filterHandleId,
-      ).overrideWith((ref) async {
-        return entry.value;
-      }),
+    graphSearchRepositoryProvider.overrideWith((ref) async {
+      return _FakeGraphSearchRepository(matchingIdsByQuery);
+    }),
     for (final message in messages)
       contactPageGraphMessageByIdProvider(
         contactId: 24,
@@ -417,6 +414,24 @@ List<Override> _contactGraphOverrides({
       );
     }),
   ];
+}
+
+class _FakeGraphSearchRepository implements GraphSearchRepository {
+  const _FakeGraphSearchRepository(this.matchesByQuery);
+
+  final Map<String, List<int>> matchesByQuery;
+
+  @override
+  Future<List<int>> searchMessageIds({
+    required GraphMessageSearchScope scope,
+    required List<MessageTextSearchToken> textTokens,
+    required bool matchAnyTerm,
+    required bool filterSaved,
+    int limit = graphSearchResultLimit,
+  }) async {
+    final query = textTokens.map((token) => token.normalizedText).join(' ');
+    return matchesByQuery[query] ?? const <int>[];
+  }
 }
 
 String? _monthKey(String? value) {

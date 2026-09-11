@@ -7,6 +7,7 @@ import 'package:remember_this_text/essentials/navigation/application/panel_widge
 import 'package:remember_this_text/essentials/navigation/application/panels_view_state_provider.dart';
 import 'package:remember_this_text/essentials/navigation/domain/navigation_constants.dart';
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
+import 'package:remember_this_text/essentials/search/application/message_text_search_query.dart';
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_state_provider.dart';
 import 'package:remember_this_text/features/conversations/application/actions/conversation_excerpt_navigation_actions_provider.dart';
 import 'package:remember_this_text/features/messages/application/message_evidence/current_search_investigation_provider.dart';
@@ -95,10 +96,87 @@ void main() {
     expect(find.text('Search messages from Claire'), findsOneWidget);
     expect(find.text('AND'), findsOneWidget);
     expect(find.text('OR'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'AND — Match all terms' &&
+            widget.properties.button == true &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'OR — Match any term' &&
+            widget.properties.button == true &&
+            widget.properties.selected == false,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Copy evidence summary'), findsOneWidget);
 
     await tester.tap(find.text('OR'));
     expect(selectedMode, MessageEvidenceSearchMode.anyTerm);
+  });
+
+  testWidgets('search control preserves raw trailing spaces during parsing', (
+    tester,
+  ) async {
+    final observedRawInput = <String>[];
+    final observedIntents = <MessageTextSearchExecutionIntent>[];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MacosApp(
+          home: MessageEvidenceSearchControlsPresentation(
+            query: '',
+            placeholder: 'Search messages',
+            onQueryChanged: (rawInput) {
+              observedRawInput.add(rawInput);
+              observedIntents.add(
+                MessageTextSearchQuery.parse(rawInput).executionIntent,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    final fieldFinder = find.byType(MacosTextField);
+    await tester.enterText(fieldFinder, 'post ');
+    await tester.pump();
+
+    expect(
+      tester.widget<MacosTextField>(fieldFinder).controller?.text,
+      'post ',
+    );
+    expect(observedRawInput.last, 'post ');
+    expect(observedIntents.last.tokens, const [
+      ExactMessageTextSearchToken('post'),
+    ]);
+
+    await tester.enterText(fieldFinder, 'post   ');
+    await tester.pump();
+
+    expect(
+      tester.widget<MacosTextField>(fieldFinder).controller?.text,
+      'post   ',
+    );
+    expect(observedRawInput.last, 'post   ');
+    expect(observedIntents.last, observedIntents[observedIntents.length - 2]);
+
+    await tester.enterText(fieldFinder, 'p');
+    await tester.pump();
+    expect(observedIntents.last.isExecutable, isFalse);
+    expect(tester.widget<MacosTextField>(fieldFinder).controller?.text, 'p');
+
+    await tester.enterText(fieldFinder, 'p ');
+    await tester.pump();
+    expect(observedIntents.last.isExecutable, isTrue);
+    expect(tester.widget<MacosTextField>(fieldFinder).controller?.text, 'p ');
   });
 
   testWidgets('clear button starts a new investigation declaratively', (
@@ -188,7 +266,7 @@ void main() {
   testWidgets(
     'investigation status aligns with the field and delays activity chrome',
     (tester) async {
-      const description = 'Message text contains "family"';
+      const description = 'Messages matching "family"';
       const style = TextStyle(fontSize: 13, height: 1);
 
       Widget subject({required bool isSearching}) {

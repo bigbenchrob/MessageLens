@@ -8,6 +8,7 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../config/theme/widgets/buttons/app_header_action_button.dart';
 import '../../../../config/theme/widgets/layout/cross_column_track_plan.dart';
 import '../../../../essentials/navigation/domain/entities/view_spec.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../handles/domain/spec_classes/handles_cassette_spec.dart';
 import '../../../handles/feature_level_providers.dart'
     show handleSourcePresentationProvider;
@@ -112,16 +113,20 @@ UnfamiliarSourcesMessageTrackOccupants _selectedSourceTrackOccupants({
   }
 
   final session = ref.watch(handleLensSessionProvider(handleId: handleId));
+  final searchIntent = MessageTextSearchQuery.parse(
+    session.query,
+  ).executionIntent;
+  final displayQuery = searchIntent.isExecutable ? session.query.trim() : '';
   final evidenceScope = HandleMessagesEvidenceScope(handleId: handleId);
   final skeletonAsync = ref.watch(
     messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
   );
-  final matchingIdsAsync = session.query.trim().isEmpty
+  final matchingIdsAsync = !searchIntent.isExecutable
       ? null
       : ref.watch(
           messageEvidenceTextMatchIdsProvider(
             scope: evidenceScope,
-            query: session.query.trim(),
+            searchIntent: searchIntent,
             mode: session.searchMode,
           ),
         );
@@ -151,7 +156,7 @@ UnfamiliarSourcesMessageTrackOccupants _selectedSourceTrackOccupants({
           : handleLensDateSpan(skeleton.entries),
       countLabel: handleLensCountLabel(
         totalCount: totalCount,
-        query: session.query.trim(),
+        query: displayQuery,
         matchingIds: matchingIdsAsync?.valueOrNull,
         isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
       ),

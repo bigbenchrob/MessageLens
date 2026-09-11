@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_label_formatter.dart';
 import '../../../../core/util/date_range_formatter.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../application/message_evidence/contact_evidence_header_context_provider.dart';
 import '../../application/message_evidence/current_visible_month_provider.dart';
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
@@ -81,13 +82,15 @@ class _ContactMessagesEvidenceViewState
         filterHandleId: widget.filterHandleId,
       ),
     );
-    final normalizedQuery = _query.trim();
-    final matchingIdsAsync = normalizedQuery.isEmpty
+    final parsedQuery = MessageTextSearchQuery.parse(_query);
+    final searchIntent = parsedQuery.executionIntent;
+    final displayQuery = searchIntent.isExecutable ? _query.trim() : '';
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: normalizedQuery,
+              searchIntent: searchIntent,
               mode: _searchMode,
             ),
           );
@@ -128,7 +131,8 @@ class _ContactMessagesEvidenceViewState
               initialRowsAsync.isLoading && !initialRowsAsync.hasValue,
           monthAnchor: widget.monthAnchor,
           filterHandleId: widget.filterHandleId,
-          searchQuery: normalizedQuery,
+          searchQuery: displayQuery,
+          rawSearchQuery: _query,
           matchingMessageIds: matchingIdsAsync?.valueOrNull,
           isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
           searchController: _searchController,
@@ -173,6 +177,7 @@ class _ContactMessagesEvidenceTimeline extends ConsumerWidget {
     required this.monthAnchor,
     required this.filterHandleId,
     required this.searchQuery,
+    required this.rawSearchQuery,
     required this.matchingMessageIds,
     required this.isMatchingLoaded,
     required this.searchController,
@@ -189,6 +194,7 @@ class _ContactMessagesEvidenceTimeline extends ConsumerWidget {
   final DateTime? monthAnchor;
   final int? filterHandleId;
   final String searchQuery;
+  final String rawSearchQuery;
   final List<int>? matchingMessageIds;
   final bool isMatchingLoaded;
   final TextEditingController searchController;
@@ -223,7 +229,7 @@ class _ContactMessagesEvidenceTimeline extends ConsumerWidget {
       ),
       emptyMessage: _emptyMessage(),
       monthAnchor: monthAnchor,
-      highlightQuery: searchQuery,
+      highlightQuery: rawSearchQuery,
       useFixedPanelFrame: true,
       continueHeaderInNativeFlowAfterTracks: true,
       onVisibleMonthChanged: (monthKey) {
@@ -292,7 +298,7 @@ class _ContactMessagesEvidenceTimeline extends ConsumerWidget {
 
   String? _activeScopeLabel() {
     if (searchQuery.isNotEmpty) {
-      return 'Message text contains "$searchQuery"';
+      return 'Messages matching "$searchQuery"';
     }
     if (monthAnchor != null) {
       return 'Selected month';

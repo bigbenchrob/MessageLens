@@ -11,7 +11,6 @@ import '../../../../essentials/conversation_graph/feature_level_providers.dart'
         contactPageGraphHandleMessagesProvider,
         contactPageGraphHandleMessageTimelineProvider,
         contactPageGraphMessageByIdProvider,
-        contactPageGraphMessageIdsMatchingTextProvider,
         contactPageGraphMessagesProvider,
         contactPageGraphMessageTimelineProvider,
         conversationReaderProvider,
@@ -20,13 +19,18 @@ import '../../../../essentials/conversation_graph/feature_level_providers.dart'
 import '../../../../essentials/db/feature_level_providers/message_data_version_provider.dart'
     show messageDataVersionProvider;
 import '../../../../essentials/search/application/graph_message_search.dart';
+import '../../../../essentials/search/application/message_text_search_matching.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../../essentials/search/application/search_service.dart';
 import '../../../../essentials/search/feature_level_providers.dart'
     show searchServiceProvider;
 import '../../../attachments/feature_level_providers.dart'
     show attachmentFileAccessProvider;
 import '../../../contacts/feature_level_providers.dart'
-    show DisplayIdentityResolver, displayIdentityResolverProvider;
+    show
+        DisplayIdentityResolver,
+        displayIdentityResolverProvider,
+        handlesForContactProvider;
 import '../../../conversations/feature_level_providers.dart'
     show
         ConversationSignatureDisplayByIdsRequest,
@@ -383,13 +387,12 @@ void _keepHydratedEvidenceAliveBriefly(Ref ref) {
 Future<List<int>> messageEvidenceTextMatchIds(
   Ref ref, {
   required MessageEvidenceScope scope,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   MessageEvidenceSearchMode mode = MessageEvidenceSearchMode.allTerms,
 }) async {
   ref.watch(messageDataVersionProvider);
 
-  final normalizedQuery = query.trim();
-  if (normalizedQuery.isEmpty) {
+  if (!searchIntent.isExecutable) {
     return const <int>[];
   }
   final matchAnyTerm = mode == MessageEvidenceSearchMode.anyTerm;
@@ -399,47 +402,47 @@ Future<List<int>> messageEvidenceTextMatchIds(
       _conversationMessageIdsMatchingText(
         ref,
         conversationId: conversationId,
-        query: normalizedQuery,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     GlobalMessagesEvidenceScope() => _globalMessageIdsMatchingText(
       ref,
-      query: normalizedQuery,
+      searchIntent: searchIntent,
       matchAnyTerm: matchAnyTerm,
     ),
     MessageSearchEvidenceScope() => _globalMessageIdsMatchingText(
       ref,
-      query: normalizedQuery,
+      searchIntent: searchIntent,
       matchAnyTerm: matchAnyTerm,
     ),
     ContactAllMessagesEvidenceScope(:final contactId) =>
       _contactMessageIdsMatchingText(
         ref,
         contactId: contactId,
-        query: normalizedQuery,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     ContactHandleMessagesEvidenceScope(:final contactId, :final handleId) =>
       _contactMessageIdsMatchingText(
         ref,
         contactId: contactId,
-        query: normalizedQuery,
         handleId: handleId,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     ContactMessageSearchEvidenceScope(:final contactId, :final handleId) =>
       _contactMessageIdsMatchingText(
         ref,
         contactId: contactId,
-        query: normalizedQuery,
         handleId: handleId,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     HandleMessagesEvidenceScope(:final handleId) =>
       _handleMessageIdsMatchingText(
         ref,
         handleId: handleId,
-        query: normalizedQuery,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     ConversationExcerptEvidenceScope(
@@ -454,7 +457,7 @@ Future<List<int>> messageEvidenceTextMatchIds(
         anchorMessageId: anchorMessageId,
         beforeCount: beforeCount,
         afterCount: afterCount,
-        query: normalizedQuery,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
     RecoveredMessagesEvidenceScope(
@@ -465,7 +468,7 @@ Future<List<int>> messageEvidenceTextMatchIds(
         ref,
         contactId: contactId,
         onlyNoHandleFromMe: onlyNoHandleFromMe,
-        query: normalizedQuery,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ),
   };
@@ -494,13 +497,13 @@ Future<MessageEvidenceTimelineSkeleton> _conversationTimelineSkeleton(
 Future<List<int>> _conversationMessageIdsMatchingText(
   Ref ref, {
   required int conversationId,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
   return _graphSearchMessageIds(
     ref,
     scope: GraphMessageSearchScope.conversation(conversationId),
-    query: query,
+    searchIntent: searchIntent,
     matchAnyTerm: matchAnyTerm,
   );
 }
@@ -539,14 +542,14 @@ Future<MessageEvidenceTimelineSkeleton> _globalMessageSearchTimelineSkeleton(
   required String query,
   required MessageEvidenceSearchMode mode,
 }) async {
-  final normalizedQuery = query.trim();
-  if (normalizedQuery.isEmpty) {
+  final searchIntent = MessageTextSearchQuery.parse(query).executionIntent;
+  if (!searchIntent.isExecutable) {
     return const MessageEvidenceTimelineSkeleton(entries: []);
   }
   final skeleton = await _globalMessagesTimelineSkeleton(ref);
   final matchingIds = await _globalMessageIdsMatchingText(
     ref,
-    query: normalizedQuery,
+    searchIntent: searchIntent,
     matchAnyTerm: mode == MessageEvidenceSearchMode.anyTerm,
   );
   return skeleton.filteredByMessageIds(matchingIds);
@@ -562,13 +565,13 @@ Future<ConversationMessage?> _globalMessageById(
 
 Future<List<int>> _globalMessageIdsMatchingText(
   Ref ref, {
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
   return _graphSearchMessageIds(
     ref,
     scope: const GraphMessageSearchScope.global(),
-    query: query,
+    searchIntent: searchIntent,
     matchAnyTerm: matchAnyTerm,
   );
 }
@@ -576,13 +579,13 @@ Future<List<int>> _globalMessageIdsMatchingText(
 Future<List<int>> _handleMessageIdsMatchingText(
   Ref ref, {
   required int handleId,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
   return _graphSearchMessageIds(
     ref,
     scope: GraphMessageSearchScope.handle(handleId),
-    query: query,
+    searchIntent: searchIntent,
     matchAnyTerm: matchAnyTerm,
   );
 }
@@ -590,13 +593,13 @@ Future<List<int>> _handleMessageIdsMatchingText(
 Future<List<int>> _graphSearchMessageIds(
   Ref ref, {
   required GraphMessageSearchScope scope,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
   final searchService = ref.watch(searchServiceProvider);
-  return searchService.searchGraphMessageIds(
+  return searchService.searchGraphMessageIdsForIntent(
     scope: scope,
-    query: query,
+    intent: searchIntent,
     mode: matchAnyTerm ? SearchMode.anyTerm : SearchMode.allTerms,
   );
 }
@@ -661,7 +664,7 @@ Future<List<int>> _conversationExcerptMessageIdsMatchingText(
   required int anchorMessageId,
   required int beforeCount,
   required int afterCount,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
   final skeleton = await _conversationExcerptSkeleton(
@@ -677,7 +680,7 @@ Future<List<int>> _conversationExcerptMessageIdsMatchingText(
 
   final matchingIds = await _globalMessageIdsMatchingText(
     ref,
-    query: query,
+    searchIntent: searchIntent,
     matchAnyTerm: matchAnyTerm,
   );
   return skeleton
@@ -737,8 +740,8 @@ Future<MessageEvidenceTimelineSkeleton> _contactMessageSearchTimelineSkeleton(
   required String query,
   required int? handleId,
 }) async {
-  final normalizedQuery = query.trim();
-  if (normalizedQuery.isEmpty) {
+  final searchIntent = MessageTextSearchQuery.parse(query).executionIntent;
+  if (!searchIntent.isExecutable) {
     return const MessageEvidenceTimelineSkeleton(entries: []);
   }
   final baseSkeleton = handleId == null
@@ -751,9 +754,9 @@ Future<MessageEvidenceTimelineSkeleton> _contactMessageSearchTimelineSkeleton(
   final matchingIds = await _contactMessageIdsMatchingText(
     ref,
     contactId: contactId,
-    query: normalizedQuery,
-    matchAnyTerm: false,
     handleId: handleId,
+    searchIntent: searchIntent,
+    matchAnyTerm: false,
   );
   return baseSkeleton.filteredByMessageIds(matchingIds);
 }
@@ -761,17 +764,29 @@ Future<MessageEvidenceTimelineSkeleton> _contactMessageSearchTimelineSkeleton(
 Future<List<int>> _contactMessageIdsMatchingText(
   Ref ref, {
   required int contactId,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
   int? handleId,
-}) {
-  return ref.watch(
-    contactPageGraphMessageIdsMatchingTextProvider(
-      contactId: contactId,
-      query: query,
-      matchAnyTerm: matchAnyTerm,
-      handleId: handleId,
-    ).future,
+}) async {
+  final canonicalHandleIds = handleId == null
+      ? (await ref.watch(
+              handlesForContactProvider(contactId: contactId).future,
+            ))
+            .map((handle) {
+              return handle.handleId;
+            })
+            .toSet()
+            .toList(growable: false)
+      : <int>[handleId];
+  if (canonicalHandleIds.isEmpty) {
+    return const <int>[];
+  }
+
+  return _graphSearchMessageIds(
+    ref,
+    scope: GraphMessageSearchScope.contactCanonicalHandles(canonicalHandleIds),
+    searchIntent: searchIntent,
+    matchAnyTerm: matchAnyTerm,
   );
 }
 
@@ -873,18 +888,10 @@ Future<List<int>> _recoveredMessageIdsMatchingText(
   Ref ref, {
   required int? contactId,
   required bool onlyNoHandleFromMe,
-  required String query,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) async {
-  final terms = query
-      .trim()
-      .toLowerCase()
-      .split(RegExp(r'\s+'))
-      .where((term) {
-        return term.isNotEmpty;
-      })
-      .toList(growable: false);
-  if (terms.isEmpty) {
+  if (searchIntent.tokens.isEmpty || searchIntent.filterSaved) {
     return const <int>[];
   }
 
@@ -898,7 +905,7 @@ Future<List<int>> _recoveredMessageIdsMatchingText(
     for (final message in messages)
       if (_recoveredMessageMatchesTerms(
         message: message,
-        terms: terms,
+        searchIntent: searchIntent,
         matchAnyTerm: matchAnyTerm,
       ))
         message.id,
@@ -907,7 +914,7 @@ Future<List<int>> _recoveredMessageIdsMatchingText(
 
 bool _recoveredMessageMatchesTerms({
   required RecoveredUnlinkedMessageItem message,
-  required List<String> terms,
+  required MessageTextSearchExecutionIntent searchIntent,
   required bool matchAnyTerm,
 }) {
   final attachmentText = message.attachments
@@ -927,11 +934,13 @@ bool _recoveredMessageMatchesTerms({
     message.semanticKind,
     message.text,
     attachmentText,
-  ].whereType<String>().join(' ').toLowerCase();
+  ].whereType<String>().join(' ');
 
-  return matchAnyTerm
-      ? terms.any(haystack.contains)
-      : terms.every(haystack.contains);
+  return messageTextMatchesSearchIntent(
+    text: haystack,
+    intent: searchIntent,
+    matchAnyTerm: matchAnyTerm,
+  );
 }
 
 Future<List<RecoveredUnlinkedMessageItem>> _recoveredMessagesForScope(

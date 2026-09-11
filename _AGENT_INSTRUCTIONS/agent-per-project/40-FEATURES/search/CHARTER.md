@@ -2,20 +2,26 @@
 tier: feature
 scope: charter
 owner: agent-per-project
-last_reviewed: 2026-07-18
+last_reviewed: 2026-09-11
 links:
 	- ./DOMAIN_AND_DATA_MAP.md
 	- ./STATE_AND_PROVIDER_INVENTORY.md
+	- ./SEARCH_SEMANTICS.md
 tests: []
 feature: search
 doc_type: charter
 status: current
-last_updated: 2026-07-18
+last_updated: 2026-09-11
 ---
 
 # Feature Charter — Search
 
-> Current conformance note (2026-06-06): search services live under `lib/essentials/search`, not `lib/features/search`. Ordinary search is graph-backed through `SearchService` and `GraphSearchRepository`, returning graph `message_ss_id` evidence scopes.
+> Current conformance note (2026-09-11): search services live under
+> `lib/essentials/search`, not `lib/features/search`. Ordinary search is
+> graph-backed through `SearchService` and `GraphSearchRepository`, uses FTS5
+> for visible message text, and returns graph `message_ss_id` evidence scopes.
+> The authoritative term, domain, AND/OR, and filter behavior is recorded in
+> [`SEARCH_SEMANTICS.md`](SEARCH_SEMANTICS.md).
 
 Search All Messages interaction state lives with message evidence under
 `features/messages`. Search owns an opaque generation identifying the current
@@ -47,5 +53,6 @@ while their originating generation is current.
 - Publishes results to navigation system and feature panels.
 
 ## Open Questions
-- Whether future performance work should add graph-native FTS/index acceleration behind the current graph search repository contract.
 - How do we prioritize ranking signals (recency vs. message importance)?
+- After representative Apple payload fixtures validate the decoder, should
+  Apple-stored link-preview metadata become a separate offline search domain?

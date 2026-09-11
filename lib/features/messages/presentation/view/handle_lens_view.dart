@@ -6,6 +6,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/theme_typography.dart';
 import '../../../../config/theme/widgets/buttons/buttons.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../contacts/feature_level_providers.dart'
     show ContactPickerDialog;
 import '../../../handles/domain/spec_classes/handles_cassette_spec.dart';
@@ -19,6 +20,7 @@ import '../../application/handle_lens/handle_lens_session_provider.dart';
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
 import '../../domain/message_evidence/message_evidence_scope.dart';
 import '../../domain/message_evidence/message_evidence_search_mode.dart';
+import '../../domain/message_evidence/message_evidence_skeleton.dart';
 import '../view_model/handle_investigation_presentation.dart';
 import '../view_model/handle_lens_header_labels.dart';
 import '../widgets/message_evidence/message_evidence_header.dart';
@@ -87,7 +89,7 @@ class HandleLensView extends HookConsumerWidget {
                     investigation: investigation,
                     sourcePresentation: sourcePresentation,
                     searchController: searchController,
-                    searchQuery: session.query.trim(),
+                    searchQuery: session.query,
                     searchMode: session.searchMode,
                     onSearchModeChanged: sessionActions.setSearchMode,
                     actions: HandleLensActionBar(handleId: handleId),
@@ -319,15 +321,19 @@ class _HandleLensEvidencePane extends ConsumerWidget {
       investigation,
     );
     final evidenceScope = HandleMessagesEvidenceScope(handleId: handleId);
+    final searchIntent = MessageTextSearchQuery.parse(
+      searchQuery,
+    ).executionIntent;
+    final displayQuery = searchIntent.isExecutable ? searchQuery.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
     );
-    final matchingIdsAsync = searchQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: searchQuery,
+              searchIntent: searchIntent,
               mode: searchMode,
             ),
           );
@@ -336,25 +342,33 @@ class _HandleLensEvidencePane extends ConsumerWidget {
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (skeleton) {
+        final matchingIds = matchingIdsAsync?.valueOrNull;
+        final isMatchingLoaded = matchingIdsAsync?.hasValue ?? false;
+        final visibleSkeleton = _visibleHandleLensSkeleton(
+          skeleton: skeleton,
+          query: displayQuery,
+          matchingIds: matchingIds,
+          isMatchingLoaded: isMatchingLoaded,
+        );
         return MessageEvidenceTimelineView(
           evidenceScope: evidenceScope,
-          skeleton: skeleton,
+          skeleton: visibleSkeleton,
           headerData: MessageEvidenceHeaderModel(
             title: investigationPresentation.panelTitle,
             identityContextLine:
                 sourcePresentation?.primaryDisplayLabel ?? 'Loading source...',
-            dateRangeLabel: handleLensDateSpan(skeleton.entries),
+            dateRangeLabel: handleLensDateSpan(visibleSkeleton.entries),
             countLabel: handleLensCountLabel(
               totalCount: (sourcePresentation?.messageCount ?? 0) == 0
                   ? skeleton.totalCount
                   : sourcePresentation!.messageCount,
-              query: searchQuery,
-              matchingIds: matchingIdsAsync?.valueOrNull,
-              isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
+              query: displayQuery,
+              matchingIds: matchingIds,
+              isMatchingLoaded: isMatchingLoaded,
             ),
-            activeScopeLabel: searchQuery.isEmpty
+            activeScopeLabel: displayQuery.isEmpty
                 ? null
-                : 'Message text contains "$searchQuery"',
+                : 'Messages matching "$displayQuery"',
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: searchController,
               placeholder: 'Search messages from this handle',
@@ -364,7 +378,10 @@ class _HandleLensEvidencePane extends ConsumerWidget {
             actions: actions,
             details: details,
           ),
-          emptyMessage: 'No messages found for this handle.',
+          emptyMessage: _handleLensEmptyMessage(
+            query: displayQuery,
+            isMatchingLoaded: isMatchingLoaded,
+          ),
           highlightQuery: searchQuery,
           useFixedPanelFrame: true,
         );
@@ -390,4 +407,32 @@ class _HandleLensEvidencePane extends ConsumerWidget {
       ),
     );
   }
+}
+
+MessageEvidenceTimelineSkeleton _visibleHandleLensSkeleton({
+  required MessageEvidenceTimelineSkeleton skeleton,
+  required String query,
+  required List<int>? matchingIds,
+  required bool isMatchingLoaded,
+}) {
+  if (query.isEmpty) {
+    return skeleton;
+  }
+  if (!isMatchingLoaded) {
+    return const MessageEvidenceTimelineSkeleton(entries: []);
+  }
+  return skeleton.filteredByMessageIds(matchingIds ?? const <int>[]);
+}
+
+String _handleLensEmptyMessage({
+  required String query,
+  required bool isMatchingLoaded,
+}) {
+  if (query.isEmpty) {
+    return 'No messages found for this handle.';
+  }
+  if (!isMatchingLoaded) {
+    return 'Matching handle messages...';
+  }
+  return 'No handle messages match "$query".';
 }

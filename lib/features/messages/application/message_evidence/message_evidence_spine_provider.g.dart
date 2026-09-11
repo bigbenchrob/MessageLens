@@ -638,7 +638,7 @@ class _MessageEvidenceInitialRowsProviderElement
 }
 
 String _$messageEvidenceTextMatchIdsHash() =>
-    r'2ca7a5d16913841a75bd4578875bbe0be7d77b7e';
+    r'3f01307dea12b0e508929251cb2033ceaad43779';
 
 /// See also [messageEvidenceTextMatchIds].
 @ProviderFor(messageEvidenceTextMatchIds)
@@ -652,12 +652,12 @@ class MessageEvidenceTextMatchIdsFamily extends Family<AsyncValue<List<int>>> {
   /// See also [messageEvidenceTextMatchIds].
   MessageEvidenceTextMatchIdsProvider call({
     required MessageEvidenceScope scope,
-    required String query,
+    required MessageTextSearchExecutionIntent searchIntent,
     MessageEvidenceSearchMode mode = MessageEvidenceSearchMode.allTerms,
   }) {
     return MessageEvidenceTextMatchIdsProvider(
       scope: scope,
-      query: query,
+      searchIntent: searchIntent,
       mode: mode,
     );
   }
@@ -668,7 +668,7 @@ class MessageEvidenceTextMatchIdsFamily extends Family<AsyncValue<List<int>>> {
   ) {
     return call(
       scope: provider.scope,
-      query: provider.query,
+      searchIntent: provider.searchIntent,
       mode: provider.mode,
     );
   }
@@ -694,13 +694,13 @@ class MessageEvidenceTextMatchIdsProvider
   /// See also [messageEvidenceTextMatchIds].
   MessageEvidenceTextMatchIdsProvider({
     required MessageEvidenceScope scope,
-    required String query,
+    required MessageTextSearchExecutionIntent searchIntent,
     MessageEvidenceSearchMode mode = MessageEvidenceSearchMode.allTerms,
   }) : this._internal(
          (ref) => messageEvidenceTextMatchIds(
            ref as MessageEvidenceTextMatchIdsRef,
            scope: scope,
-           query: query,
+           searchIntent: searchIntent,
            mode: mode,
          ),
          from: messageEvidenceTextMatchIdsProvider,
@@ -712,7 +712,7 @@ class MessageEvidenceTextMatchIdsProvider
          allTransitiveDependencies:
              MessageEvidenceTextMatchIdsFamily._allTransitiveDependencies,
          scope: scope,
-         query: query,
+         searchIntent: searchIntent,
          mode: mode,
        );
 
@@ -724,12 +724,12 @@ class MessageEvidenceTextMatchIdsProvider
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.scope,
-    required this.query,
+    required this.searchIntent,
     required this.mode,
   }) : super.internal();
 
   final MessageEvidenceScope scope;
-  final String query;
+  final MessageTextSearchExecutionIntent searchIntent;
   final MessageEvidenceSearchMode mode;
 
   @override
@@ -747,7 +747,7 @@ class MessageEvidenceTextMatchIdsProvider
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         scope: scope,
-        query: query,
+        searchIntent: searchIntent,
         mode: mode,
       ),
     );
@@ -762,7 +762,7 @@ class MessageEvidenceTextMatchIdsProvider
   bool operator ==(Object other) {
     return other is MessageEvidenceTextMatchIdsProvider &&
         other.scope == scope &&
-        other.query == query &&
+        other.searchIntent == searchIntent &&
         other.mode == mode;
   }
 
@@ -770,7 +770,7 @@ class MessageEvidenceTextMatchIdsProvider
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, scope.hashCode);
-    hash = _SystemHash.combine(hash, query.hashCode);
+    hash = _SystemHash.combine(hash, searchIntent.hashCode);
     hash = _SystemHash.combine(hash, mode.hashCode);
 
     return _SystemHash.finish(hash);
@@ -784,8 +784,8 @@ mixin MessageEvidenceTextMatchIdsRef
   /// The parameter `scope` of this provider.
   MessageEvidenceScope get scope;
 
-  /// The parameter `query` of this provider.
-  String get query;
+  /// The parameter `searchIntent` of this provider.
+  MessageTextSearchExecutionIntent get searchIntent;
 
   /// The parameter `mode` of this provider.
   MessageEvidenceSearchMode get mode;
@@ -800,7 +800,8 @@ class _MessageEvidenceTextMatchIdsProviderElement
   MessageEvidenceScope get scope =>
       (origin as MessageEvidenceTextMatchIdsProvider).scope;
   @override
-  String get query => (origin as MessageEvidenceTextMatchIdsProvider).query;
+  MessageTextSearchExecutionIntent get searchIntent =>
+      (origin as MessageEvidenceTextMatchIdsProvider).searchIntent;
   @override
   MessageEvidenceSearchMode get mode =>
       (origin as MessageEvidenceTextMatchIdsProvider).mode;

@@ -7,7 +7,7 @@ part of 'global_messages_evidence_presentation_provider.dart';
 // **************************************************************************
 
 String _$globalMessagesEvidencePresentationHash() =>
-    r'751528a0ed11cb04bbc0ec67da730b9b14ff424b';
+    r'2b7ac6ed4764e8cc535c12481745f799aa3a81fd';
 
 /// Copied from Dart SDK
 class _SystemHash {

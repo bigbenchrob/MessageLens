@@ -78,7 +78,7 @@ void main() {
       expect(searched.labels?.count, '1 of 2 messages match "family"');
       expect(
         searched.investigationStatus?.description,
-        'Message text contains "family"',
+        'Messages matching "family"',
       );
       expect(searched.investigationStatus?.isSearching, isFalse);
     },
@@ -120,7 +120,7 @@ void main() {
     expect(searching.investigationStatus?.isSearching, isTrue);
     expect(
       searching.investigationStatus?.description,
-      'Message text contains "family"',
+      'Messages matching "family"',
     );
 
     searchCompleter.complete(

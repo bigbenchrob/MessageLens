@@ -7,6 +7,7 @@ import '../../../../config/theme/theme_typography.dart';
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_label_formatter.dart';
 import '../../../../core/util/date_range_formatter.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
 import '../../domain/message_evidence/message_evidence_scope.dart';
 import '../../domain/message_evidence/message_evidence_search_mode.dart';
@@ -66,16 +67,18 @@ class _RecoveredMessagesEvidenceViewState
       contactId: widget.contactId,
       onlyNoHandleFromMe: widget.onlyNoHandleFromMe,
     );
-    final normalizedQuery = _query.trim();
+    final parsedQuery = MessageTextSearchQuery.parse(_query);
+    final searchIntent = parsedQuery.executionIntent;
+    final displayQuery = searchIntent.isExecutable ? _query.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: scope),
     );
-    final matchingIdsAsync = normalizedQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: scope,
-              query: normalizedQuery,
+              searchIntent: searchIntent,
               mode: _searchMode,
             ),
           );
@@ -93,7 +96,7 @@ class _RecoveredMessagesEvidenceViewState
           final visibleSkeleton = _visibleSkeleton(
             skeleton: skeleton,
             matchingIds: matchingIdsAsync?.valueOrNull,
-            query: normalizedQuery,
+            query: displayQuery,
           );
           return MessageEvidenceTimelineView(
             evidenceScope: scope,
@@ -105,12 +108,12 @@ class _RecoveredMessagesEvidenceViewState
               countLabel: _countLabel(
                 visibleCount: visibleSkeleton.totalCount,
                 totalCount: skeleton.totalCount,
-                query: normalizedQuery,
+                query: displayQuery,
                 isMatching: matchingIdsAsync?.hasValue ?? false,
               ),
-              activeScopeLabel: normalizedQuery.isEmpty
+              activeScopeLabel: displayQuery.isEmpty
                   ? null
-                  : 'Message text contains "$normalizedQuery"',
+                  : 'Messages matching "$displayQuery"',
               activeScopeIndicator: widget.scrollToDate == null
                   ? null
                   : _RecoveredScrollIndicator(
@@ -127,11 +130,11 @@ class _RecoveredMessagesEvidenceViewState
                 },
               ),
             ),
-            emptyMessage: normalizedQuery.isEmpty
+            emptyMessage: displayQuery.isEmpty
                 ? presentation.emptyMessage
-                : 'No recovered messages match "$normalizedQuery".',
+                : 'No recovered messages match "$displayQuery".',
             monthAnchor: widget.scrollToDate,
-            highlightQuery: normalizedQuery,
+            highlightQuery: _query,
             useFixedPanelFrame: true,
             continueHeaderInNativeFlowAfterTracks: true,
           );

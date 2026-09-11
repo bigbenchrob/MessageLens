@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_range_formatter.dart';
+import '../../../../essentials/search/application/message_text_search_query.dart';
 import '../../../handles/feature_level_providers.dart'
     show handleDisplayNameProvider;
 import '../../application/message_evidence/message_evidence_spine_provider.dart';
@@ -52,19 +53,21 @@ class _HandleMessagesEvidenceViewState
     final evidenceScope = HandleMessagesEvidenceScope(
       handleId: widget.handleId,
     );
-    final normalizedQuery = _query.trim();
+    final parsedQuery = MessageTextSearchQuery.parse(_query);
+    final searchIntent = parsedQuery.executionIntent;
+    final displayQuery = searchIntent.isExecutable ? _query.trim() : '';
     final skeletonAsync = ref.watch(
       messageEvidenceTimelineSkeletonProvider(scope: evidenceScope),
     );
     final displayNameAsync = ref.watch(
       handleDisplayNameProvider(handleId: widget.handleId),
     );
-    final matchingIdsAsync = normalizedQuery.isEmpty
+    final matchingIdsAsync = !searchIntent.isExecutable
         ? null
         : ref.watch(
             messageEvidenceTextMatchIdsProvider(
               scope: evidenceScope,
-              query: normalizedQuery,
+              searchIntent: searchIntent,
               mode: _searchMode,
             ),
           );
@@ -73,22 +76,30 @@ class _HandleMessagesEvidenceViewState
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (skeleton) {
+        final matchingIds = matchingIdsAsync?.valueOrNull;
+        final isMatchingLoaded = matchingIdsAsync?.hasValue ?? false;
+        final visibleSkeleton = _visibleSkeleton(
+          skeleton: skeleton,
+          query: displayQuery,
+          matchingIds: matchingIds,
+          isMatchingLoaded: isMatchingLoaded,
+        );
         return MessageEvidenceTimelineView(
           evidenceScope: evidenceScope,
-          skeleton: skeleton,
+          skeleton: visibleSkeleton,
           headerData: MessageEvidenceHeaderModel(
             title: 'Messages for ${_handleLabel(displayNameAsync.valueOrNull)}',
-            dateRangeLabel: _dateSpan(skeleton.entries),
+            dateRangeLabel: _dateSpan(visibleSkeleton.entries),
             countLabel: _countLabel(
               totalCount: skeleton.totalCount,
-              query: normalizedQuery,
-              matchingIds: matchingIdsAsync?.valueOrNull,
-              isMatchingLoaded: matchingIdsAsync?.hasValue ?? false,
+              query: displayQuery,
+              matchingIds: matchingIds,
+              isMatchingLoaded: isMatchingLoaded,
             ),
             scopeContextLine: 'Handle scope',
-            activeScopeLabel: normalizedQuery.isEmpty
+            activeScopeLabel: displayQuery.isEmpty
                 ? null
-                : 'Message text contains "$normalizedQuery"',
+                : 'Messages matching "$displayQuery"',
             searchConfig: MessageEvidenceHeaderSearchConfig(
               controller: _searchController,
               placeholder: 'Search messages from this handle',
@@ -100,8 +111,11 @@ class _HandleMessagesEvidenceViewState
               },
             ),
           ),
-          emptyMessage: 'No messages found for this handle.',
-          highlightQuery: normalizedQuery,
+          emptyMessage: _emptyMessage(
+            query: displayQuery,
+            isMatchingLoaded: isMatchingLoaded,
+          ),
+          highlightQuery: _query,
         );
       },
       loading: () => const Center(child: Text('Loading handle messages...')),
@@ -109,6 +123,31 @@ class _HandleMessagesEvidenceViewState
           Center(child: Text('Handle messages failed: $error')),
     );
   }
+}
+
+MessageEvidenceTimelineSkeleton _visibleSkeleton({
+  required MessageEvidenceTimelineSkeleton skeleton,
+  required String query,
+  required List<int>? matchingIds,
+  required bool isMatchingLoaded,
+}) {
+  if (query.isEmpty) {
+    return skeleton;
+  }
+  if (!isMatchingLoaded) {
+    return const MessageEvidenceTimelineSkeleton(entries: []);
+  }
+  return skeleton.filteredByMessageIds(matchingIds ?? const <int>[]);
+}
+
+String _emptyMessage({required String query, required bool isMatchingLoaded}) {
+  if (query.isEmpty) {
+    return 'No messages found for this handle.';
+  }
+  if (!isMatchingLoaded) {
+    return 'Matching handle messages...';
+  }
+  return 'No handle messages match "$query".';
 }
 
 String _handleLabel(String? value) {

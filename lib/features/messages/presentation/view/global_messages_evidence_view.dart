@@ -68,7 +68,7 @@ class _GlobalMessagesEvidenceViewState
         selection: TextSelection.collapsed(offset: presentation.query.length),
       );
     }
-    final normalizedQuery = presentation.query;
+    final rawQuery = presentation.query;
     final evidenceScope = presentation.evidenceScope;
     final allMessagesSkeletonAsync = presentation.allMessagesSkeleton;
     final visibleSkeletonAsync = presentation.visibleSkeleton;
@@ -77,7 +77,7 @@ class _GlobalMessagesEvidenceViewState
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (allMessagesSkeleton) {
-        final visibleSkeleton = normalizedQuery.isEmpty
+        final visibleSkeleton = !presentation.hasExecutableSearch
             ? allMessagesSkeleton
             : visibleSkeletonAsync.valueOrNull ??
                   const MessageEvidenceTimelineSkeleton(entries: []);
@@ -110,14 +110,15 @@ class _GlobalMessagesEvidenceViewState
             ),
           ),
           emptyMessage: _emptyMessage(
-            query: normalizedQuery,
+            query: presentation.hasExecutableSearch ? rawQuery.trim() : '',
             hasMatchesLoaded:
-                normalizedQuery.isEmpty || visibleSkeletonAsync.hasValue,
+                !presentation.hasExecutableSearch ||
+                visibleSkeletonAsync.hasValue,
             error: visibleSkeletonAsync.error,
           ),
           monthAnchor: widget.monthAnchor,
           anchorMessageId: activeContextMessageId,
-          highlightQuery: normalizedQuery,
+          highlightQuery: rawQuery,
           useFixedPanelFrame: true,
           resolveRowAction: _resolveConversationContextAction,
           onVisibleMonthChanged: (monthKey) {

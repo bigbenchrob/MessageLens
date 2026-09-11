@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../config/theme/colors/theme_colors.dart';
+import '../../application/message_text_search_matching.dart';
+import '../../application/message_text_search_query.dart';
 
 class SearchHighlightedText extends ConsumerWidget {
   const SearchHighlightedText({
@@ -26,8 +28,8 @@ class SearchHighlightedText extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     final effectiveStyle = style ?? DefaultTextStyle.of(context).style;
-    final terms = searchHighlightTerms(query);
-    if (terms.isEmpty) {
+    final intent = MessageTextSearchQuery.parse(query).executionIntent;
+    if (intent.tokens.isEmpty) {
       return Text(
         text,
         style: effectiveStyle,
@@ -41,7 +43,7 @@ class SearchHighlightedText extends ConsumerWidget {
         style: effectiveStyle,
         children: buildSearchHighlightSpans(
           text: text,
-          terms: terms,
+          intent: intent,
           highlightStyle:
               highlightStyle ??
               effectiveStyle.copyWith(
@@ -57,38 +59,19 @@ class SearchHighlightedText extends ConsumerWidget {
 }
 
 @visibleForTesting
-List<String> searchHighlightTerms(String query) {
-  final seenTerms = <String>{};
-  final terms = query
-      .split(RegExp(r'[\s,]+'))
-      .map((term) => term.trim().toLowerCase())
-      .where((term) => term.isNotEmpty)
-      .where(seenTerms.add)
-      .toList(growable: false);
-  terms.sort((left, right) => right.length.compareTo(left.length));
-  return terms;
-}
-
-@visibleForTesting
 List<TextSpan> buildSearchHighlightSpans({
   required String text,
-  required List<String> terms,
+  required MessageTextSearchExecutionIntent intent,
   required TextStyle highlightStyle,
 }) {
-  if (text.isEmpty || terms.isEmpty) {
+  final matches = messageTextSearchHighlightMatches(text: text, intent: intent);
+  if (matches.isEmpty) {
     return [TextSpan(text: text)];
   }
 
-  final lowerText = text.toLowerCase();
   final spans = <TextSpan>[];
   var cursor = 0;
-  while (cursor < text.length) {
-    final match = _nextMatch(lowerText, terms, cursor);
-    if (match == null) {
-      spans.add(TextSpan(text: text.substring(cursor)));
-      break;
-    }
-
+  for (final match in matches) {
     if (match.start > cursor) {
       spans.add(TextSpan(text: text.substring(cursor, match.start)));
     }
@@ -101,37 +84,8 @@ List<TextSpan> buildSearchHighlightSpans({
     );
     cursor = match.end;
   }
-
-  return spans;
-}
-
-_SearchHighlightMatch? _nextMatch(
-  String lowerText,
-  List<String> terms,
-  int startIndex,
-) {
-  _SearchHighlightMatch? best;
-  for (final term in terms) {
-    final start = lowerText.indexOf(term, startIndex);
-    if (start < 0) {
-      continue;
-    }
-
-    final match = _SearchHighlightMatch(start: start, end: start + term.length);
-    if (best == null ||
-        match.start < best.start ||
-        (match.start == best.start && match.length > best.length)) {
-      best = match;
-    }
+  if (cursor < text.length) {
+    spans.add(TextSpan(text: text.substring(cursor)));
   }
-  return best;
-}
-
-class _SearchHighlightMatch {
-  const _SearchHighlightMatch({required this.start, required this.end});
-
-  final int start;
-  final int end;
-
-  int get length => end - start;
+  return spans;
 }

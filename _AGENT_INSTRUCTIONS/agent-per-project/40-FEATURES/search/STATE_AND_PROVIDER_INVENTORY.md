@@ -2,25 +2,29 @@
 tier: feature
 scope: state-provider-inventory
 owner: agent-per-project
-last_reviewed: 2026-07-18
+last_reviewed: 2026-09-11
 links:
 	- ./CHARTER.md
 	- ./DOMAIN_AND_DATA_MAP.md
+	- ./SEARCH_SEMANTICS.md
 tests: []
 feature: search
 doc_type: state-provider-inventory
 status: current
-last_updated: 2026-07-18
+last_updated: 2026-09-11
 ---
 
 # State & Provider Inventory — Search
 
-> Current conformance note (2026-06-06): current public providers are `searchServiceProvider` and `graphSearchRepositoryProvider` from `lib/essentials/search/feature_level_providers.dart`. Planned FTS/index providers are retired as ordinary app architecture unless reintroduced behind the graph repository contract.
+> Current conformance note (2026-09-11): current public providers are
+> `searchServiceProvider` and `graphSearchRepositoryProvider` from
+> `lib/essentials/search/feature_level_providers.dart`. Visible message text is
+> indexed by graph-owned `message_text_fts` behind that repository contract.
 
 | Provider | Type | Parameters | Description | Downstream Users |
 | --- | --- | --- | --- | --- |
-| `searchServiceProvider` | `@riverpod` service | graph search scope + query | Facade used by message evidence/search surfaces. | Message Evidence Spine, search result context surfaces. |
-| `graphSearchRepositoryProvider` | `@riverpod` repository | graph DB + overlay DB | Executes graph-backed text, saved, and tag searches by `message_ss_id`. | `SearchService`. |
+| `searchServiceProvider` | `@riverpod` service | graph search scope + structured query + AND/OR mode | Facade used by message evidence/search surfaces. | Message Evidence Spine, search result context surfaces. |
+| `graphSearchRepositoryProvider` | `@riverpod` repository | graph DB + overlay DB | Composes per-term visible-text and tag hits, applies AND/OR, then applies saved/scope restrictions and the final result cap. | `SearchService`. |
 | `currentSearchInvestigationProvider` | keep-alive generated notifier | none | Owns the opaque, generation-based identity of the current Search All Messages investigation. | Search transitions and effective panel compatibility. |
 | `globalMessagesSearchSessionProvider` | keep-alive generated family notifier | optional month anchor | Owns query text and AND/OR mode for a global-message Search session; real mutations advance the current investigation generation. | Message evidence header and Search-page Track presentations. |
 | `globalMessagesInvestigationActionsProvider` | generated action provider | none | Owns explicit primary-investigation transitions that are not query mutations; currently `browseMonth`. | Search sidebar heatmap. |
@@ -28,6 +32,10 @@ last_updated: 2026-07-18
 
 ## State Objects & Caches
 - `GraphMessageSearchScope`: global, conversation, handle, or contact-canonical-handle scope.
+- `MessageTextSearchQuery`: unchanged editor text plus parsed exact/prefix
+  tokens and the `is:saved` filter.
+- `MessageTextSearchExecutionIntent`: cache-safe executable semantics without
+  editor-only whitespace differences.
 - Graph search result ids keyed by `message_ss_id`.
 - Overlay saved/tag matches merged at read time.
 - `SearchInvestigationId`: opaque monotonic generation. Equal query values do
@@ -57,4 +65,5 @@ last_updated: 2026-07-18
 
 ## Open Stewardship Items
 - Do not add new search providers under `features/search/application` without first deciding to move search out of `essentials/search`.
-- Investigate graph-native acceleration only behind `GraphSearchRepository`, not as a parallel search spine.
+- Keep future evidence domains behind `GraphSearchRepository`; do not widen
+  `message_text_fts` beyond visible message text.

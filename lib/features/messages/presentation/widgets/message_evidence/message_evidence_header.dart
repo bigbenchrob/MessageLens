@@ -598,6 +598,7 @@ class _MessageEvidenceSearchModeToggle extends ConsumerWidget {
           children: [
             _SearchModeSegment(
               label: 'AND',
+              description: 'Match all terms',
               isSelected: mode == MessageEvidenceSearchMode.allTerms,
               onPressed: () {
                 onModeChanged(MessageEvidenceSearchMode.allTerms);
@@ -605,6 +606,7 @@ class _MessageEvidenceSearchModeToggle extends ConsumerWidget {
             ),
             _SearchModeSegment(
               label: 'OR',
+              description: 'Match any term',
               isSelected: mode == MessageEvidenceSearchMode.anyTerm,
               onPressed: () {
                 onModeChanged(MessageEvidenceSearchMode.anyTerm);
@@ -620,11 +622,13 @@ class _MessageEvidenceSearchModeToggle extends ConsumerWidget {
 class _SearchModeSegment extends ConsumerWidget {
   const _SearchModeSegment({
     required this.label,
+    required this.description,
     required this.isSelected,
     required this.onPressed,
   });
 
   final String label;
+  final String description;
   final bool isSelected;
   final VoidCallback onPressed;
 
@@ -634,24 +638,38 @@ class _SearchModeSegment extends ConsumerWidget {
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
 
-    return GestureDetector(
-      onTap: onPressed,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colors.surfaces.selected
-              : colors.surfaces.control.withValues(alpha: 0),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Text(
-            label,
-            style: typography.caption.copyWith(
-              color: isSelected
-                  ? colors.content.textPrimary
-                  : colors.content.textSecondary,
-              fontWeight: FontWeight.w700,
+    return macos_ui.MacosTooltip(
+      message: description,
+      useMousePosition: false,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: '$label — $description',
+        excludeSemantics: true,
+        onTap: onPressed,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: onPressed,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colors.surfaces.selected
+                    : colors.surfaces.control.withValues(alpha: 0),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                child: Text(
+                  label,
+                  style: typography.caption.copyWith(
+                    color: isSelected
+                        ? colors.content.textPrimary
+                        : colors.content.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
