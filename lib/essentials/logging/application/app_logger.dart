@@ -28,6 +28,7 @@ const _kMaxInMemoryEntries = 500;
 @Riverpod(keepAlive: true)
 class AppLogger extends _$AppLogger {
   LogFileWriter? _writer;
+  Future<void>? _writerReady;
   final MacosUnifiedLogBridge _unifiedLogBridge = MacosUnifiedLogBridge();
 
   @override
@@ -38,7 +39,7 @@ class AppLogger extends _$AppLogger {
         logDirectory: Directory(authority.resolvePath('application_logs')),
       );
       _writer = writer;
-      unawaited(writer.init());
+      _writerReady = writer.init();
       final resources = ref.read(archiveOwnedResourceRegistryProvider);
       resources.register(
         identity: writer,
@@ -62,6 +63,10 @@ class AppLogger extends _$AppLogger {
       );
     }
     return writer;
+  }
+
+  Future<void> get ready {
+    return _writerReady ?? Future<void>.value();
   }
 
   void log(

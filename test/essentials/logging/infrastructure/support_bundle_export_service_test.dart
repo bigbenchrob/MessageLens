@@ -9,6 +9,10 @@ import 'package:remember_this_text/essentials/db/application/database_health_aud
 import 'package:remember_this_text/essentials/db/application/database_health_audit/database_health_runtime_environment.dart';
 import 'package:remember_this_text/essentials/logging/infrastructure/log_file_writer.dart';
 import 'package:remember_this_text/essentials/logging/infrastructure/support_bundle_export_service.dart';
+import 'package:remember_this_text/essentials/onboarding/application/startup_validation_telemetry_buffer.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_validation_telemetry.dart';
 
 void main() {
   test(
@@ -34,6 +38,7 @@ void main() {
           reportWriter: const _FakeDatabaseHealthReportWriter(),
         ),
         _testAuthority(tempDirectory),
+        StartupValidationTelemetryBuffer(),
       );
 
       final result = await service.export();
@@ -70,6 +75,7 @@ void main() {
         reportWriter: const _RawDatabasePathHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
+      StartupValidationTelemetryBuffer(),
     );
 
     final result = await service.export();
@@ -105,6 +111,7 @@ void main() {
         reportWriter: _OutsideBundleHealthReportWriter(outsideDirectory),
       ),
       _testAuthority(tempDirectory),
+      StartupValidationTelemetryBuffer(),
     );
 
     final result = await service.export();
@@ -150,6 +157,7 @@ void main() {
           reportWriter: _SymlinkHealthReportWriter(outsideFile),
         ),
         _testAuthority(tempDirectory),
+        StartupValidationTelemetryBuffer(),
       );
 
       final result = await service.export();
@@ -188,6 +196,7 @@ void main() {
         reportWriter: const _FakeDatabaseHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
+      StartupValidationTelemetryBuffer(),
     );
 
     final result = await service.export();
@@ -199,6 +208,77 @@ void main() {
     expect(content, contains('No raw database files are included.'));
     expect(content, isNot(contains('protected content')));
     expect(content, isNot(contains('Application Log (Current Session)')));
+  });
+
+  test('includes privacy-safe startup validation evidence', () async {
+    final tempDirectory = await Directory.systemTemp.createTemp(
+      'support_bundle_export_service_test_',
+    );
+    addTearDown(() async {
+      if (tempDirectory.existsSync()) {
+        await tempDirectory.delete(recursive: true);
+      }
+    });
+
+    final logDirectory = Directory('${tempDirectory.path}/logs')
+      ..createSync(recursive: true);
+    final telemetry = StartupValidationTelemetryBuffer();
+    final validationId = telemetry.beginValidation(
+      archiveEnvironment: ArchiveEnvironment.test,
+      buildIdentity: ArchiveBuildIdentity.testHarness,
+    );
+    telemetry
+      ..record(
+        StartupValidationTelemetryEvent.boundedInspectionCompleted(
+          validationId: validationId,
+          occurredAtUtc: DateTime.utc(2026, 9, 12),
+          database: InstallationDatabaseKey.conversationGraph,
+          evidence: const InstallationDatabaseEvidence.passed(userVersion: 3),
+        ),
+      )
+      ..record(
+        StartupValidationTelemetryEvent.admissionDecided(
+          validationId: validationId,
+          occurredAtUtc: DateTime.utc(2026, 9, 12),
+          installationState: const MessageLensInstallationState(
+            kind: MessageLensInstallationStateKind.completed,
+            reason: 'not exported',
+            reasonCode:
+                MessageLensInstallationReasonCode.durableStoresReconciled,
+          ),
+          outcome: StartupValidationAdmissionOutcome.granted,
+          basis: StartupAdmissionBasis.boundedInspection,
+          totalDurationMicroseconds: 1200,
+        ),
+      );
+    final service = SupportBundleExportService(
+      _FakeLogFileWriter(logDirectory),
+      DatabaseHealthAuditService(
+        hasFullDiskAccess: true,
+        queryLayers: const [],
+        runtimeEnvironment: const _FakeRuntimeEnvironment(),
+        reportWriter: const _FakeDatabaseHealthReportWriter(),
+      ),
+      _testAuthority(tempDirectory),
+      telemetry,
+    );
+
+    final result = await service.export();
+    final telemetryFile = File(
+      '${result.bundleDirectory.path}/startup_validation.json',
+    );
+    final content = await telemetryFile.readAsString();
+
+    expect(telemetryFile.existsSync(), isTrue);
+    expect(
+      result.attachmentFiles.map((file) => file.path),
+      contains(telemetryFile.path),
+    );
+    expect(content, contains('startup_validation_started'));
+    expect(content, contains('startup_bounded_inspection_completed'));
+    expect(content, contains('conversationGraph'));
+    expect(content, contains('startup_admission_decided'));
+    expect(content, isNot(contains('not exported')));
   });
 }
 

@@ -5,6 +5,8 @@ import '../../archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider;
 import '../../db/feature_level_providers.dart'
     show databaseHealthAuditServiceProvider;
+import '../../onboarding/feature_level_providers.dart'
+    show startupValidationTelemetryProvider;
 import '../infrastructure/log_export_service.dart';
 import '../infrastructure/support_bundle_diagnostic_report_exporter.dart';
 import '../infrastructure/support_bundle_export_service.dart';
@@ -26,6 +28,7 @@ Future<DiagnosticReportExporter> diagnosticReportExporter(Ref ref) async {
         writer,
         databaseHealthAuditService,
         ref.watch(archiveAccessAuthorityProvider),
+        ref.watch(startupValidationTelemetryProvider),
       ),
     ),
   );

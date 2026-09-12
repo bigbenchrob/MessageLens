@@ -8,6 +8,20 @@ enum MessageLensInstallationStateKind {
   remediationRequired,
 }
 
+enum MessageLensInstallationReasonCode {
+  malformedOnboardingSnapshot,
+  preservationStoreUnavailable,
+  derivedStoreUnavailable,
+  durableStoresReconciled,
+  completedEvidenceMismatch,
+  historicalSourcesRequireReview,
+  virginNoConsequentialImport,
+  resumableOperation,
+  abandonedArtifacts,
+  physicalIntegrityFailure,
+  unspecified,
+}
+
 enum InstallationBoundedInspectionStatus {
   absent,
   passed,
@@ -49,6 +63,7 @@ final class InstallationDatabaseEvidence {
     this.chatMessageEdgeCount,
     this.nonLiveSourceCount,
     this.failure,
+    this.inspectionDurationMicroseconds = 0,
   });
 
   const InstallationDatabaseEvidence.absent()
@@ -79,6 +94,7 @@ final class InstallationDatabaseEvidence {
   final int? chatMessageEdgeCount;
   final int? nonLiveSourceCount;
   final InstallationBoundedInspectionFailure? failure;
+  final int inspectionDurationMicroseconds;
 
   bool get exists {
     return boundedInspectionStatus !=
@@ -88,6 +104,22 @@ final class InstallationDatabaseEvidence {
   bool get passedBoundedInspection {
     return boundedInspectionStatus ==
         InstallationBoundedInspectionStatus.passed;
+  }
+
+  InstallationDatabaseEvidence withInspectionDurationMicroseconds(
+    int durationMicroseconds,
+  ) {
+    return InstallationDatabaseEvidence(
+      boundedInspectionStatus: boundedInspectionStatus,
+      userVersion: userVersion,
+      currentSchemaVersion: currentSchemaVersion,
+      messageCount: messageCount,
+      chatCount: chatCount,
+      chatMessageEdgeCount: chatMessageEdgeCount,
+      nonLiveSourceCount: nonLiveSourceCount,
+      failure: failure,
+      inspectionDurationMicroseconds: durationMicroseconds,
+    );
   }
 }
 
@@ -115,10 +147,12 @@ final class MessageLensInstallationState {
   const MessageLensInstallationState({
     required this.kind,
     required this.reason,
+    this.reasonCode = MessageLensInstallationReasonCode.unspecified,
   });
 
   final MessageLensInstallationStateKind kind;
   final String reason;
+  final MessageLensInstallationReasonCode reasonCode;
 
   bool get mayContinue {
     return kind == MessageLensInstallationStateKind.virgin ||

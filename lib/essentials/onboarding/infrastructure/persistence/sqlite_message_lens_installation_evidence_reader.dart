@@ -72,7 +72,7 @@ final class SqliteMessageLensInstallationEvidenceReader
   MessageLensInstallationEvidence _readSynchronously({
     required String archiveRootPath,
   }) {
-    final overlayRead = _readDatabase(
+    final overlayRead = _readTimedDatabase(
       appDatabasePath(
         AppDatabaseFile.overlay,
         databaseDirectory: archiveRootPath,
@@ -82,7 +82,7 @@ final class SqliteMessageLensInstallationEvidenceReader
       currentRequiredTables: _overlayCurrentTables,
       readOperationSnapshot: true,
     );
-    final sourceScopedImport = _readDatabase(
+    final sourceScopedImport = _readTimedDatabase(
       appDatabasePath(
         AppDatabaseFile.sourceScopedImport,
         databaseDirectory: archiveRootPath,
@@ -92,7 +92,7 @@ final class SqliteMessageLensInstallationEvidenceReader
       currentRequiredTables: _importRequiredTables,
       includeImportEvidence: true,
     );
-    final conversationGraph = _readDatabase(
+    final conversationGraph = _readTimedDatabase(
       appDatabasePath(
         AppDatabaseFile.conversationGraph,
         databaseDirectory: archiveRootPath,
@@ -104,7 +104,7 @@ final class SqliteMessageLensInstallationEvidenceReader
       includeGraphEvidence: true,
       probeFts: true,
     );
-    final presence = _readDatabase(
+    final presence = _readTimedDatabase(
       appDatabasePath(
         AppDatabaseFile.presence,
         databaseDirectory: archiveRootPath,
@@ -132,6 +132,35 @@ final class SqliteMessageLensInstallationEvidenceReader
           overlayRead.operationSnapshot ??
           const OnboardingOperationSnapshot.idle(),
       operationSnapshotFailure: overlayRead.operationSnapshotFailure,
+    );
+  }
+
+  _BoundedDatabaseRead _readTimedDatabase(
+    String databasePath, {
+    required int currentSchemaVersion,
+    required List<String> baselineRequiredTables,
+    required List<String> currentRequiredTables,
+    List<String> currentRequiredTriggers = const <String>[],
+    bool includeImportEvidence = false,
+    bool includeGraphEvidence = false,
+    bool readOperationSnapshot = false,
+    bool probeFts = false,
+  }) {
+    final stopwatch = Stopwatch()..start();
+    final result = _readDatabase(
+      databasePath,
+      currentSchemaVersion: currentSchemaVersion,
+      baselineRequiredTables: baselineRequiredTables,
+      currentRequiredTables: currentRequiredTables,
+      currentRequiredTriggers: currentRequiredTriggers,
+      includeImportEvidence: includeImportEvidence,
+      includeGraphEvidence: includeGraphEvidence,
+      readOperationSnapshot: readOperationSnapshot,
+      probeFts: probeFts,
+    );
+    stopwatch.stop();
+    return result.withInspectionDurationMicroseconds(
+      stopwatch.elapsedMicroseconds,
     );
   }
 
@@ -442,4 +471,16 @@ final class _BoundedDatabaseRead {
   final InstallationDatabaseEvidence evidence;
   final OnboardingOperationSnapshot? operationSnapshot;
   final InstallationBoundedInspectionFailure? operationSnapshotFailure;
+
+  _BoundedDatabaseRead withInspectionDurationMicroseconds(
+    int durationMicroseconds,
+  ) {
+    return _BoundedDatabaseRead(
+      evidence: evidence.withInspectionDurationMicroseconds(
+        durationMicroseconds,
+      ),
+      operationSnapshot: operationSnapshot,
+      operationSnapshotFailure: operationSnapshotFailure,
+    );
+  }
 }

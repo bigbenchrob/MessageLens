@@ -14,6 +14,8 @@ final class MessageLensInstallationStateClassifier {
       return const MessageLensInstallationState(
         kind: MessageLensInstallationStateKind.remediationRequired,
         reason: 'The durable Onboarding operation evidence is malformed.',
+        reasonCode:
+            MessageLensInstallationReasonCode.malformedOnboardingSnapshot,
       );
     }
 
@@ -26,6 +28,8 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.remediationRequired,
         reason:
             'A preserved MessageLens store is unreadable or has an unsupported schema.',
+        reasonCode:
+            MessageLensInstallationReasonCode.preservationStoreUnavailable,
       );
     }
 
@@ -38,6 +42,7 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.remediationRequired,
         reason:
             'A derived MessageLens store is unreadable or has an unsupported schema.',
+        reasonCode: MessageLensInstallationReasonCode.derivedStoreUnavailable,
       );
     }
 
@@ -57,6 +62,7 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.completed,
         reason:
             'The source-scoped import and Conversation Graph stores reconcile.',
+        reasonCode: MessageLensInstallationReasonCode.durableStoresReconciled,
       );
     }
 
@@ -66,6 +72,7 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.remediationRequired,
         reason:
             'Onboarding is recorded as complete but durable installation facts do not agree.',
+        reasonCode: MessageLensInstallationReasonCode.completedEvidenceMismatch,
       );
     }
     if (hasHistoricalSources) {
@@ -73,6 +80,8 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.remediationRequired,
         reason:
             'An incomplete installation contains historical archive sources that must be preserved for review.',
+        reasonCode:
+            MessageLensInstallationReasonCode.historicalSourcesRequireReview,
       );
     }
 
@@ -88,6 +97,8 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.virgin,
         reason:
             'No consequential MessageLens import has begun; any derived stores are valid and empty.',
+        reasonCode:
+            MessageLensInstallationReasonCode.virginNoConsequentialImport,
       );
     }
 
@@ -96,6 +107,7 @@ final class MessageLensInstallationStateClassifier {
         kind: MessageLensInstallationStateKind.resumable,
         reason:
             'Current Onboarding operation evidence permits retry from a safe boundary.',
+        reasonCode: MessageLensInstallationReasonCode.resumableOperation,
       );
     }
 
@@ -103,6 +115,7 @@ final class MessageLensInstallationStateClassifier {
       kind: MessageLensInstallationStateKind.abandoned,
       reason:
           'MessageLens-owned installation artifacts exist without a current resumable operation.',
+      reasonCode: MessageLensInstallationReasonCode.abandonedArtifacts,
     );
   }
 

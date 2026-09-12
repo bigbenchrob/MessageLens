@@ -1,30 +1,30 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'message_lens_installation_state_provider.dart';
+part of 'startup_validation_telemetry_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$messageLensInstallationStateHash() =>
-    r'06703c4901e50068da7e58ee8d7a4376780a910e';
+String _$startupValidationTelemetryHash() =>
+    r'0ae58603bf3266567c10a7945344b055715ecbec';
 
-/// See also [messageLensInstallationState].
-@ProviderFor(messageLensInstallationState)
-final messageLensInstallationStateProvider =
-    StreamProvider<StartupInstallationValidationState>.internal(
-      messageLensInstallationState,
-      name: r'messageLensInstallationStateProvider',
+/// See also [startupValidationTelemetry].
+@ProviderFor(startupValidationTelemetry)
+final startupValidationTelemetryProvider =
+    Provider<StartupValidationTelemetryBuffer>.internal(
+      startupValidationTelemetry,
+      name: r'startupValidationTelemetryProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$messageLensInstallationStateHash,
+          : _$startupValidationTelemetryHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef MessageLensInstallationStateRef =
-    StreamProviderRef<StartupInstallationValidationState>;
+typedef StartupValidationTelemetryRef =
+    ProviderRef<StartupValidationTelemetryBuffer>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

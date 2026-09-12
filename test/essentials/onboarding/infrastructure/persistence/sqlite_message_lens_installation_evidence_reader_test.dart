@@ -150,6 +150,15 @@ void main() {
       expect(indexedMessageCount, 2);
       expect(evidence.overlay.passedBoundedInspection, isTrue);
       expect(evidence.presence.passedBoundedInspection, isTrue);
+      expect(
+        <InstallationDatabaseEvidence>[
+          evidence.overlay,
+          evidence.sourceScopedImport,
+          evidence.conversationGraph,
+          evidence.presence,
+        ].every((database) => database.inspectionDurationMicroseconds >= 0),
+        isTrue,
+      );
       expect(state.kind, MessageLensInstallationStateKind.completed);
       expect(
         state.kind,

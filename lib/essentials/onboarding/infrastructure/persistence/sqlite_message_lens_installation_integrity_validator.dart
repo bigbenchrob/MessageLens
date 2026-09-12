@@ -39,6 +39,7 @@ final class SqliteMessageLensInstallationIntegrityValidator
         database: databaseKey,
         status: InstallationIntegrityValidationStatus.failed,
         failure: 'The database file is absent or empty.',
+        failureKind: InstallationIntegrityValidationFailureKind.missingOrEmpty,
       );
     }
 
@@ -63,6 +64,9 @@ final class SqliteMessageLensInstallationIntegrityValidator
           failure: passed
               ? null
               : rows.map((row) => row.values.join(', ')).join('; '),
+          failureKind: passed
+              ? null
+              : InstallationIntegrityValidationFailureKind.integrityFailure,
         );
       } finally {
         database.dispose();
@@ -77,12 +81,22 @@ final class SqliteMessageLensInstallationIntegrityValidator
             ? InstallationIntegrityValidationStatus.contention
             : InstallationIntegrityValidationStatus.failed,
         failure: '$error',
+        failureKind: contention
+            ? null
+            : switch (error.resultCode) {
+                SqlError.SQLITE_IOERR || SqlError.SQLITE_CANTOPEN =>
+                  InstallationIntegrityValidationFailureKind.ioFailure,
+                _ => InstallationIntegrityValidationFailureKind.sqliteFailure,
+              },
+        sqliteResultCode: error.resultCode,
       );
     } on Object catch (error) {
       return InstallationDatabaseIntegrityValidation(
         database: databaseKey,
         status: InstallationIntegrityValidationStatus.failed,
         failure: '$error',
+        failureKind:
+            InstallationIntegrityValidationFailureKind.unexpectedFailure,
       );
     }
   }

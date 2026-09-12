@@ -40,7 +40,10 @@ import 'essentials/onboarding/application/message_lens_installation_validation_s
 import 'essentials/onboarding/domain/message_lens_installation_state.dart';
 import 'essentials/onboarding/domain/startup_installation_validation.dart';
 import 'essentials/onboarding/feature_level_providers.dart'
-    show messageLensInstallationStateProvider, startFreshServiceProvider;
+    show
+        messageLensInstallationStateProvider,
+        startFreshServiceProvider,
+        startupValidationTelemetryProvider;
 import 'essentials/onboarding/infrastructure/compatibility/legacy_complete_installation_erase_journal_compatibility.dart';
 import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
 import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart';
@@ -313,6 +316,14 @@ Future<void> _initializePersistentStartup({
 }) async {
   delegate.attachContainer(container);
   final logger = container.read(appLoggerProvider.notifier);
+  await logger.ready;
+  container.read(startupValidationTelemetryProvider).flushTo((event) {
+    logger.info(
+      event.eventName,
+      source: 'StartupValidation',
+      context: Map<String, dynamic>.from(event.toJson()),
+    );
+  });
   logger.info('App launch', source: 'App');
   logger.info(
     'Resolved startup flags',

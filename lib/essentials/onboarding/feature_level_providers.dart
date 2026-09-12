@@ -23,3 +23,5 @@ export 'application/real_messages_source_history_sufficiency_test_agent_provider
 export 'application/real_messages_source_readiness_test_agent_provider.dart';
 export 'application/start_fresh_service_provider.dart'
     show startFreshServiceProvider;
+export 'application/startup_validation_telemetry_provider.dart'
+    show startupValidationTelemetryProvider;

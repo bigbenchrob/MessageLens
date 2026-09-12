@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 
 import '../../archive_environment/domain/archive_access_authority.dart';
 import '../../db/application/database_health_audit/database_health_audit_service.dart';
+import '../../onboarding/domain/startup_validation_telemetry.dart';
 import 'log_file_writer.dart';
 
 class SupportBundleExportResult {
@@ -27,11 +28,13 @@ class SupportBundleExportService {
     this._writer,
     this._databaseHealthAuditService,
     this._archiveAuthority,
+    this._startupValidationTelemetry,
   );
 
   final LogFileWriter _writer;
   final DatabaseHealthAuditService _databaseHealthAuditService;
   final ArchiveAccessAuthority _archiveAuthority;
+  final StartupValidationTelemetrySnapshotSource _startupValidationTelemetry;
 
   Future<SupportBundleExportResult> export({
     List<String> headerLines = const <String>[],
@@ -62,6 +65,10 @@ class SupportBundleExportService {
       pipelineAuditLogFiles: pipelineAuditLogFiles,
     );
     attachmentFiles.add(diagnosticLogFile);
+
+    attachmentFiles.add(
+      await _writeStartupValidationFile(bundleDirectory: bundleDirectory),
+    );
 
     for (final auditLog in pipelineAuditLogFiles.files) {
       final copied = await _copyIfPresent(
@@ -115,6 +122,18 @@ class SupportBundleExportService {
     );
   }
 
+  Future<File> _writeStartupValidationFile({
+    required Directory bundleDirectory,
+  }) async {
+    final telemetryFile = File(
+      '${bundleDirectory.path}/startup_validation.json',
+    );
+    await telemetryFile.writeAsString(
+      '${const JsonEncoder.withIndent('  ').convert(_startupValidationTelemetry.snapshot().toJson())}\n',
+    );
+    return telemetryFile;
+  }
+
   Future<void> _writeDiagnosticLog(
     File exportFile, {
     required DateTime now,
@@ -153,7 +172,7 @@ class SupportBundleExportService {
       ..writeln('macOS: $macosVersion')
       ..writeln('Exported: ${now.toUtc().toIso8601String()}')
       ..writeln(
-        'Contains: diagnostic_report.log, active graph health, and retired cleanup inventory when available',
+        'Contains: diagnostic_report.log, startup validation, active graph health, and retired cleanup inventory when available',
       )
       ..writeln('No raw database files are included.')
       ..writeln('====================================');

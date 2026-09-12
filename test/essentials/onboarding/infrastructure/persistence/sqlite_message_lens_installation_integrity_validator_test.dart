@@ -67,6 +67,11 @@ void main() {
 
       expect(result.status, InstallationIntegrityValidationStatus.failed);
       expect(result.failure, isNotEmpty);
+      expect(
+        result.failureKind,
+        InstallationIntegrityValidationFailureKind.sqliteFailure,
+      );
+      expect(result.sqliteResultCode, isNotNull);
     },
   );
 }

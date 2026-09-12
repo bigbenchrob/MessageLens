@@ -40,16 +40,28 @@ final class InstallationIntegrityRequirement {
 
 enum InstallationIntegrityValidationStatus { passed, failed, contention }
 
+enum InstallationIntegrityValidationFailureKind {
+  missingOrEmpty,
+  integrityFailure,
+  sqliteFailure,
+  ioFailure,
+  unexpectedFailure,
+}
+
 final class InstallationDatabaseIntegrityValidation {
   const InstallationDatabaseIntegrityValidation({
     required this.database,
     required this.status,
     this.failure,
+    this.failureKind,
+    this.sqliteResultCode,
   });
 
   final InstallationDatabaseKey database;
   final InstallationIntegrityValidationStatus status;
   final String? failure;
+  final InstallationIntegrityValidationFailureKind? failureKind;
+  final int? sqliteResultCode;
 }
 
 final class InstallationIntegrityValidationReport {
