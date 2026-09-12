@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../../app_database_schema_versions.dart';
 import '../../../../application/read_only_sql_guard.dart';
 
 part 'conversation_graph_database.g.dart';
@@ -10,7 +11,7 @@ class ConversationGraphDatabase extends _$ConversationGraphDatabase {
   ConversationGraphDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => conversationGraphSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

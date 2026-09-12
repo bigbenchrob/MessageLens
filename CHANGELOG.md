@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Startup installation validation now recognizes the current conversation
+  graph schema introduced by message-text search, preventing a healthy
+  development or production archive from being incorrectly blocked as
+  inconsistent after the graph database is upgraded.
+
 ### Changed
 
 - Selected Conversation cards now replace their compact activity glyph with

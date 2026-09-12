@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../../db/app_database_files.dart';
+import '../../../db/app_database_schema_versions.dart';
 import '../../../db/application/read_only_sql_guard.dart';
 import '../../../source_scoped_import/domain/known_sources.dart';
 import '../../application/message_lens_installation_evidence_reader.dart';
@@ -17,7 +18,6 @@ final class SqliteMessageLensInstallationEvidenceReader
   const SqliteMessageLensInstallationEvidenceReader();
 
   static const int _currentImportSchemaVersion = 10;
-  static const int _currentGraphSchemaVersion = 2;
   static const int _currentOverlaySchemaVersion = 8;
   static const int _currentPresenceSchemaVersion = 9;
 
@@ -56,7 +56,7 @@ final class SqliteMessageLensInstallationEvidenceReader
         AppDatabaseFile.conversationGraph,
         databaseDirectory: archiveRootPath,
       ),
-      maximumSupportedVersion: _currentGraphSchemaVersion,
+      maximumSupportedVersion: conversationGraphSchemaVersion,
       requiredTables: const <String>['messages', 'chats', 'chat_to_message'],
       includeGraphEvidence: true,
     );
