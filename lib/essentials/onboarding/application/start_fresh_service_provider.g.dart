@@ -6,7 +6,7 @@ part of 'start_fresh_service_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$startFreshServiceHash() => r'ae5566644c0071eaad9b2499d4dcd6fdf374fed0';
+String _$startFreshServiceHash() => r'88eff85fe4d79b583e16e9f5d46de1baee4472f5';
 
 /// See also [startFreshService].
 @ProviderFor(startFreshService)

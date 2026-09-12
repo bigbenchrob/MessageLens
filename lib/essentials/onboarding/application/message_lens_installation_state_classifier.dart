@@ -10,10 +10,17 @@ final class MessageLensInstallationStateClassifier {
     final import = evidence.sourceScopedImport;
     final graph = evidence.conversationGraph;
 
+    if (evidence.operationSnapshotFailure != null) {
+      return const MessageLensInstallationState(
+        kind: MessageLensInstallationStateKind.remediationRequired,
+        reason: 'The durable Onboarding operation evidence is malformed.',
+      );
+    }
+
     final preservationStoreProblem = <InstallationDatabaseEvidence>[
       evidence.overlay,
       evidence.presence,
-    ].any((database) => database.exists && !database.isUsable);
+    ].any((database) => database.exists && !database.passedBoundedInspection);
     if (preservationStoreProblem) {
       return const MessageLensInstallationState(
         kind: MessageLensInstallationStateKind.remediationRequired,
@@ -25,7 +32,7 @@ final class MessageLensInstallationStateClassifier {
     final derivedStoreProblem = <InstallationDatabaseEvidence>[
       import,
       graph,
-    ].any((database) => database.exists && !database.isUsable);
+    ].any((database) => database.exists && !database.passedBoundedInspection);
     if (derivedStoreProblem) {
       return const MessageLensInstallationState(
         kind: MessageLensInstallationStateKind.remediationRequired,
@@ -40,8 +47,8 @@ final class MessageLensInstallationStateClassifier {
     final graphHasTopology =
         (graph.chatCount ?? 0) > 0 && (graph.chatMessageEdgeCount ?? 0) > 0;
     final durableCompletion =
-        import.isUsable &&
-        graph.isUsable &&
+        import.passedBoundedInspection &&
+        graph.passedBoundedInspection &&
         importRows > 0 &&
         importRows == graphRows &&
         graphHasTopology;

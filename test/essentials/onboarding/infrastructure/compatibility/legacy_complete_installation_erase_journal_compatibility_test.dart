@@ -10,9 +10,11 @@ import 'package:remember_this_text/essentials/archive_environment/domain/archive
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_instance_id.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_marker.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/resolved_archive_identity.dart';
-import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_evidence_reader.dart';
+import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_state_classifier.dart';
+import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_validation_service.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/onboarding/infrastructure/compatibility/legacy_complete_installation_erase_journal_compatibility.dart';
 
 void main() {
@@ -221,7 +223,10 @@ void main() {
     await _writeJournal(journal, replacementArchiveId);
 
     await _expectFailure(
-      compatibility: _compatibility(_failedIntegrityEvidence()),
+      compatibility: _compatibility(
+        _completedEvidence(),
+        fullIntegrityValidated: false,
+      ),
       journal: journal,
       markerStore: markerStore,
       rootPath: root.path,
@@ -234,7 +239,7 @@ void main() {
     await _writeJournal(journal, replacementArchiveId);
     final originalBytes = await journal.readAsBytes();
     final compatibility = LegacyCompleteInstallationEraseJournalCompatibility(
-      evidenceReader: _FakeEvidenceReader(
+      fullValidator: _FakeFullValidator(
         () async => throw StateError('inspection failed'),
       ),
     );
@@ -323,9 +328,9 @@ void main() {
       await _writeJournal(journal, replacementArchiveId);
       final changedBytes = utf8.encode('changed concurrently');
       final compatibility = LegacyCompleteInstallationEraseJournalCompatibility(
-        evidenceReader: _FakeEvidenceReader(() async {
+        fullValidator: _FakeFullValidator(() async {
           await journal.writeAsBytes(changedBytes);
-          return _virginEvidence();
+          return _fullValidation(_virginEvidence());
         }),
       );
 
@@ -351,10 +356,16 @@ void main() {
 }
 
 LegacyCompleteInstallationEraseJournalCompatibility _compatibility(
-  MessageLensInstallationEvidence evidence,
-) {
+  MessageLensInstallationEvidence evidence, {
+  bool fullIntegrityValidated = true,
+}) {
   return LegacyCompleteInstallationEraseJournalCompatibility(
-    evidenceReader: _FakeEvidenceReader(() async => evidence),
+    fullValidator: _FakeFullValidator(
+      () async => _fullValidation(
+        evidence,
+        fullIntegrityValidated: fullIntegrityValidated,
+      ),
+    ),
   );
 }
 
@@ -437,19 +448,13 @@ MessageLensInstallationEvidence _virginEvidence() {
 }
 
 MessageLensInstallationEvidence _completedEvidence() {
-  const source = InstallationDatabaseEvidence(
-    exists: true,
-    readable: true,
-    integrityOk: true,
-    schemaVersionSupported: true,
+  const source = InstallationDatabaseEvidence.passed(
+    userVersion: 10,
     messageCount: 10,
     nonLiveSourceCount: 0,
   );
-  const graph = InstallationDatabaseEvidence(
-    exists: true,
-    readable: true,
-    integrityOk: true,
-    schemaVersionSupported: true,
+  const graph = InstallationDatabaseEvidence.passed(
+    userVersion: 3,
     messageCount: 10,
     chatCount: 2,
     chatMessageEdgeCount: 10,
@@ -466,30 +471,9 @@ MessageLensInstallationEvidence _completedEvidence() {
 
 MessageLensInstallationEvidence _abandonedEvidence() {
   return const MessageLensInstallationEvidence(
-    sourceScopedImport: InstallationDatabaseEvidence(
-      exists: true,
-      readable: true,
-      integrityOk: true,
-      schemaVersionSupported: true,
+    sourceScopedImport: InstallationDatabaseEvidence.passed(
+      userVersion: 10,
       messageCount: 1,
-      nonLiveSourceCount: 0,
-    ),
-    conversationGraph: InstallationDatabaseEvidence.absent(),
-    overlay: InstallationDatabaseEvidence.absent(),
-    presence: InstallationDatabaseEvidence.absent(),
-    hasRetiredDerivedArtifacts: false,
-    operationSnapshot: OnboardingOperationSnapshot.idle(),
-  );
-}
-
-MessageLensInstallationEvidence _failedIntegrityEvidence() {
-  return const MessageLensInstallationEvidence(
-    sourceScopedImport: InstallationDatabaseEvidence(
-      exists: true,
-      readable: true,
-      integrityOk: false,
-      schemaVersionSupported: true,
-      messageCount: 10,
       nonLiveSourceCount: 0,
     ),
     conversationGraph: InstallationDatabaseEvidence.absent(),
@@ -517,15 +501,37 @@ final class _FakeMarkerStore implements ArchiveMarkerStore {
   Future<ArchiveMarker?> read() async => marker;
 }
 
-final class _FakeEvidenceReader
-    implements MessageLensInstallationEvidenceReader {
-  const _FakeEvidenceReader(this.callback);
+FullInstallationValidationResult _fullValidation(
+  MessageLensInstallationEvidence evidence, {
+  bool fullIntegrityValidated = true,
+}) {
+  final state = const MessageLensInstallationStateClassifier().classify(
+    evidence,
+  );
+  return FullInstallationValidationResult(
+    evidence: evidence,
+    installationState: fullIntegrityValidated
+        ? state
+        : const MessageLensInstallationState(
+            kind: MessageLensInstallationStateKind.remediationRequired,
+            reason: 'physical integrity validation failed',
+          ),
+    integrityReport: InstallationIntegrityValidationReport(
+      results: const <InstallationDatabaseIntegrityValidation>[],
+    ),
+    fullIntegrityValidated: fullIntegrityValidated,
+  );
+}
 
-  final Future<MessageLensInstallationEvidence> Function() callback;
+final class _FakeFullValidator implements MessageLensInstallationFullValidator {
+  const _FakeFullValidator(this.callback);
+
+  final Future<FullInstallationValidationResult> Function() callback;
 
   @override
-  Future<MessageLensInstallationEvidence> read({
+  Future<FullInstallationValidationResult> validateFully({
     required String archiveRootPath,
+    required InstallationIntegrityValidationTrigger trigger,
   }) {
     return callback();
   }

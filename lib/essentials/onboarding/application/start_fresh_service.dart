@@ -3,9 +3,9 @@ import '../../archive_environment/feature_level_providers.dart'
     show ArchiveMutationCapability;
 import '../../presence/domain/repositories/presence_schedule_run_maintenance.dart';
 import '../domain/message_lens_installation_state.dart';
+import '../domain/startup_installation_validation.dart';
 import 'message_data_reset_service.dart';
-import 'message_lens_installation_evidence_reader.dart';
-import 'message_lens_installation_state_classifier.dart';
+import 'message_lens_installation_validation_service.dart';
 import 'onboarding_failure_store.dart';
 import 'onboarding_operation_snapshot_controller.dart';
 
@@ -49,8 +49,7 @@ final class StartFreshServiceImpl implements StartFreshService {
     required this.operationController,
     required this.failureStore,
     required this.presenceRepository,
-    required this.evidenceReader,
-    required this.classifier,
+    required this.fullValidator,
     required this.refreshAfterReset,
   });
 
@@ -66,8 +65,7 @@ final class StartFreshServiceImpl implements StartFreshService {
   final OnboardingOperationSnapshotController operationController;
   final OnboardingFailureStore failureStore;
   final PresenceScheduleRunMaintenance presenceRepository;
-  final MessageLensInstallationEvidenceReader evidenceReader;
-  final MessageLensInstallationStateClassifier classifier;
+  final MessageLensInstallationFullValidator fullValidator;
   final void Function() refreshAfterReset;
 
   @override
@@ -104,10 +102,14 @@ final class StartFreshServiceImpl implements StartFreshService {
 
       await messageDataResetService.resetDerivedDataForStartFresh(capability);
 
-      final verifiedState = classifier.classify(
-        await evidenceReader.read(archiveRootPath: archiveRootPath),
+      final validation = await fullValidator.validateFully(
+        archiveRootPath: archiveRootPath,
+        trigger:
+            InstallationIntegrityValidationTrigger.startFreshMutationBoundary,
       );
-      if (verifiedState.kind != MessageLensInstallationStateKind.virgin) {
+      final verifiedState = validation.installationState;
+      if (!validation.fullIntegrityValidated ||
+          verifiedState.kind != MessageLensInstallationStateKind.virgin) {
         throw StartFreshVirginVerificationException(
           verifiedState: verifiedState,
         );

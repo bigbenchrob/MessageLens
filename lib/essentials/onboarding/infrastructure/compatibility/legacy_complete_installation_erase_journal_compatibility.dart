@@ -7,9 +7,9 @@ import '../../../archive_environment/application/archive_marker_store.dart';
 import '../../../archive_environment/domain/archive_access_authority.dart';
 import '../../../archive_environment/domain/archive_environment.dart';
 import '../../../archive_environment/domain/archive_instance_id.dart';
-import '../../application/message_lens_installation_evidence_reader.dart';
-import '../../application/message_lens_installation_state_classifier.dart';
+import '../../application/message_lens_installation_validation_service.dart';
 import '../../domain/message_lens_installation_state.dart';
+import '../../domain/startup_installation_validation.dart';
 
 /// Result of recognizing and safely retiring an obsolete Complete Erase journal.
 enum LegacyCompleteInstallationEraseJournalDisposition {
@@ -60,8 +60,7 @@ typedef OrdinaryArchiveAdmission = Future<ArchiveAccessAuthority> Function();
 /// retired transaction or mutate any archive store or identity.
 final class LegacyCompleteInstallationEraseJournalCompatibility {
   const LegacyCompleteInstallationEraseJournalCompatibility({
-    required this.evidenceReader,
-    this.classifier = const MessageLensInstallationStateClassifier(),
+    required this.fullValidator,
   });
 
   static const String obsoleteJournalFileName =
@@ -71,8 +70,7 @@ final class LegacyCompleteInstallationEraseJournalCompatibility {
   static const String removalNotBeforeVersion = '0.4.0';
   static final DateTime removalNotBeforeUtc = DateTime.utc(2027, 9);
 
-  final MessageLensInstallationEvidenceReader evidenceReader;
-  final MessageLensInstallationStateClassifier classifier;
+  final MessageLensInstallationFullValidator fullValidator;
 
   Future<LegacyCompleteInstallationEraseJournalAdmissionResult> admit({
     required String canonicalRootPath,
@@ -143,9 +141,13 @@ final class LegacyCompleteInstallationEraseJournalCompatibility {
     }
     diagnostics['ordinaryAdmission'] = 'passed';
 
-    final MessageLensInstallationEvidence evidence;
+    final FullInstallationValidationResult validation;
     try {
-      evidence = await evidenceReader.read(archiveRootPath: canonicalRootPath);
+      validation = await fullValidator.validateFully(
+        archiveRootPath: canonicalRootPath,
+        trigger: InstallationIntegrityValidationTrigger
+            .destructiveJournalCompatibility,
+      );
     } on Object catch (error) {
       diagnostics['evidenceRead'] = 'failed';
       diagnostics['evidenceErrorType'] = error.runtimeType.toString();
@@ -155,14 +157,21 @@ final class LegacyCompleteInstallationEraseJournalCompatibility {
         diagnostics: diagnostics,
       );
     }
-    final state = classifier.classify(evidence);
+    final evidence = validation.evidence;
+    final state = validation.installationState;
     diagnostics['evidenceRead'] = 'passed';
     diagnostics['installationState'] = state.kind.name;
+    diagnostics['fullIntegrityValidated'] = validation.fullIntegrityValidated
+        .toString();
 
     final markerMatchesReplacement =
         marker.archiveInstanceId == transaction.newArchiveInstanceId;
     if (!markerMatchesReplacement) {
-      if (!_isCoherentCurrentArchive(evidence: evidence, state: state)) {
+      if (!_isCoherentCurrentArchive(
+        evidence: evidence,
+        state: state,
+        fullIntegrityValidated: validation.fullIntegrityValidated,
+      )) {
         throw _failure(
           code: 'current_archive_not_coherent',
           message:
@@ -241,14 +250,18 @@ final class LegacyCompleteInstallationEraseJournalCompatibility {
   bool _isCoherentCurrentArchive({
     required MessageLensInstallationEvidence evidence,
     required MessageLensInstallationState state,
+    required bool fullIntegrityValidated,
   }) {
-    final existingDatabasesAreUsable = <InstallationDatabaseEvidence>[
-      evidence.sourceScopedImport,
-      evidence.conversationGraph,
-      evidence.overlay,
-      evidence.presence,
-    ].every((database) => !database.exists || database.isUsable);
-    if (!existingDatabasesAreUsable) {
+    final existingDatabasesPassedBoundedInspection =
+        <InstallationDatabaseEvidence>[
+          evidence.sourceScopedImport,
+          evidence.conversationGraph,
+          evidence.overlay,
+          evidence.presence,
+        ].every(
+          (database) => !database.exists || database.passedBoundedInspection,
+        );
+    if (!fullIntegrityValidated || !existingDatabasesPassedBoundedInspection) {
       return false;
     }
 

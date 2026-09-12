@@ -14,6 +14,7 @@ import 'package:remember_this_text/essentials/onboarding/application/start_fresh
 import 'package:remember_this_text/essentials/onboarding/domain/advanced_start_fresh_presentation.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/advanced_start_fresh_overlay.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/sidebar_action_intent.dart';
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/widget_builders/settings_action_list.dart';
@@ -166,9 +167,11 @@ List<Override> _overrides({
   VoidCallback? onInstallationStateRead,
 }) {
   return [
-    messageLensInstallationStateProvider.overrideWith((ref) async {
+    messageLensInstallationStateProvider.overrideWith((ref) {
       onInstallationStateRead?.call();
-      return _completedState;
+      return Stream<StartupInstallationValidationState>.value(
+        _completedValidation,
+      );
     }),
     startFreshServiceProvider.overrideWith((ref) async {
       trace?.add('service-resolved');
@@ -197,6 +200,11 @@ Future<void> _openAndAcceptAuthorization(WidgetTester tester) async {
 const _completedState = MessageLensInstallationState(
   kind: MessageLensInstallationStateKind.completed,
   reason: 'healthy completed test installation',
+);
+
+const _completedValidation = StartupAdmissionGranted(
+  installationState: _completedState,
+  basis: StartupAdmissionBasis.boundedInspection,
 );
 
 const _virginResult = StartFreshResult(

@@ -5,10 +5,12 @@ import '../../archive_environment/domain.dart' show ArchiveMutationOperation;
 import '../../archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
 import '../../presence/domain/repositories/presence_schedule_run_maintenance.dart';
+import '../domain/startup_installation_validation.dart';
 import '../infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
+import '../infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart';
 import 'message_data_reset_service.dart';
-import 'message_lens_installation_state_classifier.dart';
 import 'message_lens_installation_state_provider.dart';
+import 'message_lens_installation_validation_service.dart';
 import 'onboarding_environment_report_provider.dart';
 import 'onboarding_failure_storage_provider.dart';
 import 'onboarding_gate_provider.dart';
@@ -35,13 +37,21 @@ Future<StartFreshService> startFreshService(Ref ref) async {
   final presenceRepository =
       executablePresenceRepository as PresenceScheduleRunMaintenance;
   final authority = ref.watch(archiveAccessAuthorityProvider);
+  const fullValidator = MessageLensInstallationValidationService(
+    evidenceReader: SqliteMessageLensInstallationEvidenceReader(),
+    integrityValidator: SqliteMessageLensInstallationIntegrityValidator(),
+  );
 
   return StartFreshServiceImpl(
     archiveRootPath: authority.rootPath,
     requiredSourcesScheduleId: requiredSourcesReadinessScheduleId,
-    readCurrentState: () {
-      ref.invalidate(messageLensInstallationStateProvider);
-      return ref.read(messageLensInstallationStateProvider.future);
+    readCurrentState: () async {
+      final validation = await fullValidator.validateFully(
+        archiveRootPath: authority.rootPath,
+        trigger:
+            InstallationIntegrityValidationTrigger.startFreshMutationBoundary,
+      );
+      return validation.installationState;
     },
     runWithMutationAuthority: (action) {
       return ref
@@ -56,8 +66,7 @@ Future<StartFreshService> startFreshService(Ref ref) async {
     operationController: operationController,
     failureStore: ref.watch(onboardingFailureStorageProvider),
     presenceRepository: presenceRepository,
-    evidenceReader: const SqliteMessageLensInstallationEvidenceReader(),
-    classifier: const MessageLensInstallationStateClassifier(),
+    fullValidator: fullValidator,
     refreshAfterReset: () {
       ref.invalidate(messageLensInstallationStateProvider);
       ref.invalidate(requiredSourcesReadinessSchedulerProvider);

@@ -36,11 +36,14 @@ import 'essentials/logging/application/flutter_framework_error_reporter.dart';
 import 'essentials/logging/feature_level_providers.dart'
     show appLoggerProvider, diagnosticReportExporterProvider;
 import 'essentials/navigation/application/router.dart';
+import 'essentials/onboarding/application/message_lens_installation_validation_service.dart';
 import 'essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'essentials/onboarding/domain/startup_installation_validation.dart';
 import 'essentials/onboarding/feature_level_providers.dart'
     show messageLensInstallationStateProvider, startFreshServiceProvider;
 import 'essentials/onboarding/infrastructure/compatibility/legacy_complete_installation_erase_journal_compatibility.dart';
 import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
+import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart';
 import 'essentials/onboarding/presentation/start_fresh_authorization_dialog.dart';
 import 'essentials/services/startup_flags_service.dart';
 import 'essentials/window_state/feature_level_providers.dart'
@@ -156,7 +159,10 @@ Future<ArchiveAccessAuthority> _admitArchive() async {
   );
   final compatibilityResult =
       await const LegacyCompleteInstallationEraseJournalCompatibility(
-        evidenceReader: SqliteMessageLensInstallationEvidenceReader(),
+        fullValidator: MessageLensInstallationValidationService(
+          evidenceReader: SqliteMessageLensInstallationEvidenceReader(),
+          integrityValidator: SqliteMessageLensInstallationIntegrityValidator(),
+        ),
       ).admit(
         canonicalRootPath: claim.canonicalRootPath,
         expectedEnvironment: claim.environment,
@@ -439,46 +445,54 @@ class _StartupAppState extends ConsumerState<StartupApp> {
     }
 
     final themeMode = ref.watch(switchableDarkModeProvider);
-    final installationState = ref.watch(messageLensInstallationStateProvider);
+    final installationValidation = ref.watch(
+      messageLensInstallationStateProvider,
+    );
 
-    return installationState.when(
-      data: (state) {
-        if (!_postClassificationInitializationCompleted) {
-          _schedulePostClassificationInitialization(state);
-          final initializationError = _postClassificationInitializationError;
-          if (initializationError != null) {
-            return _startupMacosApp(
-              themeMode: themeMode,
-              child: _StartupClassificationFailure(error: initializationError),
-            );
-          }
-          return _startupLoadingApp(themeMode);
-        }
-
-        final mustPauseStartup =
-            widget.startupFlags.optionLaunchResetRequested ||
-            state.requiresStartupAttention;
-        if (!mustPauseStartup) {
-          if (!_startupAdmissionScheduled) {
-            _startupAdmissionScheduled = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _continueStartup();
-            });
-          }
-          return widget.admittedChild;
-        }
-
-        return MacosApp(
-          title: 'remember_that_text',
-          theme: MacosThemeData.light().copyWith(),
-          darkTheme: MacosThemeData.dark().copyWith(),
-          themeMode: themeMode,
-          debugShowCheckedModeBanner: false,
-          home: _StartupDialogHost(
-            installationState: state,
-            onChoiceHandled: _continueStartup,
+    return installationValidation.when(
+      data: (validation) {
+        return switch (validation) {
+          StartupBoundedInspectionInProgress() => _startupLoadingApp(themeMode),
+          StartupBoundedInspectionPassed() => _startupStatusApp(
+            themeMode: themeMode,
+            message: 'Databases okay',
           ),
-        );
+          StartupIntegrityValidationRequired() => _startupDeepValidationApp(
+            themeMode: themeMode,
+          ),
+          StartupIntegrityValidationInProgress(
+            :final completedDatabaseCount,
+            :final totalDatabaseCount,
+          ) =>
+            _startupDeepValidationApp(
+              themeMode: themeMode,
+              progress:
+                  'Checking database ${completedDatabaseCount + 1} of '
+                  '$totalDatabaseCount',
+            ),
+          StartupIntegrityValidationPassed() => _startupStatusApp(
+            themeMode: themeMode,
+            message: 'Physical database check complete…',
+          ),
+          StartupValidationBlocked(:final message) => _startupMacosApp(
+            themeMode: themeMode,
+            child: _StartupClassificationFailure(error: StateError(message)),
+          ),
+          StartupAdmissionGranted(:final installationState) =>
+            _buildResolvedInstallationState(
+              themeMode: themeMode,
+              installationState: installationState,
+              admissionGranted: true,
+            ),
+          StartupAdmissionWithheld(:final installationState) ||
+          StartupIntegrityValidationFailed(
+            :final installationState,
+          ) => _buildResolvedInstallationState(
+            themeMode: themeMode,
+            installationState: installationState,
+            admissionGranted: false,
+          ),
+        };
       },
       loading: () {
         return _startupLoadingApp(themeMode);
@@ -489,6 +503,50 @@ class _StartupAppState extends ConsumerState<StartupApp> {
           child: _StartupClassificationFailure(error: error),
         );
       },
+    );
+  }
+
+  Widget _buildResolvedInstallationState({
+    required ThemeMode themeMode,
+    required MessageLensInstallationState installationState,
+    required bool admissionGranted,
+  }) {
+    if (!_postClassificationInitializationCompleted) {
+      _schedulePostClassificationInitialization(installationState);
+      final initializationError = _postClassificationInitializationError;
+      if (initializationError != null) {
+        return _startupMacosApp(
+          themeMode: themeMode,
+          child: _StartupClassificationFailure(error: initializationError),
+        );
+      }
+      return _startupLoadingApp(themeMode);
+    }
+
+    final mustPauseStartup =
+        !admissionGranted ||
+        widget.startupFlags.optionLaunchResetRequested ||
+        installationState.requiresStartupAttention;
+    if (!mustPauseStartup) {
+      if (!_startupAdmissionScheduled) {
+        _startupAdmissionScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _continueStartup();
+        });
+      }
+      return widget.admittedChild;
+    }
+
+    return MacosApp(
+      title: 'remember_that_text',
+      theme: MacosThemeData.light().copyWith(),
+      darkTheme: MacosThemeData.dark().copyWith(),
+      themeMode: themeMode,
+      debugShowCheckedModeBanner: false,
+      home: _StartupDialogHost(
+        installationState: installationState,
+        onChoiceHandled: _continueStartup,
+      ),
     );
   }
 
@@ -503,6 +561,47 @@ class _StartupAppState extends ConsumerState<StartupApp> {
             SizedBox(height: 16),
             Text('Checking databases…'),
           ],
+        ),
+      ),
+    );
+  }
+
+  MacosApp _startupStatusApp({
+    required ThemeMode themeMode,
+    required String message,
+  }) {
+    return _startupMacosApp(
+      themeMode: themeMode,
+      child: Center(child: Text(message)),
+    );
+  }
+
+  MacosApp _startupDeepValidationApp({
+    required ThemeMode themeMode,
+    String? progress,
+  }) {
+    return _startupMacosApp(
+      themeMode: themeMode,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ProgressCircle(),
+              const SizedBox(height: 16),
+              const Text(
+                'MessageLens found something suspicious with one or more '
+                'databases. Please wait while a more thorough check is '
+                'performed.',
+                textAlign: TextAlign.center,
+              ),
+              if (progress != null) ...[
+                const SizedBox(height: 12),
+                Text(progress),
+              ],
+            ],
+          ),
         ),
       ),
     );

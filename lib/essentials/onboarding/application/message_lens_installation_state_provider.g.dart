@@ -7,12 +7,12 @@ part of 'message_lens_installation_state_provider.dart';
 // **************************************************************************
 
 String _$messageLensInstallationStateHash() =>
-    r'7851b008e982c333eb233080f5250e0ebe14a43a';
+    r'3f43ac383d4f3d010c3fece933b7b53891e167e5';
 
 /// See also [messageLensInstallationState].
 @ProviderFor(messageLensInstallationState)
 final messageLensInstallationStateProvider =
-    FutureProvider<MessageLensInstallationState>.internal(
+    StreamProvider<StartupInstallationValidationState>.internal(
       messageLensInstallationState,
       name: r'messageLensInstallationStateProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -25,6 +25,6 @@ final messageLensInstallationStateProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MessageLensInstallationStateRef =
-    FutureProviderRef<MessageLensInstallationState>;
+    StreamProviderRef<StartupInstallationValidationState>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -8,13 +8,42 @@ enum MessageLensInstallationStateKind {
   remediationRequired,
 }
 
+enum InstallationBoundedInspectionStatus {
+  absent,
+  passed,
+  failed,
+  contention,
+  unsupportedSchema,
+}
+
+enum InstallationBoundedInspectionFailureKind {
+  zeroByteDatabase,
+  invalidSqlite,
+  sqliteCorrupt,
+  ioFailure,
+  missingRequiredObject,
+  targetedReadFailure,
+  malformedOnboardingSnapshot,
+  unknown,
+}
+
+final class InstallationBoundedInspectionFailure {
+  const InstallationBoundedInspectionFailure({
+    required this.kind,
+    required this.message,
+    this.sqliteResultCode,
+  });
+
+  final InstallationBoundedInspectionFailureKind kind;
+  final String message;
+  final int? sqliteResultCode;
+}
+
 final class InstallationDatabaseEvidence {
   const InstallationDatabaseEvidence({
-    required this.exists,
-    required this.readable,
-    required this.integrityOk,
-    required this.schemaVersionSupported,
+    required this.boundedInspectionStatus,
     this.userVersion,
+    this.currentSchemaVersion,
     this.messageCount,
     this.chatCount,
     this.chatMessageEdgeCount,
@@ -23,26 +52,42 @@ final class InstallationDatabaseEvidence {
   });
 
   const InstallationDatabaseEvidence.absent()
-    : this(
-        exists: false,
-        readable: false,
-        integrityOk: false,
-        schemaVersionSupported: false,
-      );
+    : this(boundedInspectionStatus: InstallationBoundedInspectionStatus.absent);
 
-  final bool exists;
-  final bool readable;
-  final bool integrityOk;
-  final bool schemaVersionSupported;
+  const InstallationDatabaseEvidence.passed({
+    required int userVersion,
+    int? currentSchemaVersion,
+    int? messageCount,
+    int? chatCount,
+    int? chatMessageEdgeCount,
+    int? nonLiveSourceCount,
+  }) : this(
+         boundedInspectionStatus: InstallationBoundedInspectionStatus.passed,
+         userVersion: userVersion,
+         currentSchemaVersion: currentSchemaVersion ?? userVersion,
+         messageCount: messageCount,
+         chatCount: chatCount,
+         chatMessageEdgeCount: chatMessageEdgeCount,
+         nonLiveSourceCount: nonLiveSourceCount,
+       );
+
+  final InstallationBoundedInspectionStatus boundedInspectionStatus;
   final int? userVersion;
+  final int? currentSchemaVersion;
   final int? messageCount;
   final int? chatCount;
   final int? chatMessageEdgeCount;
   final int? nonLiveSourceCount;
-  final String? failure;
+  final InstallationBoundedInspectionFailure? failure;
 
-  bool get isUsable {
-    return exists && readable && integrityOk && schemaVersionSupported;
+  bool get exists {
+    return boundedInspectionStatus !=
+        InstallationBoundedInspectionStatus.absent;
+  }
+
+  bool get passedBoundedInspection {
+    return boundedInspectionStatus ==
+        InstallationBoundedInspectionStatus.passed;
   }
 }
 
@@ -54,6 +99,7 @@ final class MessageLensInstallationEvidence {
     required this.presence,
     required this.hasRetiredDerivedArtifacts,
     required this.operationSnapshot,
+    this.operationSnapshotFailure,
   });
 
   final InstallationDatabaseEvidence sourceScopedImport;
@@ -62,6 +108,7 @@ final class MessageLensInstallationEvidence {
   final InstallationDatabaseEvidence presence;
   final bool hasRetiredDerivedArtifacts;
   final OnboardingOperationSnapshot operationSnapshot;
+  final InstallationBoundedInspectionFailure? operationSnapshotFailure;
 }
 
 final class MessageLensInstallationState {

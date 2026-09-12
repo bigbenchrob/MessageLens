@@ -20,6 +20,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Healthy startup now uses bounded, read-only schema, object, FTS-readability,
+  and logical reconciliation checks instead of scanning every database page.
+  Full SQLite integrity validation remains fail-closed for suspicious evidence,
+  older schemas, legacy destructive-journal cleanup, Start Fresh boundaries,
+  and explicit diagnostic workflows, with truthful restricted-mode progress.
+
 - Selected Conversation cards now replace their compact activity glyph with
   the shared year-by-month heat map in both the main and Contact-derived
   Conversation lists. Populated months jump within the complete Conversation

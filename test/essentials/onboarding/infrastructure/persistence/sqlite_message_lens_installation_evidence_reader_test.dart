@@ -23,7 +23,7 @@ void main() {
 
     final before = root.listSync().map((entry) => entry.path).toSet();
     final evidence = await const SqliteMessageLensInstallationEvidenceReader()
-        .read(archiveRootPath: root.path);
+        .readBounded(archiveRootPath: root.path);
     final after = root.listSync().map((entry) => entry.path).toSet();
 
     expect(evidence.sourceScopedImport.exists, isFalse);
@@ -64,7 +64,7 @@ void main() {
       final modifiedBefore = file.lastModifiedSync();
 
       final evidence = await const SqliteMessageLensInstallationEvidenceReader()
-          .read(archiveRootPath: root.path);
+          .readBounded(archiveRootPath: root.path);
 
       expect(
         evidence.operationSnapshot.status,
@@ -88,26 +88,41 @@ void main() {
         root.deleteSync(recursive: true);
       });
 
-      _createImportDatabase(
-        appDatabasePath(
-          AppDatabaseFile.sourceScopedImport,
-          databaseDirectory: root.path,
-        ),
+      final importPath = appDatabasePath(
+        AppDatabaseFile.sourceScopedImport,
+        databaseDirectory: root.path,
       );
+      _createImportDatabase(importPath);
       final graphPath = appDatabasePath(
         AppDatabaseFile.conversationGraph,
         databaseDirectory: root.path,
       );
       _createGraphDatabase(graphPath);
-      _createOverlayDatabase(
-        appDatabasePath(AppDatabaseFile.overlay, databaseDirectory: root.path),
+      final overlayPath = appDatabasePath(
+        AppDatabaseFile.overlay,
+        databaseDirectory: root.path,
       );
-      _createPresenceDatabase(
-        appDatabasePath(AppDatabaseFile.presence, databaseDirectory: root.path),
+      _createOverlayDatabase(overlayPath);
+      final presencePath = appDatabasePath(
+        AppDatabaseFile.presence,
+        databaseDirectory: root.path,
       );
+      _createPresenceDatabase(presencePath);
+      final databasePaths = <String>[
+        importPath,
+        graphPath,
+        overlayPath,
+        presencePath,
+      ];
+      final bytesBefore = <String, List<int>>{
+        for (final path in databasePaths) path: File(path).readAsBytesSync(),
+      };
+      final modifiedBefore = <String, DateTime>{
+        for (final path in databasePaths) path: File(path).lastModifiedSync(),
+      };
 
       const reader = SqliteMessageLensInstallationEvidenceReader();
-      final evidence = await reader.read(archiveRootPath: root.path);
+      final evidence = await reader.readBounded(archiveRootPath: root.path);
       final state = const MessageLensInstallationStateClassifier().classify(
         evidence,
       );
@@ -120,23 +135,32 @@ void main() {
           .values
           .single;
 
-      expect(evidence.sourceScopedImport.isUsable, isTrue);
+      expect(evidence.sourceScopedImport.passedBoundedInspection, isTrue);
       expect(evidence.sourceScopedImport.messageCount, 2);
       expect(evidence.sourceScopedImport.nonLiveSourceCount, 0);
-      expect(evidence.conversationGraph.isUsable, isTrue);
+      expect(evidence.conversationGraph.passedBoundedInspection, isTrue);
       expect(evidence.conversationGraph.userVersion, 3);
-      expect(evidence.conversationGraph.schemaVersionSupported, isTrue);
+      expect(
+        evidence.conversationGraph.boundedInspectionStatus,
+        InstallationBoundedInspectionStatus.passed,
+      );
       expect(evidence.conversationGraph.messageCount, 2);
       expect(evidence.conversationGraph.chatCount, 1);
       expect(evidence.conversationGraph.chatMessageEdgeCount, 2);
       expect(indexedMessageCount, 2);
-      expect(evidence.overlay.isUsable, isTrue);
-      expect(evidence.presence.isUsable, isTrue);
+      expect(evidence.overlay.passedBoundedInspection, isTrue);
+      expect(evidence.presence.passedBoundedInspection, isTrue);
       expect(state.kind, MessageLensInstallationStateKind.completed);
       expect(
         state.kind,
         isNot(MessageLensInstallationStateKind.remediationRequired),
       );
+      for (final path in databasePaths) {
+        expect(File(path).readAsBytesSync(), bytesBefore[path]);
+        expect(File(path).lastModifiedSync(), modifiedBefore[path]);
+        expect(File('$path-wal').existsSync(), isFalse);
+        expect(File('$path-shm').existsSync(), isFalse);
+      }
     },
   );
 
@@ -156,7 +180,7 @@ void main() {
     );
 
     final evidence = await const SqliteMessageLensInstallationEvidenceReader()
-        .read(archiveRootPath: root.path);
+        .readBounded(archiveRootPath: root.path);
     final state = const MessageLensInstallationStateClassifier().classify(
       evidence,
     );
@@ -165,9 +189,10 @@ void main() {
       evidence.conversationGraph.userVersion,
       conversationGraphSchemaVersion + 1,
     );
-    expect(evidence.conversationGraph.integrityOk, isTrue);
-    expect(evidence.conversationGraph.schemaVersionSupported, isFalse);
-    expect(evidence.conversationGraph.isUsable, isFalse);
+    expect(
+      evidence.conversationGraph.boundedInspectionStatus,
+      InstallationBoundedInspectionStatus.unsupportedSchema,
+    );
     expect(state.kind, MessageLensInstallationStateKind.remediationRequired);
   });
 
@@ -185,10 +210,17 @@ void main() {
       ).writeAsStringSync('not sqlite');
 
       final evidence = await const SqliteMessageLensInstallationEvidenceReader()
-          .read(archiveRootPath: root.path);
+          .readBounded(archiveRootPath: root.path);
 
       expect(evidence.overlay.exists, isTrue);
-      expect(evidence.overlay.isUsable, isFalse);
+      expect(
+        evidence.overlay.boundedInspectionStatus,
+        InstallationBoundedInspectionStatus.failed,
+      );
+      expect(
+        evidence.overlay.failure?.kind,
+        InstallationBoundedInspectionFailureKind.invalidSqlite,
+      );
       expect(evidence.overlay.failure, isNotNull);
     },
   );
@@ -232,14 +264,48 @@ void main() {
       });
 
       final evidenceFuture = const SqliteMessageLensInstallationEvidenceReader()
-          .read(archiveRootPath: root.path);
+          .readBounded(archiveRootPath: root.path);
 
       await lockReleased.future.timeout(const Duration(seconds: 1));
       final evidence = await evidenceFuture;
 
-      expect(evidence.conversationGraph.isUsable, isTrue);
+      expect(evidence.conversationGraph.passedBoundedInspection, isTrue);
     },
   );
+
+  test('classifies a persistent SQLite lock as contention', () async {
+    final root = Directory.systemTemp.createTempSync(
+      'messagelens-installation-evidence-locked-',
+    );
+    addTearDown(() {
+      root.deleteSync(recursive: true);
+    });
+    final graphPath = appDatabasePath(
+      AppDatabaseFile.conversationGraph,
+      databaseDirectory: root.path,
+    );
+    _createGraphDatabase(graphPath);
+    final blocker = sqlite3.open(graphPath);
+    addTearDown(blocker.dispose);
+    blocker.execute('BEGIN EXCLUSIVE;');
+
+    final evidence = await const SqliteMessageLensInstallationEvidenceReader()
+        .readBounded(archiveRootPath: root.path);
+    blocker.execute('ROLLBACK;');
+
+    expect(
+      evidence.conversationGraph.boundedInspectionStatus,
+      InstallationBoundedInspectionStatus.contention,
+    );
+    expect(
+      evidence.conversationGraph.failure?.kind,
+      isNot(InstallationBoundedInspectionFailureKind.sqliteCorrupt),
+    );
+    expect(
+      evidence.conversationGraph.failure?.sqliteResultCode,
+      anyOf(SqlError.SQLITE_BUSY, SqlError.SQLITE_LOCKED),
+    );
+  });
 }
 
 void _createImportDatabase(String path) {
@@ -282,6 +348,28 @@ void _createGraphDatabase(
       );
     ''');
     database.execute('''
+      CREATE TRIGGER message_text_fts_after_insert AFTER INSERT ON messages
+      BEGIN
+        INSERT INTO message_text_fts(rowid, text) VALUES (new.ss_id, new.text);
+      END;
+    ''');
+    database.execute('''
+      CREATE TRIGGER message_text_fts_after_delete AFTER DELETE ON messages
+      BEGIN
+        INSERT INTO message_text_fts(message_text_fts, rowid, text)
+        VALUES ('delete', old.ss_id, old.text);
+      END;
+    ''');
+    database.execute('''
+      CREATE TRIGGER message_text_fts_after_text_update
+      AFTER UPDATE OF text ON messages
+      BEGIN
+        INSERT INTO message_text_fts(message_text_fts, rowid, text)
+        VALUES ('delete', old.ss_id, old.text);
+        INSERT INTO message_text_fts(rowid, text) VALUES (new.ss_id, new.text);
+      END;
+    ''');
+    database.execute('''
       INSERT INTO messages (ss_id, text) VALUES
         (1, 'first searchable message'),
         (2, 'second searchable message');
@@ -309,6 +397,25 @@ void _createOverlayDatabase(
     database.execute(
       'CREATE TABLE overlay_settings (key TEXT PRIMARY KEY, value TEXT);',
     );
+    for (final table in const <String>[
+      'participant_overrides',
+      'chat_overrides',
+      'message_annotations',
+      'message_user_flags',
+      'message_user_tags',
+      'handle_to_participant_overrides',
+      'virtual_participants',
+      'favorite_contacts',
+      'dismissed_handles',
+      'handle_visibility_overrides',
+      'archived_attachments',
+      'conversation_tags',
+      'conversation_tag_assignments',
+      'message_intent_overlays',
+      'message_intent_tags',
+    ]) {
+      database.execute('CREATE TABLE $table (id INTEGER PRIMARY KEY);');
+    }
     if (operationSnapshot != null) {
       database.execute(
         'INSERT INTO overlay_settings (key, value) VALUES (?, ?)',

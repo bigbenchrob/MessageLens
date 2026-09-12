@@ -6,8 +6,7 @@ import 'package:remember_this_text/essentials/archive_environment/domain/archive
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/essentials/onboarding/application/message_data_reset_service.dart';
-import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_evidence_reader.dart';
-import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_state_classifier.dart';
+import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_validation_service.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_failure_store.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_operation_snapshot_controller.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_operation_snapshot_store.dart';
@@ -15,6 +14,7 @@ import 'package:remember_this_text/essentials/onboarding/application/start_fresh
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/presence/domain/entities/schedule_run.dart';
 import 'package:remember_this_text/essentials/presence/domain/repositories/presence_schedule_run_maintenance.dart';
 
@@ -51,7 +51,7 @@ void main() {
       },
     );
     final failureStore = _FakeFailureStore();
-    const evidenceReader = _VirginEvidenceReader();
+    final fullValidator = _VirginFullValidator();
     var refreshCount = 0;
 
     final service = StartFreshServiceImpl(
@@ -81,8 +81,7 @@ void main() {
       operationController: operationController,
       failureStore: failureStore,
       presenceRepository: const _MissingDefinitionMaintenance(),
-      evidenceReader: evidenceReader,
-      classifier: const MessageLensInstallationStateClassifier(),
+      fullValidator: fullValidator,
       refreshAfterReset: () {
         trace.add('onboarding-refresh-requested');
         refreshCount += 1;
@@ -97,6 +96,7 @@ void main() {
     expect(failureStore.graphClearCount, 1);
     expect(snapshotStore.saved.single.status, OnboardingOperationStatus.idle);
     expect(refreshCount, 1);
+    expect(fullValidator.callCount, 1);
     expect(trace, [
       'installation-state-read',
       'mutation-admission-requested',
@@ -138,8 +138,7 @@ void main() {
       operationController: operationController,
       failureStore: _FakeFailureStore(),
       presenceRepository: const _MissingDefinitionMaintenance(),
-      evidenceReader: const _VirginEvidenceReader(),
-      classifier: const MessageLensInstallationStateClassifier(),
+      fullValidator: _VirginFullValidator(),
       refreshAfterReset: () {},
     );
 
@@ -194,8 +193,7 @@ void main() {
         operationController: operationController,
         failureStore: _FakeFailureStore(),
         presenceRepository: const _MissingDefinitionMaintenance(),
-        evidenceReader: const _VirginEvidenceReader(),
-        classifier: const MessageLensInstallationStateClassifier(),
+        fullValidator: _VirginFullValidator(),
         refreshAfterReset: () {},
       );
 
@@ -258,8 +256,7 @@ void main() {
         operationController: operationController,
         failureStore: _FakeFailureStore(),
         presenceRepository: const _MissingDefinitionMaintenance(),
-        evidenceReader: const _VirginEvidenceReader(),
-        classifier: const MessageLensInstallationStateClassifier(),
+        fullValidator: _VirginFullValidator(),
         refreshAfterReset: () {},
       );
 
@@ -278,6 +275,72 @@ void main() {
       expect(resetService.callCount, 2);
     },
   );
+
+  test('post-reset full-integrity failure prevents verification', () async {
+    final fixture = await TestArchiveFixture.create(
+      prefix: 'start_fresh_integrity_failure_test_',
+    );
+    addTearDown(fixture.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        admittedArchiveAccessAuthorityProvider.overrideWithValue(
+          fixture.authority,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final operationController = OnboardingOperationSnapshotController(
+      store: _MemorySnapshotStore(),
+      processSessionId: OnboardingProcessSessionId(
+        '123e4567-e89b-42d3-a456-426614174026',
+      ),
+    );
+    await operationController.initialize();
+    addTearDown(operationController.dispose);
+    final resetService = _FakeResetService();
+    final fullValidator = _VirginFullValidator(fullIntegrityValidated: false);
+    var refreshCount = 0;
+    final service = StartFreshServiceImpl(
+      archiveRootPath: fixture.root.path,
+      requiredSourcesScheduleId: 42,
+      readCurrentState: () async {
+        return const MessageLensInstallationState(
+          kind: MessageLensInstallationStateKind.abandoned,
+          reason: 'test abandoned state',
+        );
+      },
+      runWithMutationAuthority: (action) {
+        return container
+            .read(archiveMutationCoordinatorProvider.notifier)
+            .runWithCapability<StartFreshResult>(
+              operation: ArchiveMutationOperation.startFresh,
+              ownerLabel: 'test-start-fresh-integrity-failure',
+              action: action,
+            );
+      },
+      messageDataResetService: resetService,
+      operationController: operationController,
+      failureStore: _FakeFailureStore(),
+      presenceRepository: const _MissingDefinitionMaintenance(),
+      fullValidator: fullValidator,
+      refreshAfterReset: () {
+        refreshCount += 1;
+      },
+    );
+
+    await expectLater(
+      service.startFresh(),
+      throwsA(isA<StartFreshVirginVerificationException>()),
+    );
+
+    expect(resetService.callCount, 1);
+    expect(fullValidator.callCount, 1);
+    expect(fullValidator.triggers, <InstallationIntegrityValidationTrigger>[
+      InstallationIntegrityValidationTrigger.startFreshMutationBoundary,
+    ]);
+    expect(refreshCount, 0);
+    expect(container.read(archiveMutationCoordinatorProvider).isLocked, false);
+  });
 }
 
 final class _MemorySnapshotStore implements OnboardingOperationSnapshotStore {
@@ -366,21 +429,39 @@ final class _FakeFailureStore implements OnboardingFailureStore {
   }
 }
 
-final class _VirginEvidenceReader
-    implements MessageLensInstallationEvidenceReader {
-  const _VirginEvidenceReader();
+final class _VirginFullValidator
+    implements MessageLensInstallationFullValidator {
+  _VirginFullValidator({this.fullIntegrityValidated = true});
+
+  final bool fullIntegrityValidated;
+  int callCount = 0;
+  final triggers = <InstallationIntegrityValidationTrigger>[];
 
   @override
-  Future<MessageLensInstallationEvidence> read({
+  Future<FullInstallationValidationResult> validateFully({
     required String archiveRootPath,
+    required InstallationIntegrityValidationTrigger trigger,
   }) async {
-    return const MessageLensInstallationEvidence(
+    callCount += 1;
+    triggers.add(trigger);
+    const evidence = MessageLensInstallationEvidence(
       sourceScopedImport: InstallationDatabaseEvidence.absent(),
       conversationGraph: InstallationDatabaseEvidence.absent(),
       overlay: InstallationDatabaseEvidence.absent(),
       presence: InstallationDatabaseEvidence.absent(),
       hasRetiredDerivedArtifacts: false,
       operationSnapshot: OnboardingOperationSnapshot.idle(),
+    );
+    return FullInstallationValidationResult(
+      evidence: evidence,
+      installationState: const MessageLensInstallationState(
+        kind: MessageLensInstallationStateKind.virgin,
+        reason: 'No MessageLens installation evidence exists.',
+      ),
+      integrityReport: InstallationIntegrityValidationReport(
+        results: const <InstallationDatabaseIntegrityValidation>[],
+      ),
+      fullIntegrityValidated: fullIntegrityValidated,
     );
   }
 }

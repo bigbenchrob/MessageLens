@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:remember_this_text/essentials/archive_environment/feature_level_
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_state_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -27,9 +29,19 @@ void main() {
       addTearDown(container.dispose);
       final before = _relativeArchiveEntries(fixture.root);
 
-      final state = await container.read(
-        messageLensInstallationStateProvider.future,
+      final terminal = Completer<StartupAdmissionGranted>();
+      final subscription = container.listen(
+        messageLensInstallationStateProvider,
+        (_, next) {
+          final state = next.valueOrNull;
+          if (state is StartupAdmissionGranted && !terminal.isCompleted) {
+            terminal.complete(state);
+          }
+        },
+        fireImmediately: true,
       );
+      addTearDown(subscription.close);
+      final state = (await terminal.future).installationState;
 
       expect(state.kind, MessageLensInstallationStateKind.virgin);
       expect(_relativeArchiveEntries(fixture.root), before);

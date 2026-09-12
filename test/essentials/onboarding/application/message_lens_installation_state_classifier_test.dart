@@ -164,11 +164,11 @@ void main() {
 
   test('unreadable preserved store needs remediation', () {
     const unreadable = InstallationDatabaseEvidence(
-      exists: true,
-      readable: false,
-      integrityOk: false,
-      schemaVersionSupported: false,
-      failure: 'not a database',
+      boundedInspectionStatus: InstallationBoundedInspectionStatus.failed,
+      failure: InstallationBoundedInspectionFailure(
+        kind: InstallationBoundedInspectionFailureKind.invalidSqlite,
+        message: 'not a database',
+      ),
     );
     expect(
       classifier.classify(_evidence(overlay: unreadable)).kind,
@@ -222,11 +222,7 @@ InstallationDatabaseEvidence _usableDatabase({
   int? chatMessageEdgeCount,
   int? nonLiveSourceCount,
 }) {
-  return InstallationDatabaseEvidence(
-    exists: true,
-    readable: true,
-    integrityOk: true,
-    schemaVersionSupported: true,
+  return InstallationDatabaseEvidence.passed(
     userVersion: 1,
     messageCount: messageCount,
     chatCount: chatCount,

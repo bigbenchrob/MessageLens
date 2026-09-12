@@ -32,8 +32,49 @@ void main() {
     expect(provider, isNot(contains('appLoggerProvider')));
     expect(reader, contains('OpenMode.readOnly'));
     expect(reader, contains('PRAGMA query_only = ON'));
+    expect(reader.toLowerCase(), isNot(contains('quick_check')));
     expect(reader, isNot(contains('MigrationStrategy')));
     expect(reader, isNot(contains('openDatabase(')));
+  });
+
+  test('physical integrity checks live only behind the deep validator', () {
+    final reader = _read(
+      'lib/essentials/onboarding/infrastructure/persistence/'
+      'sqlite_message_lens_installation_evidence_reader.dart',
+    );
+    final validator = _read(
+      'lib/essentials/onboarding/infrastructure/persistence/'
+      'sqlite_message_lens_installation_integrity_validator.dart',
+    );
+
+    expect(reader.toLowerCase(), isNot(contains('quick_check')));
+    expect(validator, contains('PRAGMA quick_check(1)'));
+    expect(validator, contains('OpenMode.readOnly'));
+    expect(validator, contains('PRAGMA query_only = ON'));
+  });
+
+  test('Start Fresh keeps full validation at both mutation boundaries', () {
+    final provider = _read(
+      'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
+    );
+    final service = _read(
+      'lib/essentials/onboarding/application/start_fresh_service.dart',
+    );
+
+    expect(provider, contains('fullValidator.validateFully('));
+    expect(service, contains('fullValidator.validateFully('));
+    expect(
+      provider,
+      contains(
+        'InstallationIntegrityValidationTrigger.startFreshMutationBoundary',
+      ),
+    );
+    expect(
+      service,
+      contains(
+        'InstallationIntegrityValidationTrigger.startFreshMutationBoundary',
+      ),
+    );
   });
 
   test('archive admission and container construction precede runApp', () {
@@ -56,11 +97,11 @@ void main() {
     final source = _read('lib/main.dart');
     final startupSource = source.substring(source.indexOf('class StartupApp'));
     final classificationWatch = startupSource.indexOf(
-      'ref.watch(messageLensInstallationStateProvider)',
+      'messageLensInstallationStateProvider',
     );
-    final classifiedData = startupSource.indexOf('data: (state)');
+    final classifiedData = startupSource.indexOf('data: (validation)');
     final persistentInitialization = startupSource.indexOf(
-      '_schedulePostClassificationInitialization(state)',
+      '_schedulePostClassificationInitialization(installationState)',
       classifiedData,
     );
     final admittedApplication = startupSource.indexOf(
@@ -72,6 +113,7 @@ void main() {
     expect(classifiedData, greaterThan(classificationWatch));
     expect(persistentInitialization, greaterThan(classifiedData));
     expect(admittedApplication, greaterThan(persistentInitialization));
+    expect(startupSource, contains('StartupAdmissionGranted'));
     expect(startupSource, contains("Text('Checking databases…')"));
   });
 }
