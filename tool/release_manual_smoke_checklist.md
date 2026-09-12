@@ -38,6 +38,13 @@ Notes:
 ## Search
 
 - [ ] Contact-scope search finds a known recent term.
+- [ ] An unfinished term such as `pos` uses word-prefix matching while it is
+      being typed.
+- [ ] Completing `post ` with one Space preserves that Space and returns the
+      exact token `post`, excluding longer tokens such as `postmaster`.
+- [ ] **Match all terms** requires every term and **Match any term** requires
+      at least one term across visible message text and tags.
+- [ ] Saved-message filtering remains mandatory in both AND and OR modes.
 - [ ] Matching terms highlight visibly.
 - [ ] Match navigation scrolls to the selected match.
 - [ ] Conversation-scope search scopes to matching evidence.
@@ -100,4 +107,3 @@ Notes:
 - [ ] Blocked
 
 Blocking issues:
-

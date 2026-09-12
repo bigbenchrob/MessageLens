@@ -39,7 +39,7 @@ run_flutter_tests \
   test/features/messages/presentation/widgets/message_evidence/message_evidence_timeline_view_test.dart \
   test/features/messages/presentation/widgets/message_evidence/media_tile_attachment_test.dart \
   test/features/messages/presentation/view/contact_messages_evidence_view_test.dart \
-  test/features/messages/presentation/view/conversation_messages_preview_view_test.dart
+  test/features/conversations/presentation/view/conversation_messages_view_test.dart
 
 echo "== MessageLens release smoke: historical archives =="
 run_flutter_tests \

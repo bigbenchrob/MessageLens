@@ -2,7 +2,7 @@
 tier: project
 scope: navigation
 owner: agent-per-project
-last_reviewed: 2026-09-11
+last_reviewed: 2026-09-12
 source_of_truth: doc
 links:
   - ./README.md
@@ -69,7 +69,7 @@ corrections; it is no longer the active home for that work.
 | [`27-MESSAGE-HISTORY-COVERAGE/`](27-MESSAGE-HISTORY-COVERAGE/) | Active current-Mac coverage work package. The exact source-identity partition and fast set query are implemented; the product presentation now gives complete results a calm conclusion and compact evidence surface while making real unaccounted exceptions primary. |
 | [`28-ONBOARDING/`](28-ONBOARDING/) | Active Onboarding completion work. The opening audit reconstructs the Journey and release blockers; the first implementation slice adds one typed durable operation snapshot, terminal failure routing, process-restart interruption, durable reconciliation, and a Presence projection seam without a schema change. |
 | [`29-CONVERSATION-HEATMAP/`](29-CONVERSATION-HEATMAP/) | Active documentation-only planning package for expanding the selected Conversation Card into the existing year-by-month heatmap and reusing the evidence skeleton plus exact-message anchor path for coarse temporal navigation. |
-| [`30-SEARCH-ENHANCEMENT/`](30-SEARCH-ENHANCEMENT/) | Completed structured exact/prefix message search, graph FTS5 over visible text, raw-input preservation, aligned highlighting, and per-term AND/OR composition across text and tags. Current behavior lives in `40-FEATURES/search/SEARCH_SEMANTICS.md`; Apple-stored link-preview indexing is explicitly deferred to a separate feature branch after fixture and decoder validation. |
+| [`30-SEARCH-ENHANCEMENT/`](30-SEARCH-ENHANCEMENT/) | Completed structured exact/prefix message search, graph FTS5 over visible text, raw-input preservation, aligned highlighting, and per-term AND/OR composition across text and tags. Its retained post-integration follow-up records the shared graph-schema correction and bounded visible startup validation. Current search behavior lives in `40-FEATURES/search/SEARCH_SEMANTICS.md`; Apple-stored link-preview indexing is explicitly deferred to a separate feature branch after fixture and decoder validation. |
 | [`archive-canonical-attachments/`](archive-canonical-attachments/) | Attachment/archive planning material. Verify against `25-ONBOARDING-AND-ARCHIVE/`, `55/84`, and current archive/recovery work before implementation. |
 | [`ephemeral-sidebar-projection/`](ephemeral-sidebar-projection/) | Sidebar projection planning material. Verify against the canonical spec/cassette system and current UI-walk direction before implementation. |
 
