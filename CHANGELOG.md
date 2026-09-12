@@ -14,6 +14,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   graph schema introduced by message-text search, preventing a healthy
   development or production archive from being incorrectly blocked as
   inconsistent after the graph database is upgraded.
+- Startup now renders a restricted database-checking screen while installation
+  evidence is classified, instead of leaving the native window blank. The
+  normal application and writable persistence remain gated on classification.
 
 ### Changed
 

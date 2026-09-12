@@ -274,78 +274,81 @@ void main() async {
     ],
   );
 
-  MessageLensInstallationState? initialInstallationState;
-  try {
-    initialInstallationState = await container.read(
-      messageLensInstallationStateProvider.future,
-    );
-  } catch (error, stackTrace) {
-    // Classification is intentionally pre-persistence. Admission/classifier
-    // failures remain available through stderr and the startup error surface.
-    debugPrint('Installation classification failed: $error');
-    debugPrintStack(stackTrace: stackTrace);
-  }
+  FlutterError.onError = FlutterError.presentError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught platform error before persistent startup: $error');
+    debugPrintStack(stackTrace: stack);
+    return true;
+  };
 
-  if (initialInstallationState != null) {
-    delegate.attachContainer(container);
-    final logger = container.read(appLoggerProvider.notifier);
-    logger.info('App launch', source: 'App');
-    logger.info(
-      'Resolved startup flags',
-      source: 'StartupFlags',
-      context: {
-        'optionLaunchResetRequested': startupFlags.optionLaunchResetRequested
-            .toString(),
-        'installationKind': initialInstallationState.kind.name,
-        'installationReason': initialInstallationState.reason,
-      },
-    );
-
-    FlutterError.onError = (details) {
-      FlutterError.presentError(details);
-      unawaited(deferFlutterFrameworkErrorLog(details, logError: logger.error));
-    };
-    PlatformDispatcher.instance.onError = (error, stack) {
-      logger.error(
-        error.toString(),
-        source: 'PlatformDispatcher',
-        context: {'stack': stack.toString().split('\n').take(10).join('\n')},
-      );
-      return true;
-    };
-  } else {
-    FlutterError.onError = FlutterError.presentError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      debugPrint('Uncaught platform error before persistent startup: $error');
-      debugPrintStack(stackTrace: stack);
-      return true;
-    };
-  }
-
-  if (initialInstallationState != null &&
-      shouldRestorePersistedWindowStateAfterClassification(
-        initialInstallationState,
-      )) {
-    try {
-      await container.read(windowStateServiceProvider).restoreWindowState();
-    } catch (error) {
-      container
-          .read(appLoggerProvider.notifier)
-          .warn(
-            'Failed to restore window state: $error',
-            source: 'WindowState',
-          );
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      container.read(windowStateServiceProvider).enforceMinSize();
-    });
-  }
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: StartupApp(startupFlags: startupFlags),
+      child: StartupApp(
+        startupFlags: startupFlags,
+        initializeAfterClassification: (installationState) {
+          return _initializePersistentStartup(
+            container: container,
+            delegate: delegate,
+            startupFlags: startupFlags,
+            installationState: installationState,
+          );
+        },
+      ),
     ),
   );
+}
+
+Future<void> _initializePersistentStartup({
+  required ProviderContainer container,
+  required _MyDelegate delegate,
+  required StartupFlags startupFlags,
+  required MessageLensInstallationState installationState,
+}) async {
+  delegate.attachContainer(container);
+  final logger = container.read(appLoggerProvider.notifier);
+  logger.info('App launch', source: 'App');
+  logger.info(
+    'Resolved startup flags',
+    source: 'StartupFlags',
+    context: {
+      'optionLaunchResetRequested': startupFlags.optionLaunchResetRequested
+          .toString(),
+      'installationKind': installationState.kind.name,
+      'installationReason': installationState.reason,
+    },
+  );
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    unawaited(deferFlutterFrameworkErrorLog(details, logError: logger.error));
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.error(
+      error.toString(),
+      source: 'PlatformDispatcher',
+      context: {'stack': stack.toString().split('\n').take(10).join('\n')},
+    );
+    return true;
+  };
+
+  if (!shouldRestorePersistedWindowStateAfterClassification(
+    installationState,
+  )) {
+    return;
+  }
+
+  try {
+    await container.read(windowStateServiceProvider).restoreWindowState();
+  } catch (error) {
+    logger.warn(
+      'Failed to restore window state: $error',
+      source: 'WindowState',
+    );
+  }
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    container.read(windowStateServiceProvider).enforceMinSize();
+  });
 }
 
 bool shouldRestorePersistedWindowStateAfterClassification(
@@ -358,11 +361,14 @@ class StartupApp extends ConsumerStatefulWidget {
   const StartupApp({
     required this.startupFlags,
     this.admittedChild = const App(),
+    this.initializeAfterClassification,
     super.key,
   });
 
   final StartupFlags startupFlags;
   final Widget admittedChild;
+  final Future<void> Function(MessageLensInstallationState installationState)?
+  initializeAfterClassification;
 
   @override
   ConsumerState<StartupApp> createState() => _StartupAppState();
@@ -371,6 +377,9 @@ class StartupApp extends ConsumerStatefulWidget {
 class _StartupAppState extends ConsumerState<StartupApp> {
   bool _startupChoiceResolved = false;
   bool _startupAdmissionScheduled = false;
+  bool _postClassificationInitializationScheduled = false;
+  bool _postClassificationInitializationCompleted = false;
+  Object? _postClassificationInitializationError;
 
   void _continueStartup() {
     if (!mounted || _startupChoiceResolved) {
@@ -379,6 +388,47 @@ class _StartupAppState extends ConsumerState<StartupApp> {
 
     setState(() {
       _startupChoiceResolved = true;
+    });
+  }
+
+  void _schedulePostClassificationInitialization(
+    MessageLensInstallationState installationState,
+  ) {
+    if (_postClassificationInitializationScheduled) {
+      return;
+    }
+
+    _postClassificationInitializationScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_initializeAfterClassification(installationState));
+    });
+  }
+
+  Future<void> _initializeAfterClassification(
+    MessageLensInstallationState installationState,
+  ) async {
+    try {
+      await widget.initializeAfterClassification?.call(installationState);
+    } catch (error, stackTrace) {
+      debugPrint('Persistent startup initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _postClassificationInitializationError = error;
+      });
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _postClassificationInitializationCompleted = true;
     });
   }
 
@@ -393,6 +443,18 @@ class _StartupAppState extends ConsumerState<StartupApp> {
 
     return installationState.when(
       data: (state) {
+        if (!_postClassificationInitializationCompleted) {
+          _schedulePostClassificationInitialization(state);
+          final initializationError = _postClassificationInitializationError;
+          if (initializationError != null) {
+            return _startupMacosApp(
+              themeMode: themeMode,
+              child: _StartupClassificationFailure(error: initializationError),
+            );
+          }
+          return _startupLoadingApp(themeMode);
+        }
+
         final mustPauseStartup =
             widget.startupFlags.optionLaunchResetRequested ||
             state.requiresStartupAttention;
@@ -419,10 +481,7 @@ class _StartupAppState extends ConsumerState<StartupApp> {
         );
       },
       loading: () {
-        return _startupMacosApp(
-          themeMode: themeMode,
-          child: const Center(child: ProgressCircle()),
-        );
+        return _startupLoadingApp(themeMode);
       },
       error: (error, _) {
         return _startupMacosApp(
@@ -430,6 +489,22 @@ class _StartupAppState extends ConsumerState<StartupApp> {
           child: _StartupClassificationFailure(error: error),
         );
       },
+    );
+  }
+
+  MacosApp _startupLoadingApp(ThemeMode themeMode) {
+    return _startupMacosApp(
+      themeMode: themeMode,
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ProgressCircle(),
+            SizedBox(height: 16),
+            Text('Checking databases…'),
+          ],
+        ),
+      ),
     );
   }
 

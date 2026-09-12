@@ -36,22 +36,43 @@ void main() {
     expect(reader, isNot(contains('openDatabase(')));
   });
 
-  test('classification precedes persistent logging and window restoration', () {
+  test('archive admission and container construction precede runApp', () {
     final source = _read('lib/main.dart');
     final mainSource = source.substring(source.indexOf('void main() async'));
-    final classification = mainSource.indexOf(
-      'messageLensInstallationStateProvider.future',
-    );
-    final persistentLogger = mainSource.indexOf('appLoggerProvider.notifier');
-    final windowRestore = mainSource.indexOf('restoreWindowState()');
+    final archiveAdmission = mainSource.indexOf('await _admitArchive()');
+    final providerContainer = mainSource.indexOf('ProviderContainer(');
+    final runApp = mainSource.indexOf('runApp(');
 
-    expect(classification, greaterThanOrEqualTo(0));
-    expect(classification, lessThan(persistentLogger));
-    expect(classification, lessThan(windowRestore));
+    expect(archiveAdmission, greaterThanOrEqualTo(0));
+    expect(providerContainer, greaterThan(archiveAdmission));
+    expect(runApp, greaterThan(providerContainer));
     expect(
-      source,
-      contains('shouldRestorePersistedWindowStateAfterClassification'),
+      mainSource,
+      isNot(contains('messageLensInstallationStateProvider.future')),
     );
+  });
+
+  test('StartupApp gates persistent initialization on classification', () {
+    final source = _read('lib/main.dart');
+    final startupSource = source.substring(source.indexOf('class StartupApp'));
+    final classificationWatch = startupSource.indexOf(
+      'ref.watch(messageLensInstallationStateProvider)',
+    );
+    final classifiedData = startupSource.indexOf('data: (state)');
+    final persistentInitialization = startupSource.indexOf(
+      '_schedulePostClassificationInitialization(state)',
+      classifiedData,
+    );
+    final admittedApplication = startupSource.indexOf(
+      'return widget.admittedChild',
+      persistentInitialization,
+    );
+
+    expect(classificationWatch, greaterThanOrEqualTo(0));
+    expect(classifiedData, greaterThan(classificationWatch));
+    expect(persistentInitialization, greaterThan(classifiedData));
+    expect(admittedApplication, greaterThan(persistentInitialization));
+    expect(startupSource, contains("Text('Checking databases…')"));
   });
 }
 

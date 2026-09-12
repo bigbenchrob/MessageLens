@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -40,6 +42,65 @@ void main() {
       );
     }
   });
+
+  testWidgets(
+    'unresolved classification renders a restricted shell before persistence',
+    (tester) async {
+      final classification = Completer<MessageLensInstallationState>();
+      var admittedApplicationBuildCount = 0;
+      var persistentInitializationCount = 0;
+      final container = ProviderContainer(
+        overrides: [
+          admittedArchiveAccessAuthorityProvider.overrideWith(
+            (ref) => archiveFixture.authority,
+          ),
+          messageLensInstallationStateProvider.overrideWith((ref) {
+            return classification.future;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: StartupApp(
+            startupFlags: const StartupFlags.disabled(),
+            initializeAfterClassification: (_) async {
+              persistentInitializationCount += 1;
+            },
+            admittedChild: Builder(
+              builder: (context) {
+                admittedApplicationBuildCount += 1;
+                return const MaterialApp(home: Text('Admitted application'));
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Checking databases…'), findsOneWidget);
+      expect(find.text('Admitted application'), findsNothing);
+      expect(admittedApplicationBuildCount, 0);
+      expect(persistentInitializationCount, 0);
+
+      classification.complete(
+        const MessageLensInstallationState(
+          kind: MessageLensInstallationStateKind.completed,
+          reason: 'healthy',
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(persistentInitializationCount, 1);
+      expect(admittedApplicationBuildCount, greaterThan(0));
+      expect(find.text('Admitted application'), findsOneWidget);
+      expect(find.text('Checking databases…'), findsNothing);
+    },
+  );
 
   testWidgets(
     'healthy startup admission cannot be reclaimed by later remediation',
@@ -144,6 +205,34 @@ void main() {
       barriers.any((barrier) => barrier.color == colors.surfaces.canvas),
       isTrue,
     );
+  });
+
+  testWidgets('virgin installation continues to the onboarding application', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          admittedArchiveAccessAuthorityProvider.overrideWith(
+            (ref) => archiveFixture.authority,
+          ),
+          messageLensInstallationStateProvider.overrideWith((ref) async {
+            return const MessageLensInstallationState(
+              kind: MessageLensInstallationStateKind.virgin,
+              reason: 'no installation evidence',
+            );
+          }),
+        ],
+        child: const StartupApp(
+          startupFlags: StartupFlags.disabled(),
+          admittedChild: MaterialApp(home: Text('Onboarding application')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Onboarding application'), findsOneWidget);
+    expect(find.text('This MessageLens setup needs attention'), findsNothing);
   });
 
   testWidgets('completed installation option surface does not offer reset', (
