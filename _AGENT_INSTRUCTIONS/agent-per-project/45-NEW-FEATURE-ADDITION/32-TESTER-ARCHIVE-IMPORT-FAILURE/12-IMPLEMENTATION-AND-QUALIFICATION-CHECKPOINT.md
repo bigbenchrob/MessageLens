@@ -53,6 +53,7 @@ remain outstanding.
 5. `2820aa51` — `fix(import): contain single-record rich text decoding`
 6. `bdd96bf0` — `fix(import): preserve page failure stack traces`
 7. `d82cbc4b` — `test(import): satisfy remediation analyzer gate`
+8. `21a1b172` — `docs(import): record remediation checkpoint`
 
 The documentation, measurement harness, source-message architecture,
 rich-text architecture, one-record hardening, and gate corrections remain
@@ -352,5 +353,6 @@ The following work was intentionally not started:
 
 At the completion of the implementation and test commits, the isolated
 worktree was clean on `codex/tester-archive-import-memory-remediation` at
-`d82cbc4b`. This checkpoint document is committed separately after that
-verified clean state. No branch was pushed.
+`d82cbc4b`. The checkpoint document was then committed separately as the
+eighth commit, `21a1b172907a3a263587bc21b22fbcf574c27a5b`. No branch was
+pushed.
