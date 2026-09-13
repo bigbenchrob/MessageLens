@@ -274,7 +274,7 @@ class MessageImporter {
               unresolvedReactionTargetCount: unresolvedReactionTargetCount,
             ),
           );
-        } catch (_) {
+        } catch (error, stackTrace) {
           stopwatch.stop();
           onPageMetric?.call(
             SourceImportPageMetric(
@@ -289,7 +289,7 @@ class MessageImporter {
               elapsedMilliseconds: stopwatch.elapsedMilliseconds,
             ),
           );
-          rethrow;
+          Error.throwWithStackTrace(error, stackTrace);
         }
         await Future<void>.delayed(Duration.zero);
       }

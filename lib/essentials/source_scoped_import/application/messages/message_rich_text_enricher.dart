@@ -311,7 +311,7 @@ class MessageRichTextEnricher {
               elapsedMilliseconds: stopwatch.elapsedMilliseconds,
             ),
           );
-        } catch (_) {
+        } catch (error, stackTrace) {
           stopwatch.stop();
           onPageMetric?.call(
             SourceImportPageMetric(
@@ -326,7 +326,7 @@ class MessageRichTextEnricher {
               elapsedMilliseconds: stopwatch.elapsedMilliseconds,
             ),
           );
-          rethrow;
+          Error.throwWithStackTrace(error, stackTrace);
         }
         await Future<void>.delayed(Duration.zero);
       }
