@@ -97,6 +97,33 @@ void main() {
       },
     );
 
+    test('reports privacy-safe pending enrichment aggregates', () async {
+      final service = _buildService(
+        hasFullDiskAccess: true,
+        queryLayers: <DatabaseHealthQueryLayer>[
+          _FakeHealthQueryLayer(
+            databaseKey: databaseHealthKeySourceScopedImport,
+            role: databaseHealthRoleSourceScopedImportLedger,
+            remainingEnrichmentCandidateCount: 12,
+            totalAttributedBodyBytes: 4096,
+            maximumAttributedBodyBytes: 1024,
+          ),
+        ],
+      );
+
+      final report = await service.buildPhase1Report();
+
+      expect(
+        report.messageTextEnrichment,
+        const MessageTextEnrichmentHealth(
+          remainingCandidateCount: 12,
+          totalAttributedBodyBytes: 4096,
+          maximumAttributedBodyBytes: 1024,
+        ),
+      );
+      expect(report.errors, isEmpty);
+    });
+
     test(
       'treats retired macos import database as cleanup inventory only',
       () async {
@@ -315,6 +342,9 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
     required this.databaseKey,
     required this.role,
     this.fileExists = true,
+    this.remainingEnrichmentCandidateCount = 0,
+    this.totalAttributedBodyBytes = 0,
+    this.maximumAttributedBodyBytes = 0,
   });
 
   @override
@@ -324,6 +354,9 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
   final String role;
 
   final bool fileExists;
+  final int remainingEnrichmentCandidateCount;
+  final int totalAttributedBodyBytes;
+  final int maximumAttributedBodyBytes;
 
   @override
   String get databasePath => '/tmp/$databaseKey.db';
@@ -359,6 +392,15 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
     }
     if (normalized.startsWith('PRAGMA table_info')) {
       return const <Map<String, Object?>>[];
+    }
+    if (normalized.startsWith('SELECT COUNT(*) AS candidate_count')) {
+      return <Map<String, Object?>>[
+        <String, Object?>{
+          'candidate_count': remainingEnrichmentCandidateCount,
+          'total_blob_bytes': totalAttributedBodyBytes,
+          'maximum_blob_bytes': maximumAttributedBodyBytes,
+        },
+      ];
     }
     if (normalized.startsWith('SELECT COUNT(*) AS c')) {
       return <Map<String, Object?>>[
