@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../archive_environment/feature_level_providers.dart'
@@ -6,6 +8,7 @@ import '../../archive_environment/feature_level_providers.dart'
 import '../../onboarding/feature_level_providers.dart'
     show onboardingFullDiskAccessProvider;
 import '../app_database_files.dart';
+import '../application/database_health_audit/database_health_audit_models.dart';
 import '../application/database_health_audit/database_health_audit_service.dart';
 import '../application/database_health_audit/database_health_database_keys.dart';
 import '../application/database_health_audit/database_health_query_layer.dart';
@@ -31,8 +34,20 @@ Future<DatabaseHealthAuditService> databaseHealthAuditService(Ref ref) async {
   );
   final overlayDb = await ref.read(overlayDatabaseProvider.future);
   final hasFullDiskAccess = ref.read(onboardingFullDiskAccessProvider);
+  final packageInfo = await PackageInfo.fromPlatform();
 
   return DatabaseHealthAuditService(
+    appInfo: DatabaseHealthAppInfo(
+      name: packageInfo.appName,
+      bundleId: packageInfo.packageName,
+      version: packageInfo.version,
+      buildNumber: packageInfo.buildNumber,
+      buildChannel: kReleaseMode
+          ? 'release'
+          : kProfileMode
+          ? 'profile'
+          : 'debug',
+    ),
     hasFullDiskAccess: hasFullDiskAccess,
     runtimeEnvironment: const LocalDatabaseHealthRuntimeEnvironment(),
     reportWriter: const FilesystemDatabaseHealthAuditReportWriter(),

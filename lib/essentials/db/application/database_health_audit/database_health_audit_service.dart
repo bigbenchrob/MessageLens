@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../../services/startup_flags_service.dart';
 import 'database_health_audit_models.dart';
@@ -10,28 +9,21 @@ import 'database_health_runtime_environment.dart';
 
 const _databaseHealthSchemaVersion = '1.0.0';
 const _databaseHealthAuditVersion = 'phase1';
-const _messageLensName = 'MessageLens';
-const _messageLensBundleId = 'com.bigbenchsoftware.MessageLens';
-const _defaultBuildName = String.fromEnvironment(
-  'FLUTTER_BUILD_NAME',
-  defaultValue: '0.1.16',
-);
-const _defaultBuildNumber = String.fromEnvironment(
-  'FLUTTER_BUILD_NUMBER',
-  defaultValue: '17',
-);
 
 class DatabaseHealthAuditService {
   DatabaseHealthAuditService({
+    required DatabaseHealthAppInfo appInfo,
     required bool hasFullDiskAccess,
     required List<DatabaseHealthQueryLayer> queryLayers,
     required DatabaseHealthRuntimeEnvironment runtimeEnvironment,
     required DatabaseHealthAuditReportWriter reportWriter,
-  }) : _hasFullDiskAccess = hasFullDiskAccess,
+  }) : _appInfo = appInfo,
+       _hasFullDiskAccess = hasFullDiskAccess,
        _queryLayers = queryLayers,
        _runtimeEnvironment = runtimeEnvironment,
        _reportWriter = reportWriter;
 
+  final DatabaseHealthAppInfo _appInfo;
   final bool _hasFullDiskAccess;
   final List<DatabaseHealthQueryLayer> _queryLayers;
   final DatabaseHealthRuntimeEnvironment _runtimeEnvironment;
@@ -66,7 +58,7 @@ class DatabaseHealthAuditService {
       schemaVersion: _databaseHealthSchemaVersion,
       generatedAt: DateTime.now().toUtc().toIso8601String(),
       auditVersion: _databaseHealthAuditVersion,
-      app: _buildAppInfo(),
+      app: _appInfo,
       environment: _buildEnvironmentInfo(),
       databases: databases,
       tableInventory: tableInventory,
@@ -88,20 +80,6 @@ class DatabaseHealthAuditService {
     return DatabaseHealthAuditOutput(reportPath: reportPath, report: report);
   }
 
-  DatabaseHealthAppInfo _buildAppInfo() {
-    return const DatabaseHealthAppInfo(
-      name: _messageLensName,
-      bundleId: _messageLensBundleId,
-      version: _defaultBuildName,
-      buildNumber: _defaultBuildNumber,
-      buildChannel: kReleaseMode
-          ? 'release'
-          : kProfileMode
-          ? 'profile'
-          : 'debug',
-    );
-  }
-
   DatabaseHealthEnvironmentInfo _buildEnvironmentInfo() {
     final startupFlags = StartupFlagsService.instance.cachedFlags;
     final runtimeEnvironment = _runtimeEnvironment.read();
@@ -117,7 +95,7 @@ class DatabaseHealthAuditService {
       },
       diagnosticNotes: const <String>[
         'Phase 1 audits aggregate structure only; no row-level samples are exported.',
-        'Build metadata uses Flutter build defines when available and checked-in fallback constants otherwise.',
+        'Build metadata is read from the running application package.',
         'Cross-database overlay relationship diagnostics are intentionally deferred to a later audit phase.',
       ],
     );

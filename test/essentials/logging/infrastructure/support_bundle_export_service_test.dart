@@ -33,6 +33,7 @@ void main() {
       final service = SupportBundleExportService(
         _FakeLogFileWriter(logDirectory),
         DatabaseHealthAuditService(
+          appInfo: _testAppInfo,
           hasFullDiskAccess: true,
           queryLayers: const [],
           runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -70,6 +71,7 @@ void main() {
     final service = SupportBundleExportService(
       _FakeLogFileWriter(logDirectory),
       DatabaseHealthAuditService(
+        appInfo: _testAppInfo,
         hasFullDiskAccess: true,
         queryLayers: const [],
         runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -106,6 +108,7 @@ void main() {
     final service = SupportBundleExportService(
       _FakeLogFileWriter(logDirectory),
       DatabaseHealthAuditService(
+        appInfo: _testAppInfo,
         hasFullDiskAccess: true,
         queryLayers: const [],
         runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -152,6 +155,7 @@ void main() {
       final service = SupportBundleExportService(
         _FakeLogFileWriter(logDirectory),
         DatabaseHealthAuditService(
+          appInfo: _testAppInfo,
           hasFullDiskAccess: true,
           queryLayers: const [],
           runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -191,6 +195,7 @@ void main() {
     final service = SupportBundleExportService(
       _FakeLogFileWriter(logDirectory),
       DatabaseHealthAuditService(
+        appInfo: _testAppInfo,
         hasFullDiskAccess: true,
         queryLayers: const [],
         runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -255,6 +260,7 @@ void main() {
     final service = SupportBundleExportService(
       _FakeLogFileWriter(logDirectory),
       DatabaseHealthAuditService(
+        appInfo: _testAppInfo,
         hasFullDiskAccess: true,
         queryLayers: const [],
         runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -297,6 +303,7 @@ void main() {
     final service = SupportBundleExportService(
       _FakeLogFileWriter(logDirectory),
       DatabaseHealthAuditService(
+        appInfo: _testAppInfo,
         hasFullDiskAccess: true,
         queryLayers: const [],
         runtimeEnvironment: const _FakeRuntimeEnvironment(),
@@ -326,6 +333,14 @@ void main() {
     expect(content, isNot(contains('last_completed_source_rowid')));
   });
 }
+
+const _testAppInfo = DatabaseHealthAppInfo(
+  name: 'MessageLens Test',
+  bundleId: 'com.bigbenchsoftware.MessageLens.test',
+  version: '9.8.7',
+  buildNumber: '654',
+  buildChannel: 'test',
+);
 
 OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
   final startedAt = DateTime.utc(2026, 9, 13, 12);

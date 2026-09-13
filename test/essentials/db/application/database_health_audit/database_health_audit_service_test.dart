@@ -9,6 +9,21 @@ import 'package:remember_this_text/essentials/db/application/database_health_aud
 
 void main() {
   group('DatabaseHealthAuditService', () {
+    test('reports authoritative injected application metadata', () async {
+      final report = await _buildService(
+        hasFullDiskAccess: true,
+        queryLayers: const [],
+      ).buildPhase1Report();
+
+      expect(report.app, _testAppInfo);
+      expect(
+        report.environment.diagnosticNotes,
+        contains(
+          'Build metadata is read from the running application package.',
+        ),
+      );
+    });
+
     test(
       'uses injected full disk access state in environment report',
       () async {
@@ -254,12 +269,21 @@ DatabaseHealthAuditService _buildService({
   required List<DatabaseHealthQueryLayer> queryLayers,
 }) {
   return DatabaseHealthAuditService(
+    appInfo: _testAppInfo,
     hasFullDiskAccess: hasFullDiskAccess,
     queryLayers: queryLayers,
     runtimeEnvironment: const _FakeRuntimeEnvironment(),
     reportWriter: const _FakeReportWriter(),
   );
 }
+
+const _testAppInfo = DatabaseHealthAppInfo(
+  name: 'MessageLens Test',
+  bundleId: 'com.bigbenchsoftware.MessageLens.test',
+  version: '9.8.7',
+  buildNumber: '654',
+  buildChannel: 'test',
+);
 
 class _FakeRuntimeEnvironment implements DatabaseHealthRuntimeEnvironment {
   const _FakeRuntimeEnvironment();
