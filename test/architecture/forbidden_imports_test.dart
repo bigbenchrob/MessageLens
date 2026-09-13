@@ -7560,6 +7560,9 @@ void main() {
         'lib/essentials/source_scoped_import/infrastructure/'
         'import_database_provider.dart',
       ).readAsString();
+      final nativeDecoder = await File(
+        'rust/rust/attributed-string-decoder/src/api.rs',
+      ).readAsString();
 
       expect(messageImporter, isNot(contains('.rawQuery(')));
       expect(messageImporter, contains('messageImportWindowAfter'));
@@ -7579,14 +7582,30 @@ void main() {
       );
       expect(importLedgerContract, contains('messageTextEnrichmentWindow'));
       expect(importLedgerContract, contains('readMessageTextEnrichmentPage'));
+      expect(importLedgerContract, contains('readMessageTextEnrichmentBlobs'));
       expect(importDatabase.toUpperCase(), isNot(contains('OFFSET')));
-      expect(importDatabase, contains("orderBy: 'ss_id ASC'"));
-      expect(importDatabase, contains('limit: limit'));
+      expect(
+        importDatabase,
+        contains(
+          'length(attributed_body_blob) AS '
+          'attributed_body_blob_byte_count',
+        ),
+      );
+      expect(importDatabase, contains('ORDER BY ss_id ASC LIMIT ?'));
+      expect(
+        importDatabase,
+        contains('CAST(substr(attributed_body_blob, 1, ?) AS BLOB)'),
+      );
       expect(richTextEnricher, contains('candidate.ssId: candidate'));
       expect(richTextEnricher, contains('extracted[candidate.ssId]'));
       expect(richTextEnricher, contains('candidatePageSize'));
       expect(richTextEnricher, contains('pageBlobByteTarget'));
+      expect(richTextEnricher, contains('maximumAttributedBodyBlobBytes'));
       expect(richTextEnricher, isNot(contains('extractionLimit')));
+      expect(nativeDecoder, contains('MAX_TYPEDSTREAM_BLOB_BYTES'));
+      expect(nativeDecoder, contains('MAX_TYPEDSTREAM_CONTROL_MARKERS'));
+      expect(nativeDecoder, contains('MAX_RESOLVED_PROPERTY_NODES'));
+      expect(nativeDecoder, isNot(contains('root_object.primitives()')));
     });
 
     test('Onboarding progress remains typed and service-owned', () async {

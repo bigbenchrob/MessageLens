@@ -196,6 +196,48 @@ void main() {
   });
 
   test(
+    'over-budget body is not materialized or decoded and later rows continue',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List(9),
+      );
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 101,
+        text: null,
+        attributedBodyBlob: Uint8List(4),
+      );
+      final extractor = _RecordingExtractor();
+
+      final result = await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: importDatabase,
+        extractor: extractor,
+        candidatePageSize: 2,
+        pageBlobByteTarget: 8,
+        maximumAttributedBodyBlobBytes: 8,
+      ).enrichMissingText();
+      final rows = await importDatabase.database.query(
+        'messages',
+        columns: <String>['source_rowid', 'text', 'attributed_body_blob'],
+        orderBy: 'source_rowid ASC',
+      );
+
+      expect(result.candidateMessageCount, 2);
+      expect(result.enrichedMessageCount, 1);
+      expect(result.missingExtractionCount, 1);
+      expect(extractor.calls, hasLength(1));
+      expect(_totalBlobBytes(extractor.calls.single), 4);
+      expect(rows.first['text'], isNull);
+      expect((rows.first['attributed_body_blob'] as Uint8List), hasLength(9));
+      expect(rows.last['text'], 'decoded');
+    },
+  );
+
+  test(
     'bounds decoder calls by candidate count and cumulative bytes',
     () async {
       final blobSizes = <int>[4, 4, 4, 12, 4, 4, 4];
@@ -803,6 +845,17 @@ final class _InterruptingImportLedger implements ImportLedger {
       limit: limit,
       sourceId: sourceId,
       startedAfterSourceRowId: startedAfterSourceRowId,
+    );
+  }
+
+  @override
+  Future<Map<int, Uint8List>> readMessageTextEnrichmentBlobs({
+    required List<int> ssIds,
+    required int maximumBlobBytes,
+  }) {
+    return delegate.readMessageTextEnrichmentBlobs(
+      ssIds: ssIds,
+      maximumBlobBytes: maximumBlobBytes,
     );
   }
 

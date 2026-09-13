@@ -320,6 +320,63 @@ void main() {
   });
 
   test(
+    'retries after interruption before the first graph projection commit',
+    () async {
+      final attachmentArchive = Directory(
+        path.join(tempDir.path, 'attachment_archive'),
+      );
+      await attachmentArchive.create();
+      final attachmentSentinel = File(
+        path.join(attachmentArchive.path, 'preserved.bin'),
+      );
+      final overlaySentinel = File(path.join(tempDir.path, 'overlay.db'));
+      const attachmentBytes = <int>[7, 8, 9];
+      const overlayBytes = <int>[4, 5, 6];
+      await attachmentSentinel.writeAsBytes(attachmentBytes);
+      await overlaySentinel.writeAsBytes(overlayBytes);
+
+      await expectLater(
+        service.importAndProject(
+          folderPath: archiveFolder.path,
+          sourceLabel: 'Archive 2017',
+          onObservation: (observation) {
+            if (observation.stage ==
+                    SourceScopedArchiveGraphImportStage
+                        .projectingConversationGraph &&
+                observation.transition ==
+                    SourceScopedArchiveGraphImportStageTransition.started) {
+              throw StateError('injected before graph projection');
+            }
+          },
+        ),
+        throwsStateError,
+      );
+
+      expect(await _countImportRows(importLedgerDatabase, 'messages'), 1);
+      expect(
+        await _countImportRows(importLedgerDatabase, 'chat_to_message'),
+        1,
+      );
+      expect(await _countGraphRows(graphDatabase, 'messages'), 0);
+      expect(await _countGraphRows(graphDatabase, 'chat_to_message'), 0);
+
+      final retry = await service.importAndProject(
+        folderPath: archiveFolder.path,
+        sourceLabel: 'Archive 2017',
+      );
+
+      expect(retry.projectionResult.insertedGraphNodeCount, 4);
+      expect(retry.projectionResult.insertedGraphEdgeCount, 3);
+      expect(await _countGraphRows(graphDatabase, 'messages'), 1);
+      expect(await _countGraphRows(graphDatabase, 'chat_to_handle'), 1);
+      expect(await _countGraphRows(graphDatabase, 'chat_to_message'), 1);
+      expect(await _countGraphRows(graphDatabase, 'message_to_attachment'), 1);
+      expect(await attachmentSentinel.readAsBytes(), attachmentBytes);
+      expect(await overlaySentinel.readAsBytes(), overlayBytes);
+    },
+  );
+
+  test(
     'profiles real projector units and reports bounded exact workloads',
     () async {
       await _insertSyntheticArchiveRows(

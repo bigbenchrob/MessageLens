@@ -93,6 +93,10 @@ void main() {
     );
 
     expect(first.map((candidate) => candidate.sourceRowId), <int>[10, 30]);
+    expect(
+      first.map((candidate) => candidate.attributedBodyBlobByteCount),
+      <int>[1, 1],
+    );
     expect(second.map((candidate) => candidate.sourceRowId), <int>[90, 10]);
     expect(second.first.ssId, greaterThan(first.last.ssId));
   });
@@ -118,5 +122,34 @@ void main() {
       ),
       everyElement(3),
     );
+  });
+
+  test('loads only requested blobs and caps each returned payload', () async {
+    final firstSsId = SourceScopedRowKey.pack(
+      sourceId: liveChatDbSourceId,
+      sourceRowId: 10,
+    );
+    final secondSsId = SourceScopedRowKey.pack(
+      sourceId: liveChatDbSourceId,
+      sourceRowId: 30,
+    );
+    await database.database.update(
+      'messages',
+      <String, Object?>{
+        'attributed_body_blob': Uint8List.fromList(<int>[1, 2, 3, 4]),
+      },
+      where: 'ss_id = ?',
+      whereArgs: <Object?>[firstSsId],
+    );
+
+    final blobs = await database.readMessageTextEnrichmentBlobs(
+      ssIds: <int>[firstSsId, secondSsId],
+      maximumBlobBytes: 2,
+    );
+
+    expect(blobs, <int, Uint8List>{
+      firstSsId: Uint8List.fromList(<int>[1, 2, 3]),
+      secondSsId: Uint8List.fromList(<int>[30]),
+    });
   });
 }

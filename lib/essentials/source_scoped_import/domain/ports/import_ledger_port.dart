@@ -45,6 +45,11 @@ abstract interface class ImportLedger {
     int? startedAfterSourceRowId,
   });
 
+  Future<Map<int, Uint8List>> readMessageTextEnrichmentBlobs({
+    required List<int> ssIds,
+    required int maximumBlobBytes,
+  });
+
   Future<List<Map<String, Object?>>> queryTable(
     String table, {
     List<String>? columns,
@@ -74,12 +79,12 @@ final class ImportLedgerMessageTextCandidate {
   const ImportLedgerMessageTextCandidate({
     required this.ssId,
     required this.sourceRowId,
-    required this.attributedBodyBlob,
+    required this.attributedBodyBlobByteCount,
   });
 
   final int ssId;
   final int sourceRowId;
-  final Uint8List attributedBodyBlob;
+  final int attributedBodyBlobByteCount;
 }
 
 final class ImportLedgerMessageTextWindow {

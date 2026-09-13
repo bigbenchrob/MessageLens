@@ -157,6 +157,74 @@ void main() {
     expect(await _countRows(importDatabase, 'chat_to_handle'), 1);
     expect(await _countRows(importDatabase, 'message_to_attachment'), 1);
   });
+
+  test(
+    'recovers after interruption before topology import without touching sentinels',
+    () async {
+      final attachmentArchive = Directory(
+        path.join(tempDir.path, 'attachment_archive'),
+      );
+      await attachmentArchive.create();
+      final attachmentSentinel = File(
+        path.join(attachmentArchive.path, 'preserved.bin'),
+      );
+      final overlaySentinel = File(path.join(tempDir.path, 'overlay.db'));
+      const attachmentBytes = <int>[7, 8, 9];
+      const overlayBytes = <int>[4, 5, 6];
+      await attachmentSentinel.writeAsBytes(attachmentBytes);
+      await overlaySentinel.writeAsBytes(overlayBytes);
+      final sourceDatabase = await openDatabase(chatDbPath);
+      await sourceDatabase.execute('DROP TABLE chat_handle_join');
+      await sourceDatabase.close();
+
+      await expectLater(
+        service.importSourceFacts(
+          folderPath: archiveFolder.path,
+          sourceLabel: 'Archive 2017',
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+
+      expect(await _countRows(importDatabase, 'messages'), 1);
+      expect(await _countRows(importDatabase, 'chats'), 1);
+      expect(await _countRows(importDatabase, 'handles'), 1);
+      expect(await _countRows(importDatabase, 'attachments'), 1);
+      expect(await _countRows(importDatabase, 'chat_to_handle'), 0);
+      expect(await _countRows(importDatabase, 'chat_to_message'), 0);
+      expect(await _countRows(importDatabase, 'message_to_attachment'), 0);
+      expect(
+        (await importDatabase.database.query('messages')).single['text'],
+        isNull,
+      );
+
+      final repairedSourceDatabase = await openDatabase(chatDbPath);
+      await repairedSourceDatabase.execute('''
+        CREATE TABLE chat_handle_join (
+          chat_id INTEGER NOT NULL,
+          handle_id INTEGER NOT NULL
+        )
+      ''');
+      await repairedSourceDatabase.insert('chat_handle_join', <String, Object?>{
+        'chat_id': 100,
+        'handle_id': 200,
+      });
+      await repairedSourceDatabase.close();
+
+      final retry = await service.importSourceFacts(
+        folderPath: archiveFolder.path,
+        sourceLabel: 'Archive 2017',
+      );
+
+      expect(retry.insertedTopologyEdgeCount, 3);
+      expect(retry.textEnrichment.enrichedMessageCount, 1);
+      expect(await _countRows(importDatabase, 'messages'), 1);
+      expect(await _countRows(importDatabase, 'chat_to_handle'), 1);
+      expect(await _countRows(importDatabase, 'chat_to_message'), 1);
+      expect(await _countRows(importDatabase, 'message_to_attachment'), 1);
+      expect(await attachmentSentinel.readAsBytes(), attachmentBytes);
+      expect(await overlaySentinel.readAsBytes(), overlayBytes);
+    },
+  );
 }
 
 Future<int> _countRows(ImportDatabase importDatabase, String table) async {

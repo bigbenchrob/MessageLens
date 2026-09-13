@@ -8,6 +8,9 @@ import '../source_import_work_progress.dart';
 
 const int defaultRichTextCandidatePageSize = 500;
 const int defaultRichTextPageBlobByteTarget = 8 * 1024 * 1024;
+// Keep this aligned with the native decoder's per-record input ceiling. The
+// ledger applies it before materializing a BLOB into Dart memory.
+const int defaultMaximumAttributedBodyBlobBytes = 8 * 1024 * 1024;
 
 class MessageRichTextEnrichmentResult {
   const MessageRichTextEnrichmentResult({
@@ -32,6 +35,7 @@ class MessageRichTextEnricher {
     required this.extractor,
     this.candidatePageSize = defaultRichTextCandidatePageSize,
     this.pageBlobByteTarget = defaultRichTextPageBlobByteTarget,
+    this.maximumAttributedBodyBlobBytes = defaultMaximumAttributedBodyBlobBytes,
     this.onPageMetric,
   });
 
@@ -40,6 +44,7 @@ class MessageRichTextEnricher {
   final MessageExtractorPort extractor;
   final int candidatePageSize;
   final int pageBlobByteTarget;
+  final int maximumAttributedBodyBlobBytes;
   final SourceImportPageMetricObserver? onPageMetric;
 
   Future<MessageRichTextEnrichmentResult> enrichMissingText({
@@ -91,6 +96,13 @@ class MessageRichTextEnricher {
       throw ArgumentError.value(
         pageBlobByteTarget,
         'pageBlobByteTarget',
+        'must be greater than 0',
+      );
+    }
+    if (maximumAttributedBodyBlobBytes <= 0) {
+      throw ArgumentError.value(
+        maximumAttributedBodyBlobBytes,
+        'maximumAttributedBodyBlobBytes',
         'must be greater than 0',
       );
     }
@@ -172,45 +184,64 @@ class MessageRichTextEnricher {
         final stopwatch = Stopwatch()..start();
         final completedBeforePage = completedCandidateCount;
         final pageBlobBytes = decoderPage.fold<int>(0, (total, candidate) {
-          return total + candidate.attributedBodyBlob.length;
+          return total + candidate.attributedBodyBlobByteCount;
         });
         final maximumPageBlobBytes = decoderPage.fold<int>(0, (
           maximum,
           candidate,
         ) {
-          final blobBytes = candidate.attributedBodyBlob.length;
+          final blobBytes = candidate.attributedBodyBlobByteCount;
           return blobBytes > maximum ? blobBytes : maximum;
         });
         try {
           final candidateBySsId = <int, ImportLedgerMessageTextCandidate>{
             for (final candidate in decoderPage) candidate.ssId: candidate,
           };
+          final candidatesWithinNativeBudget = decoderPage
+              .where((candidate) {
+                return candidate.attributedBodyBlobByteCount <=
+                    maximumAttributedBodyBlobBytes;
+              })
+              .toList(growable: false);
+          final loadedBlobsByMessageSsId = await importLedger
+              .readMessageTextEnrichmentBlobs(
+                ssIds: <int>[
+                  for (final candidate in candidatesWithinNativeBudget)
+                    candidate.ssId,
+                ],
+                maximumBlobBytes: maximumAttributedBodyBlobBytes,
+              );
           final blobsByMessageSsId = <int, Uint8List>{
-            for (final candidate in decoderPage)
-              candidate.ssId: candidate.attributedBodyBlob,
+            for (final candidate in candidatesWithinNativeBudget)
+              if (loadedBlobsByMessageSsId[candidate.ssId]?.length ==
+                  candidate.attributedBodyBlobByteCount)
+                candidate.ssId: loadedBlobsByMessageSsId[candidate.ssId]!,
           };
-          final extracted = await extractor.extractMessageTextsFromBlobs(
-            blobsByMessageSsId,
-            onProgress:
-                ({
-                  required completedWorkCount,
-                  required totalWorkCount,
-                  required lastCompletedWorkId,
-                }) {
-                  final candidate = candidateBySsId[lastCompletedWorkId];
-                  publishSourceImportProgress(
-                    observer: onProgress,
-                    unit: SourceImportWorkUnit.richTextExtraction,
-                    completedWorkCount:
-                        completedBeforePage + completedWorkCount,
-                    totalWorkCount: candidateMessageCount,
-                    lastCompletedSourceRowId: candidate?.sourceRowId,
-                    anomalyCounts: SourceImportAnomalyCounts(
-                      richTextDecodeUnavailableCount: missingExtractionCount,
-                    ),
-                  );
-                },
-          );
+          final extracted = blobsByMessageSsId.isEmpty
+              ? const <int, String>{}
+              : await extractor.extractMessageTextsFromBlobs(
+                  blobsByMessageSsId,
+                  onProgress:
+                      ({
+                        required completedWorkCount,
+                        required totalWorkCount,
+                        required lastCompletedWorkId,
+                      }) {
+                        final candidate = candidateBySsId[lastCompletedWorkId];
+                        publishSourceImportProgress(
+                          observer: onProgress,
+                          unit: SourceImportWorkUnit.richTextExtraction,
+                          completedWorkCount:
+                              completedBeforePage + completedWorkCount,
+                          totalWorkCount: candidateMessageCount,
+                          lastCompletedSourceRowId: candidate?.sourceRowId,
+                          anomalyCounts: SourceImportAnomalyCounts(
+                            richTextDecodeUnavailableCount:
+                                missingExtractionCount,
+                          ),
+                        );
+                      },
+                );
 
           var pageEnrichedMessageCount = 0;
           var pageMissingExtractionCount = 0;
@@ -333,7 +364,7 @@ _partitionCandidatesByBlobBytes(
   var page = <ImportLedgerMessageTextCandidate>[];
   var pageBlobBytes = 0;
   for (final candidate in candidates) {
-    final candidateBlobBytes = candidate.attributedBodyBlob.length;
+    final candidateBlobBytes = candidate.attributedBodyBlobByteCount;
     if (page.isNotEmpty &&
         pageBlobBytes + candidateBlobBytes > pageBlobByteTarget) {
       yield page;
