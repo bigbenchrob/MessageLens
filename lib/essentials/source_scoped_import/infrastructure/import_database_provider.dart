@@ -267,8 +267,7 @@ class ImportDatabase implements ImportLedger {
   }
 
   @override
-  Future<List<ImportLedgerMessageTextCandidate>>
-  findMessagesNeedingTextEnrichment({
+  Future<ImportLedgerMessageTextWindow> messageTextEnrichmentWindow({
     int? sourceId,
     int? startedAfterSourceRowId,
   }) async {
@@ -282,12 +281,50 @@ class ImportDatabase implements ImportLedger {
       if (sourceId != null) sourceId,
       if (startedAfterSourceRowId != null) startedAfterSourceRowId,
     ];
+    final rows = await database.rawQuery(
+      'SELECT COUNT(*) AS candidate_count, MAX(ss_id) AS high_water_ss_id '
+      'FROM messages WHERE ${whereParts.join(' AND ')}',
+      whereArgs,
+    );
+    final row = rows.single;
+    return ImportLedgerMessageTextWindow(
+      candidateCount: _readInt(row['candidate_count']),
+      highWaterSsId: row['high_water_ss_id'] as int?,
+    );
+  }
+
+  @override
+  Future<List<ImportLedgerMessageTextCandidate>> readMessageTextEnrichmentPage({
+    required int afterSsId,
+    required int throughSsId,
+    required int limit,
+    int? sourceId,
+    int? startedAfterSourceRowId,
+  }) async {
+    if (limit <= 0) {
+      throw ArgumentError.value(limit, 'limit', 'must be greater than zero');
+    }
+    final whereParts = <String>[
+      'text IS NULL',
+      'attributed_body_blob IS NOT NULL',
+      'ss_id > ?',
+      'ss_id <= ?',
+      if (sourceId != null) 'source_id = ?',
+      if (startedAfterSourceRowId != null) 'source_rowid > ?',
+    ];
+    final whereArgs = <Object?>[
+      afterSsId,
+      throughSsId,
+      if (sourceId != null) sourceId,
+      if (startedAfterSourceRowId != null) startedAfterSourceRowId,
+    ];
     final rows = await database.query(
       'messages',
       columns: <String>['ss_id', 'source_rowid', 'attributed_body_blob'],
       where: whereParts.join(' AND '),
       whereArgs: whereArgs,
-      orderBy: 'source_rowid ASC',
+      orderBy: 'ss_id ASC',
+      limit: limit,
     );
 
     return rows

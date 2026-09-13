@@ -7539,6 +7539,56 @@ void main() {
       },
     );
 
+    test('Source message and rich-text imports stay bounded', () async {
+      final messageImporter = await File(
+        'lib/essentials/source_scoped_import/application/messages/'
+        'message_importer.dart',
+      ).readAsString();
+      final sourceDatabase = await File(
+        'lib/essentials/source_scoped_import/infrastructure/source_database/'
+        'sqflite_source_database.dart',
+      ).readAsString();
+      final richTextEnricher = await File(
+        'lib/essentials/source_scoped_import/application/messages/'
+        'message_rich_text_enricher.dart',
+      ).readAsString();
+      final importLedgerContract = await File(
+        'lib/essentials/source_scoped_import/domain/ports/'
+        'import_ledger_port.dart',
+      ).readAsString();
+      final importDatabase = await File(
+        'lib/essentials/source_scoped_import/infrastructure/'
+        'import_database_provider.dart',
+      ).readAsString();
+
+      expect(messageImporter, isNot(contains('.rawQuery(')));
+      expect(messageImporter, contains('messageImportWindowAfter'));
+      expect(messageImporter, contains('readMessageImportPage'));
+      expect(sourceDatabase, isNot(contains('m.*')));
+      expect(sourceDatabase, contains('m.ROWID > ? AND m.ROWID <= ?'));
+      expect(sourceDatabase, contains('ORDER BY m.ROWID ASC LIMIT ?'));
+      expect(sourceDatabase, contains('_messageBlobPresenceExpression'));
+      expect(sourceDatabase, contains("'message_summary_info'"));
+      expect(sourceDatabase, contains("alias: 'has_message_summary_info'"));
+      expect(sourceDatabase, contains("'payload_data'"));
+      expect(sourceDatabase, contains("alias: 'has_payload_data_source'"));
+
+      expect(
+        importLedgerContract,
+        isNot(contains('findMessagesNeedingTextEnrichment')),
+      );
+      expect(importLedgerContract, contains('messageTextEnrichmentWindow'));
+      expect(importLedgerContract, contains('readMessageTextEnrichmentPage'));
+      expect(importDatabase.toUpperCase(), isNot(contains('OFFSET')));
+      expect(importDatabase, contains("orderBy: 'ss_id ASC'"));
+      expect(importDatabase, contains('limit: limit'));
+      expect(richTextEnricher, contains('candidate.ssId: candidate'));
+      expect(richTextEnricher, contains('extracted[candidate.ssId]'));
+      expect(richTextEnricher, contains('candidatePageSize'));
+      expect(richTextEnricher, contains('pageBlobByteTarget'));
+      expect(richTextEnricher, isNot(contains('extractionLimit')));
+    });
+
     test('Onboarding progress remains typed and service-owned', () async {
       final sourceContract = await File(
         'lib/essentials/source_scoped_import/application/'

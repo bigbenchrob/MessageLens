@@ -32,8 +32,15 @@ abstract interface class ImportLedger {
 
   Future<int?> maxAttachmentSourceRowIdForSource(int sourceId);
 
-  Future<List<ImportLedgerMessageTextCandidate>>
-  findMessagesNeedingTextEnrichment({
+  Future<ImportLedgerMessageTextWindow> messageTextEnrichmentWindow({
+    int? sourceId,
+    int? startedAfterSourceRowId,
+  });
+
+  Future<List<ImportLedgerMessageTextCandidate>> readMessageTextEnrichmentPage({
+    required int afterSsId,
+    required int throughSsId,
+    required int limit,
     int? sourceId,
     int? startedAfterSourceRowId,
   });
@@ -73,6 +80,16 @@ final class ImportLedgerMessageTextCandidate {
   final int ssId;
   final int sourceRowId;
   final Uint8List attributedBodyBlob;
+}
+
+final class ImportLedgerMessageTextWindow {
+  const ImportLedgerMessageTextWindow({
+    required this.candidateCount,
+    required this.highWaterSsId,
+  });
+
+  final int candidateCount;
+  final int? highWaterSsId;
 }
 
 final class ImportLedgerMessageStatusSnapshot {

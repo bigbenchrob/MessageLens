@@ -149,14 +149,14 @@ class RustMessageExtractor implements MessageExtractorPort {
 
   @override
   Future<Map<int, String>> extractMessageTextsFromBlobs(
-    Map<int, Uint8List> attributedBodyBlobsByRowId, {
+    Map<int, Uint8List> attributedBodyBlobsByWorkId, {
     MessageExtractionProgressObserver? onProgress,
   }) async {
     final map = <int, String>{};
     var completedWorkCount = 0;
-    final totalWorkCount = attributedBodyBlobsByRowId.length;
+    final totalWorkCount = attributedBodyBlobsByWorkId.length;
 
-    for (final entry in attributedBodyBlobsByRowId.entries) {
+    for (final entry in attributedBodyBlobsByWorkId.entries) {
       try {
         final decoded = rust_api
             .decodeTypedstreamBlob(blob: entry.value)
@@ -166,11 +166,8 @@ class RustMessageExtractor implements MessageExtractorPort {
         }
       } catch (error) {
         _warn(
-          'Rust blob extractor failed for attributed body row',
-          context: <String, dynamic>{
-            'sourceRowId': entry.key,
-            'error': '$error',
-          },
+          'Rust blob extractor failed for attributed body work item',
+          context: <String, dynamic>{'workId': entry.key, 'error': '$error'},
         );
       }
       completedWorkCount += 1;
@@ -179,7 +176,7 @@ class RustMessageExtractor implements MessageExtractorPort {
         onProgress?.call(
           completedWorkCount: completedWorkCount,
           totalWorkCount: totalWorkCount,
-          lastCompletedSourceRowId: entry.key,
+          lastCompletedWorkId: entry.key,
         );
         await Future<void>.delayed(Duration.zero);
       }

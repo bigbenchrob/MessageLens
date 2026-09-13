@@ -729,14 +729,16 @@ class _FakeExtractor implements MessageExtractorPort {
 
   @override
   Future<Map<int, String>> extractMessageTextsFromBlobs(
-    Map<int, Uint8List> attributedBodyBlobsByRowId, {
+    Map<int, Uint8List> attributedBodyBlobsByWorkId, {
     MessageExtractionProgressObserver? onProgress,
   }) async {
-    return Map<int, String>.fromEntries(
-      extracted.entries.where(
-        (entry) => attributedBodyBlobsByRowId.containsKey(entry.key),
-      ),
-    );
+    return <int, String>{
+      for (final workId in attributedBodyBlobsByWorkId.keys)
+        if (extracted[workId] ??
+                extracted[SourceScopedRowKey.unpackSourceRowId(workId)]
+            case final String value)
+          workId: value,
+    };
   }
 
   @override

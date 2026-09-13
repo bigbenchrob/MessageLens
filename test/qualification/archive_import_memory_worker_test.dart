@@ -67,8 +67,7 @@ void main() {
         expect(result.missingExtractionCount, 0);
         // This content-free line is retained by the parent harness as timing and
         // completion evidence. It contains no database path or message content.
-        // ignore: avoid_print
-        print(
+        stdout.writeln(
           'ML_MEMORY_RESULT candidates=$candidateCount '
           'elapsedMilliseconds=${stopwatch.elapsedMilliseconds}',
         );
@@ -155,11 +154,12 @@ final class _SyntheticExtractor implements MessageExtractorPort {
 
   @override
   Future<Map<int, String>> extractMessageTextsFromBlobs(
-    Map<int, Uint8List> attributedBodyBlobsByRowId, {
+    Map<int, Uint8List> attributedBodyBlobsByWorkId, {
     MessageExtractionProgressObserver? onProgress,
   }) async {
     return <int, String>{
-      for (final workId in attributedBodyBlobsByRowId.keys) workId: 'synthetic',
+      for (final workId in attributedBodyBlobsByWorkId.keys)
+        workId: 'synthetic',
     };
   }
 
