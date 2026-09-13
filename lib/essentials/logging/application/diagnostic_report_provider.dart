@@ -6,7 +6,9 @@ import '../../archive_environment/feature_level_providers.dart'
 import '../../db/feature_level_providers.dart'
     show databaseHealthAuditServiceProvider;
 import '../../onboarding/feature_level_providers.dart'
-    show startupValidationTelemetryProvider;
+    show
+        onboardingOperationControllerProvider,
+        startupValidationTelemetryProvider;
 import '../infrastructure/log_export_service.dart';
 import '../infrastructure/support_bundle_diagnostic_report_exporter.dart';
 import '../infrastructure/support_bundle_export_service.dart';
@@ -21,6 +23,9 @@ Future<DiagnosticReportExporter> diagnosticReportExporter(Ref ref) async {
   final databaseHealthAuditService = await ref.watch(
     databaseHealthAuditServiceProvider.future,
   );
+  final onboardingOperationController = await ref.watch(
+    onboardingOperationControllerProvider.future,
+  );
 
   return SupportBundleDiagnosticReportExporter(
     LogExportService(
@@ -29,6 +34,7 @@ Future<DiagnosticReportExporter> diagnosticReportExporter(Ref ref) async {
         databaseHealthAuditService,
         ref.watch(archiveAccessAuthorityProvider),
         ref.watch(startupValidationTelemetryProvider),
+        () => onboardingOperationController.current,
       ),
     ),
   );

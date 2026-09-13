@@ -11,6 +11,7 @@ import 'package:remember_this_text/essentials/logging/infrastructure/log_file_wr
 import 'package:remember_this_text/essentials/logging/infrastructure/support_bundle_export_service.dart';
 import 'package:remember_this_text/essentials/onboarding/application/startup_validation_telemetry_buffer.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/startup_validation_telemetry.dart';
 
@@ -280,6 +281,74 @@ void main() {
     expect(content, contains('startup_admission_decided'));
     expect(content, isNot(contains('not exported')));
   });
+
+  test('includes privacy-safe interrupted operation evidence', () async {
+    final tempDirectory = await Directory.systemTemp.createTemp(
+      'support_bundle_export_service_test_',
+    );
+    addTearDown(() async {
+      if (tempDirectory.existsSync()) {
+        await tempDirectory.delete(recursive: true);
+      }
+    });
+    final logDirectory = Directory('${tempDirectory.path}/logs')
+      ..createSync(recursive: true);
+    final snapshot = _interruptedRichTextSnapshot();
+    final service = SupportBundleExportService(
+      _FakeLogFileWriter(logDirectory),
+      DatabaseHealthAuditService(
+        hasFullDiskAccess: true,
+        queryLayers: const [],
+        runtimeEnvironment: const _FakeRuntimeEnvironment(),
+        reportWriter: const _FakeDatabaseHealthReportWriter(),
+      ),
+      _testAuthority(tempDirectory),
+      StartupValidationTelemetryBuffer(),
+      () => snapshot,
+    );
+
+    final result = await service.export();
+    final operationFile = File(
+      '${result.bundleDirectory.path}/onboarding_operation.json',
+    );
+    final content = await operationFile.readAsString();
+
+    expect(operationFile.existsSync(), isTrue);
+    expect(
+      result.attachmentFiles.map((file) => file.path),
+      contains(operationFile.path),
+    );
+    expect(content, contains('"status": "interrupted"'));
+    expect(content, contains('"substage": "extractingRichText"'));
+    expect(content, contains('"completed_work_units": 24000'));
+    expect(content, contains('"total_work_units": 123561'));
+    expect(content, isNot(contains('123e4567')));
+    expect(content, isNot(contains('last_completed_source_rowid')));
+  });
+}
+
+OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
+  final startedAt = DateTime.utc(2026, 9, 13, 12);
+  return OnboardingOperationSnapshot.running(
+        operationId: OnboardingOperationId(
+          '123e4567-e89b-42d3-a456-426614174000',
+        ),
+        processSessionId: OnboardingProcessSessionId(
+          '123e4567-e89b-42d3-a456-426614174001',
+        ),
+        kind: OnboardingOperationKind.initialImport,
+        stage: OnboardingOperationStage.messageDataBuild,
+        observedAtUtc: startedAt,
+      )
+      .observeProgress(
+        observedAtUtc: startedAt.add(const Duration(seconds: 1)),
+        substage: OnboardingOperationSubstage.extractingRichText,
+        progress: const OnboardingOperationProgress(
+          completedWorkUnits: 24000,
+          totalWorkUnits: 123561,
+        ),
+      )
+      .interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 2)));
 }
 
 ArchiveAccessAuthority _testAuthority(Directory root) {

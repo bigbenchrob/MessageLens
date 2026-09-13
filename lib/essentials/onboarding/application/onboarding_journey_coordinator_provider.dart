@@ -128,6 +128,9 @@ class OnboardingJourneyCoordinator extends _$OnboardingJourneyCoordinator {
       'shouldResetAppDatabasesBeforeImport':
           report?.shouldResetAppDatabasesBeforeImport,
       'resetAppDatabasesReason': report?.resetAppDatabasesReason,
+      'operationStatus': report?.operationSnapshot.status.name,
+      'operationStage': report?.operationSnapshot.currentStage?.name,
+      'operationSubstage': report?.operationSnapshot.currentSubstage?.name,
     };
 
     final logger = ref.read(appLoggerProvider.notifier);
@@ -200,6 +203,7 @@ class OnboardingJourneyCoordinator extends _$OnboardingJourneyCoordinator {
         return OnboardingOperationFailed(
           occurrence: occurrence,
           summary:
+              evidence.report.incompleteOperationSummary ??
               evidence.report.resetAppDatabasesReason ??
               'Existing derived data requires recovery before a fresh import.',
           compatibilityStatus: OnboardingStatus.awaitingUserAction,
@@ -213,6 +217,7 @@ class OnboardingJourneyCoordinator extends _$OnboardingJourneyCoordinator {
         return OnboardingOperationFailed(
           occurrence: occurrence,
           summary:
+              evidence.report.incompleteOperationSummary ??
               evidence.report.importFailureMessage ??
               evidence.report.graphProjectionFailureMessage ??
               'The previous onboarding operation did not finish.',
