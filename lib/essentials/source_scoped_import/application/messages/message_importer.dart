@@ -7,7 +7,10 @@ import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
 import '../../domain/source_scoped_row_key.dart';
+import '../source_import_page_metric.dart';
 import '../source_import_work_progress.dart';
+
+const int defaultMessageImportPageSize = 500;
 
 class MessageImportResult {
   const MessageImportResult({
@@ -29,31 +32,35 @@ class MessageImporter {
     required this.importLedger,
     required this.sourceDatabaseOpener,
     this.sourceId = liveChatDbSourceId,
+    this.pageSize = defaultMessageImportPageSize,
+    this.onPageMetric,
   });
 
   final String chatDbPath;
   final ImportLedger importLedger;
   final SourceDatabaseOpener sourceDatabaseOpener;
   final int sourceId;
+  final int pageSize;
+  final SourceImportPageMetricObserver? onPageMetric;
 
   Future<MessageImportResult> importNewMessages({
     SourceImportWorkObserver? onProgress,
   }) async {
+    if (pageSize <= 0) {
+      throw ArgumentError.value(pageSize, 'pageSize', 'must be greater than 0');
+    }
     final startedAfterSourceRowId =
         await importLedger.maxMessageSourceRowIdForSource(sourceId) ?? 0;
 
     final sourceDb = await sourceDatabaseOpener.openReadOnly(chatDbPath);
 
     try {
-      final rows = await sourceDb.rawQuery(
-        'SELECT m.ROWID AS source_rowid, m.*, '
-        'EXISTS(SELECT 1 FROM chat_message_join cmj '
-        'WHERE cmj.message_id = m.ROWID) AS has_chat_relationship '
-        'FROM message m WHERE m.ROWID > ? ORDER BY m.ROWID ASC',
-        <Object?>[startedAfterSourceRowId],
+      final window = await sourceDb.messageImportWindowAfter(
+        startedAfterSourceRowId,
       );
-
-      if (rows.isEmpty) {
+      final runHighWaterSourceRowId = window.highWaterSourceRowId;
+      final totalMessageCount = window.totalRowCount;
+      if (totalMessageCount == 0) {
         publishSourceImportProgress(
           observer: onProgress,
           unit: SourceImportWorkUnit.messages,
@@ -64,6 +71,13 @@ class MessageImporter {
           startedAfterSourceRowId: startedAfterSourceRowId,
           insertedMessageCount: 0,
           lastImportedSourceRowId: null,
+        );
+      }
+      if (runHighWaterSourceRowId == null) {
+        throw const SourceImportSystemicException(
+          unit: SourceImportWorkUnit.messages,
+          failureCode: 'source_message_window_invalid',
+          reason: 'The non-empty source message window has no high-water row.',
         );
       }
 
@@ -78,114 +92,181 @@ class MessageImporter {
       var recoveredUnlinkedMessageCount = 0;
       var unresolvedReactionTargetCount = 0;
       int? lastImportedSourceRowId;
-      final associatedTargetGuids = <String>{
-        for (final row in rows)
-          if (_nullableInt(row, 'associated_message_type') != null)
-            if (_nullableString(row, 'associated_message_guid')
-                case final String reference)
-              appleAssociatedMessageTargetGuid(reference),
-      };
-      final resolvedAssociatedTargetGuids = await _sourceMessageGuidsMatching(
-        sourceDb,
-        associatedTargetGuids,
-      );
+      var pageCursorSourceRowId = startedAfterSourceRowId;
+      var pageOrdinal = 0;
 
       publishSourceImportProgress(
         observer: onProgress,
         unit: SourceImportWorkUnit.messages,
         completedWorkCount: 0,
-        totalWorkCount: rows.length,
+        totalWorkCount: totalMessageCount,
       );
-      await importLedger.writeTransaction((txn) async {
-        for (final row in rows) {
-          int? sourceRowId;
-          try {
-            sourceRowId = _requiredInt(row, 'source_rowid');
-            lastImportedSourceRowId = sourceRowId;
-            final attributedBody = _nullableBlob(row, 'attributedBody');
-            final messageSummaryInfo = _nullableBlob(
-              row,
-              'message_summary_info',
-            );
-            final payloadData = _nullableBlob(row, 'payload_data');
 
-            final dateUtc = DateConverter.appleToIsoString(row['date']);
-            if (dateUtc == null) {
-              messageTimestampUnavailableCount += 1;
-            }
-            if (_nullableInt(row, 'has_chat_relationship') != 1) {
-              recoveredUnlinkedMessageCount += 1;
-            }
-            final associatedMessageReference = _nullableString(
-              row,
-              'associated_message_guid',
-            );
-            if (_nullableInt(row, 'associated_message_type') != null &&
-                associatedMessageReference != null &&
-                !resolvedAssociatedTargetGuids.contains(
-                  appleAssociatedMessageTargetGuid(associatedMessageReference),
-                )) {
-              unresolvedReactionTargetCount += 1;
-            }
-
-            final insertedId = await txn.insertIgnore('messages', <
-              String,
-              Object?
-            >{
-              'ss_id': SourceScopedRowKey.pack(
-                sourceId: sourceId,
-                sourceRowId: sourceRowId,
-              ),
-              'source_id': sourceId,
-              'source_rowid': sourceRowId,
-              'guid': _requiredString(row, 'guid'),
-              'sender_handle_ss_id': _senderHandleSsId(row),
-              'is_from_me': _boolInt(row, 'is_from_me'),
-              'date_utc': dateUtc,
-              'date_read_utc': DateConverter.appleToIsoString(row['date_read']),
-              'date_delivered_utc': DateConverter.appleToIsoString(
-                row['date_delivered'],
-              ),
-              'text': _nullableString(row, 'text'),
-              'attributed_body_blob': attributedBody,
-              'associated_message_guid': _nullableString(
-                row,
-                'associated_message_guid',
-              ),
-              'raw_item_type': _nullableInt(row, 'item_type'),
-              'raw_associated_message_type': _nullableInt(
-                row,
-                'associated_message_type',
-              ),
-              'thread_originator_guid': _nullableString(
-                row,
-                'thread_originator_guid',
-              ),
-              'error_code': _nullableInt(row, 'error'),
-              'is_system_message': _boolIntOrZero(row, 'is_system_message'),
-              'has_attributed_body_source': attributedBody == null ? 0 : 1,
-              'has_message_summary_info': messageSummaryInfo == null ? 0 : 1,
-              'has_payload_data_source': payloadData == null ? 0 : 1,
-              'batch_id': batchId,
-            });
-
-            if (insertedId != 0) {
-              insertedMessageCount += 1;
-            }
-          } on StateError catch (error) {
-            throw SourceImportRecordException(
+      while (pageCursorSourceRowId < runHighWaterSourceRowId) {
+        pageOrdinal += 1;
+        final stopwatch = Stopwatch()..start();
+        var pageRowCount = 0;
+        var pageBlobBytes = 0;
+        var maximumPageBlobBytes = 0;
+        try {
+          final rows = await sourceDb.readMessageImportPage(
+            afterSourceRowId: pageCursorSourceRowId,
+            throughSourceRowId: runHighWaterSourceRowId,
+            limit: pageSize,
+          );
+          if (rows.isEmpty) {
+            throw const SourceImportSystemicException(
               unit: SourceImportWorkUnit.messages,
-              sourceRowId: sourceRowId,
-              reason: error.message,
+              failureCode: 'source_message_window_changed',
+              reason: 'The frozen source message window changed during import.',
             );
           }
-          completedMessageCount += 1;
+          pageRowCount = rows.length;
+          final associatedTargetGuids = <String>{
+            for (final row in rows)
+              if (_nullableInt(row, 'associated_message_type') != null)
+                if (_nullableString(row, 'associated_message_guid')
+                    case final String reference)
+                  appleAssociatedMessageTargetGuid(reference),
+          };
+          final resolvedAssociatedTargetGuids = await sourceDb
+              .findExistingMessageGuids(associatedTargetGuids);
+
+          var pageInsertedMessageCount = 0;
+          var pageMessageTimestampUnavailableCount = 0;
+          var pageRecoveredUnlinkedMessageCount = 0;
+          var pageUnresolvedReactionTargetCount = 0;
+          int? pageLastSourceRowId;
+          await importLedger.writeTransaction((txn) async {
+            for (final row in rows) {
+              int? sourceRowId;
+              try {
+                sourceRowId = _requiredInt(row, 'source_rowid');
+                pageLastSourceRowId = sourceRowId;
+                final attributedBody = _nullableBlob(row, 'attributedBody');
+                if (attributedBody != null) {
+                  pageBlobBytes += attributedBody.length;
+                  if (attributedBody.length > maximumPageBlobBytes) {
+                    maximumPageBlobBytes = attributedBody.length;
+                  }
+                }
+
+                final dateUtc = DateConverter.appleToIsoString(row['date']);
+                if (dateUtc == null) {
+                  pageMessageTimestampUnavailableCount += 1;
+                }
+                if (_nullableInt(row, 'has_chat_relationship') != 1) {
+                  pageRecoveredUnlinkedMessageCount += 1;
+                }
+                final associatedMessageReference = _nullableString(
+                  row,
+                  'associated_message_guid',
+                );
+                if (_nullableInt(row, 'associated_message_type') != null &&
+                    associatedMessageReference != null &&
+                    !resolvedAssociatedTargetGuids.contains(
+                      appleAssociatedMessageTargetGuid(
+                        associatedMessageReference,
+                      ),
+                    )) {
+                  pageUnresolvedReactionTargetCount += 1;
+                }
+
+                final insertedId = await txn.insertIgnore('messages', <
+                  String,
+                  Object?
+                >{
+                  'ss_id': SourceScopedRowKey.pack(
+                    sourceId: sourceId,
+                    sourceRowId: sourceRowId,
+                  ),
+                  'source_id': sourceId,
+                  'source_rowid': sourceRowId,
+                  'guid': _requiredString(row, 'guid'),
+                  'sender_handle_ss_id': _senderHandleSsId(row),
+                  'is_from_me': _boolInt(row, 'is_from_me'),
+                  'date_utc': dateUtc,
+                  'date_read_utc': DateConverter.appleToIsoString(
+                    row['date_read'],
+                  ),
+                  'date_delivered_utc': DateConverter.appleToIsoString(
+                    row['date_delivered'],
+                  ),
+                  'text': _nullableString(row, 'text'),
+                  'attributed_body_blob': attributedBody,
+                  'associated_message_guid': associatedMessageReference,
+                  'raw_item_type': _nullableInt(row, 'item_type'),
+                  'raw_associated_message_type': _nullableInt(
+                    row,
+                    'associated_message_type',
+                  ),
+                  'thread_originator_guid': _nullableString(
+                    row,
+                    'thread_originator_guid',
+                  ),
+                  'error_code': _nullableInt(row, 'error'),
+                  'is_system_message': _boolIntOrZero(row, 'is_system_message'),
+                  'has_attributed_body_source': attributedBody == null ? 0 : 1,
+                  'has_message_summary_info': _boolIntOrZero(
+                    row,
+                    'has_message_summary_info',
+                  ),
+                  'has_payload_data_source': _boolIntOrZero(
+                    row,
+                    'has_payload_data_source',
+                  ),
+                  'batch_id': batchId,
+                });
+
+                if (insertedId != 0) {
+                  pageInsertedMessageCount += 1;
+                }
+              } on StateError catch (error) {
+                throw SourceImportRecordException(
+                  unit: SourceImportWorkUnit.messages,
+                  sourceRowId: sourceRowId,
+                  reason: error.message,
+                );
+              }
+            }
+          });
+
+          final durablePageLastSourceRowId = pageLastSourceRowId;
+          if (durablePageLastSourceRowId == null) {
+            throw const SourceImportSystemicException(
+              unit: SourceImportWorkUnit.messages,
+              failureCode: 'source_message_page_invalid',
+              reason: 'A non-empty source message page has no final row.',
+            );
+          }
+          pageCursorSourceRowId = durablePageLastSourceRowId;
+          lastImportedSourceRowId = durablePageLastSourceRowId;
+          insertedMessageCount += pageInsertedMessageCount;
+          completedMessageCount += rows.length;
+          messageTimestampUnavailableCount +=
+              pageMessageTimestampUnavailableCount;
+          recoveredUnlinkedMessageCount += pageRecoveredUnlinkedMessageCount;
+          unresolvedReactionTargetCount += pageUnresolvedReactionTargetCount;
+          stopwatch.stop();
+          onPageMetric?.call(
+            SourceImportPageMetric(
+              stage: SourceImportPageStage.messages,
+              outcome: SourceImportPageOutcome.completed,
+              pageOrdinal: pageOrdinal,
+              pageRowCount: pageRowCount,
+              cumulativeCompletedCount: completedMessageCount,
+              totalWorkCount: totalMessageCount,
+              totalBlobBytes: pageBlobBytes,
+              maximumBlobBytes: maximumPageBlobBytes,
+              elapsedMilliseconds: stopwatch.elapsedMilliseconds,
+            ),
+          );
           publishSourceImportProgress(
             observer: onProgress,
             unit: SourceImportWorkUnit.messages,
             completedWorkCount: completedMessageCount,
-            totalWorkCount: rows.length,
-            lastCompletedSourceRowId: sourceRowId,
+            totalWorkCount: totalMessageCount,
+            lastCompletedSourceRowId: durablePageLastSourceRowId,
             anomalyCounts: SourceImportAnomalyCounts(
               messageTimestampUnavailableCount:
                   messageTimestampUnavailableCount,
@@ -193,8 +274,35 @@ class MessageImporter {
               unresolvedReactionTargetCount: unresolvedReactionTargetCount,
             ),
           );
+        } catch (_) {
+          stopwatch.stop();
+          onPageMetric?.call(
+            SourceImportPageMetric(
+              stage: SourceImportPageStage.messages,
+              outcome: SourceImportPageOutcome.failed,
+              pageOrdinal: pageOrdinal,
+              pageRowCount: pageRowCount,
+              cumulativeCompletedCount: completedMessageCount,
+              totalWorkCount: totalMessageCount,
+              totalBlobBytes: pageBlobBytes,
+              maximumBlobBytes: maximumPageBlobBytes,
+              elapsedMilliseconds: stopwatch.elapsedMilliseconds,
+            ),
+          );
+          rethrow;
         }
-      });
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      if (completedMessageCount != totalMessageCount) {
+        throw SourceImportSystemicException(
+          unit: SourceImportWorkUnit.messages,
+          failureCode: 'source_message_window_count_changed',
+          reason:
+              'Expected $totalMessageCount source messages but completed '
+              '$completedMessageCount.',
+        );
+      }
 
       return MessageImportResult(
         startedAfterSourceRowId: startedAfterSourceRowId,
@@ -209,33 +317,6 @@ class MessageImporter {
     } finally {
       await sourceDb.close();
     }
-  }
-
-  static Future<Set<String>> _sourceMessageGuidsMatching(
-    ReadOnlySourceDatabase sourceDb,
-    Set<String> targetGuids,
-  ) async {
-    const queryChunkSize = 500;
-    final targets = targetGuids.toList(growable: false);
-    final matches = <String>{};
-
-    for (var start = 0; start < targets.length; start += queryChunkSize) {
-      final chunkEnd = start + queryChunkSize;
-      final end = chunkEnd < targets.length ? chunkEnd : targets.length;
-      final chunk = targets.sublist(start, end);
-      final placeholders = List<String>.filled(chunk.length, '?').join(', ');
-      final rows = await sourceDb.rawQuery(
-        'SELECT guid FROM message WHERE guid IN ($placeholders)',
-        chunk.cast<Object?>(),
-      );
-      for (final row in rows) {
-        if (_nullableString(row, 'guid') case final String guid) {
-          matches.add(guid);
-        }
-      }
-    }
-
-    return matches;
   }
 
   int? _senderHandleSsId(Map<String, Object?> row) {

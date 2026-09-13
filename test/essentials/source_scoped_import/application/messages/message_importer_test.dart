@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/core/util/date_converter.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_importer.dart';
+import 'package:remember_this_text/essentials/source_scoped_import/application/source_import_page_metric.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/source_import_work_progress.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/known_sources.dart';
+import 'package:remember_this_text/essentials/source_scoped_import/domain/ports/source_database_port.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/infrastructure/import_database_provider.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/infrastructure/source_database/sqflite_source_database.dart';
@@ -360,6 +362,173 @@ void main() {
     expect(observations.single.completedWorkCount, 0);
     expect(await importDatabase.database.query('messages'), isEmpty);
   });
+
+  test('imports sparse page-plus-one rows in bounded transactions', () async {
+    for (final rowId in <int>[1, 7, 20]) {
+      await _insertSourceMessage(
+        chatDbPath,
+        rowId: rowId,
+        guid: 'message-$rowId',
+        handleId: 0,
+        isFromMe: 0,
+        attributedBody: Uint8List(rowId),
+      );
+    }
+    final metrics = <SourceImportPageMetric>[];
+
+    final result = await MessageImporter(
+      chatDbPath: chatDbPath,
+      importLedger: importDatabase,
+      sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+      pageSize: 2,
+      onPageMetric: metrics.add,
+    ).importNewMessages();
+
+    expect(result.insertedMessageCount, 3);
+    expect(result.lastImportedSourceRowId, 20);
+    expect(metrics.map((metric) => metric.pageRowCount), <int>[2, 1]);
+    expect(metrics.map((metric) => metric.cumulativeCompletedCount), <int>[
+      2,
+      3,
+    ]);
+    expect(metrics.map((metric) => metric.totalWorkCount).toSet(), <int>{3});
+    expect(metrics.map((metric) => metric.totalBlobBytes), <int>[8, 20]);
+    expect(metrics.map((metric) => metric.outcome).toSet(), <Object>{
+      SourceImportPageOutcome.completed,
+    });
+  });
+
+  test(
+    'defers rows above the frozen high-water mark to the next run',
+    () async {
+      for (final rowId in <int>[1, 2]) {
+        await _insertSourceMessage(
+          chatDbPath,
+          rowId: rowId,
+          guid: 'message-$rowId',
+          handleId: 0,
+          isFromMe: 0,
+        );
+      }
+      final mutatingOpener = _MutatingSourceDatabaseOpener(
+        onFirstPageRead: () {
+          return _insertSourceMessage(
+            chatDbPath,
+            rowId: 100,
+            guid: 'message-100',
+            handleId: 0,
+            isFromMe: 0,
+          );
+        },
+      );
+
+      final first = await MessageImporter(
+        chatDbPath: chatDbPath,
+        importLedger: importDatabase,
+        sourceDatabaseOpener: mutatingOpener,
+        pageSize: 1,
+      ).importNewMessages();
+      final second = await MessageImporter(
+        chatDbPath: chatDbPath,
+        importLedger: importDatabase,
+        sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+        pageSize: 1,
+      ).importNewMessages();
+
+      expect(first.insertedMessageCount, 2);
+      expect(first.lastImportedSourceRowId, 2);
+      expect(second.startedAfterSourceRowId, 2);
+      expect(second.insertedMessageCount, 1);
+      expect(second.lastImportedSourceRowId, 100);
+    },
+  );
+
+  test('committed pages survive a later page rollback and retry', () async {
+    for (final rowId in <int>[1, 2, 3, 4, 5, 7]) {
+      await _insertSourceMessage(
+        chatDbPath,
+        rowId: rowId,
+        guid: 'message-$rowId',
+        handleId: 0,
+        isFromMe: 0,
+      );
+    }
+    await _insertSourceMessage(
+      chatDbPath,
+      rowId: 6,
+      guid: null,
+      handleId: 0,
+      isFromMe: 0,
+    );
+    final metrics = <SourceImportPageMetric>[];
+
+    await expectLater(
+      MessageImporter(
+        chatDbPath: chatDbPath,
+        importLedger: importDatabase,
+        sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+        pageSize: 2,
+        onPageMetric: metrics.add,
+      ).importNewMessages(),
+      throwsA(isA<SourceImportRecordException>()),
+    );
+    expect(
+      (await importDatabase.database.query(
+        'messages',
+        columns: <String>['source_rowid'],
+        orderBy: 'source_rowid ASC',
+      )).map((row) => row['source_rowid']),
+      <Object?>[1, 2, 3, 4],
+    );
+    expect(metrics.map((metric) => metric.outcome), <Object>[
+      SourceImportPageOutcome.completed,
+      SourceImportPageOutcome.completed,
+      SourceImportPageOutcome.failed,
+    ]);
+    expect(metrics.last.cumulativeCompletedCount, 4);
+    expect(metrics.last.pageRowCount, 2);
+
+    await _updateSourceMessageGuid(chatDbPath, rowId: 6, guid: 'message-6');
+    final retry = await MessageImporter(
+      chatDbPath: chatDbPath,
+      importLedger: importDatabase,
+      sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+      pageSize: 2,
+    ).importNewMessages();
+
+    expect(retry.startedAfterSourceRowId, 4);
+    expect(retry.insertedMessageCount, 3);
+    expect(await importDatabase.database.query('messages'), hasLength(7));
+  });
+
+  test('resolves association targets beyond the current page', () async {
+    await _insertSourceMessage(
+      chatDbPath,
+      rowId: 1,
+      guid: 'reaction-1',
+      handleId: 0,
+      isFromMe: 0,
+      associatedMessageGuid: 'p:0/target-100',
+      associatedMessageType: 2000,
+    );
+    await _insertSourceMessage(
+      chatDbPath,
+      rowId: 100,
+      guid: 'target-100',
+      handleId: 0,
+      isFromMe: 0,
+    );
+
+    final result = await MessageImporter(
+      chatDbPath: chatDbPath,
+      importLedger: importDatabase,
+      sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+      pageSize: 1,
+    ).importNewMessages();
+
+    expect(result.insertedMessageCount, 2);
+    expect(result.anomalyCounts.unresolvedReactionTargetCount, 0);
+  });
 }
 
 Future<void> _createSourceMessageTable(String chatDbPath) async {
@@ -457,4 +626,91 @@ Future<void> _insertLedgerMessage(
     'is_from_me': 0,
     'batch_id': batchId,
   });
+}
+
+Future<void> _updateSourceMessageGuid(
+  String chatDbPath, {
+  required int rowId,
+  required String guid,
+}) async {
+  final db = await openDatabase(chatDbPath);
+  await db.update(
+    'message',
+    <String, Object?>{'guid': guid},
+    where: 'ROWID = ?',
+    whereArgs: <Object?>[rowId],
+  );
+  await db.close();
+}
+
+final class _MutatingSourceDatabaseOpener implements SourceDatabaseOpener {
+  _MutatingSourceDatabaseOpener({required this.onFirstPageRead});
+
+  final Future<void> Function() onFirstPageRead;
+
+  @override
+  Future<ReadOnlySourceDatabase> openReadOnly(String databasePath) async {
+    final delegate = await const SqfliteSourceDatabaseOpener().openReadOnly(
+      databasePath,
+    );
+    return _MutatingReadOnlySourceDatabase(
+      delegate: delegate,
+      onFirstPageRead: onFirstPageRead,
+    );
+  }
+}
+
+final class _MutatingReadOnlySourceDatabase implements ReadOnlySourceDatabase {
+  _MutatingReadOnlySourceDatabase({
+    required this.delegate,
+    required this.onFirstPageRead,
+  });
+
+  final ReadOnlySourceDatabase delegate;
+  final Future<void> Function() onFirstPageRead;
+  var _pageReadCount = 0;
+
+  @override
+  Future<void> close() => delegate.close();
+
+  @override
+  Future<Set<String>> findExistingMessageGuids(Set<String> targetGuids) {
+    return delegate.findExistingMessageGuids(targetGuids);
+  }
+
+  @override
+  Future<SourceMessageImportWindow> messageImportWindowAfter(int sourceRowId) {
+    return delegate.messageImportWindowAfter(sourceRowId);
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> query(String table, {String? orderBy}) {
+    return delegate.query(table, orderBy: orderBy);
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]) {
+    return delegate.rawQuery(sql, arguments);
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> readMessageImportPage({
+    required int afterSourceRowId,
+    required int throughSourceRowId,
+    required int limit,
+  }) async {
+    final rows = await delegate.readMessageImportPage(
+      afterSourceRowId: afterSourceRowId,
+      throughSourceRowId: throughSourceRowId,
+      limit: limit,
+    );
+    _pageReadCount += 1;
+    if (_pageReadCount == 1) {
+      await onFirstPageRead();
+    }
+    return rows;
+  }
 }

@@ -72,6 +72,25 @@ final class _FakeSourceDatabase implements ReadOnlySourceDatabase {
   }
 
   @override
+  Future<SourceMessageImportWindow> messageImportWindowAfter(int sourceRowId) {
+    throw StateError('message import is not used');
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> readMessageImportPage({
+    required int afterSourceRowId,
+    required int throughSourceRowId,
+    required int limit,
+  }) {
+    throw StateError('message import is not used');
+  }
+
+  @override
+  Future<Set<String>> findExistingMessageGuids(Set<String> targetGuids) {
+    throw StateError('message import is not used');
+  }
+
+  @override
   Future<List<Map<String, Object?>>> rawQuery(
     String statement, [
     List<Object?>? arguments,
