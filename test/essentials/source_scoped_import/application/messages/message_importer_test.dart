@@ -398,6 +398,34 @@ void main() {
     });
   });
 
+  test('exposes the bounded page before-persistence boundary', () async {
+    for (final rowId in <int>[1, 2, 3]) {
+      await _insertSourceMessage(
+        chatDbPath,
+        rowId: rowId,
+        guid: 'message-$rowId',
+        handleId: 0,
+        isFromMe: 0,
+      );
+    }
+    final observations = <MessageImportPageBoundaryObservation>[];
+
+    await MessageImporter(
+      chatDbPath: chatDbPath,
+      importLedger: importDatabase,
+      sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+      pageSize: 2,
+      onPageBoundary: observations.add,
+    ).importNewMessages();
+
+    expect(observations.map((value) => value.pageOrdinal), <int>[1, 2]);
+    expect(observations.map((value) => value.cumulativeCommittedCount), <int>[
+      0,
+      2,
+    ]);
+    expect(observations.map((value) => value.pageRowCount), <int>[2, 1]);
+  });
+
   test(
     'defers rows above the frozen high-water mark to the next run',
     () async {

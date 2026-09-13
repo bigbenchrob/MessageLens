@@ -28,6 +28,25 @@ class MessageRichTextEnrichmentResult {
   final SourceImportAnomalyCounts anomalyCounts;
 }
 
+enum MessageRichTextPageBoundary { decodedBeforePersistence }
+
+final class MessageRichTextPageBoundaryObservation {
+  const MessageRichTextPageBoundaryObservation({
+    required this.boundary,
+    required this.pageOrdinal,
+    required this.pageRowCount,
+    required this.cumulativeCommittedCount,
+  });
+
+  final MessageRichTextPageBoundary boundary;
+  final int pageOrdinal;
+  final int pageRowCount;
+  final int cumulativeCommittedCount;
+}
+
+typedef MessageRichTextPageBoundaryObserver =
+    void Function(MessageRichTextPageBoundaryObservation observation);
+
 class MessageRichTextEnricher {
   const MessageRichTextEnricher({
     required this.chatDbPath,
@@ -37,6 +56,7 @@ class MessageRichTextEnricher {
     this.pageBlobByteTarget = defaultRichTextPageBlobByteTarget,
     this.maximumAttributedBodyBlobBytes = defaultMaximumAttributedBodyBlobBytes,
     this.onPageMetric,
+    this.onPageBoundary,
   });
 
   final String chatDbPath;
@@ -46,6 +66,7 @@ class MessageRichTextEnricher {
   final int pageBlobByteTarget;
   final int maximumAttributedBodyBlobBytes;
   final SourceImportPageMetricObserver? onPageMetric;
+  final MessageRichTextPageBoundaryObserver? onPageBoundary;
 
   Future<MessageRichTextEnrichmentResult> enrichMissingText({
     SourceImportWorkObserver? onProgress,
@@ -242,6 +263,15 @@ class MessageRichTextEnricher {
                         );
                       },
                 );
+
+          onPageBoundary?.call(
+            MessageRichTextPageBoundaryObservation(
+              boundary: MessageRichTextPageBoundary.decodedBeforePersistence,
+              pageOrdinal: decoderPageOrdinal,
+              pageRowCount: decoderPage.length,
+              cumulativeCommittedCount: completedCandidateCount,
+            ),
+          );
 
           var pageEnrichedMessageCount = 0;
           var pageMissingExtractionCount = 0;

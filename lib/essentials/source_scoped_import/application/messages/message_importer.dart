@@ -26,6 +26,25 @@ class MessageImportResult {
   final SourceImportAnomalyCounts anomalyCounts;
 }
 
+enum MessageImportPageBoundary { beforePersistence }
+
+final class MessageImportPageBoundaryObservation {
+  const MessageImportPageBoundaryObservation({
+    required this.boundary,
+    required this.pageOrdinal,
+    required this.pageRowCount,
+    required this.cumulativeCommittedCount,
+  });
+
+  final MessageImportPageBoundary boundary;
+  final int pageOrdinal;
+  final int pageRowCount;
+  final int cumulativeCommittedCount;
+}
+
+typedef MessageImportPageBoundaryObserver =
+    void Function(MessageImportPageBoundaryObservation observation);
+
 class MessageImporter {
   const MessageImporter({
     required this.chatDbPath,
@@ -34,6 +53,7 @@ class MessageImporter {
     this.sourceId = liveChatDbSourceId,
     this.pageSize = defaultMessageImportPageSize,
     this.onPageMetric,
+    this.onPageBoundary,
   });
 
   final String chatDbPath;
@@ -42,6 +62,7 @@ class MessageImporter {
   final int sourceId;
   final int pageSize;
   final SourceImportPageMetricObserver? onPageMetric;
+  final MessageImportPageBoundaryObserver? onPageBoundary;
 
   Future<MessageImportResult> importNewMessages({
     SourceImportWorkObserver? onProgress,
@@ -137,6 +158,14 @@ class MessageImporter {
           var pageRecoveredUnlinkedMessageCount = 0;
           var pageUnresolvedReactionTargetCount = 0;
           int? pageLastSourceRowId;
+          onPageBoundary?.call(
+            MessageImportPageBoundaryObservation(
+              boundary: MessageImportPageBoundary.beforePersistence,
+              pageOrdinal: pageOrdinal,
+              pageRowCount: rows.length,
+              cumulativeCommittedCount: completedMessageCount,
+            ),
+          );
           await importLedger.writeTransaction((txn) async {
             for (final row in rows) {
               int? sourceRowId;

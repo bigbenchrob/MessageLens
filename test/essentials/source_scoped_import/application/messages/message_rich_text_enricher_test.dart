@@ -422,6 +422,41 @@ void main() {
     );
   });
 
+  test('exposes decoded-before-persistence qualification boundary', () async {
+    for (var rowId = 1; rowId <= 3; rowId += 1) {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: rowId,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[rowId]),
+      );
+    }
+    final observations = <MessageRichTextPageBoundaryObservation>[];
+
+    await MessageRichTextEnricher(
+      chatDbPath: '/fake/chat.db',
+      importLedger: importDatabase,
+      extractor: _RecordingExtractor(),
+      candidatePageSize: 2,
+      onPageBoundary: observations.add,
+    ).enrichMissingText();
+
+    expect(observations.map((observation) => observation.pageOrdinal), <int>[
+      1,
+      2,
+    ]);
+    expect(
+      observations.map((observation) => observation.cumulativeCommittedCount),
+      <int>[0, 2],
+    );
+    expect(
+      observations.map((observation) => observation.boundary).toSet(),
+      <MessageRichTextPageBoundary>{
+        MessageRichTextPageBoundary.decodedBeforePersistence,
+      },
+    );
+  });
+
   test('retry skips a page committed just before interruption', () async {
     for (var rowId = 1; rowId <= 5; rowId += 1) {
       await _insertImportMessage(
