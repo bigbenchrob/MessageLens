@@ -232,7 +232,10 @@ void main() {
       expect(extractor.calls, hasLength(1));
       expect(_totalBlobBytes(extractor.calls.single), 4);
       expect(rows.first['text'], isNull);
-      expect((rows.first['attributed_body_blob'] as Uint8List), hasLength(9));
+      expect(
+        rows.first['attributed_body_blob'],
+        isA<Uint8List>().having((blob) => blob.length, 'length', 9),
+      );
       expect(rows.last['text'], 'decoded');
     },
   );

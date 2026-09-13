@@ -94,8 +94,10 @@ final class _SqfliteReadOnlySourceDatabase implements ReadOnlySourceDatabase {
         'payload_data',
         alias: 'has_payload_data_source',
       ),
-      'EXISTS(SELECT 1 FROM chat_message_join cmj '
-          'WHERE cmj.message_id = m.ROWID) AS has_chat_relationship',
+      <String>[
+        'EXISTS(SELECT 1 FROM chat_message_join cmj',
+        'WHERE cmj.message_id = m.ROWID) AS has_chat_relationship',
+      ].join(' '),
     ].join(', ');
     return _database.rawQuery(
       'SELECT '
