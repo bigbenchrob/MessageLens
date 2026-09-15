@@ -112,6 +112,10 @@ class OnboardingOverlay extends ConsumerWidget {
                       report: report,
                       colors: colors,
                       typography: typography,
+                      operationFailureSummary:
+                          journey is OnboardingOperationFailed
+                          ? journey.summary
+                          : null,
                       retriesFailedOperation:
                           journey is OnboardingOperationFailed,
                     ),
@@ -767,6 +771,23 @@ _AwaitingUserActionPresentation _awaitingUserActionPresentation(
       primaryActionLabel: 'Import My Messages',
       icon: Icons.message_rounded,
       iconKind: _PresentationIconKind.primary,
+    );
+  }
+
+  final incompleteOperationSummary = report.incompleteOperationSummary;
+  if (incompleteOperationSummary != null &&
+      (report.state == OnboardingEnvironmentState.importFailed ||
+          report.state == OnboardingEnvironmentState.graphProjectionFailed)) {
+    return _AwaitingUserActionPresentation(
+      title: 'Setup was interrupted',
+      body: incompleteOperationSummary,
+      notes: const [],
+      canImportImmediately: true,
+      canSendDiagnosticReport: true,
+      allowsManualImport: false,
+      primaryActionLabel: 'Continue Setup',
+      icon: Icons.sync_problem_rounded,
+      iconKind: _PresentationIconKind.warning,
     );
   }
 

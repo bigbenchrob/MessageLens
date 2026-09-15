@@ -2,26 +2,28 @@
 tier: project
 scope: build
 owner: agent-per-project
-last_reviewed: 2026-06-14
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
-  - ../../lib/main.dart
-  - ../../macos/Runner.xcodeproj/project.pbxproj
-  - ../../lib/frb_generated.dart
+  - ../../../lib/main.dart
+  - ../../../macos/Runner.xcodeproj/project.pbxproj
+  - ../../../lib/frb_generated.dart
+  - ../20-DATA-IMPORT-MIGRATION/11-rust-message-extractor.md
 tests: []
 ---
 
 # Rust FFI Dylib Bundling for macOS Release Builds
 
-> Current conformance note (2026-06-14): the checked-in Xcode project still
+> Current conformance note (2026-09-15): the checked-in Xcode project still
 > uses the bundle-aware Dart loader and the "Bundle Rust FFI Library" build
-> phase described here. The adjacent "Bundle Rust Message Extractor" build
-> phase separately copies the command-line extractor used for attributed-body
-> decoding.
+> phase described here. Active attributed-body decoding uses this FFI library.
+> The adjacent "Bundle Rust Message Extractor" phase copies a separately
+> retained compatibility executable; current live/archive enrichment does not
+> invoke it.
 
 ## TL;DR
 
-`flutter_rust_bridge` (FRB) resolves the Rust `.dylib` using `Directory.current` (the process CWD). During development the CWD is the project root, so the relative path works. **When launched via Finder / Dock / `open` command, macOS LaunchServices sets CWD to `/`, and the dylib is never found.** The `RustLib.init()` call hangs forever — no timeout, no exception — producing a permanent black window.
+`flutter_rust_bridge` (FRB) resolves the Rust `.dylib` using `Directory.current` (the process CWD). During development the CWD is the project root, so the relative path works. **When launched via Finder / Dock / `open` command, macOS LaunchServices sets CWD to `/`, and the dylib is never found.** The `RustLib.init()` call can prevent normal initialization from reaching the first useful frame.
 
 **Solution**: Two-part fix:
 1. **Dart side** (`lib/main.dart`): resolve the dylib from the app bundle's `Frameworks/` directory before falling back to the default FRB loader.
@@ -189,14 +191,25 @@ fi
 
 ## Prerequisites
 
-The Rust crate must be pre-built before running `flutter build macos`:
+The active Rust FFI crate must be pre-built before running
+`flutter build macos`:
 
 ```bash
 cd rust/rust/attributed-string-decoder
 cargo build --release
 ```
 
-The build phase expects the dylib at `rust/rust/attributed-string-decoder/target/release/libattributed_string_decoder.dylib`. If it's missing, the phase prints a warning and the app launches without Rust support (URL preview parsing unavailable).
+The build phase expects the dylib at
+`rust/rust/attributed-string-decoder/target/release/libattributed_string_decoder.dylib`.
+If it is missing, the phase prints a warning. Rust-backed URL preview parsing
+is unavailable, and the rich-text enricher's in-process decoder smoke check
+fails systemically instead of silently completing with empty text.
+
+The FFI decoder also owns the typedstream resource envelope (8 MiB input,
+bounded control/reference structure, 256 property depth, and 65,536 resolved
+nodes). Rebuilding the dylib is therefore required whenever that decoder code
+changes. See
+[`11-rust-message-extractor.md`](../20-DATA-IMPORT-MIGRATION/11-rust-message-extractor.md).
 
 ---
 
@@ -231,7 +244,9 @@ This section documents the debugging journey that led to the root cause discover
 - **Affected**: Any macOS release build launched via Finder, Dock, `open` command, or LaunchServices
 - **Not affected**: Development builds (`flutter run -d macos`), terminal-launched release builds
 - **FRB version**: v2.11.1 (may be fixed in future versions — check `ExternalLibraryLoaderConfig` behavior)
-- **Risk**: If the Rust crate is not pre-built, the dylib won't be bundled and dylib-backed Rust features such as URL preview parsing will be unavailable — but the app will launch normally
+- **Risk**: If the Rust crate is not pre-built, the active FFI decoder is not
+  bundled. Rust-backed features become unavailable and attributed-body
+  enrichment fails its run-wide availability check.
 
 ---
 

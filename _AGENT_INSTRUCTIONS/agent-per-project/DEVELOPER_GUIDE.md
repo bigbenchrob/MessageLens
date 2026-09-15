@@ -2,7 +2,7 @@
 tier: project
 scope: developer-guide
 owner: agent-per-project
-last_reviewed: 2026-07-19
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./00-START-HERE.md
@@ -13,6 +13,7 @@ links:
   - ./40-FEATURES/search/INTERACTIONS_AND_NAVIGATION.md
   - ./55-READERS-INTEGRATORS-ORCHESTRATORS/69-MESSAGE-EVIDENCE-SPINE-INVARIANT.md
   - ./95-WALK-UI-TREE/README.md
+  - ./20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
 tests: []
 ---
 
@@ -143,6 +144,14 @@ control.
 
 Source-scoped import preserves source facts with stable provenance. It should
 not decide final user meaning.
+
+Import scale must not determine process memory. Message copy freezes a
+source-row high-water mark and commits keyset pages; attributed-body enrichment
+uses its own frozen `ss_id` frontier, metadata-only pages, byte-bounded BLOB
+subpages, and a resource-limited native decoder. Their durable frontiers are
+separate. The source-scoped `ss_id` carried from selection through persistence
+is the identity that makes that separation safe. See
+`./20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`.
 
 Graph projection turns source facts into the app's ordinary working graph:
 messages, handles, contacts, conversations, topology, and evidence paths.

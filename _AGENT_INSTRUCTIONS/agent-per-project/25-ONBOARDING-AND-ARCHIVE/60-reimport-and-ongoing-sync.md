@@ -24,6 +24,11 @@ an immediate catch-up check before periodic polling begins.
    `archiveGraphMessageSourceRange(...)`.
 3. Bump graph/message data version signals so data-dependent providers rebuild.
 
+The graph build uses a frozen source `ROWID` high-water and keyset-paged message
+reads. Attributed-body enrichment then uses a frozen candidate `ss_id`
+high-water, metadata pages, byte-bounded decoder sub-pages, and per-page
+persistence. Auto-sync does not use a reduced-safety or whole-corpus path.
+
 In parallel with message polling, the monitor also runs a 5-minute attachment
 maintenance sweep with `archiveNextGraphSweepChunk()`.
 
@@ -39,6 +44,8 @@ maintenance sweep with `archiveNextGraphSweepChunk()`.
 - If `chat.db` is locked by another process, the poll retries on the next cycle
 - The monitor initializes on macOS and is meaningful after import data exists
 - It uses a debounce and in-flight guard so overlapping probes coalesce
+- Rows arriving above an active import run's frozen high-water wait for the
+  next probe by design
 
 ## Manual Re-Import
 
@@ -51,19 +58,20 @@ User navigates to Settings and clicks "Re-scan & Import."
 ```
 Settings → "Re-scan & Import"
   │
-  ├─ OnboardingGate.startReimport()
+  ├─ OnboardingJourneyCoordinator.startReimport()
+  │   └─ OnboardingGate may forward established callers' intent
   │
-  ├─ status = reimporting
+  ├─ compatibility status = reimporting
   │   └─ Derived data is prepared/reset as needed
   │   └─ No separate readiness gate is shown
   │   └─ No welcome preamble in overlay
   │
-  ├─ status = reimportBuildingGraph
+  ├─ compatibility status = reimportBuildingGraph
   │   └─ ConversationGraphBuildController rebuilds the source-scoped graph
   │   └─ working_ss graph tables are rebuilt from source-scoped import facts
   │   └─ graph archive maintenance runs after successful build
   │
-  └─ status = reimportComplete
+  └─ compatibility status = reimportComplete
       └─ Summary shown, "Done" button
 ```
 
@@ -88,6 +96,9 @@ Common reasons a user might re-import:
 - Archived payloads are preservation data, not a reimport source that may be
   discarded and recreated. See
   [`ATTACHMENT-PRESERVATION-INVARIANT.md`](ATTACHMENT-PRESERVATION-INVARIANT.md).
+- Message and rich-text rebuilding retains the same page/checkpoint bounds used
+  by initial import and ongoing sync. See
+  [`12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md).
 
 ## Archive Maintenance During Sync
 
@@ -122,3 +133,5 @@ Each auto-sync cycle maintains the living archive:
 | `lib/essentials/onboarding/application/onboarding_gate_provider.dart` | `startReimport()` trigger |
 | `lib/essentials/conversation_graph/application/orchestrators/conversation_graph_build_controller_provider.dart` | Source-scoped graph build/rebuild lifecycle |
 | `lib/features/attachments/application/attachment_archive_service_provider.dart` | `archiveGraphMessageSourceRange()`, graph sweeps, typed archive compatibility lookup |
+| `lib/essentials/source_scoped_import/application/messages/message_importer.dart` | Frozen-window, keyset-paged source message import |
+| `lib/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart` | Frozen-window, row/byte-bounded attributed-body enrichment |

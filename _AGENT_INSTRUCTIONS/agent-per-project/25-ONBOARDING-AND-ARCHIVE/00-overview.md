@@ -37,7 +37,9 @@ import, graph build, completion, and reimport completion.
 
 | File | Role |
 |------|------|
-| `onboarding_gate_provider.dart` | State machine tracking 10 lifecycle states |
+| `onboarding_journey_coordinator_provider.dart` | Sole typed Journey transition and operation authority |
+| `onboarding_gate_provider.dart` | Read-only compatibility projection and action forwarding seam |
+| `onboarding_operation_snapshot.dart` | Persisted operation stage, exact substage, progress, interruption, and recovery truth |
 | `onboarding_overlay.dart` | Full-window blocking overlay for workflow phases |
 | `onboarding_dev_panel.dart` | Development/simulation controls and graph build status |
 | `database_existence_checker.dart` | Filesystem-only DB presence check |
@@ -89,6 +91,14 @@ environment and classifies the result into user-facing states:
 content for `EnvironmentReadinessSpec.readinessPanel`. Essentials owns the
 onboarding gate, panel-stack synchronization, active sidebar mode, and sidebar
 parking.
+
+The environment state is intentionally coarse. Exact active or interrupted
+work comes from the persisted `OnboardingOperationSnapshot`, which distinguishes
+message import, attributed-body extraction, rich-text persistence, individual
+relationship imports, graph projection units, and final durable verification.
+An interrupted exact substage remains resumable even if older durable database
+evidence also causes the environment report to classify the installation as
+`graphProjectionFailed`.
 
 ---
 
@@ -184,9 +194,10 @@ The onboarding pipeline today works as follows:
 2. **FDA/user-action gate** → `OnboardingCenterPanelSyncObserver` projects
    `awaitingFda` and `awaitingUserAction` into the center panel with
    `ViewSpec.environmentReadiness`
-3. **Recovery gate** → if incomplete partial app databases are detected,
-   `OnboardingGate` can enter `recoveringFailedAttempt` and reset app-owned
-   import/working data before returning to user action
+3. **Recovery reconciliation** → persisted operation status and exact substage
+   are reconciled with durable store evidence; committed bounded work remains
+   resumable and the UI offers `Continue Setup`. Reset is reserved for the
+   separately classified preservation-safe derived-data recovery path.
 4. **Graph build** → `ConversationGraphBuildController` runs the
    source-scoped import/projection lifecycle, producing `macos_import_ss.db`
    and `working_ss.db`
@@ -196,8 +207,11 @@ The onboarding pipeline today works as follows:
    after archive/recovery rebuilds
 6. **Completion** → overlay shows summary, user clicks "Get Started"
 7. **Ongoing** → `ChatDbChangeMonitor` polls `chat.db` every 15 seconds by
-   source `MAX(ROWID)`, running the source-scoped graph lifecycle for new
-   rows and maintaining the archive
+   source `MAX(ROWID)`, running the same frozen-high-water, keyset-paged
+   source-scoped graph lifecycle for new rows and maintaining the archive
 
 Historical recovery from a backup snapshot is available as a separate
 user-initiated flow via the Settings panel.
+
+The canonical paging, checkpoint, decoder, and `ss_id` contract is
+[`12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md).

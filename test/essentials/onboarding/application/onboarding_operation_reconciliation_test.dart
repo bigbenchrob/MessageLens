@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_operation_reconciliation.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_operation_snapshot_controller.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 
 void main() {
   test('ready environment supplies durable completion proof', () {
@@ -80,6 +81,19 @@ void main() {
     );
     expect(graphEvidence.failureSummary, 'graph build failed');
   });
+
+  test('an exact interrupted substage remains resumable', () {
+    final evidence = onboardingReconciliationEvidenceFrom(
+      _report(
+        state: OnboardingEnvironmentState.graphProjectionFailed,
+        graphFailure: 'coarse graph build failure',
+        operationSnapshot: _interruptedRichTextSnapshot(),
+      ),
+    );
+
+    expect(evidence.state, OnboardingDurableReconciliationState.resumable);
+    expect(evidence.failureSummary, isNull);
+  });
 }
 
 OnboardingEnvironmentReport _report({
@@ -88,6 +102,8 @@ OnboardingEnvironmentReport _report({
   int? graphRows,
   String? importFailure,
   String? graphFailure,
+  OnboardingOperationSnapshot operationSnapshot =
+      const OnboardingOperationSnapshot.idle(),
 }) {
   const availableProbe = OnboardingDatabaseProbe(
     path: '/tmp/source.db',
@@ -128,5 +144,30 @@ OnboardingEnvironmentReport _report({
             phase: OnboardingPipelinePhase.graphProjection,
             message: graphFailure,
           ),
+    operationSnapshot: operationSnapshot,
   );
+}
+
+OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
+  final startedAt = DateTime.utc(2026, 9, 13, 12);
+  return OnboardingOperationSnapshot.running(
+        operationId: OnboardingOperationId(
+          '123e4567-e89b-42d3-a456-426614174000',
+        ),
+        processSessionId: OnboardingProcessSessionId(
+          '123e4567-e89b-42d3-a456-426614174001',
+        ),
+        kind: OnboardingOperationKind.initialImport,
+        stage: OnboardingOperationStage.messageDataBuild,
+        observedAtUtc: startedAt,
+      )
+      .observeProgress(
+        observedAtUtc: startedAt.add(const Duration(seconds: 1)),
+        substage: OnboardingOperationSubstage.extractingRichText,
+        progress: const OnboardingOperationProgress(
+          completedWorkUnits: 500,
+          totalWorkUnits: 150000,
+        ),
+      )
+      .interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 2)));
 }

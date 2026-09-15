@@ -1,12 +1,42 @@
+---
 tier: project
 scope: documentation-pass
 owner: agent-per-project
-last_reviewed: 2026-08-29
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./README.md
   - ./01-PROJECT/05-CURRENT-STATE.md
 tests: []
+---
+
+# Tester Archive-Import Memory Remediation Reconciliation
+
+Date: 2026-09-15
+
+Scope: Reconciled standing architecture, onboarding, database-health,
+source-database, build, distribution, and feature documentation with the
+bounded-memory implementation and the published `0.2.111+129` tester artifact.
+Historical incident chronology remains in Feature 32; current subsystem docs
+now describe the corrected architecture directly.
+
+## Changes
+
+| File or group | Change | Reason |
+| --- | --- | --- |
+| `00-START-HERE.md`, `README.md`, `01-PROJECT/00-overview.md`, `01-PROJECT/02-architecture-overview.md`, `01-PROJECT/05-CURRENT-STATE.md`, `DEVELOPER_GUIDE.md` | Added the bounded source-import and rich-text architecture to the highest-authority reading paths and current project mental model. | Prevents the remediation from remaining discoverable only through an incident folder. |
+| `20-DATA-IMPORT-MIGRATION/01-overview.md`, `10-import-orchestrator.md`, `11-rust-message-extractor.md`, `15-table-importers.md`, `30-incremental-mode-flag.md`, and new `12-bounded-message-import-and-rich-text-enrichment.md` | Replaced current-path whole-corpus and helper-binary descriptions with the frozen-frontier, keyset-page, byte-bounded, `ss_id`-based, FFI-decoder, transaction, and retry contracts; retained the deleted 200,000-row limit only as explicitly historical evidence and repaired retired/current cross-references. | Makes the implementation's actual memory and fidelity boundaries canonical without falsifying retired-framework history. |
+| `10-DATABASES/00-all-databases-accessed.md`, `10-DATABASES/10-group-import-working.md`, `15-MACOS-SOURCE-DATABASES/10-CHAT-DB.md`, `15-MACOS-SOURCE-DATABASES/20-external-tools-and-rust-crates.md`, `30-ESSENTIALS/README.md`, `40-FEATURES/messages/DOMAIN_AND_DATA_MAP.md` | Aligned database/source/ownership maps with bounded import, FFI decoding, source-scoped identity, and the fact that retired `macos_import.db` no longer owns archive-source metadata. | Removes parallel descriptions that could reintroduce corpus-sized reads, retired-store writes, or ambiguous identity. |
+| `25-ONBOARDING-AND-ARCHIVE/README.md`, `00-overview.md`, `10-onboarding-gate.md`, `20-environment-readiness.md`, `30-import-migration-coordination.md`, `60-reimport-and-ongoing-sync.md`, `ATTACHMENT-PRESERVATION-INVARIANT.md` | Documented exact persisted operation substages, coarse readiness separation, privacy-safe operation evidence, durable continuation, current Journey authority, and reuse of the bounded path for setup, reimport, historical archives, and synchronization; refreshed the preservation-path audit without weakening it. | Makes interruption, recovery, and preservation semantics agree across onboarding documents. |
+| `12-DATABASE-HEALTH-AUDIT/README.md`, `00-overview.md`, `06-interpreting-startup-database-logs.md` | Updated schema authority to `1.1.0`, documented privacy-safe enrichment aggregates, exact operation evidence, and packaged runtime metadata. | Replaces coarse or stale support-bundle interpretation with current diagnostics. |
+| `60-BUILD-CONSIDERATIONS/README.md`, `01-rust-ffi-dylib-bundling.md`, `02-macos-fda-grant-continuity.md` | Documented packaged metadata authority, FFI decoder packaging, artifact identity verification, and the distinction between qualifying a build and publishing it. | Preserves bundle/signing/FDA continuity and prevents silent publication rebuilds. |
+| `65-DISTRIBUTION/README.md`, `65-DISTRIBUTION/10-render-tester-portal.md` | Recorded publication of the exact qualified/notarized `0.2.111+129` DMG and its SHA-256 without rebuilding, while retaining the outstanding low-memory target-Mac gate. | Makes tester-portal state factual without overstating qualification. |
+| `45-NEW-FEATURE-ADDITION/32-TESTER-ARCHIVE-IMPORT-FAILURE/13-PHASE-4-AND-RELEASE-QUALIFICATION.md` | Added a chronological publication addendum and clarified which git/artifact facts belonged to qualification time. | Preserves historical evidence instead of retroactively rewriting the incident. |
+| `DOCUMENTATION_PASS_LOG.md` | Recorded this reconciliation. | Maintains the documentation audit trail. |
+
+No production code, tests, generated files, build artifacts, or portal files
+were changed in this pass.
+
 ---
 
 # Complete Legacy-Tester Installation Erasure

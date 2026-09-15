@@ -42,6 +42,11 @@ _DatabaseHealthReport _$DatabaseHealthReportFromJson(
   invariantChecks: (json['invariant_checks'] as List<dynamic>)
       .map((e) => InvariantCheckResult.fromJson(e as Map<String, dynamic>))
       .toList(),
+  messageTextEnrichment: json['message_text_enrichment'] == null
+      ? null
+      : MessageTextEnrichmentHealth.fromJson(
+          json['message_text_enrichment'] as Map<String, dynamic>,
+        ),
   summary: HealthReportSummary.fromJson(
     json['summary'] as Map<String, dynamic>,
   ),
@@ -66,8 +71,28 @@ Map<String, dynamic> _$DatabaseHealthReportToJson(
       .map((e) => e.toJson())
       .toList(),
   'invariant_checks': instance.invariantChecks.map((e) => e.toJson()).toList(),
+  if (instance.messageTextEnrichment?.toJson() case final value?)
+    'message_text_enrichment': value,
   'summary': instance.summary.toJson(),
   'errors': instance.errors.map((e) => e.toJson()).toList(),
+};
+
+_MessageTextEnrichmentHealth _$MessageTextEnrichmentHealthFromJson(
+  Map<String, dynamic> json,
+) => _MessageTextEnrichmentHealth(
+  remainingCandidateCount: (json['remaining_candidate_count'] as num).toInt(),
+  totalAttributedBodyBytes: (json['total_attributed_body_bytes'] as num)
+      .toInt(),
+  maximumAttributedBodyBytes: (json['maximum_attributed_body_bytes'] as num)
+      .toInt(),
+);
+
+Map<String, dynamic> _$MessageTextEnrichmentHealthToJson(
+  _MessageTextEnrichmentHealth instance,
+) => <String, dynamic>{
+  'remaining_candidate_count': instance.remainingCandidateCount,
+  'total_attributed_body_bytes': instance.totalAttributedBodyBytes,
+  'maximum_attributed_body_bytes': instance.maximumAttributedBodyBytes,
 };
 
 _DatabaseHealthAppInfo _$DatabaseHealthAppInfoFromJson(
@@ -388,6 +413,7 @@ Map<String, dynamic> _$HealthReportErrorToJson(_HealthReportError instance) =>
 const _$DatabaseHealthErrorScopeEnumMap = {
   DatabaseHealthErrorScope.databaseOpen: 'database_open',
   DatabaseHealthErrorScope.tableInventory: 'table_inventory',
+  DatabaseHealthErrorScope.messageTextEnrichment: 'message_text_enrichment',
   DatabaseHealthErrorScope.relationshipCheck: 'relationship_check',
   DatabaseHealthErrorScope.invariantCheck: 'invariant_check',
   DatabaseHealthErrorScope.phase2Samples: 'phase2_samples',

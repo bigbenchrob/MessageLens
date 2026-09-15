@@ -2,12 +2,13 @@
 tier: project
 scope: macos-source-databases
 owner: agent-per-project
-last_reviewed: 2026-06-06
+last_reviewed: 2026-09-15
 source_of_truth: live-source-db-analysis
 links:
   - ./00-overview.md
   - ./10-chat-db-orphan-messages.md
   - ./apple-typedstream-format-reference.md
+  - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
   - ../10-DATABASES/01-db-import.md
   - ../20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md
 tests: []
@@ -169,8 +170,16 @@ Before adding or changing a `chat.db` reader/importer:
 3. Preserve source identity as `source_id + source_table + source_rowid`.
 4. Keep source relationship identity separate from canonical app identity.
 5. Add focused tests that would fail if an inferred source column is used.
+6. Freeze the eligible message `ROWID` high-water, use keyset pages with an
+   explicit projection, and defer later rows to the next run. Never select the
+   entire message table or use `m.*` as an application-layer convenience.
 
 Current graph-era invariant: message rows do not own chat membership. Preserve
 message facts in the message importer, preserve chat/message topology from
 `chat_message_join`, and keep canonical chat resolution out of message-row
 import logic.
+
+Current attributed-body decoding reads preserved ledger BLOBs in bounded
+`ss_id`-keyed byte pages; it does not rescan this source database after message
+facts have been imported. See the canonical bounded import document linked
+above.

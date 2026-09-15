@@ -2,12 +2,13 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2026-06-20
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./01-overview.md
   - ./10-import-orchestrator.md
   - ./11-rust-message-extractor.md
+  - ./12-bounded-message-import-and-rich-text-enrichment.md
   - ./02-import-migration-schema-reference.md
   - ../10-DATABASES/01-db-import.md
   - lib/essentials/source_scoped_import/
@@ -51,6 +52,12 @@ The retired `ImportContext` bundled:
 - `previousMax*RowId` fields: High-water marks that incremental importers can consult.
 - `hasExistingLedgerData`: Signals whether retired tables already contain rows.
 - `scratchpad`: Mutable `Map<String, Object?>` for passing stats between phases (e.g., `messages.richTextApplied`).
+
+That `rustExtractionLimit` fact belongs only to the deleted framework described
+here. It was neither a byte bound nor an active-path memory guarantee. Current
+rich-text work uses the separately documented FFI, metadata-page, byte-page,
+per-record, and native resource bounds in
+[`12-bounded-message-import-and-rich-text-enrichment.md`](12-bounded-message-import-and-rich-text-enrichment.md).
 
 ### Convenience Helpers
 - `ledgerSqlite`: Async getter returning the raw `Database` from `importDb` for ad-hoc SQL.
@@ -99,7 +106,10 @@ or intentionally discard. Do not recreate the retired importer framework.
 ## Related References
 
 - `./10-import-orchestrator.md` for orchestration details.
-- `./11-rust-message-extractor.md` for the rich text helper binary contract.
+- `./11-rust-message-extractor.md` for the current FFI decoder and the
+  compatibility helper boundary.
+- `./12-bounded-message-import-and-rich-text-enrichment.md` for current
+  source-scoped message and rich-text architecture.
 - `../10-DATABASES/10-group-import-working.md` for cross-database responsibilities.
 - Source-scoped importers under `lib/essentials/source_scoped_import/` are the current production examples for new graph-era work.
 - Retired importer descriptions remain historical examples only.

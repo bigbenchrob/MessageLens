@@ -10,6 +10,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.111] — 2026-09-13
+
+### Fixed
+
+- First-run, historical-archive, and incremental message imports now use a
+  frozen source high-water mark, keyset-paged reads, exact source projections,
+  and one bounded transaction per page. Import memory is therefore governed by
+  the configured page rather than the archive's total message count.
+- Attributed-body text recovery now reads, decodes, and persists bounded,
+  source-scoped pages with durable page checkpoints. A stopped import retains
+  completed pages and replays at most the uncommitted bounded unit.
+- Empty, malformed, unexpectedly structured, or over-limit attributed bodies
+  now remain visible source records and are counted as row-local unavailable
+  decodes. Native typedstream parsing has explicit input, recursion, and
+  property-traversal limits so one record cannot consume an unbounded resource
+  budget.
+- Relaunch after an interrupted setup now preserves and reports the exact
+  stopped substage, including rich-text extraction and persistence, and offers
+  the safe continuation path instead of treating interruption as proof of a
+  graph-projection defect.
+
+### Changed
+
+- Support bundles now include privacy-safe onboarding-operation evidence and
+  aggregate remaining-enrichment counts and byte sizes without exporting
+  message content, attributed-body blobs, record identifiers, or paths.
+- Database-health reports now obtain the installed version, build number,
+  bundle identifier, and build channel from the running application package;
+  stale checked-in build fallbacks have been removed.
+
 ## [0.2.110] — 2026-09-12
 
 ### Added

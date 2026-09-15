@@ -8,6 +8,7 @@ import '../handles/handle_importer.dart';
 import '../message_attachment_joins/message_attachment_join_importer.dart';
 import '../messages/message_importer.dart';
 import '../messages/message_rich_text_enricher.dart';
+import '../source_import_page_metric.dart';
 import 'historical_messages_archive_source_registrar.dart';
 
 final class SourceScopedArchiveImportResult {
@@ -52,11 +53,13 @@ class SourceScopedArchiveImportService {
     required this.registrar,
     required this.richTextExtractor,
     required this.sourceDatabaseOpener,
+    this.onPageMetric,
   });
 
   final HistoricalMessagesArchiveSourceRegistrar registrar;
   final MessageExtractorPort richTextExtractor;
   final SourceDatabaseOpener sourceDatabaseOpener;
+  final SourceImportPageMetricObserver? onPageMetric;
 
   Future<SourceScopedArchiveImportResult> importSourceFacts({
     required String folderPath,
@@ -87,6 +90,7 @@ class SourceScopedArchiveImportService {
       importLedger: importLedger,
       sourceDatabaseOpener: sourceDatabaseOpener,
       sourceId: sourceId,
+      onPageMetric: onPageMetric,
     ).importNewMessages();
     final attachments = await AttachmentImporter(
       chatDbPath: chatDbPath,
@@ -116,6 +120,7 @@ class SourceScopedArchiveImportService {
       chatDbPath: chatDbPath,
       importLedger: importLedger,
       extractor: richTextExtractor,
+      onPageMetric: onPageMetric,
     ).enrichMissingTextForSource(sourceId: sourceId);
 
     return SourceScopedArchiveImportResult(

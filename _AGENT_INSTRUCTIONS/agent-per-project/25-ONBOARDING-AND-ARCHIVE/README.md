@@ -18,6 +18,7 @@ wording as legacy/transitional.
 | [`10-onboarding-gate.md`](10-onboarding-gate.md) | The single-authority `OnboardingJourneyCoordinator`, typed Episodes, evidence, transition rules, and compatibility Gate |
 | [`20-environment-readiness.md`](20-environment-readiness.md) | Environment evaluation: FDA checks, source database probes, sync plausibility, readiness classification |
 | [`30-import-migration-coordination.md`](30-import-migration-coordination.md) | How onboarding coordinates graph build/rebuild lifecycle without owning source-scoped import/projection internals |
+| [`../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md) | Canonical message/rich-text paging, source-scoped identity, decoder bounds, and durable retry semantics |
 | [`40-attachment-archive.md`](40-attachment-archive.md) | Living attachments archive: overlay schema, content-addressable storage, resolution pipeline, import-time archiving |
 | [`ATTACHMENT-PRESERVATION-INVARIANT.md`](ATTACHMENT-PRESERVATION-INVARIANT.md) | Hard safety rule: archived payloads are preservation data and remain outside every ordinary reset/rebuild boundary |
 | [`50-deterministic-recovery.md`](50-deterministic-recovery.md) | Deterministic historical recovery from Time Machine or backup snapshots via GUID-based mapping |
@@ -62,6 +63,9 @@ wording as legacy/transitional.
     advances an Onboarding Episode. Presence, Environment Readiness, widgets,
     dialogs, focus callbacks, and operation snapshots publish facts or intent
     only.
+12. Persisted operation stage/substage is exact interruption evidence. A coarse
+    environment classification must not erase a safely resumable bounded-work
+    checkpoint.
 
 ## Related Documentation
 

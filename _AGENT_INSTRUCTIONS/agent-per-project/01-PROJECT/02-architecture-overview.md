@@ -2,7 +2,7 @@
 tier: project
 scope: architecture
 owner: agent-per-project
-last_reviewed: 2026-07-09
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./01-aggregate-boundaries.md
@@ -12,6 +12,7 @@ links:
   - ../42-SPEC-SYSTEM/README.md
   - ../10-DATABASES/00-all-databases-accessed.md
   - ../20-DATA-IMPORT-MIGRATION/01-overview.md
+  - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
 tests: []
 ---
 
@@ -123,6 +124,17 @@ Source import, graph build, and retired-file cleanup details belong in
 `../20-DATA-IMPORT-MIGRATION/`.
 Database boundaries and provider access rules belong in `../10-DATABASES/`.
 
+Within the source-scoped import boundary, source-message copy and rich-text
+enrichment are distinct bounded stages. Message copy uses a frozen source-row
+high-water mark and keyset pages whose cursor advances only after a page
+transaction commits. Rich-text enrichment uses the persisted source-scoped
+`ss_id`, a separately frozen candidate frontier, metadata-only pages, and
+byte-bounded BLOB fetch/decode subpages. The native typedstream decoder also
+enforces per-record input, control-marker, reference-run, nesting, and node
+limits. Record-level failures are retained as diagnostic anomalies rather than
+suppressed. See
+`../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`.
+
 For the current project phase and active product/release priorities, see
 `./05-CURRENT-STATE.md` and
 `../55-READERS-INTEGRATORS-ORCHESTRATORS/85-RELEASE-EXIT-PLAN.md`.
@@ -137,10 +149,13 @@ Hard boundaries:
 
 ## Onboarding And Archive
 
-Onboarding is essentials-owned orchestration. It evaluates environment readiness,
-drives the onboarding overlay lifecycle, coordinates graph build actions, and
-syncs readiness states into panel surfaces. Retired-file cleanup storage
-is not the ordinary onboarding success path.
+Onboarding is essentials-owned orchestration. It evaluates environment
+readiness, drives the onboarding overlay lifecycle, coordinates graph build
+actions, persists the exact interrupted import/projection substage, and syncs
+readiness states into panel surfaces. Its coarse readiness classification and
+exact operation snapshot have different responsibilities: the former explains
+readiness, while the latter makes a safe `Continue Setup` decision. Retired-file
+cleanup storage is not the ordinary onboarding success path.
 
 Attachment archive and deterministic recovery are feature-owned attachment
 systems that coordinate with onboarding and the database providers. Archive

@@ -19,12 +19,14 @@ import '../../db/application/conversation_graph_readiness.dart';
 import '../../db/feature_level_providers.dart'
     show attachmentArchiveDirectoryProvider, dbMaintenanceLockProvider;
 import '../domain/onboarding_environment_report.dart';
+import '../domain/onboarding_operation_snapshot.dart';
 import 'full_disk_access_provider.dart';
 import 'messages_source_history_sufficiency_policy.dart';
 import 'onboarding_database_probe_reader.dart';
 import 'onboarding_database_probe_reader_provider.dart';
 import 'onboarding_failure_storage_provider.dart';
 import 'onboarding_failure_store.dart';
+import 'onboarding_operation_snapshot_provider.dart';
 
 part 'onboarding_environment_report_provider.g.dart';
 
@@ -136,6 +138,9 @@ String onboardingDatabaseDirectoryPath(Ref ref) {
 
 @Riverpod(keepAlive: true)
 Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
+  final operationController = await ref.watch(
+    onboardingOperationControllerProvider.future,
+  );
   final inputs = _OnboardingEnvironmentInputs(
     devOverrides: ref.watch(onboardingDevOverridesProvider),
     failureStorage: ref.watch(onboardingFailureStorageProvider),
@@ -158,6 +163,7 @@ Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
         ),
     graphBuildState: ref.watch(conversationGraphBuildControllerProvider),
     liveUpdateMonitorState: ref.watch(chatDbChangeMonitorProvider),
+    operationSnapshot: operationController.current,
   );
   final evaluator = _OnboardingEnvironmentEvaluator(inputs);
   return evaluator.evaluate();
@@ -176,6 +182,7 @@ class _OnboardingEnvironmentInputs {
     required this.isMaintenanceLocked,
     required this.graphBuildState,
     required this.liveUpdateMonitorState,
+    required this.operationSnapshot,
   });
 
   final OnboardingDevOverridesState devOverrides;
@@ -190,6 +197,7 @@ class _OnboardingEnvironmentInputs {
   final bool isMaintenanceLocked;
   final ConversationGraphBuildState graphBuildState;
   final ChatDbChangeMonitorState liveUpdateMonitorState;
+  final OnboardingOperationSnapshot operationSnapshot;
 }
 
 class _OnboardingEnvironmentEvaluator {
@@ -403,6 +411,7 @@ class _OnboardingEnvironmentEvaluator {
       liveUpdateLastChangeDetectedAt:
           inputs.liveUpdateMonitorState.lastChangeDetected,
       liveUpdateLastError: inputs.liveUpdateMonitorState.lastError,
+      operationSnapshot: inputs.operationSnapshot,
     );
   }
 

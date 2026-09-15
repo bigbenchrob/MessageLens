@@ -108,6 +108,13 @@ List<String> buildOnboardingFailureReportHeaderLines(
     'Context: onboarding_failure',
     'State: ${report.state.name}',
     'Blocker: ${report.blockerKind.name}',
+    'Operation status: ${report.operationSnapshot.status.name}',
+    if (report.operationSnapshot.currentStage case final stage?)
+      'Operation stage: ${stage.name}',
+    if (report.operationSnapshot.currentSubstage case final substage?)
+      'Operation substage: ${substage.name}',
+    if (report.operationSnapshot.progress case final progress?)
+      'Operation progress: ${progress.completedWorkUnits} / ${progress.totalWorkUnits}',
     if (_operationFailureLine(operationFailureSummary) case final line?) line,
     'Full Disk Access: ${report.hasFullDiskAccess ? 'available' : 'missing'}',
     _describeProbe(label: 'Messages database', probe: report.messagesDatabase),

@@ -2,7 +2,7 @@
 tier: project
 scope: startup-database-troubleshooting
 owner: agent-per-project
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./README.md
@@ -40,8 +40,8 @@ reset is safe from a single error string.
 8. Did the UI offer remediation, Start Fresh, log export, or only a failure
    message?
 9. Was a support bundle actually created, and does it contain
-   `startup_validation.json` plus `database_health.json` or
-   `database_health_error.json`?
+   `startup_validation.json`, `onboarding_operation.json`, and either
+   `database_health.json` or `database_health_error.json`?
 
 ## Actual Markers Emitted Today
 
@@ -122,6 +122,8 @@ Do not claim a support artifact exists unless export actually succeeded.
 | `Physical database check complete…` | `quick_check(1)` returned `ok` for all selected targets. | Continue interpreting logical classification; physical pass does not force admission. |
 | “failed physical integrity validation” | At least one selected `quick_check` did not return exactly `ok`. | Preserve all data, request support evidence, and escalate to developer/manual diagnosis. |
 | Onboarding operation is running/interrupted/failed | Startup deep-validates every existing app database before classifying safe resume/attention. | Ask for operation context and bundle; use only the offered recovery path. |
+| `onboarding_operation.json` names `extractingRichText` or `persistingRichText` with `interrupted` status | The prior process stopped in an exact bounded enrichment substage; committed pages remain durable even if the environment state is the coarser `graphProjectionFailed`. | Use `Continue Setup`; correlate aggregate progress with `message_text_enrichment` without treating either as row-level content evidence. |
+| `database_health.json` has a nonzero `message_text_enrichment.remaining_candidate_count` | Missing-text attributed-body work remained when the aggregate audit ran. This is a workload fact, not proof of corruption or a whole-corpus in-memory read. | Correlate with operation substage and logs; do not inspect/export BLOB values or reset preservation data. |
 | Legacy journal blocked startup | Pre-`runApp` compatibility proof failed closed. | Capture console/native error and code; do not remove the journal manually. |
 | `database_health_error.json` | Phase 1 support audit failed after bundle assembly began. It is not itself the startup failure. | Read its message/stack, retain `diagnostic_report.log`, and escalate if normal providers could not open. |
 
@@ -147,7 +149,8 @@ Ask for, in order:
 1. a screenshot or exact startup message;
 2. launch console output if failure happened before `App launch`;
 3. the generated support bundle, if export succeeded;
-4. `startup_validation.json`, `diagnostic_report.log`, and either
+4. `startup_validation.json`, `onboarding_operation.json`,
+   `diagnostic_report.log`, and either
    `database_health.json` or `database_health_error.json`;
 5. confirmation that no second MessageLens or database tool was open.
 

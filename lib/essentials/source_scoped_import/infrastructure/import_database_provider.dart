@@ -267,8 +267,7 @@ class ImportDatabase implements ImportLedger {
   }
 
   @override
-  Future<List<ImportLedgerMessageTextCandidate>>
-  findMessagesNeedingTextEnrichment({
+  Future<ImportLedgerMessageTextWindow> messageTextEnrichmentWindow({
     int? sourceId,
     int? startedAfterSourceRowId,
   }) async {
@@ -282,29 +281,98 @@ class ImportDatabase implements ImportLedger {
       if (sourceId != null) sourceId,
       if (startedAfterSourceRowId != null) startedAfterSourceRowId,
     ];
-    final rows = await database.query(
-      'messages',
-      columns: <String>['ss_id', 'source_rowid', 'attributed_body_blob'],
-      where: whereParts.join(' AND '),
-      whereArgs: whereArgs,
-      orderBy: 'source_rowid ASC',
+    final rows = await database.rawQuery(
+      'SELECT COUNT(*) AS candidate_count, MAX(ss_id) AS high_water_ss_id '
+      'FROM messages WHERE ${whereParts.join(' AND ')}',
+      whereArgs,
+    );
+    final row = rows.single;
+    return ImportLedgerMessageTextWindow(
+      candidateCount: _readInt(row['candidate_count']),
+      highWaterSsId: row['high_water_ss_id'] as int?,
+    );
+  }
+
+  @override
+  Future<List<ImportLedgerMessageTextCandidate>> readMessageTextEnrichmentPage({
+    required int afterSsId,
+    required int throughSsId,
+    required int limit,
+    int? sourceId,
+    int? startedAfterSourceRowId,
+  }) async {
+    if (limit <= 0) {
+      throw ArgumentError.value(limit, 'limit', 'must be greater than zero');
+    }
+    final whereParts = <String>[
+      'text IS NULL',
+      'attributed_body_blob IS NOT NULL',
+      'ss_id > ?',
+      'ss_id <= ?',
+      if (sourceId != null) 'source_id = ?',
+      if (startedAfterSourceRowId != null) 'source_rowid > ?',
+    ];
+    final whereArgs = <Object?>[
+      afterSsId,
+      throughSsId,
+      if (sourceId != null) sourceId,
+      if (startedAfterSourceRowId != null) startedAfterSourceRowId,
+    ];
+    final rows = await database.rawQuery(
+      'SELECT ss_id, source_rowid, '
+      'length(attributed_body_blob) AS attributed_body_blob_byte_count '
+      'FROM messages WHERE ${whereParts.join(' AND ')} '
+      'ORDER BY ss_id ASC LIMIT ?',
+      <Object?>[...whereArgs, limit],
     );
 
     return rows
         .map((row) {
-          final blob = row['attributed_body_blob'];
-          final attributedBodyBlob = switch (blob) {
-            Uint8List() => blob,
-            List<int>() => Uint8List.fromList(blob),
-            _ => throw StateError('messages.attributed_body_blob is required'),
-          };
           return ImportLedgerMessageTextCandidate(
             ssId: _readRequiredInt(row, 'ss_id'),
             sourceRowId: _readRequiredInt(row, 'source_rowid'),
-            attributedBodyBlob: attributedBodyBlob,
+            attributedBodyBlobByteCount: _readRequiredInt(
+              row,
+              'attributed_body_blob_byte_count',
+            ),
           );
         })
         .toList(growable: false);
+  }
+
+  @override
+  Future<Map<int, Uint8List>> readMessageTextEnrichmentBlobs({
+    required List<int> ssIds,
+    required int maximumBlobBytes,
+  }) async {
+    if (ssIds.isEmpty) {
+      return const <int, Uint8List>{};
+    }
+    if (maximumBlobBytes <= 0) {
+      throw ArgumentError.value(
+        maximumBlobBytes,
+        'maximumBlobBytes',
+        'must be greater than zero',
+      );
+    }
+    final placeholders = List<String>.filled(ssIds.length, '?').join(', ');
+    final rows = await database.rawQuery(
+      'SELECT ss_id, '
+      'CAST(substr(attributed_body_blob, 1, ?) AS BLOB) '
+      'AS attributed_body_blob '
+      'FROM messages WHERE ss_id IN ($placeholders) '
+      'AND attributed_body_blob IS NOT NULL',
+      <Object?>[maximumBlobBytes + 1, ...ssIds],
+    );
+
+    return <int, Uint8List>{
+      for (final row in rows)
+        _readRequiredInt(row, 'ss_id'): switch (row['attributed_body_blob']) {
+          final Uint8List blob => blob,
+          final List<int> blob => Uint8List.fromList(blob),
+          _ => throw StateError('messages.attributed_body_blob is required'),
+        },
+    };
   }
 
   @override

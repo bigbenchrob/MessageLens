@@ -1,3 +1,5 @@
+import 'onboarding_operation_snapshot.dart';
+
 enum OnboardingEnvironmentState {
   permissionBlocked,
   sourceUnavailable,
@@ -95,6 +97,7 @@ class OnboardingEnvironmentReport {
     this.liveUpdateCursorRowId,
     this.liveUpdateLastChangeDetectedAt,
     this.liveUpdateLastError,
+    this.operationSnapshot = const OnboardingOperationSnapshot.idle(),
   });
 
   final OnboardingEnvironmentState state;
@@ -123,6 +126,60 @@ class OnboardingEnvironmentReport {
   final int? liveUpdateCursorRowId;
   final DateTime? liveUpdateLastChangeDetectedAt;
   final String? liveUpdateLastError;
+  final OnboardingOperationSnapshot operationSnapshot;
+
+  bool get hasIncompleteOperationStage {
+    return operationSnapshot.currentSubstage != null &&
+        operationSnapshot.status == OnboardingOperationStatus.interrupted;
+  }
+
+  String? get incompleteOperationSummary {
+    if (!hasIncompleteOperationStage) {
+      return null;
+    }
+    final substage = operationSnapshot.currentSubstage!;
+    final action = switch (substage) {
+      OnboardingOperationSubstage.preparingEnvironment =>
+        'preparing local storage',
+      OnboardingOperationSubstage.resettingDerivedData =>
+        'resetting rebuildable browsing data',
+      OnboardingOperationSubstage.importingChats => 'importing conversations',
+      OnboardingOperationSubstage.importingHandles => 'importing participants',
+      OnboardingOperationSubstage.importingContacts => 'importing contacts',
+      OnboardingOperationSubstage.importingContactEmailChannels =>
+        'importing contact email addresses',
+      OnboardingOperationSubstage.importingContactPhoneChannels =>
+        'importing contact phone numbers',
+      OnboardingOperationSubstage.importingMessages => 'importing messages',
+      OnboardingOperationSubstage.extractingRichText =>
+        'extracting message text',
+      OnboardingOperationSubstage.persistingRichText => 'saving message text',
+      OnboardingOperationSubstage.importingAttachments =>
+        'importing attachment metadata',
+      OnboardingOperationSubstage.importingChatMessageRelationships ||
+      OnboardingOperationSubstage.importingChatHandleRelationships ||
+      OnboardingOperationSubstage.importingMessageAttachmentRelationships =>
+        'importing message relationships',
+      OnboardingOperationSubstage.projectingHandles =>
+        'preparing participant browsing data',
+      OnboardingOperationSubstage.projectingContacts =>
+        'preparing contact browsing data',
+      OnboardingOperationSubstage.projectingChatHandleRelationships ||
+      OnboardingOperationSubstage.projectingChatMessageRelationships ||
+      OnboardingOperationSubstage.projectingMessageAttachmentRelationships =>
+        'preparing relationship browsing data',
+      OnboardingOperationSubstage.projectingConversations =>
+        'preparing conversation browsing data',
+      OnboardingOperationSubstage.projectingMessages =>
+        'preparing message browsing data',
+      OnboardingOperationSubstage.projectingAttachments =>
+        'preparing attachment browsing data',
+      OnboardingOperationSubstage.verifyingDurableReadiness =>
+        'checking the prepared browsing data',
+    };
+    return 'The previous setup was interrupted while $action. Completed bounded '
+        'work remains saved, so MessageLens can safely try again.';
+  }
 
   bool get hasPopulatedAppDatabases {
     return sourceScopedImportDatabase.hasData && conversationGraph.hasData;

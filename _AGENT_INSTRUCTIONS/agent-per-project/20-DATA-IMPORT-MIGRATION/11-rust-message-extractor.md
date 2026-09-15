@@ -2,139 +2,142 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2026-06-14
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./01-overview.md
   - ./10-import-orchestrator.md
-  - ../10-DATABASES/01-db-import.md
+  - ./12-bounded-message-import-and-rich-text-enrichment.md
+  - ../60-BUILD-CONSIDERATIONS/01-rust-ffi-dylib-bundling.md
+tests:
+  - ../../../rust/rust/attributed-string-decoder/src/api.rs
+  - ../../../test/essentials/source_scoped_import/application/messages/message_rich_text_enricher_test.dart
 ---
 
-# Rust Message Text Extractor
+# Rust Attributed-Body Decoder
 
-## Purpose
-- Decode the binary `attributedBody` column from macOS `chat.db` so that messages missing plain `text` still display content.
-- Decode stored `attributed_body_blob` values during source-scoped rich-text
-  enrichment without rescanning all of `chat.db` for each live update.
-- Keep the standalone native binary (`extract_messages_limited`) available for
-  full-scan/diagnostic compatibility paths that still need a helper process.
-- Without the Rust decoder many messages land with empty bodies, weakening
-  search and UI rendering.
+## Current Runtime Boundary
+
+MessageLens decodes Apple `attributedBody` values through the in-process
+Flutter Rust Bridge function `decodeTypedstreamBlob`. The bundled
+`attributed_string_decoder.framework` supplies that function in a packaged
+macOS app.
+
+The active initial-import, reimport, live-sync, and Historical Archives paths do
+not ask the standalone `extract_messages_limited` executable to scan
+`chat.db`. They read bounded BLOB pages from `macos_import_ss.db` and pass a
+bounded `Map<ss_id, Uint8List>` to `MessageExtractorPort`.
 
 ## Component Map
-- Blob decoder: `rust_api.decodeTypedstreamBlob(...)` exposed through
-  `flutter_rust_bridge`.
-- Helper binary: `target/release/extract_messages_limited` (also searched for
-  next to `Platform.resolvedExecutable` when the macOS app is bundled).
-- Rust crate: `rust/rust/attributed-string-decoder/` (Cargo project that
-  produces the binary and flutter_rust_bridge bindings).
-- Flutter adapter:
+
+- Rust decoder and resource envelope:
+  `rust/rust/attributed-string-decoder/src/api.rs`
+- Dart adapter:
   `lib/essentials/source_scoped_import/infrastructure/extraction/rust_message_extractor.dart`
-  implements `MessageExtractorPort`.
-- Provider wiring: `lib/essentials/source_scoped_import/feature_level_providers.dart` exposes `sourceScopedMessageExtractorProvider`.
-- Source-scoped enrichment consumer: `lib/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart`.
-- Database sink: source-scoped enrichment updates `macos_import_ss.db.messages.text` from the stored `attributed_body_blob`.
+- Port:
+  `lib/essentials/source_scoped_import/domain/ports/message_extractor_port.dart`
+- Enrichment coordinator:
+  `lib/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart`
+- FFI packaging:
+  `60-BUILD-CONSIDERATIONS/01-rust-ffi-dylib-bundling.md`
 
-## Runtime Flow (Source-Scoped Enrichment)
+## Decode Flow
 
-1. Message import preserves source facts, including `attributed_body_blob`, in `macos_import_ss.db`.
-2. `MessageRichTextEnricher` finds rows where `text` is missing and `attributed_body_blob` exists.
-3. The enricher passes those stored blobs to `extractMessageTextsFromBlobs(...)`
-   for the specific missing-text rows.
-4. Successful decoded text updates `macos_import_ss.db.messages.text`.
-5. Graph projection then copies the enriched text into `working_ss.db.messages`.
+1. Source message import preserves `attributed_body_blob` in the source-scoped
+   ledger.
+2. The enricher freezes a missing-text candidate window and reads bounded
+   metadata pages without BLOB values.
+3. It partitions work by BLOB byte length and materializes only within-budget
+   payloads.
+4. The Dart adapter iterates the `ss_id`-keyed map and calls
+   `decodeTypedstreamBlob` once per record.
+5. A successful non-empty result is persisted with
+   `WHERE ss_id = ? AND text IS NULL`.
+6. Graph projection copies the resulting text into graph message evidence.
 
-Do not merge this enrichment into the main message importer. Import preserves source facts; enrichment derives app-usable text; projection moves enriched evidence into the graph.
+The adapter reports progress at completion and every 1,000 records within the
+already bounded call. The coordinator's smaller byte pages remain the memory
+authority.
 
-Live graph updates should use the blob-based enrichment path. Do not reintroduce
-the old pattern where a single new message causes the extractor to scan every
-row in `chat.db`.
+## Native Resource Envelope
 
-## Retired Ledger Import
+The wrapper validates input before invoking `crabstep` 0.2.1 and bounds the
+resolved-property walk:
 
-The old `macos_import.db` rich-text importer has been removed from the
-active app path. Historical retired files may still contain decoded text from
-older runs, but new text enrichment belongs to the source-scoped import stage.
+| Resource | Limit | Failure behavior |
+| --- | ---: | --- |
+| Typedstream input | 8 MiB | Returned error before parsing |
+| `0x84` control markers | 1,024 | Returned error before parsing |
+| Consecutive reference-like bytes | 1,024 | Returned error before parsing |
+| Resolved property depth | 256 | Returned error |
+| Resolved property nodes | 65,536 | Returned error |
 
-## Decoder Interfaces
+The property walk is iterative. `catch_unwind` converts a panic inside the
+accepted resource envelope into an ordinary decoder error.
 
-### Blob Interface
+These are per-record native limits. The Dart coordinator separately enforces a
+default 8 MiB cumulative decoder-page target, a matching 8 MiB per-record
+materialization ceiling, and 500-record candidate metadata pages.
 
-```dart
-Future<Map<int, String>> extractMessageTextsFromBlobs(
-  Map<int, Uint8List> attributedBodyBlobsByRowId,
-);
+## Record-Local Failure Semantics
+
+The Dart adapter catches one record's native error and continues. Empty,
+malformed, unexpectedly structured, oversized, or otherwise undecodable data
+therefore yields no decoded text for that `ss_id`; the coordinator counts it as
+decode unavailable and preserves the source row and BLOB evidence.
+
+Decoder availability itself is checked with a small known-good in-process
+smoke BLOB. If that run-wide check fails, enrichment fails systemically rather
+than presenting a corpus-wide successful no-op.
+
+## Source Identity
+
+The integer keys crossing the decoder port are opaque work IDs. In production
+rich-text enrichment they are canonical message `ss_id` values, not Apple
+source `ROWID` values. Native callback IDs, decoded maps, and persistence must
+retain those keys unchanged.
+
+## Standalone Helper Compatibility
+
+`RustMessageExtractor.extractAllMessageTexts(...)` and the bundled
+`extract_messages_limited` executable remain compatibility/diagnostic
+interfaces. They are not called by the active graph or Historical Archives
+enrichment paths and their optional row limit is not a safety bound for those
+paths.
+
+The current Rust Cargo manifest declares the FFI library, not a maintained
+`extract_messages_limited` binary target. The Xcode and distribution scripts
+still copy/sign an existing helper executable when one is present. Do not claim
+that `cargo build --release --bin extract_messages_limited` regenerates it from
+the current crate, and do not make release correctness depend on an
+undocumented helper rebuild path. The active decoder is the rebuilt and bundled
+FFI framework.
+
+## Building and Packaging the Active Decoder
+
+```text
+cd rust/rust/attributed-string-decoder
+cargo build --release
 ```
 
-- Keys are source row IDs used only to correlate extractor output back to import
-  ledger rows.
-- Values come from `macos_import_ss.db.messages.attributed_body_blob`.
-- This is the source-scoped enrichment path for ordinary live updates and
-  archive imports.
-- Availability is checked through `isBlobExtractionAvailable()`, which runs a
-  small in-process smoke decode.
+The `Bundle Rust FFI Library` Xcode phase packages
+`libattributed_string_decoder.dylib` as the versioned
+`attributed_string_decoder.framework`. `main.dart` resolves that framework
+relative to `Platform.resolvedExecutable`, avoiding LaunchServices working-
+directory dependence.
 
-### Helper Binary Interface
+Production packaging must sign the embedded framework with the app's Developer
+ID identity and retain hardened runtime. See the build document for the exact
+framework structure and verification rules.
 
-```
-./extract_messages_limited [limit] [chat.db path]
-```
-- `limit` (optional) caps how many rows the extractor processes (Flutter default: `rustExtractionLimit = 200000`).
-- `chat.db path` points to the Messages database copy to scan; defaults to the working directory when omitted.
-- Exit code `0` -> success with JSON on stdout. Any non-zero exit code is treated as failure and the pipeline falls back to empty text.
-- This interface remains for full-scan/diagnostic compatibility. It is not
-  the live-update enrichment path.
+## Verification
 
-## Building & Packaging
-1. `cd rust/rust/attributed-string-decoder`
-2. `cargo build --release --bin extract_messages_limited`
-3. Copy the result to the location the Flutter app expects:
-   ```bash
-   cp target/release/extract_messages_limited ../../../target/release/
-   ```
-4. Ensure the binary is executable (`chmod 755 target/release/extract_messages_limited`).
-5. For bundled macOS builds, the Xcode "Bundle Rust Message Extractor" phase
-   copies `target/release/extract_messages_limited` into
-   `MessageLens.app/Contents/MacOS/extract_messages_limited`.
-
-### Production Packaging Playbook (macOS App Bundle)
-- The checked-in Xcode project contains a "Bundle Rust Message Extractor" shell
-  phase after the Rust FFI framework phase.
-- Input:
-  `${SRCROOT}/../target/release/extract_messages_limited`
-- Output:
-  `${BUILT_PRODUCTS_DIR}/${EXECUTABLE_FOLDER_PATH}/extract_messages_limited`
-- The phase copies the binary, sets mode `755`, and prints a warning if the
-  binary is missing.
-- Do not add a second manual post-build copy path unless the Xcode phase is
-  intentionally removed.
-- Codesign the binary alongside the app (`codesign --force --options runtime --sign "$IDENTITY" Contents/MacOS/extract_messages_limited`). Missing codesign causes Gatekeeper to quarantine the helper.
-- Rebuild whenever the extractor CLI schema changes to avoid protocol mismatches between Dart and Rust.
-
-## Logging & Failure Modes
-- The extractor now writes structured diagnostics through `AppLogger` with source `RustMessageExtractor`.
-- Logged context includes:
-  - resolved `extractorPath`
-  - current working directory
-  - `chat.db` path passed to the helper
-  - extraction limit
-  - availability result
-  - exit code, stderr, and decoded message count
-- Blob decoder unavailable -> enrichment records the candidates as missing
-  extractions and the graph build still succeeds structurally.
-- Per-row blob decode failure logs the source row ID and skips only that row.
-- Missing binary or unreadable helper affects only callers using the helper
-  binary full-scan interface.
-- Non-zero helper exit codes bubble up as exceptions in
-  `extractAllMessageTexts`; callers of that compatibility interface must record the
-  failure and continue without rich text.
-- In graph live sync, watch the Conversation Graph status panel stage timings and text-enrichment counts.
-
-## Validation Checklist
-- `target/release/extract_messages_limited` exists and is executable.
-- Running `./target/release/extract_messages_limited 5 /Users/rob/sqlite_rmc/messages/chat.db` emits JSON with `rowid` / `text` pairs.
-- After source-scoped enrichment, `macos_import_ss.db.messages.text` is populated for rows that previously had only `attributed_body_blob`.
-
-## Related References
-- `../10-DATABASES/10-group-import-working.md` (contract binding import and projection).
-- `./20-migration-orchestrator.md` (downstream projection responsibilities).
+- Rust unit tests cover valid, empty, truncated, malformed-length,
+  control-marker, reference-run, deterministic-random, large, and over-limit
+  inputs.
+- `cargo clippy --all-targets --all-features -- -D warnings` must pass.
+- Enricher tests cover byte partitioning, over-limit non-materialization,
+  duplicate source ROWIDs across sources, interruption boundaries, and
+  preservation of undecodable records.
+- Packaged-process qualification must exercise the production coordinator and
+  FFI decoder behavior, not substitute the legacy helper full-scan interface.

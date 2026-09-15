@@ -2,7 +2,7 @@
 tier: project
 scope: navigation
 owner: agent-per-project
-last_reviewed: 2026-08-30
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./README.md
@@ -58,7 +58,7 @@ correctness, or an active UI-walk review.
 | Current architecture and code ownership | `01-PROJECT/05-CURRENT-STATE.md`, `01-PROJECT/02-architecture-overview.md` |
 | Constitutional architecture rules | `00-MESSAGE-LENS-ARCHITECTURAL-CONSTITUTION/` |
 | Database access and overlay rules | `10-DATABASES/` |
-| Source import, graph build, and live polling | `20-DATA-IMPORT-MIGRATION/` |
+| Source import, graph build, and live polling | `20-DATA-IMPORT-MIGRATION/01-overview.md`, then `20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md` for message/rich-text work |
 | Onboarding and archive/recovery | `25-ONBOARDING-AND-ARCHIVE/` |
 | Essentials, navigation, panels, sidebar, search | `30-ESSENTIALS/` |
 | Search investigation identity and context compatibility | `40-FEATURES/search/INTERACTIONS_AND_NAVIGATION.md`, `42-SPEC-SYSTEM/CANONICAL-ARCHITECTURE/30-panel-viewspec-system.md` |

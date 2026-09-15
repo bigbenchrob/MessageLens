@@ -24,7 +24,8 @@ Essentials owns:
 * global flow state and app mode
 * sidebar cassette rack projection and topology dispatch
 * panel stacks, panel surface orchestration, and sidebar parking
-* onboarding gate state, onboarding overlay lifecycle, and readiness-panel sync
+* typed Onboarding Journey coordination, durable operation/recovery truth,
+  onboarding overlay lifecycle, and readiness-panel sync
 * shared graph search service and evidence selection infrastructure
 * app shell, window state, logging, database infrastructure, source-scoped
   import, conversation graph build, retired-file diagnostic boundaries,
@@ -43,10 +44,10 @@ Current `lib/essentials/` top-level areas include:
 | `navigation/` | App shell, active sidebar mode, center/right panel stacks, `ViewSpec` routing, sidebar parking, panel host widgets. |
 | `sidebar/` | `CassetteSpec`, stable cassette rack projection, ephemeral cassette projection, topology dispatch, cassette payload resolution, shared sidebar rendering. |
 | `search/` | Shared graph message search service, evidence selection, and retired search bridge handling where explicitly documented. |
-| `onboarding/` | Full Disk Access, graph readiness/build gate state, onboarding overlay lifecycle, environment reports, reset/recovery behavior, and onboarding-owned Presence workflow definitions/integration. |
+| `onboarding/` | Sole typed Journey coordination, Full Disk Access/readiness evidence, persisted operation stage/substage and recovery truth, onboarding overlay lifecycle, and preservation-safe reset/recovery orchestration. |
 | `presence/` | Generic Schedule, Trip, Step, routing, checkpoint, run, trace, and persistence machinery. It does not semantically own workflows merely because their definitions are stored in `presence.db`. |
 | `db/` | Centralized physical database providers, app database filename registry, and database infrastructure. |
-| `source_scoped_import/` | Production source-scoped import semantics, ledger schema, and importers for the source-scoped import ledger; physical DB provider construction remains in `db/`. |
+| `source_scoped_import/` | Production source-scoped import semantics, ledger schema, frozen-window/keyset-paged message import, byte-bounded `ss_id` rich-text enrichment, and Historical Archives source ingestion; physical DB provider construction remains in `db/`. |
 | `conversation_graph/` | Production graph projection/build/read semantics for the conversation graph projection; physical graph DB provider construction remains in `db/`. |
 | Retired `db_importers/` | Removed. Source-scoped importers live in `source_scoped_import/`; live `chat.db` monitoring and graph lifecycle work live in `conversation_graph/`; retired-file diagnostics live in `db/`. |
 | Retired `db_migrate/` | Retired projection cleanup context only; no active app provider or service. |
@@ -219,20 +220,23 @@ Onboarding lifecycle is essentials-owned.
 
 Current essentials onboarding responsibilities:
 
-* `OnboardingGate` owns Full Disk Access and graph readiness/build gate state.
+* `OnboardingJourneyCoordinator` is the sole authority that selects and
+  advances the typed Onboarding Episode.
+* `OnboardingGate` is a read-only compatibility projection and action
+  forwarding seam; it is not a second state-transition authority.
 * `OnboardingOverlay` owns the blocking overlay lifecycle for graph build,
   reimport, completion, and recovery.
 * `OnboardingCenterPanelSyncObserver` synchronizes FDA/user-action onboarding
   states into the center panel with `ViewSpec.environmentReadiness`.
-* Onboarding-owned Presence definitions decide what should be said, tested, and
-  remediated, and in what order; specialist systems retain the expertise used
-  to establish facts or perform operations.
+* `OnboardingOperationSnapshot` persists exact stage/substage, aggregate
+  progress, interruption, failure, and recovery evidence across launches.
 
 Presence is a separate essential. It owns how workflow definitions are stored,
 assembled, executed, routed, checkpointed, and traced. It does not own the
 business meaning of onboarding, archive ingestion, or future workflows.
-* `OnboardingStatus` and environment reports classify readiness and recovery
-  states.
+* `OnboardingStatus` and environment reports remain compatibility/coarse
+  classification vocabularies. They do not erase exact interrupted substage
+  evidence.
 
 The `features/environment_readiness` feature owns readiness panel content for
 the approved `EnvironmentReadinessSpec`. It does not own the onboarding gate,
