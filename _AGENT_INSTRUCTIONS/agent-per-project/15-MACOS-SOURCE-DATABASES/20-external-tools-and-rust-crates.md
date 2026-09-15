@@ -2,12 +2,13 @@
 tier: project
 scope: macos-source-databases
 owner: agent-per-project
-last_reviewed: 2026-06-20
+last_reviewed: 2026-09-15
 source_of_truth: external-references
 links:
   - ./00-overview.md
   - ./apple-typedstream-format-reference.md
   - ../20-DATA-IMPORT-MIGRATION/11-rust-message-extractor.md
+  - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
 tests: []
 ---
 
@@ -19,7 +20,13 @@ These references are useful when validating assumptions about Apple’s source d
 
 This document is external validation reference. External tools may clarify Apple source-schema behavior, but they do not define MessageLens import, migration, archive, or UI architecture.
 
-The current runtime typedstream path is MessageLens's own Rust extractor, documented in `../20-DATA-IMPORT-MIGRATION/11-rust-message-extractor.md`, invoked by the import pipeline, and written back into the import ledger. New app behavior must follow the internal pipeline contracts even when an external crate models the same Apple data differently.
+The current runtime typedstream path is MessageLens's own in-process Rust FFI
+decoder, documented in
+`../20-DATA-IMPORT-MIGRATION/11-rust-message-extractor.md`. The import pipeline
+passes it bounded, `ss_id`-keyed BLOB pages from the source-scoped ledger and
+writes successful results back there. New app behavior must follow the internal
+row, byte, source-identity, and preservation contracts even when an external
+crate models the same Apple data differently.
 
 ## `imessage_database` Rust Crate
 

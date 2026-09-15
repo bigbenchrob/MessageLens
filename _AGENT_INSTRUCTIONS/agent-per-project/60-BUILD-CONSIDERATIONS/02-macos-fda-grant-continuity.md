@@ -2,12 +2,13 @@
 tier: project
 scope: build
 owner: agent-per-project
-last_reviewed: 2026-07-27
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./README.md
   - ../../../macos/Runner/Configs/AppInfo.xcconfig
   - ../../../macos/Runner.xcodeproj/project.pbxproj
+  - ../65-DISTRIBUTION/10-render-tester-portal.md
 tests: []
 ---
 
@@ -110,8 +111,18 @@ Before handing off a production build, verify:
 4. The app name remains `MessageLens.app`.
 5. `tool/verify_macos_archive_identity.sh --environment production` accepts the
    final signed artifact.
+6. The packaged `Info.plist` version/build matches the intended
+   `pubspec.yaml` release metadata.
+7. The final stapled artifact's SHA-256 is recorded. A later tester-portal
+   publication must verify that exact hash and must not silently rebuild it.
 
 If these checks are not confirmed, do not describe the artifact as a production build.
+
+Runtime support evidence reads package identity and version/build from the
+installed app bundle through `PackageInfo.fromPlatform()`. It must not fall back
+to a stale checked-in release number. This diagnostic rule strengthens
+traceability but does not replace bundle-ID, team, designated-requirement,
+notarization, or Full Disk Access continuity checks.
 
 ## User-Facing Expectation
 

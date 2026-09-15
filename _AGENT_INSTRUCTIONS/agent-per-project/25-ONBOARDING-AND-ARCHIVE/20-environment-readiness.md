@@ -59,6 +59,14 @@ open the import or graph stores as an unrelated observer.
 
 Import progress is operation truth, not a report state.
 
+The report therefore carries the persisted `OnboardingOperationSnapshot`
+alongside this coarse classification. An exact interrupted substage takes part
+in durable reconciliation: for example, an interruption while
+`extractingRichText` or `persistingRichText` remains safely resumable even when
+partial graph evidence yields `graphProjectionFailed`. The details/operation
+surface must present the exact snapshot rather than converting it to a generic
+projection failure.
+
 ## Guided Episode Projection
 
 The feature projects one calm surface at a time:
@@ -122,3 +130,5 @@ policy.
 6. Operation snapshot is operation truth, not navigation authority.
 7. Maintenance reporting does not open protected derived stores.
 8. Presentation copy states only what local evidence can prove.
+9. Exact persisted interruption evidence is not discarded merely because the
+   environment classification is coarser.

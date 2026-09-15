@@ -2,7 +2,7 @@
 tier: project
 scope: database-health-audit
 owner: agent-per-project
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./README.md
@@ -13,6 +13,7 @@ links:
   - ../10-DATABASES/07-overlay-database-independence.md
   - ../10-DATABASES/14-historical-archive-source-identity.md
   - ../25-ONBOARDING-AND-ARCHIVE/ATTACHMENT-PRESERVATION-INVARIANT.md
+  - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
 tests:
   - ../../../test/essentials/db/application/database_health_audit/database_health_audit_service_test.dart
   - ../../../test/essentials/db/infrastructure/repositories/database_health_audit_queries_test.dart
@@ -119,7 +120,7 @@ summaries, and curated SQL checks.
 
 The report format currently declares:
 
-- `schema_version: "1.0.0"`
+- `schema_version: "1.1.0"`
 - `audit_version: "phase1"`
 
 Top-level sections are:
@@ -131,6 +132,7 @@ Top-level sections are:
 | `table_inventory` | Expected plus dynamically discovered tables, existence, row count, simple PK bounds, privacy-safe important-column aggregates, and notes. |
 | `relationship_checks` | Parent/child/matched/unmatched counts and percentages for curated joins. |
 | `invariant_checks` | Evaluated-row and violation counts for curated structural invariants, including severity. |
+| `message_text_enrichment` | Remaining missing-text candidate count, aggregate attributed-body bytes, and maximum candidate BLOB bytes. |
 | `summary` | Overall status, active-table count, check counts, and up to twelve headline findings. |
 | `errors` | Typed database-open, inventory, relationship, or invariant evidence. |
 
@@ -169,6 +171,26 @@ The explicit
 `not_applicable`; Phase 1 inventories overlay data but does not join overlay to
 graph or retired stores.
 
+### Message-text enrichment evidence
+
+Schema `1.1.0` computes `message_text_enrichment` with one aggregate query over
+source-scoped ledger rows where `text IS NULL` and
+`attributed_body_blob IS NOT NULL`. It reports:
+
+- remaining candidate count;
+- total candidate attributed-body bytes; and
+- maximum candidate attributed-body bytes.
+
+The query does not select or materialize any BLOB or message value in Dart. It
+exports no source row ID, `ss_id`, content, GUID, or path. A failure is recorded
+under the typed `message_text_enrichment` error scope and does not suppress the
+rest of the Phase 1 report.
+
+These aggregates describe pending work at the instant of the audit. They do
+not reconstruct a durable import cursor, declare individual records corrupt,
+or replace the exact stage/substage and progress in
+`onboarding_operation.json`.
+
 ## Privacy and Safety
 
 The health report contains aggregate structural evidence only. It does not copy
@@ -190,6 +212,7 @@ Implemented today:
 - privacy-safe buffered startup-validation events, persistent-log flush after
   classification, and `startup_validation.json` support-bundle export;
 - Phase 1 structural audit and support-bundle export;
+- schema `1.1.0` aggregate-only pending message-text enrichment evidence;
 - active-table summary with retired cleanup detail and unfiltered check/error
   aggregation;
 - aggregate-only report content.

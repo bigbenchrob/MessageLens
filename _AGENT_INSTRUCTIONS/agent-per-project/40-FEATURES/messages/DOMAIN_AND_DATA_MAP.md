@@ -2,7 +2,7 @@
 tier: feature
 scope: domain-data-map
 owner: agent-per-project
-last_reviewed: 2026-06-05
+last_reviewed: 2026-09-15
 links:
   - ./CHARTER.md
   - ./STATE_AND_PROVIDER_INVENTORY.md
@@ -10,7 +10,7 @@ tests: []
 feature: messages
 doc_type: domain-data-map
 status: current
-last_updated: 2026-06-05
+last_updated: 2026-09-15
 ---
 
 # Domain & Data Map - Messages
@@ -76,7 +76,9 @@ storage, but ordinary message UI must not depend on them.
 - Source-scoped import/project lifecycle populates `macos_import_ss.db` and
   `working_ss.db`.
 - Rust attributed-body extraction enriches missing text in the import ledger
-  before projection.
+  before projection. Candidate metadata is keyset-paged by frozen `ss_id`
+  high-water, payloads are byte-bounded, and successful sub-pages are durable
+  checkpoints; no message evidence scope performs corpus-wide extraction.
 - Overlay repositories provide saved/tag/annotation intent at read time.
 
 ## Downstream Consumers
@@ -90,6 +92,8 @@ storage, but ordinary message UI must not depend on them.
 ## Data Contracts
 
 - `message_ss_id` is canonical message identity for graph-backed evidence.
+- Attributed-body decoder work and text persistence use that same source-scoped
+  `ss_id`; bare Apple source ROWIDs never identify work across sources.
 - Timeline-like scopes preserve the full logical selected message universe
   before row hydration.
 - A standalone handle/unfamiliar-source scope means messages whose canonical

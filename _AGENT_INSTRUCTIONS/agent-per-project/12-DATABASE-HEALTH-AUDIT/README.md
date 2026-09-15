@@ -2,7 +2,7 @@
 tier: project
 scope: database-health-audit
 owner: agent-per-project
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./00-overview.md
@@ -42,6 +42,7 @@ itself grant or withhold startup admission.
 | A user supplied startup logs or reported a startup database warning | [`06-interpreting-startup-database-logs.md`](06-interpreting-startup-database-logs.md) |
 | What does `database_health.json` mean? | [`00-overview.md`](00-overview.md#interpreting-database_healthjson) |
 | What is exported, and what happens when audit generation fails? | [`10-support-bundle-integration.md`](10-support-bundle-integration.md) |
+| How are pending rich-text work and resumable pages defined? | [`12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md) |
 
 ## Current Implementation at a Glance
 
@@ -57,6 +58,13 @@ itself grant or withhold startup admission.
 - Startup admission emits privacy-safe typed events into an in-memory buffer,
   flushes them after the persistent logger is ready, and includes the snapshot
   as `startup_validation.json` wherever normal support export succeeds.
+- Normal support bundles also include the current persisted onboarding
+  operation as `onboarding_operation.json`, with exact stage/substage and
+  aggregate progress but no operation/process UUID, source row ID, content, or
+  path.
+- Database-health schema `1.1.0` reports remaining rich-text candidate count,
+  total candidate BLOB bytes, and maximum candidate BLOB bytes with one
+  aggregate-only query.
 - `Start Fresh` and the obsolete Complete Erase journal compatibility seam use
   full validation of every existing app database at their safety boundaries.
 - The support-bundle health audit uses normal persistent providers for active
@@ -82,6 +90,8 @@ itself grant or withhold startup admission.
   `lib/essentials/db/application/database_health_audit/`
 - Support bundle:
   `lib/essentials/logging/infrastructure/support_bundle_export_service.dart`
+- Runtime package metadata:
+  `lib/essentials/db/feature_level_providers/database_health_audit_service_provider.dart`
 
 When documentation and code disagree, code wins. Update these documents in the
 same change that alters startup validation, audit report semantics, or support

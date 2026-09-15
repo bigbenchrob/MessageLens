@@ -2,7 +2,7 @@
 tier: project
 scope: build
 owner: agent-per-project
-last_reviewed: 2026-08-30
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./01-rust-ffi-dylib-bundling.md
@@ -18,6 +18,20 @@ This folder documents platform-specific build requirements, release packaging go
 After a release artifact has been built, signed, notarized, and packaged, use
 [`65-DISTRIBUTION/`](../65-DISTRIBUTION/README.md) for tester-portal publication
 through Render. Preparing the website checkout is not deployment.
+
+## Packaged Version Authority
+
+Runtime diagnostics obtain app name, bundle identifier, version, and build
+number from the running package with `PackageInfo.fromPlatform()`. Build
+channel comes from the actual Dart release/profile/debug mode. Do not add or
+trust checked-in fallback version/build literals in database-health or support
+evidence.
+
+Release qualification must compare `pubspec.yaml` with the packaged app's
+`Info.plist`. Publication of an already-qualified artifact must additionally
+verify the recorded final SHA-256 before copying or uploading it; rerunning the
+build/notarization script creates a different artifact and is not publication
+of the qualified candidate.
 
 ## Contents
 

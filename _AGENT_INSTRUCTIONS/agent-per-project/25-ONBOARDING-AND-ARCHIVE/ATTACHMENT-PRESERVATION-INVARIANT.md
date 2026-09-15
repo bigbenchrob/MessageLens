@@ -2,7 +2,7 @@
 tier: project
 scope: attachment-preservation
 owner: agent-per-project
-last_reviewed: 2026-09-06
+last_reviewed: 2026-09-15
 source_of_truth: code-and-invariant
 links:
   - ./30-import-migration-coordination.md
@@ -12,8 +12,8 @@ links:
   - ../10-DATABASES/00-all-databases-accessed.md
   - ../42-SPEC-SYSTEM/CANONICAL-ARCHITECTURE/60-DATA-PIPELINE-INVARIANTS/10-PIPELINE-INVARIANTS-CORE.md
 tests:
-  - test/essentials/onboarding/infrastructure/persistence/filesystem_derived_message_data_file_store_test.dart
-  - test/architecture/forbidden_imports_test.dart
+  - ../../../test/essentials/onboarding/infrastructure/persistence/filesystem_derived_message_data_file_store_test.dart
+  - ../../../test/architecture/forbidden_imports_test.dart
 ---
 
 # Attachment Preservation Invariant
@@ -159,9 +159,9 @@ The allow-list excludes:
 
 | Path | Classification | Evidence |
 | --- | --- | --- |
-| First-run preparation | Safe because it delegates to the explicit reset allow-list | `OnboardingGate._prepareForFreshStartIfNeeded()` calls `MessageDataResetService.resetDerivedData()` |
-| Direct reimport | Safe because it delegates to the explicit reset allow-list | `OnboardingGate._startReimport()` calls the same reset service |
-| Automatic recovery | Safe because it delegates to the explicit reset allow-list | `_runAdmittedAutomaticRecovery()` calls the same reset service |
+| Proven Virgin first import | Safe because it constructs fresh derived stores and has no reset dependency | `VirginOnboardingImportExecutor` accepts graph-build work but has no reset, archive, checkpoint, adoption, or erase authority |
+| Direct reimport | Safe because the Journey coordinator delegates to the explicit reset allow-list | `OnboardingJourneyCoordinator._startReimport()` calls `MessageDataResetService.resetDerivedData()` |
+| Automatic recovery | Safe because the Journey coordinator delegates to the explicit reset allow-list | `OnboardingJourneyCoordinator._runAdmittedAutomaticRecovery()` calls the same reset service |
 | **Reset Message Data** | Explicitly safe advanced entry into Start Fresh | A completed installation is reclassified, explicitly authorized, and delegated to canonical Start Fresh under `startFresh` mutation authority; only enumerated derived database files are removed |
 | **Start Fresh** | Explicitly safe within current semantics | Typed installation classification and explicit authorization lead to the same allow-list reset under `startFresh` mutation authority; payloads and overlay/Presence stores remain |
 | Development reset action | Safe within its temporary/development authority | Delegates to the same reset service |

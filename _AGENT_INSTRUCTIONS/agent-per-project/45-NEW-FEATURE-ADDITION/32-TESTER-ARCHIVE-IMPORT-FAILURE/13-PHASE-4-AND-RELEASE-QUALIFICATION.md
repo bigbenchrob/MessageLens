@@ -6,7 +6,9 @@ Status: Phase 4 is complete. The locally available packaged-process,
 automated, versioning, production-signing, and notarization work is complete.
 Final release sign-off is **held**, not failed, because this workstation is a
 24 GB Mac and therefore cannot satisfy the plan's separate low-memory Mac
-target gate. The original-tester retry is intentionally not started.
+target gate. The original-tester retry is intentionally not started. A later
+publication step placed the exact qualified artifact on the tester portal
+without rebuilding; that publication did not close the low-memory gate.
 
 ## Executive decision
 
@@ -17,13 +19,16 @@ coordinators retain their explicit record and byte bounds, the packaged
 converges at all seven required boundaries without changing the overlay or
 attachment-preservation sentinels.
 
-MessageLens `0.2.111+129` has been built through the production distribution
+MessageLens `0.2.111+129` was built through the production distribution
 path with the canonical bundle identifier, Developer ID signing, hardened
 runtime, Apple notarization, and a stapled ticket. The resulting DMG has not
-been published, installed, or launched.
+been installed or launched. At the time this qualification report was first
+written, it had not been published; the chronological publication addendum in
+section 10 records the later no-rebuild deployment.
 
-This is a valid locally qualified release candidate, but it is not yet the
-final tester-release sign-off. The remaining gates are:
+This is a valid locally qualified and subsequently published tester candidate,
+but it is not the final low-memory/tester-retry sign-off. The remaining gates
+are:
 
 1. repeat the 123,561-or-larger packaged run on the intended low-memory Mac
    under ordinary concurrent-app load and establish the final numerical
@@ -303,18 +308,52 @@ No release-qualification evidence contradicted the Phases 0–3 diagnosis,
 resource-bound conclusions, source-fidelity guarantees, source scoping,
 overlay independence, or attachment-preservation invariant.
 
-## 9. Stop boundary and handoff
+## 9. Qualification stop boundary and handoff
 
-Work stops before contacting or involving the original tester. The notarized
-DMG is local only and must not be distributed until the owner decides how to
-complete or disposition the low-memory target-Mac gate.
+Qualification work stopped before contacting or involving the original tester.
+At that checkpoint the notarized DMG was local only. The owner later authorized
+tester-portal publication as a separate distribution action, but did not
+authorize the original tester retry or disposition the low-memory target-Mac
+gate.
 
 When authorized later, the tester procedure in the remediation plan remains
 unchanged: no broad Application Support deletion, no attachment-archive
 mutation, resume through the application's offered recovery path, and collect
 a fresh support bundle after completion.
 
-## 10. Git status
+## 10. Publication addendum — 2026-09-13
+
+The already-qualified notarized candidate was published to the Render tester
+portal without invoking a rebuild, re-sign, re-notarization, version change, or
+artifact mutation.
+
+- version/build: `0.2.111+129`;
+- final DMG size: 47,921,437 bytes;
+- qualified and published SHA-256:
+  `5f2313eb8526b23981396f376552259ba924d69d3d9336097f52538c34039e35`;
+- portal repository:
+  `https://github.com/bigbenchrob/message-lens-site.git`;
+- publishing branch: `main`, tracking `origin/main`;
+- publication commit:
+  `1fd49d33c719b797d598c4ab4294899884377732` (`publish MessageLens 0.2.111 tester build`);
+- public site: `https://message-lens-site.onrender.com/`;
+- public artifact:
+  `https://message-lens-site.onrender.com/assets/downloads/MessageLens-latest.dmg`;
+- tester metadata: Production tester build / Beta / macOS, with
+  `requiresDataReset: false` (`Not required`).
+
+The Desktop candidate and portal copy both matched the recorded final hash and
+size. Portal changes were limited to the DMG, `latest-build.json`,
+`tester-changelog.json`, the source landing page, and its generated page.
+Tester notes described the bounded import/enrichment architecture, durable
+continuation, decoder containment, exact recovery reporting, and privacy-safe
+diagnostics.
+
+This publication is distribution evidence only. It does **not** satisfy the
+still-outstanding low-memory target-Mac qualification, and the original tester
+was not involved.
+
+## 11. Git status at the qualification report checkpoint
 
 - Worktree: `/private/tmp/messagelens-tester-import-memory-remediation`
 - Branch: `codex/tester-archive-import-memory-remediation`
@@ -324,8 +363,9 @@ a fresh support bundle after completion.
 - This report and the support-bundle operator-document update are committed
   separately under `docs(import): record phase 4 release qualification`.
 - Generated build/test outputs were restored or removed after qualification.
-- Final post-commit status: clean.
-- Push status: not pushed.
+- Final post-commit status for the app repository: clean.
+- App-repository push status at that checkpoint: not pushed. The later portal
+  publication commit was pushed in the separate tester-portal repository.
 
 The exact final HEAD is intentionally not embedded in the commit that contains
 this document, because a Git commit cannot contain its own stable hash. Use
