@@ -27,7 +27,7 @@ final crossSnapshotMapperProvider =
 typedef CrossSnapshotMapperRef =
     AutoDisposeFutureProviderRef<CrossSnapshotMapper>;
 String _$recoveredAttachmentArchiveWriterHash() =>
-    r'ae407278caaf5d9fdf146266de39aca5f646c7bc';
+    r'725a2722172c3574d64d503b94b0abca88a2f6bb';
 
 /// See also [recoveredAttachmentArchiveWriter].
 @ProviderFor(recoveredAttachmentArchiveWriter)

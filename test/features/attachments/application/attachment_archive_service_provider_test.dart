@@ -95,8 +95,10 @@ void main() {
           ),
           overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
           attachmentArchiveLocationProvider.overrideWith(
-            (ref) async => AttachmentArchiveLocationState.defaultAvailable(
-              archiveRootPath: tempDir.path,
+            () => _FixedAttachmentArchiveLocation(
+              AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: tempDir.path,
+              ),
             ),
           ),
         ],
@@ -196,8 +198,10 @@ void main() {
             (ref) async => attachmentPathLookup,
           ),
           attachmentArchiveLocationProvider.overrideWith(
-            (ref) async => AttachmentArchiveLocationState.defaultAvailable(
-              archiveRootPath: '${tempDir.path}/archive',
+            () => _FixedAttachmentArchiveLocation(
+              AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: '${tempDir.path}/archive',
+              ),
             ),
           ),
         ],
@@ -682,4 +686,13 @@ final class _TestCurrentMessagesAttachmentPathLookup
   Future<String?> attachmentPathForSourceRowId(int sourceRowId) async {
     return pathsBySourceRowId[sourceRowId];
   }
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }

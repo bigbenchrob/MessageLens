@@ -7,7 +7,7 @@ part of 'message_lens_attachment_recovery_batch_executor_provider.dart';
 // **************************************************************************
 
 String _$messageLensAttachmentRecoveryBatchExecutorHash() =>
-    r'153384956c57d40b73d81ede80b6f4222723d1e6';
+    r'929e1f991ee65c897ec7dbd0567301462d2ccee0';
 
 /// Copied from Dart SDK
 class _SystemHash {

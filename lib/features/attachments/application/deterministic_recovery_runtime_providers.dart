@@ -33,11 +33,13 @@ Future<CrossSnapshotMapper> crossSnapshotMapper(
 Future<RecoveredAttachmentArchiveWriter> recoveredAttachmentArchiveWriter(
   RecoveredAttachmentArchiveWriterRef ref,
 ) async {
-  final location = await ref.watch(attachmentArchiveLocationProvider.future);
+  final mutationRoot = await ref.watch(
+    attachmentArchiveMutationRootProvider.future,
+  );
   final overlayDb = await ref.watch(overlayDatabaseProvider.future);
   return OverlayRecoveredAttachmentArchiveWriter(
     overlayDb: overlayDb,
-    archiveDir: location.requireArchiveRootPath(),
+    archiveDir: mutationRoot.archiveRootPath,
   );
 }
 

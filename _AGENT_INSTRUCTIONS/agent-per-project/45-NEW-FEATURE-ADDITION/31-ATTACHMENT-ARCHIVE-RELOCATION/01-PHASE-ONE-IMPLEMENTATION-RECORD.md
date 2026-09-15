@@ -14,9 +14,10 @@ links:
 
 ## Status
 
-Phase One, location model and default compatibility, is implemented and left
-uncommitted for review. The architecture audit was first checkpointed at
-`f7b8850bdd1e` with commit message
+Phase One, location model and default compatibility, was committed as
+`bf7ddc2925db472f493f61ec4b43e7af06e4cd9f` with commit message
+`feat(attachments): implement archive relocation phase one`. The architecture
+audit was first checkpointed at `f7b8850bdd1e` with commit message
 `docs(attachments): add archive relocation architecture plan`.
 
 The active attachment archive remains the same `attachment_archive` child of

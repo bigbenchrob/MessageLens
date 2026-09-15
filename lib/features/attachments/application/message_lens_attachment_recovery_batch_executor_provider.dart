@@ -16,8 +16,10 @@ messageLensAttachmentRecoveryBatchExecutor(
   MessageLensAttachmentRecoveryBatchExecutorRef ref, {
   required String donorArchiveRoot,
 }) async {
-  final location = await ref.watch(attachmentArchiveLocationProvider.future);
-  final currentArchiveDirectory = location.requireArchiveRootPath();
+  final mutationRoot = await ref.watch(
+    attachmentArchiveMutationRootProvider.future,
+  );
+  final currentArchiveDirectory = mutationRoot.archiveRootPath;
   final fileStore = ref.watch(attachmentArchiveFileStoreProvider);
   final readStore = await ref.watch(attachmentArchiveReadStoreProvider.future);
   final writeStore = await ref.watch(

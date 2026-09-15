@@ -4,9 +4,7 @@ import 'package:meta/meta.dart';
 
 /// The configured ownership mode for the active attachment archive root.
 ///
-/// Phase One operates only [defaultInternal]. [customExternal] reserves the
-/// persisted discriminator that later phases will extend with bookmark-backed
-/// identity without replacing this configuration contract.
+/// [customExternal] stores bookmark-backed identity plus display-only metadata.
 enum AttachmentArchiveLocationMode {
   defaultInternal('default_internal'),
   customExternal('custom_external');
@@ -30,12 +28,15 @@ enum AttachmentArchiveLocationMode {
 ///
 /// Attachment rows retain archive-relative paths. This configuration selects
 /// the root against which those paths are resolved and is not attachment
-/// identity.
+/// identity. [lastKnownPath] is never filesystem authority.
 @immutable
 final class AttachmentArchiveLocationConfiguration {
   const AttachmentArchiveLocationConfiguration._({
     required this.formatVersion,
     required this.mode,
+    this.bookmarkDataBase64,
+    this.lastKnownPath,
+    this.volumeName,
   });
 
   const AttachmentArchiveLocationConfiguration.defaultInternal()
@@ -44,15 +45,46 @@ final class AttachmentArchiveLocationConfiguration {
         mode: AttachmentArchiveLocationMode.defaultInternal,
       );
 
+  factory AttachmentArchiveLocationConfiguration.customExternal({
+    required String bookmarkDataBase64,
+    required String lastKnownPath,
+    String? volumeName,
+  }) {
+    final normalizedBookmark = _validateBookmarkData(bookmarkDataBase64);
+    final normalizedLastKnownPath = lastKnownPath.trim();
+    if (normalizedLastKnownPath.isEmpty) {
+      throw const FormatException(
+        'Custom attachment archive lastKnownPath must not be empty.',
+      );
+    }
+    final normalizedVolumeName = volumeName?.trim();
+    return AttachmentArchiveLocationConfiguration._(
+      formatVersion: currentFormatVersion,
+      mode: AttachmentArchiveLocationMode.customExternal,
+      bookmarkDataBase64: normalizedBookmark,
+      lastKnownPath: normalizedLastKnownPath,
+      volumeName: normalizedVolumeName == null || normalizedVolumeName.isEmpty
+          ? null
+          : normalizedVolumeName,
+    );
+  }
+
   static const int currentFormatVersion = 1;
 
   final int formatVersion;
   final AttachmentArchiveLocationMode mode;
+  final String? bookmarkDataBase64;
+  final String? lastKnownPath;
+  final String? volumeName;
 
   Map<String, Object> toJson() {
     return <String, Object>{
       'formatVersion': formatVersion,
       'mode': mode.serializedName,
+      if (bookmarkDataBase64 case final bookmarkData?)
+        'bookmarkDataBase64': bookmarkData,
+      if (lastKnownPath case final displayPath?) 'lastKnownPath': displayPath,
+      if (volumeName case final name?) 'volumeName': name,
     };
   }
 
@@ -94,10 +126,77 @@ final class AttachmentArchiveLocationConfiguration {
       );
     }
 
-    return AttachmentArchiveLocationConfiguration._(
-      formatVersion: formatVersion,
-      mode: AttachmentArchiveLocationMode.parse(mode),
+    final parsedMode = AttachmentArchiveLocationMode.parse(mode);
+    return switch (parsedMode) {
+      AttachmentArchiveLocationMode.defaultInternal =>
+        const AttachmentArchiveLocationConfiguration.defaultInternal(),
+      AttachmentArchiveLocationMode.customExternal =>
+        AttachmentArchiveLocationConfiguration.customExternal(
+          bookmarkDataBase64: _readRequiredString(json, 'bookmarkDataBase64'),
+          lastKnownPath: _readRequiredString(json, 'lastKnownPath'),
+          volumeName: _readOptionalString(json, 'volumeName'),
+        ),
+    };
+  }
+
+  AttachmentArchiveLocationConfiguration withResolvedMetadata({
+    required String bookmarkDataBase64,
+    required String lastKnownPath,
+    String? volumeName,
+  }) {
+    if (mode != AttachmentArchiveLocationMode.customExternal) {
+      throw StateError(
+        'Only custom attachment archive configuration has bookmark metadata.',
+      );
+    }
+    return AttachmentArchiveLocationConfiguration.customExternal(
+      bookmarkDataBase64: bookmarkDataBase64,
+      lastKnownPath: lastKnownPath,
+      volumeName: volumeName,
     );
+  }
+
+  static String _validateBookmarkData(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      throw const FormatException(
+        'Custom attachment archive bookmark data must not be empty.',
+      );
+    }
+    try {
+      final decoded = base64Decode(normalized);
+      if (decoded.isEmpty) {
+        throw const FormatException(
+          'Custom attachment archive bookmark data must not be empty.',
+        );
+      }
+    } on FormatException {
+      throw const FormatException(
+        'Custom attachment archive bookmark data must be valid base64.',
+      );
+    }
+    return normalized;
+  }
+
+  static String _readRequiredString(Map<String, Object?> json, String key) {
+    final value = _readOptionalString(json, key);
+    if (value == null || value.trim().isEmpty) {
+      throw FormatException(
+        'Custom attachment archive $key must be a non-empty string.',
+      );
+    }
+    return value;
+  }
+
+  static String? _readOptionalString(Map<String, Object?> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
+    if (value is! String) {
+      throw FormatException('Custom attachment archive $key must be a string.');
+    }
+    return value;
   }
 
   @override
@@ -105,9 +204,18 @@ final class AttachmentArchiveLocationConfiguration {
     return identical(this, other) ||
         other is AttachmentArchiveLocationConfiguration &&
             other.formatVersion == formatVersion &&
-            other.mode == mode;
+            other.mode == mode &&
+            other.bookmarkDataBase64 == bookmarkDataBase64 &&
+            other.lastKnownPath == lastKnownPath &&
+            other.volumeName == volumeName;
   }
 
   @override
-  int get hashCode => Object.hash(formatVersion, mode);
+  int get hashCode => Object.hash(
+    formatVersion,
+    mode,
+    bookmarkDataBase64,
+    lastKnownPath,
+    volumeName,
+  );
 }

@@ -62,8 +62,10 @@ void main() {
           ),
           overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
           attachmentArchiveLocationProvider.overrideWith(
-            (ref) async => AttachmentArchiveLocationState.defaultAvailable(
-              archiveRootPath: tempDir.path,
+            () => _FixedAttachmentArchiveLocation(
+              AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: tempDir.path,
+              ),
             ),
           ),
         ],
@@ -294,4 +296,13 @@ void main() {
       },
     );
   });
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart' as drift;
@@ -13,6 +15,9 @@ import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
     show overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_controller.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_dependencies_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_folder_chooser.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_native_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
@@ -23,18 +28,69 @@ import 'package:remember_this_text/features/attachments/domain/entities/attachme
 import '../../../test_support/test_archive_fixture.dart';
 
 void main() {
+  group('AttachmentArchiveLocationConfiguration', () {
+    test('custom configuration round-trips bookmark identity and metadata', () {
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: base64Encode(<int>[1, 2, 3, 4]),
+            lastKnownPath: '/Volumes/Disposable/Archive',
+            volumeName: 'Disposable',
+          );
+
+      final restored =
+          AttachmentArchiveLocationConfiguration.fromPersistedValue(
+            configuration.toPersistedValue(),
+          );
+
+      expect(restored, configuration);
+      expect(restored.mode, AttachmentArchiveLocationMode.customExternal);
+      expect(restored.lastKnownPath, '/Volumes/Disposable/Archive');
+    });
+
+    test('malformed custom bookmark data fails closed', () {
+      expect(
+        () => AttachmentArchiveLocationConfiguration.fromPersistedValue(
+          jsonEncode(<String, Object>{
+            'formatVersion': 1,
+            'mode': 'custom_external',
+            'bookmarkDataBase64': 'not base64',
+            'lastKnownPath': '/Volumes/Remembered',
+          }),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('default configuration remains backward compatible', () {
+      final restored =
+          AttachmentArchiveLocationConfiguration.fromPersistedValue(
+            '{"formatVersion":1,"mode":"default_internal"}',
+          );
+
+      expect(
+        restored,
+        const AttachmentArchiveLocationConfiguration.defaultInternal(),
+      );
+      expect(restored.bookmarkDataBase64, isNull);
+      expect(restored.lastKnownPath, isNull);
+    });
+  });
+
   group('AttachmentArchiveLocationController', () {
     late TestArchiveFixture archiveFixture;
     late _FakeAttachmentArchiveSettingsStore settingsStore;
+    late _FakeAttachmentArchiveLocationNativeAdapter nativeAdapter;
 
     setUp(() async {
       archiveFixture = await TestArchiveFixture.create(
         prefix: 'attachment_archive_location_controller_test_',
       );
       settingsStore = _FakeAttachmentArchiveSettingsStore();
+      nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
     });
 
     tearDown(() async {
+      await nativeAdapter.dispose();
       await archiveFixture.dispose();
     });
 
@@ -42,6 +98,7 @@ void main() {
       final controller = AttachmentArchiveLocationController(
         archiveAccessAuthority: archiveFixture.authority,
         settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
       );
 
       final location = await controller.load();
@@ -68,6 +125,7 @@ void main() {
       final controller = AttachmentArchiveLocationController(
         archiveAccessAuthority: archiveFixture.authority,
         settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
       );
       const configuration =
           AttachmentArchiveLocationConfiguration.defaultInternal();
@@ -93,6 +151,7 @@ void main() {
       final controller = AttachmentArchiveLocationController(
         archiveAccessAuthority: archiveFixture.authority,
         settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
       );
 
       final location = await controller.load();
@@ -105,25 +164,221 @@ void main() {
       expect(location.requireArchiveRootPath, throwsStateError);
     });
 
-    test('external discriminator is reserved but not operational', () async {
+    test('custom configuration without bookmark data fails closed', () async {
       settingsStore.settings[attachmentArchiveLocationSettingKey] =
           '{"formatVersion":1,"mode":"custom_external"}';
       final controller = AttachmentArchiveLocationController(
         archiveAccessAuthority: archiveFixture.authority,
         settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
       );
 
       final location = await controller.load();
 
       expect(
-        location.configuration?.mode,
-        AttachmentArchiveLocationMode.customExternal,
-      );
-      expect(
         location.availability,
         AttachmentArchiveLocationAvailability.configurationInvalid,
       );
+      expect(location.configuration, isNull);
       expect(location.archiveRootPath, isNull);
+    });
+
+    test(
+      'custom bookmark resolves without treating remembered path as root',
+      () async {
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: base64Encode(<int>[8, 9]),
+              lastKnownPath: '/Volumes/Remembered/Archive',
+              volumeName: 'Remembered',
+            );
+        settingsStore.settings[attachmentArchiveLocationSettingKey] =
+            configuration.toPersistedValue();
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: '/Volumes/Resolved/Archive',
+          volumeName: 'Resolved',
+        );
+        final controller = AttachmentArchiveLocationController(
+          archiveAccessAuthority: archiveFixture.authority,
+          settingsStore: settingsStore,
+          nativeAdapter: nativeAdapter,
+        );
+
+        final location = await controller.load();
+
+        expect(
+          location.availability,
+          AttachmentArchiveLocationAvailability.customAvailable,
+        );
+        expect(location.requireArchiveRootPath(), '/Volumes/Resolved/Archive');
+        expect(location.lastKnownDisplayPath, '/Volumes/Resolved/Archive');
+        expect(nativeAdapter.resolvedBookmarks, hasLength(1));
+        expect(
+          nativeAdapter.resolvedBookmarks.single,
+          configuration.bookmarkDataBase64,
+        );
+      },
+    );
+
+    test('unavailable bookmark never exposes the remembered path', () async {
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: base64Encode(<int>[10]),
+            lastKnownPath: '/Volumes/Absent/Archive',
+          );
+      settingsStore.settings[attachmentArchiveLocationSettingKey] =
+          configuration.toPersistedValue();
+      nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+        status: AttachmentArchiveBookmarkResolutionStatus.unavailable,
+        issue: 'Volume is absent.',
+      );
+      final controller = AttachmentArchiveLocationController(
+        archiveAccessAuthority: archiveFixture.authority,
+        settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
+      );
+
+      final location = await controller.load();
+
+      expect(
+        location.availability,
+        AttachmentArchiveLocationAvailability.customUnavailable,
+      );
+      expect(location.archiveRootPath, isNull);
+      expect(location.lastKnownDisplayPath, '/Volumes/Absent/Archive');
+      expect(location.requireArchiveRootPath, throwsStateError);
+      expect(location.requireInternalMutationRoot, throwsStateError);
+    });
+
+    test(
+      'stale bookmark refresh persists resolved identity metadata',
+      () async {
+        final oldBookmark = base64Encode(<int>[11]);
+        final refreshedBookmark = base64Encode(<int>[12]);
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: oldBookmark,
+              lastKnownPath: '/Volumes/Before/Archive',
+              volumeName: 'Before',
+            );
+        settingsStore.settings[attachmentArchiveLocationSettingKey] =
+            configuration.toPersistedValue();
+        nativeAdapter.resolution = AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: '/Volumes/After/Archive',
+          refreshedBookmarkDataBase64: refreshedBookmark,
+          volumeName: 'After',
+        );
+        final controller = AttachmentArchiveLocationController(
+          archiveAccessAuthority: archiveFixture.authority,
+          settingsStore: settingsStore,
+          nativeAdapter: nativeAdapter,
+        );
+
+        final location = await controller.load();
+        final persisted =
+            AttachmentArchiveLocationConfiguration.fromPersistedValue(
+              settingsStore.settings[attachmentArchiveLocationSettingKey]!,
+            );
+
+        expect(location.configuration?.bookmarkDataBase64, refreshedBookmark);
+        expect(location.requireArchiveRootPath(), '/Volumes/After/Archive');
+        expect(persisted.bookmarkDataBase64, refreshedBookmark);
+        expect(persisted.lastKnownPath, '/Volumes/After/Archive');
+        expect(persisted.volumeName, 'After');
+      },
+    );
+
+    test('custom resolution statuses retain typed failure semantics', () async {
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: base64Encode(<int>[13]),
+            lastKnownPath: '/Volumes/Typed/Archive',
+          );
+      settingsStore.settings[attachmentArchiveLocationSettingKey] =
+          configuration.toPersistedValue();
+      final controller = AttachmentArchiveLocationController(
+        archiveAccessAuthority: archiveFixture.authority,
+        settingsStore: settingsStore,
+        nativeAdapter: nativeAdapter,
+      );
+
+      for (final expectation
+          in <
+            (
+              AttachmentArchiveBookmarkResolutionStatus,
+              AttachmentArchiveLocationAvailability,
+            )
+          >[
+            (
+              AttachmentArchiveBookmarkResolutionStatus.readOnly,
+              AttachmentArchiveLocationAvailability.customReadOnly,
+            ),
+            (
+              AttachmentArchiveBookmarkResolutionStatus.permissionDenied,
+              AttachmentArchiveLocationAvailability.permissionDenied,
+            ),
+            (
+              AttachmentArchiveBookmarkResolutionStatus
+                  .configuredDirectoryMissing,
+              AttachmentArchiveLocationAvailability.configuredDirectoryMissing,
+            ),
+            (
+              AttachmentArchiveBookmarkResolutionStatus.invalidBookmark,
+              AttachmentArchiveLocationAvailability.configurationInvalid,
+            ),
+          ]) {
+        nativeAdapter.resolution = AttachmentArchiveBookmarkResolution(
+          status: expectation.$1,
+          resolvedPath:
+              expectation.$1 ==
+                  AttachmentArchiveBookmarkResolutionStatus.readOnly
+              ? '/Volumes/Typed/Archive'
+              : null,
+          issue: 'Typed test status.',
+        );
+
+        final location = await controller.load();
+
+        expect(location.availability, expectation.$2);
+        expect(
+          location.archiveRootPath,
+          expectation.$1 == AttachmentArchiveBookmarkResolutionStatus.readOnly
+              ? '/Volumes/Typed/Archive'
+              : isNull,
+        );
+      }
+    });
+  });
+
+  group('AttachmentArchiveMutationRoot', () {
+    test('default location grants typed internal-only mutation authority', () {
+      final location = AttachmentArchiveLocationState.defaultAvailable(
+        archiveRootPath: '/internal/attachment_archive',
+        generation: 7,
+      );
+
+      final mutationRoot = location.requireInternalMutationRoot();
+
+      expect(mutationRoot.archiveRootPath, '/internal/attachment_archive');
+      expect(mutationRoot.locationGeneration, 7);
+    });
+
+    test('physically writable custom location remains mutation denied', () {
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: base64Encode(<int>[14]),
+            lastKnownPath: '/Volumes/External/Archive',
+          );
+      final location = AttachmentArchiveLocationState.customAvailable(
+        configuration: configuration,
+        archiveRootPath: '/Volumes/External/Archive',
+      );
+
+      expect(location.isPhysicallyWritable, isTrue);
+      expect(location.requireArchiveRootPath(), '/Volumes/External/Archive');
+      expect(location.requireInternalMutationRoot, throwsStateError);
     });
   });
 
@@ -155,6 +410,9 @@ void main() {
             ),
             attachmentArchiveSettingsStoreProvider.overrideWith(
               (ref) async => settingsStore,
+            ),
+            attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+              _FakeAttachmentArchiveLocationNativeAdapter(),
             ),
           ],
         );
@@ -202,6 +460,9 @@ void main() {
             overlayDatabaseProvider.overrideWith(
               (ref) async => overlayDatabase,
             ),
+            attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+              _FakeAttachmentArchiveLocationNativeAdapter(),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -224,7 +485,270 @@ void main() {
         expect(conversationGraphSchemaVersion, 3);
       },
     );
+
+    test(
+      'selection, availability events, and reselection advance generation',
+      () async {
+        final settingsStore = _FakeAttachmentArchiveSettingsStore();
+        final nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
+        addTearDown(nativeAdapter.dispose);
+        final selectedBookmark = base64Encode(<int>[21]);
+        nativeAdapter.creation = AttachmentArchiveBookmarkCreation(
+          bookmarkDataBase64: selectedBookmark,
+          resolvedPath: '/Volumes/Disposable/Archive',
+          volumeName: 'Disposable',
+        );
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: '/Volumes/Disposable/Archive',
+          volumeName: 'Disposable',
+        );
+        final container = ProviderContainer(
+          overrides: [
+            admittedArchiveAccessAuthorityProvider.overrideWithValue(
+              archiveFixture.authority,
+            ),
+            attachmentArchiveSettingsStoreProvider.overrideWith(
+              (ref) async => settingsStore,
+            ),
+            attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+              nativeAdapter,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final initial = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        expect(initial.generation, 0);
+
+        await container
+            .read(attachmentArchiveLocationProvider.notifier)
+            .configureCustomLocation(
+              directoryPath: '/Volumes/Disposable/Archive',
+            );
+        var location = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        expect(
+          location.availability,
+          AttachmentArchiveLocationAvailability.customAvailable,
+        );
+        expect(location.generation, 1);
+        expect(nativeAdapter.createdPaths, <String>[
+          '/Volumes/Disposable/Archive',
+        ]);
+        await expectLater(
+          container.read(attachmentArchiveMutationRootProvider.future),
+          throwsStateError,
+        );
+
+        await container
+            .read(attachmentArchiveLocationProvider.notifier)
+            .refresh();
+        location = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        expect(location.generation, 1);
+
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.unavailable,
+          issue: 'Volume removed.',
+        );
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.volumeUnmounted);
+        location = await _waitForLocation(
+          container,
+          (candidate) =>
+              candidate.availability ==
+                  AttachmentArchiveLocationAvailability.customUnavailable &&
+              candidate.generation == 2,
+        );
+        expect(location.archiveRootPath, isNull);
+
+        final resolveCountBeforeRepeat = nativeAdapter.resolveCalls;
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.applicationActivated);
+        await _waitForResolveCount(nativeAdapter, resolveCountBeforeRepeat + 1);
+        location = container
+            .read(attachmentArchiveLocationProvider)
+            .requireValue;
+        expect(location.generation, 2);
+
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: '/Volumes/Renamed/Archive',
+          volumeName: 'Renamed',
+        );
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.volumeRenamed);
+        location = await _waitForLocation(
+          container,
+          (candidate) =>
+              candidate.archiveRootPath == '/Volumes/Renamed/Archive' &&
+              candidate.generation == 3,
+        );
+        expect(
+          location.availability,
+          AttachmentArchiveLocationAvailability.customAvailable,
+        );
+
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.readOnly,
+          resolvedPath: '/Volumes/Renamed/Archive',
+          issue: 'Read-only volume.',
+        );
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.volumeMounted);
+        location = await _waitForLocation(
+          container,
+          (candidate) =>
+              candidate.availability ==
+                  AttachmentArchiveLocationAvailability.customReadOnly &&
+              candidate.generation == 4,
+        );
+        expect(location.isPhysicallyWritable, isFalse);
+
+        await container
+            .read(attachmentArchiveLocationProvider.notifier)
+            .configureCustomLocation(
+              directoryPath: '/Volumes/Disposable/Archive',
+            );
+        location = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        expect(location.generation, 5);
+
+        await container
+            .read(attachmentArchiveLocationProvider.notifier)
+            .useDefaultInternalLocation();
+        location = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        expect(
+          location.availability,
+          AttachmentArchiveLocationAvailability.defaultAvailable,
+        );
+        expect(location.generation, 6);
+        expect(nativeAdapter.eventListenCount, 1);
+        expect(nativeAdapter.eventCancelCount, 1);
+      },
+    );
+
+    test('invalid configuration can be corrected by a new selection', () async {
+      final settingsStore = _FakeAttachmentArchiveSettingsStore();
+      settingsStore.settings[attachmentArchiveLocationSettingKey] =
+          '{"formatVersion":2,"mode":"custom_external"}';
+      final nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
+      addTearDown(nativeAdapter.dispose);
+      nativeAdapter.creation = AttachmentArchiveBookmarkCreation(
+        bookmarkDataBase64: base64Encode(<int>[31]),
+        resolvedPath: '/Volumes/Corrected/Archive',
+      );
+      nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+        status: AttachmentArchiveBookmarkResolutionStatus.available,
+        resolvedPath: '/Volumes/Corrected/Archive',
+      );
+      final container = ProviderContainer(
+        overrides: [
+          admittedArchiveAccessAuthorityProvider.overrideWithValue(
+            archiveFixture.authority,
+          ),
+          attachmentArchiveSettingsStoreProvider.overrideWith(
+            (ref) async => settingsStore,
+          ),
+          attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+            nativeAdapter,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final invalid = await container.read(
+        attachmentArchiveLocationProvider.future,
+      );
+      expect(
+        invalid.availability,
+        AttachmentArchiveLocationAvailability.configurationInvalid,
+      );
+
+      await container
+          .read(attachmentArchiveLocationProvider.notifier)
+          .configureCustomLocation(directoryPath: '/Volumes/Corrected/Archive');
+      final corrected = await container.read(
+        attachmentArchiveLocationProvider.future,
+      );
+
+      expect(
+        corrected.availability,
+        AttachmentArchiveLocationAvailability.customAvailable,
+      );
+      expect(corrected.generation, 1);
+    });
+
+    test('cancelled folder selection leaves configuration unchanged', () async {
+      const chooser = _FakeAttachmentArchiveLocationFolderChooser(null);
+      final nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
+      addTearDown(nativeAdapter.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          admittedArchiveAccessAuthorityProvider.overrideWithValue(
+            archiveFixture.authority,
+          ),
+          attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+            nativeAdapter,
+          ),
+          attachmentArchiveLocationFolderChooserProvider.overrideWithValue(
+            chooser,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final before = await container.read(
+        attachmentArchiveLocationProvider.future,
+      );
+
+      final selected = await container
+          .read(attachmentArchiveLocationProvider.notifier)
+          .chooseCustomLocation();
+      final after = await container.read(
+        attachmentArchiveLocationProvider.future,
+      );
+
+      expect(selected, isFalse);
+      expect(after.configuration, before.configuration);
+      expect(after.generation, before.generation);
+      expect(nativeAdapter.createdPaths, isEmpty);
+    });
   });
+}
+
+Future<AttachmentArchiveLocationState> _waitForLocation(
+  ProviderContainer container,
+  bool Function(AttachmentArchiveLocationState location) predicate,
+) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    final location = container
+        .read(attachmentArchiveLocationProvider)
+        .valueOrNull;
+    if (location != null && predicate(location)) {
+      return location;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+  }
+  throw StateError(
+    'Timed out waiting for attachment archive location transition.',
+  );
+}
+
+Future<void> _waitForResolveCount(
+  _FakeAttachmentArchiveLocationNativeAdapter adapter,
+  int expected,
+) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    if (adapter.resolveCalls >= expected) {
+      return;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+  }
+  throw StateError('Timed out waiting for bookmark re-resolution.');
 }
 
 final class _FakeAttachmentArchiveSettingsStore
@@ -250,4 +774,76 @@ final class _FakeAttachmentArchiveSettingsStore
     settings[key] = value;
     writes[key] = value;
   }
+}
+
+final class _FakeAttachmentArchiveLocationNativeAdapter
+    implements AttachmentArchiveLocationNativeAdapter {
+  _FakeAttachmentArchiveLocationNativeAdapter() {
+    _events = StreamController<AttachmentArchiveLocationEvent>.broadcast(
+      sync: true,
+      onListen: () {
+        eventListenCount += 1;
+      },
+      onCancel: () {
+        eventCancelCount += 1;
+      },
+    );
+  }
+
+  late final StreamController<AttachmentArchiveLocationEvent> _events;
+  AttachmentArchiveBookmarkCreation creation =
+      const AttachmentArchiveBookmarkCreation(
+        bookmarkDataBase64: 'AQ==',
+        resolvedPath: '/Volumes/Disposable/Archive',
+        volumeName: 'Disposable',
+      );
+  AttachmentArchiveBookmarkResolution resolution =
+      const AttachmentArchiveBookmarkResolution(
+        status: AttachmentArchiveBookmarkResolutionStatus.available,
+        resolvedPath: '/Volumes/Disposable/Archive',
+        volumeName: 'Disposable',
+      );
+  final createdPaths = <String>[];
+  final resolvedBookmarks = <String>[];
+  var resolveCalls = 0;
+  var eventListenCount = 0;
+  var eventCancelCount = 0;
+
+  @override
+  Future<AttachmentArchiveBookmarkCreation> createBookmark({
+    required String directoryPath,
+  }) async {
+    createdPaths.add(directoryPath);
+    return creation;
+  }
+
+  @override
+  Stream<AttachmentArchiveLocationEvent> get locationEvents => _events.stream;
+
+  @override
+  Future<AttachmentArchiveBookmarkResolution> resolveBookmark({
+    required String bookmarkDataBase64,
+  }) async {
+    resolveCalls += 1;
+    resolvedBookmarks.add(bookmarkDataBase64);
+    return resolution;
+  }
+
+  void emit(AttachmentArchiveLocationEvent event) {
+    _events.add(event);
+  }
+
+  Future<void> dispose() async {
+    await _events.close();
+  }
+}
+
+final class _FakeAttachmentArchiveLocationFolderChooser
+    implements AttachmentArchiveLocationFolderChooser {
+  const _FakeAttachmentArchiveLocationFolderChooser(this.selectedPath);
+
+  final String? selectedPath;
+
+  @override
+  Future<String?> chooseArchiveDirectory() async => selectedPath;
 }

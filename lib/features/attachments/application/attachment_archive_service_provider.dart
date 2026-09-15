@@ -77,10 +77,10 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     required String? mimeType,
     required String? sha256Hex,
   }) async {
+    final archiveDir = await _readMutationArchiveRootPath();
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = await _readArchiveRootPath();
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
     // Idempotency check: skip if already archived.
@@ -538,7 +538,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final candidateReader = await ref.read(
       graphAttachmentArchiveCandidateReaderProvider.future,
     );
-    final archiveDir = await _readArchiveRootPath();
+    final archiveDir = await _readMutationArchiveRootPath();
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
     final logger = ref.read(appLoggerProvider.notifier);
 
@@ -765,7 +765,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = await _readArchiveRootPath();
+    final archiveDir = await _readReadableArchiveRootPath();
     final logger = ref.read(appLoggerProvider.notifier);
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
@@ -822,9 +822,16 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     );
   }
 
-  Future<String> _readArchiveRootPath() async {
+  Future<String> _readReadableArchiveRootPath() async {
     final location = await ref.read(attachmentArchiveLocationProvider.future);
     return location.requireArchiveRootPath();
+  }
+
+  Future<String> _readMutationArchiveRootPath() async {
+    final mutationRoot = await ref.read(
+      attachmentArchiveMutationRootProvider.future,
+    );
+    return mutationRoot.archiveRootPath;
   }
 
   Future<String?> _resolveArchivableSourcePath({

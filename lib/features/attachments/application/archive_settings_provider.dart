@@ -57,7 +57,7 @@ class ArchiveSettings extends _$ArchiveSettings {
     final enabledStr = await settingsStore.readSetting(_kArchiveEnabledKey);
     final enabled = enabledStr != 'false'; // Default: enabled.
 
-    final statsReader = await ref.watch(
+    final statsReader = await ref.read(
       attachmentArchiveStatsReaderProvider.future,
     );
     final stats = await statsReader.readStats();
@@ -91,10 +91,9 @@ class ArchiveSettings extends _$ArchiveSettings {
           operation: ArchiveMutationOperation.attachmentClearing,
           ownerLabel: 'attachment-archive-clear',
           action: () async {
-            final location = await ref.read(
-              attachmentArchiveLocationProvider.future,
+            final mutationRoot = await ref.read(
+              attachmentArchiveMutationRootProvider.future,
             );
-            final archiveDir = location.requireArchiveRootPath();
             final archiveFileOperations = ref.read(
               attachmentArchiveFileOperationsProvider,
             );
@@ -102,7 +101,9 @@ class ArchiveSettings extends _$ArchiveSettings {
               attachmentArchiveSettingsStoreProvider.future,
             );
 
-            await archiveFileOperations.resetArchiveDirectory(archiveDir);
+            await archiveFileOperations.resetArchiveDirectory(
+              mutationRoot.archiveRootPath,
+            );
             await settingsStore.clearArchivedAttachmentRecords();
 
             ref.invalidateSelf();

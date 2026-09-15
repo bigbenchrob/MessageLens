@@ -285,6 +285,7 @@ const Set<String> _unawaitedAllowedFiles = {
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/sidebar/application/sidebar_flow_state_provider.dart',
+  'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/attachment_archive_service_provider.dart',
   'lib/features/attachments/application/attachment_resolver_provider.dart',
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/contact_picker_actions_provider.dart',
@@ -396,6 +397,7 @@ const Set<String> _platformChannelAllowedFiles = {
   'lib/essentials/logging/infrastructure/macos_unified_log_bridge.dart',
   'lib/essentials/services/native_link_preview_service.dart',
   'lib/essentials/services/startup_flags_service.dart',
+  'lib/features/attachments/infrastructure/repositories/method_channel_attachment_archive_location_native_adapter.dart',
 };
 
 const Set<String> _urlLauncherAllowedFiles = {
@@ -405,6 +407,7 @@ const Set<String> _urlLauncherAllowedFiles = {
 };
 
 const Set<String> _fileSelectorAllowedFiles = {
+  'lib/features/attachments/infrastructure/repositories/file_selector_attachment_archive_location_folder_chooser.dart',
   'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_operations.dart',
   'lib/features/settings/infrastructure/repositories/file_selector_historical_archive_folder_chooser.dart',
 };
@@ -6510,6 +6513,25 @@ void main() {
               'derive the default attachment_archive child. Donor package '
               'readers and Start Fresh preservation inventory are deliberate '
               'exceptions.\n'
+              'Actual offenders:\n${offenders.join('\n')}',
+        );
+      },
+    );
+
+    test(
+      'Attachment archive mutations require internal-only root authority',
+      () async {
+        final offenders =
+            await _findAttachmentArchiveMutationAuthorityOffenders();
+
+        expect(
+          offenders,
+          isEmpty,
+          reason:
+              'Every payload writer, recovery writer, and destructive clear '
+              'path must acquire AttachmentArchiveMutationRoot through '
+              'attachmentArchiveMutationRootProvider. Only the location state '
+              'may construct that unforgeable internal-root capability.\n'
               'Actual offenders:\n${offenders.join('\n')}',
         );
       },
@@ -13326,8 +13348,112 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
       continue;
     }
     final uncommented = _stripComments(await file.readAsString());
-    if (!uncommented.contains('attachmentArchiveLocationProvider')) {
-      offenders.add('$filePath bypasses attachmentArchiveLocationProvider');
+    if (!uncommented.contains('attachmentArchiveLocationProvider') &&
+        !uncommented.contains('attachmentArchiveMutationRootProvider')) {
+      offenders.add('$filePath bypasses attachment archive location authority');
+    }
+  }
+
+  return offenders..sort();
+}
+
+Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
+  const locationStatePath =
+      'lib/features/attachments/domain/entities/attachment_archive_location_state.dart';
+  const locationProviderPath =
+      'lib/features/attachments/application/attachment_archive_location_provider.dart';
+  const mutationConsumerPaths = <String>{
+    'lib/features/attachments/application/archive_settings_provider.dart',
+    'lib/features/attachments/application/attachment_archive_service_provider.dart',
+    'lib/features/attachments/application/deterministic_recovery_runtime_providers.dart',
+    'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+  };
+  const mutationInvocationAllowedFiles = <String, Set<String>>{
+    'ensureArchiveDirectory(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/attachment_archive_service_provider.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+    },
+    'writeArchiveEntry(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/attachment_archive_service_provider.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+    },
+    'installVerifiedArchiveEntry(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+    },
+    'resetArchiveDirectory(': {
+      'lib/features/attachments/application/archive_settings_provider.dart',
+      'lib/features/attachments/application/attachment_archive_file_operations.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_operations.dart',
+    },
+    'OverlayRecoveredAttachmentArchiveWriter(': {
+      'lib/features/attachments/application/deterministic_recovery_runtime_providers.dart',
+      'lib/features/attachments/infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart',
+    },
+    'MessageLensAttachmentRecoveryInstaller(': {
+      'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+      'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+    },
+  };
+  final offenders = <String>[];
+
+  for (final filePath in mutationConsumerPaths) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
+      continue;
+    }
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('attachmentArchiveMutationRootProvider')) {
+      offenders.add('$filePath bypasses internal-only mutation authority');
+    }
+  }
+
+  final locationState = _stripComments(
+    await File(locationStatePath).readAsString(),
+  );
+  if (!locationState.contains('AttachmentArchiveMutationRoot._(')) {
+    offenders.add('$locationStatePath lost the private mutation constructor');
+  }
+  if (!locationState.contains('requireInternalMutationRoot()')) {
+    offenders.add('$locationStatePath lost internal-root validation');
+  }
+
+  final locationProvider = _stripComments(
+    await File(locationProviderPath).readAsString(),
+  );
+  if (!locationProvider.contains('requireInternalMutationRoot()')) {
+    offenders.add('$locationProviderPath grants mutation without validation');
+  }
+
+  final files = await _collectDartFiles((path) {
+    return path.startsWith('lib/') &&
+        !path.endsWith('.g.dart') &&
+        !path.endsWith('.freezed.dart');
+  });
+  for (final filePath in files) {
+    final uncommented = _stripComments(await File(filePath).readAsString());
+    if (filePath != locationStatePath &&
+        uncommented.contains('AttachmentArchiveMutationRoot._(')) {
+      offenders.add('$filePath constructs internal mutation authority');
+    }
+    if (filePath != locationProviderPath &&
+        filePath != locationStatePath &&
+        uncommented.contains('requireInternalMutationRoot()')) {
+      offenders.add('$filePath bypasses the mutation-root provider');
+    }
+    if (!mutationConsumerPaths.contains(filePath) &&
+        filePath != locationProviderPath &&
+        uncommented.contains('attachmentArchiveMutationRootProvider')) {
+      offenders.add('$filePath is an unapproved mutation-root consumer');
+    }
+    for (final entry in mutationInvocationAllowedFiles.entries) {
+      if (uncommented.contains(entry.key) && !entry.value.contains(filePath)) {
+        offenders.add('$filePath invokes gated mutation API ${entry.key}');
+      }
     }
   }
 

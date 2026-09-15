@@ -189,8 +189,10 @@ void main() {
               (ref) async => attachmentPathLookup,
             ),
             attachmentArchiveLocationProvider.overrideWith(
-              (ref) async => AttachmentArchiveLocationState.defaultAvailable(
-                archiveRootPath: authority.resolvePath('attachment_archive'),
+              () => _FixedAttachmentArchiveLocation(
+                AttachmentArchiveLocationState.defaultAvailable(
+                  archiveRootPath: authority.resolvePath('attachment_archive'),
+                ),
               ),
             ),
           ],
@@ -358,4 +360,13 @@ final class _AttachmentPathLookup
   Future<String?> attachmentPathForSourceRowId(int sourceRowId) async {
     return pathsBySourceRowId[sourceRowId];
   }
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }

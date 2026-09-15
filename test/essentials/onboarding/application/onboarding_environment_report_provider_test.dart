@@ -28,7 +28,10 @@ import 'package:remember_this_text/features/address_book_folders/domain/entities
 import 'package:remember_this_text/features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
 import 'package:remember_this_text/features/address_book_folders/domain/value_objects/value_objects.dart';
 import 'package:remember_this_text/features/attachments/feature_level_providers.dart'
-    show AttachmentArchiveLocationState, attachmentArchiveLocationProvider;
+    show
+        AttachmentArchiveLocation,
+        AttachmentArchiveLocationState,
+        attachmentArchiveLocationProvider;
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -815,10 +818,21 @@ List<Override> _lifecycleOverrides() {
 
 Override _attachmentArchiveLocationOverride(String primaryRootPath) {
   return attachmentArchiveLocationProvider.overrideWith(
-    (ref) async => AttachmentArchiveLocationState.defaultAvailable(
-      archiveRootPath: '$primaryRootPath/attachment_archive',
+    () => _FixedAttachmentArchiveLocation(
+      AttachmentArchiveLocationState.defaultAvailable(
+        archiveRootPath: '$primaryRootPath/attachment_archive',
+      ),
     ),
   );
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }
 
 final class _FakeConversationGraphBuildController
