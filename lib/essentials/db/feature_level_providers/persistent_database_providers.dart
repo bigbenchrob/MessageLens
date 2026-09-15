@@ -196,13 +196,3 @@ Future<PresenceDatabase> presenceDatabase(PresenceDatabaseRef ref) async {
 
   return database;
 }
-
-/// Root path for the content-addressable attachment archive.
-///
-/// Lives inside the admitted archive root alongside its databases.
-@Riverpod(keepAlive: true)
-String attachmentArchiveDirectory(AttachmentArchiveDirectoryRef ref) {
-  return ref
-      .watch(archiveAccessAuthorityProvider)
-      .resolvePath('attachment_archive');
-}

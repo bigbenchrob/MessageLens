@@ -6,6 +6,7 @@ import 'package:remember_this_text/features/attachments/application/archive_sett
 import 'package:remember_this_text/features/attachments/application/attachment_archive_file_operations.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_runtime_providers.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_stats_reader.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_stats.dart';
 
@@ -40,9 +41,6 @@ void main() {
         ),
         attachmentArchiveFileOperationsProvider.overrideWith(
           (ref) => fileOperations,
-        ),
-        attachmentArchiveDirectoryPathProvider.overrideWith(
-          (ref) => archiveFixture.authority.resolvePath('attachment_archive'),
         ),
       ],
     );

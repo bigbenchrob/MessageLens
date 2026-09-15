@@ -168,6 +168,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
+  'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
@@ -6495,7 +6496,7 @@ void main() {
     });
 
     test(
-      'Attachment archive application uses archive directory boundary',
+      'Active attachment archive root has one attachment-owned derivation',
       () async {
         final offenders =
             await _findAttachmentArchiveDirectoryBoundaryOffenders();
@@ -6504,14 +6505,29 @@ void main() {
           offenders,
           isEmpty,
           reason:
-              'Attachment archive application providers should read the archive '
-              'directory through the attachments feature boundary. Direct use '
-              'of the central attachmentArchiveDirectoryProvider recreates a '
-              'database-provider dependency island.\n'
+              'Active archive consumers must read the root through '
+              'attachmentArchiveLocationProvider. Only its controller may '
+              'derive the default attachment_archive child. Donor package '
+              'readers and Start Fresh preservation inventory are deliberate '
+              'exceptions.\n'
               'Actual offenders:\n${offenders.join('\n')}',
         );
       },
     );
+
+    test('Donor attachment packages retain their format boundary', () async {
+      final offenders =
+          await _findAttachmentArchiveDonorFormatBoundaryOffenders();
+
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'Historical donor readers may interpret an attachment_archive '
+            'child, but must not depend on the active archive location '
+            'provider.\nActual offenders:\n${offenders.join('\n')}',
+      );
+    });
 
     test(
       'Attachment archive service uses graph candidate reader boundary',
@@ -13189,24 +13205,88 @@ Future<List<String>> _findAttachmentArchiveFileStoreBoundaryOffenders() async {
 }
 
 Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
-  const filePaths = <String>[
+  const locationControllerPath =
+      'lib/features/attachments/application/attachment_archive_location_controller.dart';
+  const allowedLiteralFiles = <String>{
+    locationControllerPath,
+    'lib/features/attachments/infrastructure/repositories/message_lens_attachment_payload_inspector.dart',
+    'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
+    'lib/essentials/onboarding/application/start_fresh_artifact_policy.dart',
+  };
+  const activeRootConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',
+    'lib/features/attachments/application/attachment_archive_runtime_providers.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
-  ];
+    'lib/features/attachments/application/attachment_archive_store_providers.dart',
+    'lib/features/attachments/application/deterministic_recovery_runtime_providers.dart',
+    'lib/features/attachments/application/graph_attachment_archive_providers.dart',
+    'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+    'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
+    'lib/essentials/conversation_graph/application/health/graph_health_repository_provider.dart',
+    'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
+  };
+  final files = await _collectDartFiles((path) {
+    return path.startsWith('lib/') &&
+        !path.endsWith('.g.dart') &&
+        !path.endsWith('.freezed.dart');
+  });
+  final activeRootLiteral = RegExp(r'''['"]attachment_archive['"]''');
   final offenders = <String>[];
 
-  for (final filePath in filePaths) {
+  for (final filePath in files) {
+    final source = await File(filePath).readAsString();
+    final uncommented = _stripComments(source);
+    if (filePath != locationControllerPath &&
+        (uncommented.contains('attachmentArchiveDirectoryProvider') ||
+            uncommented.contains('attachmentArchiveDirectoryPathProvider'))) {
+      offenders.add('$filePath uses a retired archive root provider');
+    }
+    if (uncommented.contains('/Volumes/')) {
+      offenders.add('$filePath hard-codes a /Volumes attachment root');
+    }
+    if (activeRootLiteral.hasMatch(uncommented) &&
+        !allowedLiteralFiles.contains(filePath)) {
+      offenders.add('$filePath reconstructs an attachment_archive child');
+    }
+  }
+
+  for (final filePath in activeRootConsumerPaths) {
     final file = File(filePath);
     if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
+      continue;
+    }
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('attachmentArchiveLocationProvider')) {
+      offenders.add('$filePath bypasses attachmentArchiveLocationProvider');
+    }
+  }
+
+  return offenders..sort();
+}
+
+Future<List<String>>
+_findAttachmentArchiveDonorFormatBoundaryOffenders() async {
+  const donorFormatPaths = <String>{
+    'lib/features/attachments/infrastructure/repositories/message_lens_attachment_payload_inspector.dart',
+    'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
+    'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
+  };
+  final offenders = <String>[];
+
+  for (final filePath in donorFormatPaths) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
       continue;
     }
 
-    final source = await file.readAsString();
-    final uncommented = _stripComments(source);
-    if (uncommented.contains('attachmentArchiveDirectoryProvider')) {
-      offenders.add(
-        '$filePath reads central attachmentArchiveDirectoryProvider directly',
-      );
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('attachment_archive')) {
+      offenders.add('$filePath lost the donor attachment_archive convention');
+    }
+    if (uncommented.contains('attachmentArchiveLocationProvider')) {
+      offenders.add('$filePath depends on the active archive root');
     }
   }
 

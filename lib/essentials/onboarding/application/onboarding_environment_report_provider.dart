@@ -6,6 +6,8 @@ import '../../../features/address_book_folders/domain/entities/address_book_fold
 import '../../../features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
 import '../../../features/address_book_folders/feature_level_providers.dart'
     show futureGetFolderAggregateProvider;
+import '../../../features/attachments/feature_level_providers.dart'
+    show attachmentArchiveLocationProvider;
 import '../../archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
 import '../../conversation_graph/feature_level_providers.dart'
@@ -16,8 +18,7 @@ import '../../conversation_graph/feature_level_providers.dart'
         conversationGraphBuildControllerProvider;
 import '../../db/app_database_files.dart';
 import '../../db/application/conversation_graph_readiness.dart';
-import '../../db/feature_level_providers.dart'
-    show attachmentArchiveDirectoryProvider, dbMaintenanceLockProvider;
+import '../../db/feature_level_providers.dart' show dbMaintenanceLockProvider;
 import '../domain/onboarding_environment_report.dart';
 import 'full_disk_access_provider.dart';
 import 'messages_source_history_sufficiency_policy.dart';
@@ -136,6 +137,9 @@ String onboardingDatabaseDirectoryPath(Ref ref) {
 
 @Riverpod(keepAlive: true)
 Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
+  final attachmentArchiveLocation = await ref.watch(
+    attachmentArchiveLocationProvider.future,
+  );
   final inputs = _OnboardingEnvironmentInputs(
     devOverrides: ref.watch(onboardingDevOverridesProvider),
     failureStorage: ref.watch(onboardingFailureStorageProvider),
@@ -144,9 +148,8 @@ Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
     messagesDatabasePath: ref.watch(onboardingMessagesDatabasePathProvider),
     addressBookEither: await ref.watch(futureGetFolderAggregateProvider.future),
     archiveRootPath: ref.watch(onboardingDatabaseDirectoryPathProvider),
-    attachmentArchiveDirectoryPath: ref.watch(
-      attachmentArchiveDirectoryProvider,
-    ),
+    attachmentArchiveDirectoryPath: attachmentArchiveLocation
+        .requireArchiveRootPath(),
     // Readiness is an unrelated observer of the derived stores. Suppress its
     // database reads for every admitted archive mutation, including onboarding
     // import, even when that operation does not globally block its own graph

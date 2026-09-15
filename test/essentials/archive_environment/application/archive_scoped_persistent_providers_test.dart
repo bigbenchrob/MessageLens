@@ -17,6 +17,8 @@ import 'package:remember_this_text/essentials/logging/infrastructure/pipeline_au
 import 'package:remember_this_text/essentials/onboarding/application/derived_message_data_file_store_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/message_data_reset_service.dart'
     show messageDataResetServiceProvider;
+import 'package:remember_this_text/features/attachments/feature_level_providers.dart'
+    show attachmentArchiveLocationProvider;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
@@ -31,8 +33,8 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(
-      () => container.read(attachmentArchiveDirectoryProvider),
+    await expectLater(
+      container.read(attachmentArchiveLocationProvider.future),
       throwsStateError,
     );
     await expectLater(
@@ -105,7 +107,10 @@ void main() {
       expect(graphDatabase, isNotNull);
       expect(overlayDatabase, isNotNull);
 
-      final attachmentPath = container.read(attachmentArchiveDirectoryProvider);
+      final attachmentLocation = await container.read(
+        attachmentArchiveLocationProvider.future,
+      );
+      final attachmentPath = attachmentLocation.requireArchiveRootPath();
       expect(path.isWithin(fixture.root.path, attachmentPath), isTrue);
 
       final diagnosticLogPath = container.read(

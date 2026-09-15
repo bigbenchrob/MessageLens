@@ -4,13 +4,13 @@ import '../../../essentials/archive_environment/domain.dart'
     show ArchiveMutationOperation;
 import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveMutationCoordinatorProvider;
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_runtime_providers.dart'
     show
-        attachmentArchiveDirectoryPathProvider,
         attachmentArchiveFileOperationsProvider,
-        attachmentArchiveSettingsStoreProvider,
         attachmentArchiveStatsReaderProvider;
 import 'attachment_archive_settings_store.dart';
+import 'attachment_archive_settings_store_provider.dart';
 
 part 'archive_settings_provider.g.dart';
 
@@ -91,7 +91,10 @@ class ArchiveSettings extends _$ArchiveSettings {
           operation: ArchiveMutationOperation.attachmentClearing,
           ownerLabel: 'attachment-archive-clear',
           action: () async {
-            final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+            final location = await ref.read(
+              attachmentArchiveLocationProvider.future,
+            );
+            final archiveDir = location.requireArchiveRootPath();
             final archiveFileOperations = ref.read(
               attachmentArchiveFileOperationsProvider,
             );
@@ -109,7 +112,8 @@ class ArchiveSettings extends _$ArchiveSettings {
 
   /// Returns the number of files copied, or `null` if the user cancelled.
   Future<int?> exportArchive() async {
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final location = await ref.read(attachmentArchiveLocationProvider.future);
+    final archiveDir = location.requireArchiveRootPath();
     final archiveFileOperations = ref.read(
       attachmentArchiveFileOperationsProvider,
     );

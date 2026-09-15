@@ -8,12 +8,14 @@ import 'package:remember_this_text/essentials/archive_compatibility/domain/archi
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
-    show attachmentArchiveDirectoryProvider, overlayDatabaseProvider;
+    show overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_recovery_hint_storage.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_resolver_provider.dart';
 import 'package:remember_this_text/features/attachments/domain/constants/attachment_provenance.dart';
 import 'package:remember_this_text/features/attachments/domain/constants/resolved_attachment_availability.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_recovery_metadata.dart';
 import 'package:remember_this_text/features/messages/domain/entities/attachment_info.dart';
 
@@ -59,8 +61,10 @@ void main() {
             archiveFixture.authority,
           ),
           overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => tempDir.path,
+          attachmentArchiveLocationProvider.overrideWith(
+            (ref) async => AttachmentArchiveLocationState.defaultAvailable(
+              archiveRootPath: tempDir.path,
+            ),
           ),
         ],
       );

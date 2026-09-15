@@ -13,11 +13,9 @@ import '../../../essentials/logging/feature_level_providers.dart'
 import '../domain/entities/attachment_recovery_metadata.dart';
 import 'archive_settings_provider.dart';
 import 'attachment_archive_file_store.dart';
-import 'attachment_archive_runtime_providers.dart'
-    show
-        attachmentArchiveDirectoryPathProvider,
-        attachmentArchiveSettingsStoreProvider;
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_settings_store.dart';
+import 'attachment_archive_settings_store_provider.dart';
 import 'attachment_archive_store_providers.dart'
     show
         attachmentArchiveFileStoreProvider,
@@ -82,7 +80,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final archiveDir = await _readArchiveRootPath();
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
     // Idempotency check: skip if already archived.
@@ -540,7 +538,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final candidateReader = await ref.read(
       graphAttachmentArchiveCandidateReaderProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final archiveDir = await _readArchiveRootPath();
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
     final logger = ref.read(appLoggerProvider.notifier);
 
@@ -767,7 +765,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final archiveDir = await _readArchiveRootPath();
     final logger = ref.read(appLoggerProvider.notifier);
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
@@ -822,6 +820,11 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
       fileMissing: fileMissing,
       noHash: noHash,
     );
+  }
+
+  Future<String> _readArchiveRootPath() async {
+    final location = await ref.read(attachmentArchiveLocationProvider.future);
+    return location.requireArchiveRootPath();
   }
 
   Future<String?> _resolveArchivableSourcePath({

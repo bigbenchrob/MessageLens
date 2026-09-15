@@ -16,10 +16,7 @@ import 'package:remember_this_text/essentials/archive_environment/infrastructure
 import 'package:remember_this_text/essentials/archive_environment/infrastructure/file_system_archive_marker_store.dart';
 import 'package:remember_this_text/essentials/archive_environment/infrastructure/file_system_production_archive_adoption_service.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
-    show
-        attachmentArchiveDirectoryProvider,
-        driftConversationGraphDatabaseProvider,
-        overlayDatabaseProvider;
+    show driftConversationGraphDatabaseProvider, overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_importer.dart';
@@ -27,9 +24,11 @@ import 'package:remember_this_text/essentials/source_scoped_import/domain/known_
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/infrastructure/import_database_provider.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/infrastructure/source_database/sqflite_source_database.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_service_provider.dart';
 import 'package:remember_this_text/features/attachments/application/current_messages_attachment_path_lookup.dart';
 import 'package:remember_this_text/features/attachments/application/graph_attachment_archive_providers.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -189,8 +188,10 @@ void main() {
             currentMessagesAttachmentPathLookupProvider.overrideWith(
               (ref) async => attachmentPathLookup,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => authority.resolvePath('attachment_archive'),
+            attachmentArchiveLocationProvider.overrideWith(
+              (ref) async => AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: authority.resolvePath('attachment_archive'),
+              ),
             ),
           ],
         );
