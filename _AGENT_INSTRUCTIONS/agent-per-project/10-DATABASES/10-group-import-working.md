@@ -2,7 +2,7 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2026-06-08
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
        - ./00-all-databases-accessed.md
@@ -15,6 +15,7 @@ links:
        - ./11-contact-to-chat-linking.md
        - ../20-DATA-IMPORT-MIGRATION/20-migration-orchestrator.md
        - ../20-DATA-IMPORT-MIGRATION/10-import-orchestrator.md
+       - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
 tests: []
 ---
 
@@ -31,7 +32,9 @@ archive/recovery decisions can still be interpreted correctly.
 > `macos_import.db` / `working.db` files are retired cleanup inventory only,
 > and retired `working.db` has no central app provider.
 > Do not use this retired import/working contract as the model for new
-> graph-era features.
+> graph-era features. Current message and attributed-body ingestion is bounded,
+> source-scoped, and documented in
+> `../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`.
 
 ## 1. Historical Source -> Import -> Working Flow
 
@@ -96,9 +99,10 @@ historical contact -> chat relationship.
 
 ## 4. Current Lifecycle Expectations
 
-- **Fresh `db-import` is metadata-owned**: Runtime features may update
-  `historical_archive_sources` only through the historical archive-source
-  repository. They must not rebuild old ledger tables.
+- **Retired `db-import` has no active write authority**: Archive-source metadata
+  now lives in `user_overlays.db` behind overlay-owned services. Runtime
+  features must not recreate or update old ledger or
+  `historical_archive_sources` tables in `macos_import.db`.
 - **Retired `db-working` is file storage only**: No central app provider or
   active Drift schema remains. Reset may delete it; diagnostics may inspect it
   read-only.

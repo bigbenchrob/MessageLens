@@ -2,12 +2,14 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2026-07-26
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
       - ./02-import-migration-schema-reference.md
       - ./10-import-orchestrator.md
       - ./11-rust-message-extractor.md
+      - ./12-bounded-message-import-and-rich-text-enrichment.md
+      - ./15-table-importers.md
       - ./20-migration-orchestrator.md
       - ./30-incremental-mode-flag.md
       - ../10-DATABASES/00-all-databases-accessed.md
@@ -20,7 +22,7 @@ tests: []
 This folder contains the current source-scoped graph lifecycle context plus
 retired import/projection references. Use it as the starting point
 whenever you touch source ingestion, graph projection, archive coordination, or
-the Rust helper binary.
+the Rust attributed-body decoder.
 
 ## Current Production Path
 
@@ -65,9 +67,9 @@ is the ordinary live-sync, archive-source metadata, or user-facing read spine.
 
 **Result:** New messages appear in the UI within ~15-20 seconds of arrival without user action.
 
-See `10-import-orchestrator.md` for the current `ChatDbChangeMonitor`
-runbook and retired importer mechanics. Do not use the historical retired
-importer sections as live-sync guidance.
+See `10-import-orchestrator.md` for current graph-build and
+`ChatDbChangeMonitor` orchestration. Use `15-table-importers.md` only for the
+deleted retired framework and old-log interpretation.
 
 The monitor remains an orchestration client. Historical local-account
 reconciliation is exposed through the Conversation Graph build service and
@@ -125,9 +127,10 @@ reset cleanup / health diagnostics / explicit retired-file audit
 
 | Concern | Owner | Document |
 | --- | --- | --- |
-| Source-scoped graph build lifecycle | Conversation graph build controller/services | `../55-READERS-INTEGRATORS-ORCHESTRATORS/73-GRAPH-MIGRATION-EXECUTION-CHECKLIST.md` |
-| Retired table import sequencing, validation, logging | Retired `ImportOrchestrator` docs | `10-import-orchestrator.md` |
-| Rich text extraction for attributed bodies | Rust helper binary | `11-rust-message-extractor.md` |
+| Source-scoped graph build lifecycle | Conversation graph build controller/services | `10-import-orchestrator.md` |
+| Retired table import sequencing, validation, logging | Retired `ImportOrchestrator` docs | `15-table-importers.md` |
+| Bounded source-message import, rich-text paging, source-scoped identity, and retry | Source-scoped importer/enricher | `12-bounded-message-import-and-rich-text-enrichment.md` |
+| Typedstream decoding and native resource envelope | Rust FFI decoder | `11-rust-message-extractor.md` |
 | Retired projection + legacy ID preservation | Retired `MigrationOrchestrator` docs | `20-migration-orchestrator.md` |
 | Historical incremental-mode semantics | Retired migrator docs | `30-incremental-mode-flag.md` |
 | Retired cleanup schema expectations | Historical schema inventory | `02-import-migration-schema-reference.md` |
@@ -191,7 +194,14 @@ This is an app-side recovery heuristic, not a claim that the source database pro
 - **Do not edit ledger tables manually.** Source-scoped import and graph
   projection own derived data; overlay services own user intent.
 - **Run graph projection after source-scoped import.** Graph projection is disposable derived data; rebuilding is cheaper than debugging drift.
-- **Keep the Rust extractor available.** Without `extract_messages_limited` the majority of messages land without bodies, crippling search and UI rendering.
+- **Keep the Rust FFI decoder available.** Active rich-text enrichment uses the
+  bundled `attributed_string_decoder` framework. The separately packaged
+  `extract_messages_limited` executable is a compatibility interface, not the
+  live/archive enrichment path.
+- **Keep message and rich-text work bounded.** Preserve frozen high-water
+  windows, keyset paging, the 500-record defaults, the 8 MiB decoder-byte
+  target and per-record ceiling, per-page transactions, and `ss_id` work keys.
+  See `12-bounded-message-import-and-rich-text-enrichment.md`.
 - **Do not route live polling through retired import/migration projection.** `ChatDbChangeMonitor` owns source-scoped graph build and graph data-version invalidation.
 - **Do not invalidate graph database connections from live polling.** The monitor bumps graph/message data-version providers; active readers should refresh through typed graph/evidence providers.
 
@@ -209,5 +219,7 @@ This is an app-side recovery heuristic, not a claim that the source database pro
 ## Related Reading
 
 - `../55-READERS-INTEGRATORS-ORCHESTRATORS/69-MESSAGE-EVIDENCE-SPINE-INVARIANT.md` - Message evidence spine invariant.
+- `12-bounded-message-import-and-rich-text-enrichment.md` - Current bounded
+  source-message and attributed-body architecture.
 - `../10-DATABASES/03-db-address-book.md` and `../10-DATABASES/04-db-chat.md` - Source database expectations.
 - `../10-DATABASES/11-contact-to-chat-linking.md` - Verification path for participant linkage after migration.

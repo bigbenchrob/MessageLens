@@ -2,7 +2,7 @@
 tier: project
 scope: overview
 owner: agent-per-project
-last_reviewed: 2026-06-20
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ../../agent-instructions-shared/INDEX.md
@@ -14,6 +14,7 @@ links:
   - ../40-FEATURES/README.md
   - ../10-DATABASES/00-all-databases-accessed.md
   - ../20-DATA-IMPORT-MIGRATION/01-overview.md
+  - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
   - ../25-ONBOARDING-AND-ARCHIVE/README.md
 tests: []
 ---
@@ -43,7 +44,10 @@ the subsystem docs when details matter.
 - Spec-driven surfaces: start at `../42-SPEC-SYSTEM/README.md`.
 - Essentials vs feature ownership: read `../30-ESSENTIALS/README.md` and `../40-FEATURES/README.md`.
 - Database access and boundaries: read `../10-DATABASES/00-all-databases-accessed.md` and `../10-DATABASES/INVIOLATE_RULES.md`.
-- Source import, graph build, and retired storage cleanup/diagnostic behavior: read `../20-DATA-IMPORT-MIGRATION/01-overview.md`.
+- Source import, graph build, and retired storage cleanup/diagnostic behavior:
+  read `../20-DATA-IMPORT-MIGRATION/01-overview.md`; for the current bounded
+  message/rich-text path, read
+  `../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`.
 - Onboarding, environment readiness, archive, and recovery: read `../25-ONBOARDING-AND-ARCHIVE/README.md`.
 - Build/FDA continuity: read `../60-BUILD-CONSIDERATIONS/02-macos-fda-grant-continuity.md` before production builds.
 
@@ -58,6 +62,10 @@ the subsystem docs when details matter.
   and graph projection into `working_ss.db`; archive-source metadata lives in
   overlay storage, and retired `macos_import.db` / `working.db` files are
   retired cleanup inventory only.
+- Source message import and attributed-body enrichment are separately bounded
+  and separately checkpointed. They freeze source-scoped high-water marks,
+  page by stable identity, and preserve anomalous records rather than using a
+  whole-corpus extraction limit as a memory-control mechanism.
 - User intent writes to `user_overlays.db`. Providers merge graph projection +
   overlay at read time, and overlay wins on conflict.
 - Onboarding coordinates and presents graph readiness/build state; it does not

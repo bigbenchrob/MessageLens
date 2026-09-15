@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../../services/startup_flags_service.dart';
 import 'database_health_audit_models.dart';
@@ -8,30 +7,23 @@ import 'database_health_database_keys.dart';
 import 'database_health_query_layer.dart';
 import 'database_health_runtime_environment.dart';
 
-const _databaseHealthSchemaVersion = '1.0.0';
+const _databaseHealthSchemaVersion = '1.1.0';
 const _databaseHealthAuditVersion = 'phase1';
-const _messageLensName = 'MessageLens';
-const _messageLensBundleId = 'com.bigbenchsoftware.MessageLens';
-const _defaultBuildName = String.fromEnvironment(
-  'FLUTTER_BUILD_NAME',
-  defaultValue: '0.1.16',
-);
-const _defaultBuildNumber = String.fromEnvironment(
-  'FLUTTER_BUILD_NUMBER',
-  defaultValue: '17',
-);
 
 class DatabaseHealthAuditService {
   DatabaseHealthAuditService({
+    required DatabaseHealthAppInfo appInfo,
     required bool hasFullDiskAccess,
     required List<DatabaseHealthQueryLayer> queryLayers,
     required DatabaseHealthRuntimeEnvironment runtimeEnvironment,
     required DatabaseHealthAuditReportWriter reportWriter,
-  }) : _hasFullDiskAccess = hasFullDiskAccess,
+  }) : _appInfo = appInfo,
+       _hasFullDiskAccess = hasFullDiskAccess,
        _queryLayers = queryLayers,
        _runtimeEnvironment = runtimeEnvironment,
        _reportWriter = reportWriter;
 
+  final DatabaseHealthAppInfo _appInfo;
   final bool _hasFullDiskAccess;
   final List<DatabaseHealthQueryLayer> _queryLayers;
   final DatabaseHealthRuntimeEnvironment _runtimeEnvironment;
@@ -43,6 +35,7 @@ class DatabaseHealthAuditService {
     final tableInventory = <TableInventoryEntry>[];
     final relationshipChecks = <RelationshipCheckResult>[];
     final invariantChecks = <InvariantCheckResult>[];
+    MessageTextEnrichmentHealth? messageTextEnrichment;
 
     for (final layer in _queryLayers) {
       final databaseInfo = await _buildDatabaseInfo(layer, errors);
@@ -51,6 +44,12 @@ class DatabaseHealthAuditService {
         continue;
       }
       tableInventory.addAll(await _buildTableInventory(layer, errors));
+      if (layer.databaseKey == databaseHealthKeySourceScopedImport) {
+        messageTextEnrichment = await _buildMessageTextEnrichmentHealth(
+          layer,
+          errors,
+        );
+      }
       relationshipChecks.addAll(await _buildRelationshipChecks(layer, errors));
       invariantChecks.addAll(await _buildInvariantChecks(layer, errors));
     }
@@ -66,15 +65,50 @@ class DatabaseHealthAuditService {
       schemaVersion: _databaseHealthSchemaVersion,
       generatedAt: DateTime.now().toUtc().toIso8601String(),
       auditVersion: _databaseHealthAuditVersion,
-      app: _buildAppInfo(),
+      app: _appInfo,
       environment: _buildEnvironmentInfo(),
       databases: databases,
       tableInventory: tableInventory,
       relationshipChecks: relationshipChecks,
       invariantChecks: invariantChecks,
+      messageTextEnrichment: messageTextEnrichment,
       summary: summary,
       errors: errors,
     );
+  }
+
+  Future<MessageTextEnrichmentHealth?> _buildMessageTextEnrichmentHealth(
+    DatabaseHealthQueryLayer layer,
+    List<HealthReportError> errors,
+  ) async {
+    try {
+      final rows = await layer.query('''
+        SELECT
+          COUNT(*) AS candidate_count,
+          COALESCE(SUM(length(attributed_body_blob)), 0) AS total_blob_bytes,
+          COALESCE(MAX(length(attributed_body_blob)), 0) AS maximum_blob_bytes
+        FROM messages
+        WHERE text IS NULL
+          AND attributed_body_blob IS NOT NULL
+        ''');
+      final row = rows.single;
+      return MessageTextEnrichmentHealth(
+        remainingCandidateCount: _readAggregateInt(row['candidate_count']),
+        totalAttributedBodyBytes: _readAggregateInt(row['total_blob_bytes']),
+        maximumAttributedBodyBytes: _readAggregateInt(
+          row['maximum_blob_bytes'],
+        ),
+      );
+    } catch (error) {
+      errors.add(
+        HealthReportError(
+          scope: DatabaseHealthErrorScope.messageTextEnrichment,
+          databaseKey: layer.databaseKey,
+          message: error.toString(),
+        ),
+      );
+      return null;
+    }
   }
 
   Future<DatabaseHealthAuditOutput> writePhase1Report({
@@ -86,20 +120,6 @@ class DatabaseHealthAuditService {
       report: report,
     );
     return DatabaseHealthAuditOutput(reportPath: reportPath, report: report);
-  }
-
-  DatabaseHealthAppInfo _buildAppInfo() {
-    return const DatabaseHealthAppInfo(
-      name: _messageLensName,
-      bundleId: _messageLensBundleId,
-      version: _defaultBuildName,
-      buildNumber: _defaultBuildNumber,
-      buildChannel: kReleaseMode
-          ? 'release'
-          : kProfileMode
-          ? 'profile'
-          : 'debug',
-    );
   }
 
   DatabaseHealthEnvironmentInfo _buildEnvironmentInfo() {
@@ -117,7 +137,8 @@ class DatabaseHealthAuditService {
       },
       diagnosticNotes: const <String>[
         'Phase 1 audits aggregate structure only; no row-level samples are exported.',
-        'Build metadata uses Flutter build defines when available and checked-in fallback constants otherwise.',
+        'Build metadata is read from the running application package.',
+        'Message-text enrichment diagnostics contain counts and byte-size aggregates only; content is omitted.',
         'Cross-database overlay relationship diagnostics are intentionally deferred to a later audit phase.',
       ],
     );
@@ -523,6 +544,16 @@ class _InvariantCheckSpec {
 Future<int> _countQuery(DatabaseHealthQueryLayer layer, String sql) async {
   final rows = await layer.query(sql);
   final value = rows.first['c'];
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.parse(value.toString());
+}
+
+int _readAggregateInt(Object? value) {
   if (value is int) {
     return value;
   }

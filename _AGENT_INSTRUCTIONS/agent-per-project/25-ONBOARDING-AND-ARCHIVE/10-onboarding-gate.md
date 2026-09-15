@@ -204,6 +204,26 @@ one.
 On a new process, durable operation reconciliation classifies interrupted work.
 The operation snapshot remains evidence and never becomes a Journey navigator.
 
+### Exact interruption evidence
+
+`OnboardingOperationSnapshot` persists the operation kind, stage, exact
+substage, aggregate progress, anomaly totals, status, and normalized recovery
+disposition. Source-import observations map message work to
+`importingMessages`, `extractingRichText`, and `persistingRichText`; relationship
+and graph projection units remain individually named.
+
+A running snapshot from a prior process is reconciled as interrupted. When it
+retains an exact incomplete substage, that evidence remains resumable even if
+coarser database/environment evidence is classified as
+`graphProjectionFailed`. Presentation names the persisted substage and offers
+`Continue Setup`; it must not collapse the evidence to a generic graph failure
+or infer progress from database row counts.
+
+Committed source-message and rich-text pages remain durable, so continuation
+replays at most the unfinished bounded unit. See the canonical import contract
+in
+[`12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md).
+
 ## Presentation Ownership
 
 Environment Readiness renders prerequisite Episodes in the center panel.
@@ -239,6 +259,11 @@ The coordinator exposes a bounded non-PII diagnostic snapshot containing:
 - operation status;
 - supplied installation classification;
 - last transition reason.
+
+Normal support bundles separately include `onboarding_operation.json` with
+status, kind, stage/substage, timestamps, aggregate progress, anomaly totals,
+and normalized failure/recovery facts. That export omits operation/process
+UUIDs, source row IDs, content, and paths.
 
 ## Key Files
 

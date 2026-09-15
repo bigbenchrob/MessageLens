@@ -2,7 +2,7 @@
 tier: project
 scope: database-health-audit
 owner: agent-per-project
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 source_of_truth: code
 links:
   - ./README.md
@@ -34,6 +34,7 @@ SupportBundleDiagnosticReportExporter
   -> LogExportService
     -> SupportBundleExportService
       -> StartupValidationTelemetrySnapshotSource.snapshot()
+      -> OnboardingOperationSnapshotController.current
       -> DatabaseHealthAuditService.writePhase1Report()
 ```
 
@@ -74,6 +75,11 @@ Always written after export begins successfully:
 
 - `diagnostic_report.log`
 - `startup_validation.json`
+
+Written when an onboarding-operation snapshot source is supplied (as it is by
+the normal application provider):
+
+- `onboarding_operation.json`
 
 Copied when present and accepted as ordinary files:
 
@@ -135,6 +141,25 @@ results, or freeform exception messages. It complements rather than duplicates
 `database_health.json`: startup telemetry explains the admission decision,
 while Phase 1 health describes broader aggregate structure and relationships.
 
+## `onboarding_operation.json`
+
+This JSON artifact records the persisted onboarding operation at export time.
+It is the primary evidence for distinguishing an interruption during message
+import, attributed-body extraction, rich-text persistence, relationship
+import, graph projection, or final readiness verification. It contains:
+
+- operation status and kind;
+- current stage and substage;
+- start, last-progress, and finish timestamps when present;
+- completed and total work-unit counts when present;
+- aggregate source-anomaly counts; and
+- normalized failure category and recovery disposition when present.
+
+The artifact deliberately omits operation UUIDs, process-session IDs, source
+row IDs, content, and paths. In `diagnostic_report.log`, onboarding report
+actions also add the same status/stage/substage and aggregate progress as
+structured header lines.
+
 ## `database_health.json`
 
 This is the Phase 1 aggregate structural report documented in
@@ -144,9 +169,20 @@ but it does not reproduce the startup validator's exact evidence or decision.
 Notably:
 
 - it includes active import, graph, and overlay plus retired cleanup detail;
+- schema `1.1.0` includes `message_text_enrichment` with the remaining
+  candidate count, total attributed-body bytes, and largest attributed-body
+  byte count;
+- its `app` object obtains the name, bundle identifier, version, and build
+  number from the running application package and derives the build channel
+  from the actual Dart build mode;
 - it does not include `presence.db`;
 - it does not run `quick_check`;
 - it does not include startup escalation triggers or admission basis.
+
+The enrichment aggregates are computed by one SQL aggregate query. No BLOB or
+message value is materialized into Dart or written to the bundle. Failure to
+compute them is reported with the `message_text_enrichment` error scope and
+does not suppress the rest of the health report.
 
 ## `database_health_error.json`
 
@@ -193,17 +229,21 @@ bundle input or reset target.
 
 1. Read `startup_validation.json` for bounded results, escalation, selected
    deep targets, and final admission.
-2. Correlate its event names with source `StartupValidation` in
+2. Read `onboarding_operation.json` for the persisted operation status, exact
+   import/projection substage, aggregate progress, and recovery disposition.
+3. Correlate those artifacts with source `StartupValidation` and onboarding
+   operation header lines in
    `diagnostic_report.log`, then read current/previous session boundaries and
    `Resolved startup flags`.
-3. Check whether `database_health.json` exists; if so, read active summary and
+4. Check whether `database_health.json` exists; if so, confirm its `app`
+   version/build and read active summary, `message_text_enrichment`, and
    detailed checks separately.
-4. If only `database_health_error.json` exists, diagnose provider/audit failure
+5. If only `database_health_error.json` exists, diagnose provider/audit failure
    without treating it as proof of corruption.
-5. Correlate import/migrate logs only as historical pipeline evidence; they are
+6. Correlate import/migrate logs only as historical pipeline evidence; they are
    not the current source-scoped graph health authority.
-6. Use `pipeline_incident_log` for current pipeline-stage failures.
-7. Apply the log sequence and safety warnings in
+7. Use `pipeline_incident_log` for current pipeline-stage failures.
+8. Apply the log sequence and safety warnings in
    [`06-interpreting-startup-database-logs.md`](06-interpreting-startup-database-logs.md).
 
 User-facing labels such as “Send Logs” and “Diagnostic Report” remain current

@@ -21,6 +21,7 @@ enum DatabaseHealthRelationshipType {
 enum DatabaseHealthErrorScope {
   databaseOpen,
   tableInventory,
+  messageTextEnrichment,
   relationshipCheck,
   invariantCheck,
   phase2Samples,
@@ -56,12 +57,26 @@ abstract class DatabaseHealthReport with _$DatabaseHealthReport {
     required List<TableInventoryEntry> tableInventory,
     required List<RelationshipCheckResult> relationshipChecks,
     required List<InvariantCheckResult> invariantChecks,
+    MessageTextEnrichmentHealth? messageTextEnrichment,
     required HealthReportSummary summary,
     @Default(<HealthReportError>[]) List<HealthReportError> errors,
   }) = _DatabaseHealthReport;
 
   factory DatabaseHealthReport.fromJson(Map<String, dynamic> json) =>
       _$DatabaseHealthReportFromJson(json);
+}
+
+@freezed
+abstract class MessageTextEnrichmentHealth with _$MessageTextEnrichmentHealth {
+  @JsonSerializable(fieldRename: FieldRename.snake)
+  const factory MessageTextEnrichmentHealth({
+    required int remainingCandidateCount,
+    required int totalAttributedBodyBytes,
+    required int maximumAttributedBodyBytes,
+  }) = _MessageTextEnrichmentHealth;
+
+  factory MessageTextEnrichmentHealth.fromJson(Map<String, dynamic> json) =>
+      _$MessageTextEnrichmentHealthFromJson(json);
 }
 
 @freezed

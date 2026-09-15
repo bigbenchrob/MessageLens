@@ -2,11 +2,12 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2026-06-21
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./01-overview.md
   - ./10-import-orchestrator.md
+  - ./15-table-importers.md
   - ./20-migration-orchestrator.md
   - ../10-DATABASES/10-group-import-working.md
 tests: []
@@ -140,6 +141,7 @@ If a "connection was closed" loop appears:
 ## Related Reading
 
 - `./01-overview.md` - Source import and graph build overview.
-- `./10-import-orchestrator.md` - Monitor context and retired import service behavior.
+- `./10-import-orchestrator.md` - Current monitor and graph-build orchestration.
+- `./15-table-importers.md` - Retired import service behavior.
 - `./20-migration-orchestrator.md` - Migrator dependency ordering and post-migration synthetic steps.
 - `../10-DATABASES/10-group-import-working.md` - Schema contracts between import and working DBs.

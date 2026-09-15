@@ -299,7 +299,7 @@ $DatabaseHealthReportCopyWith<$Res> get report {
 /// @nodoc
 mixin _$DatabaseHealthReport {
 
- String get schemaVersion; String get generatedAt; String get auditVersion; DatabaseHealthAppInfo get app; DatabaseHealthEnvironmentInfo get environment; List<AuditedDatabaseInfo> get databases; List<TableInventoryEntry> get tableInventory; List<RelationshipCheckResult> get relationshipChecks; List<InvariantCheckResult> get invariantChecks; HealthReportSummary get summary; List<HealthReportError> get errors;
+ String get schemaVersion; String get generatedAt; String get auditVersion; DatabaseHealthAppInfo get app; DatabaseHealthEnvironmentInfo get environment; List<AuditedDatabaseInfo> get databases; List<TableInventoryEntry> get tableInventory; List<RelationshipCheckResult> get relationshipChecks; List<InvariantCheckResult> get invariantChecks; MessageTextEnrichmentHealth? get messageTextEnrichment; HealthReportSummary get summary; List<HealthReportError> get errors;
 /// Create a copy of DatabaseHealthReport
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -312,16 +312,16 @@ $DatabaseHealthReportCopyWith<DatabaseHealthReport> get copyWith => _$DatabaseHe
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseHealthReport&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.generatedAt, generatedAt) || other.generatedAt == generatedAt)&&(identical(other.auditVersion, auditVersion) || other.auditVersion == auditVersion)&&(identical(other.app, app) || other.app == app)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other.databases, databases)&&const DeepCollectionEquality().equals(other.tableInventory, tableInventory)&&const DeepCollectionEquality().equals(other.relationshipChecks, relationshipChecks)&&const DeepCollectionEquality().equals(other.invariantChecks, invariantChecks)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other.errors, errors));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseHealthReport&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.generatedAt, generatedAt) || other.generatedAt == generatedAt)&&(identical(other.auditVersion, auditVersion) || other.auditVersion == auditVersion)&&(identical(other.app, app) || other.app == app)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other.databases, databases)&&const DeepCollectionEquality().equals(other.tableInventory, tableInventory)&&const DeepCollectionEquality().equals(other.relationshipChecks, relationshipChecks)&&const DeepCollectionEquality().equals(other.invariantChecks, invariantChecks)&&(identical(other.messageTextEnrichment, messageTextEnrichment) || other.messageTextEnrichment == messageTextEnrichment)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other.errors, errors));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,generatedAt,auditVersion,app,environment,const DeepCollectionEquality().hash(databases),const DeepCollectionEquality().hash(tableInventory),const DeepCollectionEquality().hash(relationshipChecks),const DeepCollectionEquality().hash(invariantChecks),summary,const DeepCollectionEquality().hash(errors));
+int get hashCode => Object.hash(runtimeType,schemaVersion,generatedAt,auditVersion,app,environment,const DeepCollectionEquality().hash(databases),const DeepCollectionEquality().hash(tableInventory),const DeepCollectionEquality().hash(relationshipChecks),const DeepCollectionEquality().hash(invariantChecks),messageTextEnrichment,summary,const DeepCollectionEquality().hash(errors));
 
 @override
 String toString() {
-  return 'DatabaseHealthReport(schemaVersion: $schemaVersion, generatedAt: $generatedAt, auditVersion: $auditVersion, app: $app, environment: $environment, databases: $databases, tableInventory: $tableInventory, relationshipChecks: $relationshipChecks, invariantChecks: $invariantChecks, summary: $summary, errors: $errors)';
+  return 'DatabaseHealthReport(schemaVersion: $schemaVersion, generatedAt: $generatedAt, auditVersion: $auditVersion, app: $app, environment: $environment, databases: $databases, tableInventory: $tableInventory, relationshipChecks: $relationshipChecks, invariantChecks: $invariantChecks, messageTextEnrichment: $messageTextEnrichment, summary: $summary, errors: $errors)';
 }
 
 
@@ -332,11 +332,11 @@ abstract mixin class $DatabaseHealthReportCopyWith<$Res>  {
   factory $DatabaseHealthReportCopyWith(DatabaseHealthReport value, $Res Function(DatabaseHealthReport) _then) = _$DatabaseHealthReportCopyWithImpl;
 @useResult
 $Res call({
- String schemaVersion, String generatedAt, String auditVersion, DatabaseHealthAppInfo app, DatabaseHealthEnvironmentInfo environment, List<AuditedDatabaseInfo> databases, List<TableInventoryEntry> tableInventory, List<RelationshipCheckResult> relationshipChecks, List<InvariantCheckResult> invariantChecks, HealthReportSummary summary, List<HealthReportError> errors
+ String schemaVersion, String generatedAt, String auditVersion, DatabaseHealthAppInfo app, DatabaseHealthEnvironmentInfo environment, List<AuditedDatabaseInfo> databases, List<TableInventoryEntry> tableInventory, List<RelationshipCheckResult> relationshipChecks, List<InvariantCheckResult> invariantChecks, MessageTextEnrichmentHealth? messageTextEnrichment, HealthReportSummary summary, List<HealthReportError> errors
 });
 
 
-$DatabaseHealthAppInfoCopyWith<$Res> get app;$DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment;$HealthReportSummaryCopyWith<$Res> get summary;
+$DatabaseHealthAppInfoCopyWith<$Res> get app;$DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment;$MessageTextEnrichmentHealthCopyWith<$Res>? get messageTextEnrichment;$HealthReportSummaryCopyWith<$Res> get summary;
 
 }
 /// @nodoc
@@ -349,7 +349,7 @@ class _$DatabaseHealthReportCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseHealthReport
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? generatedAt = null,Object? auditVersion = null,Object? app = null,Object? environment = null,Object? databases = null,Object? tableInventory = null,Object? relationshipChecks = null,Object? invariantChecks = null,Object? summary = null,Object? errors = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? generatedAt = null,Object? auditVersion = null,Object? app = null,Object? environment = null,Object? databases = null,Object? tableInventory = null,Object? relationshipChecks = null,Object? invariantChecks = null,Object? messageTextEnrichment = freezed,Object? summary = null,Object? errors = null,}) {
   return _then(_self.copyWith(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as String,generatedAt: null == generatedAt ? _self.generatedAt : generatedAt // ignore: cast_nullable_to_non_nullable
@@ -360,7 +360,8 @@ as DatabaseHealthEnvironmentInfo,databases: null == databases ? _self.databases 
 as List<AuditedDatabaseInfo>,tableInventory: null == tableInventory ? _self.tableInventory : tableInventory // ignore: cast_nullable_to_non_nullable
 as List<TableInventoryEntry>,relationshipChecks: null == relationshipChecks ? _self.relationshipChecks : relationshipChecks // ignore: cast_nullable_to_non_nullable
 as List<RelationshipCheckResult>,invariantChecks: null == invariantChecks ? _self.invariantChecks : invariantChecks // ignore: cast_nullable_to_non_nullable
-as List<InvariantCheckResult>,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as List<InvariantCheckResult>,messageTextEnrichment: freezed == messageTextEnrichment ? _self.messageTextEnrichment : messageTextEnrichment // ignore: cast_nullable_to_non_nullable
+as MessageTextEnrichmentHealth?,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
 as HealthReportSummary,errors: null == errors ? _self.errors : errors // ignore: cast_nullable_to_non_nullable
 as List<HealthReportError>,
   ));
@@ -382,6 +383,18 @@ $DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment {
   
   return $DatabaseHealthEnvironmentInfoCopyWith<$Res>(_self.environment, (value) {
     return _then(_self.copyWith(environment: value));
+  });
+}/// Create a copy of DatabaseHealthReport
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MessageTextEnrichmentHealthCopyWith<$Res>? get messageTextEnrichment {
+    if (_self.messageTextEnrichment == null) {
+    return null;
+  }
+
+  return $MessageTextEnrichmentHealthCopyWith<$Res>(_self.messageTextEnrichment!, (value) {
+    return _then(_self.copyWith(messageTextEnrichment: value));
   });
 }/// Create a copy of DatabaseHealthReport
 /// with the given fields replaced by the non-null parameter values.
@@ -474,10 +487,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  HealthReportSummary summary,  List<HealthReportError> errors)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  MessageTextEnrichmentHealth? messageTextEnrichment,  HealthReportSummary summary,  List<HealthReportError> errors)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DatabaseHealthReport() when $default != null:
-return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.summary,_that.errors);case _:
+return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.messageTextEnrichment,_that.summary,_that.errors);case _:
   return orElse();
 
 }
@@ -495,10 +508,10 @@ return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  HealthReportSummary summary,  List<HealthReportError> errors)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  MessageTextEnrichmentHealth? messageTextEnrichment,  HealthReportSummary summary,  List<HealthReportError> errors)  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseHealthReport():
-return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.summary,_that.errors);case _:
+return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.messageTextEnrichment,_that.summary,_that.errors);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -515,10 +528,10 @@ return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  HealthReportSummary summary,  List<HealthReportError> errors)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String schemaVersion,  String generatedAt,  String auditVersion,  DatabaseHealthAppInfo app,  DatabaseHealthEnvironmentInfo environment,  List<AuditedDatabaseInfo> databases,  List<TableInventoryEntry> tableInventory,  List<RelationshipCheckResult> relationshipChecks,  List<InvariantCheckResult> invariantChecks,  MessageTextEnrichmentHealth? messageTextEnrichment,  HealthReportSummary summary,  List<HealthReportError> errors)?  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseHealthReport() when $default != null:
-return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.summary,_that.errors);case _:
+return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.app,_that.environment,_that.databases,_that.tableInventory,_that.relationshipChecks,_that.invariantChecks,_that.messageTextEnrichment,_that.summary,_that.errors);case _:
   return null;
 
 }
@@ -530,7 +543,7 @@ return $default(_that.schemaVersion,_that.generatedAt,_that.auditVersion,_that.a
 
 @JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake, includeIfNull: false)
 class _DatabaseHealthReport implements DatabaseHealthReport {
-  const _DatabaseHealthReport({required this.schemaVersion, required this.generatedAt, required this.auditVersion, required this.app, required this.environment, required final  List<AuditedDatabaseInfo> databases, required final  List<TableInventoryEntry> tableInventory, required final  List<RelationshipCheckResult> relationshipChecks, required final  List<InvariantCheckResult> invariantChecks, required this.summary, final  List<HealthReportError> errors = const <HealthReportError>[]}): _databases = databases,_tableInventory = tableInventory,_relationshipChecks = relationshipChecks,_invariantChecks = invariantChecks,_errors = errors;
+  const _DatabaseHealthReport({required this.schemaVersion, required this.generatedAt, required this.auditVersion, required this.app, required this.environment, required final  List<AuditedDatabaseInfo> databases, required final  List<TableInventoryEntry> tableInventory, required final  List<RelationshipCheckResult> relationshipChecks, required final  List<InvariantCheckResult> invariantChecks, this.messageTextEnrichment, required this.summary, final  List<HealthReportError> errors = const <HealthReportError>[]}): _databases = databases,_tableInventory = tableInventory,_relationshipChecks = relationshipChecks,_invariantChecks = invariantChecks,_errors = errors;
   factory _DatabaseHealthReport.fromJson(Map<String, dynamic> json) => _$DatabaseHealthReportFromJson(json);
 
 @override final  String schemaVersion;
@@ -566,6 +579,7 @@ class _DatabaseHealthReport implements DatabaseHealthReport {
   return EqualUnmodifiableListView(_invariantChecks);
 }
 
+@override final  MessageTextEnrichmentHealth? messageTextEnrichment;
 @override final  HealthReportSummary summary;
  final  List<HealthReportError> _errors;
 @override@JsonKey() List<HealthReportError> get errors {
@@ -588,16 +602,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DatabaseHealthReport&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.generatedAt, generatedAt) || other.generatedAt == generatedAt)&&(identical(other.auditVersion, auditVersion) || other.auditVersion == auditVersion)&&(identical(other.app, app) || other.app == app)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other._databases, _databases)&&const DeepCollectionEquality().equals(other._tableInventory, _tableInventory)&&const DeepCollectionEquality().equals(other._relationshipChecks, _relationshipChecks)&&const DeepCollectionEquality().equals(other._invariantChecks, _invariantChecks)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other._errors, _errors));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DatabaseHealthReport&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.generatedAt, generatedAt) || other.generatedAt == generatedAt)&&(identical(other.auditVersion, auditVersion) || other.auditVersion == auditVersion)&&(identical(other.app, app) || other.app == app)&&(identical(other.environment, environment) || other.environment == environment)&&const DeepCollectionEquality().equals(other._databases, _databases)&&const DeepCollectionEquality().equals(other._tableInventory, _tableInventory)&&const DeepCollectionEquality().equals(other._relationshipChecks, _relationshipChecks)&&const DeepCollectionEquality().equals(other._invariantChecks, _invariantChecks)&&(identical(other.messageTextEnrichment, messageTextEnrichment) || other.messageTextEnrichment == messageTextEnrichment)&&(identical(other.summary, summary) || other.summary == summary)&&const DeepCollectionEquality().equals(other._errors, _errors));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,generatedAt,auditVersion,app,environment,const DeepCollectionEquality().hash(_databases),const DeepCollectionEquality().hash(_tableInventory),const DeepCollectionEquality().hash(_relationshipChecks),const DeepCollectionEquality().hash(_invariantChecks),summary,const DeepCollectionEquality().hash(_errors));
+int get hashCode => Object.hash(runtimeType,schemaVersion,generatedAt,auditVersion,app,environment,const DeepCollectionEquality().hash(_databases),const DeepCollectionEquality().hash(_tableInventory),const DeepCollectionEquality().hash(_relationshipChecks),const DeepCollectionEquality().hash(_invariantChecks),messageTextEnrichment,summary,const DeepCollectionEquality().hash(_errors));
 
 @override
 String toString() {
-  return 'DatabaseHealthReport(schemaVersion: $schemaVersion, generatedAt: $generatedAt, auditVersion: $auditVersion, app: $app, environment: $environment, databases: $databases, tableInventory: $tableInventory, relationshipChecks: $relationshipChecks, invariantChecks: $invariantChecks, summary: $summary, errors: $errors)';
+  return 'DatabaseHealthReport(schemaVersion: $schemaVersion, generatedAt: $generatedAt, auditVersion: $auditVersion, app: $app, environment: $environment, databases: $databases, tableInventory: $tableInventory, relationshipChecks: $relationshipChecks, invariantChecks: $invariantChecks, messageTextEnrichment: $messageTextEnrichment, summary: $summary, errors: $errors)';
 }
 
 
@@ -608,11 +622,11 @@ abstract mixin class _$DatabaseHealthReportCopyWith<$Res> implements $DatabaseHe
   factory _$DatabaseHealthReportCopyWith(_DatabaseHealthReport value, $Res Function(_DatabaseHealthReport) _then) = __$DatabaseHealthReportCopyWithImpl;
 @override @useResult
 $Res call({
- String schemaVersion, String generatedAt, String auditVersion, DatabaseHealthAppInfo app, DatabaseHealthEnvironmentInfo environment, List<AuditedDatabaseInfo> databases, List<TableInventoryEntry> tableInventory, List<RelationshipCheckResult> relationshipChecks, List<InvariantCheckResult> invariantChecks, HealthReportSummary summary, List<HealthReportError> errors
+ String schemaVersion, String generatedAt, String auditVersion, DatabaseHealthAppInfo app, DatabaseHealthEnvironmentInfo environment, List<AuditedDatabaseInfo> databases, List<TableInventoryEntry> tableInventory, List<RelationshipCheckResult> relationshipChecks, List<InvariantCheckResult> invariantChecks, MessageTextEnrichmentHealth? messageTextEnrichment, HealthReportSummary summary, List<HealthReportError> errors
 });
 
 
-@override $DatabaseHealthAppInfoCopyWith<$Res> get app;@override $DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment;@override $HealthReportSummaryCopyWith<$Res> get summary;
+@override $DatabaseHealthAppInfoCopyWith<$Res> get app;@override $DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment;@override $MessageTextEnrichmentHealthCopyWith<$Res>? get messageTextEnrichment;@override $HealthReportSummaryCopyWith<$Res> get summary;
 
 }
 /// @nodoc
@@ -625,7 +639,7 @@ class __$DatabaseHealthReportCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseHealthReport
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? generatedAt = null,Object? auditVersion = null,Object? app = null,Object? environment = null,Object? databases = null,Object? tableInventory = null,Object? relationshipChecks = null,Object? invariantChecks = null,Object? summary = null,Object? errors = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? generatedAt = null,Object? auditVersion = null,Object? app = null,Object? environment = null,Object? databases = null,Object? tableInventory = null,Object? relationshipChecks = null,Object? invariantChecks = null,Object? messageTextEnrichment = freezed,Object? summary = null,Object? errors = null,}) {
   return _then(_DatabaseHealthReport(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as String,generatedAt: null == generatedAt ? _self.generatedAt : generatedAt // ignore: cast_nullable_to_non_nullable
@@ -636,7 +650,8 @@ as DatabaseHealthEnvironmentInfo,databases: null == databases ? _self._databases
 as List<AuditedDatabaseInfo>,tableInventory: null == tableInventory ? _self._tableInventory : tableInventory // ignore: cast_nullable_to_non_nullable
 as List<TableInventoryEntry>,relationshipChecks: null == relationshipChecks ? _self._relationshipChecks : relationshipChecks // ignore: cast_nullable_to_non_nullable
 as List<RelationshipCheckResult>,invariantChecks: null == invariantChecks ? _self._invariantChecks : invariantChecks // ignore: cast_nullable_to_non_nullable
-as List<InvariantCheckResult>,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as List<InvariantCheckResult>,messageTextEnrichment: freezed == messageTextEnrichment ? _self.messageTextEnrichment : messageTextEnrichment // ignore: cast_nullable_to_non_nullable
+as MessageTextEnrichmentHealth?,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
 as HealthReportSummary,errors: null == errors ? _self._errors : errors // ignore: cast_nullable_to_non_nullable
 as List<HealthReportError>,
   ));
@@ -664,12 +679,293 @@ $DatabaseHealthEnvironmentInfoCopyWith<$Res> get environment {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
+$MessageTextEnrichmentHealthCopyWith<$Res>? get messageTextEnrichment {
+    if (_self.messageTextEnrichment == null) {
+    return null;
+  }
+
+  return $MessageTextEnrichmentHealthCopyWith<$Res>(_self.messageTextEnrichment!, (value) {
+    return _then(_self.copyWith(messageTextEnrichment: value));
+  });
+}/// Create a copy of DatabaseHealthReport
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
 $HealthReportSummaryCopyWith<$Res> get summary {
   
   return $HealthReportSummaryCopyWith<$Res>(_self.summary, (value) {
     return _then(_self.copyWith(summary: value));
   });
 }
+}
+
+
+/// @nodoc
+mixin _$MessageTextEnrichmentHealth {
+
+ int get remainingCandidateCount; int get totalAttributedBodyBytes; int get maximumAttributedBodyBytes;
+/// Create a copy of MessageTextEnrichmentHealth
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MessageTextEnrichmentHealthCopyWith<MessageTextEnrichmentHealth> get copyWith => _$MessageTextEnrichmentHealthCopyWithImpl<MessageTextEnrichmentHealth>(this as MessageTextEnrichmentHealth, _$identity);
+
+  /// Serializes this MessageTextEnrichmentHealth to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageTextEnrichmentHealth&&(identical(other.remainingCandidateCount, remainingCandidateCount) || other.remainingCandidateCount == remainingCandidateCount)&&(identical(other.totalAttributedBodyBytes, totalAttributedBodyBytes) || other.totalAttributedBodyBytes == totalAttributedBodyBytes)&&(identical(other.maximumAttributedBodyBytes, maximumAttributedBodyBytes) || other.maximumAttributedBodyBytes == maximumAttributedBodyBytes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,remainingCandidateCount,totalAttributedBodyBytes,maximumAttributedBodyBytes);
+
+@override
+String toString() {
+  return 'MessageTextEnrichmentHealth(remainingCandidateCount: $remainingCandidateCount, totalAttributedBodyBytes: $totalAttributedBodyBytes, maximumAttributedBodyBytes: $maximumAttributedBodyBytes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $MessageTextEnrichmentHealthCopyWith<$Res>  {
+  factory $MessageTextEnrichmentHealthCopyWith(MessageTextEnrichmentHealth value, $Res Function(MessageTextEnrichmentHealth) _then) = _$MessageTextEnrichmentHealthCopyWithImpl;
+@useResult
+$Res call({
+ int remainingCandidateCount, int totalAttributedBodyBytes, int maximumAttributedBodyBytes
+});
+
+
+
+
+}
+/// @nodoc
+class _$MessageTextEnrichmentHealthCopyWithImpl<$Res>
+    implements $MessageTextEnrichmentHealthCopyWith<$Res> {
+  _$MessageTextEnrichmentHealthCopyWithImpl(this._self, this._then);
+
+  final MessageTextEnrichmentHealth _self;
+  final $Res Function(MessageTextEnrichmentHealth) _then;
+
+/// Create a copy of MessageTextEnrichmentHealth
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? remainingCandidateCount = null,Object? totalAttributedBodyBytes = null,Object? maximumAttributedBodyBytes = null,}) {
+  return _then(_self.copyWith(
+remainingCandidateCount: null == remainingCandidateCount ? _self.remainingCandidateCount : remainingCandidateCount // ignore: cast_nullable_to_non_nullable
+as int,totalAttributedBodyBytes: null == totalAttributedBodyBytes ? _self.totalAttributedBodyBytes : totalAttributedBodyBytes // ignore: cast_nullable_to_non_nullable
+as int,maximumAttributedBodyBytes: null == maximumAttributedBodyBytes ? _self.maximumAttributedBodyBytes : maximumAttributedBodyBytes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [MessageTextEnrichmentHealth].
+extension MessageTextEnrichmentHealthPatterns on MessageTextEnrichmentHealth {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MessageTextEnrichmentHealth value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MessageTextEnrichmentHealth value)  $default,){
+final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MessageTextEnrichmentHealth value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int remainingCandidateCount,  int totalAttributedBodyBytes,  int maximumAttributedBodyBytes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth() when $default != null:
+return $default(_that.remainingCandidateCount,_that.totalAttributedBodyBytes,_that.maximumAttributedBodyBytes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int remainingCandidateCount,  int totalAttributedBodyBytes,  int maximumAttributedBodyBytes)  $default,) {final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth():
+return $default(_that.remainingCandidateCount,_that.totalAttributedBodyBytes,_that.maximumAttributedBodyBytes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int remainingCandidateCount,  int totalAttributedBodyBytes,  int maximumAttributedBodyBytes)?  $default,) {final _that = this;
+switch (_that) {
+case _MessageTextEnrichmentHealth() when $default != null:
+return $default(_that.remainingCandidateCount,_that.totalAttributedBodyBytes,_that.maximumAttributedBodyBytes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(fieldRename: FieldRename.snake)
+class _MessageTextEnrichmentHealth implements MessageTextEnrichmentHealth {
+  const _MessageTextEnrichmentHealth({required this.remainingCandidateCount, required this.totalAttributedBodyBytes, required this.maximumAttributedBodyBytes});
+  factory _MessageTextEnrichmentHealth.fromJson(Map<String, dynamic> json) => _$MessageTextEnrichmentHealthFromJson(json);
+
+@override final  int remainingCandidateCount;
+@override final  int totalAttributedBodyBytes;
+@override final  int maximumAttributedBodyBytes;
+
+/// Create a copy of MessageTextEnrichmentHealth
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MessageTextEnrichmentHealthCopyWith<_MessageTextEnrichmentHealth> get copyWith => __$MessageTextEnrichmentHealthCopyWithImpl<_MessageTextEnrichmentHealth>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$MessageTextEnrichmentHealthToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessageTextEnrichmentHealth&&(identical(other.remainingCandidateCount, remainingCandidateCount) || other.remainingCandidateCount == remainingCandidateCount)&&(identical(other.totalAttributedBodyBytes, totalAttributedBodyBytes) || other.totalAttributedBodyBytes == totalAttributedBodyBytes)&&(identical(other.maximumAttributedBodyBytes, maximumAttributedBodyBytes) || other.maximumAttributedBodyBytes == maximumAttributedBodyBytes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,remainingCandidateCount,totalAttributedBodyBytes,maximumAttributedBodyBytes);
+
+@override
+String toString() {
+  return 'MessageTextEnrichmentHealth(remainingCandidateCount: $remainingCandidateCount, totalAttributedBodyBytes: $totalAttributedBodyBytes, maximumAttributedBodyBytes: $maximumAttributedBodyBytes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MessageTextEnrichmentHealthCopyWith<$Res> implements $MessageTextEnrichmentHealthCopyWith<$Res> {
+  factory _$MessageTextEnrichmentHealthCopyWith(_MessageTextEnrichmentHealth value, $Res Function(_MessageTextEnrichmentHealth) _then) = __$MessageTextEnrichmentHealthCopyWithImpl;
+@override @useResult
+$Res call({
+ int remainingCandidateCount, int totalAttributedBodyBytes, int maximumAttributedBodyBytes
+});
+
+
+
+
+}
+/// @nodoc
+class __$MessageTextEnrichmentHealthCopyWithImpl<$Res>
+    implements _$MessageTextEnrichmentHealthCopyWith<$Res> {
+  __$MessageTextEnrichmentHealthCopyWithImpl(this._self, this._then);
+
+  final _MessageTextEnrichmentHealth _self;
+  final $Res Function(_MessageTextEnrichmentHealth) _then;
+
+/// Create a copy of MessageTextEnrichmentHealth
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? remainingCandidateCount = null,Object? totalAttributedBodyBytes = null,Object? maximumAttributedBodyBytes = null,}) {
+  return _then(_MessageTextEnrichmentHealth(
+remainingCandidateCount: null == remainingCandidateCount ? _self.remainingCandidateCount : remainingCandidateCount // ignore: cast_nullable_to_non_nullable
+as int,totalAttributedBodyBytes: null == totalAttributedBodyBytes ? _self.totalAttributedBodyBytes : totalAttributedBodyBytes // ignore: cast_nullable_to_non_nullable
+as int,maximumAttributedBodyBytes: null == maximumAttributedBodyBytes ? _self.maximumAttributedBodyBytes : maximumAttributedBodyBytes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
 }
 
 

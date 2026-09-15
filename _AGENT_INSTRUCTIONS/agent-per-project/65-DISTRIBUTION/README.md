@@ -2,7 +2,7 @@
 tier: project
 scope: distribution
 owner: agent-per-project
-last_reviewed: 2026-08-30
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
   - ./10-render-tester-portal.md
@@ -32,9 +32,12 @@ Preparing the website repository locally is not publication. A release is
 public only after the website commit has been pushed, Render has deployed it,
 and both the site and exact download URL have been verified.
 
+The current published tester build is `0.2.111+129`. It was published from the
+already-qualified, notarized DMG without rebuilding. Publication does not close
+the separately outstanding low-memory target-Mac qualification gate.
+
 ## Contents
 
 | Document | Purpose |
 | --- | --- |
 | [`10-render-tester-portal.md`](10-render-tester-portal.md) | Canonical hosting service, repositories, public URLs, publishing sequence, and current release handoff |
-

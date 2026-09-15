@@ -9,6 +9,21 @@ import 'package:remember_this_text/essentials/db/application/database_health_aud
 
 void main() {
   group('DatabaseHealthAuditService', () {
+    test('reports authoritative injected application metadata', () async {
+      final report = await _buildService(
+        hasFullDiskAccess: true,
+        queryLayers: const [],
+      ).buildPhase1Report();
+
+      expect(report.app, _testAppInfo);
+      expect(
+        report.environment.diagnosticNotes,
+        contains(
+          'Build metadata is read from the running application package.',
+        ),
+      );
+    });
+
     test(
       'uses injected full disk access state in environment report',
       () async {
@@ -81,6 +96,33 @@ void main() {
         expect(report.errors, isEmpty);
       },
     );
+
+    test('reports privacy-safe pending enrichment aggregates', () async {
+      final service = _buildService(
+        hasFullDiskAccess: true,
+        queryLayers: <DatabaseHealthQueryLayer>[
+          _FakeHealthQueryLayer(
+            databaseKey: databaseHealthKeySourceScopedImport,
+            role: databaseHealthRoleSourceScopedImportLedger,
+            remainingEnrichmentCandidateCount: 12,
+            totalAttributedBodyBytes: 4096,
+            maximumAttributedBodyBytes: 1024,
+          ),
+        ],
+      );
+
+      final report = await service.buildPhase1Report();
+
+      expect(
+        report.messageTextEnrichment,
+        const MessageTextEnrichmentHealth(
+          remainingCandidateCount: 12,
+          totalAttributedBodyBytes: 4096,
+          maximumAttributedBodyBytes: 1024,
+        ),
+      );
+      expect(report.errors, isEmpty);
+    });
 
     test(
       'treats retired macos import database as cleanup inventory only',
@@ -254,12 +296,21 @@ DatabaseHealthAuditService _buildService({
   required List<DatabaseHealthQueryLayer> queryLayers,
 }) {
   return DatabaseHealthAuditService(
+    appInfo: _testAppInfo,
     hasFullDiskAccess: hasFullDiskAccess,
     queryLayers: queryLayers,
     runtimeEnvironment: const _FakeRuntimeEnvironment(),
     reportWriter: const _FakeReportWriter(),
   );
 }
+
+const _testAppInfo = DatabaseHealthAppInfo(
+  name: 'MessageLens Test',
+  bundleId: 'com.bigbenchsoftware.MessageLens.test',
+  version: '9.8.7',
+  buildNumber: '654',
+  buildChannel: 'test',
+);
 
 class _FakeRuntimeEnvironment implements DatabaseHealthRuntimeEnvironment {
   const _FakeRuntimeEnvironment();
@@ -291,6 +342,9 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
     required this.databaseKey,
     required this.role,
     this.fileExists = true,
+    this.remainingEnrichmentCandidateCount = 0,
+    this.totalAttributedBodyBytes = 0,
+    this.maximumAttributedBodyBytes = 0,
   });
 
   @override
@@ -300,6 +354,9 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
   final String role;
 
   final bool fileExists;
+  final int remainingEnrichmentCandidateCount;
+  final int totalAttributedBodyBytes;
+  final int maximumAttributedBodyBytes;
 
   @override
   String get databasePath => '/tmp/$databaseKey.db';
@@ -335,6 +392,15 @@ class _FakeHealthQueryLayer extends DatabaseHealthQueryLayer {
     }
     if (normalized.startsWith('PRAGMA table_info')) {
       return const <Map<String, Object?>>[];
+    }
+    if (normalized.startsWith('SELECT COUNT(*) AS candidate_count')) {
+      return <Map<String, Object?>>[
+        <String, Object?>{
+          'candidate_count': remainingEnrichmentCandidateCount,
+          'total_blob_bytes': totalAttributedBodyBytes,
+          'maximum_blob_bytes': maximumAttributedBodyBytes,
+        },
+      ];
     }
     if (normalized.startsWith('SELECT COUNT(*) AS c')) {
       return <Map<String, Object?>>[

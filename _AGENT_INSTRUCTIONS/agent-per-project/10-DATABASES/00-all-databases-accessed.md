@@ -2,7 +2,7 @@
 tier: project
 scope: databases
 owner: agent-per-project
-last_reviewed: 2026-09-06
+last_reviewed: 2026-09-15
 source_of_truth: doc
 links:
        - ./access_authority_documentation/010-DATABASE-ACCESS-IN-PLAIN-ENGLISH.md
@@ -16,6 +16,7 @@ links:
        - ../45-NEW-FEATURE-ADDITION/21-PRESENCE-ITERATION-SIMPLE/15-PRESENCE-DATABASE-IN-PLAIN-ENGLISH.md
        - ../45-NEW-FEATURE-ADDITION/23-PRESENCE-CONSOLIDATION-AND-ONBOARDING-OWNERSHIP/09-PRESENCE-TESTSTEP-CONSOLIDATION-AUDIT.md
        - ../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md
+       - ../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md
        - ../50-ENVIRONMENT-SAFETY/00-overview.md
        - ../25-ONBOARDING-AND-ARCHIVE/ATTACHMENT-PRESERVATION-INVARIANT.md
 tests: []
@@ -78,7 +79,12 @@ start with
   `feature_level_providers.dart` from another feature or essential module, it
   must use an explicit `show` list. Broad seam imports hide database and
   lifecycle authority even when the dependency is otherwise legitimate.
-- **Production reads are graph-backed.** Ordinary app data flows through `db-import-ss` and `db-graph-working`; archive-source metadata now lives in `db-overlay`. Retired `db-import` and `db-working` files are transitional cleanup inventory for reset and diagnostics.
+- **Production reads are graph-backed.** Ordinary app data flows through
+  `db-import-ss` and `db-graph-working`; archive-source metadata now lives in
+  `db-overlay`. Retired `db-import` and `db-working` files are transitional
+  cleanup inventory for reset and diagnostics. Source-message and attributed-
+  body work uses the frozen-window, keyset-paged contract in
+  [`12-bounded-message-import-and-rich-text-enrichment.md`](../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md).
 - **Overlay remains separate.** User intent lives in `db-overlay` and is merged at read time; no import/projection path may copy overlay intent into source-scoped graph tables or retired files.
 - **The attachment archive is preservation data.** It shares the admitted
   archive root but is not a database, cache, or rebuildable reset target.
@@ -111,7 +117,11 @@ Use these aliases consistently across docs, code comments, and conversations.
 
 ## Coupled Database Groups
 
-- **`group-source-scoped-graph-db`**: `db-import-ss` and `db-graph-working` are the environment-scoped graph pipeline. Source data lands in the import ledger, then graph projectors translate it into canonical `ss_id` rows and topology.
+- **`group-source-scoped-graph-db`**: `db-import-ss` and `db-graph-working` are
+  the environment-scoped graph pipeline. Source data lands in the import
+  ledger in bounded committed pages, rich text is enriched in bounded
+  `ss_id`-keyed pages, and graph projectors translate those facts into
+  canonical `ss_id` rows and topology.
 - **`group-retired-import-working-db`**: `db-import` and `db-working` are retired storage references, not an active pipeline. Old retired files may be inspected read-only by diagnostics or removed by reset cleanup. Do not use this group for new ordinary app reads or archive-source metadata writes.
 
 ## Source → Projection Flow
@@ -247,3 +257,5 @@ or open the protected graph store while admitted maintenance is active. See
 - `../45-NEW-FEATURE-ADDITION/23-PRESENCE-CONSOLIDATION-AND-ONBOARDING-OWNERSHIP/09-PRESENCE-TESTSTEP-CONSOLIDATION-AUDIT.md` — Current generic Test persistence and ownership audit.
 - `10-group-import-working.md` — Retired import/working contract and source-scoped graph replacement note.
 - `../20-DATA-IMPORT-MIGRATION/02-import-migration-schema-reference.md` — Table schemas for all ledger/projection databases.
+- `../20-DATA-IMPORT-MIGRATION/12-bounded-message-import-and-rich-text-enrichment.md`
+  — Current message/rich-text paging, identity, checkpoint, and decoder bounds.

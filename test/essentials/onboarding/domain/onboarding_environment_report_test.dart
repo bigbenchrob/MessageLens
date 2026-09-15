@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 
 void main() {
   group('OnboardingEnvironmentReport', () {
@@ -120,6 +121,18 @@ void main() {
         expect(report.liveUpdateLastChangeDetectedAt, liveUpdateDetectedAt);
       },
     );
+
+    test('describes the exact interrupted rich-text substage', () {
+      final report = _report(operationSnapshot: _interruptedRichTextSnapshot());
+
+      expect(report.hasIncompleteOperationStage, isTrue);
+      expect(
+        report.incompleteOperationSummary,
+        'The previous setup was interrupted while extracting message text. '
+        'Completed bounded work remains saved, so MessageLens can safely try '
+        'again.',
+      );
+    });
   });
 }
 
@@ -132,6 +145,8 @@ OnboardingEnvironmentReport _report({
   DateTime? graphBuildFinishedAt,
   int? liveUpdateCursorRowId,
   DateTime? liveUpdateLastChangeDetectedAt,
+  OnboardingOperationSnapshot operationSnapshot =
+      const OnboardingOperationSnapshot.idle(),
 }) {
   return OnboardingEnvironmentReport(
     state: OnboardingEnvironmentState.ready,
@@ -180,5 +195,30 @@ OnboardingEnvironmentReport _report({
     graphBuildFinishedAt: graphBuildFinishedAt,
     liveUpdateCursorRowId: liveUpdateCursorRowId,
     liveUpdateLastChangeDetectedAt: liveUpdateLastChangeDetectedAt,
+    operationSnapshot: operationSnapshot,
   );
+}
+
+OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
+  final startedAt = DateTime.utc(2026, 9, 13, 12);
+  return OnboardingOperationSnapshot.running(
+        operationId: OnboardingOperationId(
+          '123e4567-e89b-42d3-a456-426614174000',
+        ),
+        processSessionId: OnboardingProcessSessionId(
+          '123e4567-e89b-42d3-a456-426614174001',
+        ),
+        kind: OnboardingOperationKind.initialImport,
+        stage: OnboardingOperationStage.messageDataBuild,
+        observedAtUtc: startedAt,
+      )
+      .observeProgress(
+        observedAtUtc: startedAt.add(const Duration(seconds: 1)),
+        substage: OnboardingOperationSubstage.extractingRichText,
+        progress: const OnboardingOperationProgress(
+          completedWorkUnits: 24000,
+          totalWorkUnits: 123561,
+        ),
+      )
+      .interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 2)));
 }

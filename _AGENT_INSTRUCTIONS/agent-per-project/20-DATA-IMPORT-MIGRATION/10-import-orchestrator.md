@@ -2,140 +2,142 @@
 tier: project
 scope: data-import-migration
 owner: agent-per-project
-last_reviewed: 2026-06-20
+last_reviewed: 2026-09-15
 source_of_truth: code
 links:
   - ./01-overview.md
-  - ./02-import-migration-schema-reference.md
   - ./11-rust-message-extractor.md
-  - ./15-table-importers.md
-  - ../10-DATABASES/01-db-import.md
-  - ../10-DATABASES/10-group-import-working.md
+  - ./12-bounded-message-import-and-rich-text-enrichment.md
+  - ../25-ONBOARDING-AND-ARCHIVE/30-import-migration-coordination.md
+  - ../25-ONBOARDING-AND-ARCHIVE/60-reimport-and-ongoing-sync.md
+tests:
+  - ../../../test/essentials/conversation_graph/application/orchestrators/conversation_graph_build_orchestrator_test.dart
+  - ../../../test/essentials/source_scoped_import/application/messages/message_importer_test.dart
+  - ../../../test/essentials/source_scoped_import/application/messages/message_rich_text_enricher_test.dart
 ---
 
-# Import Orchestrator
+# Source-Scoped Import and Graph-Build Orchestration
 
-> Current conformance note (2026-06-08): ordinary live sync is source-scoped
-> graph build, not legacy historical import/migration. The old legacy
-> `ImportOrchestrator` implementation has been removed from active app code.
-> This page combines the current `ChatDbChangeMonitor` runbook with historical
-> legacy importer mechanics. Treat the monitor sections as current live-sync
-> guidance and the legacy importer sections as old-log/retired-pipeline
-> interpretation only.
+This document describes the current production orchestration path. The deleted
+legacy `ImportOrchestrator` that populated `macos_import.db` is not a runtime
+architecture and must not be used as the model for new work.
 
-## 🔥 Automatic Polling (ChatDbChangeMonitor)
+## Production Ownership
 
-**Imports are triggered automatically** — no manual intervention required.
+| Responsibility | Owner |
+| --- | --- |
+| Import source facts into `macos_import_ss.db` | `essentials/source_scoped_import` importers |
+| Decode and persist missing attributed-body text | `MessageRichTextEnricher` plus Rust FFI decoder |
+| Sequence live/initial/reimport source import and graph projection | `ConversationGraphBuildOrchestrator` |
+| Import one registered historical Messages source | `SourceScopedArchiveImportService` |
+| Project historical source facts | graph-layer archive import service |
+| Detect live source growth | `ChatDbChangeMonitor` |
+| Admit mutation and prevent overlap | `ArchiveMutationCoordinator` and graph maintenance execution authority |
+| Persist setup/reimport operation status | Onboarding operation snapshot controller |
 
-The app includes a `ChatDbChangeMonitor` provider that continuously watches macOS `chat.db` for new messages:
+The Conversation Graph orchestrator composes individual source-scoped
+importers at one approved application boundary. Feature code and widgets must
+not acquire importers directly or reproduce their ordering.
 
-| Aspect | Detail |
-|--------|--------|
-| **Provider** | `chatDbChangeMonitorProvider` (keepAlive: true) |
-| **Location** | `lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart` |
-| **Poll interval** | Every **15 seconds** |
-| **Detection method** | Compares `MAX(ROWID)` from `message` table against stored value |
-| **Trigger** | When ROWID increases, schedules debounced import (350ms debounce) |
+## Ordered Graph Build
 
-### Auto-Import Flow
+The live, first-run, and reimport graph lifecycle runs:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  ChatDbChangeMonitor (runs in background)                           │
-├─────────────────────────────────────────────────────────────────────┤
-│  1. Timer fires every 15 seconds                                    │
-│  2. Read MAX(ROWID) from ~/Library/Messages/chat.db                 │
-│  3. Compare with lastMaxRowId stored in state                       │
-│  4. If increased → schedule probe (350ms debounce)                  │
-│  5. Probe runs:                                                     │
-│     a. run source-scoped graph build lifecycle                      │
-│     b. archiveGraphMessageSourceRange(...) for new attachments      │
-│     c. bump graph/message data version providers                    │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Wiring
-
-The monitor is activated in `main.dart` via:
-```dart
-ref.watch(chatDbChangeMonitorProvider);
+```text
+chats
+-> handles
+-> contacts and contact channels
+-> messages
+-> rich-text extraction and persistence
+-> attachments
+-> chat/message relationships
+-> chat/handle relationships
+-> message/attachment relationships
+-> graph nodes and topology projection
 ```
 
-This ensures the monitor starts at app launch and runs continuously. It is macOS-only and also performs a startup catch-up check so messages that arrived while the app was closed do not wait for the first 15-second polling tick.
+Each source-import work unit emits typed progress. Rich-text extraction and
+rich-text persistence are distinct observable substages even though one
+enricher coordinates them. Graph projection remains downstream of source fact
+preservation.
 
-### Implications for Debugging
+The message and rich-text stages are bounded by the canonical contract in
+[`12-bounded-message-import-and-rich-text-enrichment.md`](12-bounded-message-import-and-rich-text-enrichment.md).
+The orchestrator must not turn those page-local operations back into a
+whole-corpus collection.
 
-- **New messages appear automatically** within ~15-20 seconds of arrival
-- **If messages aren't showing**, the monitor or graph build may have encountered an error; check `ChatDbMonitor` logs and the Conversation Graph status panel first
-- **Manual import is only needed** for initial setup or recovery scenarios
-- **Do not invalidate database providers from the live graph path**. The monitor keeps active graph readers alive and bumps graph/message data-version providers after successful graph build.
+## Live Synchronization
 
----
+`ChatDbChangeMonitor` is activated during application startup and:
 
-## Purpose
-- Preserve the historical retired importer mechanics for old logs and
-  architecture archaeology.
-- Make clear that new source ingestion belongs to source-scoped import and graph
-  build services, not to the deleted legacy import orchestrator.
-- Prevent future work from reintroducing legacy ledger import as an ordinary
-  product path.
+1. primes from current source/import evidence;
+2. performs an immediate catch-up probe;
+3. polls `MAX(message.ROWID)` in live `chat.db` every 15 seconds;
+4. coalesces growth with a 350 ms debounce and an in-flight guard;
+5. invokes the same source-scoped graph build lifecycle;
+6. archives the newly imported graph source range; and
+7. bumps graph/message data-version signals after success.
 
-## Location
-- Retired legacy orchestrator: `lib/essentials/db_importers/application/orchestrator/import_orchestrator.dart`
-- Retired shared context: `lib/essentials/db_importers/infrastructure/sqlite/import_context_sqlite.dart`
-- Retired base importer helpers: `lib/essentials/db_importers/domain/base_table_importer.dart`
-- Retired importer contract: `lib/essentials/db_importers/domain/i_importers.dart/table_importer.dart`
-- Retired progress events: `lib/essentials/db_importers/domain/states/table_import_progress.dart`
-- Retired Riverpod wiring: `lib/essentials/db_importers/feature_level_providers.dart`
-- Retired service registry: `lib/essentials/db_importers/application/services/orchestrated_ledger_import_service.dart`
+The monitor also schedules the separate periodic graph attachment sweep. It
+does not open a second import path, invalidate live database connections, or
+compose importer/projector internals itself.
 
-These retired paths are intentionally not present in the current source tree.
-Current live import/build code is source-scoped and graph-backed.
+Rows above a message import run's frozen high-water are deferred to the next
+monitor cycle. That is normal incremental behavior, not lost work.
 
-## Execution Model
-1. **Importer registry** - The orchestrator receives a list of `TableImporter` instances (one per ledger table) and keeps them in `_importers` as an unmodifiable list.
-2. **Dependency sorting** - `_sorted()` runs a Kahn topological sort over each importer's `dependsOn`. Any unresolved cycle throws before work begins, preventing partial runs.
-3. **Phase lifecycle** - For every importer the orchestrator executes:
-  - `validatePrereqs(ctx)` - must not mutate data; catches duplicate IDs, broken foreign keys, invalid enums, missing sources.
-  - `copy(ctx)` - importer-owned deterministic SQL. Skipped automatically when `ImportContext.dryRun` is true.
-  - `postValidate(ctx)` - confirms row counts, FK integrity, and any importer-specific invariants.
-4. **Progress events** - `_runPhase()` publishes `TableImportProgressEvent`s (`started`, `succeeded`, `failed`) with human-friendly names via `BaseTableImporter.displayName`. Retired diagnostic UI view models may surface these updates in the import control panel.
-5. **Structured logging** - Every phase prints a timestamped banner (`=== [ISO8601] importer :: phase ===`) through `ImportContext.info()`, giving a chronological trace in console logs and batch notes.
-6. **Filesystem audit report** - At the end of each run the orchestrated service writes `import_log` in the MessageLens app-support directory, capturing source counts, ledger counts, rich-text extraction stats, and source-vs-destination deltas.
-7. **Dry-run support** - Validation and post-validation still execute while copy is skipped, enabling "check everything" workflows on user machines without mutating the ledger.
+## Historical Archives
 
-## Import Context Facts
-- Exposes the `SqfliteImportDatabase`, live `chat.db` / AddressBook handles, active `batchId`, and an optional `MessageExtractorPort`.
-- Stores previously imported max ROWIDs so append importers can detect true deltas.
-- Includes a scratchpad map for importer-to-importer coordination (e.g., sharing statistics or staging paths).
-- Detects truncated or incomplete imported baselines and can force a full reimport by clearing previous max-row cursors before importer execution.
+`SourceScopedArchiveImportService` registers or reuses one canonical historical
+source ID, then runs source-scoped handles, chats, messages, attachments,
+relationships, and source-limited rich-text enrichment. Decoder and persistence
+identity is the canonical `ss_id`; a source-local Apple `ROWID` cannot collide
+with the same ROWID from another source.
 
-## Importer Responsibilities
-- Own one logical retired ledger table (or tight cluster) and copy rows from macOS sources into `macos_import.db` without altering source primary keys.
-- Enrich rows with derived columns when needed, but do not invent cross-table relationships; retired import/migration relationship projection happened during migration, while production graph topology is built in the source-scoped graph lifecycle.
-- Use `BaseTableImporter` helpers (`count`, `expectTrueOrThrow`, `expectZeroOrThrow`) to keep validation consistent.
-- Emit progress names that help the UI explain which portion of the pipeline is running.
+The graph layer projects the imported source afterward. Archive import never
+consults overlay intent and does not reset the attachment archive.
 
-## Message Import Specifics
+## Progress and Recovery
 
-- Chat-linked source rows are staged into the normal `messages` ledger path.
-- Source `message` rows that lack a `chat_message_join` mapping are now preserved on a dedicated recovery path instead of being left outside the app entirely.
-- The current ledger split is:
-  - `messages` for thread-linked rows
-  - `recovered_unlinked_messages` for source rows that remain materially present but are no longer reachable through normal chat linkage
-- Attachment joins and rich-text extraction now operate on both paths.
-- This distinction matters operationally: a source row can be absent from the visible conversation graph while still surviving in `chat.db` with meaningful payloads.
-- When rich-text extraction succeeds, the importer updates text-bearing rows on both the normal and recovered paths so later migration and diagnostics do not continue reporting them as `attachment-only`, `unknown`, or otherwise misleadingly sparse.
+The graph build publishes transitions and exact row-oriented progress. The
+Onboarding layer maps them to durable operation substages such as
+`importingMessages`, `extractingRichText`, `persistingRichText`, and the
+individual projection phases.
 
-## Error Handling
-- Any exception from an importer phase causes `_runPhase()` to emit a failure event, log the error context, and rethrow so the orchestrator stops immediately.
-- Downstream consumers should surface the failure message and encourage reviewing importer-specific logs for details.
-- If the run completes but the data looks wrong, inspect `import_log` before querying tables manually. In practice it is the fastest way to distinguish extractor failure, source orphan rows, and schema/count mismatches.
+If the process ends:
 
-## When Adding Importers
+- committed message pages remain in the source-scoped ledger and establish the
+  next source-row continuation frontier;
+- committed rich-text pages no longer match the missing-text predicate;
+- an uncommitted bounded page is replayed;
+- relationship import and graph projection converge idempotently on relaunch;
+  and
+- the persisted operation snapshot remains exact recovery evidence even when
+  an older environment classifier can report the coarse
+  `graphProjectionFailed` state.
 
-Do not add legacy importers for ordinary app behavior. New source
-facts should usually be modeled in `macos_import_ss.db` and projected into
-`working_ss.db`. If old `macos_import.db` contents matter for archive/recovery,
-treat them as cleanup/audit evidence to migrate, export, or intentionally
-discard. Do not recreate the retired importer/orchestrator framework.
+Onboarding presents the safe continuation action. It must not calculate a
+cursor by querying importer tables from presentation code.
+
+## Failure Rules
+
+- A source identity failure, required source-field failure, source database
+  failure, unavailable run-wide decoder, or changed frozen window is systemic
+  and stops the run with typed context.
+- Optional interpretation failures are counted only where the domain has a
+  truthful degraded representation.
+- A malformed/oversized/undecodable attributed body remains a visible source
+  message and contributes to the decode-unavailable anomaly count.
+- Page failures preserve their original stack traces.
+- No failure grants authority to delete overlay state or
+  `attachment_archive/`.
+
+## Retired Pipeline Boundary
+
+The former `ImportOrchestrator`, `ImportContext`, table-importer registry,
+`import_log`, and `macos_import.db` ledger mechanics survive only in historical
+documents, old logs, or retired files. They are not an alternative production
+path. `15-table-importers.md` and `02-import-migration-schema-reference.md`
+remain explicitly historical references for interpreting that material.
+
+Do not add a new legacy importer, rerun a deleted retired orchestrator, or
+route current failure handling through retired import/migration logs.

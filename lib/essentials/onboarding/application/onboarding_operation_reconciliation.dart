@@ -21,11 +21,13 @@ OnboardingDurableReconciliationEvidence onboardingReconciliationEvidenceFrom(
             'The durable source import reports a failure.',
       ),
     OnboardingEnvironmentState.graphProjectionFailed =>
-      OnboardingDurableReconciliationEvidence.inconsistent(
-        failureSummary:
-            report.graphProjectionFailureMessage ??
-            'The durable conversation graph reports a failure.',
-      ),
+      report.hasIncompleteOperationStage
+          ? const OnboardingDurableReconciliationEvidence.resumable()
+          : OnboardingDurableReconciliationEvidence.inconsistent(
+              failureSummary:
+                  report.graphProjectionFailureMessage ??
+                  'The durable conversation graph reports a failure.',
+            ),
     OnboardingEnvironmentState.maintenanceInProgress =>
       const OnboardingDurableReconciliationEvidence.unavailable(),
     OnboardingEnvironmentState.permissionBlocked ||

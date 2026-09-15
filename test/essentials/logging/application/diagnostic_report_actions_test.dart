@@ -5,6 +5,7 @@ import 'package:remember_this_text/essentials/logging/application/diagnostic_rep
 import 'package:remember_this_text/essentials/logging/application/diagnostic_report_exporter.dart';
 import 'package:remember_this_text/essentials/logging/domain/diagnostic_report_presentation_result.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 
 void main() {
   test('exportDiagnosticReport delegates through exporter boundary', () async {
@@ -75,6 +76,7 @@ void main() {
         message: 'foreign key failed',
       ),
       lastGraphProjectionFailureRecordedAt: DateTime.utc(2026, 4, 14, 12, 0, 0),
+      operationSnapshot: _interruptedRichTextSnapshot(),
     );
 
     final headerLines = buildOnboardingFailureReportHeaderLines(
@@ -86,6 +88,10 @@ void main() {
     expect(headerLines, contains('Context: onboarding_failure'));
     expect(headerLines, contains('State: graphProjectionFailed'));
     expect(headerLines, contains('Blocker: graphProjectionFailed'));
+    expect(headerLines, contains('Operation status: interrupted'));
+    expect(headerLines, contains('Operation stage: messageDataBuild'));
+    expect(headerLines, contains('Operation substage: extractingRichText'));
+    expect(headerLines, contains('Operation progress: 24000 / 123561'));
     expect(
       headerLines,
       contains(
@@ -184,6 +190,30 @@ void main() {
       ),
     );
   });
+}
+
+OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
+  final startedAt = DateTime.utc(2026, 9, 13, 12);
+  return OnboardingOperationSnapshot.running(
+        operationId: OnboardingOperationId(
+          '123e4567-e89b-42d3-a456-426614174000',
+        ),
+        processSessionId: OnboardingProcessSessionId(
+          '123e4567-e89b-42d3-a456-426614174001',
+        ),
+        kind: OnboardingOperationKind.initialImport,
+        stage: OnboardingOperationStage.messageDataBuild,
+        observedAtUtc: startedAt,
+      )
+      .observeProgress(
+        observedAtUtc: startedAt.add(const Duration(seconds: 1)),
+        substage: OnboardingOperationSubstage.extractingRichText,
+        progress: const OnboardingOperationProgress(
+          completedWorkUnits: 24000,
+          totalWorkUnits: 123561,
+        ),
+      )
+      .interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 2)));
 }
 
 class _FakeDiagnosticReportExporter implements DiagnosticReportExporter {

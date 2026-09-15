@@ -21,3 +21,5 @@ base64   = { version = "0.22", optional = true }
 [features]
 default = []
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
