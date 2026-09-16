@@ -6,9 +6,7 @@ import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveMutationCoordinatorProvider;
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_runtime_providers.dart'
-    show
-        attachmentArchiveFileOperationsProvider,
-        attachmentArchiveStatsReaderProvider;
+    show attachmentArchiveFileOperationsProvider;
 import 'attachment_archive_settings_store.dart';
 import 'attachment_archive_settings_store_provider.dart';
 
@@ -57,17 +55,11 @@ class ArchiveSettings extends _$ArchiveSettings {
     final enabledStr = await settingsStore.readSetting(_kArchiveEnabledKey);
     final enabled = enabledStr != 'false'; // Default: enabled.
 
-    final statsReader = await ref.read(
-      attachmentArchiveStatsReaderProvider.future,
-    );
-    final stats = await statsReader.readStats();
     final sweepDebug = await _readSweepDebugState(settingsStore);
     final manualSweepDebug = await _readManualSweepDebugState(settingsStore);
 
     return ArchiveSettingsState(
       isEnabled: enabled,
-      archivedCount: stats.recordCount,
-      archiveSizeBytes: stats.sizeBytes,
       sweepDebug: sweepDebug,
       manualSweepDebug: manualSweepDebug,
     );
@@ -205,32 +197,13 @@ class ArchiveSettings extends _$ArchiveSettings {
 class ArchiveSettingsState {
   const ArchiveSettingsState({
     required this.isEnabled,
-    required this.archivedCount,
-    required this.archiveSizeBytes,
     required this.sweepDebug,
     required this.manualSweepDebug,
   });
 
   final bool isEnabled;
-  final int archivedCount;
-  final int archiveSizeBytes;
   final ArchiveSweepDebugState sweepDebug;
   final ArchiveSweepRunDebugState manualSweepDebug;
-
-  String get formattedSize => _formatBytes(archiveSizeBytes);
-
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-  }
 }
 
 class ArchiveSweepDebugState {

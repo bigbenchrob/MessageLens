@@ -7,7 +7,7 @@ part of 'graph_attachment_archive_providers.dart';
 // **************************************************************************
 
 String _$graphAttachmentArchiveLookupHash() =>
-    r'20dc3eddfc6b51900e14dbb430697bb4f952a341';
+    r'aa498fa1d524f6540e135804e22fb6bdb0e04df2';
 
 /// See also [graphAttachmentArchiveLookup].
 @ProviderFor(graphAttachmentArchiveLookup)
@@ -67,7 +67,7 @@ final currentAttachmentSnapshotLookupProvider =
 typedef CurrentAttachmentSnapshotLookupRef =
     AutoDisposeFutureProviderRef<CurrentAttachmentSnapshotLookup>;
 String _$messageLensAttachmentCurrentEvidenceReaderHash() =>
-    r'43406dae3c8f2a953fd17fca5c2f643771beaeb2';
+    r'fe622766cf828f3ebed7231e10bfd6e4e34e21ea';
 
 /// See also [messageLensAttachmentCurrentEvidenceReader].
 @ProviderFor(messageLensAttachmentCurrentEvidenceReader)

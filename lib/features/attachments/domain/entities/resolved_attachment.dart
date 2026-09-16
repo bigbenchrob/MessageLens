@@ -1,8 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../messages/domain/entities/attachment_info.dart';
+import '../constants/attachment_archive_payload_status.dart';
 import '../constants/attachment_provenance.dart';
 import '../constants/resolved_attachment_availability.dart';
+import 'attachment_archive_location_state.dart';
 import 'attachment_recovery_metadata.dart';
 
 part 'resolved_attachment.freezed.dart';
@@ -20,6 +22,10 @@ abstract class ResolvedAttachment with _$ResolvedAttachment {
     AttachmentProvenance? provenance,
     String? resolvedFilePath,
     AttachmentRecoveryMetadata? recoveryMetadata,
+    AttachmentArchivePayloadStatus? archivePayloadStatus,
+    AttachmentArchiveLocationAvailability? archiveRootAvailability,
+    int? archiveLocationGeneration,
+    String? archiveRootIssue,
   }) = _ResolvedAttachment;
 
   const ResolvedAttachment._();

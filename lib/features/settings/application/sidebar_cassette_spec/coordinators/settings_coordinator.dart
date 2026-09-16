@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
+import '../../../../attachments/feature_level_providers.dart'
+    show AttachmentArchiveLocationState;
 import '../../../domain/spec_classes/settings_cassette_spec.dart';
 import '../payloads/historical_archives_settings_cassette_payload.dart';
 import '../resolvers/attachment_archive_settings_resolver.dart';
@@ -21,6 +23,7 @@ class SettingsCassetteCoordinator extends _$SettingsCassetteCoordinator {
     SettingsCassetteSpec spec, {
     required int cassetteIndex,
     List<HistoricalArchiveSidebarSourceSummary>? historicalArchivesKnownSources,
+    AttachmentArchiveLocationState? attachmentArchiveLocation,
   }) async {
     return spec.when(
       historicalArchivesOverview: () => ref
@@ -52,7 +55,10 @@ class SettingsCassetteCoordinator extends _$SettingsCassetteCoordinator {
           .resolve(title: 'Image Size', bodyText: 'Coming soon'),
       attachmentArchive: () => ref
           .read(attachmentArchiveSettingsResolverProvider.notifier)
-          .resolve(cassetteIndex: cassetteIndex),
+          .resolve(
+            cassetteIndex: cassetteIndex,
+            location: attachmentArchiveLocation!,
+          ),
     );
   }
 }

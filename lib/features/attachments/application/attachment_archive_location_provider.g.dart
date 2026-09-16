@@ -32,7 +32,7 @@ final attachmentArchiveMutationRootProvider =
 typedef AttachmentArchiveMutationRootRef =
     FutureProviderRef<AttachmentArchiveMutationRoot>;
 String _$attachmentArchiveLocationHash() =>
-    r'9356943bfddfd90dceeec84e3242913bc578fab6';
+    r'f620d42b45945c51b46a1a147148c0c4190b2fba';
 
 /// Publishes the active attachment-owned archive location.
 ///

@@ -174,6 +174,15 @@ final class AttachmentArchiveLocationState {
     };
   }
 
+  /// Whether Phase Two/Three may issue archive payload mutations here.
+  ///
+  /// Physical writability of a custom root is deliberately insufficient.
+  bool get admitsInternalMutation {
+    return availability ==
+            AttachmentArchiveLocationAvailability.defaultAvailable &&
+        configuration?.mode == AttachmentArchiveLocationMode.defaultInternal;
+  }
+
   String requireArchiveRootPath() {
     final rootPath = archiveRootPath;
     if (!isAvailable || rootPath == null) {
@@ -187,10 +196,7 @@ final class AttachmentArchiveLocationState {
 
   AttachmentArchiveMutationRoot requireInternalMutationRoot() {
     final rootPath = archiveRootPath;
-    if (availability !=
-            AttachmentArchiveLocationAvailability.defaultAvailable ||
-        configuration?.mode != AttachmentArchiveLocationMode.defaultInternal ||
-        rootPath == null) {
+    if (!admitsInternalMutation || rootPath == null) {
       throw StateError(
         'Attachment archive mutation is restricted to the available '
         'default/internal root during Phase Two.',
@@ -215,8 +221,31 @@ final class AttachmentArchiveLocationState {
   bool hasSameEffectiveLocationAs(AttachmentArchiveLocationState other) {
     return availability == other.availability &&
         configuration?.mode == other.configuration?.mode &&
-        archiveRootPath == other.archiveRootPath;
+        configuration?.bookmarkDataBase64 ==
+            other.configuration?.bookmarkDataBase64 &&
+        archiveRootPath == other.archiveRootPath &&
+        issue == other.issue;
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is AttachmentArchiveLocationState &&
+            availability == other.availability &&
+            generation == other.generation &&
+            configuration == other.configuration &&
+            archiveRootPath == other.archiveRootPath &&
+            issue == other.issue;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    availability,
+    generation,
+    configuration,
+    archiveRootPath,
+    issue,
+  );
 
   static AttachmentArchiveLocationState _customUnavailableState({
     required AttachmentArchiveLocationAvailability availability,

@@ -18,5 +18,6 @@ export 'application/message_lens_attachment_recovery_batch_executor.dart';
 export 'application/message_lens_attachment_recovery_batch_executor_provider.dart';
 export 'application/video_thumbnail_cache.dart';
 export 'application/video_thumbnail_cache_provider.dart';
+export 'domain/constants/attachment_archive_payload_status.dart';
 export 'domain/entities/attachment_archive_location_configuration.dart';
 export 'domain/entities/attachment_archive_location_state.dart';

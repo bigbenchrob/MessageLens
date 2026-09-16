@@ -7,7 +7,7 @@ part of 'source_scoped_archive_import_service_provider.dart';
 // **************************************************************************
 
 String _$sourceScopedArchiveImportServiceHash() =>
-    r'1725261b5090e6c7cd4a7669e939f7479cb8ac65';
+    r'6b678d5d0ae415194406dc323675e5fedd635f2a';
 
 /// See also [sourceScopedArchiveImportService].
 @ProviderFor(sourceScopedArchiveImportService)

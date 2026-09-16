@@ -33,7 +33,7 @@ Future<GraphAttachmentArchiveLookup> graphAttachmentArchiveLookup(
   return OverlayArchiveCompatibilityLookup(
     graphDatabase: graphDb,
     overlayDatabase: overlayDb,
-    archiveDirectory: location.requireArchiveRootPath(),
+    location: location,
   );
 }
 
@@ -71,7 +71,7 @@ messageLensAttachmentCurrentEvidenceReader(
     archiveReadStore: await ref.watch(
       attachmentArchiveReadStoreProvider.future,
     ),
-    archiveDirectoryPath: location.requireArchiveRootPath(),
+    archiveLocation: location,
   );
 }
 

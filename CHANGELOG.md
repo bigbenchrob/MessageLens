@@ -10,6 +10,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.112] — 2026-09-15
+
+### Added
+
+- Attachment archive reads now distinguish a disconnected external archive
+  from an individually missing payload. Attachment surfaces and Settings show
+  an explicit unavailable or read-only state while Messages browsing and
+  search continue normally.
+
+### Changed
+
+- Archive location generation now refreshes path-bearing attachment evidence
+  after disconnect, reconnect, or remount without recursively scanning the
+  archive. Recursive archive statistics remain an explicit operation.
+- Graph health defers physical attachment conclusions while the configured
+  archive root is unavailable, and onboarding treats that condition as an
+  optional diagnostic rather than a startup or recovery blocker.
+- External archive roots remain read-only to MessageLens mutation paths; the
+  internal-only mutation authority is unchanged.
+
 ## [0.2.111] — 2026-09-13
 
 ### Fixed

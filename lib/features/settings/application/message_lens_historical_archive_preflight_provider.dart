@@ -27,7 +27,7 @@ messageLensHistoricalArchivePreflight(
     archiveReadStore: await ref.watch(
       attachmentArchiveReadStoreProvider.future,
     ),
-    archiveDirectoryPath: location.requireArchiveRootPath(),
+    archiveLocation: location,
   );
   return MessageLensHistoricalArchivePreflightService(
     donorQualifier: SqliteMessageLensAttachmentRecoveryDonorQualifier(

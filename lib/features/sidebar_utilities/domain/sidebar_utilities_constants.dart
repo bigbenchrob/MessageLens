@@ -47,6 +47,7 @@ enum TopChatMenuChoice {
 const defaultTopChatMenuChoice = TopChatMenuChoice.conversations;
 
 enum SettingsMenuActionId {
+  attachmentArchive(id: 'attachments_archive', label: 'Attachment archive'),
   historicalArchives(id: 'historical_archives', label: 'Historical Archives'),
   messageHistoryCoverage(
     id: 'message_history_coverage',
@@ -73,6 +74,7 @@ enum SettingsMenuActionId {
 extension SettingsMenuActionIdX on SettingsMenuActionId {
   bool get isPersistentContext {
     return switch (this) {
+      SettingsMenuActionId.attachmentArchive ||
       SettingsMenuActionId.historicalArchives ||
       SettingsMenuActionId.messageHistoryCoverage ||
       SettingsMenuActionId.textSize ||

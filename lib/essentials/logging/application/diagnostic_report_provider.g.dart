@@ -7,7 +7,7 @@ part of 'diagnostic_report_provider.dart';
 // **************************************************************************
 
 String _$diagnosticReportExporterHash() =>
-    r'28ac7c87d9aaeda271e147e65b2dba17e70ba44d';
+    r'92c14dc9e1a029cc2903b15a6a70343873ed53e5';
 
 /// See also [diagnosticReportExporter].
 @ProviderFor(diagnosticReportExporter)

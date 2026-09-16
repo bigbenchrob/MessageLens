@@ -327,6 +327,10 @@ class _RecoveredAttachmentSidebarPresentation {
 
     if (attachment.isVideo) {
       return switch (availability) {
+        ResolvedAttachmentAvailability.archiveUnavailable =>
+          const ValueKey<String>(
+            'recovered-placeholder-video-archive-unavailable',
+          ),
         ResolvedAttachmentAvailability.pendingArchive => const ValueKey<String>(
           'recovered-placeholder-video-pending',
         ),
@@ -370,6 +374,8 @@ class _RecoveredAttachmentSidebarPresentation {
     final mediaLabel = _mediaLabel(attachment);
 
     return switch (availability) {
+      ResolvedAttachmentAvailability.archiveUnavailable =>
+        '$mediaLabel archive unavailable',
       ResolvedAttachmentAvailability.pendingArchive =>
         '$mediaLabel being archived',
       ResolvedAttachmentAvailability.unavailableAwaitingRecovery =>
@@ -393,6 +399,9 @@ class _RecoveredAttachmentSidebarPresentation {
     final mediaNoun = _mediaLabel(attachment).toLowerCase();
 
     return switch (availability) {
+      ResolvedAttachmentAvailability.archiveUnavailable =>
+        'The configured attachment archive is disconnected or unavailable. '
+            'Reconnect it to determine whether this $mediaNoun is archived.',
       ResolvedAttachmentAvailability.pendingArchive =>
         'The original $mediaNoun file is present, but MessageLens is still adding it to the archive before showing it here.',
       ResolvedAttachmentAvailability.unavailableAwaitingRecovery =>

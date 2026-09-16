@@ -117,7 +117,9 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
       );
       _forceNextGenerationAdvance = false;
       await _synchronizeEventSubscription(next);
-      state = AsyncData(next);
+      if (state.valueOrNull != next) {
+        state = AsyncData(next);
+      }
     } on Object catch (error, stackTrace) {
       if (requestSerial == _resolutionSerial) {
         state = AsyncError(error, stackTrace);

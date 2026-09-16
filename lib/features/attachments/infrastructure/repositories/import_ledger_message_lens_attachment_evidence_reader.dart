@@ -3,6 +3,7 @@ import '../../../../essentials/source_scoped_import/domain/known_sources.dart';
 import '../../../../essentials/source_scoped_import/domain/ports/import_ledger_port.dart';
 import '../../application/attachment_archive_read_store.dart';
 import '../../application/message_lens_attachment_evidence_reader.dart';
+import '../../domain/entities/attachment_archive_location_state.dart';
 import '../../domain/entities/message_lens_attachment_recovery.dart';
 import 'message_lens_attachment_identity_evidence_factory.dart';
 import 'message_lens_attachment_payload_inspector.dart';
@@ -11,23 +12,27 @@ import 'message_lens_attachment_payload_inspector.dart';
 /// archive-store abstractions and never opens an application database itself.
 class ImportLedgerMessageLensAttachmentEvidenceReader
     implements CurrentMessageLensAttachmentEvidenceReader {
-  const ImportLedgerMessageLensAttachmentEvidenceReader({
+  ImportLedgerMessageLensAttachmentEvidenceReader({
     required ImportLedger importLedger,
     required AttachmentArchiveReadStore archiveReadStore,
-    required String archiveDirectoryPath,
+    AttachmentArchiveLocationState? archiveLocation,
+    String? archiveDirectoryPath,
     MessageLensAttachmentIdentityEvidenceFactory evidenceFactory =
         const MessageLensAttachmentIdentityEvidenceFactory(),
     MessageLensAttachmentPayloadInspector payloadInspector =
         const MessageLensAttachmentPayloadInspector(),
   }) : _importLedger = importLedger,
        _archiveReadStore = archiveReadStore,
-       _archiveDirectoryPath = archiveDirectoryPath,
+       _archiveLocation = _resolveLocation(
+         archiveLocation,
+         archiveDirectoryPath,
+       ),
        _evidenceFactory = evidenceFactory,
        _payloadInspector = payloadInspector;
 
   final ImportLedger _importLedger;
   final AttachmentArchiveReadStore _archiveReadStore;
-  final String _archiveDirectoryPath;
+  final AttachmentArchiveLocationState _archiveLocation;
   final MessageLensAttachmentIdentityEvidenceFactory _evidenceFactory;
   final MessageLensAttachmentPayloadInspector _payloadInspector;
 
@@ -208,6 +213,13 @@ class ImportLedgerMessageLensAttachmentEvidenceReader
     List<ArchiveCompatibilityKey> archiveKeys, {
     void Function(int completed, int total)? onProgress,
   }) async {
+    if (!_archiveLocation.isAvailable) {
+      onProgress?.call(archiveKeys.length, archiveKeys.length);
+      return <ArchiveCompatibilityKey, CurrentAttachmentPayloadStatus>{
+        for (final archiveKey in archiveKeys)
+          archiveKey: CurrentAttachmentPayloadStatus.inaccessible,
+      };
+    }
     final records = await _archiveReadStore.readAllArchiveMetadata();
     final statuses =
         <ArchiveCompatibilityKey, CurrentAttachmentPayloadStatus>{};
@@ -239,7 +251,7 @@ class ImportLedgerMessageLensAttachmentEvidenceReader
     }
 
     final inspections = await _payloadInspector.inspectClaims(
-      archiveDirectoryPath: _archiveDirectoryPath,
+      archiveDirectoryPath: _archiveLocation.requireArchiveRootPath(),
       claims: claims,
       onProgress: (completed, _) {
         onProgress?.call(metadataMissingCount + completed, archiveKeys.length);
@@ -274,5 +286,22 @@ class ImportLedgerMessageLensAttachmentEvidenceReader
       throw StateError('Current attachment evidence is missing string $key.');
     }
     return value;
+  }
+
+  static AttachmentArchiveLocationState _resolveLocation(
+    AttachmentArchiveLocationState? location,
+    String? archiveDirectoryPath,
+  ) {
+    if (location != null) {
+      return location;
+    }
+    if (archiveDirectoryPath == null || archiveDirectoryPath.isEmpty) {
+      throw ArgumentError(
+        'Either archiveLocation or archiveDirectoryPath is required.',
+      );
+    }
+    return AttachmentArchiveLocationState.defaultAvailable(
+      archiveRootPath: archiveDirectoryPath,
+    );
   }
 }

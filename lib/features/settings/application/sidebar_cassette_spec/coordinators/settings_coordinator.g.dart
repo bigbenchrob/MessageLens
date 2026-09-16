@@ -7,7 +7,7 @@ part of 'settings_coordinator.dart';
 // **************************************************************************
 
 String _$settingsCassetteCoordinatorHash() =>
-    r'115305d31927a62f99ad01703693ae2cac1780fb';
+    r'2c4189e70fca8c95d54bf9f95180a9f5d69be711';
 
 /// See also [SettingsCassetteCoordinator].
 @ProviderFor(SettingsCassetteCoordinator)

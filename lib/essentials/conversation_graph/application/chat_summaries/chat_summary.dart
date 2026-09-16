@@ -1,3 +1,6 @@
+import '../../../../features/attachments/feature_level_providers.dart'
+    show AttachmentArchiveLocationAvailability, AttachmentArchivePayloadStatus;
+
 enum ChatSummaryFilter { all, groupOnly, singleParticipantOnly }
 
 enum ChatSummarySort {
@@ -55,8 +58,18 @@ class MessageAttachment {
     required this.localFileExists,
     required this.archiveRelativePath,
     required this.archiveAbsolutePath,
-    required this.archiveFileExists,
-  });
+    AttachmentArchivePayloadStatus? archivePayloadStatus,
+    bool? archiveFileExists,
+    this.archiveLocationAvailability,
+    this.archiveLocationGeneration,
+    this.archiveRootIssue,
+  }) : archivePayloadStatus =
+           archivePayloadStatus ??
+           (archiveRelativePath == null
+               ? null
+               : archiveFileExists == true
+               ? AttachmentArchivePayloadStatus.available
+               : AttachmentArchivePayloadStatus.missing);
 
   final int attachmentSsId;
   final String? guid;
@@ -69,7 +82,13 @@ class MessageAttachment {
   final bool localFileExists;
   final String? archiveRelativePath;
   final String? archiveAbsolutePath;
-  final bool archiveFileExists;
+  final AttachmentArchivePayloadStatus? archivePayloadStatus;
+  final AttachmentArchiveLocationAvailability? archiveLocationAvailability;
+  final int? archiveLocationGeneration;
+  final String? archiveRootIssue;
+
+  bool get archiveFileExists =>
+      archivePayloadStatus == AttachmentArchivePayloadStatus.available;
 
   bool get hasSourcePathHint => filename != null && filename!.isNotEmpty;
   bool get hasArchiveRecord =>
@@ -89,6 +108,8 @@ class ChatAttachmentStats {
     required this.archiveRecordCount,
     required this.archiveFileAvailableCount,
     required this.archiveFileMissingCount,
+    this.archiveFileUnavailableCount = 0,
+    this.archiveUnexpectedTypeCount = 0,
   });
 
   final int messageWithAttachmentCount;
@@ -102,6 +123,8 @@ class ChatAttachmentStats {
   final int archiveRecordCount;
   final int archiveFileAvailableCount;
   final int archiveFileMissingCount;
+  final int archiveFileUnavailableCount;
+  final int archiveUnexpectedTypeCount;
 }
 
 class ChatMessageTextStats {

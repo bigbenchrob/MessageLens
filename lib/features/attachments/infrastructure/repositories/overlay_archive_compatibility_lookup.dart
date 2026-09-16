@@ -7,6 +7,8 @@ import '../../../../essentials/archive_compatibility/domain/archive_compatibilit
 import '../../../../essentials/db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
 import '../../../../essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../application/graph_attachment_archive_lookup.dart';
+import '../../domain/constants/attachment_archive_payload_status.dart';
+import '../../domain/entities/attachment_archive_location_state.dart';
 
 /// Resolves graph attachment identity against existing archive overlay rows.
 ///
@@ -20,25 +22,22 @@ import '../../application/graph_attachment_archive_lookup.dart';
 /// scope.
 class OverlayArchiveCompatibilityLookup
     implements GraphAttachmentArchiveLookup {
-  const OverlayArchiveCompatibilityLookup({
+  OverlayArchiveCompatibilityLookup({
     required this.graphDatabase,
     required this.overlayDatabase,
-    required this.archiveDirectory,
-  });
+    AttachmentArchiveLocationState? location,
+    String? archiveDirectory,
+  }) : location = _resolveLocation(location, archiveDirectory);
 
   final ConversationGraphDatabase graphDatabase;
   final OverlayDatabase overlayDatabase;
-  final String archiveDirectory;
+  final AttachmentArchiveLocationState location;
 
   @override
   Future<GraphAttachmentArchiveRecord?> readArchiveRecord({
     required int messageSsId,
     required int attachmentSsId,
   }) async {
-    if (archiveDirectory.isEmpty) {
-      return null;
-    }
-
     if (!ArchiveCompatibilityKey.supportsLiveGraphEndpoints(
       messageSsId: messageSsId,
       attachmentSsId: attachmentSsId,
@@ -91,6 +90,28 @@ class OverlayArchiveCompatibilityLookup
     final relativePath = archiveRows.single.read<String>(
       'archive_relative_path',
     );
+    if (!_isSafeRelativePath(relativePath)) {
+      return GraphAttachmentArchiveRecord(
+        archiveRelativePath: relativePath,
+        archiveAbsolutePath: null,
+        payloadStatus: AttachmentArchivePayloadStatus.invalidMetadataPath,
+        locationAvailability: location.availability,
+        locationGeneration: location.generation,
+        rootIssue: location.issue,
+      );
+    }
+    if (!location.isAvailable) {
+      return GraphAttachmentArchiveRecord(
+        archiveRelativePath: relativePath,
+        archiveAbsolutePath: null,
+        payloadStatus: AttachmentArchivePayloadStatus.rootUnavailable,
+        locationAvailability: location.availability,
+        locationGeneration: location.generation,
+        rootIssue: location.issue,
+      );
+    }
+
+    final archiveDirectory = location.requireArchiveRootPath();
     final archiveRoot = path.normalize(path.absolute(archiveDirectory));
     final absolutePath = path.normalize(path.join(archiveRoot, relativePath));
     if (!path.isWithin(archiveRoot, absolutePath)) {
@@ -100,12 +121,45 @@ class OverlayArchiveCompatibilityLookup
     return GraphAttachmentArchiveRecord(
       archiveRelativePath: relativePath,
       archiveAbsolutePath: absolutePath,
-      archiveFileExists: _regularFileExists(absolutePath),
+      payloadStatus: _payloadStatus(absolutePath),
+      locationAvailability: location.availability,
+      locationGeneration: location.generation,
+      rootIssue: location.issue,
     );
   }
 
-  static bool _regularFileExists(String filePath) {
-    return FileSystemEntity.typeSync(filePath, followLinks: false) ==
-        FileSystemEntityType.file;
+  static bool _isSafeRelativePath(String relativePath) {
+    if (relativePath.isEmpty || path.isAbsolute(relativePath)) {
+      return false;
+    }
+    final normalized = path.normalize(relativePath);
+    return normalized != '.' &&
+        normalized != '..' &&
+        !normalized.startsWith('../');
+  }
+
+  static AttachmentArchivePayloadStatus _payloadStatus(String filePath) {
+    return switch (FileSystemEntity.typeSync(filePath, followLinks: false)) {
+      FileSystemEntityType.file => AttachmentArchivePayloadStatus.available,
+      FileSystemEntityType.notFound => AttachmentArchivePayloadStatus.missing,
+      _ => AttachmentArchivePayloadStatus.unexpectedFileType,
+    };
+  }
+
+  static AttachmentArchiveLocationState _resolveLocation(
+    AttachmentArchiveLocationState? location,
+    String? archiveDirectory,
+  ) {
+    if (location != null) {
+      return location;
+    }
+    if (archiveDirectory == null || archiveDirectory.isEmpty) {
+      throw ArgumentError(
+        'Either location or archiveDirectory must identify the archive root.',
+      );
+    }
+    return AttachmentArchiveLocationState.defaultAvailable(
+      archiveRootPath: archiveDirectory,
+    );
   }
 }

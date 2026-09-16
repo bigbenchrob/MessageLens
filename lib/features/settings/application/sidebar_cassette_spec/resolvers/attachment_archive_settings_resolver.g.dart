@@ -7,7 +7,7 @@ part of 'attachment_archive_settings_resolver.dart';
 // **************************************************************************
 
 String _$attachmentArchiveSettingsResolverHash() =>
-    r'ab3f4b687e38c712e7f694d8ab38423096f6b02d';
+    r'12f0cd3b9fb71caf93df6f6be674b0d72e0cf014';
 
 /// See also [AttachmentArchiveSettingsResolver].
 @ProviderFor(AttachmentArchiveSettingsResolver)

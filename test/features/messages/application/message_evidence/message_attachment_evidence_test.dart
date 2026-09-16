@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/chat_summaries/chat_summary.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_file_access.dart';
+import 'package:remember_this_text/features/attachments/domain/constants/attachment_archive_payload_status.dart';
 import 'package:remember_this_text/features/attachments/domain/constants/attachment_provenance.dart';
 import 'package:remember_this_text/features/attachments/domain/constants/resolved_attachment_availability.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/messages/application/message_evidence/message_attachment_evidence.dart';
 
 void main() {
@@ -142,6 +144,71 @@ void main() {
       'https://example.com/story',
     );
     expect(firstUrlInMessageText('no URL here'), isNull);
+  });
+
+  test('maps unavailable archive root without claiming payload missing', () {
+    final evidence = messageAttachmentEvidenceFromMessageAttachment(
+      const MessageAttachment(
+        attachmentSsId: 5,
+        guid: 'guid',
+        filename: '/source/offline.jpg',
+        transferName: 'offline.jpg',
+        uti: 'public.jpeg',
+        mimeType: 'image/jpeg',
+        totalBytes: 100,
+        createdAtUtc: '2026-09-15T10:00:00.000Z',
+        localFileExists: false,
+        archiveRelativePath: 'aa/offline.jpg',
+        archiveAbsolutePath: null,
+        archivePayloadStatus: AttachmentArchivePayloadStatus.rootUnavailable,
+        archiveLocationAvailability:
+            AttachmentArchiveLocationAvailability.customUnavailable,
+        archiveLocationGeneration: 4,
+        archiveRootIssue: 'Volume disconnected.',
+      ),
+      const _FakeAttachmentFileAccess(),
+    );
+
+    expect(
+      evidence.availability,
+      ResolvedAttachmentAvailability.archiveUnavailable,
+    );
+    expect(evidence.availabilityLabel, 'archive unavailable');
+    expect(
+      evidence.archivePayloadStatus,
+      AttachmentArchivePayloadStatus.rootUnavailable,
+    );
+    expect(evidence.archiveLocationGeneration, 4);
+  });
+
+  test('live fallback keeps archive-unavailable evidence visible', () {
+    const livePath = '/source/offline.jpg';
+    final evidence = messageAttachmentEvidenceFromMessageAttachment(
+      const MessageAttachment(
+        attachmentSsId: 6,
+        guid: 'guid',
+        filename: livePath,
+        transferName: 'offline.jpg',
+        uti: 'public.jpeg',
+        mimeType: 'image/jpeg',
+        totalBytes: 100,
+        createdAtUtc: '2026-09-15T10:00:00.000Z',
+        localFileExists: true,
+        archiveRelativePath: 'aa/offline.jpg',
+        archiveAbsolutePath: null,
+        archivePayloadStatus: AttachmentArchivePayloadStatus.rootUnavailable,
+        archiveLocationAvailability:
+            AttachmentArchiveLocationAvailability.customUnavailable,
+      ),
+      const _FakeAttachmentFileAccess(existingPaths: {livePath}),
+    );
+
+    expect(evidence.availability, ResolvedAttachmentAvailability.available);
+    expect(evidence.provenance, AttachmentProvenance.messagesLive);
+    expect(
+      evidence.availabilityLabel,
+      'available from Messages · archive unavailable',
+    );
   });
 
   test('collapses multiple URL preview resources into one evidence item', () {

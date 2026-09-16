@@ -30,6 +30,7 @@ import 'package:remember_this_text/features/address_book_folders/domain/value_ob
 import 'package:remember_this_text/features/attachments/feature_level_providers.dart'
     show
         AttachmentArchiveLocation,
+        AttachmentArchiveLocationConfiguration,
         AttachmentArchiveLocationState,
         attachmentArchiveLocationProvider;
 import 'package:sqlite3/sqlite3.dart';
@@ -561,6 +562,79 @@ void main() {
     );
 
     test(
+      'unavailable external archive remains diagnostic and does not trigger onboarding',
+      () async {
+        final messagesDbPath = _createMessagesDatabase(
+          tempDir.path,
+          messageCount: 120,
+        );
+        final addressBookPath = _createReadableFile(
+          tempDir.path,
+          'AddressBook-v22.abcddb',
+        );
+        _createNonEmptyDatabaseFile(
+          tempDir.path,
+          appDatabaseFileName(AppDatabaseFile.sourceScopedImport),
+        );
+        _createGraphDatabase(tempDir.path, graphComplete: true);
+        final probeReader = _RecordingOnboardingDatabaseProbeReader();
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: 'AQID',
+              lastKnownPath: '/Volumes/Offline/Archive',
+              volumeName: 'Offline',
+            );
+
+        container = ProviderContainer(
+          overrides: [
+            ..._lifecycleOverrides(),
+            overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
+            onboardingDatabaseProbeReaderProvider.overrideWithValue(
+              probeReader,
+            ),
+            onboardingFullDiskAccessProvider.overrideWith((ref) => true),
+            onboardingMessagesDatabasePathProvider.overrideWith(
+              (ref) => messagesDbPath,
+            ),
+            onboardingDatabaseDirectoryPathProvider.overrideWith(
+              (ref) => tempDir.path,
+            ),
+            attachmentArchiveLocationProvider.overrideWith(
+              () => _FixedAttachmentArchiveLocation(
+                AttachmentArchiveLocationState.customUnavailable(
+                  configuration: configuration,
+                  issue: 'Volume is disconnected.',
+                  generation: 6,
+                ),
+              ),
+            ),
+            futureGetFolderAggregateProvider.overrideWith(
+              (ref) async => right(_addressBookAggregate(addressBookPath)),
+            ),
+          ],
+        );
+
+        final report = await container.read(
+          onboardingEnvironmentReportProvider.future,
+        );
+
+        expect(report.state, OnboardingEnvironmentState.ready);
+        expect(report.blockerKind, OnboardingBlockerKind.none);
+        expect(
+          report.attachmentArchiveStatus,
+          OnboardingAttachmentArchiveStatus.unavailable,
+        );
+        expect(report.attachmentArchiveIssue, 'Volume is disconnected.');
+        expect(report.attachmentArchiveLocationGeneration, 6);
+        expect(
+          report.attachmentArchiveDirectory.path,
+          '/Volumes/Offline/Archive',
+        );
+        expect(probeReader.directoryProbePaths, isEmpty);
+      },
+    );
+
+    test(
       'does not open graph database while maintenance lock is active',
       () async {
         final messagesDbPath = _createMessagesDatabase(
@@ -668,6 +742,7 @@ final class _RecordingOnboardingDatabaseProbeReader
       const SqliteOnboardingDatabaseProbeReader();
   final List<String> tableCountPaths = <String>[];
   final List<String> graphReadinessPaths = <String>[];
+  final List<String> directoryProbePaths = <String>[];
 
   @override
   OnboardingDatabaseProbe probeFile(String filePath, {int? rowCount}) {
@@ -676,6 +751,7 @@ final class _RecordingOnboardingDatabaseProbeReader
 
   @override
   OnboardingDatabaseProbe probeDirectory(String directoryPath) {
+    directoryProbePaths.add(directoryPath);
     return _delegate.probeDirectory(directoryPath);
   }
 

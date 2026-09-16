@@ -17,7 +17,10 @@ links:
 ## Status and baseline
 
 Phase Two implements safe bookmark-backed external archive identity and volume
-availability. It remains unstaged for review.
+availability. It was committed locally as
+`0822f27bd92c9de28902dcd51f007fd08c998ead` with subject
+`feat(attachments): add safe external archive location identity`; it was not
+pushed as part of the Phase Two checkpoint.
 
 Work began on `feature/attachment-archive-relocation` at
 `413f644e2d347c4d80b7ddc2179101fb7086ace7`, three commits ahead and zero

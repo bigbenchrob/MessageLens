@@ -20,7 +20,10 @@ Future<GraphHealthRepository> graphHealthRepository(Ref ref) async {
   return SqliteGraphHealthRepository(
     graphDatabase: graphDatabase,
     overlayDatabase: overlayDatabase,
-    attachmentArchiveDirectory: location.requireArchiveRootPath(),
+    attachmentArchiveDirectory: location.archiveRootPath,
+    attachmentArchiveUnavailableReason: location.isAvailable
+        ? null
+        : location.issue ?? location.availability.name,
     historicalMessageLensDataFolderPath:
         historicalMessageLensDataFolderPathForGraphHealth,
     recoveredMessagesFolderPath: recoveredMessagesFolderPathForGraphHealth,

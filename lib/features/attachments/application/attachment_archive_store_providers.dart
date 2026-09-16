@@ -34,7 +34,7 @@ Future<AttachmentArchiveReadStore> attachmentArchiveReadStore(
   final overlayDb = await ref.watch(overlayDatabaseProvider.future);
   return OverlayAttachmentArchiveReadStore(
     overlayDb: overlayDb,
-    archiveDirectory: location.requireArchiveRootPath(),
+    location: location,
   );
 }
 

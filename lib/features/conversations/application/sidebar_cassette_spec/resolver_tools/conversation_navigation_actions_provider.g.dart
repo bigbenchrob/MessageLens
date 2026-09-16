@@ -7,7 +7,7 @@ part of 'conversation_navigation_actions_provider.dart';
 // **************************************************************************
 
 String _$conversationNavigationActionsHash() =>
-    r'd2770da1f84b92a7d6cb1156c9a66381caec42f8';
+    r'6c8c29743d3b3ffbeb2da2fa35eea540e7ca65d2';
 
 /// See also [ConversationNavigationActions].
 @ProviderFor(ConversationNavigationActions)

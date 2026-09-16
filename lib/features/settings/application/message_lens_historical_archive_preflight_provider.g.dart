@@ -7,7 +7,7 @@ part of 'message_lens_historical_archive_preflight_provider.dart';
 // **************************************************************************
 
 String _$messageLensHistoricalArchivePreflightHash() =>
-    r'39e9f8661421a4189eee27ddceb4897c602ba751';
+    r'819e971b8f8abd3a46e3cab21be7e6b90b5e3ceb';
 
 /// See also [messageLensHistoricalArchivePreflight].
 @ProviderFor(messageLensHistoricalArchivePreflight)

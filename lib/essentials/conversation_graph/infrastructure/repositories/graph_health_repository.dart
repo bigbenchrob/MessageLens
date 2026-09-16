@@ -16,6 +16,7 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
     required this.graphDatabase,
     this.overlayDatabase,
     this.attachmentArchiveDirectory,
+    this.attachmentArchiveUnavailableReason,
     this.historicalMessageLensDataFolderPath,
     this.recoveredMessagesFolderPath,
     this.recoveredMessagesAttachmentsFolderName = 'Attachments',
@@ -24,6 +25,7 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
   final ConversationGraphDatabase graphDatabase;
   final OverlayDatabase? overlayDatabase;
   final String? attachmentArchiveDirectory;
+  final String? attachmentArchiveUnavailableReason;
   final String? historicalMessageLensDataFolderPath;
   final String? recoveredMessagesFolderPath;
   final String recoveredMessagesAttachmentsFolderName;
@@ -37,7 +39,10 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
     final archiveHealth = await _readArchiveHealth(
       includeFileAudits: shouldIncludeFileAudits,
     );
-    final recoveryAudit = includeRecoveryAudit
+    final recoveryAudit =
+        includeRecoveryAudit &&
+            archiveHealth.physicalAuditStatus ==
+                GraphArchivePhysicalAuditStatus.completed
         ? await _readAttachmentRecoveryAudit(
             currentAvailableArchiveKeys:
                 archiveHealth.currentAvailableArchiveKeys,
@@ -54,6 +59,8 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
       contactCount: await _count('SELECT COUNT(*) FROM contacts'),
       attachmentCount: await _count('SELECT COUNT(*) FROM attachments'),
       archiveFileAuditIncluded: shouldIncludeFileAudits,
+      archivePhysicalAuditStatus: archiveHealth.physicalAuditStatus,
+      archivePhysicalAuditIssue: archiveHealth.physicalAuditIssue,
       archiveRecordCount: archiveHealth.archiveRecordCount,
       attachmentsWithArchiveRecordCount:
           archiveHealth.attachmentsWithArchiveRecordCount,
@@ -221,7 +228,16 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
   }) async {
     final overlayDb = overlayDatabase;
     if (overlayDb == null) {
-      return const _ArchiveHealth.empty();
+      return _ArchiveHealth.empty(
+        physicalAuditStatus: includeFileAudits
+            ? attachmentArchiveDirectory == null
+                  ? GraphArchivePhysicalAuditStatus.deferredRootUnavailable
+                  : GraphArchivePhysicalAuditStatus.completed
+            : GraphArchivePhysicalAuditStatus.notRequested,
+        physicalAuditIssue: includeFileAudits
+            ? attachmentArchiveUnavailableReason
+            : null,
+      );
     }
 
     final archiveRows = await overlayDb.customSelect('''
@@ -293,9 +309,13 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
           archiveFilesMissingCount += 1;
         }
       }
-    } else if (includeFileAudits) {
-      archiveFilesMissingCount = archiveByKey.length;
     }
+
+    final physicalAuditStatus = !includeFileAudits
+        ? GraphArchivePhysicalAuditStatus.notRequested
+        : archiveDirectory == null || archiveDirectory.isEmpty
+        ? GraphArchivePhysicalAuditStatus.deferredRootUnavailable
+        : GraphArchivePhysicalAuditStatus.completed;
 
     return _ArchiveHealth(
       archiveRecordCount: archiveByKey.length,
@@ -308,6 +328,13 @@ class SqliteGraphHealthRepository implements GraphHealthRepository {
       archiveFilesMissingCount: archiveFilesMissingCount,
       archiveRecordsWithoutGraphAttachmentCount:
           archiveByKey.length - matchedArchiveKeys.length,
+      physicalAuditStatus: physicalAuditStatus,
+      physicalAuditIssue:
+          physicalAuditStatus ==
+              GraphArchivePhysicalAuditStatus.deferredRootUnavailable
+          ? attachmentArchiveUnavailableReason ??
+                'The attachment archive root is unavailable.'
+          : null,
     );
   }
 
@@ -785,17 +812,21 @@ class _ArchiveHealth {
     required this.archiveFilesAvailableCount,
     required this.archiveFilesMissingCount,
     required this.archiveRecordsWithoutGraphAttachmentCount,
+    required this.physicalAuditStatus,
+    required this.physicalAuditIssue,
   });
 
-  const _ArchiveHealth.empty()
-    : archiveRecordCount = 0,
-      currentArchiveKeys = const <ArchiveCompatibilityKey>{},
-      currentAvailableArchiveKeys = const <ArchiveCompatibilityKey>{},
-      attachmentsWithArchiveRecordCount = 0,
-      attachmentsMissingArchiveRecordCount = 0,
-      archiveFilesAvailableCount = 0,
-      archiveFilesMissingCount = 0,
-      archiveRecordsWithoutGraphAttachmentCount = 0;
+  const _ArchiveHealth.empty({
+    required this.physicalAuditStatus,
+    required this.physicalAuditIssue,
+  }) : archiveRecordCount = 0,
+       currentArchiveKeys = const <ArchiveCompatibilityKey>{},
+       currentAvailableArchiveKeys = const <ArchiveCompatibilityKey>{},
+       attachmentsWithArchiveRecordCount = 0,
+       attachmentsMissingArchiveRecordCount = 0,
+       archiveFilesAvailableCount = 0,
+       archiveFilesMissingCount = 0,
+       archiveRecordsWithoutGraphAttachmentCount = 0;
 
   final int archiveRecordCount;
   final Set<ArchiveCompatibilityKey> currentArchiveKeys;
@@ -805,6 +836,8 @@ class _ArchiveHealth {
   final int archiveFilesAvailableCount;
   final int archiveFilesMissingCount;
   final int archiveRecordsWithoutGraphAttachmentCount;
+  final GraphArchivePhysicalAuditStatus physicalAuditStatus;
+  final String? physicalAuditIssue;
 }
 
 class _ExternalArchiveKeys {

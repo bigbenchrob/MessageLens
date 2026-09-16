@@ -22,6 +22,7 @@ import 'package:remember_this_text/features/attachments/application/attachment_a
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_store_providers.dart';
+import 'package:remember_this_text/features/attachments/domain/constants/attachment_archive_payload_status.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 
@@ -567,12 +568,22 @@ void main() {
         expect(location.archiveRootPath, isNull);
 
         final resolveCountBeforeRepeat = nativeAdapter.resolveCalls;
+        var identicalStateNotificationCount = 0;
+        final identicalStateSubscription = container.listen(
+          attachmentArchiveLocationProvider,
+          (previous, next) {
+            identicalStateNotificationCount += 1;
+          },
+        );
         nativeAdapter.emit(AttachmentArchiveLocationEvent.applicationActivated);
         await _waitForResolveCount(nativeAdapter, resolveCountBeforeRepeat + 1);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
         location = container
             .read(attachmentArchiveLocationProvider)
             .requireValue;
         expect(location.generation, 2);
+        expect(identicalStateNotificationCount, 0);
+        identicalStateSubscription.close();
 
         nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
           status: AttachmentArchiveBookmarkResolutionStatus.available,
@@ -629,6 +640,121 @@ void main() {
         expect(location.generation, 6);
         expect(nativeAdapter.eventListenCount, 1);
         expect(nativeAdapter.eventCancelCount, 1);
+      },
+    );
+
+    test(
+      'disconnect and remount invalidate stale absolute attachment paths',
+      () async {
+        final overlayDatabase = OverlayDatabase(NativeDatabase.memory());
+        addTearDown(overlayDatabase.close);
+        final firstRoot = Directory(
+          archiveFixture.authority.resolvePath('external-one'),
+        );
+        final secondRoot = Directory(
+          archiveFixture.authority.resolvePath('external-renamed'),
+        );
+        final firstFile = File(path.join(firstRoot.path, 'payload.bin'));
+        final secondFile = File(path.join(secondRoot.path, 'payload.bin'));
+        await firstFile.create(recursive: true);
+        await firstFile.writeAsString('first');
+        await secondFile.create(recursive: true);
+        await secondFile.writeAsString('second');
+        await overlayDatabase
+            .into(overlayDatabase.archivedAttachments)
+            .insert(
+              ArchivedAttachmentsCompanion.insert(
+                messageGuid: 'generation-message',
+                importAttachmentId: 91,
+                archiveRelativePath: 'payload.bin',
+                archivedAtUtc: '2026-09-15T10:00:00.000Z',
+                fileSizeBytes: 5,
+              ),
+            );
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: base64Encode(<int>[41]),
+              lastKnownPath: firstRoot.path,
+            );
+        final settingsStore = _FakeAttachmentArchiveSettingsStore();
+        settingsStore.settings[attachmentArchiveLocationSettingKey] =
+            configuration.toPersistedValue();
+        final nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
+        addTearDown(nativeAdapter.dispose);
+        nativeAdapter.resolution = AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: firstRoot.path,
+        );
+        final container = ProviderContainer(
+          overrides: [
+            admittedArchiveAccessAuthorityProvider.overrideWithValue(
+              archiveFixture.authority,
+            ),
+            overlayDatabaseProvider.overrideWith(
+              (ref) async => overlayDatabase,
+            ),
+            attachmentArchiveSettingsStoreProvider.overrideWith(
+              (ref) async => settingsStore,
+            ),
+            attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+              nativeAdapter,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        const archiveKey = ArchiveCompatibilityKey(
+          messageGuid: 'generation-message',
+          importAttachmentId: 91,
+        );
+
+        var readStore = await container.read(
+          attachmentArchiveReadStoreProvider.future,
+        );
+        var record = await readStore.readArchiveRecord(archiveKey);
+        expect(record?.archiveAbsolutePath, firstFile.path);
+        expect(record?.locationGeneration, 0);
+
+        nativeAdapter.resolution = const AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.unavailable,
+          issue: 'Volume disconnected.',
+        );
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.volumeUnmounted);
+        await _waitForLocation(
+          container,
+          (candidate) =>
+              candidate.availability ==
+                  AttachmentArchiveLocationAvailability.customUnavailable &&
+              candidate.generation == 1,
+        );
+        readStore = await container.read(
+          attachmentArchiveReadStoreProvider.future,
+        );
+        record = await readStore.readArchiveRecord(archiveKey);
+        expect(
+          record?.payloadStatus,
+          AttachmentArchivePayloadStatus.rootUnavailable,
+        );
+        expect(record?.archiveAbsolutePath, isNull);
+        expect(record?.locationGeneration, 1);
+
+        nativeAdapter.resolution = AttachmentArchiveBookmarkResolution(
+          status: AttachmentArchiveBookmarkResolutionStatus.available,
+          resolvedPath: secondRoot.path,
+        );
+        nativeAdapter.emit(AttachmentArchiveLocationEvent.volumeRenamed);
+        await _waitForLocation(
+          container,
+          (candidate) =>
+              candidate.archiveRootPath == secondRoot.path &&
+              candidate.generation == 2,
+        );
+        readStore = await container.read(
+          attachmentArchiveReadStoreProvider.future,
+        );
+        record = await readStore.readArchiveRecord(archiveKey);
+        expect(record?.archiveAbsolutePath, secondFile.path);
+        expect(record?.archiveAbsolutePath, isNot(firstFile.path));
+        expect(record?.locationGeneration, 2);
       },
     );
 

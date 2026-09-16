@@ -7,7 +7,10 @@ import '../../../features/address_book_folders/domain/failures/folder_retrieval_
 import '../../../features/address_book_folders/feature_level_providers.dart'
     show futureGetFolderAggregateProvider;
 import '../../../features/attachments/feature_level_providers.dart'
-    show attachmentArchiveLocationProvider;
+    show
+        AttachmentArchiveLocationAvailability,
+        AttachmentArchiveLocationState,
+        attachmentArchiveLocationProvider;
 import '../../archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
 import '../../conversation_graph/feature_level_providers.dart'
@@ -153,8 +156,7 @@ Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
     messagesDatabasePath: ref.watch(onboardingMessagesDatabasePathProvider),
     addressBookEither: await ref.watch(futureGetFolderAggregateProvider.future),
     archiveRootPath: ref.watch(onboardingDatabaseDirectoryPathProvider),
-    attachmentArchiveDirectoryPath: attachmentArchiveLocation
-        .requireArchiveRootPath(),
+    attachmentArchiveLocation: attachmentArchiveLocation,
     // Readiness is an unrelated observer of the derived stores. Suppress its
     // database reads for every admitted archive mutation, including onboarding
     // import, even when that operation does not globally block its own graph
@@ -181,7 +183,7 @@ class _OnboardingEnvironmentInputs {
     required this.messagesDatabasePath,
     required this.addressBookEither,
     required this.archiveRootPath,
-    required this.attachmentArchiveDirectoryPath,
+    required this.attachmentArchiveLocation,
     required this.isMaintenanceLocked,
     required this.graphBuildState,
     required this.liveUpdateMonitorState,
@@ -196,7 +198,7 @@ class _OnboardingEnvironmentInputs {
   final Either<FolderRetrievalFailure, AddressBookFolderAggregate>
   addressBookEither;
   final String archiveRootPath;
-  final String attachmentArchiveDirectoryPath;
+  final AttachmentArchiveLocationState attachmentArchiveLocation;
   final bool isMaintenanceLocked;
   final ConversationGraphBuildState graphBuildState;
   final ChatDbChangeMonitorState liveUpdateMonitorState;
@@ -275,9 +277,28 @@ class _OnboardingEnvironmentEvaluator {
       AppDatabaseFile.conversationGraph,
       databaseDirectory: inputs.archiveRootPath,
     );
-    final attachmentArchiveProbe = databaseProbeReader.probeDirectory(
-      inputs.attachmentArchiveDirectoryPath,
-    );
+    final attachmentArchiveLocation = inputs.attachmentArchiveLocation;
+    final attachmentArchiveProbe = attachmentArchiveLocation.isAvailable
+        ? databaseProbeReader.probeDirectory(
+            attachmentArchiveLocation.requireArchiveRootPath(),
+          )
+        : OnboardingDatabaseProbe(
+            path: attachmentArchiveLocation.lastKnownDisplayPath ?? '',
+            exists: false,
+            readable: false,
+            failureMessage:
+                attachmentArchiveLocation.issue ??
+                'The configured external attachment archive is unavailable.',
+          );
+    final attachmentArchiveStatus =
+        switch (attachmentArchiveLocation.availability) {
+          AttachmentArchiveLocationAvailability.defaultAvailable ||
+          AttachmentArchiveLocationAvailability.customAvailable =>
+            OnboardingAttachmentArchiveStatus.available,
+          AttachmentArchiveLocationAvailability.customReadOnly =>
+            OnboardingAttachmentArchiveStatus.readOnly,
+          _ => OnboardingAttachmentArchiveStatus.unavailable,
+        };
     final isMaintenanceLocked = inputs.isMaintenanceLocked;
 
     final sourceMessageCount = devOverrides.simulateSparseSourceHistory
@@ -415,6 +436,9 @@ class _OnboardingEnvironmentEvaluator {
           inputs.liveUpdateMonitorState.lastChangeDetected,
       liveUpdateLastError: inputs.liveUpdateMonitorState.lastError,
       operationSnapshot: inputs.operationSnapshot,
+      attachmentArchiveStatus: attachmentArchiveStatus,
+      attachmentArchiveIssue: attachmentArchiveLocation.issue,
+      attachmentArchiveLocationGeneration: attachmentArchiveLocation.generation,
     );
   }
 
