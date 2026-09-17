@@ -13,22 +13,6 @@ enum AttachmentArchiveLocationAvailability {
   configurationInvalid,
 }
 
-/// Phase Two capability for mutation paths that are still restricted to the
-/// admitted default/internal archive.
-///
-/// The private constructor prevents callers from manufacturing mutation
-/// authority from an arbitrary or remembered filesystem path.
-@immutable
-final class AttachmentArchiveMutationRoot {
-  const AttachmentArchiveMutationRoot._({
-    required this.archiveRootPath,
-    required this.locationGeneration,
-  });
-
-  final String archiveRootPath;
-  final int locationGeneration;
-}
-
 /// The resolved attachment archive root and its configuration generation.
 @immutable
 final class AttachmentArchiveLocationState {
@@ -165,7 +149,7 @@ final class AttachmentArchiveLocationState {
 
   /// Physical status reported by bookmark resolution, not mutation authority.
   ///
-  /// Callers that mutate must acquire [AttachmentArchiveMutationRoot].
+  /// Callers that mutate must acquire the application-owned writable lease.
   bool get isPhysicallyWritable {
     return switch (availability) {
       AttachmentArchiveLocationAvailability.defaultAvailable ||
@@ -174,13 +158,17 @@ final class AttachmentArchiveLocationState {
     };
   }
 
-  /// Whether Phase Two/Three may issue archive payload mutations here.
-  ///
-  /// Physical writability of a custom root is deliberately insufficient.
-  bool get admitsInternalMutation {
-    return availability ==
-            AttachmentArchiveLocationAvailability.defaultAvailable &&
-        configuration?.mode == AttachmentArchiveLocationMode.defaultInternal;
+  /// Cheap scheduling hint only; callers still need a writable-root lease.
+  bool get isWritableMutationEligible {
+    return switch (availability) {
+      AttachmentArchiveLocationAvailability.defaultAvailable =>
+        configuration?.mode == AttachmentArchiveLocationMode.defaultInternal,
+      AttachmentArchiveLocationAvailability.customAvailable =>
+        configuration?.mode == AttachmentArchiveLocationMode.customExternal &&
+            configuration?.customWritePolicy ==
+                AttachmentArchiveCustomWritePolicy.activeArchive,
+      _ => false,
+    };
   }
 
   String requireArchiveRootPath() {
@@ -192,20 +180,6 @@ final class AttachmentArchiveLocationState {
       );
     }
     return rootPath;
-  }
-
-  AttachmentArchiveMutationRoot requireInternalMutationRoot() {
-    final rootPath = archiveRootPath;
-    if (!admitsInternalMutation || rootPath == null) {
-      throw StateError(
-        'Attachment archive mutation is restricted to the available '
-        'default/internal root during Phase Two.',
-      );
-    }
-    return AttachmentArchiveMutationRoot._(
-      archiveRootPath: rootPath,
-      locationGeneration: generation,
-    );
   }
 
   AttachmentArchiveLocationState withGeneration(int value) {
@@ -220,9 +194,7 @@ final class AttachmentArchiveLocationState {
 
   bool hasSameEffectiveLocationAs(AttachmentArchiveLocationState other) {
     return availability == other.availability &&
-        configuration?.mode == other.configuration?.mode &&
-        configuration?.bookmarkDataBase64 ==
-            other.configuration?.bookmarkDataBase64 &&
+        configuration == other.configuration &&
         archiveRootPath == other.archiveRootPath &&
         issue == other.issue;
   }

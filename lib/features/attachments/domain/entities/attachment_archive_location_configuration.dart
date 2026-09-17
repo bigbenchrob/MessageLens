@@ -24,6 +24,30 @@ enum AttachmentArchiveLocationMode {
   }
 }
 
+/// Whether a resolved custom root is eligible for ordinary archive writes.
+///
+/// Merely selecting a directory never activates it. Phase Five may persist
+/// [activeArchive] only after relocation and verification have succeeded.
+enum AttachmentArchiveCustomWritePolicy {
+  readOnlyUntilVerifiedRelocation('read_only_until_verified_relocation'),
+  activeArchive('active_archive');
+
+  const AttachmentArchiveCustomWritePolicy(this.serializedName);
+
+  final String serializedName;
+
+  static AttachmentArchiveCustomWritePolicy parse(String value) {
+    return switch (value) {
+      'read_only_until_verified_relocation' =>
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+      'active_archive' => AttachmentArchiveCustomWritePolicy.activeArchive,
+      _ => throw FormatException(
+        'Unsupported attachment archive custom write policy: $value',
+      ),
+    };
+  }
+}
+
 /// Versioned, machine-specific configuration for the attachment archive root.
 ///
 /// Attachment rows retain archive-relative paths. This configuration selects
@@ -37,6 +61,7 @@ final class AttachmentArchiveLocationConfiguration {
     this.bookmarkDataBase64,
     this.lastKnownPath,
     this.volumeName,
+    this.customWritePolicy,
   });
 
   const AttachmentArchiveLocationConfiguration.defaultInternal()
@@ -49,6 +74,8 @@ final class AttachmentArchiveLocationConfiguration {
     required String bookmarkDataBase64,
     required String lastKnownPath,
     String? volumeName,
+    AttachmentArchiveCustomWritePolicy customWritePolicy =
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
   }) {
     final normalizedBookmark = _validateBookmarkData(bookmarkDataBase64);
     final normalizedLastKnownPath = lastKnownPath.trim();
@@ -66,6 +93,7 @@ final class AttachmentArchiveLocationConfiguration {
       volumeName: normalizedVolumeName == null || normalizedVolumeName.isEmpty
           ? null
           : normalizedVolumeName,
+      customWritePolicy: customWritePolicy,
     );
   }
 
@@ -76,6 +104,7 @@ final class AttachmentArchiveLocationConfiguration {
   final String? bookmarkDataBase64;
   final String? lastKnownPath;
   final String? volumeName;
+  final AttachmentArchiveCustomWritePolicy? customWritePolicy;
 
   Map<String, Object> toJson() {
     return <String, Object>{
@@ -85,6 +114,8 @@ final class AttachmentArchiveLocationConfiguration {
         'bookmarkDataBase64': bookmarkData,
       if (lastKnownPath case final displayPath?) 'lastKnownPath': displayPath,
       if (volumeName case final name?) 'volumeName': name,
+      if (customWritePolicy case final policy?)
+        'customWritePolicy': policy.serializedName,
     };
   }
 
@@ -135,6 +166,7 @@ final class AttachmentArchiveLocationConfiguration {
           bookmarkDataBase64: _readRequiredString(json, 'bookmarkDataBase64'),
           lastKnownPath: _readRequiredString(json, 'lastKnownPath'),
           volumeName: _readOptionalString(json, 'volumeName'),
+          customWritePolicy: _readCustomWritePolicy(json),
         ),
     };
   }
@@ -153,6 +185,25 @@ final class AttachmentArchiveLocationConfiguration {
       bookmarkDataBase64: bookmarkDataBase64,
       lastKnownPath: lastKnownPath,
       volumeName: volumeName,
+      customWritePolicy:
+          customWritePolicy ??
+          AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+    );
+  }
+
+  AttachmentArchiveLocationConfiguration withCustomWritePolicy(
+    AttachmentArchiveCustomWritePolicy policy,
+  ) {
+    if (mode != AttachmentArchiveLocationMode.customExternal) {
+      throw StateError(
+        'Only custom attachment archive configuration has a write policy.',
+      );
+    }
+    return AttachmentArchiveLocationConfiguration.customExternal(
+      bookmarkDataBase64: bookmarkDataBase64!,
+      lastKnownPath: lastKnownPath!,
+      volumeName: volumeName,
+      customWritePolicy: policy,
     );
   }
 
@@ -199,6 +250,21 @@ final class AttachmentArchiveLocationConfiguration {
     return value;
   }
 
+  static AttachmentArchiveCustomWritePolicy _readCustomWritePolicy(
+    Map<String, Object?> json,
+  ) {
+    final value = json['customWritePolicy'];
+    if (value == null) {
+      return AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation;
+    }
+    if (value is! String) {
+      throw const FormatException(
+        'Custom attachment archive customWritePolicy must be a string.',
+      );
+    }
+    return AttachmentArchiveCustomWritePolicy.parse(value);
+  }
+
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
@@ -207,7 +273,8 @@ final class AttachmentArchiveLocationConfiguration {
             other.mode == mode &&
             other.bookmarkDataBase64 == bookmarkDataBase64 &&
             other.lastKnownPath == lastKnownPath &&
-            other.volumeName == volumeName;
+            other.volumeName == volumeName &&
+            other.customWritePolicy == customWritePolicy;
   }
 
   @override
@@ -217,5 +284,6 @@ final class AttachmentArchiveLocationConfiguration {
     bookmarkDataBase64,
     lastKnownPath,
     volumeName,
+    customWritePolicy,
   );
 }

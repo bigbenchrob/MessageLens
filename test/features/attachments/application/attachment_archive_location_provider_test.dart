@@ -46,6 +46,29 @@ void main() {
       expect(restored, configuration);
       expect(restored.mode, AttachmentArchiveLocationMode.customExternal);
       expect(restored.lastKnownPath, '/Volumes/Disposable/Archive');
+      expect(
+        restored.customWritePolicy,
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+      );
+    });
+
+    test('verified custom activation policy round-trips explicitly', () {
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: base64Encode(<int>[5, 6]),
+            lastKnownPath: '/Volumes/Verified/Archive',
+            customWritePolicy: AttachmentArchiveCustomWritePolicy.activeArchive,
+          );
+
+      final restored =
+          AttachmentArchiveLocationConfiguration.fromPersistedValue(
+            configuration.toPersistedValue(),
+          );
+
+      expect(
+        restored.customWritePolicy,
+        AttachmentArchiveCustomWritePolicy.activeArchive,
+      );
     });
 
     test('malformed custom bookmark data fails closed', () {
@@ -249,7 +272,7 @@ void main() {
       expect(location.archiveRootPath, isNull);
       expect(location.lastKnownDisplayPath, '/Volumes/Absent/Archive');
       expect(location.requireArchiveRootPath, throwsStateError);
-      expect(location.requireInternalMutationRoot, throwsStateError);
+      expect(location.isWritableMutationEligible, isFalse);
     });
 
     test(
@@ -353,20 +376,17 @@ void main() {
     });
   });
 
-  group('AttachmentArchiveMutationRoot', () {
-    test('default location grants typed internal-only mutation authority', () {
+  group('writable-root scheduling eligibility', () {
+    test('default location is eligible without manufacturing authority', () {
       final location = AttachmentArchiveLocationState.defaultAvailable(
         archiveRootPath: '/internal/attachment_archive',
         generation: 7,
       );
 
-      final mutationRoot = location.requireInternalMutationRoot();
-
-      expect(mutationRoot.archiveRootPath, '/internal/attachment_archive');
-      expect(mutationRoot.locationGeneration, 7);
+      expect(location.isWritableMutationEligible, isTrue);
     });
 
-    test('physically writable custom location remains mutation denied', () {
+    test('physically writable selected custom location remains ineligible', () {
       final configuration =
           AttachmentArchiveLocationConfiguration.customExternal(
             bookmarkDataBase64: base64Encode(<int>[14]),
@@ -379,7 +399,7 @@ void main() {
 
       expect(location.isPhysicallyWritable, isTrue);
       expect(location.requireArchiveRootPath(), '/Volumes/External/Archive');
-      expect(location.requireInternalMutationRoot, throwsStateError);
+      expect(location.isWritableMutationEligible, isFalse);
     });
   });
 
@@ -540,9 +560,13 @@ void main() {
         expect(nativeAdapter.createdPaths, <String>[
           '/Volumes/Disposable/Archive',
         ]);
-        await expectLater(
-          container.read(attachmentArchiveMutationRootProvider.future),
-          throwsStateError,
+        final admission = await container.read(
+          attachmentArchiveWritableRootAdmissionProvider.future,
+        );
+        expect(admission.isAdmitted, isFalse);
+        expect(
+          admission.deferredReason,
+          AttachmentArchiveMutationDeferredReason.customArchiveNotActivated,
         );
 
         await container

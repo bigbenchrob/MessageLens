@@ -79,13 +79,21 @@ class ArchiveSettings extends _$ArchiveSettings {
   Future<void> clearArchive() {
     return ref
         .read(archiveMutationCoordinatorProvider.notifier)
-        .run<void>(
+        .runWithCapability<void>(
           operation: ArchiveMutationOperation.attachmentClearing,
           ownerLabel: 'attachment-archive-clear',
-          action: () async {
-            final mutationRoot = await ref.read(
-              attachmentArchiveMutationRootProvider.future,
+          action: (mutationCapability) async {
+            final admission = await ref.read(
+              attachmentArchiveWritableRootAdmissionProvider.future,
             );
+            final writableRootLease = admission.lease;
+            if (writableRootLease == null) {
+              throw AttachmentArchiveMutationDeferredException(
+                reason: admission.deferredReason!,
+                boundary: AttachmentArchiveMutationBoundary.operationStart,
+                issue: admission.issue,
+              );
+            }
             final archiveFileOperations = ref.read(
               attachmentArchiveFileOperationsProvider,
             );
@@ -93,8 +101,20 @@ class ArchiveSettings extends _$ArchiveSettings {
               attachmentArchiveSettingsStoreProvider.future,
             );
 
+            mutationCapability.requireOperation(
+              ArchiveMutationOperation.attachmentClearing,
+            );
+            await writableRootLease.requireValid(
+              operation: ArchiveMutationOperation.attachmentClearing,
+              boundary:
+                  AttachmentArchiveMutationBoundary.beforeDestructiveReset,
+            );
             await archiveFileOperations.resetArchiveDirectory(
-              mutationRoot.archiveRootPath,
+              writableRootLease.archiveRootPath,
+            );
+            await writableRootLease.requireValid(
+              operation: ArchiveMutationOperation.attachmentClearing,
+              boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
             );
             await settingsStore.clearArchivedAttachmentRecords();
 

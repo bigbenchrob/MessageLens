@@ -1,11 +1,11 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart'
-    show driftConversationGraphDatabaseProvider, overlayDatabaseProvider;
+    show driftConversationGraphDatabaseProvider;
 import '../infrastructure/repositories/graph_cross_snapshot_mapper.dart';
 import '../infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart';
 import '../infrastructure/repositories/sqlite_historical_snapshot_reader.dart';
-import 'attachment_archive_location_provider.dart';
+import 'attachment_archive_store_providers.dart';
 import 'cross_snapshot_mapper.dart';
 import 'graph_attachment_archive_providers.dart';
 import 'historical_snapshot_reader.dart';
@@ -33,13 +33,13 @@ Future<CrossSnapshotMapper> crossSnapshotMapper(
 Future<RecoveredAttachmentArchiveWriter> recoveredAttachmentArchiveWriter(
   RecoveredAttachmentArchiveWriterRef ref,
 ) async {
-  final mutationRoot = await ref.watch(
-    attachmentArchiveMutationRootProvider.future,
+  final fileStore = ref.watch(attachmentArchiveFileStoreProvider);
+  final writeStore = await ref.watch(
+    attachmentArchiveWriteStoreProvider.future,
   );
-  final overlayDb = await ref.watch(overlayDatabaseProvider.future);
   return OverlayRecoveredAttachmentArchiveWriter(
-    overlayDb: overlayDb,
-    archiveDir: mutationRoot.archiveRootPath,
+    fileStore: fileStore,
+    writeStore: writeStore,
   );
 }
 

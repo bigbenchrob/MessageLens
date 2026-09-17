@@ -10,6 +10,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.113] — 2026-09-16
+
+### Added
+
+- Attachment archive writes now require a generation-bound writable-root
+  lease. Disconnects, remounts, path changes, configuration changes, and loss
+  of writability revoke stale authority before final payload installation or
+  archive-metadata publication.
+- Ingestion and historical recovery now expose typed deferred outcomes while a
+  configured external archive is unavailable or read-only. Reconnection makes
+  work eligible for one existing bounded sweep without adding a second queue
+  or starting a full archive scan.
+
+### Changed
+
+- Selecting a custom archive location remains read-only for mutation until a
+  later verified relocation explicitly activates it; directory selection alone
+  cannot replace the active writable archive.
+- Deterministic and MessageLens recovery now share the canonical temporary-file,
+  verification, and atomic no-overwrite installer used by normal ingestion.
+- Recursive clear/reset remains authorized only for the default internal
+  archive, even when an external archive is otherwise admitted for writes.
+
 ## [0.2.112] — 2026-09-15
 
 ### Added

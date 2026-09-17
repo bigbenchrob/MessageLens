@@ -7,6 +7,7 @@ import '../../../essentials/source_scoped_import/domain/messages_lineage_admissi
 import '../domain/entities/message_lens_attachment_recovery.dart';
 import '../domain/entities/message_lens_attachment_recovery_donor.dart';
 import 'attachment_archive_file_store.dart';
+import 'attachment_archive_location_provider.dart';
 import 'message_lens_attachment_evidence_reader.dart';
 import 'message_lens_attachment_recovery_installer.dart';
 import 'message_lens_attachment_recovery_matcher.dart';
@@ -31,6 +32,7 @@ enum MessageLensAttachmentRecoveryItemStatus {
   attachmentMismatch,
   ambiguous,
   unsafeSource,
+  deferred,
 }
 
 final class MessageLensAttachmentRecoveryBatchProgress {
@@ -63,12 +65,14 @@ final class MessageLensAttachmentRecoveryItemOutcome {
     required this.status,
     required this.installedBytes,
     required this.archiveRelativePath,
+    this.deferredReason,
   });
 
   final MessageLensAttachmentRecoveryCandidate candidate;
   final MessageLensAttachmentRecoveryItemStatus status;
   final int installedBytes;
   final String? archiveRelativePath;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
 
   bool get recovered =>
       status == MessageLensAttachmentRecoveryItemStatus.installed;
@@ -87,6 +91,7 @@ final class MessageLensAttachmentRecoveryBatchResult {
     required this.couldNotRecoverCount,
     required this.terminallyVerifiedCount,
     required this.remainingRecoverableCount,
+    this.deferredReason,
   });
 
   final List<MessageLensAttachmentRecoveryItemOutcome> outcomes;
@@ -96,8 +101,12 @@ final class MessageLensAttachmentRecoveryBatchResult {
   final int couldNotRecoverCount;
   final int terminallyVerifiedCount;
   final int remainingRecoverableCount;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
+
+  bool get isDeferred => deferredReason != null;
 
   bool get fullyRecovered =>
+      !isDeferred &&
       couldNotRecoverCount == 0 &&
       remainingRecoverableCount == 0 &&
       terminallyVerifiedCount == outcomes.length;
@@ -131,7 +140,7 @@ final class MessageLensAttachmentRecoveryBatchExecutor
     required MessageLensAttachmentRecoveryPayloadVerifier payloadVerifier,
     required MessageLensAttachmentRecoveryInstaller installer,
     required AttachmentArchiveFileStore fileStore,
-    required String currentArchiveDirectoryPath,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     MessageLensAttachmentRecoveryMatcher matcher =
         const MessageLensAttachmentRecoveryMatcher(),
   }) : _donorEvidenceReader = donorEvidenceReader,
@@ -139,7 +148,7 @@ final class MessageLensAttachmentRecoveryBatchExecutor
        _payloadVerifier = payloadVerifier,
        _installer = installer,
        _fileStore = fileStore,
-       _currentArchiveDirectoryPath = currentArchiveDirectoryPath,
+       _writableRootLease = writableRootLease,
        _matcher = matcher;
 
   final MessageLensDonorAttachmentEvidenceReader _donorEvidenceReader;
@@ -147,7 +156,7 @@ final class MessageLensAttachmentRecoveryBatchExecutor
   final MessageLensAttachmentRecoveryPayloadVerifier _payloadVerifier;
   final MessageLensAttachmentRecoveryInstaller _installer;
   final AttachmentArchiveFileStore _fileStore;
-  final String _currentArchiveDirectoryPath;
+  final AttachmentArchiveWritableRootLease _writableRootLease;
   final MessageLensAttachmentRecoveryMatcher _matcher;
 
   @override
@@ -163,6 +172,16 @@ final class MessageLensAttachmentRecoveryBatchExecutor
     mutationCapability.requireOperation(
       ArchiveMutationOperation.attachmentReconciliation,
     );
+    final initialValidation = await _writableRootLease.validate(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.operationStart,
+    );
+    if (!initialValidation.isValid) {
+      return _deferredBatchResult(
+        reason: initialValidation.deferredReason!,
+        candidates: preflightApprovedCandidates,
+      );
+    }
     _requireExactApprovedSet(
       preflight: preflight,
       approved: preflightApprovedCandidates,
@@ -205,6 +224,16 @@ final class MessageLensAttachmentRecoveryBatchExecutor
     mutationCapability.requireOperation(
       ArchiveMutationOperation.attachmentReconciliation,
     );
+    final postDonorValidation = await _writableRootLease.validate(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.beforeSourceRead,
+    );
+    if (!postDonorValidation.isValid) {
+      return _deferredBatchResult(
+        reason: postDonorValidation.deferredReason!,
+        candidates: preflightApprovedCandidates,
+      );
+    }
 
     final evidence = await _loadExecutionEvidence(preflightApprovedCandidates);
     final outcomes = <MessageLensAttachmentRecoveryItemOutcome>[];
@@ -245,6 +274,17 @@ final class MessageLensAttachmentRecoveryBatchExecutor
         },
       );
       final payload = verifiedPayload.payload;
+      final postVerificationValidation = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.afterSourceHash,
+      );
+      if (!postVerificationValidation.isValid) {
+        return _deferredBatchResult(
+          reason: postVerificationValidation.deferredReason!,
+          candidates: preflightApprovedCandidates,
+          outcomes: outcomes,
+        );
+      }
       if (payload == null) {
         outcomes.add(
           MessageLensAttachmentRecoveryItemOutcome(
@@ -313,9 +353,17 @@ final class MessageLensAttachmentRecoveryBatchExecutor
         status: _statusForInstallation(installation.status),
         installedBytes: installation.installedBytes,
         archiveRelativePath: installation.archiveRelativePath,
+        deferredReason: installation.deferredReason,
       );
       outcomes.add(outcome);
       processedAttachments += 1;
+      if (installation.deferredReason != null) {
+        return _deferredBatchResult(
+          reason: installation.deferredReason!,
+          candidates: preflightApprovedCandidates,
+          outcomes: outcomes,
+        );
+      }
       if (outcome.recovered) {
         recoveredAttachments += 1;
       }
@@ -324,6 +372,17 @@ final class MessageLensAttachmentRecoveryBatchExecutor
 
     stage = MessageLensAttachmentRecoveryBatchStage.finalVerification;
     publish();
+    final beforeFinalVerification = await _writableRootLease.validate(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+    );
+    if (!beforeFinalVerification.isValid) {
+      return _deferredBatchResult(
+        reason: beforeFinalVerification.deferredReason!,
+        candidates: preflightApprovedCandidates,
+        outcomes: outcomes,
+      );
+    }
     final finalStatuses = await _currentEvidenceReader.readPayloadStatuses([
       for (final candidate in preflightApprovedCandidates)
         candidate.archiveCompatibilityKey,
@@ -349,11 +408,33 @@ final class MessageLensAttachmentRecoveryBatchExecutor
       if (outcome.archiveRelativePath == null) {
         continue;
       }
+      final beforeIntegrity = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+      if (!beforeIntegrity.isValid) {
+        return _deferredBatchResult(
+          reason: beforeIntegrity.deferredReason!,
+          candidates: preflightApprovedCandidates,
+          outcomes: outcomes,
+        );
+      }
       final integrity = await _fileStore.checkIntegrity(
-        archiveDirectoryPath: _currentArchiveDirectoryPath,
+        archiveDirectoryPath: _writableRootLease.archiveRootPath,
         relativePath: outcome.archiveRelativePath!,
         storedHash: verifiedItem.payload.expectedSha256,
       );
+      final afterIntegrity = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
+      );
+      if (!afterIntegrity.isValid) {
+        return _deferredBatchResult(
+          reason: afterIntegrity.deferredReason!,
+          candidates: preflightApprovedCandidates,
+          outcomes: outcomes,
+        );
+      }
       if (integrity.fileExists &&
           integrity.actualSizeBytes == verifiedItem.payload.expectedSizeBytes &&
           integrity.hashMatches == true) {
@@ -396,6 +477,50 @@ final class MessageLensAttachmentRecoveryBatchExecutor
           outcomes.length - recoveredCount - alreadyPresentCount,
       terminallyVerifiedCount: terminallyVerifiedAttachments,
       remainingRecoverableCount: remainingRecoverable,
+    );
+  }
+
+  static MessageLensAttachmentRecoveryBatchResult _deferredBatchResult({
+    required AttachmentArchiveMutationDeferredReason reason,
+    required List<MessageLensAttachmentRecoveryCandidate> candidates,
+    List<MessageLensAttachmentRecoveryItemOutcome> outcomes = const [],
+  }) {
+    final recoveredCount = outcomes
+        .where((outcome) => outcome.recovered)
+        .length;
+    final alreadyPresentCount = outcomes
+        .where(
+          (outcome) =>
+              outcome.status ==
+              MessageLensAttachmentRecoveryItemStatus.alreadyPresent,
+        )
+        .length;
+    final deferredCount = outcomes
+        .where(
+          (outcome) =>
+              outcome.status ==
+              MessageLensAttachmentRecoveryItemStatus.deferred,
+        )
+        .length;
+    return MessageLensAttachmentRecoveryBatchResult(
+      outcomes: List<MessageLensAttachmentRecoveryItemOutcome>.unmodifiable(
+        outcomes,
+      ),
+      recoveredCount: recoveredCount,
+      recoveredBytes: outcomes.fold<int>(
+        0,
+        (sum, outcome) => sum + outcome.installedBytes,
+      ),
+      alreadyPresentCount: alreadyPresentCount,
+      couldNotRecoverCount:
+          outcomes.length -
+          recoveredCount -
+          alreadyPresentCount -
+          deferredCount,
+      terminallyVerifiedCount: 0,
+      remainingRecoverableCount:
+          candidates.length - outcomes.length + deferredCount,
+      deferredReason: reason,
     );
   }
 
@@ -616,7 +741,35 @@ final class MessageLensAttachmentRecoveryBatchExecutor
         MessageLensAttachmentRecoveryItemStatus.unsafeSource,
       MessageLensAttachmentInstallationStatus.metadataUpdateFailed =>
         MessageLensAttachmentRecoveryItemStatus.metadataUpdateFailed,
+      MessageLensAttachmentInstallationStatus.deferred =>
+        MessageLensAttachmentRecoveryItemStatus.deferred,
     };
+  }
+}
+
+final class DeferredMessageLensAttachmentRecoveryBatchRunner
+    implements MessageLensAttachmentRecoveryBatchRunner {
+  const DeferredMessageLensAttachmentRecoveryBatchRunner(this.reason);
+
+  final AttachmentArchiveMutationDeferredReason reason;
+
+  @override
+  Future<MessageLensAttachmentRecoveryBatchResult> execute({
+    required ArchiveMutationCapability mutationCapability,
+    required MessageLensAttachmentRecoveryDonor donor,
+    required SameMessagesLineageAdmission lineageAdmission,
+    required MessageLensAttachmentRecoveryPreflight preflight,
+    required List<MessageLensAttachmentRecoveryCandidate>
+    preflightApprovedCandidates,
+    MessageLensAttachmentRecoveryBatchProgressObserver? onProgress,
+  }) async {
+    mutationCapability.requireOperation(
+      ArchiveMutationOperation.attachmentReconciliation,
+    );
+    return MessageLensAttachmentRecoveryBatchExecutor._deferredBatchResult(
+      reason: reason,
+      candidates: preflightApprovedCandidates,
+    );
   }
 }
 

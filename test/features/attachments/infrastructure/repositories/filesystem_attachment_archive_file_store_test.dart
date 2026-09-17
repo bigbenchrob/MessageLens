@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import 'package:remember_this_text/features/attachments/application/atomic_no_overwrite_file_installer.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_file_store.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart';
 
 void main() {
@@ -30,7 +31,10 @@ void main() {
   test('ensures archive directory exists', () async {
     expect(archiveDir.existsSync(), isFalse);
 
-    await store.ensureArchiveDirectory(archiveDir.path);
+    await store.ensureArchiveDirectory(
+      archiveDir.path,
+      validateMutation: _acceptMutationBoundary,
+    );
 
     expect(archiveDir.existsSync(), isTrue);
   });
@@ -42,7 +46,10 @@ void main() {
     await archiveLink.create(outsideDir.path);
 
     await expectLater(
-      store.ensureArchiveDirectory(archiveDir.path),
+      store.ensureArchiveDirectory(
+        archiveDir.path,
+        validateMutation: _acceptMutationBoundary,
+      ),
       throwsStateError,
     );
   });
@@ -53,6 +60,7 @@ void main() {
       sourcePath: path.join(tempDir.path, 'missing.jpg'),
       archiveKey: _archiveKey(),
       sha256Hex: null,
+      validateMutation: _acceptMutationBoundary,
     );
 
     expect(write, isNull);
@@ -70,6 +78,7 @@ void main() {
       sourcePath: sourceLink.path,
       archiveKey: _archiveKey(),
       sha256Hex: null,
+      validateMutation: _acceptMutationBoundary,
     );
 
     expect(write, isNull);
@@ -88,6 +97,7 @@ void main() {
       sourcePath: sourceFile.path,
       archiveKey: _archiveKey(),
       sha256Hex: null,
+      validateMutation: _acceptMutationBoundary,
     );
 
     expect(write, isNotNull);
@@ -116,6 +126,7 @@ void main() {
       sourcePath: sourceFile.path,
       archiveKey: _archiveKey(),
       sha256Hex: suppliedHash,
+      validateMutation: _acceptMutationBoundary,
     );
 
     expect(write, isNotNull);
@@ -159,6 +170,7 @@ void main() {
         sourcePath: sourceFile.path,
         archiveKey: _archiveKey(),
         sha256Hex: suppliedHash,
+        validateMutation: _acceptMutationBoundary,
       ),
       throwsStateError,
     );
@@ -174,6 +186,7 @@ void main() {
       sourcePath: sourceFile.path,
       archiveKey: _archiveKey(),
       sha256Hex: 'a',
+      validateMutation: _acceptMutationBoundary,
     );
 
     expect(write, isNotNull);
@@ -197,7 +210,164 @@ void main() {
     );
   });
 
+  test(
+    'lease loss before source read or after hash prevents installation',
+    () async {
+      final sourceFile = File(path.join(tempDir.path, 'source.bin'));
+      await sourceFile.writeAsString('source payload');
+      for (final deniedBoundary in <AttachmentArchiveMutationBoundary>[
+        AttachmentArchiveMutationBoundary.beforeSourceRead,
+        AttachmentArchiveMutationBoundary.afterSourceHash,
+      ]) {
+        await expectLater(
+          store.writeArchiveEntry(
+            archiveDirectoryPath: archiveDir.path,
+            sourcePath: sourceFile.path,
+            archiveKey: _archiveKey(),
+            sha256Hex: null,
+            validateMutation: (boundary) async {
+              if (boundary == deniedBoundary) {
+                throw AttachmentArchiveMutationDeferredException(
+                  reason:
+                      AttachmentArchiveMutationDeferredReason.staleGeneration,
+                  boundary: boundary,
+                );
+              }
+            },
+          ),
+          throwsA(isA<AttachmentArchiveMutationDeferredException>()),
+        );
+        if (archiveDir.existsSync()) {
+          expect(
+            archiveDir.listSync(recursive: true).whereType<File>(),
+            isEmpty,
+          );
+        }
+      }
+    },
+  );
+
   group('preservation-safe installation', () {
+    test(
+      'lease loss at pre-install boundaries exposes no final payload',
+      () async {
+        final bytes = 'boundary payload'.codeUnits;
+        final expectedHash = sha256.convert(bytes).toString();
+        for (final deniedBoundary in <AttachmentArchiveMutationBoundary>[
+          AttachmentArchiveMutationBoundary.beforeRootCreation,
+          AttachmentArchiveMutationBoundary.beforeTemporaryCopy,
+          AttachmentArchiveMutationBoundary.beforePayloadVerification,
+          AttachmentArchiveMutationBoundary.beforeFinalInstall,
+        ]) {
+          if (archiveDir.existsSync()) {
+            await archiveDir.delete(recursive: true);
+          }
+
+          await expectLater(
+            store.installVerifiedArchiveEntry(
+              archiveDirectoryPath: archiveDir.path,
+              sourceBytes: Stream<List<int>>.value(bytes),
+              sourceExtension: '.bin',
+              expectedSizeBytes: bytes.length,
+              expectedSha256: expectedHash,
+              validateMutation: (boundary) async {
+                if (boundary == deniedBoundary) {
+                  throw AttachmentArchiveMutationDeferredException(
+                    reason:
+                        AttachmentArchiveMutationDeferredReason.staleGeneration,
+                    boundary: boundary,
+                  );
+                }
+              },
+            ),
+            throwsA(isA<AttachmentArchiveMutationDeferredException>()),
+          );
+
+          final destination = File(
+            path.join(
+              archiveDir.path,
+              expectedHash.substring(0, 2),
+              '$expectedHash.bin',
+            ),
+          );
+          expect(destination.existsSync(), isFalse);
+          if (archiveDir.existsSync()) {
+            expect(
+              archiveDir
+                  .listSync(recursive: true)
+                  .where(
+                    (entity) => entity.path.contains('.messagelens-install-'),
+                  ),
+              isEmpty,
+            );
+          }
+        }
+      },
+    );
+
+    test('lease loss during copy removes the temporary payload', () async {
+      final bytes = 'boundary payload'.codeUnits;
+      final expectedHash = sha256.convert(bytes).toString();
+      const copyFailure = AttachmentArchiveMutationDeferredException(
+        reason: AttachmentArchiveMutationDeferredReason.staleGeneration,
+        boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+
+      await expectLater(
+        store.installVerifiedArchiveEntry(
+          archiveDirectoryPath: archiveDir.path,
+          sourceBytes: Stream<List<int>>.error(copyFailure),
+          sourceExtension: '.bin',
+          expectedSizeBytes: bytes.length,
+          expectedSha256: expectedHash,
+          validateMutation: _acceptMutationBoundary,
+        ),
+        throwsA(same(copyFailure)),
+      );
+
+      expect(archiveDir.listSync(recursive: true).whereType<File>(), isEmpty);
+    });
+
+    test(
+      'post-install lease loss leaves only an unclaimed safe orphan',
+      () async {
+        final bytes = 'installed before disconnect'.codeUnits;
+        final expectedHash = sha256.convert(bytes).toString();
+
+        await expectLater(
+          store.installVerifiedArchiveEntry(
+            archiveDirectoryPath: archiveDir.path,
+            sourceBytes: Stream<List<int>>.value(bytes),
+            sourceExtension: '.bin',
+            expectedSizeBytes: bytes.length,
+            expectedSha256: expectedHash,
+            validateMutation: (boundary) async {
+              if (boundary ==
+                  AttachmentArchiveMutationBoundary.afterFinalInstall) {
+                throw AttachmentArchiveMutationDeferredException(
+                  reason:
+                      AttachmentArchiveMutationDeferredReason.staleGeneration,
+                  boundary: boundary,
+                );
+              }
+            },
+          ),
+          throwsA(isA<AttachmentArchiveMutationDeferredException>()),
+        );
+
+        expect(
+          File(
+            path.join(
+              archiveDir.path,
+              expectedHash.substring(0, 2),
+              '$expectedHash.bin',
+            ),
+          ).readAsBytesSync(),
+          bytes,
+        );
+      },
+    );
+
     test(
       'installs atomically and removes its recognizable temp file',
       () async {
@@ -210,6 +380,7 @@ void main() {
           sourceExtension: '.bin',
           expectedSizeBytes: bytes.length,
           expectedSha256: expectedHash,
+          validateMutation: _acceptMutationBoundary,
         );
 
         expect(result.status, AttachmentArchiveFileInstallStatus.installed);
@@ -238,6 +409,7 @@ void main() {
         sourceExtension: '.bin',
         expectedSizeBytes: bytes.length,
         expectedSha256: expectedHash,
+        validateMutation: _acceptMutationBoundary,
       );
 
       expect(result.status, AttachmentArchiveFileInstallStatus.donorChanged);
@@ -272,6 +444,7 @@ void main() {
           sourceExtension: '.bin',
           expectedSizeBytes: 8,
           expectedSha256: expectedHash,
+          validateMutation: _acceptMutationBoundary,
         ),
         throwsA(isA<FileSystemException>()),
       );
@@ -288,6 +461,7 @@ void main() {
         sourceExtension: '.pdf',
         expectedSizeBytes: bytes.length,
         expectedSha256: expectedHash,
+        validateMutation: _acceptMutationBoundary,
       );
       final destination = File(path.join(archiveDir.path, first.relativePath));
       final firstModified = destination.lastModifiedSync();
@@ -298,6 +472,7 @@ void main() {
         sourceExtension: '.pdf',
         expectedSizeBytes: bytes.length,
         expectedSha256: expectedHash,
+        validateMutation: _acceptMutationBoundary,
       );
 
       expect(second.status, AttachmentArchiveFileInstallStatus.alreadyPresent);
@@ -324,6 +499,7 @@ void main() {
         sourceExtension: '.bin',
         expectedSizeBytes: bytes.length,
         expectedSha256: expectedHash,
+        validateMutation: _acceptMutationBoundary,
       );
 
       expect(result.status, AttachmentArchiveFileInstallStatus.conflict);
@@ -343,6 +519,7 @@ void main() {
         sourceExtension: '.bin',
         expectedSizeBytes: bytes.length,
         expectedSha256: expectedHash,
+        validateMutation: _acceptMutationBoundary,
       );
 
       expect(result.status, AttachmentArchiveFileInstallStatus.conflict);
@@ -416,6 +593,10 @@ void main() {
     expect(result.actualHash, isNull);
   });
 }
+
+Future<void> _acceptMutationBoundary(
+  AttachmentArchiveMutationBoundary boundary,
+) async {}
 
 class _RacingAtomicInstaller implements AtomicNoOverwriteFileInstaller {
   const _RacingAtomicInstaller(this.concurrentContents);

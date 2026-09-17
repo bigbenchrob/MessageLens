@@ -16,10 +16,15 @@ messageLensAttachmentRecoveryBatchExecutor(
   MessageLensAttachmentRecoveryBatchExecutorRef ref, {
   required String donorArchiveRoot,
 }) async {
-  final mutationRoot = await ref.watch(
-    attachmentArchiveMutationRootProvider.future,
+  final admission = await ref.watch(
+    attachmentArchiveWritableRootAdmissionProvider.future,
   );
-  final currentArchiveDirectory = mutationRoot.archiveRootPath;
+  final writableRootLease = admission.lease;
+  if (writableRootLease == null) {
+    return DeferredMessageLensAttachmentRecoveryBatchRunner(
+      admission.deferredReason!,
+    );
+  }
   final fileStore = ref.watch(attachmentArchiveFileStoreProvider);
   final readStore = await ref.watch(attachmentArchiveReadStoreProvider.future);
   final writeStore = await ref.watch(
@@ -40,9 +45,9 @@ messageLensAttachmentRecoveryBatchExecutor(
       fileStore: fileStore,
       readStore: readStore,
       writeStore: writeStore,
-      archiveDirectoryPath: currentArchiveDirectory,
+      writableRootLease: writableRootLease,
     ),
     fileStore: fileStore,
-    currentArchiveDirectoryPath: currentArchiveDirectory,
+    writableRootLease: writableRootLease,
   );
 }

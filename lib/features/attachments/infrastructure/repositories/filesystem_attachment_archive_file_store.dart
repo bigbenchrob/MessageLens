@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import '../../application/atomic_no_overwrite_file_installer.dart';
 import '../../application/attachment_archive_file_store.dart';
+import '../../application/attachment_archive_location_provider.dart';
 import 'darwin_atomic_no_overwrite_file_installer.dart';
 
 class FilesystemAttachmentArchiveFileStore
@@ -39,7 +40,14 @@ class FilesystemAttachmentArchiveFileStore
   }
 
   @override
-  Future<void> ensureArchiveDirectory(String archiveDirectoryPath) async {
+  Future<void> ensureArchiveDirectory(
+    String archiveDirectoryPath, {
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
+  }) async {
+    await validateMutation(
+      AttachmentArchiveMutationBoundary.beforeRootCreation,
+    );
     if (_isSymlink(archiveDirectoryPath)) {
       throw StateError('Attachment archive directory must not be a symlink.');
     }
@@ -52,7 +60,10 @@ class FilesystemAttachmentArchiveFileStore
     required String sourcePath,
     required ArchiveCompatibilityKey archiveKey,
     required String? sha256Hex,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
   }) async {
+    await validateMutation(AttachmentArchiveMutationBoundary.beforeSourceRead);
     if (_isSymlink(archiveDirectoryPath)) {
       throw StateError('Attachment archive directory must not be a symlink.');
     }
@@ -77,12 +88,14 @@ class FilesystemAttachmentArchiveFileStore
     if (contentHash != computedHash) {
       return null;
     }
+    await validateMutation(AttachmentArchiveMutationBoundary.afterSourceHash);
     final install = await installVerifiedArchiveEntry(
       archiveDirectoryPath: archiveDirectoryPath,
       sourceBytes: sourceFile.openRead(),
       sourceExtension: extension,
       expectedSizeBytes: await sourceFile.length(),
       expectedSha256: contentHash,
+      validateMutation: validateMutation,
     );
     if (install.status != AttachmentArchiveFileInstallStatus.installed &&
         install.status != AttachmentArchiveFileInstallStatus.alreadyPresent) {
@@ -104,7 +117,12 @@ class FilesystemAttachmentArchiveFileStore
     required String sourceExtension,
     required int expectedSizeBytes,
     required String expectedSha256,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
   }) async {
+    await validateMutation(
+      AttachmentArchiveMutationBoundary.beforeRootCreation,
+    );
     final normalizedHash = expectedSha256.trim().toLowerCase();
     if (!_isSha256(normalizedHash) || expectedSizeBytes < 0) {
       throw ArgumentError('Verified archive payload evidence is invalid.');
@@ -113,11 +131,17 @@ class FilesystemAttachmentArchiveFileStore
       throw StateError('Attachment archive directory must not be a symlink.');
     }
 
-    await ensureArchiveDirectory(archiveDirectoryPath);
+    await ensureArchiveDirectory(
+      archiveDirectoryPath,
+      validateMutation: validateMutation,
+    );
     final extension = _safeExtension(sourceExtension);
     final relativePath =
         '${normalizedHash.substring(0, 2)}/$normalizedHash$extension';
     final destinationFile = File(path.join(archiveDirectoryPath, relativePath));
+    await validateMutation(
+      AttachmentArchiveMutationBoundary.beforeRootCreation,
+    );
     await destinationFile.parent.create(recursive: true);
     if (_isSymlink(destinationFile.parent.path) ||
         _isSymlink(destinationFile.path) ||
@@ -136,6 +160,10 @@ class FilesystemAttachmentArchiveFileStore
     if (existing != null) {
       return existing;
     }
+
+    await validateMutation(
+      AttachmentArchiveMutationBoundary.beforeTemporaryCopy,
+    );
 
     final temporaryFile = File(
       path.join(
@@ -156,6 +184,10 @@ class FilesystemAttachmentArchiveFileStore
         await output.close();
       }
 
+      await validateMutation(
+        AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+
       final temporarySize = await temporaryFile.length();
       final temporaryHash = await _computeSha256(temporaryFile);
       if (temporarySize != expectedSizeBytes ||
@@ -167,6 +199,10 @@ class FilesystemAttachmentArchiveFileStore
           contentHash: temporaryHash ?? '',
         );
       }
+
+      await validateMutation(
+        AttachmentArchiveMutationBoundary.beforeFinalInstall,
+      );
 
       final installResult = await _atomicInstaller.install(
         temporaryPath: temporaryFile.path,
@@ -186,6 +222,10 @@ class FilesystemAttachmentArchiveFileStore
               contentHash: normalizedHash,
             );
       }
+
+      await validateMutation(
+        AttachmentArchiveMutationBoundary.afterFinalInstall,
+      );
 
       final installed = await _classifyExistingDestination(
         destinationFile: destinationFile,

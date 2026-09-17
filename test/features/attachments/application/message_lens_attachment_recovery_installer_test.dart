@@ -9,6 +9,7 @@ import 'package:remember_this_text/essentials/archive_compatibility/domain/archi
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_write_store.dart';
 import 'package:remember_this_text/features/attachments/application/message_lens_attachment_recovery_installer.dart';
 import 'package:remember_this_text/features/attachments/application/verified_donor_attachment_payload.dart';
@@ -30,13 +31,11 @@ void main() {
   late FilesystemAttachmentArchiveFileStore fileStore;
   late OverlayAttachmentArchiveReadStore readStore;
   late OverlayAttachmentArchiveWriteStore writeStore;
+  late AttachmentArchiveWritableRootLease writableRootLease;
 
   setUp(() async {
     temporaryRoot = await Directory.systemTemp.createTemp(
       'message_lens_attachment_recovery_installer_test_',
-    );
-    archiveDirectory = Directory(
-      path.join(temporaryRoot.path, 'attachment_archive'),
     );
     archiveFixture = await TestArchiveFixture.create(
       prefix: 'attachment_recovery_mutation_authority_test_',
@@ -51,6 +50,10 @@ void main() {
     mutationCoordinator = providerContainer.read(
       archiveMutationCoordinatorProvider.notifier,
     );
+    writableRootLease = (await providerContainer.read(
+      attachmentArchiveWritableRootAdmissionProvider.future,
+    )).lease!;
+    archiveDirectory = Directory(writableRootLease.archiveRootPath);
     overlayDatabase = OverlayDatabase(NativeDatabase.memory());
     fileStore = const FilesystemAttachmentArchiveFileStore();
     readStore = OverlayAttachmentArchiveReadStore(
@@ -81,6 +84,7 @@ void main() {
         readStore: readStore,
         writeStore: writeStore,
         archiveDirectory: archiveDirectory,
+        writableRootLease: writableRootLease,
       );
 
       final first = await _installWithAuthority(
@@ -127,6 +131,7 @@ void main() {
         readStore: readStore,
         writeStore: failingStore,
         archiveDirectory: archiveDirectory,
+        writableRootLease: writableRootLease,
       );
 
       final first = await _installWithAuthority(
@@ -156,6 +161,7 @@ void main() {
         readStore: readStore,
         writeStore: writeStore,
         archiveDirectory: archiveDirectory,
+        writableRootLease: writableRootLease,
       );
       final retry = await _installWithAuthority(
         coordinator: mutationCoordinator,
@@ -190,6 +196,7 @@ void main() {
       readStore: readStore,
       writeStore: writeStore,
       archiveDirectory: archiveDirectory,
+      writableRootLease: writableRootLease,
     );
     final result = await _installWithAuthority(
       coordinator: mutationCoordinator,
@@ -210,6 +217,7 @@ void main() {
       readStore: readStore,
       writeStore: writeStore,
       archiveDirectory: archiveDirectory,
+      writableRootLease: writableRootLease,
     );
 
     await expectLater(
@@ -238,6 +246,7 @@ void main() {
       readStore: readStore,
       writeStore: writeStore,
       archiveDirectory: archiveDirectory,
+      writableRootLease: writableRootLease,
     );
     late ArchiveMutationCapability staleCapability;
     await mutationCoordinator.runWithCapability<void>(
@@ -286,12 +295,13 @@ MessageLensAttachmentRecoveryInstaller _installer({
   required OverlayAttachmentArchiveReadStore readStore,
   required AttachmentArchiveWriteStore writeStore,
   required Directory archiveDirectory,
+  required AttachmentArchiveWritableRootLease writableRootLease,
 }) {
   return MessageLensAttachmentRecoveryInstaller(
     fileStore: fileStore,
     readStore: readStore,
     writeStore: writeStore,
-    archiveDirectoryPath: archiveDirectory.path,
+    writableRootLease: writableRootLease,
   );
 }
 

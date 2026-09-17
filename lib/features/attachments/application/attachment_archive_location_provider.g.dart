@@ -6,33 +6,33 @@ part of 'attachment_archive_location_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$attachmentArchiveMutationRootHash() =>
-    r'9142df5a00f4e41177d63dbc3b883e41c7b980b6';
+String _$attachmentArchiveWritableRootAdmissionHash() =>
+    r'f40c200f586b10e2c61d194670e40797ee45c3ff';
 
-/// Grants existing mutation paths access only to the admitted internal root.
+/// Issues the only writable-root authority accepted by archive mutation paths.
 ///
-/// Custom roots remain read/location-only until the later writable-root lease
-/// phase, regardless of their physical writability.
+/// Custom selections remain mutation-ineligible until their configuration is
+/// explicitly marked active by a later verified relocation workflow.
 ///
-/// Copied from [attachmentArchiveMutationRoot].
-@ProviderFor(attachmentArchiveMutationRoot)
-final attachmentArchiveMutationRootProvider =
-    FutureProvider<AttachmentArchiveMutationRoot>.internal(
-      attachmentArchiveMutationRoot,
-      name: r'attachmentArchiveMutationRootProvider',
+/// Copied from [attachmentArchiveWritableRootAdmission].
+@ProviderFor(attachmentArchiveWritableRootAdmission)
+final attachmentArchiveWritableRootAdmissionProvider =
+    FutureProvider<AttachmentArchiveWritableRootAdmission>.internal(
+      attachmentArchiveWritableRootAdmission,
+      name: r'attachmentArchiveWritableRootAdmissionProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$attachmentArchiveMutationRootHash,
+          : _$attachmentArchiveWritableRootAdmissionHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AttachmentArchiveMutationRootRef =
-    FutureProviderRef<AttachmentArchiveMutationRoot>;
+typedef AttachmentArchiveWritableRootAdmissionRef =
+    FutureProviderRef<AttachmentArchiveWritableRootAdmission>;
 String _$attachmentArchiveLocationHash() =>
-    r'f620d42b45945c51b46a1a147148c0c4190b2fba';
+    r'04bde04acb1378a4cfcf79628300dcbdf6cc75d2';
 
 /// Publishes the active attachment-owned archive location.
 ///

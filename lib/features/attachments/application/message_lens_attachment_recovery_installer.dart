@@ -6,6 +6,7 @@ import '../../../essentials/archive_environment/feature_level_providers.dart'
     show ArchiveMutationCapability;
 import '../domain/entities/message_lens_attachment_recovery.dart';
 import 'attachment_archive_file_store.dart';
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_read_store.dart';
 import 'attachment_archive_write_store.dart';
 import 'verified_donor_attachment_payload.dart';
@@ -19,6 +20,7 @@ enum MessageLensAttachmentInstallationStatus {
   verificationFailed,
   unsafeSource,
   metadataUpdateFailed,
+  deferred,
 }
 
 class MessageLensAttachmentInstallationResult {
@@ -26,11 +28,13 @@ class MessageLensAttachmentInstallationResult {
     required this.status,
     required this.installedBytes,
     required this.archiveRelativePath,
+    this.deferredReason,
   });
 
   final MessageLensAttachmentInstallationStatus status;
   final int installedBytes;
   final String? archiveRelativePath;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
 }
 
 /// Dormant orchestration for one already-proven MessageLens recovery candidate.
@@ -42,16 +46,16 @@ class MessageLensAttachmentRecoveryInstaller {
     required AttachmentArchiveFileStore fileStore,
     required AttachmentArchiveReadStore readStore,
     required AttachmentArchiveWriteStore writeStore,
-    required String archiveDirectoryPath,
+    required AttachmentArchiveWritableRootLease writableRootLease,
   }) : _fileStore = fileStore,
        _readStore = readStore,
        _writeStore = writeStore,
-       _archiveDirectoryPath = archiveDirectoryPath;
+       _writableRootLease = writableRootLease;
 
   final AttachmentArchiveFileStore _fileStore;
   final AttachmentArchiveReadStore _readStore;
   final AttachmentArchiveWriteStore _writeStore;
-  final String _archiveDirectoryPath;
+  final AttachmentArchiveWritableRootLease _writableRootLease;
 
   Future<MessageLensAttachmentInstallationResult> install({
     required ArchiveMutationCapability mutationCapability,
@@ -62,6 +66,13 @@ class MessageLensAttachmentRecoveryInstaller {
     mutationCapability.requireOperation(
       ArchiveMutationOperation.attachmentReconciliation,
     );
+    final initialValidation = await _writableRootLease.validate(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.operationStart,
+    );
+    if (!initialValidation.isValid) {
+      return _deferredResult(initialValidation);
+    }
     if (candidate.classification !=
         MessageLensAttachmentRecoveryClassification.recoverable) {
       return _result(MessageLensAttachmentInstallationStatus.unsafeSource);
@@ -80,11 +91,25 @@ class MessageLensAttachmentRecoveryInstaller {
       candidate.archiveCompatibilityKey,
     );
     if (existing != null && existing.archiveFileExists) {
+      final beforeIntegrity = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+      if (!beforeIntegrity.isValid) {
+        return _deferredResult(beforeIntegrity);
+      }
       final integrity = await _fileStore.checkIntegrity(
-        archiveDirectoryPath: _archiveDirectoryPath,
+        archiveDirectoryPath: _writableRootLease.archiveRootPath,
         relativePath: existing.archiveRelativePath,
         storedHash: donorPayload.expectedSha256,
       );
+      final afterIntegrity = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
+      );
+      if (!afterIntegrity.isValid) {
+        return _deferredResult(afterIntegrity);
+      }
       final sizeMatches =
           existing.fileSizeBytes == null ||
           existing.fileSizeBytes == donorPayload.expectedSizeBytes;
@@ -100,13 +125,34 @@ class MessageLensAttachmentRecoveryInstaller {
     late final AttachmentArchiveFileInstall fileInstall;
     try {
       fileInstall = await _fileStore.installVerifiedArchiveEntry(
-        archiveDirectoryPath: _archiveDirectoryPath,
+        archiveDirectoryPath: _writableRootLease.archiveRootPath,
         sourceBytes: donorPayload.openRead(),
         sourceExtension: donorPayload.sourceExtension,
         expectedSizeBytes: donorPayload.expectedSizeBytes,
         expectedSha256: donorPayload.expectedSha256,
+        validateMutation: (boundary) async {
+          mutationCapability.requireOperation(
+            ArchiveMutationOperation.attachmentReconciliation,
+          );
+          await _writableRootLease.requireValid(
+            operation: ArchiveMutationOperation.attachmentReconciliation,
+            boundary: boundary,
+          );
+        },
+      );
+    } on AttachmentArchiveMutationDeferredException catch (error) {
+      return _result(
+        MessageLensAttachmentInstallationStatus.deferred,
+        deferredReason: error.reason,
       );
     } on FileSystemException {
+      final validation = await _writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+      if (!validation.isValid) {
+        return _deferredResult(validation);
+      }
       return _result(MessageLensAttachmentInstallationStatus.donorMissing);
     }
 
@@ -122,6 +168,17 @@ class MessageLensAttachmentRecoveryInstaller {
     };
     if (mappedStatus != null) {
       return _result(mappedStatus, path: fileInstall.relativePath);
+    }
+
+    final metadataValidation = await _writableRootLease.validate(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
+    );
+    if (!metadataValidation.isValid) {
+      return _deferredResult(
+        metadataValidation,
+        path: fileInstall.relativePath,
+      );
     }
 
     try {
@@ -159,11 +216,24 @@ class MessageLensAttachmentRecoveryInstaller {
   static MessageLensAttachmentInstallationResult _result(
     MessageLensAttachmentInstallationStatus status, {
     String? path,
+    AttachmentArchiveMutationDeferredReason? deferredReason,
   }) {
     return MessageLensAttachmentInstallationResult(
       status: status,
       installedBytes: 0,
       archiveRelativePath: path,
+      deferredReason: deferredReason,
+    );
+  }
+
+  static MessageLensAttachmentInstallationResult _deferredResult(
+    AttachmentArchiveWritableRootValidation validation, {
+    String? path,
+  }) {
+    return _result(
+      MessageLensAttachmentInstallationStatus.deferred,
+      path: path,
+      deferredReason: validation.deferredReason,
     );
   }
 }

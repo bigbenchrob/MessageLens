@@ -1,6 +1,7 @@
 export '../../essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 export 'application/archive_settings_provider.dart';
 export 'application/attachment_archive_location_provider.dart';
+export 'application/attachment_archive_reconnect_policy.dart';
 export 'application/attachment_archive_runtime_providers.dart';
 export 'application/attachment_archive_service_provider.dart';
 export 'application/attachment_archive_settings_store_provider.dart';

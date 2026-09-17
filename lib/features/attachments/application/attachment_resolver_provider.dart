@@ -132,7 +132,8 @@ Future<ResolvedAttachment> _resolveForArchiveEnabledMode(
   }
 
   if (liveFileExists && resolvedPath != null && archiveKey != null) {
-    if (archiveLocation != null && !archiveLocation.admitsInternalMutation) {
+    if (archiveLocation != null &&
+        !archiveLocation.isWritableMutationEligible) {
       return ResolvedAttachment(
         attachmentInfo: attachmentInfo,
         availability: ResolvedAttachmentAvailability.available,

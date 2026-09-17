@@ -4,12 +4,12 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path/path.dart' as path;
 import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/messages_lineage_admission.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_read_store.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_write_store.dart';
 import 'package:remember_this_text/features/attachments/application/message_lens_attachment_evidence_reader.dart';
@@ -83,6 +83,37 @@ void main() {
             .get(),
         hasLength(2),
       );
+    },
+  );
+
+  test(
+    'unavailable writable root returns a typed deferred batch result',
+    () async {
+      final fixture = harness.fixture(itemCount: 2);
+      const runner = DeferredMessageLensAttachmentRecoveryBatchRunner(
+        AttachmentArchiveMutationDeferredReason.customArchiveUnavailable,
+      );
+
+      final result = await harness.coordinator
+          .runWithCapability<MessageLensAttachmentRecoveryBatchResult>(
+            operation: ArchiveMutationOperation.attachmentReconciliation,
+            ownerLabel: 'deferred-attachment-recovery-batch-test',
+            action: (capability) => runner.execute(
+              mutationCapability: capability,
+              donor: fixture.donor,
+              lineageAdmission: fixture.lineageAdmission,
+              preflight: fixture.preflight,
+              preflightApprovedCandidates: fixture.candidates,
+            ),
+          );
+
+      expect(result.isDeferred, isTrue);
+      expect(
+        result.deferredReason,
+        AttachmentArchiveMutationDeferredReason.customArchiveUnavailable,
+      );
+      expect(result.outcomes, isEmpty);
+      expect(result.remainingRecoverableCount, 2);
     },
   );
 
@@ -216,7 +247,10 @@ void main() {
     () async {
       final fixture = harness.fixture(itemCount: 2);
       final interrupting = harness.executorWithInstaller(
-        _InterruptAfterFirstInstaller(delegate: harness.installer),
+        _InterruptAfterFirstInstaller(
+          delegate: harness.installer,
+          writableRootLease: harness.writableRootLease,
+        ),
       );
 
       await expectLater(
@@ -268,6 +302,7 @@ final class _BatchHarness {
     required this.fileStore,
     required this.readStore,
     required this.writeStore,
+    required this.writableRootLease,
     required this.donorReader,
     required this.currentReader,
     required this.verifier,
@@ -278,7 +313,7 @@ final class _BatchHarness {
          payloadVerifier: verifier,
          installer: installer,
          fileStore: fileStore,
-         currentArchiveDirectoryPath: archiveDirectory.path,
+         writableRootLease: writableRootLease,
        );
 
   final Directory temporaryRoot;
@@ -290,6 +325,7 @@ final class _BatchHarness {
   final FilesystemAttachmentArchiveFileStore fileStore;
   final OverlayAttachmentArchiveReadStore readStore;
   final OverlayAttachmentArchiveWriteStore writeStore;
+  final AttachmentArchiveWritableRootLease writableRootLease;
   final _FakeDonorEvidenceReader donorReader;
   final _FakeCurrentEvidenceReader currentReader;
   final _MemoryPayloadVerifier verifier;
@@ -311,9 +347,10 @@ final class _BatchHarness {
       ],
     );
     final overlayDatabase = OverlayDatabase(NativeDatabase.memory());
-    final archiveDirectory = Directory(
-      path.join(temporaryRoot.path, 'attachment_archive'),
-    );
+    final writableRootLease = (await providerContainer.read(
+      attachmentArchiveWritableRootAdmissionProvider.future,
+    )).lease!;
+    final archiveDirectory = Directory(writableRootLease.archiveRootPath);
     const fileStore = FilesystemAttachmentArchiveFileStore();
     final readStore = OverlayAttachmentArchiveReadStore(
       overlayDb: overlayDatabase,
@@ -329,7 +366,7 @@ final class _BatchHarness {
       fileStore: fileStore,
       readStore: readStore,
       writeStore: writeStore,
-      archiveDirectoryPath: archiveDirectory.path,
+      writableRootLease: writableRootLease,
     );
     return _BatchHarness._(
       temporaryRoot: temporaryRoot,
@@ -343,6 +380,7 @@ final class _BatchHarness {
       fileStore: fileStore,
       readStore: readStore,
       writeStore: writeStore,
+      writableRootLease: writableRootLease,
       donorReader: donorReader,
       currentReader: currentReader,
       verifier: verifier,
@@ -397,7 +435,7 @@ final class _BatchHarness {
       payloadVerifier: verifier,
       installer: selectedInstaller,
       fileStore: fileStore,
-      currentArchiveDirectoryPath: archiveDirectory.path,
+      writableRootLease: writableRootLease,
     );
   }
 
@@ -624,13 +662,15 @@ final class _MemoryVerifiedPayload implements VerifiedDonorAttachmentPayload {
 
 final class _InterruptAfterFirstInstaller
     extends MessageLensAttachmentRecoveryInstaller {
-  _InterruptAfterFirstInstaller({required this.delegate})
-    : super(
-        fileStore: const FilesystemAttachmentArchiveFileStore(),
-        readStore: _NeverReadStore(),
-        writeStore: _NeverWriteStore(),
-        archiveDirectoryPath: '/unused',
-      );
+  _InterruptAfterFirstInstaller({
+    required this.delegate,
+    required AttachmentArchiveWritableRootLease writableRootLease,
+  }) : super(
+         fileStore: const FilesystemAttachmentArchiveFileStore(),
+         readStore: _NeverReadStore(),
+         writeStore: _NeverWriteStore(),
+         writableRootLease: writableRootLease,
+       );
 
   final MessageLensAttachmentRecoveryInstaller delegate;
   var _calls = 0;
