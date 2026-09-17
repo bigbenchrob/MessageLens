@@ -39,21 +39,55 @@ final class FilesystemAttachmentArchiveRelocationFileSystem
     required String finalDirectoryName,
     required bool resumeStartedPreflight,
   }) async {
-    final sourceRoot = await _canonicalExistingDirectory(
-      sourceRootPath,
-      label: 'source archive',
-      requireWritable: false,
-    );
-    final destinationParent = await _canonicalExistingDirectory(
-      destinationParentPath,
-      label: 'destination parent',
-      requireWritable: true,
-    );
+    final String sourceRoot;
+    try {
+      sourceRoot = await _canonicalExistingDirectory(
+        sourceRootPath,
+        label: 'source archive',
+        requireWritable: false,
+      );
+    } on Object {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.sourceUnavailable,
+        message: 'The current attachment archive is unavailable.',
+        path: sourceRootPath,
+      );
+    }
+    final String destinationParent;
+    try {
+      destinationParent = await _canonicalExistingDirectory(
+        destinationParentPath,
+        label: 'destination parent',
+        requireWritable: true,
+      );
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason:
+            FileSystemEntity.typeSync(
+                  destinationParentPath,
+                  followLinks: false,
+                ) ==
+                FileSystemEntityType.directory
+            ? AttachmentArchiveRelocationDeferredReason.destinationReadOnly
+            : AttachmentArchiveRelocationDeferredReason.destinationUnavailable,
+        message: error.message,
+        path: destinationParentPath,
+      );
+    } on Object catch (error) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+        message: error.toString(),
+        path: destinationParentPath,
+      );
+    }
     if (sourceRoot == destinationParent ||
         path.isWithin(sourceRoot, destinationParent) ||
         path.isWithin(destinationParent, sourceRoot)) {
-      throw StateError(
-        'Attachment archive source and destination must not be equal or nested.',
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+        message:
+            'The destination must not be the source archive or nested inside it.',
+        path: destinationParent,
       );
     }
 
@@ -69,35 +103,75 @@ final class FilesystemAttachmentArchiveRelocationFileSystem
     if (stagingType != FileSystemEntityType.notFound) {
       if (!resumeStartedPreflight ||
           stagingType != FileSystemEntityType.directory) {
-        throw FileSystemException(
-          'Attachment relocation staging destination already exists.',
-          stagingRoot,
+        throw AttachmentArchiveRelocationPreflightException(
+          reason:
+              AttachmentArchiveRelocationDeferredReason.conflictingDestination,
+          message:
+              'A conflicting MessageLens relocation staging directory already exists.',
+          path: stagingRoot,
         );
       }
       await _cleanInterruptedProbeArtifacts(stagingRoot);
       if (!await Directory(stagingRoot).list(followLinks: false).isEmpty) {
-        throw FileSystemException(
-          'Interrupted relocation preflight left unclassified staging data.',
-          stagingRoot,
+        throw AttachmentArchiveRelocationPreflightException(
+          reason:
+              AttachmentArchiveRelocationDeferredReason.conflictingDestination,
+          message:
+              'The existing relocation staging directory contains unclassified data.',
+          path: stagingRoot,
         );
       }
     }
     if (FileSystemEntity.typeSync(finalRoot, followLinks: false) !=
         FileSystemEntityType.notFound) {
-      throw FileSystemException(
-        'Attachment relocation final destination already exists.',
-        finalRoot,
+      throw AttachmentArchiveRelocationPreflightException(
+        reason:
+            AttachmentArchiveRelocationDeferredReason.conflictingDestination,
+        message: 'A conflicting managed attachment archive already exists.',
+        path: finalRoot,
       );
     }
 
-    if (stagingType == FileSystemEntityType.notFound) {
-      await Directory(stagingRoot).create();
+    try {
+      if (stagingType == FileSystemEntityType.notFound) {
+        await Directory(stagingRoot).create();
+      }
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.destinationReadOnly,
+        message: error.message,
+        path: destinationParent,
+      );
     }
-    await _probeRequiredSemantics(stagingRoot);
-    final availableCapacity = await _capacityReader
-        .availableCapacityForImportantUsage(destinationParent);
+    try {
+      await _probeRequiredSemantics(stagingRoot);
+    } on Object catch (error) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.unsupportedFilesystem,
+        message:
+            'The destination filesystem does not support the safe file operations required by MessageLens: $error',
+        path: destinationParent,
+      );
+    }
+    final int availableCapacity;
+    try {
+      availableCapacity = await _capacityReader
+          .availableCapacityForImportantUsage(destinationParent);
+    } on Object catch (error) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason:
+            AttachmentArchiveRelocationDeferredReason.destinationUnavailable,
+        message: 'Destination capacity could not be read: $error',
+        path: destinationParent,
+      );
+    }
     if (availableCapacity < 0) {
-      throw StateError('Destination capacity must not be negative.');
+      throw AttachmentArchiveRelocationPreflightException(
+        reason:
+            AttachmentArchiveRelocationDeferredReason.destinationUnavailable,
+        message: 'Destination capacity is unavailable.',
+        path: destinationParent,
+      );
     }
     return AttachmentArchiveRelocationPreflightResult(
       availableCapacityBytes: availableCapacity,

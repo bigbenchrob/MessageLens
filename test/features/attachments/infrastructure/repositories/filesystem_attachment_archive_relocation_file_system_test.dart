@@ -62,7 +62,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive equal',
             resumeStartedPreflight: false,
           ),
-          throwsStateError,
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+          ),
         );
         final containingDestination = Directory('${root.path}/containing')
           ..createSync();
@@ -77,7 +79,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive source nested',
             resumeStartedPreflight: false,
           ),
-          throwsStateError,
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+          ),
         );
         final nested = Directory('${source.path}/nested')..createSync();
         await expectLater(
@@ -88,7 +92,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive nested',
             resumeStartedPreflight: false,
           ),
-          throwsStateError,
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+          ),
         );
         final symlink = Link('${root.path}/destination-link')
           ..createSync(destination.path);
@@ -100,7 +106,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive link',
             resumeStartedPreflight: false,
           ),
-          throwsStateError,
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.unsafeLocation,
+          ),
         );
         Directory(
           '${destination.path}/MessageLens Attachment Archive conflict',
@@ -113,7 +121,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive conflict',
             resumeStartedPreflight: false,
           ),
-          throwsA(isA<FileSystemException>()),
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.conflictingDestination,
+          ),
         );
       },
     );
@@ -135,7 +145,9 @@ void main() {
             finalDirectoryName: 'MessageLens Attachment Archive weak',
             resumeStartedPreflight: false,
           ),
-          throwsStateError,
+          _throwsPreflight(
+            AttachmentArchiveRelocationDeferredReason.unsupportedFilesystem,
+          ),
         );
       },
     );
@@ -381,6 +393,16 @@ void main() {
       },
     );
   });
+}
+
+Matcher _throwsPreflight(AttachmentArchiveRelocationDeferredReason reason) {
+  return throwsA(
+    isA<AttachmentArchiveRelocationPreflightException>().having(
+      (error) => error.reason,
+      'reason',
+      reason,
+    ),
+  );
 }
 
 final class _WeakOverwriteInstaller implements AtomicNoOverwriteFileInstaller {

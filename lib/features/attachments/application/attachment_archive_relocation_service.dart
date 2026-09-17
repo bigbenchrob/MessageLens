@@ -27,6 +27,7 @@ typedef AttachmentArchiveRelocationActivator =
     });
 typedef AttachmentArchiveRelocationWritableAdmissionReader =
     Future<AttachmentArchiveWritableRootAdmission> Function();
+typedef AttachmentArchiveRelocationPauseRequestReader = bool Function();
 
 final class AttachmentArchiveRelocationService {
   const AttachmentArchiveRelocationService({
@@ -85,6 +86,141 @@ final class AttachmentArchiveRelocationService {
     );
   }
 
+  Future<AttachmentArchiveRelocationProgress> prepareForReview({
+    required String operationId,
+    required ArchiveMutationCapability mutationCapability,
+  }) async {
+    _requireCapability(mutationCapability);
+    var journal = await _journalStore.read(operationId);
+    _requireJournalIdentity(journal);
+    if (journal.stage == AttachmentArchiveRelocationStage.paused) {
+      final resumeStage = journal.resumeStage;
+      if (resumeStage == null ||
+          resumeStage.index >
+              AttachmentArchiveRelocationStage.inventoryComplete.index) {
+        throw StateError(
+          'This relocation is not paused in a preflight-review stage.',
+        );
+      }
+      journal = await _save(
+        journal.copyWith(
+          stage: resumeStage,
+          clearDeferredReason: true,
+          clearResumeStage: true,
+          clearFailure: true,
+          updatedAtUtc: _nowUtc(),
+        ),
+      );
+    }
+    if (journal.stage.isTerminal) {
+      return AttachmentArchiveRelocationProgress.fromJournal(journal);
+    }
+
+    try {
+      while (true) {
+        _requireCapability(mutationCapability);
+        switch (journal.stage) {
+          case AttachmentArchiveRelocationStage.selected:
+            await _requireSourceStillAuthoritative(journal);
+            journal = await _save(
+              journal.copyWith(
+                stage: AttachmentArchiveRelocationStage.preflighting,
+                updatedAtUtc: _nowUtc(),
+              ),
+            );
+            journal = await _runPreflight(
+              journal,
+              resumeStartedPreflight: false,
+            );
+            continue;
+          case AttachmentArchiveRelocationStage.preflighting:
+            await _requireSourceStillAuthoritative(journal);
+            journal = await _runPreflight(
+              journal,
+              resumeStartedPreflight: true,
+            );
+            continue;
+          case AttachmentArchiveRelocationStage.preflighted:
+            await _requireSourceStillAuthoritative(journal);
+            journal = await _save(
+              journal.copyWith(
+                stage: AttachmentArchiveRelocationStage.inventorying,
+                updatedAtUtc: _nowUtc(),
+              ),
+            );
+            continue;
+          case AttachmentArchiveRelocationStage.inventorying:
+            await _requireSourceStillAuthoritative(journal);
+            journal = await _runInventory(journal);
+            continue;
+          case AttachmentArchiveRelocationStage.inventoryComplete:
+            await _requireSourceStillAuthoritative(journal);
+            final destinationParent = await _resolveDestinationParent(journal);
+            final available = await _nativeAdapter
+                .availableCapacityForImportantUsage(destinationParent);
+            final required = _requiredCapacity(journal.expectedByteCount);
+            journal = await _save(
+              journal.copyWith(
+                availableCapacityBytes: available,
+                requiredCapacityBytes: required,
+                updatedAtUtc: _nowUtc(),
+              ),
+            );
+            if (available < required) {
+              journal = await _pause(
+                journal,
+                resumeStage: AttachmentArchiveRelocationStage.inventoryComplete,
+                reason: AttachmentArchiveRelocationDeferredReason
+                    .insufficientCapacity,
+              );
+            }
+            return AttachmentArchiveRelocationProgress.fromJournal(journal);
+          case AttachmentArchiveRelocationStage.copying ||
+              AttachmentArchiveRelocationStage.verifying ||
+              AttachmentArchiveRelocationStage.destinationFinalizing ||
+              AttachmentArchiveRelocationStage.destinationFinalized ||
+              AttachmentArchiveRelocationStage.configurationSwitching ||
+              AttachmentArchiveRelocationStage.activated ||
+              AttachmentArchiveRelocationStage.sourceRetained ||
+              AttachmentArchiveRelocationStage
+                  .rollbackRestoredOldConfiguration ||
+              AttachmentArchiveRelocationStage.cancelled ||
+              AttachmentArchiveRelocationStage.failed:
+            return AttachmentArchiveRelocationProgress.fromJournal(journal);
+          case AttachmentArchiveRelocationStage.paused:
+            throw StateError(
+              'Paused preflight was not restored before preparation.',
+            );
+        }
+      }
+    } on AttachmentArchiveRelocationPreflightException catch (error) {
+      final paused = await _pause(
+        journal,
+        resumeStage: journal.stage,
+        reason: error.reason,
+        failure: error.toString(),
+      );
+      return AttachmentArchiveRelocationProgress.fromJournal(paused);
+    } on FileSystemException catch (error) {
+      final paused = await _pause(
+        journal,
+        resumeStage: journal.stage,
+        reason: _deferredReasonForFileSystemError(journal, error),
+        failure: error.toString(),
+      );
+      return AttachmentArchiveRelocationProgress.fromJournal(paused);
+    } on Object catch (error) {
+      await _save(
+        journal.copyWith(
+          stage: AttachmentArchiveRelocationStage.failed,
+          failure: error.toString(),
+          updatedAtUtc: _nowUtc(),
+        ),
+      );
+      rethrow;
+    }
+  }
+
   Future<AttachmentArchiveRelocationProgress> selectDestination({
     required String destinationParentPath,
     required ArchiveMutationCapability mutationCapability,
@@ -133,6 +269,7 @@ final class AttachmentArchiveRelocationService {
     required String operationId,
     required ArchiveMutationCapability mutationCapability,
     int? pauseAfterNewlyCopiedFiles,
+    AttachmentArchiveRelocationPauseRequestReader? pauseRequested,
   }) async {
     _requireCapability(mutationCapability);
     var journal = await _journalStore.read(operationId);
@@ -229,6 +366,7 @@ final class AttachmentArchiveRelocationService {
             final copyResult = await _runCopy(
               journal,
               pauseAfterNewlyCopiedFiles: pauseAfterNewlyCopiedFiles,
+              pauseRequested: pauseRequested,
             );
             journal = copyResult.journal;
             if (copyResult.didPause) {
@@ -271,6 +409,14 @@ final class AttachmentArchiveRelocationService {
         }
       }
       return AttachmentArchiveRelocationProgress.fromJournal(journal);
+    } on AttachmentArchiveRelocationPreflightException catch (error) {
+      final paused = await _pause(
+        journal,
+        resumeStage: journal.stage,
+        reason: error.reason,
+        failure: error.toString(),
+      );
+      return AttachmentArchiveRelocationProgress.fromJournal(paused);
     } on FileSystemException catch (error) {
       final paused = await _pause(
         journal,
@@ -384,6 +530,7 @@ final class AttachmentArchiveRelocationService {
   Future<_CopyRunResult> _runCopy(
     AttachmentArchiveRelocationJournal journal, {
     required int? pauseAfterNewlyCopiedFiles,
+    required AttachmentArchiveRelocationPauseRequestReader? pauseRequested,
   }) async {
     final reconciled = await _reconcileCopyReceipts(journal);
     journal = reconciled;
@@ -418,8 +565,11 @@ final class AttachmentArchiveRelocationService {
       );
       index++;
       copiedThisRun++;
-      if (pauseAfterNewlyCopiedFiles != null &&
-          copiedThisRun >= pauseAfterNewlyCopiedFiles &&
+      final testPauseReached =
+          pauseAfterNewlyCopiedFiles != null &&
+          copiedThisRun >= pauseAfterNewlyCopiedFiles;
+      final userPauseRequested = pauseRequested?.call() ?? false;
+      if ((testPauseReached || userPauseRequested) &&
           journal.copiedFileCount < journal.expectedFileCount) {
         return _CopyRunResult(
           journal: await _pause(
@@ -820,12 +970,17 @@ final class AttachmentArchiveRelocationService {
     AttachmentArchiveRelocationJournal journal,
   ) async {
     final current = await _readLocation();
+    if (!current.isAvailable || current.archiveRootPath == null) {
+      throw AttachmentArchiveRelocationPreflightException(
+        reason: AttachmentArchiveRelocationDeferredReason.sourceUnavailable,
+        message: 'The authoritative relocation source is unavailable.',
+        path: journal.sourceRootPath,
+      );
+    }
     if (current.configuration != journal.sourceConfiguration ||
         current.generation != journal.sourceLocationGeneration ||
-        current.archiveRootPath == null ||
         path.normalize(path.absolute(current.archiveRootPath!)) !=
-            journal.sourceRootPath ||
-        !current.isAvailable) {
+            journal.sourceRootPath) {
       throw StateError(
         'The relocation source is no longer the authoritative archive.',
       );

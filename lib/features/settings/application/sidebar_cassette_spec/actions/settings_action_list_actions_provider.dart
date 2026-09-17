@@ -13,22 +13,24 @@ class SettingsActionListActions extends _$SettingsActionListActions {
   @override
   FutureOr<void> build() {}
 
-  Future<void> selectAction({
+  Future<void> Function()? selectActionCallback({
     required SidebarActionDescriptor action,
     required int cassetteIndex,
-  }) async {
+  }) {
     if (!action.isEnabled) {
-      return;
+      return null;
     }
 
-    await ref
-        .read(sidebarActionDispatcherProvider.notifier)
-        .dispatch(
-          intent: action.intent,
-          context: SidebarActionDispatchContext(
-            sidebarMode: SidebarMode.settings,
-            cassetteIndex: cassetteIndex,
-          ),
-        );
+    return () async {
+      await ref
+          .read(sidebarActionDispatcherProvider.notifier)
+          .dispatch(
+            intent: action.intent,
+            context: SidebarActionDispatchContext(
+              sidebarMode: SidebarMode.settings,
+              cassetteIndex: cassetteIndex,
+            ),
+          );
+    };
   }
 }

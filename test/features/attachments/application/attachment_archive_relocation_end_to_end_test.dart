@@ -20,6 +20,8 @@ import 'package:remember_this_text/features/attachments/infrastructure/repositor
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_relocation_journal_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_relocation_metadata_reader.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_settings_store.dart';
+import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart';
+import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -140,7 +142,7 @@ void main() {
     }
 
     test(
-      'interrupts, resumes, activates verified copy, and retains source',
+      'production-style Settings acceptance pauses, reconnects, resumes, activates, and retains source',
       () async {
         final expectedSource = await _createSyntheticArchive(
           sourceRoot: sourceRoot,
@@ -150,6 +152,23 @@ void main() {
             .customSelect('SELECT * FROM archived_attachments ORDER BY id')
             .get();
         final service = buildService();
+        final resolver = container.read(
+          attachmentArchiveSettingsResolverProvider.notifier,
+        );
+        final initialLocation = await container.read(
+          attachmentArchiveLocationProvider.future,
+        );
+        final initialUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: initialLocation,
+          relocation: null,
+          relocationEnabled: true,
+        );
+        expect(
+          initialUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.currentLocation,
+        );
+        expect(initialUi.actions.single.label, 'Move…');
 
         final selection = await withRelocationCapability(
           (capability) => service.selectDestination(
@@ -157,6 +176,37 @@ void main() {
             mutationCapability: capability,
           ),
         );
+        final selectedUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: initialLocation,
+          relocation: selection,
+          relocationEnabled: true,
+        );
+        expect(
+          selectedUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.preparingReview,
+        );
+        expect(selectedUi.bodyText, contains('No payloads are being copied'));
+
+        final review = await withRelocationCapability(
+          (capability) => service.prepareForReview(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+        final reviewUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: initialLocation,
+          relocation: review,
+          relocationEnabled: true,
+        );
+        expect(
+          reviewUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.preflightReview,
+        );
+        expect(reviewUi.actions.first.label, 'Begin Relocation');
+        expect(review.filesCopied, 0);
+
         final paused = await withRelocationCapability(
           (capability) => service.run(
             operationId: selection.operationId,
@@ -167,11 +217,60 @@ void main() {
         expect(paused.stage, AttachmentArchiveRelocationStage.paused);
         expect(paused.filesCopied, 2);
         expect(paused.isResumable, isTrue);
+        final pausedUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: initialLocation,
+          relocation: paused,
+          relocationEnabled: true,
+        );
+        expect(
+          pausedUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.paused,
+        );
+        expect(
+          pausedUi.actions.map((action) => action.label),
+          contains('Resume'),
+        );
         await _expectTreeUnchanged(sourceRoot, expectedSource);
 
         final restartedService = buildService();
-        final completed = await withRelocationCapability(
+        final reconstructed = await restartedService.readCurrentProgress();
+        expect(reconstructed?.stage, AttachmentArchiveRelocationStage.paused);
+        expect(reconstructed?.filesCopied, 2);
+
+        final offlineDestination = Directory(
+          '${destinationParent.path}.offline',
+        );
+        destinationParent.renameSync(offlineDestination.path);
+        final destinationPaused = await withRelocationCapability(
           (capability) => restartedService.run(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+        expect(
+          destinationPaused.deferredReason,
+          AttachmentArchiveRelocationDeferredReason.destinationUnavailable,
+        );
+        expect(destinationPaused.filesCopied, 2);
+        final unavailableUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: initialLocation,
+          relocation: destinationPaused,
+          relocationEnabled: true,
+        );
+        expect(unavailableUi.bodyText, contains('destination is unavailable'));
+        expect(
+          unavailableUi.statusLines
+              .singleWhere((line) => line.label == 'Destination availability')
+              .value,
+          'Unavailable',
+        );
+        offlineDestination.renameSync(destinationParent.path);
+
+        final reconnectedService = buildService();
+        final completed = await withRelocationCapability(
+          (capability) => reconnectedService.run(
             operationId: selection.operationId,
             mutationCapability: capability,
           ),
@@ -208,6 +307,22 @@ void main() {
           currentLocation.archiveRootPath,
           finalRoot.resolveSymbolicLinksSync(),
         );
+        final completedUi = resolver.resolve(
+          cassetteIndex: 2,
+          location: currentLocation,
+          relocation: completed,
+          relocationEnabled: true,
+        );
+        expect(
+          completedUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.completed,
+        );
+        expect(completedUi.title, contains('Moved Successfully'));
+        expect(
+          completedUi.bodyText,
+          contains('original archive is still stored'),
+        );
+        expect(completedUi.actions, isEmpty);
         final writableAdmission = await container.read(
           attachmentArchiveWritableRootAdmissionProvider.future,
         );
@@ -220,6 +335,118 @@ void main() {
           metadataAfter.map((row) => row.data).toList(),
           metadataBefore.map((row) => row.data).toList(),
         );
+      },
+    );
+
+    test(
+      'prepares a truthful review before explicit begin copies any payload',
+      () async {
+        final expectedSource = await _createSyntheticArchive(
+          sourceRoot: sourceRoot,
+          overlayDatabase: overlayDatabase,
+        );
+        final service = buildService();
+        final selection = await withRelocationCapability(
+          (capability) => service.selectDestination(
+            destinationParentPath: destinationParent.path,
+            mutationCapability: capability,
+          ),
+        );
+
+        final review = await withRelocationCapability(
+          (capability) => service.prepareForReview(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+
+        expect(
+          review.stage,
+          AttachmentArchiveRelocationStage.inventoryComplete,
+        );
+        expect(review.filesCopied, 0);
+        expect(review.bytesCopied, 0);
+        expect(review.expectedFiles, expectedSource.length);
+        expect(review.availableCapacityBytes, isNotNull);
+        expect(review.requiredCapacityBytes, greaterThan(review.expectedBytes));
+        final reviewJournal = await journalStore.read(selection.operationId);
+        expect(
+          Directory(
+            '${destinationParent.path}/${reviewJournal.finalDirectoryName}',
+          ).existsSync(),
+          isFalse,
+        );
+        await _expectTreeUnchanged(sourceRoot, expectedSource);
+
+        final completed = await withRelocationCapability(
+          (capability) => service.run(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+        expect(
+          completed.stage,
+          AttachmentArchiveRelocationStage.sourceRetained,
+        );
+      },
+    );
+
+    test(
+      'cooperative pause survives reconstruction and resumes verified receipts',
+      () async {
+        await _createSyntheticArchive(
+          sourceRoot: sourceRoot,
+          overlayDatabase: overlayDatabase,
+        );
+        final service = buildService();
+        final selection = await withRelocationCapability(
+          (capability) => service.selectDestination(
+            destinationParentPath: destinationParent.path,
+            mutationCapability: capability,
+          ),
+        );
+        await withRelocationCapability(
+          (capability) => service.prepareForReview(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+
+        var pauseRequested = true;
+        final paused = await withRelocationCapability(
+          (capability) => service.run(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+            pauseRequested: () => pauseRequested,
+          ),
+        );
+        expect(paused.stage, AttachmentArchiveRelocationStage.paused);
+        expect(
+          paused.deferredReason,
+          AttachmentArchiveRelocationDeferredReason.userPaused,
+        );
+        expect(paused.filesCopied, 1);
+
+        final restartedService = buildService();
+        final reconstructed = await restartedService.readCurrentProgress();
+        expect(reconstructed?.stage, AttachmentArchiveRelocationStage.paused);
+        expect(reconstructed?.filesCopied, 1);
+
+        pauseRequested = false;
+        final completed = await withRelocationCapability(
+          (capability) => restartedService.run(
+            operationId: selection.operationId,
+            mutationCapability: capability,
+          ),
+        );
+        expect(
+          completed.stage,
+          AttachmentArchiveRelocationStage.sourceRetained,
+        );
+        final receipts = await journalStore
+            .readCopyReceipts(selection.operationId)
+            .toList();
+        expect(receipts.map((receipt) => receipt.index), [0, 1, 2, 3]);
       },
     );
 
@@ -256,6 +483,19 @@ void main() {
           currentLocation.configuration,
           const AttachmentArchiveLocationConfiguration.defaultInternal(),
         );
+        final rollbackUi = container
+            .read(attachmentArchiveSettingsResolverProvider.notifier)
+            .resolve(
+              cassetteIndex: 2,
+              location: currentLocation,
+              relocation: result,
+              relocationEnabled: true,
+            );
+        expect(
+          rollbackUi.workflowView,
+          AttachmentArchiveSettingsWorkflowView.failed,
+        );
+        expect(rollbackUi.title, isNot(contains('Successfully')));
         expect(currentLocation.archiveRootPath, sourceRoot.path);
         await _expectTreeUnchanged(sourceRoot, expectedSource);
         final journal = await journalStore.read(selection.operationId);

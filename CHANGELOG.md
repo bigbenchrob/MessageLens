@@ -10,6 +10,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.115] — 2026-09-17
+
+### Added
+
+- Attachment Archive Settings now presents the complete copy-review-progress
+  workflow for archive relocation, including explicit preflight review,
+  human-readable journal progress, safe pause/resume, restart discovery,
+  destination-unavailable guidance, and retained-source confirmation.
+- Typed Settings actions now route destination selection, retry, begin, pause,
+  resume, and cancellation through the verified relocation engine rather than
+  performing filesystem or configuration work in widgets.
+
+### Changed
+
+- Archive relocation now stops after preflight and inventory for explicit user
+  review before any payload copy begins, and typed preflight failures distinguish
+  unavailable, read-only, unsupported, unsafe, conflicting, and low-capacity
+  destinations.
+- The successful Settings state explicitly reports that the verified external
+  archive is active and the original internal archive remains retained.
+- Real production relocation execution remains disabled pending explicit
+  acceptance-matrix review and authorization. This release does not delete the
+  retained source, reclaim disk space, restore the default location, or silently
+  fall back to the internal copy.
+
 ## [0.2.114] — 2026-09-17
 
 ### Added

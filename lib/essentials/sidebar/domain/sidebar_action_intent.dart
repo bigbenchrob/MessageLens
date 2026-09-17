@@ -225,3 +225,51 @@ final class SettingsTransientActionCancelled extends SidebarEphemeralIntent {
 final class ResetMessageDataRequested extends SidebarEphemeralIntent {
   const ResetMessageDataRequested();
 }
+
+final class AttachmentArchiveMoveRequested extends SidebarEphemeralIntent {
+  const AttachmentArchiveMoveRequested();
+}
+
+final class AttachmentArchiveChooseAnotherLocationRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchiveChooseAnotherLocationRequested({
+    required this.operationId,
+  });
+
+  final String operationId;
+}
+
+final class AttachmentArchiveRetryPreflightRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchiveRetryPreflightRequested({required this.operationId});
+
+  final String operationId;
+}
+
+final class AttachmentArchiveBeginRelocationRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchiveBeginRelocationRequested({required this.operationId});
+
+  final String operationId;
+}
+
+final class AttachmentArchivePauseRelocationRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchivePauseRelocationRequested({required this.operationId});
+
+  final String operationId;
+}
+
+final class AttachmentArchiveResumeRelocationRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchiveResumeRelocationRequested({required this.operationId});
+
+  final String operationId;
+}
+
+final class AttachmentArchiveCancelRelocationRequested
+    extends SidebarEphemeralIntent {
+  const AttachmentArchiveCancelRelocationRequested({required this.operationId});
+
+  final String operationId;
+}

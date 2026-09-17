@@ -39,9 +39,35 @@ enum AttachmentArchiveRelocationEntryKind {
 enum AttachmentArchiveRelocationDeferredReason {
   sourceUnavailable,
   destinationUnavailable,
+  destinationReadOnly,
+  unsupportedFilesystem,
+  unsafeLocation,
+  conflictingDestination,
   insufficientCapacity,
   mutationUnavailable,
   userPaused,
+}
+
+@immutable
+final class AttachmentArchiveRelocationPreflightException implements Exception {
+  const AttachmentArchiveRelocationPreflightException({
+    required this.reason,
+    required this.message,
+    this.path,
+  });
+
+  final AttachmentArchiveRelocationDeferredReason reason;
+  final String message;
+  final String? path;
+
+  @override
+  String toString() {
+    final affectedPath = path;
+    if (affectedPath == null) {
+      return message;
+    }
+    return '$message ($affectedPath)';
+  }
 }
 
 @immutable
@@ -460,13 +486,23 @@ final class AttachmentArchiveRelocationProgress {
   const AttachmentArchiveRelocationProgress({
     required this.operationId,
     required this.stage,
+    required this.sourceRootPath,
+    required this.destinationParentPath,
+    required this.destinationVolumeName,
+    required this.destinationArchiveDirectoryName,
+    required this.createdAtUtc,
+    required this.updatedAtUtc,
     required this.filesCopied,
     required this.filesVerified,
     required this.bytesCopied,
     required this.bytesVerified,
     required this.expectedFiles,
     required this.expectedBytes,
+    required this.availableCapacityBytes,
+    required this.requiredCapacityBytes,
     required this.deferredReason,
+    required this.failure,
+    required this.resumeStage,
     required this.isResumable,
     required this.activationOccurred,
     required this.sourceRetained,
@@ -478,13 +514,23 @@ final class AttachmentArchiveRelocationProgress {
     return AttachmentArchiveRelocationProgress(
       operationId: journal.operationId,
       stage: journal.stage,
+      sourceRootPath: journal.sourceRootPath,
+      destinationParentPath: journal.destinationParentLastKnownPath,
+      destinationVolumeName: journal.destinationVolumeName,
+      destinationArchiveDirectoryName: journal.finalDirectoryName,
+      createdAtUtc: journal.createdAtUtc,
+      updatedAtUtc: journal.updatedAtUtc,
       filesCopied: journal.copiedFileCount,
       filesVerified: journal.verifiedFileCount,
       bytesCopied: journal.copiedByteCount,
       bytesVerified: journal.verifiedByteCount,
       expectedFiles: journal.expectedFileCount,
       expectedBytes: journal.expectedByteCount,
+      availableCapacityBytes: journal.availableCapacityBytes,
+      requiredCapacityBytes: journal.requiredCapacityBytes,
       deferredReason: journal.deferredReason,
+      failure: journal.failure,
+      resumeStage: journal.resumeStage,
       isResumable: !journal.stage.isTerminal,
       activationOccurred: journal.activationOccurred,
       sourceRetained: journal.sourceRetained,
@@ -493,16 +539,52 @@ final class AttachmentArchiveRelocationProgress {
 
   final String operationId;
   final AttachmentArchiveRelocationStage stage;
+  final String sourceRootPath;
+  final String destinationParentPath;
+  final String? destinationVolumeName;
+  final String destinationArchiveDirectoryName;
+  final DateTime createdAtUtc;
+  final DateTime updatedAtUtc;
   final int filesCopied;
   final int filesVerified;
   final int bytesCopied;
   final int bytesVerified;
   final int expectedFiles;
   final int expectedBytes;
+  final int? availableCapacityBytes;
+  final int? requiredCapacityBytes;
   final AttachmentArchiveRelocationDeferredReason? deferredReason;
+  final String? failure;
+  final AttachmentArchiveRelocationStage? resumeStage;
   final bool isResumable;
   final bool activationOccurred;
   final bool sourceRetained;
+
+  bool get canPause {
+    return stage == AttachmentArchiveRelocationStage.copying;
+  }
+
+  bool get canCancel {
+    return switch (stage) {
+      AttachmentArchiveRelocationStage.configurationSwitching ||
+      AttachmentArchiveRelocationStage.activated ||
+      AttachmentArchiveRelocationStage.sourceRetained ||
+      AttachmentArchiveRelocationStage.rollbackRestoredOldConfiguration ||
+      AttachmentArchiveRelocationStage.cancelled ||
+      AttachmentArchiveRelocationStage.failed => false,
+      _ => true,
+    };
+  }
+
+  bool get isPreflightReviewReady {
+    return stage == AttachmentArchiveRelocationStage.inventoryComplete;
+  }
+
+  bool get isSuccessful {
+    return stage == AttachmentArchiveRelocationStage.sourceRetained &&
+        activationOccurred &&
+        sourceRetained;
+  }
 }
 
 String _requiredString(Map<String, Object?> json, String key) {

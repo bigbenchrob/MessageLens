@@ -2,6 +2,11 @@ export '../../essentials/archive_compatibility/domain/archive_compatibility_key.
 export 'application/archive_settings_provider.dart';
 export 'application/attachment_archive_location_provider.dart';
 export 'application/attachment_archive_reconnect_policy.dart';
+export 'application/attachment_archive_relocation_enablement_provider.dart';
+export 'application/attachment_archive_relocation_provider.dart'
+    show
+        AttachmentArchiveRelocationWorkflow,
+        attachmentArchiveRelocationWorkflowProvider;
 export 'application/attachment_archive_runtime_providers.dart';
 export 'application/attachment_archive_service_provider.dart';
 export 'application/attachment_archive_settings_store_provider.dart';
@@ -22,3 +27,8 @@ export 'application/video_thumbnail_cache_provider.dart';
 export 'domain/constants/attachment_archive_payload_status.dart';
 export 'domain/entities/attachment_archive_location_configuration.dart';
 export 'domain/entities/attachment_archive_location_state.dart';
+export 'domain/entities/attachment_archive_relocation.dart'
+    show
+        AttachmentArchiveRelocationDeferredReason,
+        AttachmentArchiveRelocationProgress,
+        AttachmentArchiveRelocationStage;

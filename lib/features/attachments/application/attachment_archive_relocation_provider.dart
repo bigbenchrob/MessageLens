@@ -13,14 +13,12 @@ import '../infrastructure/repositories/overlay_attachment_archive_relocation_met
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_relocation_activation_gate.dart';
+import 'attachment_archive_relocation_progress_monitor.dart';
 import 'attachment_archive_relocation_service.dart';
 
 part 'attachment_archive_relocation_provider.g.dart';
 
-/// Internal Phase Five engine composition.
-///
-/// This provider is deliberately absent from the attachments public seam and
-/// has no production UI action. Phase Six may expose a reviewed workflow.
+/// Internal relocation-engine composition.
 @riverpod
 Future<AttachmentArchiveRelocationService> attachmentArchiveRelocationService(
   Ref ref,
@@ -68,12 +66,21 @@ Future<AttachmentArchiveRelocationService> attachmentArchiveRelocationService(
   );
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class AttachmentArchiveRelocationWorkflow
     extends _$AttachmentArchiveRelocationWorkflow {
+  String? _pauseRequestedOperationId;
+
   @override
-  AsyncValue<AttachmentArchiveRelocationProgress?> build() {
-    return const AsyncData(null);
+  Future<AttachmentArchiveRelocationProgress?> build() async {
+    final authority = ref.watch(archiveAccessAuthorityProvider);
+    final journalStore = FilesystemAttachmentArchiveRelocationJournalStore(
+      primaryArchiveRootPath: authority.rootPath,
+    );
+    final journal = await journalStore.readCurrent();
+    return journal == null
+        ? null
+        : AttachmentArchiveRelocationProgress.fromJournal(journal);
   }
 
   Future<AttachmentArchiveRelocationProgress> selectDestination(
@@ -101,49 +108,132 @@ class AttachmentArchiveRelocationWorkflow
     }
   }
 
-  Future<AttachmentArchiveRelocationProgress> run(String operationId) async {
-    state = const AsyncLoading();
+  Future<AttachmentArchiveRelocationProgress?>
+  chooseDestinationAndPrepare() async {
+    final destinationParentPath = await chooseDestinationParent();
+    if (destinationParentPath == null) {
+      return state.valueOrNull;
+    }
+    final selected = await selectDestination(destinationParentPath);
+    return prepareForReview(selected.operationId);
+  }
+
+  Future<String?> chooseDestinationParent() {
+    return ref
+        .read(attachmentArchiveLocationFolderChooserProvider)
+        .chooseArchiveDirectory();
+  }
+
+  Future<AttachmentArchiveRelocationProgress> prepareForReview(
+    String operationId,
+  ) async {
     final service = await ref.read(
       attachmentArchiveRelocationServiceProvider.future,
     );
     final coordinator = ref.read(archiveMutationCoordinatorProvider.notifier);
-    try {
-      final progress = await coordinator.runWithCapability(
+    return _runWithJournalProgress(
+      operationId: operationId,
+      action: () => coordinator.runWithCapability(
+        operation: ArchiveMutationOperation.attachmentRelocation,
+        ownerLabel: 'attachment-archive-relocation-preflight-$operationId',
+        action: (capability) => service.prepareForReview(
+          operationId: operationId,
+          mutationCapability: capability,
+        ),
+      ),
+    );
+  }
+
+  Future<AttachmentArchiveRelocationProgress> run(String operationId) async {
+    final service = await ref.read(
+      attachmentArchiveRelocationServiceProvider.future,
+    );
+    final coordinator = ref.read(archiveMutationCoordinatorProvider.notifier);
+    _pauseRequestedOperationId = null;
+    return _runWithJournalProgress(
+      operationId: operationId,
+      action: () => coordinator.runWithCapability(
         operation: ArchiveMutationOperation.attachmentRelocation,
         ownerLabel: 'attachment-archive-relocation-$operationId',
         action: (capability) => service.run(
           operationId: operationId,
           mutationCapability: capability,
+          pauseRequested: () => _pauseRequestedOperationId == operationId,
         ),
+      ),
+    );
+  }
+
+  void requestPause(String operationId) {
+    final progress = state.valueOrNull;
+    if (progress?.operationId != operationId || progress?.canPause != true) {
+      throw StateError(
+        'Attachment archive relocation cannot pause in the current stage.',
       );
-      state = AsyncData(progress);
-      return progress;
-    } on Object catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
     }
+    _pauseRequestedOperationId = operationId;
   }
 
   Future<AttachmentArchiveRelocationProgress> cancel(String operationId) async {
-    state = const AsyncLoading();
     final service = await ref.read(
       attachmentArchiveRelocationServiceProvider.future,
     );
     final coordinator = ref.read(archiveMutationCoordinatorProvider.notifier);
-    try {
-      final progress = await coordinator.runWithCapability(
+    return _runWithJournalProgress(
+      operationId: operationId,
+      action: () => coordinator.runWithCapability(
         operation: ArchiveMutationOperation.attachmentRelocation,
         ownerLabel: 'attachment-archive-relocation-cancel-$operationId',
         action: (capability) => service.cancel(
           operationId: operationId,
           mutationCapability: capability,
         ),
+      ),
+    );
+  }
+
+  Future<void> refreshFromJournal() async {
+    final authority = ref.read(archiveAccessAuthorityProvider);
+    final journalStore = FilesystemAttachmentArchiveRelocationJournalStore(
+      primaryArchiveRootPath: authority.rootPath,
+    );
+    final journal = await journalStore.readCurrent();
+    state = AsyncData(
+      journal == null
+          ? null
+          : AttachmentArchiveRelocationProgress.fromJournal(journal),
+    );
+  }
+
+  Future<AttachmentArchiveRelocationProgress> _runWithJournalProgress({
+    required String operationId,
+    required Future<AttachmentArchiveRelocationProgress> Function() action,
+  }) async {
+    final service = await ref.read(
+      attachmentArchiveRelocationServiceProvider.future,
+    );
+    final monitor = AttachmentArchiveRelocationProgressMonitor(service: service)
+      ..start(
+        operationId: operationId,
+        onProgress: (progress) => state = AsyncData(progress),
+        onError: (error, stackTrace) => state = AsyncError(error, stackTrace),
       );
+    try {
+      final progress = await action();
+      monitor.stop();
       state = AsyncData(progress);
       return progress;
     } on Object catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+      monitor.stop();
+      try {
+        state = AsyncData(await service.readProgress(operationId));
+      } on Object {
+        state = AsyncError(error, stackTrace);
+      }
       rethrow;
+    } finally {
+      monitor.stop();
+      _pauseRequestedOperationId = null;
     }
   }
 }

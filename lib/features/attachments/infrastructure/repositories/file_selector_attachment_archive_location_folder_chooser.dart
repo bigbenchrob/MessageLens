@@ -9,7 +9,7 @@ final class FileSelectorAttachmentArchiveLocationFolderChooser
   @override
   Future<String?> chooseArchiveDirectory() {
     return FileSelectorPlatform.instance.getDirectoryPathWithOptions(
-      const FileDialogOptions(confirmButtonText: 'Use This Archive'),
+      const FileDialogOptions(confirmButtonText: 'Choose Destination'),
     );
   }
 }
