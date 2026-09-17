@@ -169,6 +169,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
+  'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
@@ -363,6 +364,7 @@ const Set<String> _driftCustomSqlAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/attachment_archive_stats_repository.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_archive_compatibility_lookup.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_read_store.dart',
+  'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_relocation_metadata_reader.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_write_store.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart',
   'lib/features/messages/infrastructure/repositories/graph_message_overlay_repository.dart',
@@ -436,6 +438,7 @@ const Set<String> _platformRuntimeAllowedFiles = {
   'lib/essentials/source_scoped_import/infrastructure/extraction/rust_message_extractor.dart',
   'lib/essentials/window_state/infrastructure/persistence/macos_window_manager.dart',
   'lib/features/attachments/infrastructure/repositories/darwin_atomic_no_overwrite_file_installer.dart',
+  'lib/features/attachments/infrastructure/repositories/darwin_exclusive_directory_finalizer.dart',
   'lib/features/settings/infrastructure/repositories/filesystem_message_history_coverage_report_exporter.dart',
   'lib/main.dart',
 };
@@ -13366,6 +13369,7 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
   const admissionConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
+    'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
     'lib/features/attachments/application/deterministic_recovery_provider.dart',
     'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
   };

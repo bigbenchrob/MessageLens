@@ -10,6 +10,7 @@ enum ArchiveMutationOperation {
   historicalArchiveImport,
   historicalArchiveRemoval,
   attachmentReconciliation,
+  attachmentRelocation,
   attachmentClearing,
   destructiveMaintenance,
   localAccountIdentityReconciliation,

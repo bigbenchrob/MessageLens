@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import 'attachment_archive_relocation_file_system.dart';
+
 enum AttachmentArchiveBookmarkResolutionStatus {
   available,
   readOnly,
@@ -61,7 +63,8 @@ final class AttachmentArchiveBookmarkCreationException implements Exception {
       '$message';
 }
 
-abstract interface class AttachmentArchiveLocationNativeAdapter {
+abstract interface class AttachmentArchiveLocationNativeAdapter
+    implements AttachmentArchiveDestinationCapacityReader {
   Future<AttachmentArchiveBookmarkCreation> createBookmark({
     required String directoryPath,
   });

@@ -10,6 +10,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.114] — 2026-09-17
+
+### Added
+
+- A disabled/internal attachment-archive relocation engine now supports a
+  versioned durable journal, resumable streaming copy, complete source and
+  destination verification, atomic destination finalization, reversible
+  activation, and retained-source evidence.
+- Relocation preflight now proves destination write, flush, hard-link
+  no-overwrite, and exclusive-rename semantics and checks Foundation's
+  important-usage capacity with the declared disk-space privacy reason.
+
+### Changed
+
+- The `activeArchive` transition now requires an unforgeable permit minted
+  from a completely verified relocation journal. Ordinary configuration
+  persistence and folder selection cannot activate an external archive.
+- Relocation inventory deduplicates attachment metadata by physical relative
+  path while preserving valid unreferenced payloads and failing closed on
+  symlinks, unknown entries, conflicting metadata, or incomplete verification.
+- Phase Five remains unavailable from production UI and never retires or
+  deletes the retained source archive.
+
 ## [0.2.113] — 2026-09-16
 
 ### Added

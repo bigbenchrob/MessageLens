@@ -13,6 +13,7 @@ import '../domain/entities/attachment_archive_location_state.dart';
 import 'attachment_archive_location_controller.dart';
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_native_adapter.dart';
+import 'attachment_archive_relocation_activation_gate.dart';
 import 'attachment_archive_settings_store_provider.dart';
 
 part 'attachment_archive_location_provider.g.dart';
@@ -223,8 +224,42 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
 
   Future<void> useDefaultInternalLocation() async {
     await _ensureInitialized();
+    final current = await _currentLocationForLeaseValidation();
+    if (current.configuration?.mode ==
+            AttachmentArchiveLocationMode.customExternal &&
+        current.configuration?.customWritePolicy ==
+            AttachmentArchiveCustomWritePolicy.activeArchive) {
+      throw StateError(
+        'An active external attachment archive must be restored through '
+        'verified relocation.',
+      );
+    }
     await _controllerOrThrow().persistConfiguration(
       const AttachmentArchiveLocationConfiguration.defaultInternal(),
+    );
+    await _refresh(forceGenerationAdvance: true);
+  }
+
+  Future<void> activateVerifiedRelocation({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveRelocationActivationPermit activationPermit,
+  }) async {
+    await _ensureInitialized();
+    await _controllerOrThrow().persistVerifiedRelocationConfiguration(
+      configuration: configuration,
+      activationPermit: activationPermit,
+    );
+    await _refresh(forceGenerationAdvance: true);
+  }
+
+  Future<void> restoreRelocationConfiguration({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveRelocationActivationPermit activationPermit,
+  }) async {
+    await _ensureInitialized();
+    await _controllerOrThrow().restoreRelocationConfiguration(
+      configuration: configuration,
+      activationPermit: activationPermit,
     );
     await _refresh(forceGenerationAdvance: true);
   }

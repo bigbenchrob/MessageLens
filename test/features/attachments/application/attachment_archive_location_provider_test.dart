@@ -960,6 +960,11 @@ final class _FakeAttachmentArchiveLocationNativeAdapter
   var eventCancelCount = 0;
 
   @override
+  Future<int> availableCapacityForImportantUsage(String directoryPath) async {
+    return 1024 * 1024 * 1024;
+  }
+
+  @override
   Future<AttachmentArchiveBookmarkCreation> createBookmark({
     required String directoryPath,
   }) async {

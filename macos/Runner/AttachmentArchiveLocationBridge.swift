@@ -63,6 +63,22 @@ enum AttachmentArchiveBookmarkError: Error {
   case permissionDenied
 }
 
+enum AttachmentArchiveCapacityError: Error {
+  case invalidDirectoryPath
+  case capacityUnavailable
+}
+
+extension AttachmentArchiveCapacityError: LocalizedError {
+  var errorDescription: String? {
+    switch self {
+    case .invalidDirectoryPath:
+      return "The capacity query path is not absolute."
+    case .capacityUnavailable:
+      return "Available capacity for important usage is unavailable."
+    }
+  }
+}
+
 extension AttachmentArchiveBookmarkError: LocalizedError {
   var errorDescription: String? {
     switch self {
@@ -206,6 +222,27 @@ final class FoundationAttachmentArchiveBookmarkService {
     )
   }
 
+  func availableCapacityForImportantUsage(directoryPath: String) throws
+    -> Int64
+  {
+    guard (directoryPath as NSString).isAbsolutePath else {
+      throw AttachmentArchiveCapacityError.invalidDirectoryPath
+    }
+    let directoryURL = URL(
+      fileURLWithPath: directoryPath,
+      isDirectory: true
+    ).standardizedFileURL
+    let values = try directoryURL.resourceValues(
+      forKeys: [.volumeAvailableCapacityForImportantUsageKey]
+    )
+    guard let capacity = values.volumeAvailableCapacityForImportantUsage,
+      capacity >= 0
+    else {
+      throw AttachmentArchiveCapacityError.capacityUnavailable
+    }
+    return capacity
+  }
+
   private func failure(
     _ status: AttachmentArchiveBookmarkResolutionStatus,
     issue: String
@@ -329,6 +366,24 @@ final class AttachmentArchiveLocationBridge: NSObject, FlutterStreamHandler {
       result(bookmarkService.resolveBookmark(
         base64: bookmarkDataBase64
       ).channelPayload)
+    case "availableCapacityForImportantUsage":
+      guard let directoryPath = arguments["directoryPath"] as? String else {
+        result(invalidArgumentsError("directoryPath is required."))
+        return
+      }
+      do {
+        result(try bookmarkService.availableCapacityForImportantUsage(
+          directoryPath: directoryPath
+        ))
+      } catch {
+        result(
+          FlutterError(
+            code: "capacity_lookup_failed",
+            message: error.localizedDescription,
+            details: nil
+          )
+        )
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
