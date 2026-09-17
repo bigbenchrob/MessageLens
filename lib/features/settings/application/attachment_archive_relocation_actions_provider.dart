@@ -6,7 +6,7 @@ import '../../../essentials/logging/feature_level_providers.dart'
     show appLoggerProvider;
 import '../../attachments/feature_level_providers.dart'
     show
-        attachmentArchiveRelocationProductionEnabledProvider,
+        attachmentArchiveRelocationExecutionEnabledProvider,
         attachmentArchiveRelocationWorkflowProvider;
 
 part 'attachment_archive_relocation_actions_provider.g.dart';
@@ -107,9 +107,9 @@ class AttachmentArchiveRelocationActions
     required String label,
     required Future<void> Function() action,
   }) async {
-    if (!ref.read(attachmentArchiveRelocationProductionEnabledProvider)) {
+    if (!ref.read(attachmentArchiveRelocationExecutionEnabledProvider)) {
       throw StateError(
-        'Attachment archive relocation is awaiting explicit production '
+        'Attachment archive relocation is awaiting explicit '
         'authorization.',
       );
     }

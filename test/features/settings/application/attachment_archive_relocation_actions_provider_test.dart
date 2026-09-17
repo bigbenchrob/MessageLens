@@ -4,7 +4,7 @@ import 'package:remember_this_text/features/settings/application/attachment_arch
 
 void main() {
   test(
-    'production relocation actions fail closed while gate is disabled',
+    'relocation actions fail closed while execution gate is disabled',
     () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -17,7 +17,7 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            contains('awaiting explicit production authorization'),
+            contains('awaiting explicit authorization'),
           ),
         ),
       );

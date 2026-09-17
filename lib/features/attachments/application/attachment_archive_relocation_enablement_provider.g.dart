@@ -6,31 +6,30 @@ part of 'attachment_archive_relocation_enablement_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$attachmentArchiveRelocationProductionEnabledHash() =>
-    r'da53b1eadcd81a94df45630243f80d5f4ee716db';
+String _$attachmentArchiveRelocationExecutionEnabledHash() =>
+    r'3b002a29986184568d4659778d3b6760d5ce16ce';
 
-/// Final production safety gate for the attachment-archive relocation UI.
+/// Exact, fail-closed execution gate for the authorized development rehearsal.
 ///
-/// Phase Six deliberately ships the reviewed workflow with execution disabled.
-/// Tests override this provider only for disposable archives. Enabling a real
-/// relocation requires a later explicit code review and authorization.
+/// The admitted authority is the only input. Production, FDA experiments,
+/// tests, other development roots, and other archive instances remain denied.
 ///
-/// Copied from [attachmentArchiveRelocationProductionEnabled].
-@ProviderFor(attachmentArchiveRelocationProductionEnabled)
-final attachmentArchiveRelocationProductionEnabledProvider =
+/// Copied from [attachmentArchiveRelocationExecutionEnabled].
+@ProviderFor(attachmentArchiveRelocationExecutionEnabled)
+final attachmentArchiveRelocationExecutionEnabledProvider =
     AutoDisposeProvider<bool>.internal(
-      attachmentArchiveRelocationProductionEnabled,
-      name: r'attachmentArchiveRelocationProductionEnabledProvider',
+      attachmentArchiveRelocationExecutionEnabled,
+      name: r'attachmentArchiveRelocationExecutionEnabledProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$attachmentArchiveRelocationProductionEnabledHash,
+          : _$attachmentArchiveRelocationExecutionEnabledHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AttachmentArchiveRelocationProductionEnabledRef =
+typedef AttachmentArchiveRelocationExecutionEnabledRef =
     AutoDisposeProviderRef<bool>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

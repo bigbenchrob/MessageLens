@@ -169,11 +169,20 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
+  'lib/features/attachments/application/attachment_archive_relocation_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
   'lib/main.dart',
+};
+
+const String _attachmentArchiveRelocationQualificationGatePath =
+    'lib/features/attachments/application/'
+    'attachment_archive_relocation_enablement_provider.dart';
+
+const Map<String, Set<String>> _reviewedPersonalPathFragments = {
+  _attachmentArchiveRelocationQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
 };
 
 const Set<String> _applicationSupportResolutionAllowedFiles = {'lib/main.dart'};
@@ -4086,7 +4095,8 @@ void main() {
         reason:
             'Personal backup and external-drive paths must be supplied through '
             'explicit diagnostic configuration, not hard-coded in active app '
-            'code.\n'
+            'code. A file-specific, architecture-reviewed qualification gate '
+            'may bind one exact development authority.\n'
             'Actual offenders:\n${offenders.join('\n')}',
       );
     });
@@ -9347,7 +9357,10 @@ Future<List<String>> _findPersonalBackupPathOffenders() async {
     final source = await File(filePath).readAsString();
     final uncommented = _stripComments(source);
     for (final fragment in forbiddenFragments) {
-      if (uncommented.contains(fragment)) {
+      final reviewedFragments =
+          _reviewedPersonalPathFragments[filePath] ?? const <String>{};
+      if (uncommented.contains(fragment) &&
+          !reviewedFragments.contains(fragment)) {
         offenders.add('$filePath contains $fragment');
       }
     }
@@ -13309,6 +13322,9 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
     'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
     'lib/essentials/onboarding/application/start_fresh_artifact_policy.dart',
   };
+  const allowedVolumeLiteralFiles = <String>{
+    _attachmentArchiveRelocationQualificationGatePath,
+  };
   const activeRootConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',
     'lib/features/attachments/application/attachment_archive_runtime_providers.dart',
@@ -13336,7 +13352,8 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
             uncommented.contains('attachmentArchiveDirectoryPathProvider'))) {
       offenders.add('$filePath uses a retired archive root provider');
     }
-    if (uncommented.contains('/Volumes/')) {
+    if (uncommented.contains('/Volumes/') &&
+        !allowedVolumeLiteralFiles.contains(filePath)) {
       offenders.add('$filePath hard-codes a /Volumes attachment root');
     }
     if (activeRootLiteral.hasMatch(uncommented) &&

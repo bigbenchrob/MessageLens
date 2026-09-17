@@ -5,7 +5,7 @@ import '../../../features/attachments/feature_level_providers.dart'
     as attachments_feature
     show
         attachmentArchiveLocationProvider,
-        attachmentArchiveRelocationProductionEnabledProvider,
+        attachmentArchiveRelocationExecutionEnabledProvider,
         attachmentArchiveRelocationWorkflowProvider;
 import '../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../features/contacts/feature_level_providers.dart'
@@ -299,7 +299,7 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
       final attachmentArchiveRelocationEnabled = settingsSpec.maybeMap(
         attachmentArchive: (_) => ref.watch(
           attachments_feature
-              .attachmentArchiveRelocationProductionEnabledProvider,
+              .attachmentArchiveRelocationExecutionEnabledProvider,
         ),
         orElse: () => false,
       );

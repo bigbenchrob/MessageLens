@@ -7,7 +7,7 @@ part of 'attachment_archive_relocation_actions_provider.dart';
 // **************************************************************************
 
 String _$attachmentArchiveRelocationActionsHash() =>
-    r'c5023ce47a95c873f35b5781aa0d10ef4a2ba90c';
+    r'db278608bf33f6fb0d3addf3095a5d8b84bd7bb4';
 
 /// See also [AttachmentArchiveRelocationActions].
 @ProviderFor(AttachmentArchiveRelocationActions)
