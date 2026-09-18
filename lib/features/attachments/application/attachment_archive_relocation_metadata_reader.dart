@@ -12,7 +12,9 @@ class AttachmentArchiveRelocationMetadata {
   final int rowCount;
 }
 
-class AttachmentArchiveRelocationMetadataPage {
+@Deprecated('Use AttachmentArchiveVerificationMetadataPage.')
+final class AttachmentArchiveRelocationMetadataPage {
+  @Deprecated('Use AttachmentArchiveVerificationMetadataPage.')
   const AttachmentArchiveRelocationMetadataPage({
     required this.entries,
     required this.hasMore,

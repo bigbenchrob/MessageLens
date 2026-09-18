@@ -374,7 +374,7 @@ const Set<String> _driftCustomSqlAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/attachment_archive_stats_repository.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_archive_compatibility_lookup.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_read_store.dart',
-  'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_relocation_metadata_reader.dart',
+  'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_verification_metadata_reader.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_write_store.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart',
   'lib/features/messages/infrastructure/repositories/graph_message_overlay_repository.dart',

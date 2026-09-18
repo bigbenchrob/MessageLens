@@ -10,6 +10,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.117] — 2026-09-18
+
+### Added
+
+- A disconnected, read-only archive-candidate verifier now compares a
+  user-supplied attachment archive with the current authoritative archive and
+  returns typed complete, behind, invalid, unavailable, or failed evidence.
+- Verification streams source and candidate payload hashes, preserves known
+  unreferenced archive shapes, recognizes only exact installer debris, and
+  records deterministic coverage digests and structural fingerprints.
+- Grouped attachment metadata reads are paged, reject conflicting size or hash
+  evidence, preserve reference counts, and never modify overlay data.
+
+### Changed
+
+- Legacy relocation metadata reads now adapt to the shared verification reader,
+  avoiding duplicate SQL while keeping the disconnected mover compilable.
+- Candidate verification remains internal and ephemeral: it is not connected
+  to Settings, cannot activate or persist an external archive, creates no
+  journal or probe files, and performs no filesystem mutations.
+
 ## [0.2.116] — 2026-09-18
 
 ### Changed

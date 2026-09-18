@@ -34,6 +34,14 @@ development qualification predicate remains exact but has no production
 consumer. The parked operation is inert and untouched. Candidate verification
 and adoption are not implemented in this checkpoint.
 
+Checkpoint Two adds an isolated, read-only candidate-verification core. It
+extracts the reusable grouped metadata and preservation-aware traversal rules
+without depending on the legacy mover service, and produces typed, ephemeral
+evidence for a later adoption checkpoint. It is not connected to Settings and
+cannot activate, persist, copy, repair, probe, or otherwise mutate either
+archive. See `09-SIMPLIFIED-ADOPTION-CHECKPOINT-TWO.md` for the implemented
+contract, evidence format, validation coverage, and Checkpoint Three handoff.
+
 ## 1. Executive summary
 
 MessageLens should stop being an archive-copy program. The user copies the
