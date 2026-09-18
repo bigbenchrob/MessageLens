@@ -42,6 +42,15 @@ cannot activate, persist, copy, repair, probe, or otherwise mutate either
 archive. See `09-SIMPLIFIED-ADOPTION-CHECKPOINT-TWO.md` for the implemented
 contract, evidence format, validation coverage, and Checkpoint Three handoff.
 
+Checkpoint Three adds fresh approval-time source and candidate structural
+revalidation under a narrowly named archive-mutation coordinator operation.
+It accepts only a typed `candidateComplete` result, performs no payload hash
+reads, and returns process-local approval eligibility rather than archive
+mutation authority. It remains disconnected from Settings and releases its
+coordinator scope without activating or persisting anything. See
+`10-SIMPLIFIED-ADOPTION-CHECKPOINT-THREE.md` for the coordinator contract,
+race regression, result vocabulary, and Checkpoint Four handoff.
+
 ## 1. Executive summary
 
 MessageLens should stop being an archive-copy program. The user copies the

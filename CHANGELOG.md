@@ -10,6 +10,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.118] — 2026-09-18
+
+### Added
+
+- Approval-time archive revalidation now rechecks the current source
+  configuration, generation, canonical roots, structural fingerprints, grouped
+  metadata, exact totals, candidate availability, and candidate writability
+  while holding the archive-mutation coordinator.
+- Typed approval outcomes distinguish ready, changed, unavailable, no-longer-
+  writable, invalid-evidence, and failed checks. Approval-ready evidence is
+  process-local and remains non-authorizing.
+- Regression coverage reproduces the development-rehearsal race in which
+  normal attachment ingestion adds a source payload after full verification,
+  requiring a fresh complete check before approval can proceed.
+
+### Changed
+
+- The verifier can recompute source and candidate structural evidence without
+  reading payload bytes. Runtime instrumentation and architecture tripwires
+  prove that approval revalidation does not invoke streaming SHA-256 payload
+  hashing.
+- Archive activation, bookmark creation, configuration persistence, adoption
+  transactions, startup recovery, writable-root admission, and Settings UI
+  remain deliberately outside this checkpoint.
+
 ## [0.2.117] — 2026-09-18
 
 ### Added

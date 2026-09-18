@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:unorm_dart/unorm_dart.dart' as unicode;
 
+import '../../application/attachment_archive_approval_snapshot_reader.dart';
 import '../../application/attachment_archive_candidate_verifier.dart';
 import '../../application/attachment_archive_verification_metadata_reader.dart';
 import '../../domain/entities/attachment_archive_candidate_verification.dart';
@@ -21,14 +22,18 @@ import '../../domain/entities/attachment_archive_location_state.dart';
 /// and classification. The fingerprint intentionally does not hash payload
 /// bytes; it detects ordinary filesystem changes but is not durable authority.
 final class FilesystemAttachmentArchiveCandidateVerifier
-    implements AttachmentArchiveCandidateVerifier {
+    implements
+        AttachmentArchiveCandidateVerifier,
+        AttachmentArchiveApprovalSnapshotReader {
   FilesystemAttachmentArchiveCandidateVerifier({
     required AttachmentArchiveVerificationMetadataReader metadataReader,
     DateTime Function()? clock,
+    void Function(String path)? onPayloadHashStarted,
     this.metadataPageSize = 500,
     this.diagnosticExampleLimit = 100,
   }) : _metadataReader = metadataReader,
-       _clock = clock ?? _utcNow {
+       _clock = clock ?? _utcNow,
+       _onPayloadHashStarted = onPayloadHashStarted {
     if (metadataPageSize <= 0 || metadataPageSize > 1000) {
       throw ArgumentError.value(
         metadataPageSize,
@@ -49,6 +54,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
 
   final AttachmentArchiveVerificationMetadataReader _metadataReader;
   final DateTime Function() _clock;
+  final void Function(String path)? _onPayloadHashStarted;
   final int metadataPageSize;
   final int diagnosticExampleLimit;
 
@@ -134,6 +140,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     final progress = _ProgressTracker(
       onProgress: onProgress,
       isCancelled: isCancelled,
+      onPayloadHashStarted: _onPayloadHashStarted,
     );
     try {
       return await _verifyRoots(
@@ -147,6 +154,11 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       );
     } on AttachmentArchiveCandidateVerificationCancelled {
       rethrow;
+    } on _SourceUnavailableFailure catch (error) {
+      return AttachmentArchiveVerificationSourceUnavailable(
+        context: context,
+        issue: error.message,
+      );
     } on _SourceVerificationFailure catch (error) {
       return AttachmentArchiveCandidateVerificationFailed(
         context: context,
@@ -177,6 +189,178 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
   }
 
+  @override
+  Future<AttachmentArchiveApprovalStructuralSnapshot> read({
+    required AttachmentArchiveLocationState sourceLocation,
+    required AttachmentArchiveCandidateAccess candidate,
+    required String expectedSourceCanonicalIdentity,
+    required String expectedCandidateCanonicalIdentity,
+  }) async {
+    final sourcePath = sourceLocation.archiveRootPath;
+    if (!sourceLocation.isAvailable || sourcePath == null) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue:
+            sourceLocation.issue ?? 'The authoritative archive is unavailable.',
+      );
+    }
+
+    final _CanonicalRoot sourceRoot;
+    try {
+      sourceRoot = await _canonicalRoot(sourcePath, label: 'source');
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    }
+    if (sourceRoot.path != expectedSourceCanonicalIdentity) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: 'The canonical source archive changed after verification.',
+      );
+    }
+
+    final _CanonicalRoot candidateRoot;
+    try {
+      candidateRoot = await _canonicalRoot(
+        candidate.directoryPath,
+        label: 'candidate',
+      );
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: error.message,
+      );
+    }
+    if (candidateRoot.path != expectedCandidateCanonicalIdentity) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: 'The canonical candidate archive changed after verification.',
+      );
+    }
+    if (_rootsOverlap(sourceRoot.path, candidateRoot.path)) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: 'The source and candidate archive roots now overlap.',
+      );
+    }
+
+    try {
+      return await _readApprovalSnapshotRoots(
+        sourceRoot: sourceRoot.path,
+        candidateRoot: candidateRoot.path,
+      );
+    } on _SourceUnavailableFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: error.message,
+      );
+    } on _CandidateUnavailableFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable,
+        issue: error.message,
+      );
+    } on _SourceVerificationFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    } on _CandidateStructureFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: error.message,
+      );
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.failed,
+        issue:
+            'Approval revalidation could not read structural evidence: '
+            '${error.message}',
+      );
+    } on StateError catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    }
+  }
+
+  Future<AttachmentArchiveApprovalStructuralSnapshot>
+  _readApprovalSnapshotRoots({
+    required String sourceRoot,
+    required String candidateRoot,
+  }) async {
+    final counters = _VerificationCounters();
+    final sourceFingerprint = _EvidenceDigestBuilder(
+      'messagelens-source-structural-snapshot-v1',
+    );
+    final candidateFingerprint = _EvidenceDigestBuilder(
+      'messagelens-candidate-structural-snapshot-v1',
+    );
+    final progress = _ProgressTracker(
+      onProgress: null,
+      isCancelled: null,
+      onPayloadHashStarted: _onPayloadHashStarted,
+    );
+
+    _addRootStructuralEvidence(sourceFingerprint, sourceRoot, isSource: true);
+    await _verifyGroupedMetadata(
+      sourceRoot: sourceRoot,
+      counters: counters,
+      sourceFingerprint: sourceFingerprint,
+      progress: progress,
+    );
+    await for (final entry in _walk(sourceRoot, progress, isSource: true)) {
+      await _inspectSourceStructureEntry(
+        entry: entry,
+        counters: counters,
+        sourceFingerprint: sourceFingerprint,
+      );
+    }
+
+    _addRootStructuralEvidence(
+      candidateFingerprint,
+      candidateRoot,
+      isSource: false,
+    );
+    await for (final entry in _walk(candidateRoot, progress, isSource: false)) {
+      await _inspectCandidateStructureEntry(
+        entry: entry,
+        sourceRoot: sourceRoot,
+        counters: counters,
+        candidateFingerprint: candidateFingerprint,
+      );
+    }
+
+    return AttachmentArchiveApprovalStructuralSnapshot(
+      sourceCanonicalIdentity: sourceRoot,
+      candidateCanonicalIdentity: candidateRoot,
+      sourceStructuralSnapshotFingerprint: sourceFingerprint.close(),
+      candidateStructuralSnapshotFingerprint: candidateFingerprint.close(),
+      requiredSourcePhysicalFileCount: counters.requiredSourceFileCount,
+      requiredSourceBytes: counters.requiredSourceBytes,
+      structurallyMatchedCandidateFileCount: counters.verifiedFileCount,
+      structurallyMatchedCandidateBytes: counters.verifiedBytes,
+      metadataReferenceCount: counters.metadataReferenceCount,
+      unreferencedPreservationCount: counters.unreferencedPreservationCount,
+      sourceOperationalDebrisCount: counters.sourceDebrisCount,
+      candidateOperationalDebrisCount: counters.candidateDebrisCount,
+      allowedCandidateExtraCount: counters.allowedExtraCount,
+      allowedCandidateExtraBytes: counters.allowedExtraBytes,
+    );
+  }
+
   Future<AttachmentArchiveCandidateVerificationResult> _verifyRoots({
     required _CanonicalRoot sourceRoot,
     required _CanonicalRoot candidateRoot,
@@ -198,7 +382,11 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       'messagelens-archive-content-coverage-v1',
     );
 
-    _addRootStructuralEvidence(sourceFingerprint, sourceRoot.path);
+    _addRootStructuralEvidence(
+      sourceFingerprint,
+      sourceRoot.path,
+      isSource: true,
+    );
 
     progress.setPhase(AttachmentArchiveVerificationPhase.metadata);
     await _verifyGroupedMetadata(
@@ -227,7 +415,11 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
 
     progress.setPhase(AttachmentArchiveVerificationPhase.candidateExtras);
-    _addRootStructuralEvidence(candidateFingerprint, candidateRoot.path);
+    _addRootStructuralEvidence(
+      candidateFingerprint,
+      candidateRoot.path,
+      isSource: false,
+    );
     await for (final entry in _walk(
       candidateRoot.path,
       progress,
@@ -356,9 +548,23 @@ final class FilesystemAttachmentArchiveCandidateVerifier
 
   static void _addRootStructuralEvidence(
     _EvidenceDigestBuilder fingerprint,
-    String root,
-  ) {
-    final stat = Directory(root).statSync();
+    String root, {
+    required bool isSource,
+  }) {
+    final FileStat stat;
+    try {
+      stat = Directory(root).statSync();
+    } on FileSystemException catch (error) {
+      final message = isSource
+          ? 'The authoritative archive became unavailable while checking: '
+                '${error.message}'
+          : 'The candidate archive became unavailable while checking: '
+                '${error.message}';
+      if (isSource) {
+        throw _SourceUnavailableFailure(message);
+      }
+      throw _CandidateUnavailableFailure(message);
+    }
     fingerprint.add(<Object?>[
       'root',
       'directory',
@@ -677,6 +883,134 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     ]);
   }
 
+  Future<void> _inspectSourceStructureEntry({
+    required _ArchiveEntry entry,
+    required _VerificationCounters counters,
+    required _EvidenceDigestBuilder sourceFingerprint,
+  }) async {
+    if (entry.type == FileSystemEntityType.directory) {
+      sourceFingerprint.add(entry.structuralFields('directory'));
+      return;
+    }
+    if (entry.type == FileSystemEntityType.link) {
+      throw _SourceVerificationFailure(
+        'The authoritative archive contains a symbolic link: '
+        '${entry.relativePath}',
+      );
+    }
+    if (entry.type != FileSystemEntityType.file) {
+      throw _SourceVerificationFailure(
+        'The authoritative archive contains a special filesystem entry: '
+        '${entry.relativePath}',
+      );
+    }
+    if (_installerDebrisTarget(entry.relativePath) != null) {
+      counters.sourceDebrisCount++;
+      sourceFingerprint.add(
+        entry.structuralFields(
+          AttachmentArchivePreservationClassification.installerDebris.name,
+        ),
+      );
+      return;
+    }
+
+    final metadata = await _metadataReader.readByRelativePath(
+      entry.relativePath,
+    );
+    final classification = _sourceClassification(
+      relativePath: entry.relativePath,
+      metadata: metadata,
+    );
+    if (classification == null) {
+      throw _SourceVerificationFailure(
+        'The authoritative archive contains an unknown preservation shape: '
+        '${entry.relativePath}',
+      );
+    }
+    if (metadata != null && metadata.fileSizeBytes != entry.sizeBytes) {
+      throw _SourceVerificationFailure(
+        'Attachment metadata size does not match source payload: '
+        '${entry.relativePath}',
+      );
+    }
+
+    sourceFingerprint.add(entry.structuralFields(classification.name));
+    counters.requiredSourceFileCount++;
+    counters.requiredSourceBytes += entry.sizeBytes;
+    if (metadata == null) {
+      counters.unreferencedPreservationCount++;
+    }
+  }
+
+  Future<void> _inspectCandidateStructureEntry({
+    required _ArchiveEntry entry,
+    required String sourceRoot,
+    required _VerificationCounters counters,
+    required _EvidenceDigestBuilder candidateFingerprint,
+  }) async {
+    if (entry.type == FileSystemEntityType.directory) {
+      candidateFingerprint.add(entry.structuralFields('directory'));
+      return;
+    }
+    if (entry.type == FileSystemEntityType.link) {
+      throw _CandidateStructureFailure(
+        'The candidate contains a symbolic link: ${entry.relativePath}',
+      );
+    }
+    if (entry.type != FileSystemEntityType.file) {
+      throw _CandidateStructureFailure(
+        'The candidate contains a special filesystem entry: '
+        '${entry.relativePath}',
+      );
+    }
+    if (_installerDebrisTarget(entry.relativePath) != null) {
+      counters.candidateDebrisCount++;
+      candidateFingerprint.add(
+        entry.structuralFields(
+          AttachmentArchivePreservationClassification.installerDebris.name,
+        ),
+      );
+      return;
+    }
+
+    final sourceInspection = await _inspectExactPath(
+      root: sourceRoot,
+      relativePath: entry.relativePath,
+    );
+    if (sourceInspection.type == FileSystemEntityType.file &&
+        sourceInspection.actualRelativePath == entry.relativePath) {
+      final metadata = await _metadataReader.readByRelativePath(
+        entry.relativePath,
+      );
+      final classification = _sourceClassification(
+        relativePath: entry.relativePath,
+        metadata: metadata,
+      );
+      if (classification == null) {
+        throw _SourceVerificationFailure(
+          'The authoritative archive contains an unknown preservation shape: '
+          '${entry.relativePath}',
+        );
+      }
+      candidateFingerprint.add(entry.structuralFields(classification.name));
+      if (sourceInspection.sizeBytes == entry.sizeBytes) {
+        counters.verifiedFileCount++;
+        counters.verifiedBytes += entry.sizeBytes;
+      }
+      return;
+    }
+
+    final extraClassification = _unreferencedClassification(entry.relativePath);
+    if (extraClassification == null) {
+      throw _CandidateStructureFailure(
+        'The candidate contains an unknown extra entry: ${entry.relativePath}',
+      );
+    }
+    counters.allowedExtraCount++;
+    counters.allowedExtraBytes += entry.sizeBytes;
+    candidateFingerprint.add(entry.structuralFields(extraClassification.name));
+  }
+
   Stream<_ArchiveEntry> _walk(
     String root,
     _ProgressTracker progress, {
@@ -706,7 +1040,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       ).list(followLinks: false).toList();
     } on FileSystemException catch (error) {
       if (isSource) {
-        throw _SourceVerificationFailure(
+        throw _SourceUnavailableFailure(
           'The authoritative archive became unavailable while checking: '
           '${error.message}',
         );
@@ -1095,10 +1429,15 @@ final class _DiagnosticCollector {
 }
 
 final class _ProgressTracker {
-  _ProgressTracker({required this.onProgress, required this.isCancelled});
+  _ProgressTracker({
+    required this.onProgress,
+    required this.isCancelled,
+    required this.onPayloadHashStarted,
+  });
 
   final AttachmentArchiveVerificationProgressCallback? onProgress;
   final bool Function()? isCancelled;
+  final void Function(String path)? onPayloadHashStarted;
   AttachmentArchiveVerificationPhase _phase =
       AttachmentArchiveVerificationPhase.metadata;
   int _filesChecked = 0;
@@ -1120,6 +1459,7 @@ final class _ProgressTracker {
     required AttachmentArchiveVerificationPhase phase,
   }) async {
     _phase = phase;
+    onPayloadHashStarted?.call(file.path);
     final digestSink = _DigestSink();
     final hashSink = sha256.startChunkedConversion(digestSink);
     final input = await file.open();
@@ -1223,6 +1563,12 @@ final class _RootInvalid implements Exception {
 
 final class _SourceVerificationFailure implements Exception {
   const _SourceVerificationFailure(this.message);
+
+  final String message;
+}
+
+final class _SourceUnavailableFailure implements Exception {
+  const _SourceUnavailableFailure(this.message);
 
   final String message;
 }
