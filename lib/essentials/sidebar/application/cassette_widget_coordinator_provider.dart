@@ -3,10 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../features/attachments/feature_level_providers.dart'
     as attachments_feature
-    show
-        attachmentArchiveLocationProvider,
-        attachmentArchiveRelocationExecutionEnabledProvider,
-        attachmentArchiveRelocationWorkflowProvider;
+    show attachmentArchiveLocationProvider;
 import '../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../features/contacts/feature_level_providers.dart'
     as contacts_feature
@@ -288,21 +285,6 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         ),
         orElse: () async => null,
       );
-      final attachmentArchiveRelocation = await settingsSpec.maybeMap(
-        attachmentArchive: (_) async => ref
-            .watch(
-              attachments_feature.attachmentArchiveRelocationWorkflowProvider,
-            )
-            .valueOrNull,
-        orElse: () async => null,
-      );
-      final attachmentArchiveRelocationEnabled = settingsSpec.maybeMap(
-        attachmentArchive: (_) => ref.watch(
-          attachments_feature
-              .attachmentArchiveRelocationExecutionEnabledProvider,
-        ),
-        orElse: () => false,
-      );
 
       final coordinator = ref.read(
         settings_feature.settingsCassetteCoordinatorProvider.notifier,
@@ -312,8 +294,6 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         cassetteIndex: cassetteIndex,
         historicalArchivesKnownSources: historicalArchivesKnownSources,
         attachmentArchiveLocation: attachmentArchiveLocation,
-        attachmentArchiveRelocation: attachmentArchiveRelocation,
-        attachmentArchiveRelocationEnabled: attachmentArchiveRelocationEnabled,
       );
     },
   );

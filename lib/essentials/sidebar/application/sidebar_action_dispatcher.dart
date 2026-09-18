@@ -12,7 +12,6 @@ import '../../../features/handles/feature_level_providers.dart'
 import '../../../features/settings/domain/spec_classes/settings_cassette_spec.dart';
 import '../../../features/settings/feature_level_providers.dart'
     show
-        attachmentArchiveRelocationActionsProvider,
         messageHistoryCoverageReportExporterProvider,
         messageHistoryCoverageReportProvider;
 import '../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
@@ -270,34 +269,6 @@ class SidebarActionDispatcher extends _$SidebarActionDispatcher {
       case ResetMessageDataRequested():
         final startFreshAction = ref.read(advancedStartFreshActionProvider);
         await startFreshAction.request();
-      case AttachmentArchiveMoveRequested():
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .chooseDestination();
-      case AttachmentArchiveChooseAnotherLocationRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .chooseAnotherLocation(operationId);
-      case AttachmentArchiveRetryPreflightRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .retryPreflight(operationId);
-      case AttachmentArchiveBeginRelocationRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .begin(operationId);
-      case AttachmentArchivePauseRelocationRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .pause(operationId);
-      case AttachmentArchiveResumeRelocationRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .resume(operationId);
-      case AttachmentArchiveCancelRelocationRequested(:final operationId):
-        await ref
-            .read(attachmentArchiveRelocationActionsProvider.notifier)
-            .cancel(operationId);
     }
   }
 

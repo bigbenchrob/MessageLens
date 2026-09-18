@@ -1,20 +1,7 @@
 import '../../../../../essentials/sidebar/domain/sidebar_action_intent.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 
-enum AttachmentArchiveSettingsWorkflowView {
-  currentLocation,
-  preparingReview,
-  preflightReview,
-  preflightFailure,
-  copying,
-  verifying,
-  finalizing,
-  activating,
-  paused,
-  cancelled,
-  failed,
-  completed,
-}
+enum AttachmentArchiveSettingsWorkflowView { currentLocation }
 
 final class AttachmentArchiveSettingsStatusLine {
   const AttachmentArchiveSettingsStatusLine({

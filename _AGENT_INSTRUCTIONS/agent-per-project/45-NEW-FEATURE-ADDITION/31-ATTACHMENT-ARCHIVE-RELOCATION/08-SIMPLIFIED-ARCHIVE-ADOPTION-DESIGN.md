@@ -24,6 +24,16 @@ source authority: defaultInternal on WD_ELEMENTS
 copy/verification/activation: not begun
 ```
 
+### Implementation checkpoint status
+
+Checkpoint One disconnects the legacy relocation workflow from Settings,
+sidebar action dispatch, public feature seams, and ordinary runtime
+composition. The legacy engine remains temporarily compiled inside the narrow
+attachments-owned legacy boundary for controlled extraction and removal. Its
+development qualification predicate remains exact but has no production
+consumer. The parked operation is inert and untouched. Candidate verification
+and adoption are not implemented in this checkpoint.
+
 ## 1. Executive summary
 
 MessageLens should stop being an archive-copy program. The user copies the

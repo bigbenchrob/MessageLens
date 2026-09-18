@@ -20,8 +20,6 @@ import 'package:remember_this_text/features/attachments/infrastructure/repositor
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_relocation_journal_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_relocation_metadata_reader.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_settings_store.dart';
-import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart';
-import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -142,7 +140,7 @@ void main() {
     }
 
     test(
-      'production-style Settings acceptance pauses, reconnects, resumes, activates, and retains source',
+      'legacy engine pauses, reconnects, resumes, activates, and retains source',
       () async {
         final expectedSource = await _createSyntheticArchive(
           sourceRoot: sourceRoot,
@@ -152,23 +150,6 @@ void main() {
             .customSelect('SELECT * FROM archived_attachments ORDER BY id')
             .get();
         final service = buildService();
-        final resolver = container.read(
-          attachmentArchiveSettingsResolverProvider.notifier,
-        );
-        final initialLocation = await container.read(
-          attachmentArchiveLocationProvider.future,
-        );
-        final initialUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: initialLocation,
-          relocation: null,
-          relocationEnabled: true,
-        );
-        expect(
-          initialUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.currentLocation,
-        );
-        expect(initialUi.actions.single.label, 'Move…');
 
         final selection = await withRelocationCapability(
           (capability) => service.selectDestination(
@@ -176,17 +157,6 @@ void main() {
             mutationCapability: capability,
           ),
         );
-        final selectedUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: initialLocation,
-          relocation: selection,
-          relocationEnabled: true,
-        );
-        expect(
-          selectedUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.preparingReview,
-        );
-        expect(selectedUi.bodyText, contains('No payloads are being copied'));
 
         final review = await withRelocationCapability(
           (capability) => service.prepareForReview(
@@ -194,17 +164,6 @@ void main() {
             mutationCapability: capability,
           ),
         );
-        final reviewUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: initialLocation,
-          relocation: review,
-          relocationEnabled: true,
-        );
-        expect(
-          reviewUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.preflightReview,
-        );
-        expect(reviewUi.actions.first.label, 'Begin Relocation');
         expect(review.filesCopied, 0);
 
         final paused = await withRelocationCapability(
@@ -217,20 +176,6 @@ void main() {
         expect(paused.stage, AttachmentArchiveRelocationStage.paused);
         expect(paused.filesCopied, 2);
         expect(paused.isResumable, isTrue);
-        final pausedUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: initialLocation,
-          relocation: paused,
-          relocationEnabled: true,
-        );
-        expect(
-          pausedUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.paused,
-        );
-        expect(
-          pausedUi.actions.map((action) => action.label),
-          contains('Resume'),
-        );
         await _expectTreeUnchanged(sourceRoot, expectedSource);
 
         final restartedService = buildService();
@@ -253,19 +198,6 @@ void main() {
           AttachmentArchiveRelocationDeferredReason.destinationUnavailable,
         );
         expect(destinationPaused.filesCopied, 2);
-        final unavailableUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: initialLocation,
-          relocation: destinationPaused,
-          relocationEnabled: true,
-        );
-        expect(unavailableUi.bodyText, contains('destination is unavailable'));
-        expect(
-          unavailableUi.statusLines
-              .singleWhere((line) => line.label == 'Destination availability')
-              .value,
-          'Unavailable',
-        );
         offlineDestination.renameSync(destinationParent.path);
 
         final reconnectedService = buildService();
@@ -307,22 +239,6 @@ void main() {
           currentLocation.archiveRootPath,
           finalRoot.resolveSymbolicLinksSync(),
         );
-        final completedUi = resolver.resolve(
-          cassetteIndex: 2,
-          location: currentLocation,
-          relocation: completed,
-          relocationEnabled: true,
-        );
-        expect(
-          completedUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.completed,
-        );
-        expect(completedUi.title, contains('Moved Successfully'));
-        expect(
-          completedUi.bodyText,
-          contains('original archive is still stored'),
-        );
-        expect(completedUi.actions, isEmpty);
         final writableAdmission = await container.read(
           attachmentArchiveWritableRootAdmissionProvider.future,
         );
@@ -483,19 +399,6 @@ void main() {
           currentLocation.configuration,
           const AttachmentArchiveLocationConfiguration.defaultInternal(),
         );
-        final rollbackUi = container
-            .read(attachmentArchiveSettingsResolverProvider.notifier)
-            .resolve(
-              cassetteIndex: 2,
-              location: currentLocation,
-              relocation: result,
-              relocationEnabled: true,
-            );
-        expect(
-          rollbackUi.workflowView,
-          AttachmentArchiveSettingsWorkflowView.failed,
-        );
-        expect(rollbackUi.title, isNot(contains('Successfully')));
         expect(currentLocation.archiveRootPath, sourceRoot.path);
         await _expectTreeUnchanged(sourceRoot, expectedSource);
         final journal = await journalStore.read(selection.operationId);

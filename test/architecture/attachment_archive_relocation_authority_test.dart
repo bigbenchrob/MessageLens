@@ -3,18 +3,28 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('public seam exposes workflow but not activation internals', () {
-    final seam = File(
-      'lib/features/attachments/feature_level_providers.dart',
-    ).readAsStringSync();
+  test(
+    'public seams expose neither mover execution nor activation internals',
+    () {
+      final seam = File(
+        'lib/features/attachments/feature_level_providers.dart',
+      ).readAsStringSync();
+      final settingsSeam = File(
+        'lib/features/settings/feature_level_providers.dart',
+      ).readAsStringSync();
 
-    expect(seam, contains('attachment_archive_relocation_provider'));
-    expect(
-      seam,
-      isNot(contains('attachment_archive_relocation_activation_gate')),
-    );
-    expect(seam, isNot(contains('AttachmentArchiveRelocationService')));
-  });
+      expect(seam, isNot(contains('attachment_archive_relocation')));
+      expect(
+        seam,
+        isNot(contains('attachment_archive_relocation_activation_gate')),
+      );
+      expect(seam, isNot(contains('AttachmentArchiveRelocationService')));
+      expect(
+        settingsSeam,
+        isNot(contains('attachment_archive_relocation_actions_provider')),
+      );
+    },
+  );
 
   test('only relocation service constructs an active custom configuration', () {
     final offenders = <String>[];
@@ -79,43 +89,54 @@ void main() {
     }
   });
 
-  test('relocation execution gate uses only admitted archive identity', () {
-    final gate = File(
-      'lib/features/attachments/application/'
-      'attachment_archive_relocation_enablement_provider.dart',
-    ).readAsStringSync();
-    final actions = File(
-      'lib/features/settings/application/'
-      'attachment_archive_relocation_actions_provider.dart',
-    ).readAsStringSync();
-    final settingsComposition = File(
-      'lib/essentials/sidebar/application/'
-      'cassette_widget_coordinator_provider.dart',
-    ).readAsStringSync();
+  test(
+    'legacy qualification predicate is exact but has no Settings consumer',
+    () {
+      final gate = File(
+        'lib/features/attachments/application/'
+        'attachment_archive_relocation_enablement_provider.dart',
+      ).readAsStringSync();
+      final actions = File(
+        'lib/features/settings/application/'
+        'attachment_archive_relocation_actions_provider.dart',
+      ).readAsStringSync();
+      final settingsComposition = File(
+        'lib/essentials/sidebar/application/'
+        'cassette_widget_coordinator_provider.dart',
+      ).readAsStringSync();
 
-    expect(gate, contains('admittedArchiveAccessAuthorityProvider'));
-    expect(
-      gate,
-      contains(
-        '/Volumes/WD_ELEMENTS/DEVELOPMENT_DATA_FOLDER/'
-        'MessageLens Development',
-      ),
-    );
-    expect(gate, contains('e9310d3f-8dc8-4436-a48e-c4fb7cf8d4a5'));
-    expect(RegExp(r'/Volumes/').allMatches(gate), hasLength(1));
-    expect(gate, isNot(contains('attachmentArchiveLocationProvider')));
-    expect(gate, isNot(contains('Platform.environment')));
-    expect(gate, isNot(contains('String.fromEnvironment')));
-    expect(gate, isNot(contains('bool.fromEnvironment')));
-    expect(gate, isNot(contains('readSetting')));
-    expect(gate, isNot(contains('writeSetting')));
-    expect(
-      actions,
-      contains('attachmentArchiveRelocationExecutionEnabledProvider'),
-    );
-    expect(
-      settingsComposition,
-      contains('attachmentArchiveRelocationExecutionEnabledProvider'),
-    );
-  });
+      expect(gate, contains('admittedArchiveAccessAuthorityProvider'));
+      expect(
+        gate,
+        contains(
+          '/Volumes/WD_ELEMENTS/DEVELOPMENT_DATA_FOLDER/'
+          'MessageLens Development',
+        ),
+      );
+      expect(gate, contains('e9310d3f-8dc8-4436-a48e-c4fb7cf8d4a5'));
+      expect(RegExp(r'/Volumes/').allMatches(gate), hasLength(1));
+      expect(gate, isNot(contains('attachmentArchiveLocationProvider')));
+      expect(gate, isNot(contains('Platform.environment')));
+      expect(gate, isNot(contains('String.fromEnvironment')));
+      expect(gate, isNot(contains('bool.fromEnvironment')));
+      expect(gate, isNot(contains('readSetting')));
+      expect(gate, isNot(contains('writeSetting')));
+      expect(
+        actions,
+        isNot(contains('attachmentArchiveRelocationExecutionEnabledProvider')),
+      );
+      expect(
+        actions,
+        isNot(contains('attachmentArchiveRelocationWorkflowProvider')),
+      );
+      expect(
+        settingsComposition,
+        isNot(contains('attachmentArchiveRelocationExecutionEnabledProvider')),
+      );
+      expect(
+        settingsComposition,
+        isNot(contains('attachmentArchiveRelocationWorkflowProvider')),
+      );
+    },
+  );
 }

@@ -3,7 +3,6 @@
 // =============================================================================
 
 export './application/archive_source_inspector_provider.dart';
-export './application/attachment_archive_relocation_actions_provider.dart';
 export './application/historical_archive_folder_chooser.dart';
 export './application/historical_archive_folder_chooser_provider.dart';
 export './application/historical_archive_sources.dart';

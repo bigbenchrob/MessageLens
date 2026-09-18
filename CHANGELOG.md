@@ -10,6 +10,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.116] — 2026-09-18
+
+### Changed
+
+- Attachment Archive Settings has returned to location and availability status
+  only while the simplified existing-archive adoption workflow is developed.
+- The superseded MessageLens-owned archive mover is disconnected from Settings,
+  sidebar dispatch, public feature providers, and ordinary runtime journal
+  discovery. Its legacy engine and parked development rehearsal remain inert
+  and untouched for controlled extraction and later cleanup.
+- Active external archive persistence remains restricted to verified internal
+  authority; this checkpoint adds no alternate activation route and does not
+  implement candidate adoption.
+
 ## [0.2.115] — 2026-09-17
 
 ### Added
