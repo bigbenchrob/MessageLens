@@ -129,6 +129,50 @@ void main() {
       ]);
     });
 
+    test('only adoption constructs active custom configuration', () {
+      final offenders = <String>[];
+      final attachmentsRoot = Directory(
+        path.join(repositoryRoot, 'lib/features/attachments'),
+      );
+      for (final file
+          in attachmentsRoot
+              .listSync(recursive: true, followLinks: false)
+              .whereType<File>()
+              .where((file) => file.path.endsWith('.dart'))) {
+        final source = file.readAsStringSync();
+        if (RegExp(
+          r'customWritePolicy:\s*AttachmentArchiveCustomWritePolicy\s*\.\s*activeArchive',
+          multiLine: true,
+        ).hasMatch(source)) {
+          offenders.add(path.relative(file.path, from: repositoryRoot));
+        }
+      }
+
+      expect(offenders, <String>[
+        _attachmentApplicationPath('attachment_archive_adoption_service.dart'),
+      ]);
+    });
+
+    test('ordinary persistence rejects active configuration', () {
+      final controller = read(
+        _attachmentApplicationPath(
+          'attachment_archive_location_controller.dart',
+        ),
+      );
+
+      expect(
+        controller,
+        contains('Active custom attachment archives require verified adoption'),
+      );
+      expect(controller, contains('persistVerifiedAdoptionConfiguration'));
+      expect(
+        controller,
+        contains('AttachmentArchiveAdoptionConfigurationAuthority'),
+      );
+      expect(controller, isNot(contains('persistVerifiedRelocation')));
+      expect(controller, isNot(contains('RelocationActivationPermit')));
+    });
+
     test('activation requires both scope and bookmark admission proofs', () {
       final authority = read(
         _attachmentApplicationPath(

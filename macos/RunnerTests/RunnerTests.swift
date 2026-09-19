@@ -61,25 +61,6 @@ class RunnerTests: XCTestCase {
     XCTAssertNil(resolution.resolvedURL)
   }
 
-  func testAttachmentArchiveImportantUsageCapacityIsAvailable() throws {
-    let directoryURL = FileManager.default.temporaryDirectory
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(
-      at: directoryURL,
-      withIntermediateDirectories: true
-    )
-    addTeardownBlock {
-      try? FileManager.default.removeItem(at: directoryURL)
-    }
-
-    let service = FoundationAttachmentArchiveBookmarkService()
-    let capacity = try service.availableCapacityForImportantUsage(
-      directoryPath: directoryURL.path
-    )
-
-    XCTAssertGreaterThan(capacity, 0)
-  }
-
   func testDevelopmentClaimResolvesDevelopmentRoot() throws {
     let applicationSupportURL = URL(fileURLWithPath: "/tmp/ApplicationSupport")
     let resolver = MessageLensNativeArchiveClaimResolver(

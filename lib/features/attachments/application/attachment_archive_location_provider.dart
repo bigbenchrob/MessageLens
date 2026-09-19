@@ -14,7 +14,6 @@ import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_location_controller.dart';
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_native_adapter.dart';
-import 'attachment_archive_relocation_activation_gate.dart';
 import 'attachment_archive_settings_store_provider.dart';
 
 part 'attachment_archive_location_provider.g.dart';
@@ -238,35 +237,11 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
             AttachmentArchiveCustomWritePolicy.activeArchive) {
       throw StateError(
         'An active external attachment archive must be restored through '
-        'verified relocation.',
+        'verified adoption.',
       );
     }
     await _controllerOrThrow().persistConfiguration(
       const AttachmentArchiveLocationConfiguration.defaultInternal(),
-    );
-    await _refresh(forceGenerationAdvance: true);
-  }
-
-  Future<void> activateVerifiedRelocation({
-    required AttachmentArchiveLocationConfiguration configuration,
-    required AttachmentArchiveRelocationActivationPermit activationPermit,
-  }) async {
-    await _ensureInitialized();
-    await _controllerOrThrow().persistVerifiedRelocationConfiguration(
-      configuration: configuration,
-      activationPermit: activationPermit,
-    );
-    await _refresh(forceGenerationAdvance: true);
-  }
-
-  Future<void> restoreRelocationConfiguration({
-    required AttachmentArchiveLocationConfiguration configuration,
-    required AttachmentArchiveRelocationActivationPermit activationPermit,
-  }) async {
-    await _ensureInitialized();
-    await _controllerOrThrow().restoreRelocationConfiguration(
-      configuration: configuration,
-      activationPermit: activationPermit,
     );
     await _refresh(forceGenerationAdvance: true);
   }
@@ -416,7 +391,7 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
 /// Issues the only writable-root authority accepted by archive mutation paths.
 ///
 /// Custom selections remain mutation-ineligible until their configuration is
-/// explicitly marked active by a later verified relocation workflow.
+/// explicitly marked active by a later verified adoption workflow.
 @Riverpod(keepAlive: true)
 Future<AttachmentArchiveWritableRootAdmission>
 attachmentArchiveWritableRootAdmission(Ref ref) async {

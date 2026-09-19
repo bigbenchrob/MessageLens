@@ -157,6 +157,30 @@ void main() {
       expect(harness.legacyRelocationDirectory.existsSync(), isFalse);
     },
   );
+
+  test('disposable Settings flow reports an unavailable candidate', () async {
+    final harness = await _SettingsHarness.create();
+    addTearDown(harness.dispose);
+    harness.nativeAdapter.resolutionStatus =
+        AttachmentArchiveBookmarkResolutionStatus.unavailable;
+
+    final initial = harness.resolveSettings();
+    await harness.dispatch(initial.actions.single.intent);
+
+    final payload = harness.resolveSettings();
+    expect(payload.workflowView, _View.candidateUnavailable);
+    expect(payload.bodyText, contains('unavailable'));
+    expect(
+      payload.actions.map((action) => action.label),
+      containsAll(<String>['Choose Another Folder', 'Check Again']),
+    );
+    expect(
+      (await harness.readLocation()).configuration?.mode,
+      AttachmentArchiveLocationMode.defaultInternal,
+    );
+    expect(await harness.transactionStore.readPending(), isNull);
+    expect(harness.legacyRelocationDirectory.existsSync(), isFalse);
+  });
 }
 
 typedef _View = AttachmentArchiveSettingsWorkflowView;
@@ -401,11 +425,8 @@ final class _FakeNativeAdapter
   final String candidatePath;
   final StreamController<AttachmentArchiveLocationEvent> _events =
       StreamController<AttachmentArchiveLocationEvent>.broadcast();
-
-  @override
-  Future<int> availableCapacityForImportantUsage(String directoryPath) {
-    throw UnsupportedError('Simplified adoption must not request capacity.');
-  }
+  AttachmentArchiveBookmarkResolutionStatus resolutionStatus =
+      AttachmentArchiveBookmarkResolutionStatus.available;
 
   @override
   Future<AttachmentArchiveBookmarkCreation> createBookmark({
@@ -423,9 +444,18 @@ final class _FakeNativeAdapter
     required String bookmarkDataBase64,
   }) async {
     return AttachmentArchiveBookmarkResolution(
-      status: AttachmentArchiveBookmarkResolutionStatus.available,
-      resolvedPath: candidatePath,
+      status: resolutionStatus,
+      resolvedPath:
+          resolutionStatus ==
+              AttachmentArchiveBookmarkResolutionStatus.available
+          ? candidatePath
+          : null,
       volumeName: 'Disposable',
+      issue:
+          resolutionStatus ==
+              AttachmentArchiveBookmarkResolutionStatus.unavailable
+          ? 'The selected archive copy is unavailable.'
+          : null,
     );
   }
 

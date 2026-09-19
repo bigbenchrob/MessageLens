@@ -171,23 +171,17 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
-  'lib/features/attachments/application/attachment_archive_relocation_enablement_provider.dart',
-  'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
   'lib/main.dart',
 };
 
-const String _attachmentArchiveRelocationQualificationGatePath =
-    'lib/features/attachments/application/'
-    'attachment_archive_relocation_enablement_provider.dart';
 const String _attachmentArchiveAdoptionQualificationGatePath =
     'lib/features/attachments/application/'
     'attachment_archive_adoption_enablement_provider.dart';
 
 const Map<String, Set<String>> _reviewedPersonalPathFragments = {
-  _attachmentArchiveRelocationQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
   _attachmentArchiveAdoptionQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
 };
 
@@ -302,7 +296,6 @@ const Set<String> _unawaitedAllowedFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/sidebar/application/sidebar_flow_state_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
-  'lib/features/attachments/application/attachment_archive_relocation_progress_monitor.dart',
   'lib/features/attachments/application/attachment_archive_service_provider.dart',
   'lib/features/attachments/application/attachment_resolver_provider.dart',
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/contact_picker_actions_provider.dart',
@@ -454,7 +447,6 @@ const Set<String> _platformRuntimeAllowedFiles = {
   'lib/essentials/source_scoped_import/infrastructure/extraction/rust_message_extractor.dart',
   'lib/essentials/window_state/infrastructure/persistence/macos_window_manager.dart',
   'lib/features/attachments/infrastructure/repositories/darwin_atomic_no_overwrite_file_installer.dart',
-  'lib/features/attachments/infrastructure/repositories/darwin_exclusive_directory_finalizer.dart',
   'lib/features/settings/infrastructure/repositories/filesystem_message_history_coverage_report_exporter.dart',
   'lib/main.dart',
 };
@@ -463,7 +455,6 @@ const Set<String> _timerAllowedFiles = {
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
-  'lib/features/attachments/application/attachment_archive_relocation_progress_monitor.dart',
   'lib/features/messages/application/message_evidence/contact_evidence_cache_policy.dart',
   'lib/features/messages/application/message_evidence/message_evidence_spine_provider.dart',
   'lib/features/messages/presentation/view_model/shared/display_widgets/new_display_widgets.dart',
@@ -13329,7 +13320,6 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
     'lib/essentials/onboarding/application/start_fresh_artifact_policy.dart',
   };
   const allowedVolumeLiteralFiles = <String>{
-    _attachmentArchiveRelocationQualificationGatePath,
     _attachmentArchiveAdoptionQualificationGatePath,
   };
   const activeRootConsumerPaths = <String>{
@@ -13396,7 +13386,6 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
     'lib/features/attachments/application/archive_settings_provider.dart',
     'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
-    'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
     'lib/features/attachments/application/deterministic_recovery_provider.dart',
     'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
   };

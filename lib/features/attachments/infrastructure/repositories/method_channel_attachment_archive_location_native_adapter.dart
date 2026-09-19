@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 
 import '../../application/attachment_archive_location_native_adapter.dart';
@@ -18,27 +16,6 @@ final class MethodChannelAttachmentArchiveLocationNativeAdapter
 
   final MethodChannel _methodChannel;
   final EventChannel _eventChannel;
-
-  @override
-  Future<int> availableCapacityForImportantUsage(String directoryPath) async {
-    try {
-      final capacity = await _methodChannel.invokeMethod<int>(
-        'availableCapacityForImportantUsage',
-        <String, Object?>{'directoryPath': directoryPath},
-      );
-      if (capacity == null || capacity < 0) {
-        throw const FormatException(
-          'Native destination capacity is unavailable.',
-        );
-      }
-      return capacity;
-    } on PlatformException catch (error) {
-      throw FileSystemException(
-        error.message ?? 'Native destination capacity lookup failed.',
-        directoryPath,
-      );
-    }
-  }
 
   @override
   Future<AttachmentArchiveBookmarkCreation> createBookmark({

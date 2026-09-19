@@ -10,6 +10,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.121] — 2026-09-19
+
+### Removed
+
+- Removed the unreachable MessageLens-owned attachment archive mover,
+  including its copy state machine, relocation journal, staging/finalization,
+  capacity preflight, pause/resume, progress polling, and legacy Settings
+  action shell.
+- Removed the mover-only macOS Disk Space API and its `E174.1` privacy
+  declaration. Bookmark-backed archive selection and availability monitoring
+  remain unchanged.
+
+### Changed
+
+- The attachment archive feature now has one workflow: the user creates an
+  archive copy, MessageLens verifies it read-only, the user explicitly
+  approves it, and the verified adoption transaction switches locations.
+- Legacy read-only location configuration values remain readable for backward
+  compatibility and normalize to adoption terminology when next persisted.
+
 ## [0.2.120] — 2026-09-19
 
 ### Added

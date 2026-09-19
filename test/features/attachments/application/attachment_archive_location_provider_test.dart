@@ -48,7 +48,7 @@ void main() {
       expect(restored.lastKnownPath, '/Volumes/Disposable/Archive');
       expect(
         restored.customWritePolicy,
-        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
       );
     });
 
@@ -68,6 +68,28 @@ void main() {
       expect(
         restored.customWritePolicy,
         AttachmentArchiveCustomWritePolicy.activeArchive,
+      );
+    });
+
+    test('legacy read-only policy remains backward compatible', () {
+      final restored =
+          AttachmentArchiveLocationConfiguration.fromPersistedValue(
+            jsonEncode(<String, Object>{
+              'formatVersion': 1,
+              'mode': 'custom_external',
+              'bookmarkDataBase64': base64Encode(<int>[7, 8]),
+              'lastKnownPath': '/Volumes/Legacy/Archive',
+              'customWritePolicy': 'read_only_until_verified_relocation',
+            }),
+          );
+
+      expect(
+        restored.customWritePolicy,
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
+      );
+      expect(
+        restored.toJson()['customWritePolicy'],
+        'read_only_until_verified_adoption',
       );
     });
 
@@ -958,11 +980,6 @@ final class _FakeAttachmentArchiveLocationNativeAdapter
   var resolveCalls = 0;
   var eventListenCount = 0;
   var eventCancelCount = 0;
-
-  @override
-  Future<int> availableCapacityForImportantUsage(String directoryPath) async {
-    return 1024 * 1024 * 1024;
-  }
 
   @override
   Future<AttachmentArchiveBookmarkCreation> createBookmark({

@@ -112,32 +112,4 @@ void main() {
       ),
     );
   });
-
-  test('reads important-usage capacity from the native bridge', () async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(methodChannel, (call) async {
-          expect(call.method, 'availableCapacityForImportantUsage');
-          expect(call.arguments, <String, Object?>{
-            'directoryPath': '/Volumes/Disposable',
-          });
-          return 123456789;
-        });
-
-    expect(
-      await adapter.availableCapacityForImportantUsage('/Volumes/Disposable'),
-      123456789,
-    );
-  });
-
-  test('rejects missing or negative native capacity', () async {
-    for (final value in <int?>[null, -1]) {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(methodChannel, (call) async => value);
-
-      await expectLater(
-        adapter.availableCapacityForImportantUsage('/Volumes/Disposable'),
-        throwsFormatException,
-      );
-    }
-  });
 }

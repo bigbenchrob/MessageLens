@@ -854,11 +854,6 @@ final class _FakeNativeAdapter
   void Function()? onResolve;
 
   @override
-  Future<int> availableCapacityForImportantUsage(String directoryPath) async {
-    throw UnsupportedError('Adoption must not request capacity.');
-  }
-
-  @override
   Future<AttachmentArchiveBookmarkCreation> createBookmark({
     required String directoryPath,
   }) async {

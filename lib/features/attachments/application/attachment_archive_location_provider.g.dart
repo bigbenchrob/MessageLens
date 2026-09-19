@@ -12,7 +12,7 @@ String _$attachmentArchiveWritableRootAdmissionHash() =>
 /// Issues the only writable-root authority accepted by archive mutation paths.
 ///
 /// Custom selections remain mutation-ineligible until their configuration is
-/// explicitly marked active by a later verified relocation workflow.
+/// explicitly marked active by a later verified adoption workflow.
 ///
 /// Copied from [attachmentArchiveWritableRootAdmission].
 @ProviderFor(attachmentArchiveWritableRootAdmission)
@@ -32,7 +32,7 @@ final attachmentArchiveWritableRootAdmissionProvider =
 typedef AttachmentArchiveWritableRootAdmissionRef =
     FutureProviderRef<AttachmentArchiveWritableRootAdmission>;
 String _$attachmentArchiveLocationHash() =>
-    r'df325454631f013866dfec866f5813a8e524b231';
+    r'f089d428584de350448e26c356f8244df7398957';
 
 /// Publishes the active attachment-owned archive location.
 ///

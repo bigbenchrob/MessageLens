@@ -230,7 +230,7 @@ void main() {
 AttachmentArchiveLocationConfiguration _customConfiguration({
   int bookmarkByte = 1,
   AttachmentArchiveCustomWritePolicy writePolicy =
-      AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+      AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
 }) {
   return AttachmentArchiveLocationConfiguration.customExternal(
     bookmarkDataBase64: base64Encode(<int>[bookmarkByte]),

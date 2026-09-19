@@ -3,7 +3,6 @@ import '../domain/entities/attachment_archive_location_configuration.dart';
 import '../domain/entities/attachment_archive_location_state.dart';
 import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_location_native_adapter.dart';
-import 'attachment_archive_relocation_activation_gate.dart';
 import 'attachment_archive_settings_store.dart';
 
 const attachmentArchiveLocationSettingKey = 'attachment_archive_location';
@@ -69,26 +68,10 @@ final class AttachmentArchiveLocationController {
     if (configuration.customWritePolicy ==
         AttachmentArchiveCustomWritePolicy.activeArchive) {
       throw StateError(
-        'Active custom attachment archives require verified relocation '
+        'Active custom attachment archives require verified adoption '
         'authority.',
       );
     }
-    await _persistConfigurationUnchecked(configuration);
-  }
-
-  Future<void> persistVerifiedRelocationConfiguration({
-    required AttachmentArchiveLocationConfiguration configuration,
-    required AttachmentArchiveRelocationActivationPermit activationPermit,
-  }) async {
-    activationPermit.requireActivationConfiguration(configuration);
-    await _persistConfigurationUnchecked(configuration);
-  }
-
-  Future<void> restoreRelocationConfiguration({
-    required AttachmentArchiveLocationConfiguration configuration,
-    required AttachmentArchiveRelocationActivationPermit activationPermit,
-  }) async {
-    activationPermit.requireRollbackConfiguration(configuration);
     await _persistConfigurationUnchecked(configuration);
   }
 

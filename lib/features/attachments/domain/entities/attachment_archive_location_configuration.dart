@@ -26,10 +26,10 @@ enum AttachmentArchiveLocationMode {
 
 /// Whether a resolved custom root is eligible for ordinary archive writes.
 ///
-/// Merely selecting a directory never activates it. Phase Five may persist
-/// [activeArchive] only after relocation and verification have succeeded.
+/// Merely selecting a directory never activates it. Only verified adoption
+/// may persist [activeArchive].
 enum AttachmentArchiveCustomWritePolicy {
-  readOnlyUntilVerifiedRelocation('read_only_until_verified_relocation'),
+  readOnlyUntilVerifiedAdoption('read_only_until_verified_adoption'),
   activeArchive('active_archive');
 
   const AttachmentArchiveCustomWritePolicy(this.serializedName);
@@ -38,8 +38,11 @@ enum AttachmentArchiveCustomWritePolicy {
 
   static AttachmentArchiveCustomWritePolicy parse(String value) {
     return switch (value) {
+      // Compatibility with pre-adoption development configurations.
       'read_only_until_verified_relocation' =>
-        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
+      'read_only_until_verified_adoption' =>
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
       'active_archive' => AttachmentArchiveCustomWritePolicy.activeArchive,
       _ => throw FormatException(
         'Unsupported attachment archive custom write policy: $value',
@@ -75,7 +78,7 @@ final class AttachmentArchiveLocationConfiguration {
     required String lastKnownPath,
     String? volumeName,
     AttachmentArchiveCustomWritePolicy customWritePolicy =
-        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+        AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
   }) {
     final normalizedBookmark = _validateBookmarkData(bookmarkDataBase64);
     final normalizedLastKnownPath = lastKnownPath.trim();
@@ -187,7 +190,7 @@ final class AttachmentArchiveLocationConfiguration {
       volumeName: volumeName,
       customWritePolicy:
           customWritePolicy ??
-          AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation,
+          AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption,
     );
   }
 
@@ -255,7 +258,7 @@ final class AttachmentArchiveLocationConfiguration {
   ) {
     final value = json['customWritePolicy'];
     if (value == null) {
-      return AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedRelocation;
+      return AttachmentArchiveCustomWritePolicy.readOnlyUntilVerifiedAdoption;
     }
     if (value is! String) {
       throw const FormatException(
