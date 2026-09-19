@@ -38,6 +38,57 @@ abstract interface class AttachmentArchiveApprovalCandidateAccessReader {
   );
 }
 
+/// Opaque proof that one exact ready result was produced in the active scope.
+///
+/// Only this library can construct implementations. The proof cannot be
+/// serialized and expires with the coordinator capability that produced it.
+sealed class AttachmentArchiveApprovalScopeProof {
+  const AttachmentArchiveApprovalScopeProof._({
+    required AttachmentArchiveApprovalReadyEvidence readyEvidence,
+    required ArchiveMutationCapability capability,
+  }) : _readyEvidence = readyEvidence,
+       _capability = capability;
+
+  final AttachmentArchiveApprovalReadyEvidence _readyEvidence;
+  final ArchiveMutationCapability _capability;
+
+  void requireExactReadyEvidence({
+    required AttachmentArchiveApprovalReadyEvidence readyEvidence,
+    required ArchiveMutationCapability capability,
+  }) {
+    capability.requireOperation(
+      ArchiveMutationOperation.attachmentArchiveAdoption,
+    );
+    _capability.requireOperation(
+      ArchiveMutationOperation.attachmentArchiveAdoption,
+    );
+    if (!identical(capability, _capability) ||
+        !identical(readyEvidence, _readyEvidence)) {
+      throw StateError(
+        'Archive approval scope proof belongs to another revalidation.',
+      );
+    }
+  }
+}
+
+final class _AttachmentArchiveApprovalScopeProof
+    extends AttachmentArchiveApprovalScopeProof {
+  const _AttachmentArchiveApprovalScopeProof({
+    required super.readyEvidence,
+    required super.capability,
+  }) : super._();
+}
+
+final class AttachmentArchiveScopedApprovalRevalidation {
+  const AttachmentArchiveScopedApprovalRevalidation({
+    required this.result,
+    this.scopeProof,
+  });
+
+  final AttachmentArchiveApprovalRevalidationResult result;
+  final AttachmentArchiveApprovalScopeProof? scopeProof;
+}
+
 /// Performs the short approval-time comparison while archive mutation is held.
 ///
 /// [revalidate] acquires and releases coordination around this checkpoint-only
@@ -190,6 +241,28 @@ final class AttachmentArchiveApprovalRevalidator {
         contentCoverageDigest: verified.contentCoverageDigest,
         revalidatedAtUtc: _clock().toUtc(),
       ),
+    );
+  }
+
+  /// Revalidates and binds a ready result to this exact active adoption scope.
+  Future<AttachmentArchiveScopedApprovalRevalidation>
+  revalidateForAdoptionWithinApprovalScope({
+    required AttachmentArchiveCandidateComplete verification,
+    required ArchiveMutationCapability capability,
+  }) async {
+    final result = await revalidateWithinApprovalScope(
+      verification: verification,
+      capability: capability,
+    );
+    final readyEvidence = result.readyEvidence;
+    return AttachmentArchiveScopedApprovalRevalidation(
+      result: result,
+      scopeProof: readyEvidence == null
+          ? null
+          : _AttachmentArchiveApprovalScopeProof(
+              readyEvidence: readyEvidence,
+              capability: capability,
+            ),
     );
   }
 

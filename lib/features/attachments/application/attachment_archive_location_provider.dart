@@ -10,6 +10,7 @@ import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider;
 import '../domain/entities/attachment_archive_location_configuration.dart';
 import '../domain/entities/attachment_archive_location_state.dart';
+import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_location_controller.dart';
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_native_adapter.dart';
@@ -114,6 +115,12 @@ final class AttachmentArchiveWritableRootLease {
         issue: validation.issue,
       );
     }
+  }
+
+  bool matchesConfiguration(
+    AttachmentArchiveLocationConfiguration configuration,
+  ) {
+    return _configurationIdentity == configuration;
   }
 }
 
@@ -260,6 +267,30 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
     await _controllerOrThrow().restoreRelocationConfiguration(
       configuration: configuration,
       activationPermit: activationPermit,
+    );
+    await _refresh(forceGenerationAdvance: true);
+  }
+
+  Future<void> activateVerifiedAdoption({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveAdoptionConfigurationAuthority adoptionAuthority,
+  }) async {
+    await _ensureInitialized();
+    await _controllerOrThrow().persistVerifiedAdoptionConfiguration(
+      configuration: configuration,
+      adoptionAuthority: adoptionAuthority,
+    );
+    await _refresh(forceGenerationAdvance: true);
+  }
+
+  Future<void> restoreAdoptionConfiguration({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveAdoptionConfigurationAuthority adoptionAuthority,
+  }) async {
+    await _ensureInitialized();
+    await _controllerOrThrow().restoreAdoptionConfiguration(
+      configuration: configuration,
+      adoptionAuthority: adoptionAuthority,
     );
     await _refresh(forceGenerationAdvance: true);
   }

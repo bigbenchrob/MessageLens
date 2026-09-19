@@ -10,6 +10,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.119] — 2026-09-18
+
+### Added
+
+- Verified attachment-archive adoption now revalidates a complete candidate,
+  creates and resolves its Foundation bookmark, persists a tiny crash-safe
+  configuration-switch transaction, and activates the candidate under one
+  uninterrupted archive-mutation coordinator scope.
+- Adoption success requires the normal location authority, a matching
+  post-switch candidate structural fingerprint, and the existing Phase Four
+  writable-root lease. External destructive reset remains denied.
+- Deterministic rollback and bounded startup recovery restore the exact
+  previous archive configuration or retain an explicit pending state when the
+  previous source is unavailable or an unrelated configuration appears.
+
+### Changed
+
+- Active external configuration persistence now has an adoption-owned,
+  process-local authority bound to the exact durable transaction, freshly
+  approved evidence, configurations, roots, generation, and coordinator scope.
+- The adoption transaction lives beneath the admitted MessageLens root but
+  outside `attachment_archive`; it contains no payload manifest, copy state,
+  relocation progress, capacity evidence, or reusable mutation authority.
+- Adoption remains internal in this checkpoint. Settings integration, payload
+  copying/moving/deletion, retained-source UI, and legacy relocation execution
+  remain absent.
+
 ## [0.2.118] — 2026-09-18
 
 ### Added

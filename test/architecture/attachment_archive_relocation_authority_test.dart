@@ -26,7 +26,7 @@ void main() {
     },
   );
 
-  test('only relocation service constructs an active custom configuration', () {
+  test('only verified internal services construct active custom configuration', () {
     final offenders = <String>[];
     for (final entity in Directory(
       'lib/features/attachments',
@@ -45,6 +45,7 @@ void main() {
 
     expect(offenders, <String>[
       'lib/features/attachments/application/attachment_archive_relocation_service.dart',
+      'lib/features/attachments/application/attachment_archive_adoption_service.dart',
     ]);
   });
 

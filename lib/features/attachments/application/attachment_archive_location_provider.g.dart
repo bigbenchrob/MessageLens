@@ -32,7 +32,7 @@ final attachmentArchiveWritableRootAdmissionProvider =
 typedef AttachmentArchiveWritableRootAdmissionRef =
     FutureProviderRef<AttachmentArchiveWritableRootAdmission>;
 String _$attachmentArchiveLocationHash() =>
-    r'a1e0821cbddaa5f4a4cfa1659ee2e4a8a33f7065';
+    r'df325454631f013866dfec866f5813a8e524b231';
 
 /// Publishes the active attachment-owned archive location.
 ///

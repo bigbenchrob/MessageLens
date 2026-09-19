@@ -296,6 +296,101 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
   }
 
+  @override
+  Future<AttachmentArchiveApprovalCandidateStructuralSnapshot> readCandidate({
+    required String sourceCanonicalIdentity,
+    required AttachmentArchiveCandidateAccess candidate,
+    required String expectedCandidateCanonicalIdentity,
+  }) async {
+    final _CanonicalRoot sourceRoot;
+    try {
+      sourceRoot = await _canonicalRoot(
+        sourceCanonicalIdentity,
+        label: 'source',
+      );
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    }
+    if (sourceRoot.path != sourceCanonicalIdentity) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: 'The canonical source archive changed after verification.',
+      );
+    }
+
+    final _CanonicalRoot candidateRoot;
+    try {
+      candidateRoot = await _canonicalRoot(
+        candidate.directoryPath,
+        label: 'candidate',
+      );
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: error.message,
+      );
+    }
+    if (candidateRoot.path != expectedCandidateCanonicalIdentity) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: 'The canonical candidate archive changed after verification.',
+      );
+    }
+    if (_rootsOverlap(sourceRoot.path, candidateRoot.path)) {
+      throw const AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: 'The source and candidate archive roots now overlap.',
+      );
+    }
+
+    try {
+      return await _readCandidateApprovalSnapshotRoot(
+        sourceRoot: sourceRoot.path,
+        candidateRoot: candidateRoot.path,
+      );
+    } on _SourceUnavailableFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: error.message,
+      );
+    } on _CandidateUnavailableFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable,
+        issue: error.message,
+      );
+    } on _SourceVerificationFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    } on _CandidateStructureFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: error.message,
+      );
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.failed,
+        issue:
+            'Post-switch validation could not read structural evidence: '
+            '${error.message}',
+      );
+    }
+  }
+
   Future<AttachmentArchiveApprovalStructuralSnapshot>
   _readApprovalSnapshotRoots({
     required String sourceRoot,
@@ -355,6 +450,44 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       metadataReferenceCount: counters.metadataReferenceCount,
       unreferencedPreservationCount: counters.unreferencedPreservationCount,
       sourceOperationalDebrisCount: counters.sourceDebrisCount,
+      candidateOperationalDebrisCount: counters.candidateDebrisCount,
+      allowedCandidateExtraCount: counters.allowedExtraCount,
+      allowedCandidateExtraBytes: counters.allowedExtraBytes,
+    );
+  }
+
+  Future<AttachmentArchiveApprovalCandidateStructuralSnapshot>
+  _readCandidateApprovalSnapshotRoot({
+    required String sourceRoot,
+    required String candidateRoot,
+  }) async {
+    final counters = _VerificationCounters();
+    final candidateFingerprint = _EvidenceDigestBuilder(
+      'messagelens-candidate-structural-snapshot-v1',
+    );
+    final progress = _ProgressTracker(
+      onProgress: null,
+      isCancelled: null,
+      onPayloadHashStarted: _onPayloadHashStarted,
+    );
+    _addRootStructuralEvidence(
+      candidateFingerprint,
+      candidateRoot,
+      isSource: false,
+    );
+    await for (final entry in _walk(candidateRoot, progress, isSource: false)) {
+      await _inspectCandidateStructureEntry(
+        entry: entry,
+        sourceRoot: sourceRoot,
+        counters: counters,
+        candidateFingerprint: candidateFingerprint,
+      );
+    }
+    return AttachmentArchiveApprovalCandidateStructuralSnapshot(
+      candidateCanonicalIdentity: candidateRoot,
+      candidateStructuralSnapshotFingerprint: candidateFingerprint.close(),
+      structurallyMatchedCandidateFileCount: counters.verifiedFileCount,
+      structurallyMatchedCandidateBytes: counters.verifiedBytes,
       candidateOperationalDebrisCount: counters.candidateDebrisCount,
       allowedCandidateExtraCount: counters.allowedExtraCount,
       allowedCandidateExtraBytes: counters.allowedExtraBytes,

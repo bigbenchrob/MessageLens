@@ -168,6 +168,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/attachment_archive_relocation_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
@@ -13387,6 +13388,7 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
       'lib/features/attachments/application/attachment_archive_file_store.dart';
   const admissionConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',
+    'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
     'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
     'lib/features/attachments/application/deterministic_recovery_provider.dart',

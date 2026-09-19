@@ -737,6 +737,19 @@ final class _RecordingSnapshotReader
       expectedCandidateCanonicalIdentity: expectedCandidateCanonicalIdentity,
     );
   }
+
+  @override
+  Future<AttachmentArchiveApprovalCandidateStructuralSnapshot> readCandidate({
+    required String sourceCanonicalIdentity,
+    required AttachmentArchiveCandidateAccess candidate,
+    required String expectedCandidateCanonicalIdentity,
+  }) {
+    return delegate.readCandidate(
+      sourceCanonicalIdentity: sourceCanonicalIdentity,
+      candidate: candidate,
+      expectedCandidateCanonicalIdentity: expectedCandidateCanonicalIdentity,
+    );
+  }
 }
 
 Future<File> _write(

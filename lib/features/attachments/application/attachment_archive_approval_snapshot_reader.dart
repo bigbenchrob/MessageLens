@@ -38,6 +38,27 @@ final class AttachmentArchiveApprovalStructuralSnapshot {
   final int allowedCandidateExtraBytes;
 }
 
+/// Candidate-only structural evidence recomputed after configuration switch.
+final class AttachmentArchiveApprovalCandidateStructuralSnapshot {
+  const AttachmentArchiveApprovalCandidateStructuralSnapshot({
+    required this.candidateCanonicalIdentity,
+    required this.candidateStructuralSnapshotFingerprint,
+    required this.structurallyMatchedCandidateFileCount,
+    required this.structurallyMatchedCandidateBytes,
+    required this.candidateOperationalDebrisCount,
+    required this.allowedCandidateExtraCount,
+    required this.allowedCandidateExtraBytes,
+  });
+
+  final String candidateCanonicalIdentity;
+  final String candidateStructuralSnapshotFingerprint;
+  final int structurallyMatchedCandidateFileCount;
+  final int structurallyMatchedCandidateBytes;
+  final int candidateOperationalDebrisCount;
+  final int allowedCandidateExtraCount;
+  final int allowedCandidateExtraBytes;
+}
+
 enum AttachmentArchiveApprovalSnapshotFailureKind {
   sourceChanged,
   candidateChanged,
@@ -67,6 +88,12 @@ abstract interface class AttachmentArchiveApprovalSnapshotReader {
     required AttachmentArchiveLocationState sourceLocation,
     required AttachmentArchiveCandidateAccess candidate,
     required String expectedSourceCanonicalIdentity,
+    required String expectedCandidateCanonicalIdentity,
+  });
+
+  Future<AttachmentArchiveApprovalCandidateStructuralSnapshot> readCandidate({
+    required String sourceCanonicalIdentity,
+    required AttachmentArchiveCandidateAccess candidate,
     required String expectedCandidateCanonicalIdentity,
   });
 }

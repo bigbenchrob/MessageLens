@@ -1,6 +1,7 @@
 import '../../../essentials/archive_environment/domain/archive_access_authority.dart';
 import '../domain/entities/attachment_archive_location_configuration.dart';
 import '../domain/entities/attachment_archive_location_state.dart';
+import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_location_native_adapter.dart';
 import 'attachment_archive_relocation_activation_gate.dart';
 import 'attachment_archive_settings_store.dart';
@@ -88,6 +89,22 @@ final class AttachmentArchiveLocationController {
     required AttachmentArchiveRelocationActivationPermit activationPermit,
   }) async {
     activationPermit.requireRollbackConfiguration(configuration);
+    await _persistConfigurationUnchecked(configuration);
+  }
+
+  Future<void> persistVerifiedAdoptionConfiguration({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveAdoptionConfigurationAuthority adoptionAuthority,
+  }) async {
+    adoptionAuthority.requireActivationConfiguration(configuration);
+    await _persistConfigurationUnchecked(configuration);
+  }
+
+  Future<void> restoreAdoptionConfiguration({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required AttachmentArchiveAdoptionConfigurationAuthority adoptionAuthority,
+  }) async {
+    adoptionAuthority.requireRollbackConfiguration(configuration);
     await _persistConfigurationUnchecked(configuration);
   }
 
