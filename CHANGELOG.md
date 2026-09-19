@@ -10,6 +10,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.120] — 2026-09-19
+
+### Added
+
+- Attachment Archive Settings now offers a development-qualified **Use Existing
+  Archive…** workflow that selects the copied `attachment_archive` directory,
+  performs read-only verification, and requires a separate **Use This Archive**
+  approval before the active location can change.
+- Typed Settings states now explain checking progress, complete copies, copies
+  that are behind, invalid or unavailable candidates, read-only candidates,
+  approval-time changes, switching, success, rollback, and pending recovery.
+- Disposable end-to-end coverage proves the post-check source-change race
+  requires **Check Again**, successful adoption issues the normal writable-root
+  lease for the candidate, and transaction failure restores the prior location.
+
+### Changed
+
+- MessageLens now verifies and adopts an archive copy the user made separately;
+  it does not copy, move, synchronize, repair, or delete attachment payloads.
+  The original archive remains untouched and is never used as silent fallback.
+- This simplified Settings workflow supersedes the disabled copy/move workflow
+  described in 0.2.115. The legacy mover remains compiled but unreachable until
+  its separately reviewed removal checkpoint.
+- Adoption remains fail-closed to the exact approved MessageLens Development
+  identity. Production adoption and the manual development rehearsal remain
+  disabled pending separate authorization.
+
 ## [0.2.119] — 2026-09-18
 
 ### Added

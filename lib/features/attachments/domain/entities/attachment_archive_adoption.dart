@@ -257,6 +257,7 @@ enum AttachmentArchiveAdoptionOutcome {
   sourceUnavailable,
   candidateUnavailable,
   candidateNoLongerWritable,
+  verificationEvidenceInvalid,
   rollbackRestoredPrevious,
   rollbackPendingPreviousUnavailable,
   configurationConflict,

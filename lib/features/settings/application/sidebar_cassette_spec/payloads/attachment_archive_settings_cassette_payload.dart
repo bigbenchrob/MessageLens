@@ -1,7 +1,24 @@
 import '../../../../../essentials/sidebar/domain/sidebar_action_intent.dart';
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 
-enum AttachmentArchiveSettingsWorkflowView { currentLocation }
+enum AttachmentArchiveSettingsWorkflowView {
+  currentLocation,
+  checking,
+  candidateComplete,
+  candidateBehind,
+  candidateInvalid,
+  sourceUnavailable,
+  candidateUnavailable,
+  verificationFailed,
+  archiveChanged,
+  candidateNoLongerWritable,
+  switching,
+  success,
+  rollbackRestoredPrevious,
+  rollbackPendingPreviousUnavailable,
+  configurationConflict,
+  failed,
+}
 
 final class AttachmentArchiveSettingsStatusLine {
   const AttachmentArchiveSettingsStatusLine({

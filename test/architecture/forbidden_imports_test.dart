@@ -169,6 +169,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/attachment_archive_relocation_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_relocation_provider.dart',
@@ -181,9 +182,13 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
 const String _attachmentArchiveRelocationQualificationGatePath =
     'lib/features/attachments/application/'
     'attachment_archive_relocation_enablement_provider.dart';
+const String _attachmentArchiveAdoptionQualificationGatePath =
+    'lib/features/attachments/application/'
+    'attachment_archive_adoption_enablement_provider.dart';
 
 const Map<String, Set<String>> _reviewedPersonalPathFragments = {
   _attachmentArchiveRelocationQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
+  _attachmentArchiveAdoptionQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
 };
 
 const Set<String> _applicationSupportResolutionAllowedFiles = {'lib/main.dart'};
@@ -13325,6 +13330,7 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
   };
   const allowedVolumeLiteralFiles = <String>{
     _attachmentArchiveRelocationQualificationGatePath,
+    _attachmentArchiveAdoptionQualificationGatePath,
   };
   const activeRootConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',

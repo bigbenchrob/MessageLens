@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../features/attachments/feature_level_providers.dart'
+    show attachmentArchiveAdoptionWorkflowProvider;
 import '../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../features/contacts/feature_level_providers.dart'
     show contactAccessActionsProvider;
@@ -269,6 +271,26 @@ class SidebarActionDispatcher extends _$SidebarActionDispatcher {
       case ResetMessageDataRequested():
         final startFreshAction = ref.read(advancedStartFreshActionProvider);
         await startFreshAction.request();
+      case AttachmentArchiveUseExistingRequested():
+        await ref
+            .read(attachmentArchiveAdoptionWorkflowProvider.notifier)
+            .chooseExistingArchive();
+      case AttachmentArchiveChooseAnotherFolderRequested():
+        await ref
+            .read(attachmentArchiveAdoptionWorkflowProvider.notifier)
+            .chooseAnotherFolder();
+      case AttachmentArchiveCheckAgainRequested():
+        await ref
+            .read(attachmentArchiveAdoptionWorkflowProvider.notifier)
+            .checkAgain();
+      case AttachmentArchiveUseCandidateRequested():
+        await ref
+            .read(attachmentArchiveAdoptionWorkflowProvider.notifier)
+            .useCandidate();
+      case AttachmentArchiveCancelCheckRequested():
+        await ref
+            .read(attachmentArchiveAdoptionWorkflowProvider.notifier)
+            .cancelCheck();
     }
   }
 

@@ -12,6 +12,7 @@ import '../domain/entities/attachment_archive_location_state.dart';
 import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_adoption_root_inspector.dart';
 import 'attachment_archive_adoption_transaction_store.dart';
+import 'attachment_archive_adoption_workflow.dart';
 import 'attachment_archive_approval_revalidator.dart';
 import 'attachment_archive_approval_snapshot_reader.dart';
 import 'attachment_archive_bookmark_adapter.dart';
@@ -72,7 +73,8 @@ final class AttachmentArchiveAdoptionBookmarkProof {
 }
 
 /// Runs verified archive adoption inside one uninterrupted coordinator scope.
-final class AttachmentArchiveAdoptionService {
+final class AttachmentArchiveAdoptionService
+    implements AttachmentArchiveAdoptionExecutor {
   AttachmentArchiveAdoptionService({
     required ArchiveAccessAuthority archiveAccessAuthority,
     required ArchiveMutationCoordinator mutationCoordinator,
@@ -125,6 +127,7 @@ final class AttachmentArchiveAdoptionService {
   final DateTime Function() _clock;
   final AttachmentArchiveAdoptionFailureInjector _failureInjector;
 
+  @override
   Future<AttachmentArchiveAdoptionResult> adopt(
     AttachmentArchiveCandidateComplete verification,
   ) {
@@ -586,10 +589,11 @@ final class AttachmentArchiveAdoptionService {
       AttachmentArchiveApprovalRevalidationOutcome.candidateNoLongerWritable =>
         AttachmentArchiveAdoptionOutcome.candidateNoLongerWritable,
       AttachmentArchiveApprovalRevalidationOutcome.approvalReady ||
-      AttachmentArchiveApprovalRevalidationOutcome
-          .verificationEvidenceInvalid ||
       AttachmentArchiveApprovalRevalidationOutcome.failed =>
         AttachmentArchiveAdoptionOutcome.failed,
+      AttachmentArchiveApprovalRevalidationOutcome
+          .verificationEvidenceInvalid =>
+        AttachmentArchiveAdoptionOutcome.verificationEvidenceInvalid,
     };
     return AttachmentArchiveAdoptionResult(
       outcome: outcome,

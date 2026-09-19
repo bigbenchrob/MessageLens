@@ -82,7 +82,7 @@ void main() {
       }
     });
 
-    test('Settings has no adoption activation dependency', () {
+    test('Settings reaches adoption only through the workflow boundary', () {
       final settingsRoot = Directory(
         path.join(repositoryRoot, 'lib/features/settings'),
       );
@@ -93,8 +93,16 @@ void main() {
 
       for (final file in dartFiles) {
         final source = file.readAsStringSync();
-        expect(source, isNot(contains('attachment_archive_adoption')));
         expect(source, isNot(contains('activateVerifiedAdoption')));
+        expect(
+          source,
+          isNot(contains('attachmentArchiveAdoptionServiceProvider')),
+        );
+        expect(
+          source,
+          isNot(contains('AttachmentArchiveAdoptionConfigurationAuthority')),
+        );
+        expect(source, isNot(contains('persistConfiguration')));
       }
     });
 

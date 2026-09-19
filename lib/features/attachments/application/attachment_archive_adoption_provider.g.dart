@@ -31,7 +31,7 @@ final attachmentArchiveAdoptionServiceProvider =
 typedef AttachmentArchiveAdoptionServiceRef =
     AutoDisposeFutureProviderRef<AttachmentArchiveAdoptionService>;
 String _$attachmentArchiveAdoptionRecoveryHash() =>
-    r'03e8cd67328d2c5fc07c39cb23eb5a729eb27bfc';
+    r'0778e67e24a4a629c68610c5e96a84522b59c57f';
 
 /// Performs the bounded startup rollback check for an interrupted adoption.
 ///

@@ -80,33 +80,36 @@ Future<AttachmentArchiveAdoptionService> attachmentArchiveAdoptionService(
 Future<AttachmentArchiveAdoptionResult> attachmentArchiveAdoptionRecovery(
   Ref ref,
 ) async {
-  final authority = ref.watch(archiveAccessAuthorityProvider);
-  final transactionStore = FilesystemAttachmentArchiveAdoptionTransactionStore(
-    archiveAccessAuthority: authority,
-  );
-  final nativeAdapter = ref.watch(
-    attachmentArchiveLocationNativeAdapterProvider,
-  );
-  final service = AttachmentArchiveAdoptionRecoveryService(
-    archiveAccessAuthority: authority,
-    mutationCoordinator: ref.read(archiveMutationCoordinatorProvider.notifier),
-    transactionStore: transactionStore,
-    authorityIssuer: AttachmentArchiveAdoptionAuthorityIssuer(
-      transactionStore: transactionStore,
-    ),
-    bookmarkAdapter: nativeAdapter,
-    rootInspector: const FilesystemAttachmentArchiveAdoptionRootInspector(),
-    readLocation: () => ref.read(attachmentArchiveLocationProvider.future),
-    restoreLocation: ({required configuration, required adoptionAuthority}) {
-      return ref
-          .read(attachmentArchiveLocationProvider.notifier)
-          .restoreAdoptionConfiguration(
-            configuration: configuration,
-            adoptionAuthority: adoptionAuthority,
-          );
-    },
-  );
   try {
+    final authority = ref.watch(archiveAccessAuthorityProvider);
+    final transactionStore =
+        FilesystemAttachmentArchiveAdoptionTransactionStore(
+          archiveAccessAuthority: authority,
+        );
+    final nativeAdapter = ref.watch(
+      attachmentArchiveLocationNativeAdapterProvider,
+    );
+    final service = AttachmentArchiveAdoptionRecoveryService(
+      archiveAccessAuthority: authority,
+      mutationCoordinator: ref.read(
+        archiveMutationCoordinatorProvider.notifier,
+      ),
+      transactionStore: transactionStore,
+      authorityIssuer: AttachmentArchiveAdoptionAuthorityIssuer(
+        transactionStore: transactionStore,
+      ),
+      bookmarkAdapter: nativeAdapter,
+      rootInspector: const FilesystemAttachmentArchiveAdoptionRootInspector(),
+      readLocation: () => ref.read(attachmentArchiveLocationProvider.future),
+      restoreLocation: ({required configuration, required adoptionAuthority}) {
+        return ref
+            .read(attachmentArchiveLocationProvider.notifier)
+            .restoreAdoptionConfiguration(
+              configuration: configuration,
+              adoptionAuthority: adoptionAuthority,
+            );
+      },
+    );
     return await service.recoverPending();
   } on Object catch (error) {
     return AttachmentArchiveAdoptionResult(
