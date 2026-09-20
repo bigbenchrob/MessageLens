@@ -20,6 +20,13 @@ class AttachmentArchiveSettingsSupplementalContent extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
+    final hasWorkflowTitle =
+        payload.workflowTitle != null &&
+        payload.workflowTitle!.trim().isNotEmpty;
+    final hasWorkflowBody =
+        payload.workflowBodyText != null &&
+        payload.workflowBodyText!.trim().isNotEmpty;
+    final hasWorkflowResult = hasWorkflowTitle || hasWorkflowBody;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,6 +81,34 @@ class AttachmentArchiveSettingsSupplementalContent extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
+        ],
+        if (hasWorkflowResult) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Column(
+            key: ValueKey<String>(
+              'attachment-archive-workflow-${payload.workflowView.name}',
+            ),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasWorkflowTitle)
+                Text(
+                  payload.workflowTitle!,
+                  style: typography.infoCardTitle.copyWith(
+                    color: colors.content.textPrimary,
+                  ),
+                ),
+              if (hasWorkflowTitle && hasWorkflowBody)
+                const SizedBox(height: AppSpacing.sm),
+              if (hasWorkflowBody)
+                Text(
+                  payload.workflowBodyText!,
+                  style: typography.infoCardBody.copyWith(
+                    color: colors.content.textSecondary,
+                  ),
+                ),
+            ],
           ),
         ],
         if (payload.actions.isNotEmpty) ...[

@@ -10,6 +10,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.122] — 2026-09-20
+
+### Fixed
+
+- Attachment archive verification now ignores regular files with the exact
+  `.DS_Store` basename as Finder metadata without hashing, counting, copying,
+  or treating one-sided presence as a preservation mismatch. Near names and
+  all other unknown archive files continue to fail closed.
+- Attachment Archive Settings now presents the physical current volume and
+  connection status, gives explicit copied-folder chooser guidance, and keeps
+  check progress, results, and their actions together below the selected-copy
+  summary.
+
+### Changed
+
+- Archive-copy actions now use task-oriented wording: **Choose Archive
+  Copy…**, **Select This Archive**, **Choose a Different Copy**, and **Use This
+  Copy**. Internal location and candidate-state terminology remains typed but
+  is no longer shown as user-facing vocabulary.
+
 ## [0.2.121] — 2026-09-19
 
 ### Removed

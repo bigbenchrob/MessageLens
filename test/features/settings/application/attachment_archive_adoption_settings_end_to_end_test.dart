@@ -50,12 +50,12 @@ void main() {
       final initialCandidate = await _payloadSnapshot(harness.candidate);
 
       var payload = harness.resolveSettings();
-      expect(payload.actions.single.label, 'Use Existing Archive…');
+      expect(payload.actions.single.label, 'Choose Archive Copy…');
       await harness.dispatch(payload.actions.single.intent);
 
       payload = harness.resolveSettings();
       expect(payload.workflowView, _View.candidateComplete);
-      expect(payload.actions.last.label, 'Use This Archive');
+      expect(payload.actions.last.label, 'Use This Copy');
       expect(await harness.transactionStore.readPending(), isNull);
       expect(await _payloadSnapshot(harness.source), initialSource);
       expect(await _payloadSnapshot(harness.candidate), initialCandidate);
@@ -76,15 +76,18 @@ void main() {
       await harness.dispatch(payload.actions.single.intent);
       payload = harness.resolveSettings();
       expect(payload.workflowView, _View.candidateComplete);
-      expect(payload.bodyText, contains('Archive copy verified'));
+      expect(payload.workflowTitle, 'Archive copy verified');
       final candidateBeforeAdoption = await _payloadSnapshot(harness.candidate);
 
       await harness.dispatch(payload.actions.last.intent);
 
       payload = harness.resolveSettings();
       expect(payload.workflowView, _View.success);
-      expect(payload.bodyText, contains('External archive active'));
-      expect(payload.bodyText, contains('MessageLens has not deleted it'));
+      expect(payload.workflowTitle, 'Attachment archive switched');
+      expect(
+        payload.workflowBodyText,
+        contains('MessageLens has not deleted it'),
+      );
       final location = await harness.readLocation();
       expect(
         location.availability,
@@ -144,8 +147,14 @@ void main() {
 
       payload = harness.resolveSettings();
       expect(payload.workflowView, _View.rollbackRestoredPrevious);
-      expect(payload.bodyText, contains('restored the previous archive'));
-      expect(payload.bodyText, isNot(contains('External archive active')));
+      expect(
+        payload.workflowBodyText,
+        contains('restored the previous archive'),
+      );
+      expect(
+        payload.workflowTitle,
+        isNot(contains('Attachment archive switched')),
+      );
       final location = await harness.readLocation();
       expect(
         location.configuration?.mode,
@@ -169,10 +178,10 @@ void main() {
 
     final payload = harness.resolveSettings();
     expect(payload.workflowView, _View.candidateUnavailable);
-    expect(payload.bodyText, contains('unavailable'));
+    expect(payload.workflowTitle, contains('unavailable'));
     expect(
       payload.actions.map((action) => action.label),
-      containsAll(<String>['Choose Another Folder', 'Check Again']),
+      containsAll(<String>['Choose a Different Copy', 'Try Again']),
     );
     expect(
       (await harness.readLocation()).configuration?.mode,

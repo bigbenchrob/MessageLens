@@ -640,6 +640,12 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       for (final group in page.groups) {
         progress.checkCancellation();
         final relativePath = _validateRelativePath(group.relativePath);
+        if (_isIgnoredFilesystemMetadataPath(relativePath)) {
+          throw _SourceVerificationFailure(
+            'Attachment metadata unexpectedly references ignored filesystem '
+            'metadata: $relativePath',
+          );
+        }
         if (afterRelativePath != null &&
             relativePath.compareTo(afterRelativePath) <= 0) {
           throw const _SourceVerificationFailure(
@@ -1209,6 +1215,10 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         throw _CandidateStructureFailure(message);
       }
       final type = FileSystemEntity.typeSync(child.path, followLinks: false);
+      if (type == FileSystemEntityType.file &&
+          _isIgnoredFilesystemMetadataPath(relativePath)) {
+        continue;
+      }
       FileStat? stat;
       if (type == FileSystemEntityType.file ||
           type == FileSystemEntityType.directory) {
@@ -1233,6 +1243,10 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         );
       }
     }
+  }
+
+  static bool _isIgnoredFilesystemMetadataPath(String relativePath) {
+    return path.basename(relativePath) == '.DS_Store';
   }
 
   Future<_ExactPathInspection> _inspectExactPath({

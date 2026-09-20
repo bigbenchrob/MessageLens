@@ -176,6 +176,104 @@ void main() {
       },
     );
 
+    test(
+      'source-only .DS_Store is ignored without hashing or preservation coverage',
+      () async {
+        final hashedPaths = <String>[];
+        await _write(source, '.DS_Store', <int>[1, 2, 3]);
+
+        final result =
+            await _verifier(
+              metadataReader,
+              onPayloadHashStarted: hashedPaths.add,
+            ).verify(
+              sourceLocation: _sourceLocation(source),
+              candidate: _candidate(candidate),
+            );
+
+        expect(result, isA<AttachmentArchiveCandidateComplete>());
+        expect(result.evidence!.requiredSourcePhysicalFileCount, 0);
+        expect(result.evidence!.requiredSourceBytes, 0);
+        expect(result.evidence!.missingCount, 0);
+        expect(hashedPaths, isEmpty);
+      },
+    );
+
+    test(
+      'candidate-only .DS_Store is ignored without hashing or extra evidence',
+      () async {
+        final hashedPaths = <String>[];
+        await _write(candidate, '.DS_Store', <int>[4, 5, 6]);
+
+        final result =
+            await _verifier(
+              metadataReader,
+              onPayloadHashStarted: hashedPaths.add,
+            ).verify(
+              sourceLocation: _sourceLocation(source),
+              candidate: _candidate(candidate),
+            );
+
+        expect(result, isA<AttachmentArchiveCandidateComplete>());
+        expect(result.evidence!.allowedCandidateExtraCount, 0);
+        expect(result.evidence!.allowedCandidateExtraBytes, 0);
+        expect(hashedPaths, isEmpty);
+      },
+    );
+
+    test(
+      'near .DS_Store names and ordinary unknown files fail closed',
+      () async {
+        await _write(candidate, '.DS_Store.foo', <int>[1]);
+
+        final nearName = await _verifier(metadataReader).verify(
+          sourceLocation: _sourceLocation(source),
+          candidate: _candidate(candidate),
+        );
+
+        expect(nearName, isA<AttachmentArchiveCandidateInvalid>());
+        expect(nearName.issue, contains('.DS_Store.foo'));
+
+        await File(path.join(candidate.path, '.DS_Store.foo')).delete();
+        await _write(source, 'ordinary-unknown.txt', <int>[2]);
+
+        final ordinaryUnknown = await _verifier(metadataReader).verify(
+          sourceLocation: _sourceLocation(source),
+          candidate: _candidate(candidate),
+        );
+
+        expect(
+          ordinaryUnknown,
+          isA<AttachmentArchiveCandidateVerificationFailed>(),
+        );
+        expect(ordinaryUnknown.issue, contains('ordinary-unknown.txt'));
+      },
+    );
+
+    test(
+      'metadata-known .DS_Store fails closed instead of being ignored',
+      () async {
+        final bytes = <int>[1, 2, 3];
+        await _write(source, '.DS_Store', bytes);
+        await _insertMetadata(
+          database,
+          guid: 'unexpected-finder-metadata',
+          attachmentId: 91,
+          relativePath: '.DS_Store',
+          bytes: bytes,
+          hash: sha256.convert(bytes).toString(),
+        );
+
+        final result = await _verifier(metadataReader).verify(
+          sourceLocation: _sourceLocation(source),
+          candidate: _candidate(candidate),
+        );
+
+        expect(result, isA<AttachmentArchiveCandidateVerificationFailed>());
+        expect(result.issue, contains('unexpectedly references'));
+      },
+    );
+
     test('behind reports one missing file and exact bytes', () async {
       await _writeMetadataPayload(
         database,
@@ -841,10 +939,12 @@ void main() {
 FilesystemAttachmentArchiveCandidateVerifier _verifier(
   AttachmentArchiveVerificationMetadataReader reader, {
   int metadataPageSize = 500,
+  void Function(String path)? onPayloadHashStarted,
 }) {
   return FilesystemAttachmentArchiveCandidateVerifier(
     metadataReader: reader,
     metadataPageSize: metadataPageSize,
+    onPayloadHashStarted: onPayloadHashStarted,
     clock: () => DateTime.utc(2026, 9, 18, 12),
   );
 }

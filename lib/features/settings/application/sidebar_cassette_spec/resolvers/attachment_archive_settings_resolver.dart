@@ -9,7 +9,8 @@ import '../../../../attachments/feature_level_providers.dart'
         AttachmentArchiveAdoptionWorkflowState,
         AttachmentArchiveLocationAvailability,
         AttachmentArchiveLocationState,
-        AttachmentArchiveVerificationPhase;
+        AttachmentArchiveVerificationPhase,
+        AttachmentArchiveVerificationProgress;
 import '../payloads/attachment_archive_settings_cassette_payload.dart';
 
 part 'attachment_archive_settings_resolver.g.dart';
@@ -17,6 +18,33 @@ part 'attachment_archive_settings_resolver.g.dart';
 @riverpod
 class AttachmentArchiveSettingsResolver
     extends _$AttachmentArchiveSettingsResolver {
+  static const _checkingExplanation =
+      'MessageLens is automatically checking the current archive and the '
+      'selected copy. Neither archive is being changed.';
+  static const _currentUnavailableExplanation =
+      'MessageLens cannot check the selected copy until the current archive '
+      'is available.';
+  static const _archiveChangedExplanation =
+      'MessageLens did not switch archives. Check the copy again before '
+      'using it.';
+  static const _readOnlyCopyExplanation =
+      'MessageLens can read this archive copy, but cannot use it as the active '
+      'archive because it is not writable.';
+  static const _rollbackRestoredExplanation =
+      'MessageLens restored the previous archive location. Both archive '
+      'folders remain untouched.';
+  static const _recoveryPendingExplanation =
+      'MessageLens has not reported success and has not fallen back to another '
+      'archive.';
+  static const _configurationConflictExplanation =
+      'MessageLens did not guess which archive should be authoritative. Both '
+      'archive folders remain untouched.';
+  static const _copySelectionExplanation =
+      'If you’ve copied your attachment_archive folder somewhere else, '
+      'MessageLens can check the copy before switching to it. Select the '
+      'copied attachment_archive folder itself. MessageLens will not copy or '
+      'move it.';
+
   @override
   void build() {}
 
@@ -26,12 +54,17 @@ class AttachmentArchiveSettingsResolver
     required AttachmentArchiveAdoptionWorkflowState workflow,
     AttachmentArchiveAdoptionResult? recovery,
   }) {
+    final stableBodyText = _stableContextText(
+      location: location,
+      workflow: workflow,
+    );
     if (workflow.stage ==
         AttachmentArchiveAdoptionWorkflowStage.currentArchive) {
       final recoveryPayload = _resolveRecovery(
         cassetteIndex: cassetteIndex,
         location: location,
         recovery: recovery,
+        stableBodyText: stableBodyText,
       );
       if (recoveryPayload != null) {
         return recoveryPayload;
@@ -43,24 +76,18 @@ class AttachmentArchiveSettingsResolver
         cassetteIndex: cassetteIndex,
         location: location,
         workflow: workflow,
+        stableBodyText: stableBodyText,
       ),
       AttachmentArchiveAdoptionWorkflowStage.checking => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.checking,
-        bodyText:
-            'Checking archive copy…\n\nMessageLens is reading the current '
-            'archive and the selected copy. Neither archive is being changed.',
-        statusLines: [
-          ..._pathLines(workflow),
-          if (workflow.progress case final progress?)
-            AttachmentArchiveSettingsStatusLine(
-              label: 'Progress',
-              value:
-                  '${_phaseLabel(progress.phase)} · '
-                  '${progress.filesChecked} files · '
-                  '${_formatBytes(progress.bytesChecked)}',
-            ),
-        ],
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Checking archive copy…',
+        workflowBodyText: [
+          _checkingExplanation,
+          if (workflow.progress case final progress?) _progressLabel(progress),
+        ].join('\n\n'),
+        statusLines: [..._copyLines(workflow)],
         actions: const [
           SidebarActionDescriptor(
             label: 'Cancel',
@@ -69,21 +96,33 @@ class AttachmentArchiveSettingsResolver
         ],
       ),
       AttachmentArchiveAdoptionWorkflowStage.candidateComplete =>
-        _resolveComplete(cassetteIndex: cassetteIndex, workflow: workflow),
+        _resolveComplete(
+          cassetteIndex: cassetteIndex,
+          workflow: workflow,
+          stableBodyText: stableBodyText,
+        ),
       AttachmentArchiveAdoptionWorkflowStage.candidateBehind => _resolveBehind(
         cassetteIndex: cassetteIndex,
         workflow: workflow,
+        stableBodyText: stableBodyText,
       ),
       AttachmentArchiveAdoptionWorkflowStage.candidateInvalid => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.candidateInvalid,
-        bodyText:
-            'Selected folder cannot be used as an attachment archive\n\n'
-            '${workflow.issue ?? 'The selected archive structure is invalid.'}',
-        statusLines: _pathLines(workflow),
+        stableBodyText: stableBodyText,
+        workflowTitle: 'This copy couldn’t be verified',
+        workflowBodyText: [
+          'MessageLens checked the archive copy you selected but found:',
+          _userFacingIssue(
+            workflow.issue,
+            fallback: 'The selected folder is not a valid archive copy.',
+          ),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
         actions: const [
           SidebarActionDescriptor(
-            label: 'Choose Another Folder',
+            label: 'Choose a Different Copy',
             intent: AttachmentArchiveChooseAnotherFolderRequested(),
           ),
         ],
@@ -91,16 +130,19 @@ class AttachmentArchiveSettingsResolver
       AttachmentArchiveAdoptionWorkflowStage.sourceUnavailable => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.sourceUnavailable,
-        bodyText:
-            'Current archive is unavailable\n\nMessageLens cannot verify '
-            'another archive until the current archive is available. No '
-            'location was changed.',
-        statusLines: _pathLines(workflow),
-        footnote: workflow.issue,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Current archive unavailable',
+        workflowBodyText: [
+          _currentUnavailableExplanation,
+          if (workflow.issue case final issue?) _userFacingIssue(issue),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
         actions: const [
           SidebarActionDescriptor(
-            label: 'Check Again',
+            label: 'Try Again',
             intent: AttachmentArchiveCheckAgainRequested(),
+            tone: SidebarActionTone.primary,
           ),
         ],
       ),
@@ -108,18 +150,21 @@ class AttachmentArchiveSettingsResolver
         cassetteIndex: cassetteIndex,
         workflowView:
             AttachmentArchiveSettingsWorkflowView.candidateUnavailable,
-        bodyText:
-            'The selected archive copy is unavailable. No location was '
-            'changed.',
-        statusLines: _pathLines(workflow),
-        footnote: workflow.issue,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Selected copy unavailable',
+        workflowBodyText: [
+          'MessageLens could not read the archive copy you selected.',
+          if (workflow.issue case final issue?) _userFacingIssue(issue),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow, connection: 'Unavailable'),
         actions: const [
           SidebarActionDescriptor(
-            label: 'Choose Another Folder',
+            label: 'Choose a Different Copy',
             intent: AttachmentArchiveChooseAnotherFolderRequested(),
           ),
           SidebarActionDescriptor(
-            label: 'Check Again',
+            label: 'Try Again',
             intent: AttachmentArchiveCheckAgainRequested(),
             tone: SidebarActionTone.primary,
           ),
@@ -130,16 +175,24 @@ class AttachmentArchiveSettingsResolver
           .verificationEvidenceInvalid => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.verificationFailed,
-        bodyText: 'The archive must be checked again before it can be used.',
-        statusLines: _pathLines(workflow),
-        footnote: workflow.issue,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'This copy couldn’t be verified',
+        workflowBodyText: [
+          'MessageLens checked the archive copy you selected but found:',
+          _userFacingIssue(
+            workflow.issue,
+            fallback: 'The verification evidence is no longer valid.',
+          ),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
         actions: const [
           SidebarActionDescriptor(
-            label: 'Choose Another Folder',
+            label: 'Choose a Different Copy',
             intent: AttachmentArchiveChooseAnotherFolderRequested(),
           ),
           SidebarActionDescriptor(
-            label: 'Check Again',
+            label: 'Try Again',
             intent: AttachmentArchiveCheckAgainRequested(),
             tone: SidebarActionTone.primary,
           ),
@@ -148,11 +201,14 @@ class AttachmentArchiveSettingsResolver
       AttachmentArchiveAdoptionWorkflowStage.archiveChanged => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.archiveChanged,
-        bodyText:
-            'The archive changed since it was checked\n\nNo location was '
-            'changed. Check the copy again before using it.',
-        statusLines: _pathLines(workflow),
-        footnote: workflow.issue,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'The archive changed since it was checked',
+        workflowBodyText: [
+          _archiveChangedExplanation,
+          if (workflow.issue case final issue?) _userFacingIssue(issue),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
         actions: const [
           SidebarActionDescriptor(
             label: 'Check Again',
@@ -166,83 +222,75 @@ class AttachmentArchiveSettingsResolver
           cassetteIndex: cassetteIndex,
           workflowView:
               AttachmentArchiveSettingsWorkflowView.candidateNoLongerWritable,
-          bodyText:
-              'This archive copy can be read, but MessageLens cannot use it '
-              'as the active archive because it is not writable. No location '
-              'was changed.',
-          statusLines: _pathLines(workflow),
-          footnote: workflow.issue,
+          stableBodyText: stableBodyText,
+          workflowTitle: 'This copy can’t be used',
+          workflowBodyText: [
+            _readOnlyCopyExplanation,
+            if (workflow.issue case final issue?) _userFacingIssue(issue),
+            _unchangedMessage(workflow),
+          ].join('\n\n'),
+          statusLines: _copyLines(workflow, connection: 'Read-only'),
           actions: const [
             SidebarActionDescriptor(
-              label: 'Choose Another Folder',
+              label: 'Choose a Different Copy',
               intent: AttachmentArchiveChooseAnotherFolderRequested(),
-            ),
-            SidebarActionDescriptor(
-              label: 'Check Again',
-              intent: AttachmentArchiveCheckAgainRequested(),
-              tone: SidebarActionTone.primary,
             ),
           ],
         ),
       AttachmentArchiveAdoptionWorkflowStage.switching => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.switching,
-        bodyText:
-            'Switching archive location…\n\nMessageLens is validating the '
-            'new active location. No attachment payloads are being copied or '
-            'moved.',
-        statusLines: _pathLines(workflow),
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Switching to archive copy…',
+        workflowBodyText:
+            'MessageLens is validating the new active location. No attachment '
+            'payloads are being copied, moved, or deleted.',
+        statusLines: _copyLines(workflow),
       ),
       AttachmentArchiveAdoptionWorkflowStage.success => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.success,
-        bodyText:
-            'External archive active\n\n'
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Attachment archive switched',
+        workflowBodyText:
+            'MessageLens is now using:\n'
             '${workflow.candidatePath ?? location.archiveRootPath ?? ''}\n\n'
-            'The original archive remains at:\n'
+            '${workflow.candidateVolumeName ?? _volumeNameForPath(workflow.candidatePath) ?? 'Archive volume'} · Connected\n\n'
+            'Your original archive is still at:\n'
             '${workflow.sourcePath ?? ''}\n\n'
-            'Keep the original for a few days while you confirm that '
-            'everything is working normally. MessageLens has not deleted it.',
-        statusLines: [
-          const AttachmentArchiveSettingsStatusLine(
-            label: 'Location',
-            value: 'External',
-          ),
-          if (workflow.candidateVolumeName case final volumeName?)
-            AttachmentArchiveSettingsStatusLine(
-              label: 'Volume',
-              value: volumeName,
-            ),
-          const AttachmentArchiveSettingsStatusLine(
-            label: 'Availability',
-            value: 'Available',
-          ),
-        ],
+            'Keep the original for a few days while you make sure everything '
+            'is working normally.\n\nMessageLens has not deleted it.',
       ),
       AttachmentArchiveAdoptionWorkflowStage.rollbackRestoredPrevious =>
         _rollbackRestoredPayload(
           cassetteIndex: cassetteIndex,
           workflow: workflow,
+          stableBodyText: stableBodyText,
         ),
       AttachmentArchiveAdoptionWorkflowStage
           .rollbackPendingPreviousUnavailable =>
         _recoveryPendingPayload(
           cassetteIndex: cassetteIndex,
           issue: workflow.issue,
+          stableBodyText: stableBodyText,
         ),
       AttachmentArchiveAdoptionWorkflowStage.configurationConflict =>
         _configurationConflictPayload(
           cassetteIndex: cassetteIndex,
           issue: workflow.issue,
+          stableBodyText: stableBodyText,
         ),
       AttachmentArchiveAdoptionWorkflowStage.failed => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.failed,
-        bodyText:
-            'Archive location was not changed\n\nMessageLens could not '
-            'complete the archive-location switch.',
-        statusLines: _pathLines(workflow),
-        footnote: workflow.issue,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Archive location was not changed',
+        workflowBodyText: [
+          'MessageLens could not complete the archive-location switch.',
+          if (workflow.issue case final issue?) _userFacingIssue(issue),
+          _unchangedMessage(workflow),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
       ),
     };
   }
@@ -251,122 +299,60 @@ class AttachmentArchiveSettingsResolver
     required int cassetteIndex,
     required AttachmentArchiveLocationState location,
     required AttachmentArchiveAdoptionWorkflowState workflow,
+    required String stableBodyText,
   }) {
-    final displayPath =
-        location.archiveRootPath ?? location.lastKnownDisplayPath;
-    final isInternal =
-        location.availability ==
-        AttachmentArchiveLocationAvailability.defaultAvailable;
-    final status = switch (location.availability) {
-      AttachmentArchiveLocationAvailability.defaultAvailable =>
-        'The built-in attachment archive is available.',
-      AttachmentArchiveLocationAvailability.customAvailable =>
-        'The external attachment archive is connected and available for reads.',
-      AttachmentArchiveLocationAvailability.customReadOnly =>
-        'The external attachment archive is connected in read-only mode.',
-      AttachmentArchiveLocationAvailability.customUnavailable =>
-        'The external attachment archive is unavailable. Message browsing and '
-            'search remain available; reconnect the configured volume to read '
-            'archived payloads.',
-      AttachmentArchiveLocationAvailability.permissionDenied =>
-        'Permission to read the external attachment archive was denied. '
-            'Messages and search remain available.',
-      AttachmentArchiveLocationAvailability.configuredDirectoryMissing =>
-        'The configured attachment archive directory is missing. Messages and '
-            'search remain available.',
-      AttachmentArchiveLocationAvailability.configurationInvalid =>
-        'The external attachment archive configuration is invalid. Messages '
-            'and search remain available.',
-    };
-    final issue = location.issue;
     final canStart = workflow.executionEnabled && location.isAvailable;
-    const adoptionExplanation =
-        'Already copied your archive? Select the copied attachment_archive '
-        'folder and MessageLens will check it. MessageLens will not copy or '
-        'move the folder.';
     return AttachmentArchiveSettingsCassettePayload(
       cassetteIndex: cassetteIndex,
-      bodyText: [
-        status,
-        if (location.configuration?.volumeName case final volumeName?)
-          'Volume: $volumeName',
-        if (displayPath != null && displayPath.isNotEmpty)
-          'Location: $displayPath',
-        if (issue != null && issue.isNotEmpty) 'Status detail: $issue',
-        if (workflow.executionEnabled) adoptionExplanation,
-      ].join('\n\n'),
-      statusLines: [
-        AttachmentArchiveSettingsStatusLine(
-          label: 'Location',
-          value: isInternal ? 'Internal' : 'External',
-        ),
-        if (location.configuration?.volumeName case final volumeName?)
-          AttachmentArchiveSettingsStatusLine(
-            label: 'Volume',
-            value: volumeName,
-          ),
-        AttachmentArchiveSettingsStatusLine(
-          label: 'Availability',
-          value: _availabilityLabel(location.availability),
-        ),
-      ],
+      bodyText: stableBodyText,
       actions: workflow.executionEnabled
           ? [
               SidebarActionDescriptor(
-                label: 'Use Existing Archive…',
+                label: 'Choose Archive Copy…',
                 intent: const AttachmentArchiveUseExistingRequested(),
                 tone: SidebarActionTone.primary,
                 isEnabled: canStart,
               ),
             ]
           : const [],
-      footnote: isInternal
-          ? null
-          : 'The external archive remains authoritative when available. '
-                'MessageLens does not silently fall back to an internal copy.',
     );
   }
 
   AttachmentArchiveSettingsCassettePayload _resolveComplete({
     required int cassetteIndex,
     required AttachmentArchiveAdoptionWorkflowState workflow,
+    required String stableBodyText,
   }) {
     final verifiedFileCount = workflow.verifiedFileCount ?? 0;
     final verifiedBytes = workflow.verifiedBytes ?? 0;
     final extras = workflow.allowedExtraCount ?? 0;
-    final readOnlyExplanation = workflow.candidateIsAdoptable
-        ? null
-        : 'This archive copy can be read, but MessageLens cannot use it as the '
-              'active archive because it is not writable.';
     const coverageExplanation =
         'Everything currently stored in the active attachment archive is '
         'present in this copy.';
     final extrasExplanation =
         'The selected copy also contains $extras additional preserved '
         '${_plural(extras, 'attachment')}.';
+    final verifiedSummary =
+        '$verifiedFileCount ${_plural(verifiedFileCount, 'file')} · '
+        '${_formatBytes(verifiedBytes)} verified';
     return _payload(
       cassetteIndex: cassetteIndex,
       workflowView: AttachmentArchiveSettingsWorkflowView.candidateComplete,
-      bodyText: [
-        'Archive copy verified',
+      stableBodyText: stableBodyText,
+      workflowTitle: workflow.candidateIsAdoptable
+          ? 'Archive copy verified'
+          : 'This copy can’t be used',
+      workflowBodyText: [
+        verifiedSummary,
         coverageExplanation,
         if (extras > 0) extrasExplanation,
-        if (readOnlyExplanation != null) readOnlyExplanation,
+        if (!workflow.candidateIsAdoptable) _readOnlyCopyExplanation,
+        _unchangedMessage(workflow),
       ].join('\n\n'),
-      statusLines: [
-        ..._pathLines(workflow),
-        AttachmentArchiveSettingsStatusLine(
-          label: 'Verified',
-          value:
-              '$verifiedFileCount ${_plural(verifiedFileCount, 'file')} / '
-              '${_formatBytes(verifiedBytes)}',
-        ),
-        if (extras > 0)
-          AttachmentArchiveSettingsStatusLine(
-            label: 'Additional preserved attachments',
-            value: '$extras / ${_formatBytes(workflow.allowedExtraBytes ?? 0)}',
-          ),
-      ],
+      statusLines: _copyLines(
+        workflow,
+        connection: workflow.candidateIsAdoptable ? 'Connected' : 'Read-only',
+      ),
       actions: workflow.candidateIsAdoptable
           ? const [
               SidebarActionDescriptor(
@@ -374,20 +360,15 @@ class AttachmentArchiveSettingsResolver
                 intent: AttachmentArchiveCancelCheckRequested(),
               ),
               SidebarActionDescriptor(
-                label: 'Use This Archive',
+                label: 'Use This Copy',
                 intent: AttachmentArchiveUseCandidateRequested(),
                 tone: SidebarActionTone.primary,
               ),
             ]
           : const [
               SidebarActionDescriptor(
-                label: 'Choose Another Folder',
+                label: 'Choose a Different Copy',
                 intent: AttachmentArchiveChooseAnotherFolderRequested(),
-              ),
-              SidebarActionDescriptor(
-                label: 'Check Again',
-                intent: AttachmentArchiveCheckAgainRequested(),
-                tone: SidebarActionTone.primary,
               ),
             ],
     );
@@ -396,32 +377,24 @@ class AttachmentArchiveSettingsResolver
   AttachmentArchiveSettingsCassettePayload _resolveBehind({
     required int cassetteIndex,
     required AttachmentArchiveAdoptionWorkflowState workflow,
+    required String stableBodyText,
   }) {
     final missingCount = workflow.missingCount ?? 0;
     final missingBytes = workflow.missingBytes ?? 0;
     return _payload(
       cassetteIndex: cassetteIndex,
       workflowView: AttachmentArchiveSettingsWorkflowView.candidateBehind,
-      bodyText:
-          'Archive copy is not up to date\n\nThe active archive contains '
+      stableBodyText: stableBodyText,
+      workflowTitle: 'This copy is not up to date',
+      workflowBodyText:
+          'MessageLens checked the copy and found:\n\n'
           '$missingCount ${_plural(missingCount, 'attachment')} '
-          '(${_formatBytes(missingBytes)}) that '
-          '${missingCount == 1 ? 'is' : 'are'} not present in the selected '
-          'copy.\n\nUpdate your external copy, then check it again.',
-      statusLines: [
-        ..._pathLines(workflow),
-        AttachmentArchiveSettingsStatusLine(
-          label: 'Missing from copy',
-          value:
-              '$missingCount ${_plural(missingCount, 'attachment')} / '
-              '${_formatBytes(missingBytes)}',
-        ),
-      ],
+          '(${_formatBytes(missingBytes)}) in the current archive that '
+          '${missingCount == 1 ? 'is' : 'are'} not in the copy.\n\n'
+          '${_unchangedMessage(workflow)}\n\n'
+          'Update the copied folder, then check it again.',
+      statusLines: _copyLines(workflow),
       actions: const [
-        SidebarActionDescriptor(
-          label: 'Choose Another Folder',
-          intent: AttachmentArchiveChooseAnotherFolderRequested(),
-        ),
         SidebarActionDescriptor(
           label: 'Check Again',
           intent: AttachmentArchiveCheckAgainRequested(),
@@ -435,6 +408,7 @@ class AttachmentArchiveSettingsResolver
     required int cassetteIndex,
     required AttachmentArchiveLocationState location,
     required AttachmentArchiveAdoptionResult? recovery,
+    required String stableBodyText,
   }) {
     if (recovery == null || recovery.transactionId == null) {
       return null;
@@ -451,16 +425,19 @@ class AttachmentArchiveSettingsResolver
                 location.archiveRootPath ?? location.lastKnownDisplayPath,
             issue: recovery.issue,
           ),
+          stableBodyText: stableBodyText,
         ),
       AttachmentArchiveAdoptionOutcome.rollbackPendingPreviousUnavailable ||
       AttachmentArchiveAdoptionOutcome.failed => _recoveryPendingPayload(
         cassetteIndex: cassetteIndex,
         issue: recovery.issue,
+        stableBodyText: stableBodyText,
       ),
       AttachmentArchiveAdoptionOutcome.configurationConflict =>
         _configurationConflictPayload(
           cassetteIndex: cassetteIndex,
           issue: recovery.issue,
+          stableBodyText: stableBodyText,
         ),
       _ => null,
     };
@@ -469,106 +446,190 @@ class AttachmentArchiveSettingsResolver
   AttachmentArchiveSettingsCassettePayload _rollbackRestoredPayload({
     required int cassetteIndex,
     required AttachmentArchiveAdoptionWorkflowState workflow,
+    required String stableBodyText,
   }) {
     return _payload(
       cassetteIndex: cassetteIndex,
       workflowView:
           AttachmentArchiveSettingsWorkflowView.rollbackRestoredPrevious,
-      bodyText:
-          'Archive location was not changed\n\nMessageLens restored the '
-          'previous archive location. Both archive folders remain untouched.',
-      statusLines: _pathLines(workflow),
-      footnote: workflow.issue,
+      stableBodyText: stableBodyText,
+      workflowTitle: 'Archive location was not changed',
+      workflowBodyText: [
+        _rollbackRestoredExplanation,
+        if (workflow.issue case final issue?) _userFacingIssue(issue),
+      ].join('\n\n'),
+      statusLines: _copyLines(workflow),
     );
   }
 
   AttachmentArchiveSettingsCassettePayload _recoveryPendingPayload({
     required int cassetteIndex,
     required String? issue,
+    required String stableBodyText,
   }) {
     return _payload(
       cassetteIndex: cassetteIndex,
       workflowView: AttachmentArchiveSettingsWorkflowView
           .rollbackPendingPreviousUnavailable,
-      bodyText:
-          'Archive location recovery is waiting for the previous archive\n\n'
-          'MessageLens has not reported success and has not fallen back to '
-          'another archive.',
-      footnote: issue,
+      stableBodyText: stableBodyText,
+      workflowTitle:
+          'Archive location recovery is waiting for the previous archive',
+      workflowBodyText: [
+        _recoveryPendingExplanation,
+        if (issue != null) _userFacingIssue(issue),
+      ].join('\n\n'),
     );
   }
 
   AttachmentArchiveSettingsCassettePayload _configurationConflictPayload({
     required int cassetteIndex,
     required String? issue,
+    required String stableBodyText,
   }) {
     return _payload(
       cassetteIndex: cassetteIndex,
       workflowView: AttachmentArchiveSettingsWorkflowView.configurationConflict,
-      bodyText:
-          'Archive location changed unexpectedly\n\nMessageLens did not '
-          'guess which archive should be authoritative. Both archive folders '
-          'remain untouched.',
-      footnote: issue,
+      stableBodyText: stableBodyText,
+      workflowTitle: 'Archive location changed unexpectedly',
+      workflowBodyText: [
+        _configurationConflictExplanation,
+        if (issue != null) _userFacingIssue(issue),
+      ].join('\n\n'),
     );
   }
 
   AttachmentArchiveSettingsCassettePayload _payload({
     required int cassetteIndex,
     required AttachmentArchiveSettingsWorkflowView workflowView,
-    required String bodyText,
+    required String stableBodyText,
+    required String workflowTitle,
+    String? workflowBodyText,
     List<AttachmentArchiveSettingsStatusLine> statusLines = const [],
     List<SidebarActionDescriptor> actions = const [],
-    String? footnote,
   }) {
     return AttachmentArchiveSettingsCassettePayload(
       cassetteIndex: cassetteIndex,
       workflowView: workflowView,
-      bodyText: bodyText,
+      bodyText: stableBodyText,
+      workflowTitle: workflowTitle,
+      workflowBodyText: workflowBodyText,
       statusLines: statusLines,
       actions: actions,
-      footnote: footnote,
     );
   }
 
-  List<AttachmentArchiveSettingsStatusLine> _pathLines(
-    AttachmentArchiveAdoptionWorkflowState workflow,
-  ) {
+  List<AttachmentArchiveSettingsStatusLine> _copyLines(
+    AttachmentArchiveAdoptionWorkflowState workflow, {
+    String connection = 'Connected',
+  }) {
     return [
-      if (workflow.sourcePath case final sourcePath?)
-        AttachmentArchiveSettingsStatusLine(
-          label: 'Current archive',
-          value: sourcePath,
-        ),
       if (workflow.candidatePath case final candidatePath?)
         AttachmentArchiveSettingsStatusLine(
-          label: 'Candidate archive',
+          label: 'Selected copy',
           value: candidatePath,
         ),
-      if (workflow.candidateVolumeName case final volumeName?)
+      if (workflow.candidatePath != null ||
+          workflow.candidateVolumeName != null)
         AttachmentArchiveSettingsStatusLine(
-          label: 'Candidate volume',
-          value: volumeName,
+          label: 'Status',
+          value:
+              '${workflow.candidateVolumeName ?? _volumeNameForPath(workflow.candidatePath) ?? 'Archive volume'} · $connection',
         ),
     ];
   }
 
-  String _availabilityLabel(
-    AttachmentArchiveLocationAvailability availability,
-  ) {
+  String _stableContextText({
+    required AttachmentArchiveLocationState location,
+    required AttachmentArchiveAdoptionWorkflowState workflow,
+  }) {
+    final switched =
+        workflow.stage == AttachmentArchiveAdoptionWorkflowStage.success;
+    final currentPath = switched
+        ? workflow.candidatePath ?? location.archiveRootPath
+        : location.archiveRootPath ??
+              location.lastKnownDisplayPath ??
+              workflow.sourcePath;
+    final volumeName = switched
+        ? workflow.candidateVolumeName ?? _volumeNameForPath(currentPath)
+        : location.configuration?.volumeName ??
+              _volumeNameForPath(currentPath) ??
+              'This Mac';
+    final connection = switched
+        ? 'Connected'
+        : _connectionLabel(location.availability);
+    final locationIssue = switched ? null : location.issue;
+    final availabilityExplanation = switch (location.availability) {
+      AttachmentArchiveLocationAvailability.customUnavailable =>
+        'Archived attachments are unavailable until this volume reconnects. '
+            'Message browsing and search remain available.',
+      AttachmentArchiveLocationAvailability.permissionDenied =>
+        'MessageLens needs permission to read archived attachments at this '
+            'location. Message browsing and search remain available.',
+      AttachmentArchiveLocationAvailability.configuredDirectoryMissing =>
+        'The configured attachment_archive folder is missing. Message '
+            'browsing and search remain available.',
+      AttachmentArchiveLocationAvailability.configurationInvalid =>
+        'The saved archive location cannot be read. Message browsing and '
+            'search remain available.',
+      _ => null,
+    };
+
+    return [
+      'Current archive',
+      currentPath ?? 'Location unavailable',
+      '$volumeName · $connection',
+      if (availabilityExplanation != null) availabilityExplanation,
+      if (locationIssue case final issue?) issue,
+      _copySelectionExplanation,
+    ].join('\n\n');
+  }
+
+  String _connectionLabel(AttachmentArchiveLocationAvailability availability) {
     return switch (availability) {
       AttachmentArchiveLocationAvailability.defaultAvailable ||
-      AttachmentArchiveLocationAvailability.customAvailable => 'Available',
+      AttachmentArchiveLocationAvailability.customAvailable => 'Connected',
       AttachmentArchiveLocationAvailability.customReadOnly =>
-        'Available (read-only)',
-      AttachmentArchiveLocationAvailability.customUnavailable => 'Unavailable',
+        'Connected · Read-only',
+      AttachmentArchiveLocationAvailability.customUnavailable =>
+        'Not connected',
       AttachmentArchiveLocationAvailability.permissionDenied =>
-        'Permission denied',
+        'Permission needed',
       AttachmentArchiveLocationAvailability.configuredDirectoryMissing =>
-        'Configured directory missing',
+        'Folder missing',
       AttachmentArchiveLocationAvailability.configurationInvalid =>
-        'Configuration invalid',
+        'Configuration problem',
     };
+  }
+
+  String? _volumeNameForPath(String? archivePath) {
+    if (archivePath == null) {
+      return null;
+    }
+    final segments = Uri.file(archivePath).pathSegments;
+    if (segments.length < 2 || segments.first != 'Volumes') {
+      return null;
+    }
+    return segments[1];
+  }
+
+  String _unchangedMessage(AttachmentArchiveAdoptionWorkflowState workflow) {
+    final sourcePath = workflow.sourcePath;
+    return [
+      'Your archive location has not changed.',
+      if (sourcePath != null) 'MessageLens is still using:\n$sourcePath',
+    ].join('\n\n');
+  }
+
+  String _userFacingIssue(
+    String? issue, {
+    String fallback = 'The check could not be completed.',
+  }) {
+    return (issue ?? fallback)
+        .replaceAll('The candidate', 'The selected copy')
+        .replaceAll('the candidate', 'the selected copy')
+        .replaceAll('Candidate', 'Selected copy')
+        .replaceAll('candidate', 'selected copy')
+        .replaceAll('authoritative archive', 'current archive');
   }
 
   String _phaseLabel(AttachmentArchiveVerificationPhase phase) {
@@ -579,6 +640,11 @@ class AttachmentArchiveSettingsResolver
       AttachmentArchiveVerificationPhase.candidateExtras =>
         'Checking archive copy',
     };
+  }
+
+  String _progressLabel(AttachmentArchiveVerificationProgress progress) {
+    return '${_phaseLabel(progress.phase)} · ${progress.filesChecked} files · '
+        '${_formatBytes(progress.bytesChecked)}';
   }
 
   String _plural(int count, String noun) => count == 1 ? noun : '${noun}s';

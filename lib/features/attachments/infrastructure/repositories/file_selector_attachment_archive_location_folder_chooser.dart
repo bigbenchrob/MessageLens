@@ -8,8 +8,13 @@ final class FileSelectorAttachmentArchiveLocationFolderChooser
 
   @override
   Future<String?> chooseArchiveDirectory() {
+    // FileDialogOptions exposes confirmation text but no title or instruction.
+    // Settings supplies the instruction to select attachment_archive itself.
     return FileSelectorPlatform.instance.getDirectoryPathWithOptions(
-      const FileDialogOptions(confirmButtonText: 'Choose Archive Copy'),
+      const FileDialogOptions(
+        confirmButtonText: 'Select This Archive',
+        canCreateDirectories: false,
+      ),
     );
   }
 }

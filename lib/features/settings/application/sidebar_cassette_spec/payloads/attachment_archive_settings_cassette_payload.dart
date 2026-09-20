@@ -35,6 +35,8 @@ final class AttachmentArchiveSettingsCassettePayload
   const AttachmentArchiveSettingsCassettePayload({
     this.workflowView = AttachmentArchiveSettingsWorkflowView.currentLocation,
     this.statusLines = const [],
+    this.workflowTitle,
+    this.workflowBodyText,
     this.actions = const [],
     this.cassetteIndex = 0,
     super.title = 'Attachment Archive',
@@ -49,6 +51,8 @@ final class AttachmentArchiveSettingsCassettePayload
 
   final AttachmentArchiveSettingsWorkflowView workflowView;
   final List<AttachmentArchiveSettingsStatusLine> statusLines;
+  final String? workflowTitle;
+  final String? workflowBodyText;
   final List<SidebarActionDescriptor> actions;
   final int cassetteIndex;
 }

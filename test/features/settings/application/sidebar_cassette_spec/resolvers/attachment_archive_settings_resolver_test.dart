@@ -22,34 +22,37 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  test('internal state is status-only with no mover action', () {
-    final payload = resolver.resolve(
-      cassetteIndex: 2,
-      location: AttachmentArchiveLocationState.defaultAvailable(
-        archiveRootPath: '/tmp/MessageLens/attachment_archive',
-        generation: 3,
-      ),
-      workflow: _idle(),
-    );
+  test(
+    'current location uses physical context without configuration jargon',
+    () {
+      final payload = resolver.resolve(
+        cassetteIndex: 2,
+        location: AttachmentArchiveLocationState.defaultAvailable(
+          archiveRootPath:
+              '/Volumes/WD_ELEMENTS/DEVELOPMENT_DATA_FOLDER/'
+              'MessageLens Development/attachment_archive',
+          generation: 3,
+        ),
+        workflow: _idle(),
+      );
 
-    expect(
-      payload.workflowView,
-      AttachmentArchiveSettingsWorkflowView.currentLocation,
-    );
-    expect(payload.bodyText, contains('built-in attachment archive'));
-    expect(payload.bodyText, contains('/tmp/MessageLens/attachment_archive'));
-    expect(payload.actions, isEmpty);
-    expect(payload.footnote, isNull);
-    expect(
-      payload.statusLines.map((line) => (line.label, line.value)),
-      containsAll(<(String, String)>[
-        ('Location', 'Internal'),
-        ('Availability', 'Available'),
-      ]),
-    );
-  });
+      expect(
+        payload.workflowView,
+        AttachmentArchiveSettingsWorkflowView.currentLocation,
+      );
+      expect(payload.bodyText, contains('Current archive'));
+      expect(payload.bodyText, contains('/Volumes/WD_ELEMENTS'));
+      expect(payload.bodyText, contains('WD_ELEMENTS · Connected'));
+      expect(payload.bodyText, isNot(contains('Internal')));
+      expect(payload.bodyText, isNot(contains('defaultInternal')));
+      expect(payload.actions, isEmpty);
+      expect(payload.footnote, isNull);
+      expect(payload.statusLines, isEmpty);
+      expect(payload.workflowTitle, isNull);
+    },
+  );
 
-  test('available external state reports location without fallback action', () {
+  test('mounted-volume path reports meaningful volume and connection', () {
     final payload = resolver.resolve(
       cassetteIndex: 2,
       location: AttachmentArchiveLocationState.customAvailable(
@@ -60,18 +63,11 @@ void main() {
       workflow: _idle(),
     );
 
-    expect(payload.bodyText, contains('connected and available for reads'));
-    expect(payload.bodyText, contains('Volume: External'));
+    expect(payload.bodyText, contains('External · Connected'));
     expect(payload.bodyText, contains('/Volumes/External/attachment_archive'));
+    expect(payload.bodyText, isNot(contains('customExternal')));
     expect(payload.actions, isEmpty);
-    expect(payload.footnote, contains('does not silently fall back'));
-    expect(
-      payload.statusLines.map((line) => (line.label, line.value)),
-      containsAll(<(String, String)>[
-        ('Location', 'External'),
-        ('Availability', 'Available'),
-      ]),
-    );
+    expect(payload.statusLines, isEmpty);
   });
 
   test('unavailable external state retains path, volume, and issue', () {
@@ -85,18 +81,11 @@ void main() {
       workflow: _idle(),
     );
 
-    expect(
-      payload.bodyText,
-      contains('external attachment archive is unavailable'),
-    );
+    expect(payload.bodyText, contains('External · Not connected'));
     expect(payload.bodyText, contains('/Volumes/External/attachment_archive'));
-    expect(payload.bodyText, contains('Volume: External'));
     expect(payload.bodyText, contains('Volume disconnected.'));
     expect(payload.actions, isEmpty);
-    expect(
-      payload.statusLines.map((line) => (line.label, line.value)),
-      contains(('Availability', 'Unavailable')),
-    );
+    expect(payload.statusLines, isEmpty);
   });
 
   test('read-only and permission-denied states remain distinct', () {
@@ -120,21 +109,13 @@ void main() {
       workflow: _idle(),
     );
 
-    expect(readOnly.bodyText, contains('read-only mode'));
-    expect(
-      readOnly.statusLines.map((line) => (line.label, line.value)),
-      contains(('Availability', 'Available (read-only)')),
-    );
-    expect(denied.bodyText, contains('Permission to read'));
-    expect(
-      denied.statusLines.map((line) => (line.label, line.value)),
-      contains(('Availability', 'Permission denied')),
-    );
+    expect(readOnly.bodyText, contains('External · Connected · Read-only'));
+    expect(denied.bodyText, contains('External · Permission needed'));
     expect(readOnly.actions, isEmpty);
     expect(denied.actions, isEmpty);
   });
 
-  test('exact enabled workflow offers Use Existing Archive', () {
+  test('exact enabled workflow offers Choose Archive Copy', () {
     final payload = resolver.resolve(
       cassetteIndex: 2,
       location: AttachmentArchiveLocationState.defaultAvailable(
@@ -143,9 +124,10 @@ void main() {
       workflow: _idle(executionEnabled: true),
     );
 
+    expect(payload.bodyText, contains('Select the copied attachment_archive'));
     expect(payload.bodyText, contains('will not copy or move'));
     expect(payload.actions, hasLength(1));
-    expect(payload.actions.single.label, 'Use Existing Archive…');
+    expect(payload.actions.single.label, 'Choose Archive Copy…');
     expect(payload.actions.single.isEnabled, isTrue);
     expect(
       payload.actions.single.intent,
@@ -167,7 +149,6 @@ void main() {
       payload.bodyText,
       contains('Message browsing and search remain available'),
     );
-    expect(payload.footnote, contains('does not silently fall back'));
     expect(payload.actions.single.isEnabled, isFalse);
   });
 
@@ -188,9 +169,14 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('Checking archive copy'));
-    expect(payload.bodyText, contains('Neither archive is being changed'));
-    expect(payload.statusLines.last.value, contains('19 files'));
+    expect(payload.bodyText, contains('Current archive'));
+    expect(payload.workflowTitle, 'Checking archive copy…');
+    expect(
+      payload.workflowBodyText,
+      contains('Neither archive is being changed'),
+    );
+    expect(payload.workflowBodyText, contains('19 files'));
+    expect(payload.statusLines.first.label, 'Selected copy');
     expect(payload.actions.single.label, 'Cancel');
   });
 
@@ -212,15 +198,20 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('Archive copy verified'));
-    expect(payload.bodyText, contains('3 additional preserved attachments'));
+    expect(payload.workflowTitle, 'Archive copy verified');
     expect(
-      payload.statusLines.map((line) => line.value),
-      contains('4039 files / 3.22 GB'),
+      payload.workflowBodyText,
+      contains('3 additional preserved attachments'),
+    );
+    expect(payload.workflowBodyText, contains('4039 files · 3.22 GB verified'));
+    expect(payload.workflowBodyText, contains('has not changed'));
+    expect(
+      payload.statusLines.map((line) => line.label),
+      containsAll(<String>['Selected copy', 'Status']),
     );
     expect(payload.actions.map((action) => action.label), [
       'Cancel',
-      'Use This Archive',
+      'Use This Copy',
     ]);
     expect(
       payload.actions.last.intent,
@@ -228,7 +219,7 @@ void main() {
     );
   });
 
-  test('read-only complete does not offer Use This Archive', () {
+  test('read-only complete only offers a different copy', () {
     final payload = resolver.resolve(
       cassetteIndex: 2,
       location: _internalLocation,
@@ -241,10 +232,13 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('cannot use it as the active archive'));
+    expect(payload.workflowTitle, 'This copy can’t be used');
+    expect(
+      payload.workflowBodyText,
+      contains('cannot use it as the active archive'),
+    );
     expect(payload.actions.map((action) => action.label), [
-      'Choose Another Folder',
-      'Check Again',
+      'Choose a Different Copy',
     ]);
   });
 
@@ -262,13 +256,11 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('Archive copy is not up to date'));
-    expect(payload.bodyText, contains('1 attachment (3.1 MB)'));
-    expect(payload.bodyText, contains('Update your external copy'));
-    expect(payload.actions.map((action) => action.label), [
-      'Choose Another Folder',
-      'Check Again',
-    ]);
+    expect(payload.workflowTitle, 'This copy is not up to date');
+    expect(payload.workflowBodyText, contains('1 attachment (3.1 MB)'));
+    expect(payload.workflowBodyText, contains('Update the copied folder'));
+    expect(payload.workflowBodyText, contains('has not changed'));
+    expect(payload.actions.map((action) => action.label), ['Check Again']);
     expect(
       payload.actions.where((action) => action.label.contains('Use')),
       isEmpty,
@@ -286,9 +278,10 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('cannot be used'));
-    expect(payload.bodyText, contains('symbolic link'));
-    expect(payload.actions.single.label, 'Choose Another Folder');
+    expect(payload.workflowTitle, 'This copy couldn’t be verified');
+    expect(payload.workflowBodyText, contains('symbolic link'));
+    expect(payload.workflowBodyText, contains('has not changed'));
+    expect(payload.actions.single.label, 'Choose a Different Copy');
   });
 
   test('approval change requires another explicit check', () {
@@ -303,8 +296,8 @@ void main() {
       ),
     );
 
-    expect(payload.bodyText, contains('changed since it was checked'));
-    expect(payload.bodyText, contains('No location was changed'));
+    expect(payload.workflowTitle, contains('changed since it was checked'));
+    expect(payload.workflowBodyText, contains('has not changed'));
     expect(payload.actions.single.label, 'Check Again');
   });
 
@@ -332,11 +325,14 @@ void main() {
       ),
     );
 
-    expect(switching.bodyText, contains('Switching archive location'));
-    expect(switching.bodyText, isNot(contains('Copying')));
-    expect(success.bodyText, contains('External archive active'));
-    expect(success.bodyText, contains('MessageLens has not deleted it'));
-    expect(success.bodyText, isNot(contains('moved successfully')));
+    expect(switching.workflowTitle, 'Switching to archive copy…');
+    expect(switching.workflowBodyText, isNot(contains('Copying')));
+    expect(success.workflowTitle, 'Attachment archive switched');
+    expect(
+      success.workflowBodyText,
+      contains('MessageLens has not deleted it'),
+    );
+    expect(success.workflowBodyText, isNot(contains('moved successfully')));
     expect(success.actions, isEmpty);
   });
 
@@ -379,11 +375,14 @@ void main() {
       ),
     );
 
-    expect(restored.bodyText, contains('restored the previous'));
-    expect(pending.bodyText, contains('waiting for the previous archive'));
-    expect(conflict.bodyText, contains('did not guess'));
+    expect(restored.workflowBodyText, contains('restored the previous'));
+    expect(pending.workflowTitle, contains('waiting for the previous archive'));
+    expect(conflict.workflowBodyText, contains('did not guess'));
     for (final payload in [restored, pending, conflict]) {
-      expect(payload.bodyText, isNot(contains('External archive active')));
+      expect(
+        payload.workflowTitle,
+        isNot(contains('Attachment archive switched')),
+      );
     }
   });
 }

@@ -328,12 +328,15 @@ void main() {
 
         expect(payload.renderKind, SidebarCassetteRenderKind.featureInfo);
         expect(payload.role, SidebarCassetteRole.action);
-        expect(payload.bodyText, contains('built-in attachment archive'));
+        expect(payload.bodyText, contains('Current archive'));
+        expect(payload.bodyText, contains('/tmp/test-attachment-archive'));
+        expect(payload.bodyText, contains('This Mac · Connected'));
+        expect(payload.bodyText, isNot(contains('Internal')));
       },
     );
 
     test(
-      'renders unavailable external archive without a move action',
+      'renders unavailable archive with physical status and no move action',
       () async {
         final unavailableContainer = ProviderContainer(
           overrides: [
@@ -375,10 +378,11 @@ void main() {
 
         expect(
           payload.bodyText,
-          contains('external attachment archive is unavailable'),
+          contains('Archived attachments are unavailable'),
         );
         expect(payload.bodyText, contains('/Volumes/Offline/Archive'));
-        expect(payload.bodyText, contains('Volume: Offline'));
+        expect(payload.bodyText, contains('Offline · Not connected'));
+        expect(payload.bodyText, isNot(contains('customExternal')));
         expect(payload.bodyText, isNot(contains('Move Archive')));
       },
     );
