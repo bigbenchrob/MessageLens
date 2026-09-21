@@ -33,3 +33,5 @@ export 'domain/entities/attachment_archive_candidate_verification.dart'
         AttachmentArchiveVerificationProgress;
 export 'domain/entities/attachment_archive_location_configuration.dart';
 export 'domain/entities/attachment_archive_location_state.dart';
+export 'presentation/widgets/attachment_showcase_view.dart'
+    show AttachmentShowcaseView;

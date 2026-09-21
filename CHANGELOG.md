@@ -10,6 +10,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.124] — 2026-09-21
+
+### Added
+
+- Catch-up remediation now shows a bounded, local attachment preview where
+  the installed file type is supported. Preview sampling is presentation-only
+  and never delays or controls archive work.
+- The post-remediation whole-archive proof now appears as a determinate
+  **Verifying final coverage…** stage with files, bytes, and percentage.
+
+### Changed
+
+- Final approval of a previously verified behind copy now rechecks structure
+  and hashes only source payloads added since review. Unchanged source and
+  candidate payload bytes are not rehashed at approval; the full final
+  coverage proof remains in place after remediation.
+- Archive-copy review now describes attachments missing from the copy without
+  implying when their Messages were received.
+
+### Fixed
+
+- Successful adoption now refreshes the pending-transaction provider to an
+  absent result before publishing success, and terminal success remains
+  visible across ordinary provider recomputation.
+
+### Safety
+
+- Production archive adoption remains disabled. MessageLens still does not
+  perform the initial bulk archive copy, delete the retained source, or use it
+  as fallback storage.
+
 ## [0.2.123] — 2026-09-20
 
 ### Added

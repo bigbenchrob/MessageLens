@@ -20,6 +20,7 @@ final class AttachmentArchiveApprovalStructuralSnapshot {
     required this.candidateOperationalDebrisCount,
     required this.allowedCandidateExtraCount,
     required this.allowedCandidateExtraBytes,
+    required this.sourceStructuralBaseline,
   });
 
   final String sourceCanonicalIdentity;
@@ -36,6 +37,8 @@ final class AttachmentArchiveApprovalStructuralSnapshot {
   final int candidateOperationalDebrisCount;
   final int allowedCandidateExtraCount;
   final int allowedCandidateExtraBytes;
+  final AttachmentArchiveVerificationStructuralBaseline
+  sourceStructuralBaseline;
 }
 
 /// Candidate-only structural evidence recomputed after configuration switch.

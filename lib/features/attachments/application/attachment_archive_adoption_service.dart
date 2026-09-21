@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 
@@ -16,6 +18,7 @@ import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_adoption_root_inspector.dart';
 import 'attachment_archive_adoption_transaction_store.dart';
 import 'attachment_archive_adoption_workflow.dart';
+import 'attachment_archive_approval_added_payload_reader.dart';
 import 'attachment_archive_approval_revalidator.dart';
 import 'attachment_archive_approval_snapshot_reader.dart';
 import 'attachment_archive_bookmark_adapter.dart';
@@ -24,6 +27,7 @@ import 'attachment_archive_file_store.dart';
 import 'attachment_archive_location_controller.dart';
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_remediation_authority.dart';
+import 'attachment_showcase.dart';
 
 typedef AttachmentArchiveAdoptionLocationActivator =
     Future<void> Function({
@@ -81,6 +85,7 @@ final class AttachmentArchiveAdoptionService
     required AttachmentArchiveApprovalCurrentLocationReader
     currentLocationReader,
     required AttachmentArchiveApprovalSnapshotReader snapshotReader,
+    required AttachmentArchiveApprovalAddedPayloadReader addedPayloadReader,
     required AttachmentArchiveAdoptionTransactionStore transactionStore,
     required AttachmentArchiveAdoptionAuthorityIssuer authorityIssuer,
     required AttachmentArchiveBookmarkAdapter bookmarkAdapter,
@@ -95,10 +100,12 @@ final class AttachmentArchiveAdoptionService
     AttachmentArchiveAdoptionFailureInjector? failureInjector,
     AttachmentArchiveCandidateVerifier? candidateVerifier,
     AttachmentArchiveFileStore? fileStore,
+    AttachmentShowcaseEventCallback? onShowcaseItem,
   }) : _archiveAccessAuthority = archiveAccessAuthority,
        _mutationCoordinator = mutationCoordinator,
        _currentLocationReader = currentLocationReader,
        _snapshotReader = snapshotReader,
+       _addedPayloadReader = addedPayloadReader,
        _transactionStore = transactionStore,
        _authorityIssuer = authorityIssuer,
        _bookmarkAdapter = bookmarkAdapter,
@@ -111,7 +118,8 @@ final class AttachmentArchiveAdoptionService
        _clock = clock ?? _utcNow,
        _failureInjector = failureInjector ?? _noFailure,
        _candidateVerifier = candidateVerifier,
-       _fileStore = fileStore;
+       _fileStore = fileStore,
+       _onShowcaseItem = onShowcaseItem;
 
   static const String ownerLabel = 'attachment-archive-adoption';
 
@@ -119,6 +127,7 @@ final class AttachmentArchiveAdoptionService
   final ArchiveMutationCoordinator _mutationCoordinator;
   final AttachmentArchiveApprovalCurrentLocationReader _currentLocationReader;
   final AttachmentArchiveApprovalSnapshotReader _snapshotReader;
+  final AttachmentArchiveApprovalAddedPayloadReader _addedPayloadReader;
   final AttachmentArchiveAdoptionTransactionStore _transactionStore;
   final AttachmentArchiveAdoptionAuthorityIssuer _authorityIssuer;
   final AttachmentArchiveBookmarkAdapter _bookmarkAdapter;
@@ -132,12 +141,14 @@ final class AttachmentArchiveAdoptionService
   final AttachmentArchiveAdoptionFailureInjector _failureInjector;
   final AttachmentArchiveCandidateVerifier? _candidateVerifier;
   final AttachmentArchiveFileStore? _fileStore;
+  final AttachmentShowcaseEventCallback? _onShowcaseItem;
 
   @override
   Future<AttachmentArchiveAdoptionResult> adopt(
     AttachmentArchiveCandidateVerificationResult verification, {
     AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) {
     if (verification is! AttachmentArchiveCandidateComplete &&
         verification is! AttachmentArchiveCandidateBehind) {
@@ -164,6 +175,7 @@ final class AttachmentArchiveAdoptionService
           capability: capability,
           onVerificationProgress: onVerificationProgress,
           onRemediationProgress: onRemediationProgress,
+          onFinalCoverageProgress: onFinalCoverageProgress,
         );
       },
     );
@@ -172,6 +184,7 @@ final class AttachmentArchiveAdoptionService
   @override
   Future<AttachmentArchiveAdoptionResult> resumePendingRemediation({
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) {
     return _mutationCoordinator.runWithCapability(
       operation: ArchiveMutationOperation.attachmentArchiveAdoption,
@@ -179,6 +192,7 @@ final class AttachmentArchiveAdoptionService
       action: (capability) => _resumePendingWithinScope(
         capability: capability,
         onRemediationProgress: onRemediationProgress,
+        onFinalCoverageProgress: onFinalCoverageProgress,
       ),
     );
   }
@@ -335,6 +349,7 @@ final class AttachmentArchiveAdoptionService
     required ArchiveMutationCapability capability,
     AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) async {
     capability.requireOperation(
       ArchiveMutationOperation.attachmentArchiveAdoption,
@@ -351,15 +366,14 @@ final class AttachmentArchiveAdoptionService
     AttachmentArchiveAdoptionTransaction? transaction;
     var pendingTransactionIsDurable = false;
     try {
-      final finalVerification = await _refreshBehindVerification(
+      final refreshedApproval = await _refreshBehindVerification(
         reviewedVerification: reviewedVerification,
         onProgress: onVerificationProgress,
       );
+      final finalVerification = refreshedApproval.verification;
       final evidence = finalVerification.evidence!;
       final previousConfiguration = evidence.sourceLocationConfiguration;
-      final intendedConfiguration = await _createIntendedConfiguration(
-        evidence.candidateCanonicalIdentity,
-      );
+      final intendedConfiguration = refreshedApproval.intendedConfiguration;
       final bookmarkProof = AttachmentArchiveAdoptionBookmarkProof._(
         verification: finalVerification,
         intendedConfiguration: intendedConfiguration,
@@ -458,7 +472,10 @@ final class AttachmentArchiveAdoptionService
         writableLease: lease,
         onProgress: onRemediationProgress,
       );
-      await _proveFinalCoverage(transaction);
+      await _proveFinalCoverage(
+        transaction,
+        onProgress: onFinalCoverageProgress,
+      );
       await _transactionStore.clearPending(
         expectedTransactionId: transactionId,
       );
@@ -509,14 +526,14 @@ final class AttachmentArchiveAdoptionService
     }
   }
 
-  Future<AttachmentArchiveCandidateBehind> _refreshBehindVerification({
+  Future<_RefreshedBehindApproval> _refreshBehindVerification({
     required AttachmentArchiveCandidateBehind reviewedVerification,
     AttachmentArchiveVerificationProgressCallback? onProgress,
   }) async {
-    final verifier = _candidateVerifier;
     final reviewed = reviewedVerification.evidence;
-    if (verifier == null ||
-        reviewed == null ||
+    final reviewedBaseline = reviewed?.structuralBaseline;
+    if (reviewed == null ||
+        reviewedBaseline == null ||
         !reviewed.hasCompleteMissingPayloadEvidence ||
         reviewed.missingCount <= 0 ||
         reviewed.missingCount >
@@ -553,104 +570,277 @@ final class AttachmentArchiveAdoptionService
         'The active archive identity changed. Check the copy again.',
       );
     }
-
-    final refreshed = await verifier.verify(
-      sourceLocation: currentSource,
-      candidate: AttachmentArchiveCandidateAccess(
-        directoryPath: reviewed.candidateCanonicalIdentity,
-        isPhysicallyWritable: reviewed.candidateWasPhysicallyWritable,
-      ),
-      onProgress: onProgress,
-    );
-    if (refreshed is AttachmentArchiveCandidateInvalid) {
-      throw _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
-        refreshed.issue ?? 'The copy now contains conflicting content.',
-      );
-    }
-    if (refreshed is AttachmentArchiveVerificationSourceUnavailable) {
-      throw _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.sourceUnavailable,
-        refreshed.issue ?? 'The current archive is unavailable.',
-      );
-    }
-    if (refreshed is AttachmentArchiveVerificationCandidateUnavailable) {
-      throw _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.candidateUnavailable,
-        refreshed.issue ?? 'The archive copy is unavailable.',
-      );
-    }
-    if (refreshed is! AttachmentArchiveCandidateBehind) {
-      throw const _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
-        'The archive evidence changed. Check the copy again.',
-      );
-    }
-    final finalEvidence = refreshed.evidence!;
-    if (!finalEvidence.candidateWasPhysicallyWritable) {
+    if (!reviewed.candidateWasPhysicallyWritable) {
       throw const _AttachmentArchiveAdoptionAbort(
         AttachmentArchiveAdoptionOutcome.candidateNoLongerWritable,
         'The archive copy is no longer writable.',
       );
     }
-    if (!finalEvidence.hasCompleteMissingPayloadEvidence ||
-        finalEvidence.missingCount >
+    final intendedConfiguration = await _createIntendedConfiguration(
+      reviewed.candidateCanonicalIdentity,
+    );
+    final candidate = AttachmentArchiveCandidateAccess(
+      directoryPath: reviewed.candidateCanonicalIdentity,
+      isPhysicallyWritable: true,
+    );
+    final AttachmentArchiveApprovalStructuralSnapshot snapshot;
+    try {
+      snapshot = await _snapshotReader.read(
+        sourceLocation: currentSource,
+        candidate: candidate,
+        expectedSourceCanonicalIdentity: reviewed.sourceCanonicalIdentity,
+        expectedCandidateCanonicalIdentity: reviewed.candidateCanonicalIdentity,
+      );
+    } on AttachmentArchiveApprovalSnapshotException catch (error) {
+      throw _abortForApprovalSnapshot(error);
+    }
+    if (!_candidateSnapshotStillExact(snapshot, reviewed)) {
+      throw const _AttachmentArchiveAdoptionAbort(
+        AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+        'The archive copy changed after it was checked. Check it again.',
+      );
+    }
+
+    final additions = _requirePureSourceAdditions(
+      reviewed: reviewedBaseline.sourceEntries,
+      current: snapshot.sourceStructuralBaseline.sourceEntries,
+    );
+    final addedPayloadEntries = additions
+        .where(
+          (entry) =>
+              entry.kind ==
+              AttachmentArchiveStructuralEntryKind.preservationPayload,
+        )
+        .toList(growable: false);
+    if (snapshot.requiredSourcePhysicalFileCount !=
+            reviewed.requiredSourcePhysicalFileCount +
+                addedPayloadEntries.length ||
+        snapshot.requiredSourceBytes !=
+            reviewed.requiredSourceBytes +
+                addedPayloadEntries.fold<int>(
+                  0,
+                  (total, entry) => total + entry.sizeBytes,
+                )) {
+      throw const _AttachmentArchiveAdoptionAbort(
+        AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+        'Changes since review were not solely additive. Check the copy again.',
+      );
+    }
+    final List<AttachmentArchiveVerifiedMissingPayload> addedPayloads;
+    try {
+      addedPayloads = await _addedPayloadReader.readAddedMissingPayloads(
+        sourceLocation: currentSource,
+        candidate: candidate,
+        expectedSourceCanonicalIdentity: reviewed.sourceCanonicalIdentity,
+        expectedCandidateCanonicalIdentity: reviewed.candidateCanonicalIdentity,
+        addedEntries: addedPayloadEntries,
+      );
+    } on AttachmentArchiveApprovalSnapshotException catch (error) {
+      throw _abortForApprovalSnapshot(error);
+    }
+    final finalPayloads = <AttachmentArchiveVerifiedMissingPayload>[
+      ...reviewed.missingPayloads,
+      ...addedPayloads,
+    ]..sort((left, right) => left.relativePath.compareTo(right.relativePath));
+    final finalMissingBytes = finalPayloads.fold<int>(
+      0,
+      (total, payload) => total + payload.expectedSizeBytes,
+    );
+    if (finalPayloads.length >
             AttachmentArchiveAdoptionTransaction
                 .maximumRemediationPayloadCount ||
-        finalEvidence.missingBytes >
+        finalMissingBytes >
             AttachmentArchiveAdoptionTransaction.maximumRemediationBytes) {
       throw const _AttachmentArchiveAdoptionAbort(
         AttachmentArchiveAdoptionOutcome.verificationEvidenceInvalid,
         'This copy is substantially out of date. Refresh it externally.',
       );
     }
-    if (finalEvidence.candidateStructuralSnapshotFingerprint !=
-            reviewed.candidateStructuralSnapshotFingerprint ||
-        finalEvidence.verifiedFileCount != reviewed.verifiedFileCount ||
-        finalEvidence.verifiedBytes != reviewed.verifiedBytes ||
-        finalEvidence.allowedCandidateExtraCount !=
-            reviewed.allowedCandidateExtraCount ||
-        finalEvidence.allowedCandidateExtraBytes !=
-            reviewed.allowedCandidateExtraBytes ||
-        !_reviewedMissingPayloadsRemainExact(reviewed, finalEvidence) ||
-        finalEvidence.requiredSourcePhysicalFileCount !=
-            reviewed.requiredSourcePhysicalFileCount +
-                finalEvidence.missingCount -
-                reviewed.missingCount ||
-        finalEvidence.requiredSourceBytes !=
-            reviewed.requiredSourceBytes +
-                finalEvidence.missingBytes -
-                reviewed.missingBytes) {
-      throw const _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
-        'Changes since review were not solely additive. Check the copy again.',
-      );
-    }
-    return refreshed;
+
+    onProgress?.call(
+      AttachmentArchiveVerificationProgress(
+        phase: AttachmentArchiveVerificationPhase.preparing,
+        filesChecked: snapshot.requiredSourcePhysicalFileCount,
+        bytesChecked: snapshot.requiredSourceBytes,
+        totalFiles: snapshot.requiredSourcePhysicalFileCount,
+        totalBytes: snapshot.requiredSourceBytes,
+      ),
+    );
+    final refreshedContext = AttachmentArchiveCandidateVerificationContext(
+      sourceLocationConfiguration: reviewed.sourceLocationConfiguration,
+      sourceLocationGeneration: reviewed.sourceLocationGeneration,
+      requestedSourcePath: currentSource.archiveRootPath,
+      requestedCandidatePath: reviewed.candidateCanonicalIdentity,
+      verifiedAtUtc: _clock().toUtc(),
+      candidateWasPhysicallyWritable: true,
+      sourceCanonicalIdentity: reviewed.sourceCanonicalIdentity,
+      candidateCanonicalIdentity: reviewed.candidateCanonicalIdentity,
+    );
+    final refreshedEvidence = AttachmentArchiveCandidateVerificationEvidence(
+      sourceCanonicalIdentity: reviewed.sourceCanonicalIdentity,
+      candidateCanonicalIdentity: reviewed.candidateCanonicalIdentity,
+      sourceLocationConfiguration: reviewed.sourceLocationConfiguration,
+      sourceLocationGeneration: reviewed.sourceLocationGeneration,
+      verifiedAtUtc: refreshedContext.verifiedAtUtc,
+      candidateWasPhysicallyWritable: true,
+      requiredSourcePhysicalFileCount: snapshot.requiredSourcePhysicalFileCount,
+      requiredSourceBytes: snapshot.requiredSourceBytes,
+      verifiedFileCount: reviewed.verifiedFileCount,
+      verifiedBytes: reviewed.verifiedBytes,
+      metadataReferenceCount: snapshot.metadataReferenceCount,
+      unreferencedPreservationCount: snapshot.unreferencedPreservationCount,
+      sourceOperationalDebrisCount: snapshot.sourceOperationalDebrisCount,
+      candidateOperationalDebrisCount: snapshot.candidateOperationalDebrisCount,
+      allowedCandidateExtraCount: snapshot.allowedCandidateExtraCount,
+      allowedCandidateExtraBytes: snapshot.allowedCandidateExtraBytes,
+      missingCount: finalPayloads.length,
+      missingBytes: finalMissingBytes,
+      contentCoverageDigest: _extendCoverageDigest(
+        reviewed.contentCoverageDigest,
+        snapshot.sourceStructuralSnapshotFingerprint,
+        finalPayloads,
+      ),
+      sourceStructuralSnapshotFingerprint:
+          snapshot.sourceStructuralSnapshotFingerprint,
+      candidateStructuralSnapshotFingerprint:
+          snapshot.candidateStructuralSnapshotFingerprint,
+      diagnostics: AttachmentArchiveVerificationDiagnostics(
+        missingPathExamples: <String>{
+          ...reviewed.diagnostics.missingPathExamples,
+          ...addedPayloads.map((payload) => payload.relativePath),
+        }.take(100).toList(growable: false),
+        conflictingPathExamples: reviewed.diagnostics.conflictingPathExamples,
+        allowedExtraPathExamples: reviewed.diagnostics.allowedExtraPathExamples,
+        operationalDebrisPathExamples:
+            reviewed.diagnostics.operationalDebrisPathExamples,
+        sourceAnomalyPathExamples:
+            reviewed.diagnostics.sourceAnomalyPathExamples,
+      ),
+      structuralBaseline: snapshot.sourceStructuralBaseline,
+      missingPayloads: List.unmodifiable(finalPayloads),
+    );
+    return _RefreshedBehindApproval(
+      verification: AttachmentArchiveCandidateBehind(
+        context: refreshedContext,
+        evidence: refreshedEvidence,
+      ),
+      intendedConfiguration: intendedConfiguration,
+    );
   }
 
-  static bool _reviewedMissingPayloadsRemainExact(
+  static bool _candidateSnapshotStillExact(
+    AttachmentArchiveApprovalStructuralSnapshot snapshot,
     AttachmentArchiveCandidateVerificationEvidence reviewed,
-    AttachmentArchiveCandidateVerificationEvidence refreshed,
   ) {
-    final byPath = <String, AttachmentArchiveVerifiedMissingPayload>{
-      for (final payload in refreshed.missingPayloads)
-        payload.relativePath: payload,
-    };
-    for (final original in reviewed.missingPayloads) {
-      final current = byPath[original.relativePath];
-      if (current == null ||
-          current.expectedSizeBytes != original.expectedSizeBytes ||
-          current.expectedSha256 != original.expectedSha256) {
-        return false;
+    return snapshot.candidateCanonicalIdentity ==
+            reviewed.candidateCanonicalIdentity &&
+        snapshot.candidateStructuralSnapshotFingerprint ==
+            reviewed.candidateStructuralSnapshotFingerprint &&
+        snapshot.structurallyMatchedCandidateFileCount ==
+            reviewed.verifiedFileCount &&
+        snapshot.structurallyMatchedCandidateBytes == reviewed.verifiedBytes &&
+        snapshot.candidateOperationalDebrisCount ==
+            reviewed.candidateOperationalDebrisCount &&
+        snapshot.allowedCandidateExtraCount ==
+            reviewed.allowedCandidateExtraCount &&
+        snapshot.allowedCandidateExtraBytes ==
+            reviewed.allowedCandidateExtraBytes;
+  }
+
+  static List<AttachmentArchiveStructuralEntryEvidence>
+  _requirePureSourceAdditions({
+    required List<AttachmentArchiveStructuralEntryEvidence> reviewed,
+    required List<AttachmentArchiveStructuralEntryEvidence> current,
+  }) {
+    final reviewedByPath = <String, AttachmentArchiveStructuralEntryEvidence>{};
+    for (final entry in reviewed) {
+      if (reviewedByPath.putIfAbsent(entry.relativePath, () => entry) !=
+          entry) {
+        throw const _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.verificationEvidenceInvalid,
+          'The reviewed source structure is ambiguous.',
+        );
       }
     }
-    return true;
+    final currentByPath = <String, AttachmentArchiveStructuralEntryEvidence>{};
+    for (final entry in current) {
+      if (currentByPath.putIfAbsent(entry.relativePath, () => entry) != entry) {
+        throw const _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+          'The current source structure is ambiguous. Check the copy again.',
+        );
+      }
+    }
+    for (final reviewedEntry in reviewed) {
+      final currentEntry = currentByPath[reviewedEntry.relativePath];
+      if (currentEntry == null ||
+          !reviewedEntry.hasSameExistingEvidence(currentEntry)) {
+        throw const _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+          'Changes since review were not solely additive. Check the copy again.',
+        );
+      }
+    }
+    return current
+        .where((entry) => !reviewedByPath.containsKey(entry.relativePath))
+        .toList(growable: false);
+  }
+
+  static String _extendCoverageDigest(
+    String reviewedDigest,
+    String currentSourceStructuralFingerprint,
+    List<AttachmentArchiveVerifiedMissingPayload> finalPayloads,
+  ) {
+    final encoded = jsonEncode(<Object?>[
+      'messagelens-behind-approval-delta-v1',
+      reviewedDigest,
+      currentSourceStructuralFingerprint,
+      for (final payload in finalPayloads)
+        <Object?>[
+          payload.relativePath,
+          payload.expectedSizeBytes,
+          payload.expectedSha256,
+        ],
+    ]);
+    return sha256.convert(utf8.encode(encoded)).toString();
+  }
+
+  static _AttachmentArchiveAdoptionAbort _abortForApprovalSnapshot(
+    AttachmentArchiveApprovalSnapshotException error,
+  ) {
+    return switch (error.kind) {
+      AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged =>
+        _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+          error.issue,
+        ),
+      AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged =>
+        _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+          error.issue,
+        ),
+      AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable =>
+        _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.sourceUnavailable,
+          error.issue,
+        ),
+      AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable =>
+        _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.candidateUnavailable,
+          error.issue,
+        ),
+      AttachmentArchiveApprovalSnapshotFailureKind.failed =>
+        _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.failed,
+          error.issue,
+        ),
+    };
   }
 
   Future<AttachmentArchiveAdoptionResult> _resumePendingWithinScope({
     required ArchiveMutationCapability capability,
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) async {
     capability.requireOperation(
       ArchiveMutationOperation.attachmentArchiveAdoption,
@@ -709,7 +899,10 @@ final class AttachmentArchiveAdoptionService
         writableLease: lease,
         onProgress: onRemediationProgress,
       );
-      await _proveFinalCoverage(transaction);
+      await _proveFinalCoverage(
+        transaction,
+        onProgress: onFinalCoverageProgress,
+      );
       await _transactionStore.clearPending(
         expectedTransactionId: transaction.transactionId,
       );
@@ -818,6 +1011,10 @@ final class AttachmentArchiveAdoptionService
           '${payload.relativePath}',
         );
       }
+      _publishShowcaseItem(
+        candidateRootPath: candidateRootPath,
+        payload: payload,
+      );
       filesCompleted++;
       bytesCompleted += payload.expectedSizeBytes;
       onProgress?.call(
@@ -829,6 +1026,63 @@ final class AttachmentArchiveAdoptionService
         ),
       );
     }
+  }
+
+  void _publishShowcaseItem({
+    required String candidateRootPath,
+    required AttachmentArchiveRemediationPayload payload,
+  }) {
+    final callback = _onShowcaseItem;
+    if (callback == null) {
+      return;
+    }
+    final extension = path.extension(payload.relativePath).toLowerCase();
+    try {
+      callback(
+        AttachmentShowcaseItem(
+          resolvedPath: path.join(candidateRootPath, payload.relativePath),
+          mediaKind: _showcaseMediaKind(extension),
+          stablePresentationIdentity: payload.expectedSha256,
+          displayFilename: path.basename(payload.relativePath),
+          displayType: extension.isEmpty ? null : extension.substring(1),
+        ),
+      );
+    } on Object {
+      // Showcase presentation is deliberately outside remediation correctness.
+    }
+  }
+
+  static AttachmentShowcaseMediaKind _showcaseMediaKind(String extension) {
+    if (const <String>{
+      '.avif',
+      '.bmp',
+      '.gif',
+      '.heic',
+      '.heif',
+      '.jpeg',
+      '.jpg',
+      '.png',
+      '.tif',
+      '.tiff',
+      '.webp',
+    }.contains(extension)) {
+      return AttachmentShowcaseMediaKind.image;
+    }
+    if (const <String>{
+      '.avi',
+      '.m4v',
+      '.mov',
+      '.mp4',
+      '.mpeg',
+      '.mpg',
+      '.webm',
+    }.contains(extension)) {
+      return AttachmentShowcaseMediaKind.video;
+    }
+    if (extension == '.pdf') {
+      return AttachmentShowcaseMediaKind.pdf;
+    }
+    return AttachmentShowcaseMediaKind.other;
   }
 
   Future<File> _verifiedRetainedSourceFile({
@@ -868,8 +1122,9 @@ final class AttachmentArchiveAdoptionService
   }
 
   Future<void> _proveFinalCoverage(
-    AttachmentArchiveAdoptionTransaction transaction,
-  ) async {
+    AttachmentArchiveAdoptionTransaction transaction, {
+    AttachmentArchiveVerificationProgressCallback? onProgress,
+  }) async {
     final verifier = _candidateVerifier;
     if (verifier == null) {
       throw const _AttachmentArchiveAdoptionAbort(
@@ -904,6 +1159,7 @@ final class AttachmentArchiveAdoptionService
         directoryPath: current.archiveRootPath!,
         isPhysicallyWritable: true,
       ),
+      onProgress: onProgress,
     );
     if (result is! AttachmentArchiveCandidateComplete) {
       throw _AttachmentArchiveAdoptionAbort(
@@ -1301,6 +1557,16 @@ final class _CompleteBoundCandidateAccessReader
       ),
     );
   }
+}
+
+final class _RefreshedBehindApproval {
+  const _RefreshedBehindApproval({
+    required this.verification,
+    required this.intendedConfiguration,
+  });
+
+  final AttachmentArchiveCandidateBehind verification;
+  final AttachmentArchiveLocationConfiguration intendedConfiguration;
 }
 
 final class _AttachmentArchiveAdoptionAbort implements Exception {

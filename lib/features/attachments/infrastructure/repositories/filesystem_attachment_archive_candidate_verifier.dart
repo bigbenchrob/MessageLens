@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:unorm_dart/unorm_dart.dart' as unicode;
 
+import '../../application/attachment_archive_approval_added_payload_reader.dart';
 import '../../application/attachment_archive_approval_snapshot_reader.dart';
 import '../../application/attachment_archive_candidate_verifier.dart';
 import '../../application/attachment_archive_verification_metadata_reader.dart';
@@ -24,7 +25,8 @@ import '../../domain/entities/attachment_archive_location_state.dart';
 final class FilesystemAttachmentArchiveCandidateVerifier
     implements
         AttachmentArchiveCandidateVerifier,
-        AttachmentArchiveApprovalSnapshotReader {
+        AttachmentArchiveApprovalSnapshotReader,
+        AttachmentArchiveApprovalAddedPayloadReader {
   FilesystemAttachmentArchiveCandidateVerifier({
     required AttachmentArchiveVerificationMetadataReader metadataReader,
     DateTime Function()? clock,
@@ -409,6 +411,202 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
   }
 
+  @override
+  Future<List<AttachmentArchiveVerifiedMissingPayload>>
+  readAddedMissingPayloads({
+    required AttachmentArchiveLocationState sourceLocation,
+    required AttachmentArchiveCandidateAccess candidate,
+    required String expectedSourceCanonicalIdentity,
+    required String expectedCandidateCanonicalIdentity,
+    required List<AttachmentArchiveStructuralEntryEvidence> addedEntries,
+  }) async {
+    final sourcePath = sourceLocation.archiveRootPath;
+    if (!sourceLocation.isAvailable || sourcePath == null) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: sourceLocation.issue ?? 'The current archive is unavailable.',
+      );
+    }
+    final _CanonicalRoot sourceRoot;
+    try {
+      sourceRoot = await _canonicalRoot(sourcePath, label: 'source');
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    }
+    final _CanonicalRoot candidateRoot;
+    try {
+      candidateRoot = await _canonicalRoot(
+        candidate.directoryPath,
+        label: 'candidate',
+      );
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateUnavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+        issue: error.message,
+      );
+    }
+    try {
+      if (sourceRoot.path != expectedSourceCanonicalIdentity) {
+        throw const AttachmentArchiveApprovalSnapshotException(
+          kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+          issue: 'The canonical source archive changed after verification.',
+        );
+      }
+      if (candidateRoot.path != expectedCandidateCanonicalIdentity) {
+        throw const AttachmentArchiveApprovalSnapshotException(
+          kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+          issue: 'The canonical candidate archive changed after verification.',
+        );
+      }
+      if (_rootsOverlap(sourceRoot.path, candidateRoot.path)) {
+        throw const AttachmentArchiveApprovalSnapshotException(
+          kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+          issue: 'The source and candidate archive roots now overlap.',
+        );
+      }
+
+      final progress = _ProgressTracker(
+        onProgress: null,
+        isCancelled: null,
+        onPayloadHashStarted: _onPayloadHashStarted,
+      );
+      final payloads = <AttachmentArchiveVerifiedMissingPayload>[];
+      for (final entry in addedEntries) {
+        if (entry.kind !=
+            AttachmentArchiveStructuralEntryKind.preservationPayload) {
+          throw const AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+            issue: 'Approval delta contains a non-preservation payload.',
+          );
+        }
+        final sourceInspection = await _inspectExactPath(
+          root: sourceRoot.path,
+          relativePath: entry.relativePath,
+        );
+        if (sourceInspection.type != FileSystemEntityType.file ||
+            sourceInspection.actualRelativePath != entry.relativePath ||
+            sourceInspection.sizeBytes != entry.sizeBytes) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+            issue:
+                'A newly added source payload changed during approval: '
+                '${entry.relativePath}',
+          );
+        }
+        final sourceFile = File(sourceInspection.absolutePath);
+        final sourceStat = sourceFile.statSync();
+        final metadata = await _metadataReader.readByRelativePath(
+          entry.relativePath,
+        );
+        final classification = _sourceClassification(
+          relativePath: entry.relativePath,
+          metadata: metadata,
+        );
+        if (classification != entry.classification ||
+            sourceStat.size != entry.sizeBytes ||
+            sourceStat.modified.microsecondsSinceEpoch !=
+                entry.modifiedMicros ||
+            sourceStat.changed.microsecondsSinceEpoch != entry.changedMicros ||
+            metadata?.fileSizeBytes != entry.metadataFileSizeBytes ||
+            metadata?.contentHash != entry.metadataContentHash ||
+            metadata?.referenceCount != entry.metadataReferenceCount) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+            issue:
+                'A newly added source payload changed during approval: '
+                '${entry.relativePath}',
+          );
+        }
+        final beforeCandidate = await _inspectExactPath(
+          root: candidateRoot.path,
+          relativePath: entry.relativePath,
+        );
+        if (beforeCandidate.type != FileSystemEntityType.notFound) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+            issue:
+                'The candidate path for a newly added source payload is '
+                'not absent: ${entry.relativePath}',
+          );
+        }
+        final sourceHash = await progress.hashFile(
+          sourceFile,
+          phase: AttachmentArchiveVerificationPhase.sourceCoverage,
+        );
+        final expectedPathHash = _contentAddressedHash(entry.relativePath);
+        final authoritativeHash = metadata?.contentHash ?? expectedPathHash;
+        if (authoritativeHash != null && sourceHash != authoritativeHash) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+            issue:
+                'A newly added source payload contradicts its preservation '
+                'evidence: ${entry.relativePath}',
+          );
+        }
+        final sourceStatAfter = sourceFile.statSync();
+        final afterCandidate = await _inspectExactPath(
+          root: candidateRoot.path,
+          relativePath: entry.relativePath,
+        );
+        if (sourceStatAfter.size != entry.sizeBytes ||
+            sourceStatAfter.modified.microsecondsSinceEpoch !=
+                entry.modifiedMicros ||
+            sourceStatAfter.changed.microsecondsSinceEpoch !=
+                entry.changedMicros) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+            issue:
+                'A newly added source payload changed while being hashed: '
+                '${entry.relativePath}',
+          );
+        }
+        if (afterCandidate.type != FileSystemEntityType.notFound) {
+          throw AttachmentArchiveApprovalSnapshotException(
+            kind: AttachmentArchiveApprovalSnapshotFailureKind.candidateChanged,
+            issue:
+                'The candidate changed while an added source payload was '
+                'being approved: ${entry.relativePath}',
+          );
+        }
+        payloads.add(
+          AttachmentArchiveVerifiedMissingPayload(
+            relativePath: entry.relativePath,
+            expectedSizeBytes: entry.sizeBytes,
+            expectedSha256: sourceHash,
+          ),
+        );
+      }
+      return List.unmodifiable(payloads);
+    } on AttachmentArchiveApprovalSnapshotException {
+      rethrow;
+    } on _SourceVerificationFailure catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.sourceChanged,
+        issue: error.message,
+      );
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveApprovalSnapshotException(
+        kind: AttachmentArchiveApprovalSnapshotFailureKind.failed,
+        issue:
+            'Added-payload approval could not read filesystem evidence: '
+            '${error.message}',
+      );
+    }
+  }
+
   Future<AttachmentArchiveApprovalStructuralSnapshot>
   _readApprovalSnapshotRoots({
     required String sourceRoot,
@@ -426,6 +624,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       isCancelled: null,
       onPayloadHashStarted: _onPayloadHashStarted,
     );
+    final sourceEntries = <AttachmentArchiveStructuralEntryEvidence>[];
 
     _addRootStructuralEvidence(sourceFingerprint, sourceRoot, isSource: true);
     await _verifyGroupedMetadata(
@@ -439,6 +638,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         entry: entry,
         counters: counters,
         sourceFingerprint: sourceFingerprint,
+        sourceEntries: sourceEntries,
       );
     }
 
@@ -471,6 +671,9 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       candidateOperationalDebrisCount: counters.candidateDebrisCount,
       allowedCandidateExtraCount: counters.allowedExtraCount,
       allowedCandidateExtraBytes: counters.allowedExtraBytes,
+      sourceStructuralBaseline: AttachmentArchiveVerificationStructuralBaseline(
+        sourceEntries: sourceEntries,
+      ),
     );
   }
 
@@ -566,6 +769,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     final contentDigest = _EvidenceDigestBuilder(
       'messagelens-archive-content-coverage-v1',
     );
+    final sourceEntries = <AttachmentArchiveStructuralEntryEvidence>[];
 
     _addRootStructuralEvidence(
       sourceFingerprint,
@@ -596,6 +800,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         sourceFingerprint: sourceFingerprint,
         contentDigest: contentDigest,
         progress: progress,
+        sourceEntries: sourceEntries,
       );
     }
 
@@ -647,6 +852,9 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       sourceStructuralSnapshotFingerprint: sourceStructuralFingerprint,
       candidateStructuralSnapshotFingerprint: candidateStructuralFingerprint,
       diagnostics: diagnostics.freeze(),
+      structuralBaseline: AttachmentArchiveVerificationStructuralBaseline(
+        sourceEntries: sourceEntries,
+      ),
       missingPayloads:
           List<AttachmentArchiveVerifiedMissingPayload>.unmodifiable(
             counters.missingPayloads,
@@ -794,9 +1002,11 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     required _EvidenceDigestBuilder sourceFingerprint,
     required _EvidenceDigestBuilder contentDigest,
     required _ProgressTracker progress,
+    required List<AttachmentArchiveStructuralEntryEvidence> sourceEntries,
   }) async {
     if (entry.type == FileSystemEntityType.directory) {
       sourceFingerprint.add(entry.structuralFields('directory'));
+      sourceEntries.add(_directoryStructuralEvidence(entry));
       return;
     }
     if (entry.type == FileSystemEntityType.link) {
@@ -820,6 +1030,15 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       sourceFingerprint.add(
         entry.structuralFields(
           AttachmentArchivePreservationClassification.installerDebris.name,
+        ),
+      );
+      sourceEntries.add(
+        _fileStructuralEvidence(
+          entry: entry,
+          kind: AttachmentArchiveStructuralEntryKind.installerDebris,
+          classification:
+              AttachmentArchivePreservationClassification.installerDebris,
+          metadata: null,
         ),
       );
       contentDigest.add(<Object?>[
@@ -854,6 +1073,14 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
 
     sourceFingerprint.add(entry.structuralFields(classification.name));
+    sourceEntries.add(
+      _fileStructuralEvidence(
+        entry: entry,
+        kind: AttachmentArchiveStructuralEntryKind.preservationPayload,
+        classification: classification,
+        metadata: metadata,
+      ),
+    );
     counters.requiredSourceFileCount++;
     counters.requiredSourceBytes += entry.sizeBytes;
     if (metadata == null) {
@@ -1114,9 +1341,11 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     required _ArchiveEntry entry,
     required _VerificationCounters counters,
     required _EvidenceDigestBuilder sourceFingerprint,
+    List<AttachmentArchiveStructuralEntryEvidence>? sourceEntries,
   }) async {
     if (entry.type == FileSystemEntityType.directory) {
       sourceFingerprint.add(entry.structuralFields('directory'));
+      sourceEntries?.add(_directoryStructuralEvidence(entry));
       return;
     }
     if (entry.type == FileSystemEntityType.link) {
@@ -1136,6 +1365,15 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       sourceFingerprint.add(
         entry.structuralFields(
           AttachmentArchivePreservationClassification.installerDebris.name,
+        ),
+      );
+      sourceEntries?.add(
+        _fileStructuralEvidence(
+          entry: entry,
+          kind: AttachmentArchiveStructuralEntryKind.installerDebris,
+          classification:
+              AttachmentArchivePreservationClassification.installerDebris,
+          metadata: null,
         ),
       );
       return;
@@ -1162,6 +1400,14 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     }
 
     sourceFingerprint.add(entry.structuralFields(classification.name));
+    sourceEntries?.add(
+      _fileStructuralEvidence(
+        entry: entry,
+        kind: AttachmentArchiveStructuralEntryKind.preservationPayload,
+        classification: classification,
+        metadata: metadata,
+      ),
+    );
     counters.requiredSourceFileCount++;
     counters.requiredSourceBytes += entry.sizeBytes;
     if (metadata == null) {
@@ -1536,6 +1782,41 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     counters.candidateConflictCount++;
     counters.firstCandidateConflict ??= issue;
     diagnostics.addConflict(relativePath);
+  }
+
+  static AttachmentArchiveStructuralEntryEvidence _directoryStructuralEvidence(
+    _ArchiveEntry entry,
+  ) {
+    return AttachmentArchiveStructuralEntryEvidence(
+      relativePath: entry.relativePath,
+      kind: AttachmentArchiveStructuralEntryKind.directory,
+      sizeBytes: 0,
+      modifiedMicros: null,
+      changedMicros: null,
+      classification: null,
+      metadataFileSizeBytes: null,
+      metadataContentHash: null,
+      metadataReferenceCount: null,
+    );
+  }
+
+  static AttachmentArchiveStructuralEntryEvidence _fileStructuralEvidence({
+    required _ArchiveEntry entry,
+    required AttachmentArchiveStructuralEntryKind kind,
+    required AttachmentArchivePreservationClassification classification,
+    required AttachmentArchiveVerificationMetadataGroup? metadata,
+  }) {
+    return AttachmentArchiveStructuralEntryEvidence(
+      relativePath: entry.relativePath,
+      kind: kind,
+      sizeBytes: entry.sizeBytes,
+      modifiedMicros: entry.modifiedMicros,
+      changedMicros: entry.changedMicros,
+      classification: classification,
+      metadataFileSizeBytes: metadata?.fileSizeBytes,
+      metadataContentHash: metadata?.contentHash,
+      metadataReferenceCount: metadata?.referenceCount,
+    );
   }
 
   static DateTime _utcNow() => DateTime.now().toUtc();

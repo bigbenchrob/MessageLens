@@ -263,6 +263,122 @@ void main() {
       expect(harness.state.stage, _Stage.success);
     });
 
+    test(
+      'remediation completion transitions through determinate final coverage '
+      'and cannot publish success before executor completion',
+      () async {
+        final adoption = Completer<AttachmentArchiveAdoptionResult>();
+        final harness = _Harness();
+        harness.verifier.resultBuilder = (access) => _behind(access);
+        harness.executor.blocker = adoption;
+        addTearDown(harness.dispose);
+        await harness.notifier.chooseExistingArchive();
+
+        final running = harness.notifier.useCandidate();
+        await _flushAsync();
+        harness.executor.emitFinalCoverage(
+          const AttachmentArchiveVerificationProgress(
+            phase: AttachmentArchiveVerificationPhase.sourceCoverage,
+            filesChecked: 20,
+            bytesChecked: 200,
+            totalFiles: 40,
+            totalBytes: 400,
+          ),
+        );
+        await _flushAsync();
+
+        expect(harness.state.stage, _Stage.verifyingFinalCoverage);
+        expect(harness.state.progress?.fractionComplete, 0.5);
+        expect(harness.state.stage, isNot(_Stage.success));
+        adoption.complete(
+          const AttachmentArchiveAdoptionResult(
+            outcome: AttachmentArchiveAdoptionOutcome.adopted,
+          ),
+        );
+        await running;
+        expect(harness.state.stage, _Stage.success);
+      },
+    );
+
+    test(
+      'stale pending cache emission cannot overwrite stable success',
+      () async {
+        final harness = _Harness();
+        addTearDown(harness.dispose);
+        await harness.notifier.chooseExistingArchive();
+        await harness.notifier.useCandidate();
+        expect(harness.state.stage, _Stage.success);
+
+        harness.pendingStore.current = _pendingTransaction();
+        harness.container.invalidate(
+          attachmentArchivePendingAdoptionTransactionProvider,
+        );
+        expect(
+          await harness.container.read(
+            attachmentArchivePendingAdoptionTransactionProvider.future,
+          ),
+          isNotNull,
+        );
+        await _flushAsync();
+
+        expect(harness.state.stage, _Stage.success);
+        expect(harness.state.candidatePath, _candidatePath);
+      },
+    );
+
+    test('deliberate dismissal clears stable terminal success', () async {
+      final harness = _Harness();
+      addTearDown(harness.dispose);
+      await harness.notifier.chooseExistingArchive();
+      await harness.notifier.useCandidate();
+      expect(harness.state.stage, _Stage.success);
+
+      await harness.notifier.cancelCheck();
+
+      expect(harness.state.stage, _Stage.currentArchive);
+    });
+
+    test(
+      'pending provider lifecycle resolves absent to active to absent',
+      () async {
+        final harness = _Harness();
+        addTearDown(harness.dispose);
+        expect(harness.state.stage, _Stage.currentArchive);
+        expect(
+          await harness.container.read(
+            attachmentArchivePendingAdoptionTransactionProvider.future,
+          ),
+          isNull,
+        );
+
+        harness.pendingStore.current = _pendingTransaction();
+        harness.container.invalidate(
+          attachmentArchivePendingAdoptionTransactionProvider,
+        );
+        expect(
+          await harness.container.read(
+            attachmentArchivePendingAdoptionTransactionProvider.future,
+          ),
+          isNotNull,
+        );
+        await _flushAsync();
+        expect(harness.state.stage, _Stage.remediationPending);
+
+        harness.executor.result = const AttachmentArchiveAdoptionResult(
+          outcome: AttachmentArchiveAdoptionOutcome.remediationComplete,
+        );
+        await harness.notifier.resumePendingRemediation();
+
+        expect(
+          await harness.container.read(
+            attachmentArchivePendingAdoptionTransactionProvider.future,
+          ),
+          isNull,
+        );
+        expect(harness.state.stage, _Stage.success);
+      },
+    );
+
     test('provider reconstruction discards a ready verification', () async {
       final first = _Harness();
       await first.notifier.chooseExistingArchive();
@@ -325,7 +441,8 @@ final class _Harness {
   }) : chooser = _FakeChooser(chooserPath),
        bookmarks = _FakeBookmarks(),
        verifier = _FakeVerifier(),
-       executor = _FakeExecutor() {
+       pendingStore = _PendingStore(pendingAdoption) {
+    executor = _FakeExecutor(onSuccessfulRetirement: pendingStore.clear);
     container = ProviderContainer(
       overrides: [
         attachmentArchiveAdoptionExecutionEnabledProvider.overrideWith(
@@ -350,7 +467,7 @@ final class _Harness {
           ),
         ),
         attachmentArchivePendingAdoptionTransactionProvider.overrideWith(
-          (ref) async => pendingAdoption,
+          (ref) async => pendingStore.current,
         ),
       ],
     );
@@ -359,7 +476,8 @@ final class _Harness {
   final _FakeChooser chooser;
   final _FakeBookmarks bookmarks;
   final _FakeVerifier verifier;
-  final _FakeExecutor executor;
+  final _PendingStore pendingStore;
+  late final _FakeExecutor executor;
   late final ProviderContainer container;
 
   AttachmentArchiveAdoptionWorkflow get notifier =>
@@ -458,6 +576,9 @@ final class _FakeVerifier implements AttachmentArchiveCandidateVerifier {
 }
 
 final class _FakeExecutor implements AttachmentArchiveAdoptionExecutor {
+  _FakeExecutor({required this.onSuccessfulRetirement});
+
+  final void Function() onSuccessfulRetirement;
   int adoptCount = 0;
   int resumeCount = 0;
   AttachmentArchiveAdoptionResult result =
@@ -465,23 +586,54 @@ final class _FakeExecutor implements AttachmentArchiveAdoptionExecutor {
         outcome: AttachmentArchiveAdoptionOutcome.adopted,
       );
   Completer<AttachmentArchiveAdoptionResult>? blocker;
+  AttachmentArchiveVerificationProgressCallback? _onFinalCoverageProgress;
 
   @override
   Future<AttachmentArchiveAdoptionResult> adopt(
     AttachmentArchiveCandidateVerificationResult verification, {
     AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) async {
     adoptCount++;
-    return blocker == null ? result : blocker!.future;
+    _onFinalCoverageProgress = onFinalCoverageProgress;
+    final completed = blocker == null ? result : await blocker!.future;
+    if (_isSuccessful(completed)) {
+      onSuccessfulRetirement();
+    }
+    return completed;
   }
 
   @override
   Future<AttachmentArchiveAdoptionResult> resumePendingRemediation({
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   }) async {
     resumeCount++;
+    _onFinalCoverageProgress = onFinalCoverageProgress;
+    if (_isSuccessful(result)) {
+      onSuccessfulRetirement();
+    }
     return result;
+  }
+
+  static bool _isSuccessful(AttachmentArchiveAdoptionResult value) {
+    return value.outcome == AttachmentArchiveAdoptionOutcome.adopted ||
+        value.outcome == AttachmentArchiveAdoptionOutcome.remediationComplete;
+  }
+
+  void emitFinalCoverage(AttachmentArchiveVerificationProgress progress) {
+    _onFinalCoverageProgress?.call(progress);
+  }
+}
+
+final class _PendingStore {
+  _PendingStore(this.current);
+
+  AttachmentArchiveAdoptionTransaction? current;
+
+  void clear() {
+    current = null;
   }
 }
 

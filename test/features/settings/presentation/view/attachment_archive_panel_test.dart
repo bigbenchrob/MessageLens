@@ -73,9 +73,9 @@ void main() {
         );
 
         expect(find.text('This copy is almost up to date'), findsOneWidget);
-        expect(find.textContaining('3 new attachments'), findsOneWidget);
+        expect(find.textContaining('missing 3 attachments'), findsOneWidget);
         expect(
-          find.textContaining('all new attachments go there'),
+          find.textContaining('Everything already in this copy'),
           findsOneWidget,
         );
         expect(find.byKey(AttachmentArchivePanel.useButtonKey), findsOneWidget);
@@ -149,6 +149,31 @@ void main() {
       },
     );
 
+    testWidgets(
+      'final coverage has distinct determinate progress and no copy wording',
+      (tester) async {
+        await _pump(
+          tester,
+          _state(
+            AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage,
+            progress: const AttachmentArchiveVerificationProgress(
+              phase: AttachmentArchiveVerificationPhase.sourceCoverage,
+              filesChecked: 1847,
+              bytesChecked: 1600000000,
+              totalFiles: 4090,
+              totalBytes: 3592905185,
+            ),
+          ),
+        );
+
+        expect(find.text('Verifying final coverage…'), findsOneWidget);
+        expect(find.textContaining('1847 of 4090 files'), findsOneWidget);
+        expect(find.textContaining('45%'), findsOneWidget);
+        expect(find.textContaining('one final check'), findsOneWidget);
+        expect(find.textContaining('Adding missing'), findsNothing);
+      },
+    );
+
     testWidgets('success keeps both current and undeleted original visible', (
       tester,
     ) async {
@@ -168,7 +193,8 @@ void main() {
         find.text('/Volumes/WD/MessageLens/attachment_archive'),
         findsOneWidget,
       );
-      expect(find.textContaining('has not deleted'), findsOneWidget);
+      expect(find.textContaining('remains unchanged'), findsOneWidget);
+      expect(find.textContaining('ready to continue'), findsOneWidget);
     });
   });
 }

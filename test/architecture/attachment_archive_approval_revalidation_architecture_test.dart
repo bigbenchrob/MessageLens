@@ -127,6 +127,54 @@ void main() {
     expect(revalidatorSource, contains('runWithCapability'));
     expect(revalidatorSource, contains('capability.requireOperation'));
   });
+
+  test('behind approval hashes only the explicit added-entry set', () {
+    final service = _read(
+      'lib/features/attachments/application/'
+      'attachment_archive_adoption_service.dart',
+    );
+    final verifier = _read(_filesystemVerifierPath);
+    final addedStart = verifier.indexOf('readAddedMissingPayloads({');
+    final structuralStart = verifier.indexOf(
+      '_readApprovalSnapshotRoots({',
+      addedStart,
+    );
+
+    expect(addedStart, greaterThanOrEqualTo(0));
+    expect(structuralStart, greaterThan(addedStart));
+    final addedReader = verifier.substring(addedStart, structuralStart);
+    expect(addedReader, contains('for (final entry in addedEntries)'));
+    expect(addedReader, contains('progress.hashFile('));
+    expect(addedReader, isNot(contains('_verifyRoots(')));
+    expect(addedReader, isNot(contains('candidateHash')));
+
+    final refreshStart = service.indexOf('_refreshBehindVerification({');
+    final resumeStart = service.indexOf(
+      '_resumePendingWithinScope({',
+      refreshStart,
+    );
+    expect(refreshStart, greaterThanOrEqualTo(0));
+    expect(resumeStart, greaterThan(refreshStart));
+    final approvalRefresh = service.substring(refreshStart, resumeStart);
+    expect(approvalRefresh, contains('_requirePureSourceAdditions('));
+    expect(approvalRefresh, contains('readAddedMissingPayloads('));
+    expect(approvalRefresh, isNot(contains('_candidateVerifier.verify(')));
+  });
+
+  test('behind optimization retains coordination and final coverage proof', () {
+    final source = _read(
+      'lib/features/attachments/application/'
+      'attachment_archive_adoption_service.dart',
+    );
+
+    expect(
+      source,
+      contains('ArchiveMutationOperation.attachmentArchiveAdoption'),
+    );
+    expect(source, contains('await _proveFinalCoverage('));
+    expect(source, contains('onProgress: onFinalCoverageProgress'));
+    expect(source, contains('final result = await verifier.verify('));
+  });
 }
 
 String _read(String path) => File(path).readAsStringSync();

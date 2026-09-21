@@ -30,6 +30,7 @@ import 'package:remember_this_text/features/attachments/application/attachment_a
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_native_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_showcase.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_adoption.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_candidate_verification.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
@@ -519,6 +520,64 @@ void main() {
       },
     );
 
+    test('verified-behind approval hashes zero unchanged source or candidate '
+        'payloads', () async {
+      await harness.addSourcePayload(<int>[7, 7, 7]);
+      final reviewed = await harness.verifyBehind();
+      harness.payloadHashStarts.clear();
+      int? hashesAtApprovalCompletion;
+
+      final result = await harness.service().adopt(
+        reviewed,
+        onVerificationProgress: (_) {
+          hashesAtApprovalCompletion ??= harness.payloadHashStarts.length;
+        },
+      );
+
+      expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+      expect(hashesAtApprovalCompletion, 0);
+    });
+
+    test(
+      'approval structurally scans a thousand-item fixture and hashes exactly '
+      'the newly added source payloads',
+      () async {
+        for (var index = 0; index < 1000; index++) {
+          final bytes = <int>[index >> 8, index & 0xff];
+          await _write(harness.source, '_by_id/${10000 + index}.bin', bytes);
+          await _write(harness.candidate, '_by_id/${10000 + index}.bin', bytes);
+        }
+        await harness.addSourcePayload(<int>[8, 8, 8]);
+        final reviewed = await harness.verifyBehind();
+        harness.payloadHashStarts.clear();
+        final addedPaths = <String>[];
+        for (var index = 0; index < 3; index++) {
+          addedPaths.add(
+            await harness.addSourcePayload(<int>[90, index, 12, 34]),
+          );
+        }
+        int? hashesAtApprovalCompletion;
+
+        final result = await harness.service().adopt(
+          reviewed,
+          onVerificationProgress: (_) {
+            hashesAtApprovalCompletion ??= harness.payloadHashStarts.length;
+          },
+        );
+
+        expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+        expect(hashesAtApprovalCompletion, addedPaths.length);
+        expect(
+          harness.payloadHashStarts.take(hashesAtApprovalCompletion!).toSet(),
+          {
+            for (final relativePath in addedPaths)
+              path.join(harness.source.path, relativePath),
+          },
+        );
+      },
+      timeout: const Timeout(Duration(seconds: 30)),
+    );
+
     test(
       'candidate change during review returns Check Again before switching',
       () async {
@@ -531,6 +590,112 @@ void main() {
         expect(
           result.outcome,
           AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+        );
+        await harness.expectDefaultAndNoPending();
+      },
+    );
+
+    test('source removal after review requires another check', () async {
+      final relativePath = await harness.addSourcePayload(<int>[31, 41, 59]);
+      final reviewed = await harness.verifyBehind();
+      await File(path.join(harness.source.path, relativePath)).delete();
+
+      final result = await harness.service().adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+      );
+      await harness.expectDefaultAndNoPending();
+    });
+
+    test('source replacement after review requires another check', () async {
+      final relativePath = await harness.addSourcePayload(<int>[26, 53, 58]);
+      final reviewed = await harness.verifyBehind();
+      final sourceFile = File(path.join(harness.source.path, relativePath));
+      await sourceFile.writeAsBytes(<int>[9, 9, 9], flush: true);
+      await sourceFile.setLastModified(DateTime.utc(2033, 1, 2));
+
+      final result = await harness.service().adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+      );
+      await harness.expectDefaultAndNoPending();
+    });
+
+    test('existing metadata-reference change requires another check', () async {
+      await harness.addSourcePayload(<int>[97, 93, 23]);
+      final reviewed = await harness.verifyBehind();
+      await harness.database.customStatement(
+        '''
+INSERT INTO archived_attachments (
+  message_guid,
+  import_attachment_id,
+  archive_relative_path,
+  archived_at_utc,
+  file_size_bytes,
+  content_hash,
+  provenance
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+''',
+        <Object?>[
+          'second-reference',
+          2,
+          _Harness.relativePayloadPath,
+          _Harness.fixedTime.toIso8601String(),
+          4,
+          sha256.convert(<int>[1, 2, 3, 4]).toString(),
+          'archived',
+        ],
+      );
+
+      final result = await harness.service().adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain,
+      );
+      await harness.expectDefaultAndNoPending();
+    });
+
+    test(
+      'candidate identity change fails before configuration mutation',
+      () async {
+        await harness.addSourcePayload(<int>[84, 62, 64]);
+        final reviewed = await harness.verifyBehind();
+        final unrelated = await Directory(
+          path.join(harness.fixture.root.path, 'another-candidate'),
+        ).create();
+        harness.nativeAdapter.creationPath = unrelated.path;
+        harness.nativeAdapter.resolutionPath = unrelated.path;
+
+        final result = await harness.service().adopt(reviewed);
+
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+        );
+        await harness.expectDefaultAndNoPending();
+      },
+    );
+
+    test(
+      'additive delta that exceeds remediation count remains non-adoptable',
+      () async {
+        for (var index = 0; index < 256; index++) {
+          await harness.addSourcePayload(<int>[index, index >> 8, 77]);
+        }
+        final reviewed = await harness.verifyBehind();
+        expect(reviewed.evidence!.missingCount, 256);
+        await harness.addSourcePayload(<int>[1, 2, 3, 77]);
+
+        final result = await harness.service().adopt(reviewed);
+
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.verificationEvidenceInvalid,
         );
         await harness.expectDefaultAndNoPending();
       },
@@ -558,6 +723,115 @@ void main() {
         );
       },
     );
+
+    test('successful destination install emits showcase evidence afterward and '
+        'a broken consumer cannot affect remediation', () async {
+      final relativePath = await harness.addSourcePayload(<int>[
+        1,
+        4,
+        9,
+      ], extension: 'png');
+      final reviewed = await harness.verifyBehind();
+      final events = <AttachmentShowcaseItem>[];
+      var destinationExistedAtPublication = false;
+
+      final result = await harness
+          .service(
+            onShowcaseItem: (item) {
+              destinationExistedAtPublication = File(
+                item.resolvedPath,
+              ).existsSync();
+              events.add(item);
+              throw StateError('presentation consumer failed');
+            },
+          )
+          .adopt(reviewed);
+
+      expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+      expect(destinationExistedAtPublication, isTrue);
+      expect(events, hasLength(1));
+      expect(
+        events.single.resolvedPath,
+        path.join(harness.candidate.path, relativePath),
+      );
+      expect(events.single.mediaKind, AttachmentShowcaseMediaKind.image);
+      expect(events.single.stablePresentationIdentity, isNotEmpty);
+    });
+
+    test('remediation result is identical when showcase is absent', () async {
+      await harness.addSourcePayload(<int>[1, 5, 12]);
+      final reviewed = await harness.verifyBehind();
+
+      final result = await harness.service().adopt(reviewed);
+
+      expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+      expect(await harness.transactionStore.readPending(), isNull);
+      final finalVerification = await harness.verifier.verify(
+        sourceLocation: AttachmentArchiveLocationState.defaultAvailable(
+          archiveRootPath: harness.source.path,
+        ),
+        candidate: AttachmentArchiveCandidateAccess(
+          directoryPath: harness.candidate.path,
+          isPhysicallyWritable: true,
+        ),
+      );
+      expect(finalVerification, isA<AttachmentArchiveCandidateComplete>());
+    });
+
+    test('failed install publishes no showcase success event', () async {
+      await harness.addSourcePayload(<int>[2, 5, 10]);
+      final reviewed = await harness.verifyBehind();
+      final events = <AttachmentShowcaseItem>[];
+
+      final result = await harness
+          .service(
+            injector: _throwAt(
+              AttachmentArchiveAdoptionFailurePoint.duringRemediation,
+            ),
+            onShowcaseItem: events.add,
+          )
+          .adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.remediationPending,
+      );
+      expect(events, isEmpty);
+    });
+
+    test('final verifier progress is determinate and failure preserves active '
+        'candidate recovery state without success', () async {
+      final relativePath = await harness.addSourcePayload(<int>[3, 6, 11]);
+      final reviewed = await harness.verifyBehind();
+      final finalProgress = <AttachmentArchiveVerificationProgress>[];
+
+      final result = await harness.service().adopt(
+        reviewed,
+        onRemediationProgress: (progress) {
+          if (progress.filesCompleted == progress.totalFiles) {
+            File(
+              path.join(harness.candidate.path, relativePath),
+            ).writeAsBytesSync(<int>[0, 0, 0], flush: true);
+          }
+        },
+        onFinalCoverageProgress: finalProgress.add,
+      );
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.remediationPending,
+      );
+      expect(finalProgress, isNotEmpty);
+      expect(
+        finalProgress.where((progress) => progress.isDeterminate),
+        isNotEmpty,
+      );
+      expect(await harness.transactionStore.readPending(), isNotNull);
+      expect(
+        (await harness.readLocation()).configuration,
+        (await harness.transactionStore.readPending())!.intendedConfiguration,
+      );
+    });
 
     test(
       'post-switch crash keeps candidate active, permits new candidate data, '
@@ -794,6 +1068,7 @@ final class _Harness {
     required this.verifier,
     required this.transactionStore,
     required this.rootInspector,
+    required this.payloadHashStarts,
   });
 
   static const relativePayloadPath = 'nested/payload.bin';
@@ -809,6 +1084,7 @@ final class _Harness {
   final FilesystemAttachmentArchiveCandidateVerifier verifier;
   final FilesystemAttachmentArchiveAdoptionTransactionStore transactionStore;
   final _ControllableRootInspector rootInspector;
+  final List<String> payloadHashStarts;
   final List<String> steps = <String>[];
   final List<bool> coordinatedSteps = <bool>[];
   Future<void> Function()? onBookmarkCreate;
@@ -875,11 +1151,13 @@ INSERT INTO archived_attachments (
         ),
       ],
     );
+    final payloadHashStarts = <String>[];
     final verifier = FilesystemAttachmentArchiveCandidateVerifier(
       metadataReader: OverlayAttachmentArchiveVerificationMetadataReader(
         overlayDatabase: database,
       ),
       clock: () => fixedTime,
+      onPayloadHashStarted: payloadHashStarts.add,
     );
     final transactionStore =
         FilesystemAttachmentArchiveAdoptionTransactionStore(
@@ -897,6 +1175,7 @@ INSERT INTO archived_attachments (
       verifier: verifier,
       transactionStore: transactionStore,
       rootInspector: rootInspector,
+      payloadHashStarts: payloadHashStarts,
     );
     nativeAdapter.onCreate = () async {
       harness._recordCoordinatedStep('bookmark-create');
@@ -923,8 +1202,8 @@ INSERT INTO archived_attachments (
     return result;
   }
 
-  Future<String> addSourcePayload(List<int> bytes) {
-    return _writeContentAddressed(source, bytes);
+  Future<String> addSourcePayload(List<int> bytes, {String extension = 'bin'}) {
+    return _writeContentAddressed(source, bytes, extension: extension);
   }
 
   Future<AttachmentArchiveCandidateBehind> verifyBehind() async {
@@ -943,6 +1222,7 @@ INSERT INTO archived_attachments (
 
   AttachmentArchiveAdoptionService service({
     AttachmentArchiveAdoptionFailureInjector? injector,
+    AttachmentShowcaseEventCallback? onShowcaseItem,
   }) {
     final snapshots = _RecordingSnapshotReader(
       delegate: verifier,
@@ -955,6 +1235,7 @@ INSERT INTO archived_attachments (
       mutationCoordinator: coordinator,
       currentLocationReader: _ProviderLocationReader(container),
       snapshotReader: snapshots,
+      addedPayloadReader: verifier,
       transactionStore: transactionStore,
       authorityIssuer: AttachmentArchiveAdoptionAuthorityIssuer(
         transactionStore: transactionStore,
@@ -988,6 +1269,7 @@ INSERT INTO archived_attachments (
       failureInjector: injector,
       candidateVerifier: verifier,
       fileStore: const FilesystemAttachmentArchiveFileStore(),
+      onShowcaseItem: onShowcaseItem,
     );
   }
 
@@ -1217,9 +1499,13 @@ Future<File> _write(
   return file;
 }
 
-Future<String> _writeContentAddressed(Directory root, List<int> bytes) async {
+Future<String> _writeContentAddressed(
+  Directory root,
+  List<int> bytes, {
+  String extension = 'bin',
+}) async {
   final digest = sha256.convert(bytes).toString();
-  final relativePath = '${digest.substring(0, 2)}/$digest.bin';
+  final relativePath = '${digest.substring(0, 2)}/$digest.$extension';
   await _write(root, relativePath, bytes);
   return relativePath;
 }

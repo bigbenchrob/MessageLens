@@ -18,6 +18,7 @@ enum AttachmentArchiveAdoptionWorkflowStage {
   candidateNoLongerWritable,
   switching,
   remediating,
+  verifyingFinalCoverage,
   remediationPending,
   success,
   rollbackRestoredPrevious,
@@ -91,9 +92,11 @@ abstract interface class AttachmentArchiveAdoptionExecutor {
     AttachmentArchiveCandidateVerificationResult verification, {
     AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   });
 
   Future<AttachmentArchiveAdoptionResult> resumePendingRemediation({
     AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+    AttachmentArchiveVerificationProgressCallback? onFinalCoverageProgress,
   });
 }

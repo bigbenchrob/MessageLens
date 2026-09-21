@@ -7,6 +7,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
+import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
+import 'package:remember_this_text/essentials/archive_environment/domain/archive_mutation_operation.dart';
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
     show
         ArchiveMutationCoordinator,
@@ -20,7 +22,9 @@ import 'package:remember_this_text/essentials/sidebar/application/sidebar_action
 import 'package:remember_this_text/essentials/sidebar/domain/sidebar_action_intent.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_authority.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_enablement_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_service.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_workflow.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_workflow_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_approval_revalidator.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_bookmark_adapter.dart';
@@ -28,12 +32,15 @@ import 'package:remember_this_text/features/attachments/application/attachment_a
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_folder_chooser.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_native_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_showcase_source_provider.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_adoption.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_candidate_verification.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_adoption_root_inspector.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_adoption_transaction_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_candidate_verifier.dart';
+import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_verification_metadata_reader.dart';
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart';
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart';
@@ -86,7 +93,7 @@ void main() {
       expect(payload.workflowTitle, 'Attachment archive switched');
       expect(
         payload.workflowBodyText,
-        contains('MessageLens has not deleted it'),
+        contains('Your original archive remains unchanged'),
       );
       final location = await harness.readLocation();
       expect(
@@ -123,6 +130,172 @@ void main() {
         candidateBeforeAdoption,
       );
       expect(await harness.transactionStore.readPending(), isNull);
+      expect(harness.legacyRelocationDirectory.existsSync(), isFalse);
+    },
+  );
+
+  test(
+    'disposable behind flow hashes only additions then reaches stable success',
+    () async {
+      final harness = await _SettingsHarness.create();
+      addTearDown(harness.dispose);
+      final historicalPaths = <String>[];
+      for (var index = 0; index < 3; index++) {
+        historicalPaths.add(
+          await harness.addSourcePayload(
+            relativePath: '_by_id/${100 + index}.png',
+            bytes: <int>[20 + index, index, 7],
+            attachmentId: 100 + index,
+          ),
+        );
+      }
+      final sourceBeforeReview = await _payloadSnapshot(harness.source);
+      final observedStates = <AttachmentArchiveAdoptionWorkflowState>[];
+      final subscription = harness.container.listen(
+        attachmentArchiveAdoptionWorkflowProvider,
+        (previous, next) => observedStates.add(next),
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      var payload = harness.resolveSettings();
+      await harness.dispatch(payload.actions.single.intent);
+      payload = harness.resolveSettings();
+      expect(payload.workflowView, _View.candidateBehind);
+      expect(
+        harness.container
+            .read(attachmentArchiveAdoptionWorkflowProvider)
+            .missingCount,
+        historicalPaths.length,
+      );
+      expect(
+        observedStates
+            .where((state) => state.stage == _Stage.checking)
+            .map((state) => state.progress)
+            .whereType<AttachmentArchiveVerificationProgress>()
+            .any((progress) => progress.isDeterminate),
+        isTrue,
+      );
+
+      harness.payloadHashStarts.clear();
+      final addedPaths = <String>[];
+      for (var index = 0; index < 2; index++) {
+        addedPaths.add(
+          await harness.addSourcePayload(
+            relativePath: '_by_id/${200 + index}.png',
+            bytes: <int>[40 + index, index, 9],
+            attachmentId: 200 + index,
+          ),
+        );
+      }
+      final sourceBeforeAdoption = await _payloadSnapshot(harness.source);
+      int? approvalHashCount;
+      final approvalSubscription = harness.container.listen(
+        attachmentArchiveAdoptionWorkflowProvider,
+        (previous, next) {
+          if (next.stage == _Stage.switching && next.progress != null) {
+            approvalHashCount ??= harness.payloadHashStarts.length;
+          }
+        },
+      );
+      addTearDown(approvalSubscription.close);
+
+      await harness.workflow.useCandidate();
+
+      expect(approvalHashCount, addedPaths.length);
+      expect(harness.payloadHashStarts.take(approvalHashCount!).toSet(), {
+        for (final relativePath in addedPaths)
+          path.join(harness.source.path, relativePath),
+      });
+      expect(
+        observedStates.any(
+          (state) =>
+              state.stage == _Stage.remediating &&
+              state.remediationProgress?.totalFiles ==
+                  historicalPaths.length + addedPaths.length,
+        ),
+        isTrue,
+      );
+      expect(
+        observedStates.any(
+          (state) =>
+              state.stage == _Stage.verifyingFinalCoverage &&
+              (state.progress?.isDeterminate ?? false),
+        ),
+        isTrue,
+      );
+      expect(
+        harness.container.read(attachmentArchiveAdoptionWorkflowProvider).stage,
+        _Stage.success,
+      );
+      expect(
+        await harness.container.read(
+          attachmentArchivePendingAdoptionTransactionProvider.future,
+        ),
+        isNull,
+      );
+      final showcase = harness.container.read(attachmentShowcaseSourceProvider);
+      expect(showcase, isNotNull);
+      expect(showcase!.resolvedPath, startsWith(harness.candidate.path));
+
+      harness.container.invalidate(
+        attachmentArchivePendingAdoptionTransactionProvider,
+      );
+      expect(
+        await harness.container.read(
+          attachmentArchivePendingAdoptionTransactionProvider.future,
+        ),
+        isNull,
+      );
+      await _flushAsync();
+      expect(
+        harness.container.read(attachmentArchiveAdoptionWorkflowProvider).stage,
+        _Stage.success,
+      );
+
+      final ordinarySource = await _write(
+        harness.fixture.root,
+        'ordinary-ingestion.bin',
+        <int>[91, 92, 93],
+      );
+      final admission = await harness.container.read(
+        attachmentArchiveWritableRootAdmissionProvider.future,
+      );
+      final ordinaryWrite = await const FilesystemAttachmentArchiveFileStore()
+          .writeArchiveEntry(
+            archiveDirectoryPath: admission.lease!.archiveRootPath,
+            sourcePath: ordinarySource.path,
+            archiveKey: const ArchiveCompatibilityKey(
+              messageGuid: 'disposable-post-adoption-write',
+              importAttachmentId: 999,
+            ),
+            sha256Hex: null,
+            validateMutation: (boundary) => admission.lease!.requireValid(
+              operation: ArchiveMutationOperation.attachmentReconciliation,
+              boundary: boundary,
+            ),
+          );
+      expect(
+        await Directory(
+          admission.lease!.archiveRootPath,
+        ).resolveSymbolicLinks(),
+        await harness.candidate.resolveSymbolicLinks(),
+      );
+      expect(ordinaryWrite, isNotNull);
+      expect(
+        File(
+          path.join(harness.candidate.path, ordinaryWrite!.relativePath),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(await _payloadSnapshot(harness.source), sourceBeforeAdoption);
+      expect(sourceBeforeAdoption.length, sourceBeforeReview.length + 2);
+      for (final relativePath in <String>[...historicalPaths, ...addedPaths]) {
+        expect(
+          File(path.join(harness.candidate.path, relativePath)).existsSync(),
+          isTrue,
+        );
+      }
       expect(harness.legacyRelocationDirectory.existsSync(), isFalse);
     },
   );
@@ -203,6 +376,7 @@ final class _SettingsHarness {
     required this.nativeAdapter,
     required this.verifier,
     required this.transactionStore,
+    required this.payloadHashStarts,
     required this.container,
     required this.failurePoint,
   });
@@ -218,6 +392,7 @@ final class _SettingsHarness {
   final _FakeNativeAdapter nativeAdapter;
   final FilesystemAttachmentArchiveCandidateVerifier verifier;
   final FilesystemAttachmentArchiveAdoptionTransactionStore transactionStore;
+  final List<String> payloadHashStarts;
   final ProviderContainer container;
   final AttachmentArchiveAdoptionFailurePoint? failurePoint;
 
@@ -259,11 +434,13 @@ final class _SettingsHarness {
       bytes: bytes,
     );
     final nativeAdapter = _FakeNativeAdapter(candidate.path);
+    final payloadHashStarts = <String>[];
     final verifier = FilesystemAttachmentArchiveCandidateVerifier(
       metadataReader: OverlayAttachmentArchiveVerificationMetadataReader(
         overlayDatabase: database,
       ),
       clock: () => _clock,
+      onPayloadHashStarted: payloadHashStarts.add,
     );
     final transactionStore =
         FilesystemAttachmentArchiveAdoptionTransactionStore(
@@ -302,6 +479,7 @@ final class _SettingsHarness {
       nativeAdapter: nativeAdapter,
       verifier: verifier,
       transactionStore: transactionStore,
+      payloadHashStarts: payloadHashStarts,
       container: container,
       failurePoint: failurePoint,
     );
@@ -349,6 +527,22 @@ final class _SettingsHarness {
     );
   }
 
+  Future<String> addSourcePayload({
+    required String relativePath,
+    required List<int> bytes,
+    required int attachmentId,
+  }) async {
+    await _write(source, relativePath, bytes);
+    await _insertMetadata(
+      database,
+      messageGuid: 'payload-$attachmentId',
+      attachmentId: attachmentId,
+      relativePath: relativePath,
+      bytes: bytes,
+    );
+    return relativePath;
+  }
+
   Future<void> updateCandidateCopy() async {
     final bytes = await File(
       path.join(source.path, _newRelativePath),
@@ -362,6 +556,7 @@ final class _SettingsHarness {
       mutationCoordinator: coordinator,
       currentLocationReader: _ProviderLocationReader(container),
       snapshotReader: verifier,
+      addedPayloadReader: verifier,
       transactionStore: transactionStore,
       authorityIssuer: AttachmentArchiveAdoptionAuthorityIssuer(
         transactionStore: transactionStore,
@@ -390,6 +585,11 @@ final class _SettingsHarness {
           throw StateError('injected ${point.name}');
         }
       },
+      candidateVerifier: verifier,
+      fileStore: const FilesystemAttachmentArchiveFileStore(),
+      onShowcaseItem: (item) {
+        container.read(attachmentShowcaseSourceProvider.notifier).offer(item);
+      },
     );
   }
 
@@ -403,6 +603,12 @@ final class _SettingsHarness {
     await database.close();
     await fixture.dispose();
   }
+}
+
+typedef _Stage = AttachmentArchiveAdoptionWorkflowStage;
+
+Future<void> _flushAsync() {
+  return Future<void>.delayed(Duration.zero);
 }
 
 final class _ProviderLocationReader

@@ -19,6 +19,7 @@ import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_store_providers.dart'
     show attachmentArchiveFileStoreProvider;
+import 'attachment_showcase_source_provider.dart';
 
 part 'attachment_archive_adoption_provider.g.dart';
 
@@ -58,6 +59,7 @@ Future<AttachmentArchiveAdoptionService> attachmentArchiveAdoptionService(
       () => ref.read(attachmentArchiveLocationProvider.future),
     ),
     snapshotReader: snapshotReader,
+    addedPayloadReader: snapshotReader,
     transactionStore: transactionStore,
     authorityIssuer: AttachmentArchiveAdoptionAuthorityIssuer(
       transactionStore: transactionStore,
@@ -85,6 +87,9 @@ Future<AttachmentArchiveAdoptionService> attachmentArchiveAdoptionService(
         ref.read(attachmentArchiveWritableRootAdmissionProvider.future),
     candidateVerifier: snapshotReader,
     fileStore: ref.watch(attachmentArchiveFileStoreProvider),
+    onShowcaseItem: (item) {
+      ref.read(attachmentShowcaseSourceProvider.notifier).offer(item);
+    },
   );
 }
 

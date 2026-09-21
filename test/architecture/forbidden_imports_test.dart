@@ -456,6 +456,7 @@ const Set<String> _timerAllowedFiles = {
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+  'lib/features/attachments/application/attachment_showcase_source_provider.dart',
   'lib/features/messages/application/message_evidence/contact_evidence_cache_policy.dart',
   'lib/features/messages/application/message_evidence/message_evidence_spine_provider.dart',
   'lib/features/messages/presentation/view_model/shared/display_widgets/new_display_widgets.dart',

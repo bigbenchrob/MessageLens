@@ -38,6 +38,7 @@ class _SystemHash {
 ///
 /// Archive enabled:
 /// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
 /// - use the live Messages file as a read-only fallback for custom roots
 /// - trigger on-demand ingestion only for the mutation-authorized internal root
 /// - preserve root-unavailable evidence without treating it as payload loss
@@ -54,6 +55,7 @@ const attachmentResolverProvider = AttachmentResolverFamily();
 ///
 /// Archive enabled:
 /// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
 /// - use the live Messages file as a read-only fallback for custom roots
 /// - trigger on-demand ingestion only for the mutation-authorized internal root
 /// - preserve root-unavailable evidence without treating it as payload loss
@@ -68,6 +70,7 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
   ///
   /// Archive enabled:
   /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
   /// - use the live Messages file as a read-only fallback for custom roots
   /// - trigger on-demand ingestion only for the mutation-authorized internal root
   /// - preserve root-unavailable evidence without treating it as payload loss
@@ -83,6 +86,7 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
   ///
   /// Archive enabled:
   /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
   /// - use the live Messages file as a read-only fallback for custom roots
   /// - trigger on-demand ingestion only for the mutation-authorized internal root
   /// - preserve root-unavailable evidence without treating it as payload loss
@@ -122,6 +126,7 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
 ///
 /// Archive enabled:
 /// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
 /// - use the live Messages file as a read-only fallback for custom roots
 /// - trigger on-demand ingestion only for the mutation-authorized internal root
 /// - preserve root-unavailable evidence without treating it as payload loss
@@ -137,6 +142,7 @@ class AttachmentResolverProvider
   ///
   /// Archive enabled:
   /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
   /// - use the live Messages file as a read-only fallback for custom roots
   /// - trigger on-demand ingestion only for the mutation-authorized internal root
   /// - preserve root-unavailable evidence without treating it as payload loss

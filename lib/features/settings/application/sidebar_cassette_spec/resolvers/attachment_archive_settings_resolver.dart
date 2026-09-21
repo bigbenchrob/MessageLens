@@ -257,6 +257,17 @@ class AttachmentArchiveSettingsResolver
             'historical payload set is installed.',
         statusLines: _copyLines(workflow),
       ),
+      AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage => _payload(
+        cassetteIndex: cassetteIndex,
+        workflowView: AttachmentArchiveSettingsWorkflowView.switching,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Verifying final coverage…',
+        workflowBodyText: [
+          'MessageLens is making one final check before marking the archive switch complete. No attachments are being copied.',
+          if (workflow.progress case final progress?) _progressLabel(progress),
+        ].join('\n\n'),
+        statusLines: _copyLines(workflow),
+      ),
       AttachmentArchiveAdoptionWorkflowStage.remediationPending => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.failed,
@@ -276,10 +287,12 @@ class AttachmentArchiveSettingsResolver
             'MessageLens is now using:\n'
             '${workflow.candidatePath ?? location.archiveRootPath ?? ''}\n\n'
             '${workflow.candidateVolumeName ?? _volumeNameForPath(workflow.candidatePath) ?? 'Archive volume'} · Connected\n\n'
+            'All attachments are up to date.\n\n'
             'Your original archive is still at:\n'
             '${workflow.sourcePath ?? ''}\n\n'
             'Keep the original for a few days while you make sure everything '
-            'is working normally.\n\nMessageLens has not deleted it.',
+            'is working normally.\n\nYour original archive remains '
+            'unchanged.\n\nYou’re ready to continue using MessageLens.',
       ),
       AttachmentArchiveAdoptionWorkflowStage.rollbackRestoredPrevious =>
         _rollbackRestoredPayload(
@@ -407,12 +420,12 @@ class AttachmentArchiveSettingsResolver
       stableBodyText: stableBodyText,
       workflowTitle: 'This copy is not up to date',
       workflowBodyText:
-          'MessageLens checked the copy and found:\n\n'
-          '$missingCount ${_plural(missingCount, 'attachment')} '
-          '(${_formatBytes(missingBytes)}) in the current archive that '
-          '${missingCount == 1 ? 'is' : 'are'} not in the copy.\n\n'
-          '${_unchangedMessage(workflow)}\n\n'
-          'Update the copied folder, then check it again.',
+          'This copy is missing $missingCount '
+          '${_plural(missingCount, 'attachment')} currently stored in the '
+          'active archive (${_formatBytes(missingBytes)}).\n\n'
+          'Everything already in this copy has been verified.\n\n'
+          'MessageLens can switch to this copy, then add the missing '
+          'attachments.',
       statusLines: _copyLines(workflow),
       actions: const [
         SidebarActionDescriptor(

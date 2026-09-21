@@ -259,9 +259,16 @@ void main() {
     );
 
     expect(payload.workflowTitle, 'This copy is not up to date');
-    expect(payload.workflowBodyText, contains('1 attachment (3.1 MB)'));
-    expect(payload.workflowBodyText, contains('Update the copied folder'));
-    expect(payload.workflowBodyText, contains('has not changed'));
+    expect(payload.workflowBodyText, contains('missing 1 attachment'));
+    expect(payload.workflowBodyText, contains('(3.1 MB)'));
+    expect(
+      payload.workflowBodyText,
+      contains('Everything already in this copy has been verified'),
+    );
+    expect(
+      payload.workflowBodyText,
+      contains('then add the missing attachment'),
+    );
     expect(payload.actions.map((action) => action.label), ['Check Again']);
     expect(
       payload.actions.where((action) => action.label.contains('Use')),
@@ -332,7 +339,11 @@ void main() {
     expect(success.workflowTitle, 'Attachment archive switched');
     expect(
       success.workflowBodyText,
-      contains('MessageLens has not deleted it'),
+      contains('Your original archive remains unchanged'),
+    );
+    expect(
+      success.workflowBodyText,
+      contains('All attachments are up to date'),
     );
     expect(success.workflowBodyText, isNot(contains('moved successfully')));
     expect(success.actions, isEmpty);

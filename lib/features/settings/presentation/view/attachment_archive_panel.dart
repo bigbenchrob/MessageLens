@@ -11,6 +11,7 @@ import '../../../attachments/feature_level_providers.dart'
         AttachmentArchiveAdoptionWorkflowStage,
         AttachmentArchiveAdoptionWorkflowState,
         AttachmentArchiveVerificationPhase,
+        AttachmentShowcaseView,
         attachmentArchiveAdoptionWorkflowProvider,
         attachmentArchiveLocationProvider;
 
@@ -203,6 +204,8 @@ class _WorkflowRegion extends ConsumerWidget {
           ),
           AttachmentArchiveAdoptionWorkflowStage.remediating =>
             _RemediationView(state: state),
+          AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage =>
+            _FinalCoverageView(state: state),
           AttachmentArchiveAdoptionWorkflowStage.remediationPending =>
             _PendingView(state: state, onResume: onResume),
           AttachmentArchiveAdoptionWorkflowStage.archiveChanged => _ErrorView(
@@ -348,13 +351,12 @@ class _BehindView extends ConsumerWidget {
           ? 'This copy is almost up to date'
           : 'This copy is substantially out of date',
       body: canUse
-          ? 'Everything already in this copy has been verified. Since the '
-                'copy was made, the current archive has received '
-                '$count ${_plural(count, 'new attachment')} · '
-                '${_formatBytes(bytes)}.\n\nMessageLens can switch to this '
-                'copy now so all new attachments go there, then add those '
-                'missing attachments. The current archive will remain '
-                'unchanged.'
+          ? 'This copy is missing $count ${_plural(count, 'attachment')} '
+                'currently stored in the active archive · '
+                '${_formatBytes(bytes)}.\n\nEverything already in this copy '
+                'has been verified.\n\nMessageLens can switch to this copy, '
+                'then add the missing attachments. The current archive will '
+                'remain unchanged.'
           : 'MessageLens will not perform application-owned catch-up for this '
                 'large delta. Recreate or refresh the copy externally.',
       actions: [
@@ -388,6 +390,36 @@ class _RemediationView extends ConsumerWidget {
           '$files of $totalFiles attachments\n'
           '${_formatBytes(bytes)} of ${_formatBytes(totalBytes)}',
       progress: progress?.fractionComplete ?? 0,
+      showcase: const AttachmentShowcaseView(),
+    );
+  }
+}
+
+class _FinalCoverageView extends ConsumerWidget {
+  const _FinalCoverageView({required this.state});
+
+  final AttachmentArchiveAdoptionWorkflowState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = state.progress;
+    final files = progress?.filesChecked ?? 0;
+    final totalFiles = progress?.totalFiles;
+    final bytes = progress?.bytesChecked ?? 0;
+    final totalBytes = progress?.totalBytes;
+    final details = totalFiles == null || totalBytes == null
+        ? 'Preparing the final coverage check…'
+        : '$files of $totalFiles files\n'
+              '${_formatBytes(bytes)} of ${_formatBytes(totalBytes)} checked · '
+              '${((progress?.fractionComplete ?? 0) * 100).round()}%';
+    return _ResultView(
+      heading: 'Verifying final coverage…',
+      body:
+          '$details\n\nMessageLens is making one final check before marking '
+          'the archive switch complete.',
+      progress: progress?.isDeterminate ?? false
+          ? progress?.fractionComplete ?? 0
+          : null,
     );
   }
 }
@@ -452,12 +484,14 @@ class _ResultView extends ConsumerWidget {
     required this.body,
     this.actions = const [],
     this.progress,
+    this.showcase,
   });
 
   final String heading;
   final String body;
   final List<Widget> actions;
   final double? progress;
+  final Widget? showcase;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -472,6 +506,10 @@ class _ResultView extends ConsumerWidget {
           style: typography.title2.copyWith(color: colors.content.textPrimary),
         ),
         const SizedBox(height: AppSpacing.sm),
+        if (showcase case final preview?) ...[
+          preview,
+          const SizedBox(height: AppSpacing.md),
+        ],
         Text(
           body,
           style: typography.body.copyWith(color: colors.content.textSecondary),
@@ -584,7 +622,7 @@ class _SuccessView extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'All verified attachments are available here.',
+          'All attachments are up to date.',
           style: typography.body.copyWith(color: colors.content.textSecondary),
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -596,8 +634,9 @@ class _SuccessView extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'MessageLens has not deleted the original archive. Keep it for a '
-          'few days while you confirm everything is working normally.',
+          'Your original archive remains unchanged.\n\nKeep it for a few days '
+          'while you confirm everything is working normally.\n\nYou’re ready '
+          'to continue using MessageLens.',
           style: typography.body.copyWith(color: colors.content.textSecondary),
         ),
       ],

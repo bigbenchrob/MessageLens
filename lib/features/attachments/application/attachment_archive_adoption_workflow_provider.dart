@@ -16,6 +16,7 @@ import 'attachment_archive_candidate_verifier.dart';
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_folder_chooser.dart';
 import 'attachment_archive_location_provider.dart';
+import 'attachment_showcase_source_provider.dart';
 
 part 'attachment_archive_adoption_workflow_provider.g.dart';
 
@@ -69,12 +70,14 @@ class AttachmentArchiveAdoptionWorkflow
   String? _selectedDirectoryPath;
   String? _selectedVolumeName;
   AttachmentArchiveCandidateVerificationResult? _readyVerification;
+  AttachmentArchiveAdoptionWorkflowState? _stableTerminalSuccess;
 
   @override
   AttachmentArchiveAdoptionWorkflowState build() {
     ref.onDispose(() {
       _operationToken++;
       _readyVerification = null;
+      _stableTerminalSuccess = null;
     });
     final executionEnabled = ref.watch(
       attachmentArchiveAdoptionExecutionEnabledProvider,
@@ -86,13 +89,20 @@ class AttachmentArchiveAdoptionWorkflow
       final pending = next.valueOrNull;
       if ((pending?.hasCrossedActiveAuthorityBoundary ?? false) &&
           state.stage != AttachmentArchiveAdoptionWorkflowStage.switching &&
-          state.stage != AttachmentArchiveAdoptionWorkflowStage.remediating) {
+          state.stage != AttachmentArchiveAdoptionWorkflowStage.remediating &&
+          state.stage !=
+              AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage &&
+          state.stage != AttachmentArchiveAdoptionWorkflowStage.success) {
         state = _pendingState(
           pending!,
           executionEnabled: _executionIsEnabled(),
         );
       }
     });
+    final stableSuccess = _stableTerminalSuccess;
+    if (stableSuccess != null) {
+      return _withExecutionEnabled(stableSuccess, executionEnabled);
+    }
     final pending = ref
         .read(attachmentArchivePendingAdoptionTransactionProvider)
         .valueOrNull;
@@ -126,6 +136,8 @@ class AttachmentArchiveAdoptionWorkflow
       return;
     }
     final previousState = state;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
     final token = ++_operationToken;
     final chooser = ref.read(attachmentArchiveAdoptionFolderChooserProvider);
     final String? selectedPath;
@@ -160,6 +172,8 @@ class AttachmentArchiveAdoptionWorkflow
       return;
     }
     final selectedPath = _selectedDirectoryPath;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
     if (selectedPath == null) {
       await chooseExistingArchive();
       return;
@@ -174,6 +188,8 @@ class AttachmentArchiveAdoptionWorkflow
     _selectedDirectoryPath = null;
     _selectedVolumeName = null;
     _readyVerification = null;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
     state = AttachmentArchiveAdoptionWorkflowState.currentArchive(
       executionEnabled: _executionIsEnabled(),
     );
@@ -195,6 +211,8 @@ class AttachmentArchiveAdoptionWorkflow
 
     final displayContext = state;
     final token = ++_operationToken;
+    final showcase = ref.read(attachmentShowcaseSourceProvider.notifier)
+      ..begin();
     var pendingCacheRefreshRequested = false;
     state = _adoptionState(
       stage: AttachmentArchiveAdoptionWorkflowStage.switching,
@@ -230,21 +248,41 @@ class AttachmentArchiveAdoptionWorkflow
             remediationProgress: progress,
           );
         },
+        onFinalCoverageProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          showcase.stop();
+          state = _adoptionState(
+            stage:
+                AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage,
+            progress: progress,
+          );
+        },
       );
       if (!_isCurrent(token)) {
         return;
       }
-      if (result.outcome ==
-          AttachmentArchiveAdoptionOutcome.remediationPending) {
-        await _refreshPendingTransactionCache();
-      }
+      final pending = await _refreshPendingTransactionCache();
       if (!_isCurrent(token)) {
         return;
       }
+      if (_isSuccessful(result) && pending != null) {
+        showcase.stop();
+        _readyVerification = null;
+        state = _pendingState(pending, executionEnabled: _executionIsEnabled());
+        return;
+      }
       _readyVerification = null;
-      state = _stateForAdoptionResult(result, basis: displayContext);
+      final next = _stateForAdoptionResult(result, basis: displayContext);
+      if (next.stage == AttachmentArchiveAdoptionWorkflowStage.success) {
+        _stableTerminalSuccess = next;
+      }
+      showcase.stop();
+      state = next;
     } on Object catch (error) {
       if (_isCurrent(token)) {
+        showcase.stop();
         _readyVerification = null;
         state = _adoptionState(
           stage: AttachmentArchiveAdoptionWorkflowStage.failed,
@@ -262,6 +300,8 @@ class AttachmentArchiveAdoptionWorkflow
     }
     final displayContext = state;
     final token = ++_operationToken;
+    final showcase = ref.read(attachmentShowcaseSourceProvider.notifier)
+      ..begin();
     try {
       final executor = await ref.read(
         attachmentArchiveAdoptionExecutorProvider.future,
@@ -279,17 +319,39 @@ class AttachmentArchiveAdoptionWorkflow
             remediationProgress: progress,
           );
         },
+        onFinalCoverageProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          showcase.stop();
+          state = _adoptionState(
+            stage:
+                AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage,
+            progress: progress,
+          );
+        },
       );
       if (!_isCurrent(token)) {
         return;
       }
-      await _refreshPendingTransactionCache();
+      final pending = await _refreshPendingTransactionCache();
       if (!_isCurrent(token)) {
         return;
       }
-      state = _stateForAdoptionResult(result, basis: displayContext);
+      if (_isSuccessful(result) && pending != null) {
+        showcase.stop();
+        state = _pendingState(pending, executionEnabled: _executionIsEnabled());
+        return;
+      }
+      final next = _stateForAdoptionResult(result, basis: displayContext);
+      if (next.stage == AttachmentArchiveAdoptionWorkflowStage.success) {
+        _stableTerminalSuccess = next;
+      }
+      showcase.stop();
+      state = next;
     } on Object catch (error) {
       if (_isCurrent(token)) {
+        showcase.stop();
         state = _adoptionState(
           stage: AttachmentArchiveAdoptionWorkflowStage.remediationPending,
           issue: 'Historical remediation is still pending: $error',
@@ -567,9 +629,40 @@ class AttachmentArchiveAdoptionWorkflow
     );
   }
 
-  Future<void> _refreshPendingTransactionCache() async {
+  Future<AttachmentArchiveAdoptionTransaction?>
+  _refreshPendingTransactionCache() async {
     ref.invalidate(attachmentArchivePendingAdoptionTransactionProvider);
-    await ref.read(attachmentArchivePendingAdoptionTransactionProvider.future);
+    return ref.read(attachmentArchivePendingAdoptionTransactionProvider.future);
+  }
+
+  static bool _isSuccessful(AttachmentArchiveAdoptionResult result) {
+    return result.outcome == AttachmentArchiveAdoptionOutcome.adopted ||
+        result.outcome == AttachmentArchiveAdoptionOutcome.remediationComplete;
+  }
+
+  static AttachmentArchiveAdoptionWorkflowState _withExecutionEnabled(
+    AttachmentArchiveAdoptionWorkflowState state,
+    bool executionEnabled,
+  ) {
+    return AttachmentArchiveAdoptionWorkflowState(
+      stage: state.stage,
+      executionEnabled: executionEnabled,
+      sourcePath: state.sourcePath,
+      candidatePath: state.candidatePath,
+      candidateVolumeName: state.candidateVolumeName,
+      candidateIsAdoptable: state.candidateIsAdoptable,
+      progress: state.progress,
+      requiredFileCount: state.requiredFileCount,
+      requiredBytes: state.requiredBytes,
+      verifiedFileCount: state.verifiedFileCount,
+      verifiedBytes: state.verifiedBytes,
+      allowedExtraCount: state.allowedExtraCount,
+      allowedExtraBytes: state.allowedExtraBytes,
+      missingCount: state.missingCount,
+      missingBytes: state.missingBytes,
+      issue: state.issue,
+      remediationProgress: state.remediationProgress,
+    );
   }
 
   bool _executionIsEnabled() {
