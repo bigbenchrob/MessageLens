@@ -94,6 +94,8 @@ class MessageAttachmentEvidence {
       ResolvedAttachmentAvailability.archiveUnavailable =>
         'archive unavailable',
       ResolvedAttachmentAvailability.pendingArchive => 'pending archive',
+      ResolvedAttachmentAvailability.pendingHistoricalRemediation =>
+        'pending historical archive update',
       ResolvedAttachmentAvailability.unavailableAwaitingRecovery =>
         'unavailable',
       ResolvedAttachmentAvailability.nonRecoverable => 'not recoverable',

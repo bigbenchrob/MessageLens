@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_enablement_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_workflow.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_adoption_workflow_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_bookmark_adapter.dart';
@@ -116,20 +117,44 @@ void main() {
       },
     );
 
-    test('behind reports exact missing totals and never auto-copies', () async {
-      final harness = _Harness()
-        ..verifier.resultBuilder = (access) => _behind(access);
-      addTearDown(harness.dispose);
+    test(
+      'bounded exact behind offers use but never starts automatically',
+      () async {
+        final harness = _Harness()
+          ..verifier.resultBuilder = (access) => _behind(access);
+        addTearDown(harness.dispose);
 
-      await harness.notifier.chooseExistingArchive();
+        await harness.notifier.chooseExistingArchive();
 
-      expect(harness.state.stage, _Stage.candidateBehind);
-      expect(harness.state.missingCount, 1);
-      expect(harness.state.missingBytes, 3100);
-      expect(harness.executor.adoptCount, 0);
-      await harness.notifier.checkAgain();
-      expect(harness.verifier.verifyCount, 2);
-      expect(harness.executor.adoptCount, 0);
+        expect(harness.state.stage, _Stage.candidateBehind);
+        expect(harness.state.missingCount, 1);
+        expect(harness.state.missingBytes, 3100);
+        expect(harness.state.canUseCandidate, isTrue);
+        expect(harness.executor.adoptCount, 0);
+        await harness.notifier.useCandidate();
+        expect(harness.executor.adoptCount, 1);
+        expect(harness.state.stage, _Stage.success);
+      },
+    );
+
+    test('large or inexact behind delta cannot be adopted', () async {
+      final tooMany = _Harness()
+        ..verifier.resultBuilder = (access) =>
+            _behind(access, missingCount: 257, missingBytes: 257);
+      addTearDown(tooMany.dispose);
+      await tooMany.notifier.chooseExistingArchive();
+      expect(tooMany.state.canUseCandidate, isFalse);
+
+      final tooLarge = _Harness()
+        ..verifier.resultBuilder = (access) => _behind(
+          access,
+          missingCount: 1,
+          missingBytes:
+              AttachmentArchiveAdoptionTransaction.maximumRemediationBytes + 1,
+        );
+      addTearDown(tooLarge.dispose);
+      await tooLarge.notifier.chooseExistingArchive();
+      expect(tooLarge.state.canUseCandidate, isFalse);
     });
 
     test(
@@ -250,6 +275,30 @@ void main() {
       expect(second.state.canUseCandidate, isFalse);
     });
 
+    test(
+      'restart reconstructs pending remediation and resume preserves paths',
+      () async {
+        final harness = _Harness(pendingAdoption: _pendingTransaction());
+        addTearDown(harness.dispose);
+        harness.executor.result = const AttachmentArchiveAdoptionResult(
+          outcome: AttachmentArchiveAdoptionOutcome.remediationComplete,
+        );
+        expect(harness.state.stage, _Stage.currentArchive);
+        await _flushAsync();
+
+        expect(harness.state.stage, _Stage.remediationPending);
+        expect(harness.state.sourcePath, _sourcePath);
+        expect(harness.state.candidatePath, _candidatePath);
+
+        await harness.notifier.resumePendingRemediation();
+
+        expect(harness.executor.resumeCount, 1);
+        expect(harness.state.stage, _Stage.success);
+        expect(harness.state.sourcePath, _sourcePath);
+        expect(harness.state.candidatePath, _candidatePath);
+      },
+    );
+
     test('disabled execution gate cannot open chooser or verify', () async {
       final harness = _Harness(executionEnabled: false);
       addTearDown(harness.dispose);
@@ -269,11 +318,14 @@ const _sourcePath = '/tmp/source/attachment_archive';
 const _candidatePath = '/tmp/copy/attachment_archive';
 
 final class _Harness {
-  _Harness({String? chooserPath = _candidatePath, bool executionEnabled = true})
-    : chooser = _FakeChooser(chooserPath),
-      bookmarks = _FakeBookmarks(),
-      verifier = _FakeVerifier(),
-      executor = _FakeExecutor() {
+  _Harness({
+    String? chooserPath = _candidatePath,
+    bool executionEnabled = true,
+    AttachmentArchiveAdoptionTransaction? pendingAdoption,
+  }) : chooser = _FakeChooser(chooserPath),
+       bookmarks = _FakeBookmarks(),
+       verifier = _FakeVerifier(),
+       executor = _FakeExecutor() {
     container = ProviderContainer(
       overrides: [
         attachmentArchiveAdoptionExecutionEnabledProvider.overrideWith(
@@ -296,6 +348,9 @@ final class _Harness {
             archiveRootPath: _sourcePath,
             generation: 4,
           ),
+        ),
+        attachmentArchivePendingAdoptionTransactionProvider.overrideWith(
+          (ref) async => pendingAdoption,
         ),
       ],
     );
@@ -404,6 +459,7 @@ final class _FakeVerifier implements AttachmentArchiveCandidateVerifier {
 
 final class _FakeExecutor implements AttachmentArchiveAdoptionExecutor {
   int adoptCount = 0;
+  int resumeCount = 0;
   AttachmentArchiveAdoptionResult result =
       const AttachmentArchiveAdoptionResult(
         outcome: AttachmentArchiveAdoptionOutcome.adopted,
@@ -412,11 +468,56 @@ final class _FakeExecutor implements AttachmentArchiveAdoptionExecutor {
 
   @override
   Future<AttachmentArchiveAdoptionResult> adopt(
-    AttachmentArchiveCandidateComplete verification,
-  ) async {
+    AttachmentArchiveCandidateVerificationResult verification, {
+    AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
+    AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+  }) async {
     adoptCount++;
     return blocker == null ? result : blocker!.future;
   }
+
+  @override
+  Future<AttachmentArchiveAdoptionResult> resumePendingRemediation({
+    AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+  }) async {
+    resumeCount++;
+    return result;
+  }
+}
+
+AttachmentArchiveAdoptionTransaction _pendingTransaction() {
+  final intended = AttachmentArchiveLocationConfiguration.customExternal(
+    bookmarkDataBase64: 'AQID',
+    lastKnownPath: _candidatePath,
+    customWritePolicy: AttachmentArchiveCustomWritePolicy.activeArchive,
+  );
+  return AttachmentArchiveAdoptionTransaction(
+    formatVersion: AttachmentArchiveAdoptionTransaction.currentFormatVersion,
+    transactionId: '11111111-1111-4111-8111-111111111111',
+    state: AttachmentArchiveAdoptionTransactionState.activeRemediationPending,
+    kind: AttachmentArchiveAdoptionTransactionKind.verifiedBehind,
+    previousConfiguration:
+        const AttachmentArchiveLocationConfiguration.defaultInternal(),
+    intendedConfiguration: intended,
+    sourceCanonicalIdentity: _sourcePath,
+    candidateCanonicalIdentity: _candidatePath,
+    sourceLocationGeneration: 4,
+    verificationContentDigest: 'a' * 64,
+    sourceStructuralSnapshotFingerprint: 'b' * 64,
+    candidateStructuralSnapshotFingerprint: 'c' * 64,
+    verifiedFileCount: 4,
+    verifiedBytes: 3461,
+    remediationPayloads: const [
+      AttachmentArchiveRemediationPayload(
+        relativePath: '_by_id/100.bin',
+        expectedSizeBytes: 3100,
+        expectedSha256:
+            'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+      ),
+    ],
+    createdAtUtc: DateTime.utc(2026, 9, 20),
+    updatedAtUtc: DateTime.utc(2026, 9, 20),
+  );
 }
 
 AttachmentArchiveCandidateComplete _complete(
@@ -429,16 +530,18 @@ AttachmentArchiveCandidateComplete _complete(
 }
 
 AttachmentArchiveCandidateBehind _behind(
-  AttachmentArchiveCandidateAccess access,
-) {
+  AttachmentArchiveCandidateAccess access, {
+  int missingCount = 1,
+  int missingBytes = 3100,
+}) {
   return AttachmentArchiveCandidateBehind(
     context: _context(access),
     evidence: _evidence(
       access: access,
-      requiredFileCount: 5,
-      requiredBytes: 6561,
-      missingCount: 1,
-      missingBytes: 3100,
+      requiredFileCount: 4 + missingCount,
+      requiredBytes: 3461 + missingBytes,
+      missingCount: missingCount,
+      missingBytes: missingBytes,
     ),
   );
 }
@@ -504,6 +607,14 @@ AttachmentArchiveCandidateVerificationEvidence _evidence({
     allowedCandidateExtraBytes: 300,
     missingCount: missingCount,
     missingBytes: missingBytes,
+    missingPayloads: List<AttachmentArchiveVerifiedMissingPayload>.generate(
+      missingCount,
+      (index) => AttachmentArchiveVerifiedMissingPayload(
+        relativePath: '_by_id/${index + 100}.bin',
+        expectedSizeBytes: missingCount == 0 ? 0 : missingBytes ~/ missingCount,
+        expectedSha256: 'd' * 64,
+      ),
+    ),
     contentCoverageDigest: 'a' * 64,
     sourceStructuralSnapshotFingerprint: 'b' * 64,
     candidateStructuralSnapshotFingerprint: 'c' * 64,

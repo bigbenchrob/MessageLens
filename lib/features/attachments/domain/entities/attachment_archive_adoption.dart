@@ -1,10 +1,12 @@
 import 'package:meta/meta.dart';
+import 'package:path/path.dart' as path;
 
 import 'attachment_archive_location_configuration.dart';
 
 enum AttachmentArchiveAdoptionTransactionState {
   prepared('prepared'),
-  configurationPersisted('configuration_persisted');
+  configurationPersisted('configuration_persisted'),
+  activeRemediationPending('active_remediation_pending');
 
   const AttachmentArchiveAdoptionTransactionState(this.serializedName);
 
@@ -15,11 +17,103 @@ enum AttachmentArchiveAdoptionTransactionState {
       'prepared' => AttachmentArchiveAdoptionTransactionState.prepared,
       'configuration_persisted' =>
         AttachmentArchiveAdoptionTransactionState.configurationPersisted,
+      'active_remediation_pending' =>
+        AttachmentArchiveAdoptionTransactionState.activeRemediationPending,
       _ => throw FormatException(
         'Unsupported attachment archive adoption transaction state: $value',
       ),
     };
   }
+}
+
+enum AttachmentArchiveAdoptionTransactionKind {
+  complete('complete'),
+  verifiedBehind('verified_behind');
+
+  const AttachmentArchiveAdoptionTransactionKind(this.serializedName);
+
+  final String serializedName;
+
+  static AttachmentArchiveAdoptionTransactionKind parse(String value) {
+    return switch (value) {
+      'complete' => AttachmentArchiveAdoptionTransactionKind.complete,
+      'verified_behind' =>
+        AttachmentArchiveAdoptionTransactionKind.verifiedBehind,
+      _ => throw FormatException(
+        'Unsupported attachment archive adoption transaction kind: $value',
+      ),
+    };
+  }
+}
+
+/// One immutable historical payload obligation bound before archive switch.
+@immutable
+final class AttachmentArchiveRemediationPayload {
+  const AttachmentArchiveRemediationPayload({
+    required this.relativePath,
+    required this.expectedSizeBytes,
+    required this.expectedSha256,
+  });
+
+  final String relativePath;
+  final int expectedSizeBytes;
+  final String expectedSha256;
+
+  Map<String, Object> toJson() {
+    return <String, Object>{
+      'relativePath': relativePath,
+      'expectedSizeBytes': expectedSizeBytes,
+      'expectedSha256': expectedSha256,
+    };
+  }
+
+  factory AttachmentArchiveRemediationPayload.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return AttachmentArchiveRemediationPayload(
+      relativePath: AttachmentArchiveAdoptionTransaction._requiredString(
+        json,
+        'relativePath',
+      ),
+      expectedSizeBytes: AttachmentArchiveAdoptionTransaction._requiredInt(
+        json,
+        'expectedSizeBytes',
+      ),
+      expectedSha256: AttachmentArchiveAdoptionTransaction._requiredSha256(
+        json,
+        'expectedSha256',
+      ),
+    );
+  }
+
+  void validate() {
+    final normalized = path.normalize(relativePath);
+    if (relativePath.isEmpty ||
+        path.isAbsolute(relativePath) ||
+        normalized != relativePath ||
+        normalized == '.' ||
+        normalized == '..' ||
+        normalized.startsWith('../') ||
+        expectedSizeBytes < 0 ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(expectedSha256)) {
+      throw const FormatException(
+        'Attachment archive remediation payload evidence is invalid.',
+      );
+    }
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is AttachmentArchiveRemediationPayload &&
+            relativePath == other.relativePath &&
+            expectedSizeBytes == other.expectedSizeBytes &&
+            expectedSha256 == other.expectedSha256;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(relativePath, expectedSizeBytes, expectedSha256);
 }
 
 /// The complete durable state for one narrow configuration-switch window.
@@ -44,9 +138,13 @@ final class AttachmentArchiveAdoptionTransaction {
     required this.verifiedBytes,
     required this.createdAtUtc,
     required this.updatedAtUtc,
+    this.kind = AttachmentArchiveAdoptionTransactionKind.complete,
+    this.remediationPayloads = const [],
   });
 
-  static const int currentFormatVersion = 1;
+  static const int currentFormatVersion = 2;
+  static const int maximumRemediationPayloadCount = 256;
+  static const int maximumRemediationBytes = 1024 * 1024 * 1024;
 
   final int formatVersion;
   final String transactionId;
@@ -63,6 +161,18 @@ final class AttachmentArchiveAdoptionTransaction {
   final int verifiedBytes;
   final DateTime createdAtUtc;
   final DateTime updatedAtUtc;
+  final AttachmentArchiveAdoptionTransactionKind kind;
+  final List<AttachmentArchiveRemediationPayload> remediationPayloads;
+
+  int get remediationBytes => remediationPayloads.fold<int>(
+    0,
+    (total, payload) => total + payload.expectedSizeBytes,
+  );
+
+  bool get hasCrossedActiveAuthorityBoundary {
+    return state ==
+        AttachmentArchiveAdoptionTransactionState.activeRemediationPending;
+  }
 
   AttachmentArchiveAdoptionTransaction withState(
     AttachmentArchiveAdoptionTransactionState value, {
@@ -85,11 +195,13 @@ final class AttachmentArchiveAdoptionTransaction {
       verifiedBytes: verifiedBytes,
       createdAtUtc: createdAtUtc,
       updatedAtUtc: updatedAtUtc.toUtc(),
+      kind: kind,
+      remediationPayloads: remediationPayloads,
     );
   }
 
   Map<String, Object> toJson() {
-    return <String, Object>{
+    final json = <String, Object>{
       'formatVersion': formatVersion,
       'transactionId': transactionId,
       'state': state.serializedName,
@@ -108,13 +220,20 @@ final class AttachmentArchiveAdoptionTransaction {
       'createdAtUtc': createdAtUtc.toUtc().toIso8601String(),
       'updatedAtUtc': updatedAtUtc.toUtc().toIso8601String(),
     };
+    if (formatVersion >= 2) {
+      json['kind'] = kind.serializedName;
+      json['remediationPayloads'] = remediationPayloads
+          .map((payload) => payload.toJson())
+          .toList(growable: false);
+    }
+    return json;
   }
 
   factory AttachmentArchiveAdoptionTransaction.fromJson(
     Map<String, Object?> json,
   ) {
     final formatVersion = _requiredInt(json, 'formatVersion');
-    if (formatVersion != currentFormatVersion) {
+    if (formatVersion != 1 && formatVersion != currentFormatVersion) {
       throw FormatException(
         'Unsupported attachment archive adoption transaction format: '
         '$formatVersion',
@@ -154,6 +273,20 @@ final class AttachmentArchiveAdoptionTransaction {
       verifiedBytes: _requiredInt(json, 'verifiedBytes'),
       createdAtUtc: _requiredUtcDateTime(json, 'createdAtUtc'),
       updatedAtUtc: _requiredUtcDateTime(json, 'updatedAtUtc'),
+      kind: formatVersion == 1
+          ? AttachmentArchiveAdoptionTransactionKind.complete
+          : AttachmentArchiveAdoptionTransactionKind.parse(
+              _requiredString(json, 'kind'),
+            ),
+      remediationPayloads: formatVersion == 1
+          ? const <AttachmentArchiveRemediationPayload>[]
+          : _requiredList(json, 'remediationPayloads')
+                .map(
+                  (value) => AttachmentArchiveRemediationPayload.fromJson(
+                    _requiredObject(value, 'remediationPayloads item'),
+                  ),
+                )
+                .toList(growable: false),
     );
     transaction.validate();
     return transaction;
@@ -202,6 +335,32 @@ final class AttachmentArchiveAdoptionTransaction {
         );
       }
     }
+    final seenPaths = <String>{};
+    for (final payload in remediationPayloads) {
+      payload.validate();
+      if (!seenPaths.add(payload.relativePath)) {
+        throw const FormatException(
+          'Attachment archive remediation paths must be unique.',
+        );
+      }
+    }
+    if (kind == AttachmentArchiveAdoptionTransactionKind.complete &&
+        (remediationPayloads.isNotEmpty ||
+            state ==
+                AttachmentArchiveAdoptionTransactionState
+                    .activeRemediationPending)) {
+      throw const FormatException(
+        'Complete archive adoption cannot contain remediation state.',
+      );
+    }
+    if (kind == AttachmentArchiveAdoptionTransactionKind.verifiedBehind &&
+        (remediationPayloads.isEmpty ||
+            remediationPayloads.length > maximumRemediationPayloadCount ||
+            remediationBytes > maximumRemediationBytes)) {
+      throw const FormatException(
+        'Verified-behind remediation exceeds the bounded adoption policy.',
+      );
+    }
   }
 
   static String _requiredString(Map<String, Object?> json, String key) {
@@ -246,6 +405,21 @@ final class AttachmentArchiveAdoptionTransaction {
     }
     return Map<String, Object?>.from(value);
   }
+
+  static List<Object?> _requiredList(Map<String, Object?> json, String key) {
+    final value = json[key];
+    if (value is! List) {
+      throw FormatException('Adoption transaction $key must be an array.');
+    }
+    return List<Object?>.from(value);
+  }
+
+  static Map<String, Object?> _requiredObject(Object? value, String label) {
+    if (value is! Map) {
+      throw FormatException('Adoption transaction $label must be an object.');
+    }
+    return Map<String, Object?>.from(value);
+  }
 }
 
 enum AttachmentArchiveAdoptionOutcome {
@@ -262,6 +436,8 @@ enum AttachmentArchiveAdoptionOutcome {
   rollbackPendingPreviousUnavailable,
   configurationConflict,
   failed,
+  remediationPending,
+  remediationComplete,
 }
 
 @immutable
@@ -278,10 +454,15 @@ final class AttachmentArchiveAdoptionResult {
 
   bool get isAdopted => outcome == AttachmentArchiveAdoptionOutcome.adopted;
 
+  bool get isActiveWithPendingRemediation {
+    return outcome == AttachmentArchiveAdoptionOutcome.remediationPending;
+  }
+
   bool get requiresRecovery {
     return outcome ==
             AttachmentArchiveAdoptionOutcome
                 .rollbackPendingPreviousUnavailable ||
+        outcome == AttachmentArchiveAdoptionOutcome.remediationPending ||
         outcome == AttachmentArchiveAdoptionOutcome.configurationConflict ||
         (outcome == AttachmentArchiveAdoptionOutcome.failed &&
             transactionId != null);
@@ -300,4 +481,34 @@ enum AttachmentArchiveAdoptionFailurePoint {
   beforeWritableRootValidation,
   beforeRollbackConfigurationPersistence,
   beforePreviousSourceValidation,
+  afterActiveRemediationBoundary,
+  duringRemediation,
 }
+
+@immutable
+final class AttachmentArchiveRemediationProgress {
+  const AttachmentArchiveRemediationProgress({
+    required this.filesCompleted,
+    required this.totalFiles,
+    required this.bytesCompleted,
+    required this.totalBytes,
+  });
+
+  final int filesCompleted;
+  final int totalFiles;
+  final int bytesCompleted;
+  final int totalBytes;
+
+  double get fractionComplete {
+    if (totalBytes > 0) {
+      return (bytesCompleted / totalBytes).clamp(0, 1);
+    }
+    if (totalFiles > 0) {
+      return (filesCompleted / totalFiles).clamp(0, 1);
+    }
+    return 1;
+  }
+}
+
+typedef AttachmentArchiveRemediationProgressCallback =
+    void Function(AttachmentArchiveRemediationProgress progress);

@@ -19,6 +19,7 @@ enum AttachmentArchivePreservationClassification {
 }
 
 enum AttachmentArchiveVerificationPhase {
+  preparing,
   metadata,
   sourceCoverage,
   candidateExtras,
@@ -44,11 +45,49 @@ final class AttachmentArchiveVerificationProgress {
     required this.phase,
     required this.filesChecked,
     required this.bytesChecked,
+    this.totalFiles,
+    this.totalBytes,
   });
 
   final AttachmentArchiveVerificationPhase phase;
   final int filesChecked;
   final int bytesChecked;
+  final int? totalFiles;
+  final int? totalBytes;
+
+  bool get isDeterminate => totalFiles != null && totalBytes != null;
+
+  double? get fractionComplete {
+    final files = totalFiles;
+    final bytes = totalBytes;
+    if (files == null || bytes == null) {
+      return null;
+    }
+    if (bytes > 0) {
+      return (bytesChecked / bytes).clamp(0, 1);
+    }
+    if (files > 0) {
+      return (filesChecked / files).clamp(0, 1);
+    }
+    return 1;
+  }
+}
+
+/// Exact source evidence for one payload absent from an otherwise safe copy.
+///
+/// The verifier retains this only for a bounded verified-behind result. It is
+/// process-local review evidence, not durable remediation authority.
+@immutable
+final class AttachmentArchiveVerifiedMissingPayload {
+  const AttachmentArchiveVerifiedMissingPayload({
+    required this.relativePath,
+    required this.expectedSizeBytes,
+    required this.expectedSha256,
+  });
+
+  final String relativePath;
+  final int expectedSizeBytes;
+  final String expectedSha256;
 }
 
 @immutable
@@ -134,6 +173,8 @@ final class AttachmentArchiveCandidateVerificationEvidence {
     required this.sourceStructuralSnapshotFingerprint,
     required this.candidateStructuralSnapshotFingerprint,
     required this.diagnostics,
+    this.missingPayloads = const [],
+    this.missingPayloadEvidenceIsComplete = true,
   });
 
   final String sourceCanonicalIdentity;
@@ -158,9 +199,16 @@ final class AttachmentArchiveCandidateVerificationEvidence {
   final String sourceStructuralSnapshotFingerprint;
   final String candidateStructuralSnapshotFingerprint;
   final AttachmentArchiveVerificationDiagnostics diagnostics;
+  final List<AttachmentArchiveVerifiedMissingPayload> missingPayloads;
+  final bool missingPayloadEvidenceIsComplete;
 
   int get operationalDebrisCount =>
       sourceOperationalDebrisCount + candidateOperationalDebrisCount;
+
+  bool get hasCompleteMissingPayloadEvidence {
+    return missingPayloadEvidenceIsComplete &&
+        missingPayloads.length == missingCount;
+  }
 }
 
 @immutable

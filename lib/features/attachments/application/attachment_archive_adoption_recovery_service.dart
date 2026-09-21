@@ -77,6 +77,52 @@ final class AttachmentArchiveAdoptionRecoveryService {
         );
       }
 
+      if (transaction.hasCrossedActiveAuthorityBoundary) {
+        if (current.configuration != transaction.intendedConfiguration ||
+            current.generation != transaction.sourceLocationGeneration + 1 ||
+            !current.isWritableMutationEligible ||
+            current.archiveRootPath == null) {
+          return AttachmentArchiveAdoptionResult(
+            outcome: AttachmentArchiveAdoptionOutcome.remediationPending,
+            transactionId: transaction.transactionId,
+            issue:
+                'The adopted archive remains authoritative but is currently '
+                'unavailable; historical remediation is pending.',
+          );
+        }
+        try {
+          final activeRoot = await _rootInspector.inspect(
+            directoryPath: current.archiveRootPath!,
+            label: 'active adopted archive',
+          );
+          if (activeRoot.canonicalPath !=
+              transaction.candidateCanonicalIdentity) {
+            return AttachmentArchiveAdoptionResult(
+              outcome: AttachmentArchiveAdoptionOutcome.remediationPending,
+              transactionId: transaction.transactionId,
+              issue:
+                  'The adopted archive identity cannot be proven; historical '
+                  'remediation is pending.',
+            );
+          }
+        } on Object catch (error) {
+          return AttachmentArchiveAdoptionResult(
+            outcome: AttachmentArchiveAdoptionOutcome.remediationPending,
+            transactionId: transaction.transactionId,
+            issue:
+                'The adopted archive remains active; historical remediation '
+                'is pending: $error',
+          );
+        }
+        return AttachmentArchiveAdoptionResult(
+          outcome: AttachmentArchiveAdoptionOutcome.remediationPending,
+          transactionId: transaction.transactionId,
+          issue:
+              'The adopted archive is active. Resume adding the finite set of '
+              'missing historical attachments in Settings.',
+        );
+      }
+
       final previousAvailable = await _previousSourceIsAvailable(transaction);
       if (!previousAvailable) {
         return AttachmentArchiveAdoptionResult(

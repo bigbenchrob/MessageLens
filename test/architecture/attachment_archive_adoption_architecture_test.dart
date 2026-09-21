@@ -20,7 +20,11 @@ void main() {
         _attachmentApplicationPath(
           'attachment_archive_adoption_recovery_service.dart',
         ),
+        _attachmentApplicationPath(
+          'attachment_archive_remediation_authority.dart',
+        ),
         _attachmentApplicationPath('attachment_archive_adoption_service.dart'),
+        _attachmentApplicationPath('attachment_archive_file_store.dart'),
         path.join(
           'lib',
           'features',
@@ -37,6 +41,14 @@ void main() {
           'repositories',
           'filesystem_attachment_archive_adoption_transaction_store.dart',
         ),
+        path.join(
+          'lib',
+          'features',
+          'attachments',
+          'infrastructure',
+          'repositories',
+          'filesystem_attachment_archive_file_store.dart',
+        ),
       ];
       const forbidden = <String>[
         'attachment_archive_relocation_service',
@@ -48,6 +60,8 @@ void main() {
         'availableCapacityForImportantUsage',
         'stagingRootPath',
         'copyReceipt',
+        'pauseRequested',
+        'resumeStage',
       ];
 
       for (final sourcePath in adoptionSources) {
@@ -218,6 +232,66 @@ void main() {
       for (final token in forbiddenSerializedKeys) {
         expect(transaction, isNot(contains(token)));
       }
+      expect(transaction, contains('maximumRemediationPayloadCount = 256'));
+      expect(
+        transaction,
+        contains('maximumRemediationBytes = 1024 * 1024 * 1024'),
+      );
+      expect(transaction, contains('activeRemediationPending'));
+      expect(transaction, contains('AttachmentArchiveRemediationPayload'));
+    });
+
+    test(
+      'remediation authority is exact, active, bounded, and non-destructive',
+      () {
+        final authority = read(
+          _attachmentApplicationPath(
+            'attachment_archive_remediation_authority.dart',
+          ),
+        );
+
+        for (final token in <String>[
+          'transactionId',
+          'sourceCanonicalIdentity',
+          'candidateCanonicalIdentity',
+          'activeCandidateRootPath',
+          'candidateLocationGeneration',
+          'AttachmentArchiveRemediationPayload payload',
+          'ArchiveMutationOperation.attachmentArchiveAdoption',
+          'pending.remediationPayloads.contains(payload)',
+          'writableLease.requireValid',
+        ]) {
+          expect(authority, contains(token), reason: token);
+        }
+        expect(
+          authority,
+          contains('Remediation authority never permits deletion.'),
+        );
+      },
+    );
+
+    test('remediation reuses one typed atomic no-overwrite installer seam', () {
+      final contract = read(
+        _attachmentApplicationPath('attachment_archive_file_store.dart'),
+      );
+      final fileStore = read(
+        'lib/features/attachments/infrastructure/repositories/'
+        'filesystem_attachment_archive_file_store.dart',
+      );
+      final service = read(
+        _attachmentApplicationPath('attachment_archive_adoption_service.dart'),
+      );
+
+      expect(contract, contains('installVerifiedArchiveEntryAtPath'));
+      expect(contract, contains('AttachmentArchiveRemediationAuthority'));
+      expect(fileStore, contains('AtomicNoOverwriteFileInstaller'));
+      expect(fileStore, contains('_installVerifiedAtPath('));
+      expect(fileStore, contains('AtomicFileInstallResult.destinationExists'));
+      expect(service, contains('AttachmentArchiveRemediationAuthority.issue'));
+      expect(service, contains('installVerifiedArchiveEntryAtPath'));
+      expect(service, isNot(contains('Directory.rename')));
+      expect(service, isNot(contains('Directory.copy')));
+      expect(service, isNot(contains('availableCapacity')));
     });
 
     test('adoption service requires normal Phase Four lease validation', () {

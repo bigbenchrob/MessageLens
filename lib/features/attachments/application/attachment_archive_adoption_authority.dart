@@ -3,6 +3,7 @@ import '../../../essentials/archive_environment/feature_level_providers.dart'
     show ArchiveMutationCapability;
 import '../domain/entities/attachment_archive_adoption.dart';
 import '../domain/entities/attachment_archive_approval_revalidation.dart';
+import '../domain/entities/attachment_archive_candidate_verification.dart';
 import '../domain/entities/attachment_archive_location_configuration.dart';
 import 'attachment_archive_adoption_service.dart';
 import 'attachment_archive_adoption_transaction_store.dart';
@@ -109,8 +110,7 @@ final class AttachmentArchiveAdoptionAuthorityIssuer {
       capability: capability,
     );
     bookmarkProof.requireExactAdmission(
-      readyEvidence: readyEvidence,
-      approvalScopeProof: approvalScopeProof,
+      verification: readyEvidence.verification,
       intendedConfiguration: intendedConfiguration,
       capability: capability,
     );
@@ -148,6 +148,72 @@ final class AttachmentArchiveAdoptionAuthorityIssuer {
   }
 
   Future<AttachmentArchiveAdoptionConfigurationAuthority>
+  issueVerifiedBehindAuthority({
+    required String transactionId,
+    required AttachmentArchiveCandidateBehind verification,
+    required AttachmentArchiveLocationConfiguration previousConfiguration,
+    required AttachmentArchiveLocationConfiguration intendedConfiguration,
+    required ArchiveMutationCapability capability,
+    required AttachmentArchiveAdoptionBookmarkProof bookmarkProof,
+  }) async {
+    capability.requireOperation(
+      ArchiveMutationOperation.attachmentArchiveAdoption,
+    );
+    bookmarkProof.requireExactAdmission(
+      verification: verification,
+      intendedConfiguration: intendedConfiguration,
+      capability: capability,
+    );
+    final evidence = verification.evidence;
+    if (evidence == null || !evidence.hasCompleteMissingPayloadEvidence) {
+      throw StateError(
+        'Verified-behind authority requires exact bounded missing evidence.',
+      );
+    }
+    final transaction = await _requirePending(transactionId);
+    final exactPayloads = evidence.missingPayloads
+        .map(
+          (payload) => AttachmentArchiveRemediationPayload(
+            relativePath: payload.relativePath,
+            expectedSizeBytes: payload.expectedSizeBytes,
+            expectedSha256: payload.expectedSha256,
+          ),
+        )
+        .toList(growable: false);
+    if (transaction.state !=
+            AttachmentArchiveAdoptionTransactionState.prepared ||
+        transaction.kind !=
+            AttachmentArchiveAdoptionTransactionKind.verifiedBehind ||
+        transaction.previousConfiguration != previousConfiguration ||
+        transaction.intendedConfiguration != intendedConfiguration ||
+        transaction.sourceCanonicalIdentity !=
+            evidence.sourceCanonicalIdentity ||
+        transaction.candidateCanonicalIdentity !=
+            evidence.candidateCanonicalIdentity ||
+        transaction.sourceLocationGeneration !=
+            evidence.sourceLocationGeneration ||
+        transaction.verificationContentDigest !=
+            evidence.contentCoverageDigest ||
+        transaction.sourceStructuralSnapshotFingerprint !=
+            evidence.sourceStructuralSnapshotFingerprint ||
+        transaction.candidateStructuralSnapshotFingerprint !=
+            evidence.candidateStructuralSnapshotFingerprint ||
+        transaction.verifiedFileCount != evidence.verifiedFileCount ||
+        transaction.verifiedBytes != evidence.verifiedBytes ||
+        !_samePayloads(transaction.remediationPayloads, exactPayloads)) {
+      throw StateError(
+        'Pending adoption transaction does not match refreshed behind evidence.',
+      );
+    }
+    return _VerifiedAttachmentArchiveAdoptionAuthority(
+      transactionId: transactionId,
+      capability: capability,
+      previousConfiguration: previousConfiguration,
+      intendedConfiguration: intendedConfiguration,
+    );
+  }
+
+  Future<AttachmentArchiveAdoptionConfigurationAuthority>
   issueRecoveryAuthority({
     required String transactionId,
     required ArchiveMutationCapability capability,
@@ -174,5 +240,20 @@ final class AttachmentArchiveAdoptionAuthorityIssuer {
       );
     }
     return transaction;
+  }
+
+  static bool _samePayloads(
+    List<AttachmentArchiveRemediationPayload> left,
+    List<AttachmentArchiveRemediationPayload> right,
+  ) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) {
+        return false;
+      }
+    }
+    return true;
   }
 }

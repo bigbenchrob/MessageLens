@@ -10,6 +10,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.123] — 2026-09-20
+
+### Added
+
+- Attachment Archive Settings now runs in the Settings center pane with the
+  current archive, selected copy, determinate verification progress, review,
+  switching, remediation, success, and recovery states kept in one working
+  region. The Settings sidebar remains navigation only.
+- A verified copy that is purely behind may now be adopted when its exact
+  missing set is bounded to 256 attachments and 1 GiB. MessageLens refreshes
+  that set under adoption coordination, switches writes first, and installs
+  only the finite verified historical delta through the existing atomic
+  no-overwrite payload installer.
+- Durable post-switch recovery retains an explicit active-remediation-pending
+  state. Missing historical attachments report a typed pending availability;
+  they never read silently from the retained original archive.
+
+### Changed
+
+- Archive-copy verification now begins with a metadata-only preparation pass,
+  then reports exact required preservation files and bytes checked. Required
+  payloads advance once after their complete/correct/missing/conflicting
+  outcome is known; candidate-only extras do not inflate the denominator.
+- Once the candidate configuration and normal Phase Four writable-root lease
+  are proven and the active-remediation-pending transaction is durable, the
+  candidate remains authoritative. Later remediation failures wait for retry
+  instead of automatically reverting writes to the original archive.
+
+### Safety
+
+- MessageLens still does not perform the initial bulk copy, delete or modify
+  the original archive, overwrite conflicting copy content, delete copy-only
+  extras, or expose production adoption. The retired general archive mover,
+  journal, staging, capacity planning, and finalizer remain absent.
+
 ## [0.2.122] — 2026-09-20
 
 ### Fixed

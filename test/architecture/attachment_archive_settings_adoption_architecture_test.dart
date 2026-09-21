@@ -44,7 +44,7 @@ void main() {
     expect(source, isNot(contains('persistConfiguration')));
   });
 
-  test('complete verification stays private to attachments workflow', () {
+  test('adoptable verification stays private to attachments workflow', () {
     final workflow = File(
       'lib/features/attachments/application/'
       'attachment_archive_adoption_workflow_provider.dart',
@@ -60,9 +60,19 @@ void main() {
 
     expect(
       workflow,
-      contains('AttachmentArchiveCandidateComplete? _readyVerification'),
+      contains(
+        'AttachmentArchiveCandidateVerificationResult? _readyVerification',
+      ),
     );
-    expect(publicState, isNot(contains('AttachmentArchiveCandidateComplete?')));
+    expect(
+      workflow,
+      contains('result is AttachmentArchiveCandidateComplete ||'),
+    );
+    expect(workflow, contains('result is AttachmentArchiveCandidateBehind'));
+    expect(
+      publicState,
+      isNot(contains('AttachmentArchiveCandidateVerificationResult?')),
+    );
     expect(payload, isNot(contains('AttachmentArchiveCandidateComplete')));
     expect(payload, isNot(contains('bookmark')));
     expect(payload, isNot(contains('fingerprint')));
@@ -91,6 +101,32 @@ void main() {
         reason: 'workflow contains $token',
       );
     }
+  });
+
+  test('Attachment Archive navigation projects only the center workflow', () {
+    final flow = File(
+      'lib/essentials/sidebar/application/sidebar_flow_state_provider.dart',
+    ).readAsStringSync();
+    final topology = File(
+      'lib/essentials/sidebar/domain/entities/cascade/'
+      'sidebar_utility_topology.dart',
+    ).readAsStringSync();
+    final settingsViewSpec = File(
+      'lib/features/settings/domain/spec_classes/settings_view_spec.dart',
+    ).readAsStringSync();
+    final centerCoordinator = File(
+      'lib/features/settings/application/view_spec/coordinators/'
+      'view_spec_coordinator.dart',
+    ).readAsStringSync();
+
+    expect(flow, contains('SettingsViewSpec.attachmentArchiveWorkflow()'));
+    expect(topology, contains('case SettingsMenuActionId.attachmentArchive:'));
+    expect(topology, contains('return null;'));
+    expect(
+      settingsViewSpec,
+      contains('const factory SettingsViewSpec.attachmentArchiveWorkflow()'),
+    );
+    expect(centerCoordinator, contains('AttachmentArchivePanelResolver'));
   });
 
   test('adoption gate is exact and has no runtime override', () {

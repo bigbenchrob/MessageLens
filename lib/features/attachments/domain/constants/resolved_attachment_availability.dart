@@ -11,6 +11,10 @@ enum ResolvedAttachmentAvailability {
   /// configured archive root is unavailable, so payload state is unknown.
   archiveUnavailable,
 
+  /// The active adopted archive is still receiving this exact historical
+  /// payload from its finite durable remediation set.
+  pendingHistoricalRemediation,
+
   /// The attachment cannot be displayed yet, but background recovery may still
   /// make it available later.
   unavailableAwaitingRecovery,

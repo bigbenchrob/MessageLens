@@ -6,8 +6,28 @@ part of 'attachment_archive_adoption_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$attachmentArchivePendingAdoptionTransactionHash() =>
+    r'5fbc4cca89a5dd025b14516cad5ac52cc7686c08';
+
+/// See also [attachmentArchivePendingAdoptionTransaction].
+@ProviderFor(attachmentArchivePendingAdoptionTransaction)
+final attachmentArchivePendingAdoptionTransactionProvider =
+    AutoDisposeFutureProvider<AttachmentArchiveAdoptionTransaction?>.internal(
+      attachmentArchivePendingAdoptionTransaction,
+      name: r'attachmentArchivePendingAdoptionTransactionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$attachmentArchivePendingAdoptionTransactionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AttachmentArchivePendingAdoptionTransactionRef =
+    AutoDisposeFutureProviderRef<AttachmentArchiveAdoptionTransaction?>;
 String _$attachmentArchiveAdoptionServiceHash() =>
-    r'a9e8f9b8c4a52842b76033e48c775a408c6ff57a';
+    r'18cd50342bba8d6efab4100dd8af532bd165d179';
 
 /// Internal composition for the approval-to-adoption transaction.
 ///

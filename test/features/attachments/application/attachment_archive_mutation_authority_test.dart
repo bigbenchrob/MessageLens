@@ -9,6 +9,7 @@ import 'package:remember_this_text/features/attachments/application/archive_sett
 import 'package:remember_this_text/features/attachments/application/attachment_archive_file_operations.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_file_store.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_remediation_authority.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_runtime_providers.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_service_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
@@ -535,6 +536,15 @@ final class _RecordingAttachmentArchiveFileStore
       fileSizeBytes: expectedSizeBytes,
       contentHash: expectedSha256,
     );
+  }
+
+  @override
+  Future<AttachmentArchiveFileInstall> installVerifiedArchiveEntryAtPath({
+    required String archiveDirectoryPath,
+    required Stream<List<int>> sourceBytes,
+    required AttachmentArchiveRemediationAuthority remediationAuthority,
+  }) {
+    throw StateError('Remediation installs are not expected.');
   }
 
   @override

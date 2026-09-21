@@ -290,6 +290,12 @@ void main() {
       );
 
       expect(result, isA<AttachmentArchiveCandidateBehind>());
+      expect(result.evidence!.hasCompleteMissingPayloadEvidence, isTrue);
+      expect(result.evidence!.missingPayloads, hasLength(1));
+      expect(
+        result.evidence!.missingPayloads.single.relativePath,
+        'nested/missing.bin',
+      );
       expect(result.evidence!.missingCount, 1);
       expect(result.evidence!.missingBytes, 5);
       expect(result.evidence!.diagnostics.missingPathExamples, <String>[
@@ -902,6 +908,51 @@ void main() {
       expect(await _snapshotTree(source), sourceBefore);
       expect(await _snapshotTree(candidate), candidateBefore);
     });
+
+    test(
+      'progress prepares exact required coverage totals then stays determinate',
+      () async {
+        await _writeBoth(source, candidate, '_by_id/1.bin', <int>[1, 2, 3]);
+        await _writeBoth(source, candidate, '_by_id/2.bin', <int>[
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+        ]);
+        final progress = <AttachmentArchiveVerificationProgress>[];
+
+        final result = await _verifier(metadataReader).verify(
+          sourceLocation: _sourceLocation(source),
+          candidate: _candidate(candidate),
+          onProgress: progress.add,
+        );
+
+        expect(result, isA<AttachmentArchiveCandidateComplete>());
+        expect(
+          progress.first.phase,
+          AttachmentArchiveVerificationPhase.preparing,
+        );
+        expect(progress.first.isDeterminate, isFalse);
+        final determinate = progress
+            .where((value) => value.isDeterminate)
+            .toList();
+        expect(determinate, isNotEmpty);
+        expect(
+          determinate,
+          everyElement(
+            predicate<AttachmentArchiveVerificationProgress>(
+              (value) => value.totalFiles == 2 && value.totalBytes == 10,
+            ),
+          ),
+        );
+        expect(determinate.last.filesChecked, 2);
+        expect(determinate.last.bytesChecked, 10);
+        expect(determinate.last.fractionComplete, 1);
+      },
+    );
 
     test(
       'metadata paging remains bounded for a larger synthetic set',

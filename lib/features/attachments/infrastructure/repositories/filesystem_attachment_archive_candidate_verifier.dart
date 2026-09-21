@@ -31,6 +31,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     void Function(String path)? onPayloadHashStarted,
     this.metadataPageSize = 500,
     this.diagnosticExampleLimit = 100,
+    this.remediationPayloadLimit = 256,
   }) : _metadataReader = metadataReader,
        _clock = clock ?? _utcNow,
        _onPayloadHashStarted = onPayloadHashStarted {
@@ -48,6 +49,13 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         'Diagnostic example limit must be positive.',
       );
     }
+    if (remediationPayloadLimit <= 0) {
+      throw ArgumentError.value(
+        remediationPayloadLimit,
+        'remediationPayloadLimit',
+        'Remediation payload limit must be positive.',
+      );
+    }
   }
 
   static const int hashChunkBytes = 1024 * 1024;
@@ -57,6 +65,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
   final void Function(String path)? _onPayloadHashStarted;
   final int metadataPageSize;
   final int diagnosticExampleLimit;
+  final int remediationPayloadLimit;
 
   @override
   Future<AttachmentArchiveCandidateVerificationResult> verify({
@@ -143,6 +152,14 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       onPayloadHashStarted: _onPayloadHashStarted,
     );
     try {
+      progress.setPhase(AttachmentArchiveVerificationPhase.preparing);
+      final preparation = await _readSourcePreparationSnapshot(
+        sourceRoot: sourceRoot.path,
+      );
+      progress.setTotals(
+        files: preparation.requiredSourcePhysicalFileCount,
+        bytes: preparation.requiredSourceBytes,
+      );
       return await _verifyRoots(
         sourceRoot: sourceRoot,
         candidateRoot: candidateRoot,
@@ -151,6 +168,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         candidate: candidate,
         context: context,
         progress: progress,
+        preparation: preparation,
       );
     } on AttachmentArchiveCandidateVerificationCancelled {
       rethrow;
@@ -456,6 +474,39 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     );
   }
 
+  Future<_VerificationPreparation> _readSourcePreparationSnapshot({
+    required String sourceRoot,
+  }) async {
+    final counters = _VerificationCounters();
+    final sourceFingerprint = _EvidenceDigestBuilder(
+      'messagelens-source-structural-snapshot-v1',
+    );
+    final progress = _ProgressTracker(
+      onProgress: null,
+      isCancelled: null,
+      onPayloadHashStarted: _onPayloadHashStarted,
+    );
+    _addRootStructuralEvidence(sourceFingerprint, sourceRoot, isSource: true);
+    await _verifyGroupedMetadata(
+      sourceRoot: sourceRoot,
+      counters: counters,
+      sourceFingerprint: sourceFingerprint,
+      progress: progress,
+    );
+    await for (final entry in _walk(sourceRoot, progress, isSource: true)) {
+      await _inspectSourceStructureEntry(
+        entry: entry,
+        counters: counters,
+        sourceFingerprint: sourceFingerprint,
+      );
+    }
+    return _VerificationPreparation(
+      sourceStructuralSnapshotFingerprint: sourceFingerprint.close(),
+      requiredSourcePhysicalFileCount: counters.requiredSourceFileCount,
+      requiredSourceBytes: counters.requiredSourceBytes,
+    );
+  }
+
   Future<AttachmentArchiveApprovalCandidateStructuralSnapshot>
   _readCandidateApprovalSnapshotRoot({
     required String sourceRoot,
@@ -502,6 +553,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     required AttachmentArchiveCandidateAccess candidate,
     required AttachmentArchiveCandidateVerificationContext context,
     required _ProgressTracker progress,
+    required _VerificationPreparation preparation,
   }) async {
     final counters = _VerificationCounters();
     final diagnostics = _DiagnosticCollector(diagnosticExampleLimit);
@@ -570,6 +622,8 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       );
     }
 
+    final sourceStructuralFingerprint = sourceFingerprint.close();
+    final candidateStructuralFingerprint = candidateFingerprint.close();
     final evidence = AttachmentArchiveCandidateVerificationEvidence(
       sourceCanonicalIdentity: sourceRoot.path,
       candidateCanonicalIdentity: candidateRoot.path,
@@ -590,10 +644,29 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       missingCount: counters.missingCount,
       missingBytes: counters.missingBytes,
       contentCoverageDigest: contentDigest.close(),
-      sourceStructuralSnapshotFingerprint: sourceFingerprint.close(),
-      candidateStructuralSnapshotFingerprint: candidateFingerprint.close(),
+      sourceStructuralSnapshotFingerprint: sourceStructuralFingerprint,
+      candidateStructuralSnapshotFingerprint: candidateStructuralFingerprint,
       diagnostics: diagnostics.freeze(),
+      missingPayloads:
+          List<AttachmentArchiveVerifiedMissingPayload>.unmodifiable(
+            counters.missingPayloads,
+          ),
+      missingPayloadEvidenceIsComplete:
+          counters.missingPayloadEvidenceIsComplete,
     );
+
+    if (preparation.sourceStructuralSnapshotFingerprint !=
+            sourceStructuralFingerprint ||
+        preparation.requiredSourcePhysicalFileCount !=
+            counters.requiredSourceFileCount ||
+        preparation.requiredSourceBytes != counters.requiredSourceBytes) {
+      return AttachmentArchiveCandidateVerificationFailed(
+        context: context,
+        issue:
+            'An archive changed while it was being checked. Check the copy '
+            'again.',
+      );
+    }
 
     if (counters.candidateConflictCount > 0) {
       return AttachmentArchiveCandidateInvalid(
@@ -809,6 +882,17 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       counters.missingCount++;
       counters.missingBytes += entry.sizeBytes;
       diagnostics.addMissing(entry.relativePath);
+      if (counters.missingPayloads.length < remediationPayloadLimit) {
+        counters.missingPayloads.add(
+          AttachmentArchiveVerifiedMissingPayload(
+            relativePath: entry.relativePath,
+            expectedSizeBytes: entry.sizeBytes,
+            expectedSha256: sourceHash,
+          ),
+        );
+      } else {
+        counters.missingPayloadEvidenceIsComplete = false;
+      }
       contentDigest.add(<Object?>[
         'required',
         entry.relativePath,
@@ -820,6 +904,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         null,
         metadata?.referenceCount ?? 0,
       ]);
+      progress.completeRequiredPayload(entry.sizeBytes);
       return;
     }
     if (candidateInspection.type != FileSystemEntityType.file ||
@@ -842,6 +927,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         null,
         metadata?.referenceCount ?? 0,
       ]);
+      progress.completeRequiredPayload(entry.sizeBytes);
       return;
     }
     if (candidateInspection.sizeBytes != entry.sizeBytes) {
@@ -863,6 +949,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
         null,
         metadata?.referenceCount ?? 0,
       ]);
+      progress.completeRequiredPayload(entry.sizeBytes);
       return;
     }
 
@@ -894,6 +981,7 @@ final class FilesystemAttachmentArchiveCandidateVerifier
       candidateHash,
       metadata?.referenceCount ?? 0,
     ]);
+    progress.completeRequiredPayload(entry.sizeBytes);
   }
 
   Future<void> _inspectCandidateEntry({
@@ -1459,6 +1547,18 @@ final class _CanonicalRoot {
   final String path;
 }
 
+final class _VerificationPreparation {
+  const _VerificationPreparation({
+    required this.sourceStructuralSnapshotFingerprint,
+    required this.requiredSourcePhysicalFileCount,
+    required this.requiredSourceBytes,
+  });
+
+  final String sourceStructuralSnapshotFingerprint;
+  final int requiredSourcePhysicalFileCount;
+  final int requiredSourceBytes;
+}
+
 final class _ArchiveEntry {
   const _ArchiveEntry({
     required this.absolutePath,
@@ -1540,6 +1640,9 @@ final class _VerificationCounters {
   int missingBytes = 0;
   int candidateConflictCount = 0;
   String? firstCandidateConflict;
+  final List<AttachmentArchiveVerifiedMissingPayload> missingPayloads =
+      <AttachmentArchiveVerifiedMissingPayload>[];
+  bool missingPayloadEvidenceIsComplete = true;
 }
 
 final class _DiagnosticCollector {
@@ -1586,12 +1689,26 @@ final class _ProgressTracker {
   final bool Function()? isCancelled;
   final void Function(String path)? onPayloadHashStarted;
   AttachmentArchiveVerificationPhase _phase =
-      AttachmentArchiveVerificationPhase.metadata;
+      AttachmentArchiveVerificationPhase.preparing;
   int _filesChecked = 0;
   int _bytesChecked = 0;
+  int? _totalFiles;
+  int? _totalBytes;
 
   void setPhase(AttachmentArchiveVerificationPhase value) {
     _phase = value;
+    _publish();
+  }
+
+  void setTotals({required int files, required int bytes}) {
+    _totalFiles = files;
+    _totalBytes = bytes;
+    _publish();
+  }
+
+  void completeRequiredPayload(int bytes) {
+    _filesChecked++;
+    _bytesChecked += bytes;
     _publish();
   }
 
@@ -1620,8 +1737,6 @@ final class _ProgressTracker {
           break;
         }
         hashSink.add(chunk);
-        _bytesChecked += chunk.length;
-        _publish();
       }
     } finally {
       await input.close();
@@ -1631,8 +1746,6 @@ final class _ProgressTracker {
     if (digest == null) {
       throw StateError('SHA-256 did not produce a digest for ${file.path}.');
     }
-    _filesChecked++;
-    _publish();
     return digest.toString();
   }
 
@@ -1642,6 +1755,8 @@ final class _ProgressTracker {
         phase: _phase,
         filesChecked: _filesChecked,
         bytesChecked: _bytesChecked,
+        totalFiles: _totalFiles,
+        totalBytes: _totalBytes,
       ),
     );
   }

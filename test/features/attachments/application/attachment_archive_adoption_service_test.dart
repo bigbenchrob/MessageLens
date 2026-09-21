@@ -7,6 +7,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
+import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_mutation_denied_exception.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_mutation_operation.dart';
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
@@ -36,6 +37,7 @@ import 'package:remember_this_text/features/attachments/domain/entities/attachme
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_adoption_root_inspector.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_adoption_transaction_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_candidate_verifier.dart';
+import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_verification_metadata_reader.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
@@ -434,6 +436,15 @@ void main() {
         expect(serialized, isNot(contains('progress')));
         expect(serialized, isNot(contains('staging')));
         expect(await harness.transactionStore.readPending(), isNotNull);
+        final legacyJson = Map<String, Object?>.from(prepared.toJson())
+          ..['formatVersion'] = 1
+          ..remove('kind')
+          ..remove('remediationPayloads');
+        final legacy = AttachmentArchiveAdoptionTransaction.fromJson(
+          legacyJson,
+        );
+        expect(legacy.kind, AttachmentArchiveAdoptionTransactionKind.complete);
+        expect(legacy.remediationPayloads, isEmpty);
 
         await harness.transactionStore.writePending(
           prepared.withState(
@@ -465,6 +476,298 @@ void main() {
           expectedTransactionId: _Harness.transactionId,
         );
         expect(record.existsSync(), isFalse);
+      },
+    );
+
+    test(
+      'verified-behind refreshes an additive review delta, switches first, '
+      'and installs the exact five payloads without changing source',
+      () async {
+        for (var index = 0; index < 3; index++) {
+          await harness.addSourcePayload(<int>[10 + index, index]);
+        }
+        final reviewed = await harness.verifyBehind();
+        expect(reviewed.evidence!.missingCount, 3);
+
+        for (var index = 0; index < 2; index++) {
+          await harness.addSourcePayload(<int>[20 + index, index, 9]);
+        }
+        final sourceBefore = await _payloadSnapshot(harness.source);
+        final progress = <AttachmentArchiveRemediationProgress>[];
+
+        final result = await harness.service().adopt(
+          reviewed,
+          onRemediationProgress: progress.add,
+        );
+
+        expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+        expect(progress.first.totalFiles, 5);
+        expect(progress.last.filesCompleted, 5);
+        expect(progress.last.bytesCompleted, progress.last.totalBytes);
+        expect(await _payloadSnapshot(harness.source), sourceBefore);
+        final finalVerification = await harness.verifier.verify(
+          sourceLocation: AttachmentArchiveLocationState.defaultAvailable(
+            archiveRootPath: harness.source.path,
+          ),
+          candidate: AttachmentArchiveCandidateAccess(
+            directoryPath: harness.candidate.path,
+            isPhysicallyWritable: true,
+          ),
+        );
+        expect(finalVerification, isA<AttachmentArchiveCandidateComplete>());
+        expect(await harness.transactionStore.readPending(), isNull);
+      },
+    );
+
+    test(
+      'candidate change during review returns Check Again before switching',
+      () async {
+        final relativePath = await harness.addSourcePayload(<int>[21, 22, 23]);
+        final reviewed = await harness.verifyBehind();
+        await _write(harness.candidate, relativePath, <int>[21, 22, 23]);
+
+        final result = await harness.service().adopt(reviewed);
+
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+        );
+        await harness.expectDefaultAndNoPending();
+      },
+    );
+
+    test(
+      'candidate conflict during final refresh fails closed before switching',
+      () async {
+        final relativePath = await harness.addSourcePayload(<int>[24, 25, 26]);
+        final reviewed = await harness.verifyBehind();
+        await _write(harness.candidate, relativePath, <int>[0, 0, 0]);
+
+        final result = await harness.service().adopt(reviewed);
+
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain,
+        );
+        await harness.expectDefaultAndNoPending();
+        expect(
+          await File(
+            path.join(harness.candidate.path, relativePath),
+          ).readAsBytes(),
+          <int>[0, 0, 0],
+        );
+      },
+    );
+
+    test(
+      'post-switch crash keeps candidate active, permits new candidate data, '
+      'and resumes the fixed historical set',
+      () async {
+        for (var index = 0; index < 5; index++) {
+          await harness.addSourcePayload(<int>[30 + index, index]);
+        }
+        final reviewed = await harness.verifyBehind();
+        final sourceBefore = await _payloadSnapshot(harness.source);
+        var remediationAttempts = 0;
+
+        final interrupted = await harness
+            .service(
+              injector: (point) async {
+                if (point ==
+                    AttachmentArchiveAdoptionFailurePoint.duringRemediation) {
+                  remediationAttempts++;
+                  if (remediationAttempts == 3) {
+                    throw StateError('simulated termination');
+                  }
+                }
+              },
+            )
+            .adopt(reviewed);
+
+        expect(
+          interrupted.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+        final pending = await harness.transactionStore.readPending();
+        expect(
+          pending!.state,
+          AttachmentArchiveAdoptionTransactionState.activeRemediationPending,
+        );
+        expect((await harness.readLocation()).archiveRootPath, isNotNull);
+        expect(
+          (await harness.recoveryService().recoverPending()).outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+
+        final ordinarySource = await _write(
+          harness.fixture.root,
+          'ordinary-new-source.bin',
+          <int>[99, 98, 97],
+        );
+        final admission = await harness.container.read(
+          attachmentArchiveWritableRootAdmissionProvider.future,
+        );
+        final ordinaryInstall =
+            await const FilesystemAttachmentArchiveFileStore()
+                .writeArchiveEntry(
+                  archiveDirectoryPath: admission.lease!.archiveRootPath,
+                  sourcePath: ordinarySource.path,
+                  archiveKey: const ArchiveCompatibilityKey(
+                    messageGuid: 'post-switch-ordinary-write',
+                    importAttachmentId: 42,
+                  ),
+                  sha256Hex: null,
+                  validateMutation: (boundary) => admission.lease!.requireValid(
+                    operation:
+                        ArchiveMutationOperation.attachmentReconciliation,
+                    boundary: boundary,
+                  ),
+                );
+        expect(
+          await Directory(
+            admission.lease!.archiveRootPath,
+          ).resolveSymbolicLinks(),
+          await harness.candidate.resolveSymbolicLinks(),
+        );
+        expect(ordinaryInstall, isNotNull);
+        final resumed = await harness.service().resumePendingRemediation();
+
+        expect(
+          resumed.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationComplete,
+        );
+        expect(
+          File(
+            path.join(harness.candidate.path, ordinaryInstall!.relativePath),
+          ).existsSync(),
+          isTrue,
+        );
+        expect(await harness.transactionStore.readPending(), isNull);
+        expect(await _payloadSnapshot(harness.source), sourceBefore);
+      },
+    );
+
+    test('matching concurrent destination is accepted and conflicting bytes '
+        'remain untouched with active remediation pending', () async {
+      final matchingPath = await harness.addSourcePayload(<int>[41, 42, 43]);
+      final matching = await harness.verifyBehind();
+      var injected = false;
+      final matchingResult = await harness
+          .service(
+            injector: (point) async {
+              if (!injected &&
+                  point ==
+                      AttachmentArchiveAdoptionFailurePoint.duringRemediation) {
+                injected = true;
+                await File(
+                  path.join(harness.candidate.path, matchingPath),
+                ).create(recursive: true);
+                await File(
+                  path.join(harness.candidate.path, matchingPath),
+                ).writeAsBytes(<int>[41, 42, 43], flush: true);
+              }
+            },
+          )
+          .adopt(matching);
+      expect(matchingResult.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+
+      // A fresh harness keeps this conflict scenario independent of the
+      // already-adopted configuration above.
+      await harness.dispose();
+      harness = await _Harness.create();
+      final conflictPath = await harness.addSourcePayload(<int>[51, 52, 53]);
+      final conflicting = await harness.verifyBehind();
+      final conflictingFile = File(
+        path.join(harness.candidate.path, conflictPath),
+      );
+      final conflictResult = await harness
+          .service(
+            injector: (point) async {
+              if (point ==
+                  AttachmentArchiveAdoptionFailurePoint.duringRemediation) {
+                await conflictingFile.create(recursive: true);
+                await conflictingFile.writeAsBytes(<int>[0, 0, 0], flush: true);
+              }
+            },
+          )
+          .adopt(conflicting);
+      expect(
+        conflictResult.outcome,
+        AttachmentArchiveAdoptionOutcome.remediationPending,
+      );
+      expect(await conflictingFile.readAsBytes(), <int>[0, 0, 0]);
+      expect(
+        (await harness.readLocation()).configuration,
+        (await harness.transactionStore.readPending())!.intendedConfiguration,
+      );
+    });
+
+    test('retained source unavailable after switch leaves candidate active and '
+        'resumes after the source returns', () async {
+      await harness.addSourcePayload(<int>[61, 62, 63]);
+      final reviewed = await harness.verifyBehind();
+      final offlinePath = '${harness.source.path}.offline';
+      var moved = false;
+      final result = await harness
+          .service(
+            injector: (point) async {
+              if (!moved &&
+                  point ==
+                      AttachmentArchiveAdoptionFailurePoint
+                          .afterActiveRemediationBoundary) {
+                moved = true;
+                await harness.source.rename(offlinePath);
+              }
+            },
+          )
+          .adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.remediationPending,
+      );
+      expect(
+        (await harness.readLocation()).configuration,
+        (await harness.transactionStore.readPending())!.intendedConfiguration,
+      );
+      await Directory(offlinePath).rename(harness.source.path);
+      expect(
+        (await harness.service().resumePendingRemediation()).outcome,
+        AttachmentArchiveAdoptionOutcome.remediationComplete,
+      );
+    });
+
+    test(
+      'candidate unavailable after switch is not recreated or rolled back',
+      () async {
+        await harness.addSourcePayload(<int>[71, 72, 73]);
+        final reviewed = await harness.verifyBehind();
+        final offlinePath = '${harness.candidate.path}.offline';
+        var moved = false;
+        final result = await harness
+            .service(
+              injector: (point) async {
+                if (!moved &&
+                    point ==
+                        AttachmentArchiveAdoptionFailurePoint
+                            .duringRemediation) {
+                  moved = true;
+                  await harness.candidate.rename(offlinePath);
+                }
+              },
+            )
+            .adopt(reviewed);
+
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+        expect(harness.candidate.existsSync(), isFalse);
+        expect(Directory(offlinePath).existsSync(), isTrue);
+        expect(
+          (await harness.readLocation()).configuration,
+          (await harness.transactionStore.readPending())!.intendedConfiguration,
+        );
       },
     );
   });
@@ -620,6 +923,24 @@ INSERT INTO archived_attachments (
     return result;
   }
 
+  Future<String> addSourcePayload(List<int> bytes) {
+    return _writeContentAddressed(source, bytes);
+  }
+
+  Future<AttachmentArchiveCandidateBehind> verifyBehind() async {
+    final result = await verifier.verify(
+      sourceLocation: await readLocation(),
+      candidate: AttachmentArchiveCandidateAccess(
+        directoryPath: candidate.path,
+        isPhysicallyWritable: true,
+      ),
+    );
+    if (result is! AttachmentArchiveCandidateBehind) {
+      throw StateError('Expected a behind candidate: ${result.outcome}.');
+    }
+    return result;
+  }
+
   AttachmentArchiveAdoptionService service({
     AttachmentArchiveAdoptionFailureInjector? injector,
   }) {
@@ -665,6 +986,8 @@ INSERT INTO archived_attachments (
       newTransactionId: () => transactionId,
       clock: () => fixedTime,
       failureInjector: injector,
+      candidateVerifier: verifier,
+      fileStore: const FilesystemAttachmentArchiveFileStore(),
     );
   }
 
@@ -892,6 +1215,13 @@ Future<File> _write(
   await file.parent.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   return file;
+}
+
+Future<String> _writeContentAddressed(Directory root, List<int> bytes) async {
+  final digest = sha256.convert(bytes).toString();
+  final relativePath = '${digest.substring(0, 2)}/$digest.bin';
+  await _write(root, relativePath, bytes);
+  return relativePath;
 }
 
 Future<Map<String, String>> _payloadSnapshot(Directory root) async {

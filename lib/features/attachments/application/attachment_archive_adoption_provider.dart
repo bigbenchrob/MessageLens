@@ -17,8 +17,19 @@ import 'attachment_archive_adoption_service.dart';
 import 'attachment_archive_approval_revalidator.dart';
 import 'attachment_archive_location_dependencies_provider.dart';
 import 'attachment_archive_location_provider.dart';
+import 'attachment_archive_store_providers.dart'
+    show attachmentArchiveFileStoreProvider;
 
 part 'attachment_archive_adoption_provider.g.dart';
+
+@riverpod
+Future<AttachmentArchiveAdoptionTransaction?>
+attachmentArchivePendingAdoptionTransaction(Ref ref) {
+  final authority = ref.watch(archiveAccessAuthorityProvider);
+  return FilesystemAttachmentArchiveAdoptionTransactionStore(
+    archiveAccessAuthority: authority,
+  ).readPending();
+}
 
 /// Internal composition for the approval-to-adoption transaction.
 ///
@@ -72,6 +83,8 @@ Future<AttachmentArchiveAdoptionService> attachmentArchiveAdoptionService(
     },
     readWritableAdmission: () =>
         ref.read(attachmentArchiveWritableRootAdmissionProvider.future),
+    candidateVerifier: snapshotReader,
+    fileStore: ref.watch(attachmentArchiveFileStoreProvider),
   );
 }
 

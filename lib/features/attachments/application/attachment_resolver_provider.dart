@@ -13,6 +13,8 @@ import '../domain/entities/attachment_archive_location_state.dart';
 import '../domain/entities/attachment_recovery_metadata.dart';
 import '../domain/entities/resolved_attachment.dart';
 import 'archive_settings_provider.dart';
+import 'attachment_archive_adoption_provider.dart'
+    show attachmentArchivePendingAdoptionTransactionProvider;
 import 'attachment_archive_service_provider.dart';
 import 'attachment_archive_store_providers.dart'
     show attachmentArchiveReadStoreProvider, attachmentFileAccessProvider;
@@ -29,6 +31,7 @@ part 'attachment_resolver_provider.g.dart';
 ///
 /// Archive enabled:
 /// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
 /// - use the live Messages file as a read-only fallback for custom roots
 /// - trigger on-demand ingestion only for the mutation-authorized internal root
 /// - preserve root-unavailable evidence without treating it as payload loss
@@ -101,6 +104,32 @@ Future<ResolvedAttachment> _resolveForArchiveEnabledMode(
         archiveLocationGeneration: archiveRecord.locationGeneration,
         archiveRootIssue: archiveRecord.rootIssue,
       );
+    }
+
+    if (archiveRecord != null) {
+      final pending = await ref.watch(
+        attachmentArchivePendingAdoptionTransactionProvider.future,
+      );
+      final pathIsPending =
+          pending?.hasCrossedActiveAuthorityBoundary == true &&
+          pending!.intendedConfiguration == archiveLocation.configuration &&
+          pending.sourceLocationGeneration + 1 == archiveLocation.generation &&
+          pending.remediationPayloads.any(
+            (payload) =>
+                payload.relativePath == archiveRecord.archiveRelativePath,
+          );
+      if (pathIsPending) {
+        return ResolvedAttachment(
+          attachmentInfo: attachmentInfo,
+          availability:
+              ResolvedAttachmentAvailability.pendingHistoricalRemediation,
+          archivePayloadStatus: archiveRecord.payloadStatus,
+          archiveRootAvailability: archiveRecord.locationAvailability,
+          archiveLocationGeneration: archiveRecord.locationGeneration,
+          archiveRootIssue:
+              'This historical attachment is pending archive remediation.',
+        );
+      }
     }
 
     if (!archiveLocation.isAvailable) {

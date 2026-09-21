@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../domain/entities/attachment_archive_adoption.dart';
 import '../domain/entities/attachment_archive_candidate_verification.dart';
+import 'attachment_archive_candidate_verifier.dart';
 
 enum AttachmentArchiveAdoptionWorkflowStage {
   currentArchive,
@@ -16,6 +17,8 @@ enum AttachmentArchiveAdoptionWorkflowStage {
   verificationEvidenceInvalid,
   candidateNoLongerWritable,
   switching,
+  remediating,
+  remediationPending,
   success,
   rollbackRestoredPrevious,
   rollbackPendingPreviousUnavailable,
@@ -46,6 +49,7 @@ final class AttachmentArchiveAdoptionWorkflowState {
     this.missingCount,
     this.missingBytes,
     this.issue,
+    this.remediationProgress,
   });
 
   const AttachmentArchiveAdoptionWorkflowState.currentArchive({
@@ -71,10 +75,12 @@ final class AttachmentArchiveAdoptionWorkflowState {
   final int? missingCount;
   final int? missingBytes;
   final String? issue;
+  final AttachmentArchiveRemediationProgress? remediationProgress;
 
   bool get canUseCandidate {
     return executionEnabled &&
-        stage == AttachmentArchiveAdoptionWorkflowStage.candidateComplete &&
+        (stage == AttachmentArchiveAdoptionWorkflowStage.candidateComplete ||
+            stage == AttachmentArchiveAdoptionWorkflowStage.candidateBehind) &&
         candidateIsAdoptable;
   }
 }
@@ -82,6 +88,12 @@ final class AttachmentArchiveAdoptionWorkflowState {
 /// Narrow application boundary used by the ephemeral Settings workflow.
 abstract interface class AttachmentArchiveAdoptionExecutor {
   Future<AttachmentArchiveAdoptionResult> adopt(
-    AttachmentArchiveCandidateComplete verification,
-  );
+    AttachmentArchiveCandidateVerificationResult verification, {
+    AttachmentArchiveVerificationProgressCallback? onVerificationProgress,
+    AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+  });
+
+  Future<AttachmentArchiveAdoptionResult> resumePendingRemediation({
+    AttachmentArchiveRemediationProgressCallback? onRemediationProgress,
+  });
 }

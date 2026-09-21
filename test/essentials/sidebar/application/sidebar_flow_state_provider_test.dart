@@ -504,6 +504,19 @@ void main() {
       );
     });
 
+    test('attachment archive projects a center spec and no sidebar body', () {
+      container
+          .read(sidebarFlowProvider.notifier)
+          .setPersistentSettingsContext(SettingsMenuActionId.attachmentArchive);
+
+      expect(
+        container.read(sidebarFlowProvider).projectedSettingsCenterSpec,
+        equals(
+          const ViewSpec.settings(SettingsViewSpec.attachmentArchiveWorkflow()),
+        ),
+      );
+    });
+
     test('message history coverage projects a settings-mode center spec', () {
       container
           .read(sidebarFlowProvider.notifier)

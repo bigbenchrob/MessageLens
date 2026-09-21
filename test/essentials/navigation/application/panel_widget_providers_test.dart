@@ -2317,6 +2317,8 @@ class _FakeSettingsViewSpecCoordinator
   @override
   Widget buildForSpec(SettingsViewSpec spec) {
     return spec.when(
+      attachmentArchiveWorkflow: () =>
+          const Text('settings:attachment-archive'),
       historicalArchivesWorkflow: () =>
           const Text('settings:historical-archives'),
       messageHistoryCoverageReport: () =>

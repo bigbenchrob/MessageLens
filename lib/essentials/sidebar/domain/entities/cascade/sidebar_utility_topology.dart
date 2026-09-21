@@ -36,9 +36,7 @@ CassetteSpec? resolveSidebarUtilityChild(
     settingsMenu: () {
       switch (context?.persistentSettingsContext) {
         case SettingsMenuActionId.attachmentArchive:
-          return const CassetteSpec.settings(
-            SettingsCassetteSpec.attachmentArchive(),
-          );
+          return null;
         case SettingsMenuActionId.historicalArchives:
           return const CassetteSpec.settings(
             SettingsCassetteSpec.historicalArchivesOverview(),

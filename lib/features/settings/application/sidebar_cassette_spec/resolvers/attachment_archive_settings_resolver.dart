@@ -247,6 +247,26 @@ class AttachmentArchiveSettingsResolver
             'payloads are being copied, moved, or deleted.',
         statusLines: _copyLines(workflow),
       ),
+      AttachmentArchiveAdoptionWorkflowStage.remediating => _payload(
+        cassetteIndex: cassetteIndex,
+        workflowView: AttachmentArchiveSettingsWorkflowView.switching,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Adding missing attachments…',
+        workflowBodyText:
+            'The new archive is active while its finite '
+            'historical payload set is installed.',
+        statusLines: _copyLines(workflow),
+      ),
+      AttachmentArchiveAdoptionWorkflowStage.remediationPending => _payload(
+        cassetteIndex: cassetteIndex,
+        workflowView: AttachmentArchiveSettingsWorkflowView.failed,
+        stableBodyText: stableBodyText,
+        workflowTitle: 'Historical attachments still need to be added',
+        workflowBodyText:
+            workflow.issue ??
+            'The new archive remains active. Resume from Settings.',
+        statusLines: _copyLines(workflow),
+      ),
       AttachmentArchiveAdoptionWorkflowStage.success => _payload(
         cassetteIndex: cassetteIndex,
         workflowView: AttachmentArchiveSettingsWorkflowView.success,
@@ -634,6 +654,7 @@ class AttachmentArchiveSettingsResolver
 
   String _phaseLabel(AttachmentArchiveVerificationPhase phase) {
     return switch (phase) {
+      AttachmentArchiveVerificationPhase.preparing => 'Preparing archive check',
       AttachmentArchiveVerificationPhase.metadata => 'Reading metadata',
       AttachmentArchiveVerificationPhase.sourceCoverage =>
         'Checking current archive',
@@ -643,8 +664,16 @@ class AttachmentArchiveSettingsResolver
   }
 
   String _progressLabel(AttachmentArchiveVerificationProgress progress) {
-    return '${_phaseLabel(progress.phase)} · ${progress.filesChecked} files · '
-        '${_formatBytes(progress.bytesChecked)}';
+    final totalFiles = progress.totalFiles;
+    final totalBytes = progress.totalBytes;
+    if (totalFiles == null || totalBytes == null) {
+      return '${_phaseLabel(progress.phase)}…';
+    }
+    final percent = ((progress.fractionComplete ?? 0) * 100).round();
+    return '${_phaseLabel(progress.phase)} · '
+        '${progress.filesChecked} of $totalFiles files · '
+        '${_formatBytes(progress.bytesChecked)} of ${_formatBytes(totalBytes)} · '
+        '$percent%';
   }
 
   String _plural(int count, String noun) => count == 1 ? noun : '${noun}s';

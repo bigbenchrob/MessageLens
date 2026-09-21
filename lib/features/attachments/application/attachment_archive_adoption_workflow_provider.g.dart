@@ -107,7 +107,7 @@ final attachmentArchiveAdoptionSourceLocationProvider =
 typedef AttachmentArchiveAdoptionSourceLocationRef =
     AutoDisposeFutureProviderRef<AttachmentArchiveLocationState>;
 String _$attachmentArchiveAdoptionWorkflowHash() =>
-    r'5f635b1e683b7dc4b5a5ff1b43e19680be49c9eb';
+    r'bf61058f3bd33ec7050f42dddce8b529b37495a4';
 
 /// Ephemeral Settings workflow for checking and adopting an existing copy.
 ///

@@ -55,6 +55,12 @@ final class FilesystemAttachmentArchiveAdoptionTransactionStore
     AttachmentArchiveAdoptionTransaction transaction,
   ) async {
     transaction.validate();
+    final encoded = '${jsonEncode(transaction.toJson())}\n';
+    if (utf8.encode(encoded).length > _maximumRecordBytes) {
+      throw const FormatException(
+        'Attachment archive adoption transaction exceeds its size limit.',
+      );
+    }
     final existing = await readPending();
     if (existing != null &&
         existing.transactionId != transaction.transactionId) {
@@ -75,10 +81,7 @@ final class FilesystemAttachmentArchiveAdoptionTransactionStore
     final temporary = File(temporaryPath);
     await temporary.create(exclusive: true);
     try {
-      await temporary.writeAsString(
-        '${jsonEncode(transaction.toJson())}\n',
-        flush: true,
-      );
+      await temporary.writeAsString(encoded, flush: true);
       await temporary.rename(_recordPath);
     } finally {
       if (temporary.existsSync()) {

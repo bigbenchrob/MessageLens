@@ -165,6 +165,8 @@ void main() {
           phase: AttachmentArchiveVerificationPhase.sourceCoverage,
           filesChecked: 19,
           bytesChecked: 4096,
+          totalFiles: 40,
+          totalBytes: 8192,
         ),
       ),
     );
@@ -175,7 +177,7 @@ void main() {
       payload.workflowBodyText,
       contains('Neither archive is being changed'),
     );
-    expect(payload.workflowBodyText, contains('19 files'));
+    expect(payload.workflowBodyText, contains('19 of 40 files'));
     expect(payload.statusLines.first.label, 'Selected copy');
     expect(payload.actions.single.label, 'Cancel');
   });

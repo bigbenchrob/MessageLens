@@ -9,6 +9,7 @@ import '../../../../essentials/archive_compatibility/domain/archive_compatibilit
 import '../../application/atomic_no_overwrite_file_installer.dart';
 import '../../application/attachment_archive_file_store.dart';
 import '../../application/attachment_archive_location_provider.dart';
+import '../../application/attachment_archive_remediation_authority.dart';
 import 'darwin_atomic_no_overwrite_file_installer.dart';
 
 class FilesystemAttachmentArchiveFileStore
@@ -138,11 +139,82 @@ class FilesystemAttachmentArchiveFileStore
     final extension = _safeExtension(sourceExtension);
     final relativePath =
         '${normalizedHash.substring(0, 2)}/$normalizedHash$extension';
-    final destinationFile = File(path.join(archiveDirectoryPath, relativePath));
+    return _installVerifiedAtPath(
+      archiveDirectoryPath: archiveDirectoryPath,
+      relativePath: relativePath,
+      sourceBytes: sourceBytes,
+      expectedSizeBytes: expectedSizeBytes,
+      expectedSha256: normalizedHash,
+      validateMutation: validateMutation,
+      allowArchiveRootCreation: true,
+    );
+  }
+
+  @override
+  Future<AttachmentArchiveFileInstall> installVerifiedArchiveEntryAtPath({
+    required String archiveDirectoryPath,
+    required Stream<List<int>> sourceBytes,
+    required AttachmentArchiveRemediationAuthority remediationAuthority,
+  }) {
+    final payload = remediationAuthority.payload;
+    return _installVerifiedAtPath(
+      archiveDirectoryPath: archiveDirectoryPath,
+      relativePath: payload.relativePath,
+      sourceBytes: sourceBytes,
+      expectedSizeBytes: payload.expectedSizeBytes,
+      expectedSha256: payload.expectedSha256,
+      validateMutation: (boundary) => remediationAuthority.requireValid(
+        candidateRootPath: archiveDirectoryPath,
+        boundary: boundary,
+      ),
+      allowArchiveRootCreation: false,
+    );
+  }
+
+  Future<AttachmentArchiveFileInstall> _installVerifiedAtPath({
+    required String archiveDirectoryPath,
+    required String relativePath,
+    required Stream<List<int>> sourceBytes,
+    required int expectedSizeBytes,
+    required String expectedSha256,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
+    required bool allowArchiveRootCreation,
+  }) async {
     await validateMutation(
       AttachmentArchiveMutationBoundary.beforeRootCreation,
     );
-    await destinationFile.parent.create(recursive: true);
+    final normalizedHash = expectedSha256.trim().toLowerCase();
+    if (!_isSha256(normalizedHash) || expectedSizeBytes < 0) {
+      throw ArgumentError('Verified archive payload evidence is invalid.');
+    }
+    final normalizedRelativePath = _safeRemediationRelativePath(
+      relativePath,
+      expectedSha256: normalizedHash,
+    );
+    if (_isSymlink(archiveDirectoryPath)) {
+      throw StateError('Attachment archive directory must not be a symlink.');
+    }
+
+    if (allowArchiveRootCreation) {
+      await ensureArchiveDirectory(
+        archiveDirectoryPath,
+        validateMutation: validateMutation,
+      );
+    } else if (!_isDirectory(archiveDirectoryPath)) {
+      throw StateError('The active remediation archive must already exist.');
+    }
+    final destinationFile = File(
+      path.join(archiveDirectoryPath, normalizedRelativePath),
+    );
+    await validateMutation(
+      AttachmentArchiveMutationBoundary.beforeRootCreation,
+    );
+    await _ensureDestinationParentWithoutRecreatingRoot(
+      archiveDirectoryPath: archiveDirectoryPath,
+      relativePath: normalizedRelativePath,
+      validateMutation: validateMutation,
+    );
     if (_isSymlink(destinationFile.parent.path) ||
         _isSymlink(destinationFile.path) ||
         _isDirectory(destinationFile.path)) {
@@ -153,7 +225,7 @@ class FilesystemAttachmentArchiveFileStore
 
     final existing = await _classifyExistingDestination(
       destinationFile: destinationFile,
-      relativePath: relativePath,
+      relativePath: normalizedRelativePath,
       expectedSizeBytes: expectedSizeBytes,
       expectedSha256: normalizedHash,
     );
@@ -174,6 +246,9 @@ class FilesystemAttachmentArchiveFileStore
     );
     await temporaryFile.create(exclusive: true);
     try {
+      await validateMutation(
+        AttachmentArchiveMutationBoundary.beforeSourceRead,
+      );
       final output = await temporaryFile.open(mode: FileMode.write);
       try {
         await for (final chunk in sourceBytes) {
@@ -183,6 +258,8 @@ class FilesystemAttachmentArchiveFileStore
       } finally {
         await output.close();
       }
+
+      await validateMutation(AttachmentArchiveMutationBoundary.afterSourceHash);
 
       await validateMutation(
         AttachmentArchiveMutationBoundary.beforePayloadVerification,
@@ -194,7 +271,7 @@ class FilesystemAttachmentArchiveFileStore
           temporaryHash != normalizedHash) {
         return AttachmentArchiveFileInstall(
           status: AttachmentArchiveFileInstallStatus.donorChanged,
-          relativePath: relativePath,
+          relativePath: normalizedRelativePath,
           fileSizeBytes: temporarySize,
           contentHash: temporaryHash ?? '',
         );
@@ -211,13 +288,13 @@ class FilesystemAttachmentArchiveFileStore
       if (installResult == AtomicFileInstallResult.destinationExists) {
         return await _classifyExistingDestination(
               destinationFile: destinationFile,
-              relativePath: relativePath,
+              relativePath: normalizedRelativePath,
               expectedSizeBytes: expectedSizeBytes,
               expectedSha256: normalizedHash,
             ) ??
             AttachmentArchiveFileInstall(
               status: AttachmentArchiveFileInstallStatus.conflict,
-              relativePath: relativePath,
+              relativePath: normalizedRelativePath,
               fileSizeBytes: 0,
               contentHash: normalizedHash,
             );
@@ -229,7 +306,7 @@ class FilesystemAttachmentArchiveFileStore
 
       final installed = await _classifyExistingDestination(
         destinationFile: destinationFile,
-        relativePath: relativePath,
+        relativePath: normalizedRelativePath,
         expectedSizeBytes: expectedSizeBytes,
         expectedSha256: normalizedHash,
       );
@@ -238,14 +315,14 @@ class FilesystemAttachmentArchiveFileStore
               AttachmentArchiveFileInstallStatus.alreadyPresent) {
         return AttachmentArchiveFileInstall(
           status: AttachmentArchiveFileInstallStatus.verificationFailed,
-          relativePath: relativePath,
+          relativePath: normalizedRelativePath,
           fileSizeBytes: 0,
           contentHash: normalizedHash,
         );
       }
       return AttachmentArchiveFileInstall(
         status: AttachmentArchiveFileInstallStatus.installed,
-        relativePath: relativePath,
+        relativePath: normalizedRelativePath,
         fileSizeBytes: expectedSizeBytes,
         contentHash: normalizedHash,
       );
@@ -352,6 +429,52 @@ class FilesystemAttachmentArchiveFileStore
     return value != null && RegExp(r'^[0-9a-f]{64}$').hasMatch(value);
   }
 
+  static String _safeRemediationRelativePath(
+    String relativePath, {
+    required String expectedSha256,
+  }) {
+    final normalized = path.normalize(relativePath);
+    if (relativePath.isEmpty ||
+        path.isAbsolute(relativePath) ||
+        normalized != relativePath ||
+        normalized == '.' ||
+        normalized == '..' ||
+        normalized.startsWith('../')) {
+      throw ArgumentError.value(
+        relativePath,
+        'relativePath',
+        'Remediation path is unsafe.',
+      );
+    }
+    final components = path.split(normalized);
+    final basename = components.last;
+    final contentAddressed =
+        components.length == 2 &&
+        components.first == expectedSha256.substring(0, 2) &&
+        RegExp(
+          '^${RegExp.escape(expectedSha256)}(\\.[A-Za-z0-9]{1,16})?\$',
+        ).hasMatch(basename);
+    final byId =
+        components.length == 2 &&
+        components.first == '_by_id' &&
+        RegExp(r'^\d+(\.[A-Za-z0-9]{1,16})?$').hasMatch(basename);
+    if (!contentAddressed && !byId) {
+      // Metadata-known payload paths may predate these two standard shapes.
+      // Their exact path is nevertheless safe because typed remediation
+      // authority binds it to the verified transaction item.
+      for (final component in components) {
+        if (component.isEmpty || component == '.' || component == '..') {
+          throw ArgumentError.value(
+            relativePath,
+            'relativePath',
+            'Remediation path is unsafe.',
+          );
+        }
+      }
+    }
+    return normalized;
+  }
+
   static String _safeExtension(String rawExtension) {
     final extension = rawExtension.trim().toLowerCase();
     if (extension.isEmpty) {
@@ -365,6 +488,43 @@ class FilesystemAttachmentArchiveFileStore
       );
     }
     return extension;
+  }
+
+  static Future<void> _ensureDestinationParentWithoutRecreatingRoot({
+    required String archiveDirectoryPath,
+    required String relativePath,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
+  }) async {
+    final relativeParent = path.dirname(relativePath);
+    if (relativeParent == '.') {
+      return;
+    }
+    var current = archiveDirectoryPath;
+    for (final component in path.split(relativeParent)) {
+      await validateMutation(
+        AttachmentArchiveMutationBoundary.beforeRootCreation,
+      );
+      if (!_isDirectory(current)) {
+        throw StateError(
+          'The active archive root became unavailable during installation.',
+        );
+      }
+      current = path.join(current, component);
+      final type = FileSystemEntity.typeSync(current, followLinks: false);
+      if (type == FileSystemEntityType.notFound) {
+        await Directory(current).create();
+      } else if (type != FileSystemEntityType.directory) {
+        throw StateError(
+          'Attachment archive destination parent must be a directory.',
+        );
+      }
+      if (!_isDirectory(current)) {
+        throw StateError(
+          'Attachment archive destination parent is unavailable or unsafe.',
+        );
+      }
+    }
   }
 
   static bool _isRegularFile(String filePath) {

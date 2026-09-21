@@ -105,6 +105,9 @@ class NavigationLogEntry {
       settings: (settingsSpec) => {
         'type': 'settings',
         'spec': settingsSpec.when(
+          attachmentArchiveWorkflow: () => {
+            'variant': 'attachmentArchiveWorkflow',
+          },
           historicalArchivesWorkflow: () => {
             'variant': 'historicalArchivesWorkflow',
           },

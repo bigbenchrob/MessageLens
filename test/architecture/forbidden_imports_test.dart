@@ -314,6 +314,7 @@ const Set<String> _providerInvalidationAllowedFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/archive_settings_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_workflow_provider.dart',
   'lib/features/attachments/application/attachment_archive_service_provider.dart',
   'lib/features/contacts/application/services/manual_handle_link_service.dart',
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/contact_display_name_override_actions_provider.dart',
