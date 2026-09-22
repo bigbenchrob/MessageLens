@@ -395,6 +395,7 @@ bool _isFlowManagedCenterSpec(ViewSpec spec) {
     },
     settings: (settingsSpec) {
       return settingsSpec.maybeWhen(
+        environmentSummary: () => true,
         historicalArchivesWorkflow: () => true,
         messageHistoryCoverageReport: () => true,
         orElse: () => false,
@@ -482,6 +483,10 @@ bool _isCenterSpecCompatibleWithSidebar({
     },
     settings: (settingsSpec) {
       return settingsSpec.when(
+        environmentSummary: () {
+          return flowState.persistentSettingsContext ==
+              SettingsMenuActionId.environment;
+        },
         attachmentArchiveWorkflow: () {
           return flowState.persistentSettingsContext ==
               SettingsMenuActionId.attachmentArchive;

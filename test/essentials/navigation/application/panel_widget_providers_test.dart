@@ -1280,6 +1280,44 @@ void main() {
       },
     );
 
+    testWidgets('center panel host renders derived environment settings view', (
+      tester,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          conversationGraphPopulatedProvider.overrideWith(
+            _AlwaysPopulatedGraph.new,
+          ),
+          settings_view_spec.viewSpecCoordinatorProvider.overrideWith(
+            _FakeSettingsViewSpecCoordinator.new,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const Directionality(
+            textDirection: TextDirection.ltr,
+            child: CenterPanelHost(mode: SidebarMode.settings),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      container
+          .read(sidebarFlowProvider.notifier)
+          .setPersistentSettingsContext(SettingsMenuActionId.environment);
+      await tester.pump();
+
+      expect(find.text('settings:environment-summary'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      container.dispose();
+      await tester.pump();
+    });
+
     test('preserves sidebar-independent center stack over flow projection', () {
       final container = ProviderContainer(
         overrides: [
@@ -2317,6 +2355,7 @@ class _FakeSettingsViewSpecCoordinator
   @override
   Widget buildForSpec(SettingsViewSpec spec) {
     return spec.when(
+      environmentSummary: () => const Text('settings:environment-summary'),
       attachmentArchiveWorkflow: () =>
           const Text('settings:attachment-archive'),
       historicalArchivesWorkflow: () =>

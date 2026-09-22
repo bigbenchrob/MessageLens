@@ -4,6 +4,8 @@ part 'settings_view_spec.freezed.dart';
 
 @freezed
 abstract class SettingsViewSpec with _$SettingsViewSpec {
+  const factory SettingsViewSpec.environmentSummary() = _EnvironmentSummary;
+
   const factory SettingsViewSpec.attachmentArchiveWorkflow() =
       _AttachmentArchiveWorkflow;
 

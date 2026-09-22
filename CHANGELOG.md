@@ -10,6 +10,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.125] — 2026-09-22
+
+### Added
+
+- Settings now includes a read-only **Environment** center panel showing the
+  admitted installation, data folder, attachment archive, contributing
+  Message data, and projected Contacts data.
+- A default-collapsed **Technical Details** section presents the already
+  observed build, archive, database, schema, startup, maintenance, and FTS
+  evidence without initializing archive resolution or mutation workflows.
+
+### Changed
+
+- Environment evidence settles section by section so package, database,
+  Message, Contacts, attachment, or FTS failures do not replace the page or
+  hide admitted identity.
+
+### Safety
+
+- Environment remains observation-only. This release adds no Clipboard or
+  Finder action, database migration, startup work, archive traversal, archive
+  mutation, or invented Contacts provenance.
+
 ## [0.2.124] — 2026-09-21
 
 ### Added

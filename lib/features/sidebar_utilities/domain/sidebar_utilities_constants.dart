@@ -47,6 +47,7 @@ enum TopChatMenuChoice {
 const defaultTopChatMenuChoice = TopChatMenuChoice.conversations;
 
 enum SettingsMenuActionId {
+  environment(id: 'environment', label: 'Environment'),
   attachmentArchive(id: 'attachments_archive', label: 'Attachment archive'),
   historicalArchives(id: 'historical_archives', label: 'Historical Archives'),
   messageHistoryCoverage(
@@ -74,6 +75,7 @@ enum SettingsMenuActionId {
 extension SettingsMenuActionIdX on SettingsMenuActionId {
   bool get isPersistentContext {
     return switch (this) {
+      SettingsMenuActionId.environment ||
       SettingsMenuActionId.attachmentArchive ||
       SettingsMenuActionId.historicalArchives ||
       SettingsMenuActionId.messageHistoryCoverage ||
