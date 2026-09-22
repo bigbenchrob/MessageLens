@@ -9,6 +9,7 @@ import '../../../essentials/archive_environment/domain.dart'
 import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider;
 import '../domain/entities/attachment_archive_location_configuration.dart';
+import '../domain/entities/attachment_archive_location_snapshot.dart';
 import '../domain/entities/attachment_archive_location_state.dart';
 import 'attachment_archive_adoption_authority.dart';
 import 'attachment_archive_location_controller.dart';
@@ -70,6 +71,25 @@ typedef _WritableRootLeaseValidator =
       ArchiveMutationOperation operation,
       AttachmentArchiveMutationBoundary boundary,
     );
+
+/// Passive, presentation-safe observation seam for attachment location.
+///
+/// Watching this provider never initializes location resolution. The existing
+/// Feature 31 owner publishes snapshots after its own legitimate lifecycle
+/// work has completed. Publication remains library-private to that owner.
+@Riverpod(keepAlive: true)
+class AttachmentArchiveLocationObservation
+    extends _$AttachmentArchiveLocationObservation {
+  @override
+  AttachmentArchiveLocationSnapshot? build() => null;
+
+  void _publishFromLocationOwner(AttachmentArchiveLocationState location) {
+    final next = AttachmentArchiveLocationSnapshot.fromLocationState(location);
+    if (state != next) {
+      state = next;
+    }
+  }
+}
 
 /// Opaque, generation-bound authority for one currently writable archive root.
 ///
@@ -200,6 +220,7 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
     final candidate = await _controllerOrThrow().load();
     final next = _withCurrentGeneration(candidate);
     await _synchronizeEventSubscription(next);
+    _publishObservation(next);
     return next;
   }
 
@@ -297,6 +318,7 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
       );
       _forceNextGenerationAdvance = false;
       await _synchronizeEventSubscription(next);
+      _publishObservation(next);
       if (state.valueOrNull != next) {
         state = AsyncData(next);
       }
@@ -353,6 +375,12 @@ class AttachmentArchiveLocation extends _$AttachmentArchiveLocation {
     if (listener != null) {
       await listener.dispose();
     }
+  }
+
+  void _publishObservation(AttachmentArchiveLocationState location) {
+    ref
+        .read(attachmentArchiveLocationObservationProvider.notifier)
+        ._publishFromLocationOwner(location);
   }
 
   AttachmentArchiveLocationController _controllerOrThrow() {

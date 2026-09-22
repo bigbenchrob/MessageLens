@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../../db/app_database_schema_versions.dart';
 import '../../../domain/entities/test_agent_id.dart';
 
 part 'presence_database.g.dart';
@@ -406,7 +407,7 @@ class PresenceDatabase extends _$PresenceDatabase {
   PresenceDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => presenceSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
+import '../../db/app_database_schema_versions.dart';
 import '../domain/known_sources.dart';
 import '../domain/ports/import_ledger_port.dart';
 
@@ -25,7 +26,7 @@ class ImportDatabase implements ImportLedger {
 
     final db = await openDatabase(
       path.join(databaseDirectory, databaseName),
-      version: 10,
+      version: sourceScopedImportSchemaVersion,
       onCreate: (db, version) async {
         await _createSchema(db);
       },

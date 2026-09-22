@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
+import 'package:remember_this_text/essentials/db/app_database_schema_versions.dart';
 
 void main() {
   group('app database files', () {
@@ -52,6 +53,13 @@ void main() {
         ),
         equals('/tmp/messagelens/working.db'),
       );
+    });
+
+    test('centralizes every active expected schema version', () {
+      expect(sourceScopedImportSchemaVersion, 10);
+      expect(conversationGraphSchemaVersion, 3);
+      expect(overlaySchemaVersion, 8);
+      expect(presenceSchemaVersion, 9);
     });
   });
 }

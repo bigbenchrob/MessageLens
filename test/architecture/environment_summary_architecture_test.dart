@@ -1,0 +1,181 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as path;
+
+void main() {
+  final repositoryRoot = _repositoryRoot();
+  final featureRoot = Directory(
+    path.join(repositoryRoot.path, 'lib', 'features', 'environment_summary'),
+  );
+
+  test('Environment owns no root, attachment, or mutation authority', () {
+    final source = _featureSource(featureRoot);
+
+    for (final forbidden in <String>[
+      'MESSAGELENS_DEVELOPMENT_ARCHIVE_ROOT',
+      'CanonicalArchiveRootPolicy',
+      'ArchiveMutationCoordinator',
+      'AttachmentArchiveWritableRootLease',
+      'attachmentArchiveLocationProvider',
+      'attachmentArchiveLocationNativeAdapterProvider',
+      'attachmentArchiveAdoption',
+      'useDefaultInternalLocation',
+      'configureCustomLocation',
+      'resetDerivedData',
+      'clearArchive',
+      'Directory.list',
+      'listSync(',
+      'sha256',
+      'md5',
+      'WD_ELEMENTS',
+      'Toshiba_manual_bu',
+    ]) {
+      expect(source, isNot(contains(forbidden)), reason: forbidden);
+    }
+  });
+
+  test('Environment inspection does not use persistent database providers', () {
+    final source = _featureSource(featureRoot);
+
+    for (final forbidden in <String>[
+      'sourceScopedImportDatabaseProvider',
+      'driftConversationGraphDatabaseProvider',
+      'overlayDatabaseProvider',
+      'presenceDatabaseProvider',
+      'databaseHealthAuditServiceProvider',
+      'graphHealthRepositoryProvider',
+      'integrityValidator',
+      'recoveryActionsProvider',
+      'importServiceProvider',
+    ]) {
+      expect(source, isNot(contains(forbidden)), reason: forbidden);
+    }
+    expect(source, contains('OpenMode.readOnly'));
+    expect(source, contains('PRAGMA query_only = ON'));
+    expect(source, contains('assertEnvironmentSummaryReadOnlySql'));
+  });
+
+  test('formatter is pure and imports only its read model', () {
+    final formatter = File(
+      path.join(
+        featureRoot.path,
+        'domain',
+        'services',
+        'environment_summary_formatter.dart',
+      ),
+    ).readAsStringSync();
+
+    expect(
+      RegExp(r'^import ', multiLine: true).allMatches(formatter),
+      hasLength(1),
+    );
+    expect(
+      formatter,
+      contains("import '../entities/environment_summary.dart';"),
+    );
+    for (final forbidden in <String>[
+      'Provider',
+      'dart:io',
+      'sqlite',
+      'Clipboard',
+      'BuildContext',
+      'bookmarkDataBase64',
+      'canonicalSourcePath',
+      'registryLabel',
+    ]) {
+      expect(formatter, isNot(contains(forbidden)), reason: forbidden);
+    }
+  });
+
+  test('snapshot and read model cannot carry hidden mutation capabilities', () {
+    final snapshot = File(
+      path.join(
+        repositoryRoot.path,
+        'lib',
+        'features',
+        'attachments',
+        'domain',
+        'entities',
+        'attachment_archive_location_snapshot.dart',
+      ),
+    ).readAsStringSync();
+    final model = File(
+      path.join(
+        featureRoot.path,
+        'domain',
+        'entities',
+        'environment_summary.dart',
+      ),
+    ).readAsStringSync();
+
+    for (final source in <String>[snapshot, model]) {
+      for (final forbidden in <String>[
+        'bookmarkDataBase64',
+        'WritableRootLease',
+        'MutationAuthority',
+        'NativeAdapter',
+        'Directory ',
+        'File ',
+        'Database database',
+        'Controller',
+        'contactsSourcePath',
+        'previousAttachment',
+      ]) {
+        expect(source, isNot(contains(forbidden)), reason: forbidden);
+      }
+    }
+    expect(model, contains('physicalSourceIdentityRetained'));
+    expect(model, isNot(contains('retainedAttachment')));
+  });
+
+  test(
+    'Environment adds no startup, main, onboarding, or Settings UI edge',
+    () {
+      final startupFiles = <File>[
+        File(path.join(repositoryRoot.path, 'lib', 'main.dart')),
+        ...Directory(
+              path.join(repositoryRoot.path, 'lib', 'essentials', 'onboarding'),
+            )
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart')),
+        ...Directory(
+              path.join(repositoryRoot.path, 'lib', 'features', 'settings'),
+            )
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart')),
+      ];
+
+      for (final file in startupFiles) {
+        expect(
+          file.readAsStringSync(),
+          isNot(contains('environment_summary')),
+          reason: file.path,
+        );
+      }
+    },
+  );
+}
+
+String _featureSource(Directory featureRoot) {
+  return featureRoot
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'))
+      .map((file) => file.readAsStringSync())
+      .join('\n');
+}
+
+Directory _repositoryRoot() {
+  var current = Directory.current.absolute;
+  while (!File(path.join(current.path, 'pubspec.yaml')).existsSync()) {
+    final parent = current.parent;
+    if (parent.path == current.path) {
+      throw StateError('Could not locate repository root.');
+    }
+    current = parent;
+  }
+  return current;
+}

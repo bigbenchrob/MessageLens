@@ -32,6 +32,7 @@ export 'domain/entities/attachment_archive_candidate_verification.dart'
         AttachmentArchiveVerificationPhase,
         AttachmentArchiveVerificationProgress;
 export 'domain/entities/attachment_archive_location_configuration.dart';
+export 'domain/entities/attachment_archive_location_snapshot.dart';
 export 'domain/entities/attachment_archive_location_state.dart';
 export 'presentation/widgets/attachment_showcase_view.dart'
     show AttachmentShowcaseView;
