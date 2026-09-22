@@ -119,7 +119,12 @@ Technical
     );
     final summary = EnvironmentSummary(
       installation: base.installation,
-      dataRoot: base.dataRoot,
+      dataRoot: EnvironmentDataRootSummary(
+        canonicalPath: base.dataRoot.canonicalPath,
+        displayVolumeName: base.dataRoot.displayVolumeName,
+        availability: EnvironmentAvailability.unknown,
+        status: EnvironmentSectionStatus.ready,
+      ),
       attachmentArchive: const EnvironmentAttachmentArchiveSummary(
         status: EnvironmentSectionStatus.unavailable,
         availability: EnvironmentAvailability.disconnected,
@@ -145,10 +150,53 @@ Technical
 
     final formatted = formatter.format(summary);
 
+    expect(formatted, contains('Data folder\n  Status: Unknown'));
+    expect(formatted, contains('Attachment archive\n  Status: Unavailable'));
     expect(formatted, contains('Messages in MessageLens: Unavailable'));
+    expect(formatted, contains('Message sources: Unavailable'));
     expect(formatted, contains('Contacts in MessageLens: Not retained'));
-    expect(formatted, contains('Startup admission: Unknown'));
-    expect(formatted, contains('FTS rows: Unknown'));
+    expect(formatted, contains('Startup admission: Loading'));
+    expect(formatted, contains('FTS rows: Failed'));
+  });
+
+  test('preserves authoritative zero counts and sources', () {
+    final base = _fixture(
+      productName: 'MessageLens',
+      environment: ArchiveEnvironment.production,
+      buildIdentity: ArchiveBuildIdentity.productionRelease,
+      bundleIdentifier: 'com.bigbenchsoftware.MessageLens',
+      dataRoot: '/support',
+      dataVolume: 'This Mac',
+      attachmentRoot: '/support/attachment_archive',
+      attachmentVolume: 'This Mac',
+    );
+    final summary = EnvironmentSummary(
+      installation: base.installation,
+      dataRoot: base.dataRoot,
+      attachmentArchive: base.attachmentArchive,
+      messages: EnvironmentMessageDataSummary(
+        status: EnvironmentSectionStatus.ready,
+        projectedMessageCount: 0,
+        conversationCount: 0,
+        attachmentReferenceCount: 0,
+        sources: const <EnvironmentMessageSourceSummary>[],
+      ),
+      contacts: const EnvironmentContactsDataSummary(
+        status: EnvironmentSectionStatus.ready,
+        projectedContactCount: 0,
+        linkedHandleCount: 0,
+        importedChannelCount: 0,
+        physicalSourceIdentityRetained: false,
+      ),
+      technical: base.technical,
+    );
+
+    final formatted = formatter.format(summary);
+
+    expect(formatted, contains('Messages in MessageLens: 0'));
+    expect(formatted, contains('Message sources: 0 (0 current, 0 historical)'));
+    expect(formatted, contains('Conversations: 0'));
+    expect(formatted, contains('Contacts in MessageLens: 0'));
   });
 }
 

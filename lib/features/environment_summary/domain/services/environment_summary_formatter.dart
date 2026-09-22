@@ -7,14 +7,6 @@ final class EnvironmentSummaryFormatter {
     final messages = summary.messages;
     final contacts = summary.contacts;
     final technical = summary.technical;
-    final currentSources = messages.sources
-        .where(
-          (source) =>
-              source.kind == EnvironmentMessageSourceKind.currentMacMessages,
-        )
-        .length;
-    final historicalSources = messages.sources.length - currentSources;
-
     final buffer = StringBuffer()
       ..writeln('MessageLens Environment Summary')
       ..writeln()
@@ -31,7 +23,9 @@ final class EnvironmentSummaryFormatter {
       ..writeln('  Bundle identifier: ${summary.installation.bundleIdentifier}')
       ..writeln()
       ..writeln('Data folder')
-      ..writeln('  Status: ${_availability(summary.dataRoot.availability)}')
+      ..writeln(
+        '  Status: ${_sectionAvailability(summary.dataRoot.status, summary.dataRoot.availability)}',
+      )
       ..writeln('  Volume: ${summary.dataRoot.displayVolumeName}')
       ..writeln('  Path: ${summary.dataRoot.canonicalPath}')
       ..writeln()
@@ -50,10 +44,7 @@ final class EnvironmentSummaryFormatter {
         '  Messages in MessageLens: '
         '${_count(messages.projectedMessageCount, messages.status)}',
       )
-      ..writeln(
-        '  Message sources: ${_sourceCount(messages)} '
-        '($currentSources current, $historicalSources historical)',
-      )
+      ..writeln('  Message sources: ${_sourceSummary(messages)}')
       ..writeln(
         '  Conversations: '
         '${_count(messages.conversationCount, messages.status)}',
@@ -87,7 +78,7 @@ final class EnvironmentSummaryFormatter {
     final version = installation.semanticVersion;
     final build = installation.buildNumber;
     if (version == null || version.isEmpty) {
-      return 'Unknown';
+      return _sectionFallback(installation.packageStatus);
     }
     if (build == null || build.isEmpty) {
       return version;
@@ -95,11 +86,19 @@ final class EnvironmentSummaryFormatter {
     return '$version+$build';
   }
 
-  String _sourceCount(EnvironmentMessageDataSummary messages) {
+  String _sourceSummary(EnvironmentMessageDataSummary messages) {
     if (messages.status != EnvironmentSectionStatus.ready) {
       return _sectionFallback(messages.status);
     }
-    return '${messages.sources.length}';
+    final currentSources = messages.sources
+        .where(
+          (source) =>
+              source.kind == EnvironmentMessageSourceKind.currentMacMessages,
+        )
+        .length;
+    final historicalSources = messages.sources.length - currentSources;
+    return '${messages.sources.length} '
+        '($currentSources current, $historicalSources historical)';
   }
 
   String _count(int? count, EnvironmentSectionStatus status) {
@@ -110,6 +109,9 @@ final class EnvironmentSummaryFormatter {
   }
 
   String _attachmentStatus(EnvironmentAttachmentArchiveSummary attachment) {
+    if (attachment.status != EnvironmentSectionStatus.ready) {
+      return _sectionFallback(attachment.status);
+    }
     return switch (attachment.availability) {
       EnvironmentAvailability.connected =>
         attachment.isPhysicallyWritable
@@ -118,6 +120,16 @@ final class EnvironmentSummaryFormatter {
       EnvironmentAvailability.readOnly => 'Connected · read-only',
       _ => _availability(attachment.availability),
     };
+  }
+
+  String _sectionAvailability(
+    EnvironmentSectionStatus status,
+    EnvironmentAvailability availability,
+  ) {
+    if (status != EnvironmentSectionStatus.ready) {
+      return _sectionFallback(status);
+    }
+    return _availability(availability);
   }
 
   String _availability(EnvironmentAvailability availability) {
@@ -136,7 +148,7 @@ final class EnvironmentSummaryFormatter {
     final state = technical.installationState;
     final basis = technical.startupAdmissionBasis;
     if (state == null && basis == null) {
-      return 'Unknown';
+      return _sectionFallback(technical.status);
     }
     if (state == null) {
       return basis!.name;
@@ -186,10 +198,10 @@ final class EnvironmentSummaryFormatter {
   String _sectionFallback(EnvironmentSectionStatus status) {
     return switch (status) {
       EnvironmentSectionStatus.ready => 'Unknown',
-      EnvironmentSectionStatus.loading => 'Unknown',
+      EnvironmentSectionStatus.loading => 'Loading',
       EnvironmentSectionStatus.unavailable => 'Unavailable',
       EnvironmentSectionStatus.notRetained => 'Not retained',
-      EnvironmentSectionStatus.failed => 'Unknown',
+      EnvironmentSectionStatus.failed => 'Failed',
     };
   }
 

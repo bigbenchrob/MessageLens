@@ -8,8 +8,11 @@ import 'package:remember_this_text/essentials/archive_environment/domain/archive
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
+import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer.dart';
+import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer_provider.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_provider.dart';
 import 'package:remember_this_text/features/environment_summary/domain/entities/environment_summary.dart';
+import 'package:remember_this_text/features/environment_summary/domain/services/environment_summary_formatter.dart';
 import 'package:remember_this_text/features/environment_summary/presentation/view/environment_summary_panel.dart';
 
 void main() {
@@ -320,7 +323,78 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Technical Details'), findsOneWidget);
+    expect(find.bySemanticsLabel('Copy Environment Summary'), findsOneWidget);
     semantics.dispose();
+  });
+
+  testWidgets('copies exact formatter output only after explicit activation', (
+    tester,
+  ) async {
+    final summary = _summary();
+    final writer = _RecordingClipboardWriter();
+    await _pumpPanel(tester, summary: summary, clipboardWriter: writer);
+
+    expect(writer.writes, isEmpty);
+    expect(find.byKey(EnvironmentSummaryPanel.copyButtonKey), findsOneWidget);
+    expect(find.text('Copy Environment Summary'), findsOneWidget);
+    expect(find.textContaining('Copy path'), findsNothing);
+    expect(find.textContaining('Reveal in Finder'), findsNothing);
+
+    await tester.tap(find.byKey(EnvironmentSummaryPanel.copyButtonKey));
+    await tester.pumpAndSettle();
+
+    expect(writer.writes, <String>[
+      const EnvironmentSummaryFormatter().format(summary),
+    ]);
+    expect(find.text('Environment summary copied.'), findsOneWidget);
+  });
+
+  testWidgets('copies partial summaries without fabricating unsettled values', (
+    tester,
+  ) async {
+    final summary = _summary(
+      packageStatus: EnvironmentSectionStatus.failed,
+      dataRootAvailability: EnvironmentAvailability.unknown,
+      attachmentStatus: EnvironmentSectionStatus.loading,
+      attachmentPath: null,
+      messageStatus: EnvironmentSectionStatus.unavailable,
+      contactsStatus: EnvironmentSectionStatus.notRetained,
+      includeSources: false,
+    );
+    final writer = _RecordingClipboardWriter();
+    await _pumpPanel(tester, summary: summary, clipboardWriter: writer);
+
+    await tester.tap(find.byKey(EnvironmentSummaryPanel.copyButtonKey));
+    await tester.pumpAndSettle();
+
+    final copied = writer.writes.single;
+    expect(copied, contains('Version: Failed'));
+    expect(copied, contains('Data folder\n  Status: Unknown'));
+    expect(copied, contains('Attachment archive\n  Status: Loading'));
+    expect(copied, contains('Messages in MessageLens: Unavailable'));
+    expect(copied, contains('Message sources: Unavailable'));
+    expect(copied, contains('Contacts in MessageLens: Not retained'));
+    expect(copied, contains('FTS rows: Unavailable'));
+    expect(copied, isNot(contains('/Volumes/Archive/messages/chat.db')));
+  });
+
+  testWidgets('shows bounded failure feedback when clipboard writing fails', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      summary: _summary(),
+      clipboardWriter: const _FailingClipboardWriter(),
+    );
+
+    await tester.tap(find.byKey(EnvironmentSummaryPanel.copyButtonKey));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('MessageLens could not copy the environment summary.'),
+      findsOneWidget,
+    );
+    expect(find.text('Copy Environment Summary'), findsOneWidget);
   });
 }
 
@@ -328,13 +402,20 @@ Future<ProviderContainer> _pumpPanel(
   WidgetTester tester, {
   required EnvironmentSummary summary,
   Brightness brightness = Brightness.light,
+  EnvironmentSummaryClipboardWriter? clipboardWriter,
 }) async {
-  final container = ProviderContainer(
-    overrides: <Override>[
-      platformBrightnessProvider.overrideWith((ref) => brightness),
-      environmentSummaryProvider.overrideWith((ref) => summary),
-    ],
-  );
+  final overrides = <Override>[
+    platformBrightnessProvider.overrideWith((ref) => brightness),
+    environmentSummaryProvider.overrideWith((ref) => summary),
+  ];
+  if (clipboardWriter != null) {
+    overrides.add(
+      environmentSummaryClipboardWriterProvider.overrideWith(
+        (ref) => clipboardWriter,
+      ),
+    );
+  }
+  final container = ProviderContainer(overrides: overrides);
   addTearDown(container.dispose);
   await tester.binding.setSurfaceSize(const Size(1100, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -484,4 +565,24 @@ final class _AttachmentCase {
   final EnvironmentAvailability availability;
   final bool writable;
   final String label;
+}
+
+final class _RecordingClipboardWriter
+    implements EnvironmentSummaryClipboardWriter {
+  final List<String> writes = <String>[];
+
+  @override
+  Future<void> writeText(String text) async {
+    writes.add(text);
+  }
+}
+
+final class _FailingClipboardWriter
+    implements EnvironmentSummaryClipboardWriter {
+  const _FailingClipboardWriter();
+
+  @override
+  Future<void> writeText(String text) async {
+    throw StateError('Clipboard unavailable.');
+  }
 }

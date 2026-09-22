@@ -4,10 +4,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/theme_typography.dart';
+import '../../../../config/theme/widgets/theme_widgets.dart';
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_label_formatter.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart'
     show CenterPanelReportLayout, PanelSection, PanelSectionLayoutStyle;
+import '../../application/environment_summary_actions_provider.dart';
 import '../../application/environment_summary_provider.dart';
 import '../../domain/entities/environment_summary.dart';
 
@@ -25,6 +27,7 @@ class EnvironmentSummaryPanel extends ConsumerStatefulWidget {
   static const technicalBodyKey = Key('environment-summary-technical-body');
   static const dataRootPathKey = Key('environment-summary-data-root-path');
   static const attachmentPathKey = Key('environment-summary-attachment-path');
+  static const copyButtonKey = Key('environment-summary-copy-button');
 
   @override
   ConsumerState<EnvironmentSummaryPanel> createState() =>
@@ -34,6 +37,7 @@ class EnvironmentSummaryPanel extends ConsumerStatefulWidget {
 class _EnvironmentSummaryPanelState
     extends ConsumerState<EnvironmentSummaryPanel> {
   bool _technicalDetailsExpanded = false;
+  bool _copyInProgress = false;
 
   @override
   Widget build(BuildContext context) {
@@ -56,14 +60,45 @@ class _EnvironmentSummaryPanelState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    'Environment',
-                    style: typography.title1.copyWith(
-                      color: colors.content.textPrimary,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        'Environment',
+                        style: typography.title1.copyWith(
+                          color: colors.content.textPrimary,
+                        ),
+                      ),
                     ),
-                  ),
+                    Semantics(
+                      key: EnvironmentSummaryPanel.copyButtonKey,
+                      button: true,
+                      enabled: !_copyInProgress,
+                      label: 'Copy Environment Summary',
+                      excludeSemantics: true,
+                      child: AppThemeWidgets.primaryButton(
+                        ref: ref,
+                        label: _copyInProgress
+                            ? 'Copying…'
+                            : 'Copy Environment Summary',
+                        leading: Icon(
+                          Icons.copy_outlined,
+                          size: 16,
+                          color: colors.buttons.primaryForeground,
+                        ),
+                        onPressed: _copyInProgress
+                            ? null
+                            : () async {
+                                await _copyEnvironmentSummary(summary);
+                              },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -117,6 +152,37 @@ class _EnvironmentSummaryPanelState
         ),
       ),
     );
+  }
+
+  Future<void> _copyEnvironmentSummary(EnvironmentSummary summary) async {
+    setState(() {
+      _copyInProgress = true;
+    });
+    final result = await ref
+        .read(environmentSummaryActionsProvider.notifier)
+        .copy(summary);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _copyInProgress = false;
+    });
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) {
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            result == EnvironmentSummaryCopyResult.copied
+                ? 'Environment summary copied.'
+                : 'MessageLens could not copy the environment summary.',
+          ),
+        ),
+      );
   }
 }
 

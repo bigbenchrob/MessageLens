@@ -221,6 +221,70 @@ void main() {
     }
   });
 
+  test('Clipboard ownership is isolated behind the application port', () {
+    final formatter = File(
+      path.join(
+        featureRoot.path,
+        'domain',
+        'services',
+        'environment_summary_formatter.dart',
+      ),
+    ).readAsStringSync();
+    final panel = File(
+      path.join(
+        featureRoot.path,
+        'presentation',
+        'view',
+        'environment_summary_panel.dart',
+      ),
+    ).readAsStringSync();
+    final actions = File(
+      path.join(
+        featureRoot.path,
+        'application',
+        'environment_summary_actions_provider.dart',
+      ),
+    ).readAsStringSync();
+    final port = File(
+      path.join(
+        featureRoot.path,
+        'application',
+        'environment_summary_clipboard_writer.dart',
+      ),
+    ).readAsStringSync();
+    final adapterPath = path.join(
+      featureRoot.path,
+      'infrastructure',
+      'system_environment_summary_clipboard_writer.dart',
+    );
+    final adapter = File(adapterPath).readAsStringSync();
+
+    expect(actions, contains('EnvironmentSummaryFormatter'));
+    expect(actions, contains('environmentSummaryClipboardWriterProvider'));
+    expect(actions, isNot(contains('Clipboard.setData')));
+    expect(panel, contains('environmentSummaryActionsProvider.notifier'));
+    expect(panel, isNot(contains('EnvironmentSummaryFormatter')));
+    expect(formatter, isNot(contains('Clipboard')));
+    expect(port, isNot(contains('package:flutter/')));
+    expect(adapter, contains("import 'package:flutter/services.dart';"));
+    expect(adapter, contains('Clipboard.setData'));
+
+    for (final file
+        in featureRoot
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart'))
+            .where((file) => file.path != adapterPath)) {
+      final source = file.readAsStringSync();
+      expect(source, isNot(contains('Clipboard.setData')), reason: file.path);
+      expect(
+        source,
+        isNot(contains('package:flutter/services.dart')),
+        reason: file.path,
+      );
+    }
+  });
+
   test('Environment is a persistent center-only Settings route', () {
     final settingsMenu = File(
       path.join(

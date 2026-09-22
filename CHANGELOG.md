@@ -10,6 +10,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.126] — 2026-09-22
+
+### Added
+
+- The Settings **Environment** page now provides one explicit **Copy
+  Environment Summary** action for sharing the same privacy-bounded support
+  summary shown by the existing aggregate model.
+
+### Changed
+
+- Copied summaries preserve authoritative zero counts and distinguish
+  Loading, Unknown, Unavailable, Not retained, and Failed states instead of
+  substituting fabricated values while a section is unsettled.
+
+### Safety
+
+- Copying runs only after explicit activation and adds no automatic or
+  per-path clipboard behavior, Finder integration, filesystem or database
+  discovery, startup work, archive resolution, or environment mutation.
+
 ## [0.2.125] — 2026-09-22
 
 ### Added
