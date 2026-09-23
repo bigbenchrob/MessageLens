@@ -7,7 +7,7 @@ part of 'settings_action_list_actions_provider.dart';
 // **************************************************************************
 
 String _$settingsActionListActionsHash() =>
-    r'501e7319c00cf21d1cd8f798c83ef07b53098ec1';
+    r'7875260b18267459bffa5ef600d0fc0b10583f10';
 
 /// See also [SettingsActionListActions].
 @ProviderFor(SettingsActionListActions)

@@ -1,10 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/db/feature_level_providers.dart'
-    show
-        attachmentArchiveDirectoryProvider,
-        driftConversationGraphDatabaseProvider,
-        overlayDatabaseProvider;
+    show driftConversationGraphDatabaseProvider, overlayDatabaseProvider;
 import '../../../essentials/paths/feature_level_providers.dart'
     show pathsHelperProvider;
 import '../../../essentials/source_scoped_import/feature_level_providers.dart'
@@ -14,6 +11,7 @@ import '../infrastructure/repositories/overlay_archive_compatibility_lookup.dart
 import '../infrastructure/repositories/source_database_attachment_path_lookup.dart';
 import '../infrastructure/repositories/source_scoped_attachment_snapshot_lookup.dart';
 import '../infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart';
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_store_providers.dart';
 import 'current_attachment_snapshot_lookup.dart';
 import 'current_messages_attachment_path_lookup.dart';
@@ -27,6 +25,7 @@ part 'graph_attachment_archive_providers.g.dart';
 Future<GraphAttachmentArchiveLookup> graphAttachmentArchiveLookup(
   GraphAttachmentArchiveLookupRef ref,
 ) async {
+  final location = await ref.watch(attachmentArchiveLocationProvider.future);
   final graphDb = await ref.watch(
     driftConversationGraphDatabaseProvider.future,
   );
@@ -34,7 +33,7 @@ Future<GraphAttachmentArchiveLookup> graphAttachmentArchiveLookup(
   return OverlayArchiveCompatibilityLookup(
     graphDatabase: graphDb,
     overlayDatabase: overlayDb,
-    archiveDirectory: ref.watch(attachmentArchiveDirectoryProvider),
+    location: location,
   );
 }
 
@@ -66,12 +65,13 @@ Future<CurrentMessageLensAttachmentEvidenceReader>
 messageLensAttachmentCurrentEvidenceReader(
   MessageLensAttachmentCurrentEvidenceReaderRef ref,
 ) async {
+  final location = await ref.watch(attachmentArchiveLocationProvider.future);
   return ImportLedgerMessageLensAttachmentEvidenceReader(
     importLedger: await ref.watch(sourceScopedImportLedgerProvider.future),
     archiveReadStore: await ref.watch(
       attachmentArchiveReadStoreProvider.future,
     ),
-    archiveDirectoryPath: ref.watch(attachmentArchiveDirectoryProvider),
+    archiveLocation: location,
   );
 }
 

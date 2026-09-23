@@ -4,7 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../features/attachments/feature_level_providers.dart'
-    show BulkArchivePhase, attachmentArchiveServiceProvider;
+    show
+        BulkArchivePhase,
+        attachmentArchiveLocationProvider,
+        attachmentArchiveServiceProvider,
+        shouldScheduleBoundedAttachmentArchiveReconnectSweep;
 import '../../../archive_environment/domain.dart'
     show ArchiveMutationDeniedException, ArchiveMutationOperation;
 import '../../../archive_environment/feature_level_providers.dart'
@@ -192,6 +196,17 @@ class ChatDbChangeMonitor extends _$ChatDbChangeMonitor {
 
     //#FLOW:chatdb:gate-listener
     ref.listen(archiveMutationCoordinatorProvider, _handleExecutionGateChange);
+    ref.listen(attachmentArchiveLocationProvider, (previous, next) {
+      final before = previous?.valueOrNull;
+      final current = next.valueOrNull;
+      if (current != null &&
+          shouldScheduleBoundedAttachmentArchiveReconnectSweep(
+            previous: before,
+            current: current,
+          )) {
+        unawaited(_runAttachmentSweep());
+      }
+    });
     // #FLOW:chatdb:init
     // Resolves chat.db path and starts monitor setup.
     //#FLOW:chatdb:init-call

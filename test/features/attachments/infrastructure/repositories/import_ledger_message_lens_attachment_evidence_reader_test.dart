@@ -8,6 +8,8 @@ import 'package:remember_this_text/essentials/archive_compatibility/domain/archi
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/infrastructure/import_database_provider.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/message_lens_attachment_recovery.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/import_ledger_message_lens_attachment_evidence_reader.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_read_store.dart';
@@ -152,6 +154,42 @@ void main() {
 
     expect(progress, const [(501, 501)]);
   });
+
+  test(
+    'unavailable root reports inaccessible without payload inspection',
+    () async {
+      const archiveKey = ArchiveCompatibilityKey(
+        messageGuid: 'message-guid',
+        importAttachmentId: 22,
+      );
+      final unavailableReader = ImportLedgerMessageLensAttachmentEvidenceReader(
+        importLedger: importDatabase,
+        archiveReadStore: OverlayAttachmentArchiveReadStore(
+          overlayDb: overlayDatabase,
+          archiveDirectory: archiveDirectory.path,
+        ),
+        archiveLocation: AttachmentArchiveLocationState.customUnavailable(
+          configuration: AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: 'AQID',
+            lastKnownPath: '/Volumes/Offline/Archive',
+          ),
+          issue: 'Volume disconnected.',
+        ),
+      );
+      final progress = <(int, int)>[];
+
+      final statuses = await unavailableReader.readPayloadStatuses(
+        const [archiveKey],
+        onProgress: (completed, total) {
+          progress.add((completed, total));
+        },
+      );
+
+      expect(statuses[archiveKey], CurrentAttachmentPayloadStatus.inaccessible);
+      expect(progress, const [(1, 1)]);
+      expect(archiveDirectory.existsSync(), isFalse);
+    },
+  );
 }
 
 Future<void> _insertRelationship(ImportDatabase database) async {

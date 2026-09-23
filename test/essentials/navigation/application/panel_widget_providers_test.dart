@@ -32,6 +32,7 @@ import 'package:remember_this_text/features/messages/domain/search_investigation
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_view_spec.dart';
 import 'package:remember_this_text/features/settings/application/view_spec/coordinators/view_spec_coordinator.dart'
     as settings_view_spec;
+import 'package:remember_this_text/features/settings/application/view_spec/payloads/settings_panel_render_descriptor.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_cassette_spec.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_view_spec.dart';
 import 'package:remember_this_text/features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
@@ -1271,7 +1272,10 @@ void main() {
             );
         await tester.pump();
 
-        expect(find.text('settings:message-history-coverage'), findsOneWidget);
+        expect(
+          find.byKey(const Key('message-history-coverage-track-skeleton')),
+          findsOneWidget,
+        );
 
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();
@@ -2315,12 +2319,14 @@ class _FakeSettingsViewSpecCoordinator
   void build() {}
 
   @override
-  Widget buildForSpec(SettingsViewSpec spec) {
+  SettingsPanelRenderDescriptor resolveForSpec(SettingsViewSpec spec) {
     return spec.when(
+      attachmentArchiveWorkflow: () =>
+          SettingsPanelRenderDescriptor.attachmentArchiveWorkflow,
       historicalArchivesWorkflow: () =>
-          const Text('settings:historical-archives'),
+          SettingsPanelRenderDescriptor.historicalArchivesWorkflow,
       messageHistoryCoverageReport: () =>
-          const Text('settings:message-history-coverage'),
+          SettingsPanelRenderDescriptor.messageHistoryCoverageReport,
     );
   }
 }

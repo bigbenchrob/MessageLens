@@ -276,7 +276,6 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         },
         orElse: () async => null,
       );
-
       final coordinator = ref.read(
         settings_feature.settingsCassetteCoordinatorProvider.notifier,
       );

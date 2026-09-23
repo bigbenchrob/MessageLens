@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import '../../../../features/attachments/feature_level_providers.dart'
-    show GraphAttachmentArchiveLookup;
+    show
+        AttachmentArchiveLocationAvailability,
+        AttachmentArchivePayloadStatus,
+        GraphAttachmentArchiveLookup;
 import '../../../db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
 import '../../application/chat_summaries/chat_summary.dart';
 import '../../application/chat_summaries/chat_summary_repository.dart';
@@ -66,8 +69,9 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
 
     final filtered = _applyFilter(summaries, filter);
     _applySort(filtered, sort);
-    return (limit == null ? filtered : filtered.take(limit))
-        .toList(growable: false);
+    return (limit == null ? filtered : filtered.take(limit)).toList(
+      growable: false,
+    );
   }
 
   @override
@@ -252,6 +256,8 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
     var archiveRecordCount = 0;
     var archiveFileAvailableCount = 0;
     var archiveFileMissingCount = 0;
+    var archiveFileUnavailableCount = 0;
+    var archiveUnexpectedTypeCount = 0;
 
     for (final row in rows) {
       messageIds.add(_readInt(row['message_ss_id']));
@@ -285,10 +291,19 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
       );
       if (archiveAvailability.hasArchiveRecord) {
         archiveRecordCount += 1;
-        if (archiveAvailability.archiveFileExists) {
-          archiveFileAvailableCount += 1;
-        } else {
-          archiveFileMissingCount += 1;
+        switch (archiveAvailability.archivePayloadStatus) {
+          case AttachmentArchivePayloadStatus.available:
+            archiveFileAvailableCount += 1;
+          case AttachmentArchivePayloadStatus.missing:
+            archiveFileMissingCount += 1;
+          case AttachmentArchivePayloadStatus.rootUnavailable:
+            archiveFileUnavailableCount += 1;
+          case AttachmentArchivePayloadStatus.unexpectedFileType:
+          case AttachmentArchivePayloadStatus.invalidMetadataPath:
+          case AttachmentArchivePayloadStatus.verifiedCorrupt:
+            archiveUnexpectedTypeCount += 1;
+          case null:
+            break;
         }
       }
     }
@@ -305,6 +320,8 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
       archiveRecordCount: archiveRecordCount,
       archiveFileAvailableCount: archiveFileAvailableCount,
       archiveFileMissingCount: archiveFileMissingCount,
+      archiveFileUnavailableCount: archiveFileUnavailableCount,
+      archiveUnexpectedTypeCount: archiveUnexpectedTypeCount,
     );
   }
 
@@ -356,7 +373,11 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
       localFileExists: _localFileExists(row['filename'] as String?),
       archiveRelativePath: archiveAvailability.archiveRelativePath,
       archiveAbsolutePath: archiveAvailability.archiveAbsolutePath,
-      archiveFileExists: archiveAvailability.archiveFileExists,
+      archivePayloadStatus: archiveAvailability.archivePayloadStatus,
+      archiveLocationAvailability:
+          archiveAvailability.archiveLocationAvailability,
+      archiveLocationGeneration: archiveAvailability.archiveLocationGeneration,
+      archiveRootIssue: archiveAvailability.archiveRootIssue,
     );
   }
 
@@ -380,7 +401,10 @@ class SqliteChatSummaryRepository implements ChatSummaryRepository {
     return _ArchiveAvailability(
       archiveRelativePath: record.archiveRelativePath,
       archiveAbsolutePath: record.archiveAbsolutePath,
-      archiveFileExists: record.archiveFileExists,
+      archivePayloadStatus: record.payloadStatus,
+      archiveLocationAvailability: record.locationAvailability,
+      archiveLocationGeneration: record.locationGeneration,
+      archiveRootIssue: record.rootIssue,
     );
   }
 
@@ -489,17 +513,26 @@ class _ArchiveAvailability {
   const _ArchiveAvailability({
     required this.archiveRelativePath,
     required this.archiveAbsolutePath,
-    required this.archiveFileExists,
+    required this.archivePayloadStatus,
+    required this.archiveLocationAvailability,
+    required this.archiveLocationGeneration,
+    required this.archiveRootIssue,
   });
 
   const _ArchiveAvailability.none()
     : archiveRelativePath = null,
       archiveAbsolutePath = null,
-      archiveFileExists = false;
+      archivePayloadStatus = null,
+      archiveLocationAvailability = null,
+      archiveLocationGeneration = null,
+      archiveRootIssue = null;
 
   final String? archiveRelativePath;
   final String? archiveAbsolutePath;
-  final bool archiveFileExists;
+  final AttachmentArchivePayloadStatus? archivePayloadStatus;
+  final AttachmentArchiveLocationAvailability? archiveLocationAvailability;
+  final int? archiveLocationGeneration;
+  final String? archiveRootIssue;
 
   bool get hasArchiveRecord =>
       archiveRelativePath != null && archiveRelativePath!.isNotEmpty;

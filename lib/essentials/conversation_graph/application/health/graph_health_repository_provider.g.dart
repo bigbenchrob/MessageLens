@@ -7,7 +7,7 @@ part of 'graph_health_repository_provider.dart';
 // **************************************************************************
 
 String _$graphHealthRepositoryHash() =>
-    r'1d116c4fafd21e8bbaeae877fdf70c9dc6838906';
+    r'c6989f113e05a407004e87390d7c06bfe7ea2175';
 
 /// See also [graphHealthRepository].
 @ProviderFor(graphHealthRepository)

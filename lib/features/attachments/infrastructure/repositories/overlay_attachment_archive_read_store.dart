@@ -7,17 +7,25 @@ import '../../../../essentials/archive_compatibility/domain/archive_compatibilit
 import '../../../../essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import '../../application/attachment_archive_read_store.dart';
 import '../../application/attachment_recovery_hint_storage.dart';
+import '../../domain/constants/attachment_archive_payload_status.dart';
+import '../../domain/entities/attachment_archive_location_state.dart';
 import '../../domain/entities/attachment_recovery_metadata.dart';
 
 class OverlayAttachmentArchiveReadStore implements AttachmentArchiveReadStore {
-  const OverlayAttachmentArchiveReadStore({
+  OverlayAttachmentArchiveReadStore({
     required OverlayDatabase overlayDb,
-    required String archiveDirectory,
+    AttachmentArchiveLocationState? location,
+    String? archiveDirectory,
+    FileSystemEntityType Function(String path)? entryTypeReader,
   }) : _overlayDb = overlayDb,
-       _archiveDirectory = archiveDirectory;
+       location = _resolveLocation(location, archiveDirectory),
+       _entryTypeReader = entryTypeReader ?? _defaultEntryTypeReader;
 
   final OverlayDatabase _overlayDb;
-  final String _archiveDirectory;
+  final FileSystemEntityType Function(String path) _entryTypeReader;
+
+  @override
+  final AttachmentArchiveLocationState location;
 
   @override
   Future<Map<ArchiveCompatibilityKey, AttachmentArchiveMetadataRecord>>
@@ -35,11 +43,7 @@ class OverlayAttachmentArchiveReadStore implements AttachmentArchiveReadStore {
         importAttachmentId: row.read<int>('import_attachment_id'),
       );
       final relativePath = row.read<String>('archive_relative_path');
-      if (_boundedArchivePath(
-            archiveDirectory: _archiveDirectory,
-            relativePath: relativePath,
-          ) ==
-          null) {
+      if (!_isSafeRelativePath(relativePath)) {
         continue;
       }
       records[key] = AttachmentArchiveMetadataRecord(
@@ -77,18 +81,49 @@ class OverlayAttachmentArchiveReadStore implements AttachmentArchiveReadStore {
 
     final row = archiveRows.single;
     final relativePath = row.read<String>('archive_relative_path');
+    if (!_isSafeRelativePath(relativePath)) {
+      return AttachmentArchiveLookupRecord(
+        archiveRelativePath: relativePath,
+        archiveAbsolutePath: null,
+        payloadStatus: AttachmentArchivePayloadStatus.invalidMetadataPath,
+        locationAvailability: location.availability,
+        locationGeneration: location.generation,
+        rootIssue: location.issue,
+        fileSizeBytes: row.read<int>('file_size_bytes'),
+        contentHash: row.readNullable<String>('content_hash'),
+        provenance: row.readNullable<String>('provenance'),
+      );
+    }
+
+    if (!location.isAvailable) {
+      return AttachmentArchiveLookupRecord(
+        archiveRelativePath: relativePath,
+        archiveAbsolutePath: null,
+        payloadStatus: AttachmentArchivePayloadStatus.rootUnavailable,
+        locationAvailability: location.availability,
+        locationGeneration: location.generation,
+        rootIssue: location.issue,
+        fileSizeBytes: row.read<int>('file_size_bytes'),
+        contentHash: row.readNullable<String>('content_hash'),
+        provenance: row.readNullable<String>('provenance'),
+      );
+    }
+
     final absolutePath = _boundedArchivePath(
-      archiveDirectory: _archiveDirectory,
+      archiveDirectory: location.requireArchiveRootPath(),
       relativePath: relativePath,
     );
     if (absolutePath == null) {
-      return null;
+      throw StateError('A validated archive-relative path escaped its root.');
     }
 
     return AttachmentArchiveLookupRecord(
       archiveRelativePath: relativePath,
       archiveAbsolutePath: absolutePath,
-      archiveFileExists: _regularFileExists(absolutePath),
+      payloadStatus: _payloadStatus(absolutePath),
+      locationAvailability: location.availability,
+      locationGeneration: location.generation,
+      rootIssue: location.issue,
       fileSizeBytes: row.read<int>('file_size_bytes'),
       contentHash: row.readNullable<String>('content_hash'),
       provenance: row.readNullable<String>('provenance'),
@@ -125,8 +160,42 @@ class OverlayAttachmentArchiveReadStore implements AttachmentArchiveReadStore {
     return absolutePath;
   }
 
-  static bool _regularFileExists(String filePath) {
-    return FileSystemEntity.typeSync(filePath, followLinks: false) ==
-        FileSystemEntityType.file;
+  static bool _isSafeRelativePath(String relativePath) {
+    if (relativePath.isEmpty || path.isAbsolute(relativePath)) {
+      return false;
+    }
+    final normalized = path.normalize(relativePath);
+    return normalized != '.' &&
+        normalized != '..' &&
+        !normalized.startsWith('../');
+  }
+
+  AttachmentArchivePayloadStatus _payloadStatus(String filePath) {
+    return switch (_entryTypeReader(filePath)) {
+      FileSystemEntityType.file => AttachmentArchivePayloadStatus.available,
+      FileSystemEntityType.notFound => AttachmentArchivePayloadStatus.missing,
+      _ => AttachmentArchivePayloadStatus.unexpectedFileType,
+    };
+  }
+
+  static FileSystemEntityType _defaultEntryTypeReader(String filePath) {
+    return FileSystemEntity.typeSync(filePath, followLinks: false);
+  }
+
+  static AttachmentArchiveLocationState _resolveLocation(
+    AttachmentArchiveLocationState? location,
+    String? archiveDirectory,
+  ) {
+    if (location != null) {
+      return location;
+    }
+    if (archiveDirectory == null || archiveDirectory.isEmpty) {
+      throw ArgumentError(
+        'Either location or archiveDirectory must identify the archive root.',
+      );
+    }
+    return AttachmentArchiveLocationState.defaultAvailable(
+      archiveRootPath: archiveDirectory,
+    );
   }
 }

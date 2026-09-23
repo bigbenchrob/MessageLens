@@ -2,7 +2,10 @@ import '../../../../essentials/conversation_graph/application/chat_summaries/cha
 import '../../../attachments/domain/constants/attachment_provenance.dart';
 import '../../../attachments/domain/constants/resolved_attachment_availability.dart';
 import '../../../attachments/feature_level_providers.dart'
-    show AttachmentFileAccess;
+    show
+        AttachmentArchiveLocationAvailability,
+        AttachmentArchivePayloadStatus,
+        AttachmentFileAccess;
 import '../../domain/entities/attachment_info.dart' as recovered_domain;
 
 class MessageAttachmentEvidence {
@@ -17,6 +20,10 @@ class MessageAttachmentEvidence {
     required this.availability,
     required this.provenance,
     required this.totalBytes,
+    this.archivePayloadStatus,
+    this.archiveRootAvailability,
+    this.archiveLocationGeneration,
+    this.archiveRootIssue,
     this.sourceRecordCount = 1,
   });
 
@@ -30,6 +37,10 @@ class MessageAttachmentEvidence {
   final ResolvedAttachmentAvailability availability;
   final AttachmentProvenance? provenance;
   final int? totalBytes;
+  final AttachmentArchivePayloadStatus? archivePayloadStatus;
+  final AttachmentArchiveLocationAvailability? archiveRootAvailability;
+  final int? archiveLocationGeneration;
+  final String? archiveRootIssue;
   final int sourceRecordCount;
 
   bool get isDisplayable =>
@@ -75,8 +86,16 @@ class MessageAttachmentEvidence {
   String get availabilityLabel {
     return switch (availability) {
       ResolvedAttachmentAvailability.available =>
-        provenance == AttachmentProvenance.archived ? 'archived' : 'available',
+        archivePayloadStatus == AttachmentArchivePayloadStatus.rootUnavailable
+            ? 'available from Messages · archive unavailable'
+            : provenance == AttachmentProvenance.archived
+            ? 'archived'
+            : 'available',
+      ResolvedAttachmentAvailability.archiveUnavailable =>
+        'archive unavailable',
       ResolvedAttachmentAvailability.pendingArchive => 'pending archive',
+      ResolvedAttachmentAvailability.pendingHistoricalRemediation =>
+        'pending historical archive update',
       ResolvedAttachmentAvailability.unavailableAwaitingRecovery =>
         'unavailable',
       ResolvedAttachmentAvailability.nonRecoverable => 'not recoverable',
@@ -165,6 +184,10 @@ List<MessageAttachmentEvidence> messageAttachmentEvidenceFromMessageAttachments(
     availability: firstUrlPreview.availability,
     provenance: firstUrlPreview.provenance,
     totalBytes: firstUrlPreview.totalBytes,
+    archivePayloadStatus: firstUrlPreview.archivePayloadStatus,
+    archiveRootAvailability: firstUrlPreview.archiveRootAvailability,
+    archiveLocationGeneration: firstUrlPreview.archiveLocationGeneration,
+    archiveRootIssue: firstUrlPreview.archiveRootIssue,
     sourceRecordCount: urlPreviewResourceCount,
   );
 
@@ -178,9 +201,13 @@ MessageAttachmentEvidence messageAttachmentEvidenceFromMessageAttachment(
   final sourcePathHint = attachment.filename;
   final archivedPath = attachment.archiveAbsolutePath;
   final hasArchivedFile =
-      attachment.archiveFileExists &&
+      attachment.archivePayloadStatus ==
+          AttachmentArchivePayloadStatus.available &&
       archivedPath != null &&
       archivedPath.isNotEmpty;
+  final archiveIsUnavailable =
+      attachment.archivePayloadStatus ==
+      AttachmentArchivePayloadStatus.rootUnavailable;
   final expandedSourcePath = fileAccess.existingExpandedPath(sourcePathHint);
   final displayPath = hasArchivedFile ? archivedPath : expandedSourcePath;
   final hasDisplayFile = displayPath != null && displayPath.isNotEmpty;
@@ -195,6 +222,8 @@ MessageAttachmentEvidence messageAttachmentEvidenceFromMessageAttachment(
     displayPath: displayPath,
     availability: hasDisplayFile
         ? ResolvedAttachmentAvailability.available
+        : archiveIsUnavailable
+        ? ResolvedAttachmentAvailability.archiveUnavailable
         : attachment.hasArchiveRecord || attachment.hasSourcePathHint
         ? ResolvedAttachmentAvailability.unavailableAwaitingRecovery
         : ResolvedAttachmentAvailability.nonRecoverable,
@@ -204,6 +233,10 @@ MessageAttachmentEvidence messageAttachmentEvidenceFromMessageAttachment(
         ? AttachmentProvenance.messagesLive
         : null,
     totalBytes: attachment.totalBytes,
+    archivePayloadStatus: attachment.archivePayloadStatus,
+    archiveRootAvailability: attachment.archiveLocationAvailability,
+    archiveLocationGeneration: attachment.archiveLocationGeneration,
+    archiveRootIssue: attachment.archiveRootIssue,
   );
 }
 

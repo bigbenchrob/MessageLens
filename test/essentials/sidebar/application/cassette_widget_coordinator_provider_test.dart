@@ -34,7 +34,6 @@ import 'package:remember_this_text/features/messages/application/sidebar_cassett
 import 'package:remember_this_text/features/messages/application/sidebar_cassette_spec/payloads/recovered_unlinked_navigator_cassette_payload.dart';
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_cassette_spec.dart';
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_info_cassette_spec.dart';
-import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart';
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/settings_info_actions_cassette_payload.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_cassette_spec.dart';
 import 'package:remember_this_text/features/sidebar_utilities/application/sidebar_cassette_spec/payloads/settings_top_menu_cassette_payload.dart';
@@ -158,7 +157,7 @@ void main() {
         expect(payload.role, SidebarCassetteRole.appControl);
         expect(payload.promptLabel, 'Choose setting or action');
         expect(payload.persistentContextActionId, isNull);
-        expect(payload.rows, hasLength(9));
+        expect(payload.rows, hasLength(10));
       },
     );
 
@@ -298,26 +297,6 @@ void main() {
 
         expect(payload.title, 'Text Size');
         expect(payload.bodyText, 'Coming soon');
-      },
-    );
-
-    test(
-      'resolves attachment archive settings spec to inert feature-info payload',
-      () async {
-        container
-            .read(cassetteRackStateProvider(SidebarMode.settings).notifier)
-            .setRackForTesting([
-              const CassetteSpec.settings(
-                SettingsCassetteSpec.attachmentArchive(),
-              ),
-            ]);
-
-        final payload = _attachmentArchiveSettingsPayload(
-          await _resolveSidebarCassettes(container, SidebarMode.settings),
-        );
-
-        expect(payload.renderKind, SidebarCassetteRenderKind.featureInfo);
-        expect(payload.role, SidebarCassetteRole.action);
       },
     );
 
@@ -829,15 +808,6 @@ SettingsInfoActionsCassettePayload _settingsInfoActionsPayload(
   final payload = resolvedCassettes.single.payload;
   expect(payload, isA<SettingsInfoActionsCassettePayload>());
   return payload as SettingsInfoActionsCassettePayload;
-}
-
-AttachmentArchiveSettingsCassettePayload _attachmentArchiveSettingsPayload(
-  List<ResolvedSidebarCassette> resolvedCassettes,
-) {
-  expect(resolvedCassettes, hasLength(1));
-  final payload = resolvedCassettes.single.payload;
-  expect(payload, isA<AttachmentArchiveSettingsCassettePayload>());
-  return payload as AttachmentArchiveSettingsCassettePayload;
 }
 
 StaticFeatureInfoSidebarCassettePayload _staticFeatureInfoPayload(

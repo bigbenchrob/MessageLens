@@ -14,10 +14,7 @@ import 'package:remember_this_text/essentials/conversation_graph/feature_level_p
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
 import 'package:remember_this_text/essentials/db/application/conversation_graph_readiness.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
-    show
-        attachmentArchiveDirectoryProvider,
-        dbMaintenanceLockProvider,
-        overlayDatabaseProvider;
+    show dbMaintenanceLockProvider, overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_database_probe_reader.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_database_probe_reader_provider.dart';
@@ -30,6 +27,12 @@ import 'package:remember_this_text/features/address_book_folders/domain/entities
 import 'package:remember_this_text/features/address_book_folders/domain/entities/address_book_folder_entity.dart';
 import 'package:remember_this_text/features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
 import 'package:remember_this_text/features/address_book_folders/domain/value_objects/value_objects.dart';
+import 'package:remember_this_text/features/attachments/feature_level_providers.dart'
+    show
+        AttachmentArchiveLocation,
+        AttachmentArchiveLocationConfiguration,
+        AttachmentArchiveLocationState,
+        attachmentArchiveLocationProvider;
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -86,9 +89,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -126,9 +127,7 @@ void main() {
           onboardingDatabaseDirectoryPathProvider.overrideWith(
             (ref) => tempDir.path,
           ),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => '${tempDir.path}/attachment_archive',
-          ),
+          _attachmentArchiveLocationOverride(tempDir.path),
           futureGetFolderAggregateProvider.overrideWith(
             (ref) async => left(
               const FolderRetrievalFailure(message: 'Contacts unavailable'),
@@ -176,9 +175,7 @@ void main() {
           onboardingDatabaseDirectoryPathProvider.overrideWith(
             (ref) => tempDir.path,
           ),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => '${tempDir.path}/attachment_archive',
-          ),
+          _attachmentArchiveLocationOverride(tempDir.path),
           futureGetFolderAggregateProvider.overrideWith(
             (ref) async => right(_addressBookAggregate(addressBookPath)),
           ),
@@ -233,9 +230,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -283,9 +278,7 @@ void main() {
           onboardingDatabaseDirectoryPathProvider.overrideWith(
             (ref) => tempDir.path,
           ),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => '${tempDir.path}/attachment_archive',
-          ),
+          _attachmentArchiveLocationOverride(tempDir.path),
           futureGetFolderAggregateProvider.overrideWith(
             (ref) async => right(_addressBookAggregate(addressBookPath)),
           ),
@@ -333,9 +326,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -422,9 +413,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -506,9 +495,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -556,9 +543,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -573,6 +558,79 @@ void main() {
         expect(report.overlayDatabase.exists, isFalse);
         expect(report.attachmentArchiveDirectory.exists, isFalse);
         expect(report.attachmentArchiveDirectory.readable, isFalse);
+      },
+    );
+
+    test(
+      'unavailable external archive remains diagnostic and does not trigger onboarding',
+      () async {
+        final messagesDbPath = _createMessagesDatabase(
+          tempDir.path,
+          messageCount: 120,
+        );
+        final addressBookPath = _createReadableFile(
+          tempDir.path,
+          'AddressBook-v22.abcddb',
+        );
+        _createNonEmptyDatabaseFile(
+          tempDir.path,
+          appDatabaseFileName(AppDatabaseFile.sourceScopedImport),
+        );
+        _createGraphDatabase(tempDir.path, graphComplete: true);
+        final probeReader = _RecordingOnboardingDatabaseProbeReader();
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: 'AQID',
+              lastKnownPath: '/Volumes/Offline/Archive',
+              volumeName: 'Offline',
+            );
+
+        container = ProviderContainer(
+          overrides: [
+            ..._lifecycleOverrides(),
+            overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
+            onboardingDatabaseProbeReaderProvider.overrideWithValue(
+              probeReader,
+            ),
+            onboardingFullDiskAccessProvider.overrideWith((ref) => true),
+            onboardingMessagesDatabasePathProvider.overrideWith(
+              (ref) => messagesDbPath,
+            ),
+            onboardingDatabaseDirectoryPathProvider.overrideWith(
+              (ref) => tempDir.path,
+            ),
+            attachmentArchiveLocationProvider.overrideWith(
+              () => _FixedAttachmentArchiveLocation(
+                AttachmentArchiveLocationState.customUnavailable(
+                  configuration: configuration,
+                  issue: 'Volume is disconnected.',
+                  generation: 6,
+                ),
+              ),
+            ),
+            futureGetFolderAggregateProvider.overrideWith(
+              (ref) async => right(_addressBookAggregate(addressBookPath)),
+            ),
+          ],
+        );
+
+        final report = await container.read(
+          onboardingEnvironmentReportProvider.future,
+        );
+
+        expect(report.state, OnboardingEnvironmentState.ready);
+        expect(report.blockerKind, OnboardingBlockerKind.none);
+        expect(
+          report.attachmentArchiveStatus,
+          OnboardingAttachmentArchiveStatus.unavailable,
+        );
+        expect(report.attachmentArchiveIssue, 'Volume is disconnected.');
+        expect(report.attachmentArchiveLocationGeneration, 6);
+        expect(
+          report.attachmentArchiveDirectory.path,
+          '/Volumes/Offline/Archive',
+        );
+        expect(probeReader.directoryProbePaths, isEmpty);
       },
     );
 
@@ -604,9 +662,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             dbMaintenanceLockProvider.overrideWith((ref) => true),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
@@ -660,9 +716,7 @@ void main() {
             onboardingDatabaseDirectoryPathProvider.overrideWith(
               (ref) => tempDir.path,
             ),
-            attachmentArchiveDirectoryProvider.overrideWith(
-              (ref) => '${tempDir.path}/attachment_archive',
-            ),
+            _attachmentArchiveLocationOverride(tempDir.path),
             futureGetFolderAggregateProvider.overrideWith(
               (ref) async => right(_addressBookAggregate(addressBookPath)),
             ),
@@ -688,6 +742,7 @@ final class _RecordingOnboardingDatabaseProbeReader
       const SqliteOnboardingDatabaseProbeReader();
   final List<String> tableCountPaths = <String>[];
   final List<String> graphReadinessPaths = <String>[];
+  final List<String> directoryProbePaths = <String>[];
 
   @override
   OnboardingDatabaseProbe probeFile(String filePath, {int? rowCount}) {
@@ -696,6 +751,7 @@ final class _RecordingOnboardingDatabaseProbeReader
 
   @override
   OnboardingDatabaseProbe probeDirectory(String directoryPath) {
+    directoryProbePaths.add(directoryPath);
     return _delegate.probeDirectory(directoryPath);
   }
 
@@ -834,6 +890,25 @@ List<Override> _lifecycleOverrides() {
     ),
     chatDbChangeMonitorProvider.overrideWith(_FakeChatDbChangeMonitor.new),
   ];
+}
+
+Override _attachmentArchiveLocationOverride(String primaryRootPath) {
+  return attachmentArchiveLocationProvider.overrideWith(
+    () => _FixedAttachmentArchiveLocation(
+      AttachmentArchiveLocationState.defaultAvailable(
+        archiveRootPath: '$primaryRootPath/attachment_archive',
+      ),
+    ),
+  );
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }
 
 final class _FakeConversationGraphBuildController

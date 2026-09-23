@@ -1,0 +1,248 @@
+import 'package:meta/meta.dart';
+
+import 'attachment_archive_location_configuration.dart';
+
+/// Root-level availability for the configured attachment archive.
+enum AttachmentArchiveLocationAvailability {
+  defaultAvailable,
+  customAvailable,
+  customReadOnly,
+  customUnavailable,
+  permissionDenied,
+  configuredDirectoryMissing,
+  configurationInvalid,
+}
+
+/// The resolved attachment archive root and its configuration generation.
+@immutable
+final class AttachmentArchiveLocationState {
+  const AttachmentArchiveLocationState._({
+    required this.availability,
+    required this.generation,
+    this.configuration,
+    this.archiveRootPath,
+    this.issue,
+  });
+
+  factory AttachmentArchiveLocationState.defaultAvailable({
+    required String archiveRootPath,
+    int generation = initialGeneration,
+    AttachmentArchiveLocationConfiguration configuration =
+        const AttachmentArchiveLocationConfiguration.defaultInternal(),
+  }) {
+    if (configuration.mode != AttachmentArchiveLocationMode.defaultInternal) {
+      throw ArgumentError.value(
+        configuration.mode,
+        'configuration',
+        'Default location state requires defaultInternal configuration.',
+      );
+    }
+    return AttachmentArchiveLocationState._(
+      availability: AttachmentArchiveLocationAvailability.defaultAvailable,
+      generation: generation,
+      configuration: configuration,
+      archiveRootPath: archiveRootPath,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.configurationInvalid({
+    required String issue,
+    int generation = initialGeneration,
+    AttachmentArchiveLocationConfiguration? configuration,
+  }) {
+    return AttachmentArchiveLocationState._(
+      availability: AttachmentArchiveLocationAvailability.configurationInvalid,
+      generation: generation,
+      configuration: configuration,
+      issue: issue,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.customAvailable({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String archiveRootPath,
+    int generation = initialGeneration,
+  }) {
+    _requireCustomConfiguration(configuration);
+    return AttachmentArchiveLocationState._(
+      availability: AttachmentArchiveLocationAvailability.customAvailable,
+      generation: generation,
+      configuration: configuration,
+      archiveRootPath: archiveRootPath,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.customReadOnly({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String archiveRootPath,
+    int generation = initialGeneration,
+    String? issue,
+  }) {
+    _requireCustomConfiguration(configuration);
+    return AttachmentArchiveLocationState._(
+      availability: AttachmentArchiveLocationAvailability.customReadOnly,
+      generation: generation,
+      configuration: configuration,
+      archiveRootPath: archiveRootPath,
+      issue: issue,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.customUnavailable({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String issue,
+    int generation = initialGeneration,
+  }) {
+    return _customUnavailableState(
+      availability: AttachmentArchiveLocationAvailability.customUnavailable,
+      configuration: configuration,
+      issue: issue,
+      generation: generation,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.permissionDenied({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String issue,
+    int generation = initialGeneration,
+  }) {
+    return _customUnavailableState(
+      availability: AttachmentArchiveLocationAvailability.permissionDenied,
+      configuration: configuration,
+      issue: issue,
+      generation: generation,
+    );
+  }
+
+  factory AttachmentArchiveLocationState.configuredDirectoryMissing({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String issue,
+    int generation = initialGeneration,
+  }) {
+    return _customUnavailableState(
+      availability:
+          AttachmentArchiveLocationAvailability.configuredDirectoryMissing,
+      configuration: configuration,
+      issue: issue,
+      generation: generation,
+    );
+  }
+
+  static const int initialGeneration = 0;
+
+  final AttachmentArchiveLocationAvailability availability;
+  final int generation;
+  final AttachmentArchiveLocationConfiguration? configuration;
+  final String? archiveRootPath;
+  final String? issue;
+
+  String? get lastKnownDisplayPath => configuration?.lastKnownPath;
+
+  bool get isAvailable {
+    return switch (availability) {
+      AttachmentArchiveLocationAvailability.defaultAvailable ||
+      AttachmentArchiveLocationAvailability.customAvailable ||
+      AttachmentArchiveLocationAvailability.customReadOnly => true,
+      _ => false,
+    };
+  }
+
+  /// Physical status reported by bookmark resolution, not mutation authority.
+  ///
+  /// Callers that mutate must acquire the application-owned writable lease.
+  bool get isPhysicallyWritable {
+    return switch (availability) {
+      AttachmentArchiveLocationAvailability.defaultAvailable ||
+      AttachmentArchiveLocationAvailability.customAvailable => true,
+      _ => false,
+    };
+  }
+
+  /// Cheap scheduling hint only; callers still need a writable-root lease.
+  bool get isWritableMutationEligible {
+    return switch (availability) {
+      AttachmentArchiveLocationAvailability.defaultAvailable =>
+        configuration?.mode == AttachmentArchiveLocationMode.defaultInternal,
+      AttachmentArchiveLocationAvailability.customAvailable =>
+        configuration?.mode == AttachmentArchiveLocationMode.customExternal &&
+            configuration?.customWritePolicy ==
+                AttachmentArchiveCustomWritePolicy.activeArchive,
+      _ => false,
+    };
+  }
+
+  String requireArchiveRootPath() {
+    final rootPath = archiveRootPath;
+    if (!isAvailable || rootPath == null) {
+      throw StateError(
+        'Attachment archive root is unavailable: '
+        '${issue ?? availability.name}',
+      );
+    }
+    return rootPath;
+  }
+
+  AttachmentArchiveLocationState withGeneration(int value) {
+    return AttachmentArchiveLocationState._(
+      availability: availability,
+      generation: value,
+      configuration: configuration,
+      archiveRootPath: archiveRootPath,
+      issue: issue,
+    );
+  }
+
+  bool hasSameEffectiveLocationAs(AttachmentArchiveLocationState other) {
+    return availability == other.availability &&
+        configuration == other.configuration &&
+        archiveRootPath == other.archiveRootPath &&
+        issue == other.issue;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is AttachmentArchiveLocationState &&
+            availability == other.availability &&
+            generation == other.generation &&
+            configuration == other.configuration &&
+            archiveRootPath == other.archiveRootPath &&
+            issue == other.issue;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    availability,
+    generation,
+    configuration,
+    archiveRootPath,
+    issue,
+  );
+
+  static AttachmentArchiveLocationState _customUnavailableState({
+    required AttachmentArchiveLocationAvailability availability,
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String issue,
+    required int generation,
+  }) {
+    _requireCustomConfiguration(configuration);
+    return AttachmentArchiveLocationState._(
+      availability: availability,
+      generation: generation,
+      configuration: configuration,
+      issue: issue,
+    );
+  }
+
+  static void _requireCustomConfiguration(
+    AttachmentArchiveLocationConfiguration configuration,
+  ) {
+    if (configuration.mode != AttachmentArchiveLocationMode.customExternal) {
+      throw ArgumentError.value(
+        configuration.mode,
+        'configuration',
+        'Custom location state requires customExternal configuration.',
+      );
+    }
+  }
+}

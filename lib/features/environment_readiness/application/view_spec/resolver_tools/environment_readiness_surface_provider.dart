@@ -360,11 +360,17 @@ List<EnvironmentReadinessEvidence> _evidenceFor(
     ),
     EnvironmentReadinessEvidence(
       label: 'Attachment archive',
-      value: report.attachmentArchiveDirectory.readable
-          ? 'Available'
-          : report.attachmentArchiveDirectory.exists
-          ? 'Present but unreadable'
-          : 'Not created yet',
+      value: switch (report.attachmentArchiveStatus) {
+        OnboardingAttachmentArchiveStatus.available =>
+          report.attachmentArchiveDirectory.readable
+              ? 'Available'
+              : report.attachmentArchiveDirectory.exists
+              ? 'Present but unreadable'
+              : 'Not created yet',
+        OnboardingAttachmentArchiveStatus.readOnly => 'Available (read-only)',
+        OnboardingAttachmentArchiveStatus.unavailable =>
+          'External archive unavailable',
+      },
     ),
   ];
 }

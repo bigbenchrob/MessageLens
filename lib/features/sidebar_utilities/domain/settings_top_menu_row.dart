@@ -38,6 +38,7 @@ final class SettingsTopMenuActionRow extends SettingsTopMenuRow {
     }
 
     return switch (actionId) {
+      SettingsMenuActionId.attachmentArchive ||
       SettingsMenuActionId.historicalArchives ||
       SettingsMenuActionId.messageHistoryCoverage => throw StateError(
         '$actionId must use durable settings context transport.',

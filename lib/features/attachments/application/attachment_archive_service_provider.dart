@@ -7,17 +7,15 @@ import '../../../essentials/archive_compatibility/domain/archive_compatibility_k
 import '../../../essentials/archive_environment/domain.dart'
     show ArchiveMutationOperation;
 import '../../../essentials/archive_environment/feature_level_providers.dart'
-    show archiveMutationCoordinatorProvider;
+    show ArchiveMutationCapability, archiveMutationCoordinatorProvider;
 import '../../../essentials/logging/feature_level_providers.dart'
     show appLoggerProvider;
 import '../domain/entities/attachment_recovery_metadata.dart';
 import 'archive_settings_provider.dart';
 import 'attachment_archive_file_store.dart';
-import 'attachment_archive_runtime_providers.dart'
-    show
-        attachmentArchiveDirectoryPathProvider,
-        attachmentArchiveSettingsStoreProvider;
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_settings_store.dart';
+import 'attachment_archive_settings_store_provider.dart';
 import 'attachment_archive_store_providers.dart'
     show
         attachmentArchiveFileStoreProvider,
@@ -54,9 +52,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
 
   /// Archive a single attachment file if not already archived.
   ///
-  /// Returns `true` if the file was newly archived, `false` if skipped
-  /// (already archived or source missing).
-  Future<bool> archiveAttachment({
+  Future<AttachmentArchiveIngestionOutcome> archiveAttachment({
     required ArchiveCompatibilityKey archiveKey,
     required String resolvedLocalPath,
     required String? mimeType,
@@ -64,7 +60,10 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   }) {
     return _runAttachmentMutation(
       ownerLabel: 'attachment-single-archive',
-      action: () => _archiveAttachment(
+      onDeferred: AttachmentArchiveIngestionOutcome.deferred,
+      action: (mutationCapability, writableRootLease) => _archiveAttachment(
+        mutationCapability: mutationCapability,
+        writableRootLease: writableRootLease,
         archiveKey: archiveKey,
         resolvedLocalPath: resolvedLocalPath,
         mimeType: mimeType,
@@ -73,7 +72,9 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     );
   }
 
-  Future<bool> _archiveAttachment({
+  Future<AttachmentArchiveIngestionOutcome> _archiveAttachment({
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     required ArchiveCompatibilityKey archiveKey,
     required String resolvedLocalPath,
     required String? mimeType,
@@ -82,7 +83,6 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
     // Idempotency check: skip if already archived.
@@ -90,7 +90,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
 
     if (alreadyArchived) {
       await archiveStore.clearRecoveryHint(archiveKey);
-      return false;
+      return const AttachmentArchiveIngestionOutcome.alreadyArchived();
     }
 
     final sourcePath = await _resolveArchivableSourcePath(
@@ -98,22 +98,44 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
       archiveKey: archiveKey,
     );
     if (sourcePath == null) {
-      return false;
+      return const AttachmentArchiveIngestionOutcome.sourceMissing();
     }
 
     late final ArchivedAttachmentFileWrite archiveWrite;
     try {
       final writeResult = await fileStore.writeArchiveEntry(
-        archiveDirectoryPath: archiveDir,
+        archiveDirectoryPath: writableRootLease.archiveRootPath,
         sourcePath: sourcePath,
         archiveKey: archiveKey,
         sha256Hex: sha256Hex,
+        validateMutation: (boundary) async {
+          mutationCapability.requireOperation(
+            ArchiveMutationOperation.attachmentReconciliation,
+          );
+          await writableRootLease.requireValid(
+            operation: ArchiveMutationOperation.attachmentReconciliation,
+            boundary: boundary,
+          );
+        },
       );
       if (writeResult == null) {
-        return false;
+        return const AttachmentArchiveIngestionOutcome.failed();
       }
       archiveWrite = writeResult;
+    } on AttachmentArchiveMutationDeferredException {
+      rethrow;
     } on Object catch (error) {
+      final validation = await writableRootLease.validate(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+      );
+      if (!validation.isValid) {
+        throw AttachmentArchiveMutationDeferredException(
+          reason: validation.deferredReason!,
+          boundary: AttachmentArchiveMutationBoundary.beforePayloadVerification,
+          issue: validation.issue,
+        );
+      }
       ref
           .read(appLoggerProvider.notifier)
           .warn(
@@ -121,9 +143,13 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
             '${archiveKey.liveSourceAttachmentRowId}: $error',
             source: 'AttachmentArchiveService',
           );
-      return false;
+      return const AttachmentArchiveIngestionOutcome.failed();
     }
 
+    await writableRootLease.requireValid(
+      operation: ArchiveMutationOperation.attachmentReconciliation,
+      boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
+    );
     await archiveStore.writeArchiveRecord(
       ArchivedAttachmentWrite(
         archiveKey: archiveKey,
@@ -137,7 +163,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
 
     await archiveStore.clearRecoveryHint(archiveKey);
 
-    return true;
+    return const AttachmentArchiveIngestionOutcome.archived();
   }
 
   Future<void> prioritizeRecovery({
@@ -145,13 +171,10 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     required String? resolvedLocalPath,
     required String? mimeType,
   }) {
-    return _runAttachmentMutation(
-      ownerLabel: 'attachment-prioritize-recovery',
-      action: () => _prioritizeRecovery(
-        archiveKey: archiveKey,
-        resolvedLocalPath: resolvedLocalPath,
-        mimeType: mimeType,
-      ),
+    return _prioritizeRecovery(
+      archiveKey: archiveKey,
+      resolvedLocalPath: resolvedLocalPath,
+      mimeType: mimeType,
     );
   }
 
@@ -213,15 +236,21 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   }) {
     return _runAttachmentMutation(
       ownerLabel: 'attachment-live-source-range',
-      action: () => _archiveGraphMessageSourceRange(
-        sourceId: sourceId,
-        startedAfterSourceRowId: startedAfterSourceRowId,
-        lastImportedSourceRowId: lastImportedSourceRowId,
-      ),
+      onDeferred: AttachmentArchiveResult.deferred,
+      action: (mutationCapability, writableRootLease) =>
+          _archiveGraphMessageSourceRange(
+            mutationCapability: mutationCapability,
+            writableRootLease: writableRootLease,
+            sourceId: sourceId,
+            startedAfterSourceRowId: startedAfterSourceRowId,
+            lastImportedSourceRowId: lastImportedSourceRowId,
+          ),
     );
   }
 
   Future<AttachmentArchiveResult> _archiveGraphMessageSourceRange({
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     required int sourceId,
     required int startedAfterSourceRowId,
     required int? lastImportedSourceRowId,
@@ -258,6 +287,8 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     );
 
     final archiveOutcome = await _archiveRows(
+      mutationCapability: mutationCapability,
+      writableRootLease: writableRootLease,
       rows: rows,
       updateProgressState: false,
     );
@@ -290,14 +321,20 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   }) {
     return _runAttachmentMutation(
       ownerLabel: 'attachment-graph-sweep-chunk',
-      action: () => _archiveNextGraphSweepChunk(
-        limit: limit,
-        updateSweepDebugState: updateSweepDebugState,
-      ),
+      onDeferred: AttachmentArchiveResult.deferred,
+      action: (mutationCapability, writableRootLease) =>
+          _archiveNextGraphSweepChunk(
+            mutationCapability: mutationCapability,
+            writableRootLease: writableRootLease,
+            limit: limit,
+            updateSweepDebugState: updateSweepDebugState,
+          ),
     );
   }
 
   Future<AttachmentArchiveResult> _archiveNextGraphSweepChunk({
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     required int limit,
     required bool updateSweepDebugState,
   }) async {
@@ -349,10 +386,15 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
       );
 
       final archiveOutcome = await _archiveRows(
+        mutationCapability: mutationCapability,
+        writableRootLease: writableRootLease,
         rows: selection.rows,
         updateProgressState: false,
       );
       final result = archiveOutcome.result;
+      if (result.isDeferred) {
+        return result;
+      }
       if (updateSweepDebugState) {
         final completedAtUtc = DateTime.now().toUtc().toIso8601String();
         await _writeGraphSweepStatus(
@@ -395,12 +437,20 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   }) {
     return _runAttachmentMutation(
       ownerLabel: 'attachment-graph-sweep-burst',
-      action: () =>
-          _archiveGraphSweepBurst(chunkLimit: chunkLimit, maxChunks: maxChunks),
+      onDeferred: AttachmentArchiveResult.deferred,
+      action: (mutationCapability, writableRootLease) =>
+          _archiveGraphSweepBurst(
+            mutationCapability: mutationCapability,
+            writableRootLease: writableRootLease,
+            chunkLimit: chunkLimit,
+            maxChunks: maxChunks,
+          ),
     );
   }
 
   Future<AttachmentArchiveResult> _archiveGraphSweepBurst({
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     required int chunkLimit,
     required int maxChunks,
   }) async {
@@ -457,6 +507,8 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
           pageSize: _kGraphSweepSelectionPageSize,
         );
         final archiveOutcome = await _archiveRows(
+          mutationCapability: mutationCapability,
+          writableRootLease: writableRootLease,
           rows: selection.rows,
           updateProgressState: false,
           skippedSampleLimit:
@@ -468,6 +520,17 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
         skipped += result.skipped;
         failed += result.failed;
         skippedSamples.addAll(archiveOutcome.skippedSamples);
+
+        if (result.isDeferred) {
+          return AttachmentArchiveResult(
+            totalScanned: totalScanned,
+            newlyArchived: newlyArchived,
+            skipped: skipped,
+            failed: failed,
+            deferred: result.deferred,
+            deferredReason: result.deferredReason,
+          );
+        }
 
         cursor = selection.nextCursor;
         await _writeGraphSweepCursor(settingsStore, nextCursor: cursor);
@@ -518,11 +581,15 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   Future<AttachmentArchiveResult> archiveAllAvailable() {
     return _runAttachmentMutation(
       ownerLabel: 'attachment-archive-all',
+      onDeferred: AttachmentArchiveResult.deferred,
       action: _archiveAllAvailable,
     );
   }
 
-  Future<AttachmentArchiveResult> _archiveAllAvailable() async {
+  Future<AttachmentArchiveResult> _archiveAllAvailable(
+    ArchiveMutationCapability mutationCapability,
+    AttachmentArchiveWritableRootLease writableRootLease,
+  ) async {
     _pauseRequested = false;
     _cancelRequested = false;
 
@@ -540,16 +607,28 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final candidateReader = await ref.read(
       graphAttachmentArchiveCandidateReaderProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
     final logger = ref.read(appLoggerProvider.notifier);
 
     // Ensure archive directory exists.
-    await fileStore.ensureArchiveDirectory(archiveDir);
+    await fileStore.ensureArchiveDirectory(
+      writableRootLease.archiveRootPath,
+      validateMutation: (boundary) async {
+        mutationCapability.requireOperation(
+          ArchiveMutationOperation.attachmentReconciliation,
+        );
+        await writableRootLease.requireValid(
+          operation: ArchiveMutationOperation.attachmentReconciliation,
+          boundary: boundary,
+        );
+      },
+    );
 
     final rows = await candidateReader.readAllAvailableLive();
 
     final archiveOutcome = await _archiveRows(
+      mutationCapability: mutationCapability,
+      writableRootLease: writableRootLease,
       rows: rows,
       updateProgressState: true,
     );
@@ -576,18 +655,43 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
 
   Future<T> _runAttachmentMutation<T>({
     required String ownerLabel,
-    required Future<T> Function() action,
+    required T Function(AttachmentArchiveMutationDeferredReason reason)
+    onDeferred,
+    required Future<T> Function(
+      ArchiveMutationCapability mutationCapability,
+      AttachmentArchiveWritableRootLease writableRootLease,
+    )
+    action,
   }) {
     return ref
         .read(archiveMutationCoordinatorProvider.notifier)
-        .run<T>(
+        .runWithCapability<T>(
           operation: ArchiveMutationOperation.attachmentReconciliation,
           ownerLabel: ownerLabel,
-          action: action,
+          action: (mutationCapability) async {
+            final admission = await ref.read(
+              attachmentArchiveWritableRootAdmissionProvider.future,
+            );
+            final writableRootLease = admission.lease;
+            if (writableRootLease == null) {
+              return onDeferred(admission.deferredReason!);
+            }
+            try {
+              await writableRootLease.requireValid(
+                operation: ArchiveMutationOperation.attachmentReconciliation,
+                boundary: AttachmentArchiveMutationBoundary.operationStart,
+              );
+              return await action(mutationCapability, writableRootLease);
+            } on AttachmentArchiveMutationDeferredException catch (error) {
+              return onDeferred(error.reason);
+            }
+          },
         );
   }
 
   Future<_ArchiveRowsOutcome> _archiveRows({
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
     required List<GraphAttachmentArchiveCandidate> rows,
     required bool updateProgressState,
     int skippedSampleLimit = 0,
@@ -602,6 +706,8 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     var archived = 0;
     var skipped = 0;
     var failed = 0;
+    var deferred = 0;
+    AttachmentArchiveMutationDeferredReason? deferredReason;
     final skippedSamples = <String>[];
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
@@ -665,15 +771,22 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
       }
 
       try {
-        final success = await archiveAttachment(
+        final outcome = await _archiveAttachment(
+          mutationCapability: mutationCapability,
+          writableRootLease: writableRootLease,
           archiveKey: archiveKey,
           resolvedLocalPath: archivablePath,
           mimeType: row.mimeType,
           sha256Hex: row.sha256Hex,
         );
 
-        if (success) {
+        if (outcome.status == AttachmentArchiveIngestionStatus.archived) {
           archived++;
+        } else if (outcome.status ==
+            AttachmentArchiveIngestionStatus.deferred) {
+          deferredReason = outcome.deferredReason;
+          deferred = rows.length - archived - skipped - failed;
+          break;
         } else {
           skipped++;
           _recordSkippedSample(
@@ -684,6 +797,10 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
             sampleLimit: skippedSampleLimit,
           );
         }
+      } on AttachmentArchiveMutationDeferredException catch (error) {
+        deferredReason = error.reason;
+        deferred = rows.length - archived - skipped - failed;
+        break;
       } on Exception {
         failed++;
       }
@@ -707,6 +824,8 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
         newlyArchived: archived,
         skipped: skipped,
         failed: failed,
+        deferred: deferred,
+        deferredReason: deferredReason,
       ),
       skippedSamples: skippedSamples,
     );
@@ -767,7 +886,7 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
     final archiveStore = await ref.read(
       attachmentArchiveWriteStoreProvider.future,
     );
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final archiveDir = await _readReadableArchiveRootPath();
     final logger = ref.read(appLoggerProvider.notifier);
     final fileStore = ref.read(attachmentArchiveFileStoreProvider);
 
@@ -822,6 +941,11 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
       fileMissing: fileMissing,
       noHash: noHash,
     );
+  }
+
+  Future<String> _readReadableArchiveRootPath() async {
+    final location = await ref.read(attachmentArchiveLocationProvider.future);
+    return location.requireArchiveRootPath();
   }
 
   Future<String?> _resolveArchivableSourcePath({
@@ -974,6 +1098,38 @@ class AttachmentArchiveService extends _$AttachmentArchiveService {
   }
 }
 
+enum AttachmentArchiveIngestionStatus {
+  archived,
+  alreadyArchived,
+  sourceMissing,
+  failed,
+  deferred,
+}
+
+class AttachmentArchiveIngestionOutcome {
+  const AttachmentArchiveIngestionOutcome.archived()
+    : status = AttachmentArchiveIngestionStatus.archived,
+      deferredReason = null;
+
+  const AttachmentArchiveIngestionOutcome.alreadyArchived()
+    : status = AttachmentArchiveIngestionStatus.alreadyArchived,
+      deferredReason = null;
+
+  const AttachmentArchiveIngestionOutcome.sourceMissing()
+    : status = AttachmentArchiveIngestionStatus.sourceMissing,
+      deferredReason = null;
+
+  const AttachmentArchiveIngestionOutcome.failed()
+    : status = AttachmentArchiveIngestionStatus.failed,
+      deferredReason = null;
+
+  const AttachmentArchiveIngestionOutcome.deferred(this.deferredReason)
+    : status = AttachmentArchiveIngestionStatus.deferred;
+
+  final AttachmentArchiveIngestionStatus status;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
+}
+
 /// Result of a bulk archiving operation.
 class AttachmentArchiveResult {
   const AttachmentArchiveResult({
@@ -981,12 +1137,27 @@ class AttachmentArchiveResult {
     required this.newlyArchived,
     required this.skipped,
     required this.failed,
+    this.deferred = 0,
+    this.deferredReason,
   });
+
+  const AttachmentArchiveResult.deferred(
+    AttachmentArchiveMutationDeferredReason reason,
+  ) : totalScanned = 0,
+      newlyArchived = 0,
+      skipped = 0,
+      failed = 0,
+      deferred = 1,
+      deferredReason = reason;
 
   final int totalScanned;
   final int newlyArchived;
   final int skipped;
   final int failed;
+  final int deferred;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
+
+  bool get isDeferred => deferredReason != null;
 }
 
 class _ArchiveRowsOutcome {

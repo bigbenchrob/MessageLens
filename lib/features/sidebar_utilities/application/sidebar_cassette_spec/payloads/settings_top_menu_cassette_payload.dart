@@ -36,6 +36,10 @@ SettingsTopMenuCassettePayload buildSettingsTopMenuCassettePayload({
     rows: const [
       SettingsTopMenuGroupHeaderRow(label: 'Support'),
       SettingsTopMenuActionRow.persistentContext(
+        label: 'Attachment archive',
+        actionId: SettingsMenuActionId.attachmentArchive,
+      ),
+      SettingsTopMenuActionRow.persistentContext(
         label: 'Historical Archives',
         actionId: SettingsMenuActionId.historicalArchives,
       ),

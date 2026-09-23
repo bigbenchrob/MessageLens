@@ -3,32 +3,63 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
+import 'package:remember_this_text/essentials/archive_environment/domain.dart';
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/cross_snapshot_mapping.dart';
+import 'package:remember_this_text/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart';
+import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_attachment_archive_write_store.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart';
+
+import '../../../../test_support/test_archive_fixture.dart';
 
 void main() {
   late Directory tempDir;
   late Directory archiveDir;
   late OverlayDatabase overlayDatabase;
   late OverlayRecoveredAttachmentArchiveWriter writer;
+  late TestArchiveFixture archiveFixture;
+  late ProviderContainer providerContainer;
+  late ArchiveMutationCoordinator mutationCoordinator;
+  late AttachmentArchiveWritableRootLease writableRootLease;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp(
       'overlay_recovered_attachment_archive_writer_test_',
     );
-    archiveDir = Directory(path.join(tempDir.path, 'attachment_archive'));
-    await archiveDir.create(recursive: true);
+    archiveFixture = await TestArchiveFixture.create(
+      prefix: 'recovered_attachment_writer_authority_test_',
+    );
+    providerContainer = ProviderContainer(
+      overrides: [
+        admittedArchiveAccessAuthorityProvider.overrideWithValue(
+          archiveFixture.authority,
+        ),
+      ],
+    );
+    mutationCoordinator = providerContainer.read(
+      archiveMutationCoordinatorProvider.notifier,
+    );
+    writableRootLease = (await providerContainer.read(
+      attachmentArchiveWritableRootAdmissionProvider.future,
+    )).lease!;
+    archiveDir = Directory(writableRootLease.archiveRootPath);
     overlayDatabase = OverlayDatabase(NativeDatabase.memory());
     writer = OverlayRecoveredAttachmentArchiveWriter(
-      overlayDb: overlayDatabase,
-      archiveDir: archiveDir.path,
+      fileStore: const FilesystemAttachmentArchiveFileStore(),
+      writeStore: OverlayAttachmentArchiveWriteStore(
+        overlayDatabase: overlayDatabase,
+      ),
     );
   });
 
   tearDown(() async {
     await overlayDatabase.close();
+    providerContainer.dispose();
+    await archiveFixture.dispose();
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -41,7 +72,10 @@ void main() {
     final sourceBytes = await sourceFile.readAsBytes();
     final expectedHash = sha256.convert(sourceBytes).toString();
 
-    final size = await writer.archive(
+    final size = await _archiveWithAuthority(
+      writer,
+      mutationCoordinator,
+      writableRootLease,
       _record(
         resolvedFilePath: sourceFile.path,
         histLocalPath: '~/Historical/Messages/Attachments/Photo.JPG',
@@ -107,7 +141,10 @@ void main() {
         ],
       );
 
-      final size = await writer.archive(
+      final size = await _archiveWithAuthority(
+        writer,
+        mutationCoordinator,
+        writableRootLease,
         _record(resolvedFilePath: sourceFile.path),
       );
 
@@ -131,15 +168,22 @@ void main() {
     await archiveLink.create(outsideArchive.path);
     overlayDatabase = OverlayDatabase(NativeDatabase.memory());
     writer = OverlayRecoveredAttachmentArchiveWriter(
-      overlayDb: overlayDatabase,
-      archiveDir: archiveLink.path,
+      fileStore: const FilesystemAttachmentArchiveFileStore(),
+      writeStore: OverlayAttachmentArchiveWriteStore(
+        overlayDatabase: overlayDatabase,
+      ),
     );
     final sourceFile = File(path.join(tempDir.path, 'historical', 'photo.jpg'));
     await sourceFile.parent.create(recursive: true);
     await sourceFile.writeAsString('historical image');
 
     await expectLater(
-      writer.archive(_record(resolvedFilePath: sourceFile.path)),
+      _archiveWithAuthority(
+        writer,
+        mutationCoordinator,
+        writableRootLease,
+        _record(resolvedFilePath: sourceFile.path),
+      ),
       throwsStateError,
     );
   });
@@ -151,7 +195,12 @@ void main() {
     await sourceLink.create(outsideFile.path);
 
     await expectLater(
-      writer.archive(_record(resolvedFilePath: sourceLink.path)),
+      _archiveWithAuthority(
+        writer,
+        mutationCoordinator,
+        writableRootLease,
+        _record(resolvedFilePath: sourceLink.path),
+      ),
       throwsStateError,
     );
 
@@ -179,7 +228,12 @@ void main() {
     await destinationLink.create(outsideFile.path);
 
     await expectLater(
-      writer.archive(_record(resolvedFilePath: sourceFile.path)),
+      _archiveWithAuthority(
+        writer,
+        mutationCoordinator,
+        writableRootLease,
+        _record(resolvedFilePath: sourceFile.path),
+      ),
       throwsStateError,
     );
 
@@ -189,6 +243,23 @@ void main() {
         .get();
     expect(archivedRows, isEmpty);
   });
+}
+
+Future<int?> _archiveWithAuthority(
+  OverlayRecoveredAttachmentArchiveWriter writer,
+  ArchiveMutationCoordinator mutationCoordinator,
+  AttachmentArchiveWritableRootLease writableRootLease,
+  MappedAttachmentRecord record,
+) {
+  return mutationCoordinator.runWithCapability<int?>(
+    operation: ArchiveMutationOperation.automaticRecovery,
+    ownerLabel: 'recovered-attachment-writer-test',
+    action: (mutationCapability) => writer.archive(
+      record: record,
+      writableRootLease: writableRootLease,
+      mutationCapability: mutationCapability,
+    ),
+  );
 }
 
 MappedAttachmentRecord _record({

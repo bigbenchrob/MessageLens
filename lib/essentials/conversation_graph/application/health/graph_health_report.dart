@@ -1,3 +1,9 @@
+enum GraphArchivePhysicalAuditStatus {
+  notRequested,
+  completed,
+  deferredRootUnavailable,
+}
+
 class GraphHealthReport {
   const GraphHealthReport({
     required this.messageCount,
@@ -8,6 +14,8 @@ class GraphHealthReport {
     required this.contactCount,
     required this.attachmentCount,
     required this.archiveFileAuditIncluded,
+    required this.archivePhysicalAuditStatus,
+    required this.archivePhysicalAuditIssue,
     required this.archiveRecordCount,
     required this.attachmentsWithArchiveRecordCount,
     required this.attachmentsMissingArchiveRecordCount,
@@ -61,6 +69,8 @@ class GraphHealthReport {
   final int contactCount;
   final int attachmentCount;
   final bool archiveFileAuditIncluded;
+  final GraphArchivePhysicalAuditStatus archivePhysicalAuditStatus;
+  final String? archivePhysicalAuditIssue;
   final int archiveRecordCount;
   final int attachmentsWithArchiveRecordCount;
   final int attachmentsMissingArchiveRecordCount;

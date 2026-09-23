@@ -46,7 +46,7 @@ final attachmentArchiveFileStoreProvider =
 typedef AttachmentArchiveFileStoreRef =
     AutoDisposeProviderRef<AttachmentArchiveFileStore>;
 String _$attachmentArchiveReadStoreHash() =>
-    r'4d021dd5be8ffef0aab7052edfe59fb3bd0a35e5';
+    r'63fface46fc201f23c72dae79be2f977c327dc5c';
 
 /// See also [attachmentArchiveReadStore].
 @ProviderFor(attachmentArchiveReadStore)

@@ -494,7 +494,8 @@ class _GraphHealthSection extends StatelessWidget {
                 '${report.attachmentsMissingArchiveRecordCount}',
                 labelWidth: 250,
               ),
-              if (report.archiveFileAuditIncluded) ...[
+              if (report.archivePhysicalAuditStatus ==
+                  GraphArchivePhysicalAuditStatus.completed) ...[
                 _StatusRow(
                   'archive files available',
                   '${report.archiveFilesAvailableCount}',
@@ -505,7 +506,14 @@ class _GraphHealthSection extends StatelessWidget {
                   '${report.archiveFilesMissingCount}',
                   labelWidth: 250,
                 ),
-              ] else
+              ] else if (report.archivePhysicalAuditStatus ==
+                  GraphArchivePhysicalAuditStatus.deferredRootUnavailable)
+                _StatusRow(
+                  'archive file checks',
+                  'deferred: ${report.archivePhysicalAuditIssue ?? 'archive root unavailable'}',
+                  labelWidth: 250,
+                )
+              else
                 const _StatusRow(
                   'archive file checks',
                   'skipped in the default health report',
@@ -756,6 +764,11 @@ String _attachmentArchiveReadinessMeaning(GraphHealthReport report) {
     return 'current archive links are counted; file existence checks are '
         'skipped in the default report';
   }
+  if (report.archivePhysicalAuditStatus ==
+      GraphArchivePhysicalAuditStatus.deferredRootUnavailable) {
+    return 'archive metadata is readable; physical payload checks are deferred '
+        'until the configured archive root is available';
+  }
   if (report.archiveFilesMissingCount == 0 &&
       report.attachmentsMissingArchiveRecordCount == 0) {
     return 'current archive records and files cover every graph attachment';
@@ -771,6 +784,11 @@ String _attachmentArchiveNextAction(GraphHealthReport report) {
     return 'run the deliberate recovery audit before making release or '
         'retirement decisions';
   }
+  if (report.archivePhysicalAuditStatus ==
+      GraphArchivePhysicalAuditStatus.deferredRootUnavailable) {
+    return 'reconnect the configured archive volume, then rerun the deliberate '
+        'physical audit';
+  }
   if (report.archiveFilesMissingCount == 0 &&
       report.attachmentsMissingArchiveRecordCount == 0) {
     return 'no archive action needed for currently projected attachments';
@@ -780,6 +798,11 @@ String _attachmentArchiveNextAction(GraphHealthReport report) {
 }
 
 String _attachmentRecoveryAuditMeaning(GraphHealthReport report) {
+  if (report.archivePhysicalAuditStatus ==
+      GraphArchivePhysicalAuditStatus.deferredRootUnavailable) {
+    return 'recovery conclusions are deferred because current archive payload '
+        'availability is unknown';
+  }
   if (report.attachmentsStillMissingFromKnownRecoverySourcesCount == 0) {
     return 'known recovery sources explain every currently missing archive '
         'attachment';

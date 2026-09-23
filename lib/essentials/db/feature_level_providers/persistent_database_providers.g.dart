@@ -87,27 +87,5 @@ final presenceDatabaseProvider = FutureProvider<PresenceDatabase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PresenceDatabaseRef = FutureProviderRef<PresenceDatabase>;
-String _$attachmentArchiveDirectoryHash() =>
-    r'6f38c8d253932232572f43db5df683c9459ddd2d';
-
-/// Root path for the content-addressable attachment archive.
-///
-/// Lives inside the admitted archive root alongside its databases.
-///
-/// Copied from [attachmentArchiveDirectory].
-@ProviderFor(attachmentArchiveDirectory)
-final attachmentArchiveDirectoryProvider = Provider<String>.internal(
-  attachmentArchiveDirectory,
-  name: r'attachmentArchiveDirectoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$attachmentArchiveDirectoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef AttachmentArchiveDirectoryRef = ProviderRef<String>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -10,6 +10,338 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.125] — 2026-09-23
+
+### Changed
+
+- Attachment Archive Settings now resolves center-panel destinations as
+  data-only descriptors and constructs the workflow only at the Settings
+  presentation edge. The visible center-panel workflow is unchanged.
+- Catch-up remediation now opens each exact transaction-bound retained-source
+  payload through attachment infrastructure rather than application
+  orchestration.
+- Obsolete, unreachable Attachment Archive sidebar workflow code has been
+  removed. The Settings sidebar remains navigation-only.
+
+### Safety
+
+- Retained-source remediation continues to reject symbolic links, special
+  entries, changed sizes, unreadable or disappeared files, conflicting
+  destinations, and paths outside the exact transaction evidence. Reads stay
+  streamed and the retained source remains unmodified.
+- Production archive adoption remains disabled.
+
+## [0.2.124] — 2026-09-21
+
+### Added
+
+- Catch-up remediation now shows a bounded, local attachment preview where
+  the installed file type is supported. Preview sampling is presentation-only
+  and never delays or controls archive work.
+- The post-remediation whole-archive proof now appears as a determinate
+  **Verifying final coverage…** stage with files, bytes, and percentage.
+
+### Changed
+
+- Final approval of a previously verified behind copy now rechecks structure
+  and hashes only source payloads added since review. Unchanged source and
+  candidate payload bytes are not rehashed at approval; the full final
+  coverage proof remains in place after remediation.
+- Archive-copy review now describes attachments missing from the copy without
+  implying when their Messages were received.
+
+### Fixed
+
+- Successful adoption now refreshes the pending-transaction provider to an
+  absent result before publishing success, and terminal success remains
+  visible across ordinary provider recomputation.
+
+### Safety
+
+- Production archive adoption remains disabled. MessageLens still does not
+  perform the initial bulk archive copy, delete the retained source, or use it
+  as fallback storage.
+
+## [0.2.123] — 2026-09-20
+
+### Added
+
+- Attachment Archive Settings now runs in the Settings center pane with the
+  current archive, selected copy, determinate verification progress, review,
+  switching, remediation, success, and recovery states kept in one working
+  region. The Settings sidebar remains navigation only.
+- A verified copy that is purely behind may now be adopted when its exact
+  missing set is bounded to 256 attachments and 1 GiB. MessageLens refreshes
+  that set under adoption coordination, switches writes first, and installs
+  only the finite verified historical delta through the existing atomic
+  no-overwrite payload installer.
+- Durable post-switch recovery retains an explicit active-remediation-pending
+  state. Missing historical attachments report a typed pending availability;
+  they never read silently from the retained original archive.
+
+### Changed
+
+- Archive-copy verification now begins with a metadata-only preparation pass,
+  then reports exact required preservation files and bytes checked. Required
+  payloads advance once after their complete/correct/missing/conflicting
+  outcome is known; candidate-only extras do not inflate the denominator.
+- Once the candidate configuration and normal Phase Four writable-root lease
+  are proven and the active-remediation-pending transaction is durable, the
+  candidate remains authoritative. Later remediation failures wait for retry
+  instead of automatically reverting writes to the original archive.
+
+### Safety
+
+- MessageLens still does not perform the initial bulk copy, delete or modify
+  the original archive, overwrite conflicting copy content, delete copy-only
+  extras, or expose production adoption. The retired general archive mover,
+  journal, staging, capacity planning, and finalizer remain absent.
+
+## [0.2.122] — 2026-09-20
+
+### Fixed
+
+- Attachment archive verification now ignores regular files with the exact
+  `.DS_Store` basename as Finder metadata without hashing, counting, copying,
+  or treating one-sided presence as a preservation mismatch. Near names and
+  all other unknown archive files continue to fail closed.
+- Attachment Archive Settings now presents the physical current volume and
+  connection status, gives explicit copied-folder chooser guidance, and keeps
+  check progress, results, and their actions together below the selected-copy
+  summary.
+
+### Changed
+
+- Archive-copy actions now use task-oriented wording: **Choose Archive
+  Copy…**, **Select This Archive**, **Choose a Different Copy**, and **Use This
+  Copy**. Internal location and candidate-state terminology remains typed but
+  is no longer shown as user-facing vocabulary.
+
+## [0.2.121] — 2026-09-19
+
+### Removed
+
+- Removed the unreachable MessageLens-owned attachment archive mover,
+  including its copy state machine, relocation journal, staging/finalization,
+  capacity preflight, pause/resume, progress polling, and legacy Settings
+  action shell.
+- Removed the mover-only macOS Disk Space API and its `E174.1` privacy
+  declaration. Bookmark-backed archive selection and availability monitoring
+  remain unchanged.
+
+### Changed
+
+- The attachment archive feature now has one workflow: the user creates an
+  archive copy, MessageLens verifies it read-only, the user explicitly
+  approves it, and the verified adoption transaction switches locations.
+- Legacy read-only location configuration values remain readable for backward
+  compatibility and normalize to adoption terminology when next persisted.
+
+## [0.2.120] — 2026-09-19
+
+### Added
+
+- Attachment Archive Settings now offers a development-qualified **Use Existing
+  Archive…** workflow that selects the copied `attachment_archive` directory,
+  performs read-only verification, and requires a separate **Use This Archive**
+  approval before the active location can change.
+- Typed Settings states now explain checking progress, complete copies, copies
+  that are behind, invalid or unavailable candidates, read-only candidates,
+  approval-time changes, switching, success, rollback, and pending recovery.
+- Disposable end-to-end coverage proves the post-check source-change race
+  requires **Check Again**, successful adoption issues the normal writable-root
+  lease for the candidate, and transaction failure restores the prior location.
+
+### Changed
+
+- MessageLens now verifies and adopts an archive copy the user made separately;
+  it does not copy, move, synchronize, repair, or delete attachment payloads.
+  The original archive remains untouched and is never used as silent fallback.
+- This simplified Settings workflow supersedes the disabled copy/move workflow
+  described in 0.2.115. The legacy mover remains compiled but unreachable until
+  its separately reviewed removal checkpoint.
+- Adoption remains fail-closed to the exact approved MessageLens Development
+  identity. Production adoption and the manual development rehearsal remain
+  disabled pending separate authorization.
+
+## [0.2.119] — 2026-09-18
+
+### Added
+
+- Verified attachment-archive adoption now revalidates a complete candidate,
+  creates and resolves its Foundation bookmark, persists a tiny crash-safe
+  configuration-switch transaction, and activates the candidate under one
+  uninterrupted archive-mutation coordinator scope.
+- Adoption success requires the normal location authority, a matching
+  post-switch candidate structural fingerprint, and the existing Phase Four
+  writable-root lease. External destructive reset remains denied.
+- Deterministic rollback and bounded startup recovery restore the exact
+  previous archive configuration or retain an explicit pending state when the
+  previous source is unavailable or an unrelated configuration appears.
+
+### Changed
+
+- Active external configuration persistence now has an adoption-owned,
+  process-local authority bound to the exact durable transaction, freshly
+  approved evidence, configurations, roots, generation, and coordinator scope.
+- The adoption transaction lives beneath the admitted MessageLens root but
+  outside `attachment_archive`; it contains no payload manifest, copy state,
+  relocation progress, capacity evidence, or reusable mutation authority.
+- Adoption remains internal in this checkpoint. Settings integration, payload
+  copying/moving/deletion, retained-source UI, and legacy relocation execution
+  remain absent.
+
+## [0.2.118] — 2026-09-18
+
+### Added
+
+- Approval-time archive revalidation now rechecks the current source
+  configuration, generation, canonical roots, structural fingerprints, grouped
+  metadata, exact totals, candidate availability, and candidate writability
+  while holding the archive-mutation coordinator.
+- Typed approval outcomes distinguish ready, changed, unavailable, no-longer-
+  writable, invalid-evidence, and failed checks. Approval-ready evidence is
+  process-local and remains non-authorizing.
+- Regression coverage reproduces the development-rehearsal race in which
+  normal attachment ingestion adds a source payload after full verification,
+  requiring a fresh complete check before approval can proceed.
+
+### Changed
+
+- The verifier can recompute source and candidate structural evidence without
+  reading payload bytes. Runtime instrumentation and architecture tripwires
+  prove that approval revalidation does not invoke streaming SHA-256 payload
+  hashing.
+- Archive activation, bookmark creation, configuration persistence, adoption
+  transactions, startup recovery, writable-root admission, and Settings UI
+  remain deliberately outside this checkpoint.
+
+## [0.2.117] — 2026-09-18
+
+### Added
+
+- A disconnected, read-only archive-candidate verifier now compares a
+  user-supplied attachment archive with the current authoritative archive and
+  returns typed complete, behind, invalid, unavailable, or failed evidence.
+- Verification streams source and candidate payload hashes, preserves known
+  unreferenced archive shapes, recognizes only exact installer debris, and
+  records deterministic coverage digests and structural fingerprints.
+- Grouped attachment metadata reads are paged, reject conflicting size or hash
+  evidence, preserve reference counts, and never modify overlay data.
+
+### Changed
+
+- Legacy relocation metadata reads now adapt to the shared verification reader,
+  avoiding duplicate SQL while keeping the disconnected mover compilable.
+- Candidate verification remains internal and ephemeral: it is not connected
+  to Settings, cannot activate or persist an external archive, creates no
+  journal or probe files, and performs no filesystem mutations.
+
+## [0.2.116] — 2026-09-18
+
+### Changed
+
+- Attachment Archive Settings has returned to location and availability status
+  only while the simplified existing-archive adoption workflow is developed.
+- The superseded MessageLens-owned archive mover is disconnected from Settings,
+  sidebar dispatch, public feature providers, and ordinary runtime journal
+  discovery. Its legacy engine and parked development rehearsal remain inert
+  and untouched for controlled extraction and later cleanup.
+- Active external archive persistence remains restricted to verified internal
+  authority; this checkpoint adds no alternate activation route and does not
+  implement candidate adoption.
+
+## [0.2.115] — 2026-09-17
+
+### Added
+
+- Attachment Archive Settings now presents the complete copy-review-progress
+  workflow for archive relocation, including explicit preflight review,
+  human-readable journal progress, safe pause/resume, restart discovery,
+  destination-unavailable guidance, and retained-source confirmation.
+- Typed Settings actions now route destination selection, retry, begin, pause,
+  resume, and cancellation through the verified relocation engine rather than
+  performing filesystem or configuration work in widgets.
+
+### Changed
+
+- Archive relocation now stops after preflight and inventory for explicit user
+  review before any payload copy begins, and typed preflight failures distinguish
+  unavailable, read-only, unsupported, unsafe, conflicting, and low-capacity
+  destinations.
+- The successful Settings state explicitly reports that the verified external
+  archive is active and the original internal archive remains retained.
+- Real production relocation execution remains disabled pending explicit
+  acceptance-matrix review and authorization. This release does not delete the
+  retained source, reclaim disk space, restore the default location, or silently
+  fall back to the internal copy.
+
+## [0.2.114] — 2026-09-17
+
+### Added
+
+- A disabled/internal attachment-archive relocation engine now supports a
+  versioned durable journal, resumable streaming copy, complete source and
+  destination verification, atomic destination finalization, reversible
+  activation, and retained-source evidence.
+- Relocation preflight now proves destination write, flush, hard-link
+  no-overwrite, and exclusive-rename semantics and checks Foundation's
+  important-usage capacity with the declared disk-space privacy reason.
+
+### Changed
+
+- The `activeArchive` transition now requires an unforgeable permit minted
+  from a completely verified relocation journal. Ordinary configuration
+  persistence and folder selection cannot activate an external archive.
+- Relocation inventory deduplicates attachment metadata by physical relative
+  path while preserving valid unreferenced payloads and failing closed on
+  symlinks, unknown entries, conflicting metadata, or incomplete verification.
+- Phase Five remains unavailable from production UI and never retires or
+  deletes the retained source archive.
+
+## [0.2.113] — 2026-09-16
+
+### Added
+
+- Attachment archive writes now require a generation-bound writable-root
+  lease. Disconnects, remounts, path changes, configuration changes, and loss
+  of writability revoke stale authority before final payload installation or
+  archive-metadata publication.
+- Ingestion and historical recovery now expose typed deferred outcomes while a
+  configured external archive is unavailable or read-only. Reconnection makes
+  work eligible for one existing bounded sweep without adding a second queue
+  or starting a full archive scan.
+
+### Changed
+
+- Selecting a custom archive location remains read-only for mutation until a
+  later verified relocation explicitly activates it; directory selection alone
+  cannot replace the active writable archive.
+- Deterministic and MessageLens recovery now share the canonical temporary-file,
+  verification, and atomic no-overwrite installer used by normal ingestion.
+- Recursive clear/reset remains authorized only for the default internal
+  archive, even when an external archive is otherwise admitted for writes.
+
+## [0.2.112] — 2026-09-15
+
+### Added
+
+- Attachment archive reads now distinguish a disconnected external archive
+  from an individually missing payload. Attachment surfaces and Settings show
+  an explicit unavailable or read-only state while Messages browsing and
+  search continue normally.
+
+### Changed
+
+- Archive location generation now refreshes path-bearing attachment evidence
+  after disconnect, reconnect, or remount without recursively scanning the
+  archive. Recursive archive statistics remain an explicit operation.
+- Graph health defers physical attachment conclusions while the configured
+  archive root is unavailable, and onboarding treats that condition as an
+  optional diagnostic rather than a startup or recovery blocker.
+- External archive roots remain read-only to MessageLens mutation paths; the
+  internal-only mutation authority is unchanged.
+
 ## [0.2.111] — 2026-09-13
 
 ### Fixed

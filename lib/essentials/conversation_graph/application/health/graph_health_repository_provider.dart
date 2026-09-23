@@ -2,7 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../features/attachments/feature_level_providers.dart'
-    show attachmentArchiveDirectoryPathProvider;
+    show attachmentArchiveLocationProvider;
 import '../../../db/feature_level_providers.dart'
     show driftConversationGraphDatabaseProvider, overlayDatabaseProvider;
 import '../../infrastructure/repositories/graph_health_repository.dart';
@@ -16,11 +16,14 @@ Future<GraphHealthRepository> graphHealthRepository(Ref ref) async {
     driftConversationGraphDatabaseProvider.future,
   );
   final overlayDatabase = await ref.watch(overlayDatabaseProvider.future);
-  final archiveDirectory = ref.watch(attachmentArchiveDirectoryPathProvider);
+  final location = await ref.watch(attachmentArchiveLocationProvider.future);
   return SqliteGraphHealthRepository(
     graphDatabase: graphDatabase,
     overlayDatabase: overlayDatabase,
-    attachmentArchiveDirectory: archiveDirectory,
+    attachmentArchiveDirectory: location.archiveRootPath,
+    attachmentArchiveUnavailableReason: location.isAvailable
+        ? null
+        : location.issue ?? location.availability.name,
     historicalMessageLensDataFolderPath:
         historicalMessageLensDataFolderPathForGraphHealth,
     recoveredMessagesFolderPath: recoveredMessagesFolderPathForGraphHealth,

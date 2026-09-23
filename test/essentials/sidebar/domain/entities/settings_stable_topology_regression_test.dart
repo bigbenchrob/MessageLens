@@ -18,6 +18,10 @@ void main() {
           messageScope: StableCascadeMessageScope.regular,
           persistentSettingsContext: SettingsMenuActionId.historicalArchives,
         );
+        const attachmentArchiveContext = StableCassetteTopologyContext(
+          messageScope: StableCascadeMessageScope.regular,
+          persistentSettingsContext: SettingsMenuActionId.attachmentArchive,
+        );
         const messageHistoryCoverageContext = StableCassetteTopologyContext(
           messageScope: StableCascadeMessageScope.regular,
           persistentSettingsContext:
@@ -35,6 +39,14 @@ void main() {
           messageScope: StableCascadeMessageScope.regular,
         );
 
+        expect(
+          resolveStableCascadeChild(
+            currentSpec,
+            context: attachmentArchiveContext,
+          ),
+          isNull,
+          reason: 'Attachment archive is center-pane navigation only.',
+        );
         expect(
           resolveStableCascadeChild(
             currentSpec,
@@ -60,17 +72,13 @@ void main() {
         expect(
           resolveStableCascadeChild(currentSpec, context: textSizeContext),
           equals(
-            const CassetteSpec.settings(
-              SettingsCassetteSpec.textSizeInfo(),
-            ),
+            const CassetteSpec.settings(SettingsCassetteSpec.textSizeInfo()),
           ),
         );
         expect(
           resolveStableCascadeChild(currentSpec, context: imageSizeContext),
           equals(
-            const CassetteSpec.settings(
-              SettingsCassetteSpec.imageSizeInfo(),
-            ),
+            const CassetteSpec.settings(SettingsCassetteSpec.imageSizeInfo()),
           ),
         );
         expect(

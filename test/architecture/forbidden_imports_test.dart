@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as path;
 
 const Set<String> _trackedSidebarPresentationImportExceptions = <String>{};
 
@@ -168,10 +169,21 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
+  'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
   'lib/main.dart',
+};
+
+const String _attachmentArchiveAdoptionQualificationGatePath =
+    'lib/features/attachments/application/'
+    'attachment_archive_adoption_enablement_provider.dart';
+
+const Map<String, Set<String>> _reviewedPersonalPathFragments = {
+  _attachmentArchiveAdoptionQualificationGatePath: {'/Volumes/WD_ELEMENTS'},
 };
 
 const Set<String> _applicationSupportResolutionAllowedFiles = {'lib/main.dart'};
@@ -284,6 +296,7 @@ const Set<String> _unawaitedAllowedFiles = {
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/sidebar/application/sidebar_flow_state_provider.dart',
+  'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/attachment_archive_service_provider.dart',
   'lib/features/attachments/application/attachment_resolver_provider.dart',
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/contact_picker_actions_provider.dart',
@@ -302,6 +315,7 @@ const Set<String> _providerInvalidationAllowedFiles = {
   'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/archive_settings_provider.dart',
+  'lib/features/attachments/application/attachment_archive_adoption_workflow_provider.dart',
   'lib/features/attachments/application/attachment_archive_service_provider.dart',
   'lib/features/contacts/application/services/manual_handle_link_service.dart',
   'lib/features/contacts/application/sidebar_cassette_spec/resolver_tools/contact_display_name_override_actions_provider.dart',
@@ -361,6 +375,7 @@ const Set<String> _driftCustomSqlAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/attachment_archive_stats_repository.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_archive_compatibility_lookup.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_read_store.dart',
+  'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_verification_metadata_reader.dart',
   'lib/features/attachments/infrastructure/repositories/overlay_attachment_archive_write_store.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart',
   'lib/features/messages/infrastructure/repositories/graph_message_overlay_repository.dart',
@@ -395,6 +410,7 @@ const Set<String> _platformChannelAllowedFiles = {
   'lib/essentials/logging/infrastructure/macos_unified_log_bridge.dart',
   'lib/essentials/services/native_link_preview_service.dart',
   'lib/essentials/services/startup_flags_service.dart',
+  'lib/features/attachments/infrastructure/repositories/method_channel_attachment_archive_location_native_adapter.dart',
 };
 
 const Set<String> _urlLauncherAllowedFiles = {
@@ -404,6 +420,7 @@ const Set<String> _urlLauncherAllowedFiles = {
 };
 
 const Set<String> _fileSelectorAllowedFiles = {
+  'lib/features/attachments/infrastructure/repositories/file_selector_attachment_archive_location_folder_chooser.dart',
   'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_operations.dart',
   'lib/features/settings/infrastructure/repositories/file_selector_historical_archive_folder_chooser.dart',
 };
@@ -424,6 +441,13 @@ const Set<String> _platformEnvironmentAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
 };
 
+const Set<String> _attachmentApplicationDartIoAllowedFiles = {
+  // Legacy recovery catches a filesystem exception emitted by its donor port.
+  'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+  // Thumbnail cache composition supplies the infrastructure cache directory.
+  'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
+};
+
 const Set<String> _platformRuntimeAllowedFiles = {
   'lib/essentials/conversation_graph/infrastructure/system/local_chat_db_monitor_runtime_environment.dart',
   'lib/essentials/db/infrastructure/repositories/local_database_health_runtime_environment.dart',
@@ -440,6 +464,7 @@ const Set<String> _timerAllowedFiles = {
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+  'lib/features/attachments/application/attachment_showcase_source_provider.dart',
   'lib/features/messages/application/message_evidence/contact_evidence_cache_policy.dart',
   'lib/features/messages/application/message_evidence/message_evidence_spine_provider.dart',
   'lib/features/messages/presentation/view_model/shared/display_widgets/new_display_widgets.dart',
@@ -4077,7 +4102,8 @@ void main() {
         reason:
             'Personal backup and external-drive paths must be supplied through '
             'explicit diagnostic configuration, not hard-coded in active app '
-            'code.\n'
+            'code. A file-specific, architecture-reviewed qualification gate '
+            'may bind one exact development authority.\n'
             'Actual offenders:\n${offenders.join('\n')}',
       );
     });
@@ -4377,17 +4403,19 @@ void main() {
       );
     });
 
-    test('Archive settings uses file-operations port', () async {
-      final offenders = await _findArchiveSettingsFileOperationsOffenders();
+    test('Attachments application keeps filesystem work behind ports', () async {
+      final directUsers = await _findAttachmentApplicationDartIoUsers();
 
       expect(
-        offenders,
-        isEmpty,
+        directUsers,
+        orderedEquals(
+          _attachmentApplicationDartIoAllowedFiles.toList()..sort(),
+        ),
         reason:
-            'ArchiveSettings should coordinate archive user intent through '
-            'AttachmentArchiveFileOperations. Native file picking and '
-            'directory/file IO belong in attachments infrastructure.\n'
-            'Actual offenders:\n${offenders.join('\n')}',
+            'Attachments application services must use narrow typed ports for '
+            'filesystem work. The exact reviewed exceptions are legacy '
+            'recovery exception mapping and thumbnail-cache composition.\n'
+            'Actual dart:io users:\n${directUsers.join('\n')}',
       );
     });
 
@@ -6495,7 +6523,7 @@ void main() {
     });
 
     test(
-      'Attachment archive application uses archive directory boundary',
+      'Active attachment archive root has one attachment-owned derivation',
       () async {
         final offenders =
             await _findAttachmentArchiveDirectoryBoundaryOffenders();
@@ -6504,14 +6532,48 @@ void main() {
           offenders,
           isEmpty,
           reason:
-              'Attachment archive application providers should read the archive '
-              'directory through the attachments feature boundary. Direct use '
-              'of the central attachmentArchiveDirectoryProvider recreates a '
-              'database-provider dependency island.\n'
+              'Active archive consumers must read the root through '
+              'attachmentArchiveLocationProvider. Only its controller may '
+              'derive the default attachment_archive child. Donor package '
+              'readers and Start Fresh preservation inventory are deliberate '
+              'exceptions.\n'
               'Actual offenders:\n${offenders.join('\n')}',
         );
       },
     );
+
+    test(
+      'Attachment archive mutations require writable-root lease authority',
+      () async {
+        final offenders =
+            await _findAttachmentArchiveMutationAuthorityOffenders();
+
+        expect(
+          offenders,
+          isEmpty,
+          reason:
+              'Every payload writer, recovery writer, and destructive clear '
+              'path must acquire or receive an '
+              'AttachmentArchiveWritableRootLease. Only the location provider '
+              'may construct that generation-bound capability.\n'
+              'Actual offenders:\n${offenders.join('\n')}',
+        );
+      },
+    );
+
+    test('Donor attachment packages retain their format boundary', () async {
+      final offenders =
+          await _findAttachmentArchiveDonorFormatBoundaryOffenders();
+
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'Historical donor readers may interpret an attachment_archive '
+            'child, but must not depend on the active archive location '
+            'provider.\nActual offenders:\n${offenders.join('\n')}',
+      );
+    });
 
     test(
       'Attachment archive service uses graph candidate reader boundary',
@@ -9304,7 +9366,10 @@ Future<List<String>> _findPersonalBackupPathOffenders() async {
     final source = await File(filePath).readAsString();
     final uncommented = _stripComments(source);
     for (final fragment in forbiddenFragments) {
-      if (uncommented.contains(fragment)) {
+      final reviewedFragments =
+          _reviewedPersonalPathFragments[filePath] ?? const <String>{};
+      if (uncommented.contains(fragment) &&
+          !reviewedFragments.contains(fragment)) {
         offenders.add('$filePath contains $fragment');
       }
     }
@@ -10347,33 +10412,21 @@ _findArchiveSettingsOverlayDatabaseImportOffenders() async {
   return offenders..sort();
 }
 
-Future<List<String>> _findArchiveSettingsFileOperationsOffenders() async {
-  const filePath =
-      'lib/features/attachments/application/archive_settings_provider.dart';
-  final file = File(filePath);
-  if (!file.existsSync()) {
-    return const <String>[];
+Future<List<String>> _findAttachmentApplicationDartIoUsers() async {
+  final root = Directory('lib/features/attachments/application');
+  final users = <String>[];
+  for (final file
+      in root
+          .listSync(recursive: true, followLinks: false)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))) {
+    final relativePath = path.relative(file.path, from: Directory.current.path);
+    final imports = _extractImports(_stripComments(await file.readAsString()));
+    if (imports.contains('dart:io')) {
+      users.add(relativePath);
+    }
   }
-
-  final source = await file.readAsString();
-  final uncommented = _stripComments(source);
-  final imports = _extractImports(uncommented);
-  final offenders = <String>[
-    for (final importTarget in imports)
-      if (importTarget == 'dart:io' ||
-          importTarget ==
-              'package:file_selector_platform_interface/file_selector_platform_interface.dart' ||
-          importTarget == 'package:path/path.dart')
-        '$filePath imports $importTarget',
-  ];
-
-  if (RegExp(r'(^|[^\w.])File\(').hasMatch(uncommented) ||
-      RegExp(r'(^|[^\w.])Directory\(').hasMatch(uncommented) ||
-      uncommented.contains('FileSelectorPlatform.instance')) {
-    offenders.add('$filePath performs archive filesystem work directly');
-  }
-
-  return offenders..sort();
+  return users..sort();
 }
 
 Future<List<String>>
@@ -13258,24 +13311,227 @@ Future<List<String>> _findAttachmentArchiveFileStoreBoundaryOffenders() async {
 }
 
 Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
-  const filePaths = <String>[
+  const locationControllerPath =
+      'lib/features/attachments/application/attachment_archive_location_controller.dart';
+  const allowedLiteralFiles = <String>{
+    locationControllerPath,
+    'lib/features/attachments/infrastructure/repositories/message_lens_attachment_payload_inspector.dart',
+    'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
+    'lib/essentials/onboarding/application/start_fresh_artifact_policy.dart',
+  };
+  const allowedVolumeLiteralFiles = <String>{
+    _attachmentArchiveAdoptionQualificationGatePath,
+  };
+  const activeRootConsumerPaths = <String>{
     'lib/features/attachments/application/archive_settings_provider.dart',
+    'lib/features/attachments/application/attachment_archive_runtime_providers.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
-  ];
+    'lib/features/attachments/application/attachment_archive_store_providers.dart',
+    'lib/features/attachments/application/graph_attachment_archive_providers.dart',
+    'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+    'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
+    'lib/essentials/conversation_graph/application/health/graph_health_repository_provider.dart',
+    'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
+  };
+  final files = await _collectDartFiles((path) {
+    return path.startsWith('lib/') &&
+        !path.endsWith('.g.dart') &&
+        !path.endsWith('.freezed.dart');
+  });
+  final activeRootLiteral = RegExp(r'''['"]attachment_archive['"]''');
   final offenders = <String>[];
 
-  for (final filePath in filePaths) {
+  for (final filePath in files) {
+    final source = await File(filePath).readAsString();
+    final uncommented = _stripComments(source);
+    if (filePath != locationControllerPath &&
+        (uncommented.contains('attachmentArchiveDirectoryProvider') ||
+            uncommented.contains('attachmentArchiveDirectoryPathProvider'))) {
+      offenders.add('$filePath uses a retired archive root provider');
+    }
+    if (uncommented.contains('/Volumes/') &&
+        !allowedVolumeLiteralFiles.contains(filePath)) {
+      offenders.add('$filePath hard-codes a /Volumes attachment root');
+    }
+    if (activeRootLiteral.hasMatch(uncommented) &&
+        !allowedLiteralFiles.contains(filePath)) {
+      offenders.add('$filePath reconstructs an attachment_archive child');
+    }
+  }
+
+  for (final filePath in activeRootConsumerPaths) {
     final file = File(filePath);
     if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
+      continue;
+    }
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('attachmentArchiveLocationProvider') &&
+        !uncommented.contains(
+          'attachmentArchiveWritableRootAdmissionProvider',
+        )) {
+      offenders.add('$filePath bypasses attachment archive location authority');
+    }
+  }
+
+  return offenders..sort();
+}
+
+Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
+  const locationProviderPath =
+      'lib/features/attachments/application/attachment_archive_location_provider.dart';
+  const fileStoreContractPath =
+      'lib/features/attachments/application/attachment_archive_file_store.dart';
+  const admissionConsumerPaths = <String>{
+    'lib/features/attachments/application/archive_settings_provider.dart',
+    'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
+    'lib/features/attachments/application/attachment_archive_service_provider.dart',
+    'lib/features/attachments/application/deterministic_recovery_provider.dart',
+    'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+  };
+  const leaseConsumerPaths = <String>{
+    'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor.dart',
+    'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+    'lib/features/attachments/application/recovered_attachment_archive_writer.dart',
+    'lib/features/attachments/infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart',
+  };
+  const mutationInvocationAllowedFiles = <String, Set<String>>{
+    'ensureArchiveDirectory(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/attachment_archive_service_provider.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+    },
+    'writeArchiveEntry(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/attachment_archive_service_provider.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+      'lib/features/attachments/infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart',
+    },
+    'installVerifiedArchiveEntry(': {
+      'lib/features/attachments/application/attachment_archive_file_store.dart',
+      'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
+    },
+    'resetArchiveDirectory(': {
+      'lib/features/attachments/application/archive_settings_provider.dart',
+      'lib/features/attachments/application/attachment_archive_file_operations.dart',
+      'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_operations.dart',
+    },
+    'OverlayRecoveredAttachmentArchiveWriter(': {
+      'lib/features/attachments/application/deterministic_recovery_runtime_providers.dart',
+      'lib/features/attachments/infrastructure/repositories/overlay_recovered_attachment_archive_writer.dart',
+    },
+    'MessageLensAttachmentRecoveryInstaller(': {
+      'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
+      'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+    },
+  };
+  final offenders = <String>[];
+
+  for (final filePath in admissionConsumerPaths) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
+      continue;
+    }
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains(
+      'attachmentArchiveWritableRootAdmissionProvider',
+    )) {
+      offenders.add('$filePath bypasses writable-root lease admission');
+    }
+  }
+
+  for (final filePath in leaseConsumerPaths) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
+      continue;
+    }
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('AttachmentArchiveWritableRootLease')) {
+      offenders.add('$filePath bypasses writable-root lease validation');
+    }
+  }
+
+  final locationProvider = _stripComments(
+    await File(locationProviderPath).readAsString(),
+  );
+  if (!locationProvider.contains('AttachmentArchiveWritableRootLease._(') ||
+      !locationProvider.contains('_validateWritableRootLease(')) {
+    offenders.add('$locationProviderPath lost private lease issuance');
+  }
+
+  final fileStoreContract = _stripComments(
+    await File(fileStoreContractPath).readAsString(),
+  );
+  final requiredMutationValidators = RegExp(
+    r'required\s+Future<void>\s+Function\(\s*'
+    r'AttachmentArchiveMutationBoundary boundary,?\s*\)\s*'
+    r'validateMutation',
+  ).allMatches(fileStoreContract).length;
+  if (requiredMutationValidators != 3) {
+    offenders.add(
+      '$fileStoreContractPath must require validation for all three '
+      'filesystem mutation methods',
+    );
+  }
+
+  final files = await _collectDartFiles((path) {
+    return path.startsWith('lib/') &&
+        !path.endsWith('.g.dart') &&
+        !path.endsWith('.freezed.dart');
+  });
+  for (final filePath in files) {
+    final uncommented = _stripComments(await File(filePath).readAsString());
+    if (filePath != locationProviderPath &&
+        uncommented.contains('AttachmentArchiveWritableRootLease._(')) {
+      offenders.add('$filePath constructs writable-root lease authority');
+    }
+    if (!admissionConsumerPaths.contains(filePath) &&
+        filePath != locationProviderPath &&
+        uncommented.contains(
+          'attachmentArchiveWritableRootAdmissionProvider',
+        )) {
+      offenders.add('$filePath is an unapproved lease-admission consumer');
+    }
+    if (uncommented.contains('AttachmentArchiveMutationRoot') ||
+        uncommented.contains('attachmentArchiveMutationRootProvider') ||
+        uncommented.contains('requireInternalMutationRoot()')) {
+      offenders.add('$filePath retains retired mutation-root authority');
+    }
+    for (final entry in mutationInvocationAllowedFiles.entries) {
+      if (uncommented.contains(entry.key) && !entry.value.contains(filePath)) {
+        offenders.add('$filePath invokes gated mutation API ${entry.key}');
+      }
+    }
+  }
+
+  return offenders..sort();
+}
+
+Future<List<String>>
+_findAttachmentArchiveDonorFormatBoundaryOffenders() async {
+  const donorFormatPaths = <String>{
+    'lib/features/attachments/infrastructure/repositories/message_lens_attachment_payload_inspector.dart',
+    'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
+    'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
+  };
+  final offenders = <String>[];
+
+  for (final filePath in donorFormatPaths) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      offenders.add('$filePath is missing');
       continue;
     }
 
-    final source = await file.readAsString();
-    final uncommented = _stripComments(source);
-    if (uncommented.contains('attachmentArchiveDirectoryProvider')) {
-      offenders.add(
-        '$filePath reads central attachmentArchiveDirectoryProvider directly',
-      );
+    final uncommented = _stripComments(await file.readAsString());
+    if (!uncommented.contains('attachment_archive')) {
+      offenders.add('$filePath lost the donor attachment_archive convention');
+    }
+    if (uncommented.contains('attachmentArchiveLocationProvider')) {
+      offenders.add('$filePath depends on the active archive root');
     }
   }
 

@@ -609,6 +609,8 @@ class _MediaUnavailablePlaceholder extends ConsumerWidget {
 
     final isPendingArchive =
         availability == ResolvedAttachmentAvailability.pendingArchive;
+    final isArchiveUnavailable =
+        availability == ResolvedAttachmentAvailability.archiveUnavailable;
     final isCloudOnly = availability == null
         ? hasLocalReference
         : availability ==
@@ -617,11 +619,15 @@ class _MediaUnavailablePlaceholder extends ConsumerWidget {
 
     final icon = isPendingArchive
         ? Icons.archive_outlined
+        : isArchiveUnavailable
+        ? Icons.usb_off_outlined
         : isCloudOnly
         ? Icons.cloud_outlined
         : Icons.broken_image_outlined;
     final label = isPendingArchive
         ? '$mediaLabel being archived'
+        : isArchiveUnavailable
+        ? '$mediaLabel archive unavailable'
         : isCloudOnly
         ? '$mediaLabel in iCloud'
         : availability ==
@@ -630,6 +636,8 @@ class _MediaUnavailablePlaceholder extends ConsumerWidget {
         : '$mediaLabel unavailable';
     final tooltipMessage = isPendingArchive
         ? '$mediaLabel being added to the archive'
+        : isArchiveUnavailable
+        ? 'Reconnect the configured attachment archive to check this file'
         : isCloudOnly
         ? '$mediaLabel stored in iCloud\u2009—\u2009not downloaded to this Mac'
         : availability ==
@@ -863,7 +871,9 @@ class ImageMessageTile extends ConsumerWidget {
     final canPrioritizeRecovery =
         archiveKey != null &&
         attachment.availability !=
-            ResolvedAttachmentAvailability.pendingArchive;
+            ResolvedAttachmentAvailability.pendingArchive &&
+        attachment.availability !=
+            ResolvedAttachmentAvailability.archiveUnavailable;
     final provenance = attachment.provenance;
 
     return MessageShell(
@@ -1289,7 +1299,9 @@ class _VideoMessageTileState extends ConsumerState<VideoMessageTile> {
     final canPrioritizeRecovery =
         archiveKey != null &&
         widget.attachment.availability !=
-            ResolvedAttachmentAvailability.pendingArchive;
+            ResolvedAttachmentAvailability.pendingArchive &&
+        widget.attachment.availability !=
+            ResolvedAttachmentAvailability.archiveUnavailable;
     final provenance = widget.attachment.provenance;
 
     return MessageShell(

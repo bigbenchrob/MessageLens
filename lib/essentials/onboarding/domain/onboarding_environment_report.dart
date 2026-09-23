@@ -35,6 +35,8 @@ enum OnboardingFailureFreshness { unknown, today, older }
 
 enum OnboardingPipelinePhase { import, graphProjection }
 
+enum OnboardingAttachmentArchiveStatus { available, readOnly, unavailable }
+
 class OnboardingPipelineFailure {
   const OnboardingPipelineFailure({
     required this.phase,
@@ -98,6 +100,9 @@ class OnboardingEnvironmentReport {
     this.liveUpdateLastChangeDetectedAt,
     this.liveUpdateLastError,
     this.operationSnapshot = const OnboardingOperationSnapshot.idle(),
+    this.attachmentArchiveStatus = OnboardingAttachmentArchiveStatus.available,
+    this.attachmentArchiveIssue,
+    this.attachmentArchiveLocationGeneration = 0,
   });
 
   final OnboardingEnvironmentState state;
@@ -127,6 +132,9 @@ class OnboardingEnvironmentReport {
   final DateTime? liveUpdateLastChangeDetectedAt;
   final String? liveUpdateLastError;
   final OnboardingOperationSnapshot operationSnapshot;
+  final OnboardingAttachmentArchiveStatus attachmentArchiveStatus;
+  final String? attachmentArchiveIssue;
+  final int attachmentArchiveLocationGeneration;
 
   bool get hasIncompleteOperationStage {
     return operationSnapshot.currentSubstage != null &&

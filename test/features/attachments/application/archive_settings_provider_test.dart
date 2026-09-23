@@ -4,9 +4,12 @@ import 'package:remember_this_text/essentials/archive_environment/feature_level_
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/features/attachments/application/archive_settings_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_file_operations.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_runtime_providers.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_stats_reader.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_stats.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
@@ -23,8 +26,8 @@ void main() {
       prefix: 'archive_settings_test_',
     );
     settingsStore = _FakeArchiveSettingsStore();
-    statsReader = const _FakeArchiveStatsReader(
-      AttachmentArchiveStats(recordCount: 12, sizeBytes: 1536),
+    statsReader = _FakeArchiveStatsReader(
+      const AttachmentArchiveStats(recordCount: 12, sizeBytes: 1536),
     );
     fileOperations = _FakeArchiveFileOperations();
     container = ProviderContainer(
@@ -35,14 +38,20 @@ void main() {
         attachmentArchiveSettingsStoreProvider.overrideWith(
           (ref) async => settingsStore,
         ),
+        attachmentArchiveLocationProvider.overrideWith(
+          () => _FixedAttachmentArchiveLocation(
+            AttachmentArchiveLocationState.defaultAvailable(
+              archiveRootPath: archiveFixture.authority.resolvePath(
+                'attachment_archive',
+              ),
+            ),
+          ),
+        ),
         attachmentArchiveStatsReaderProvider.overrideWith(
           (ref) async => statsReader,
         ),
         attachmentArchiveFileOperationsProvider.overrideWith(
           (ref) => fileOperations,
-        ),
-        attachmentArchiveDirectoryPathProvider.overrideWith(
-          (ref) => archiveFixture.authority.resolvePath('attachment_archive'),
         ),
       ],
     );
@@ -53,14 +62,15 @@ void main() {
     await archiveFixture.dispose();
   });
 
-  test('defaults archive enabled and reads stats', () async {
-    final state = await container.read(archiveSettingsProvider.future);
+  test(
+    'defaults archive enabled without scanning archive statistics',
+    () async {
+      final state = await container.read(archiveSettingsProvider.future);
 
-    expect(state.isEnabled, isTrue);
-    expect(state.archivedCount, 12);
-    expect(state.archiveSizeBytes, 1536);
-    expect(state.formattedSize, '1.5 KB');
-  });
+      expect(state.isEnabled, isTrue);
+      expect(statsReader.readCount, 0);
+    },
+  );
 
   test('only explicit false disables archive setting', () async {
     settingsStore.settings['attachment_archive_enabled'] = 'false';
@@ -74,6 +84,29 @@ void main() {
     final enabledState = await container.read(archiveSettingsProvider.future);
 
     expect(enabledState.isEnabled, isTrue);
+  });
+
+  test('statistics are scanned only through the explicit provider', () async {
+    await container.read(archiveSettingsProvider.future);
+    expect(statsReader.readCount, 0);
+
+    final inventory = await container.read(
+      attachmentArchiveStatisticsProvider.future,
+    );
+
+    expect(inventory.isAvailable, isTrue);
+    expect(inventory.stats?.recordCount, 12);
+    expect(inventory.stats?.sizeBytes, 1536);
+    expect(statsReader.readCount, 1);
+  });
+
+  test('location refresh does not trigger a statistics scan', () async {
+    await container.read(archiveSettingsProvider.future);
+
+    container.invalidate(attachmentArchiveLocationProvider);
+    await container.read(attachmentArchiveLocationProvider.future);
+
+    expect(statsReader.readCount, 0);
   });
 
   test('parses sweep and manual sweep diagnostics from settings', () async {
@@ -166,12 +199,14 @@ final class _FakeArchiveSettingsStore
 }
 
 final class _FakeArchiveStatsReader implements AttachmentArchiveStatsReader {
-  const _FakeArchiveStatsReader(this.stats);
+  _FakeArchiveStatsReader(this.stats);
 
   final AttachmentArchiveStats stats;
+  var readCount = 0;
 
   @override
   Future<AttachmentArchiveStats> readStats() async {
+    readCount += 1;
     return stats;
   }
 }
@@ -189,4 +224,13 @@ final class _FakeArchiveFileOperations
   Future<void> resetArchiveDirectory(String archiveDirectoryPath) async {
     resetPaths.add(archiveDirectoryPath);
   }
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }

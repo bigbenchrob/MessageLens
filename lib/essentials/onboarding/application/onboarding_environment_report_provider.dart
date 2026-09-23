@@ -6,6 +6,11 @@ import '../../../features/address_book_folders/domain/entities/address_book_fold
 import '../../../features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
 import '../../../features/address_book_folders/feature_level_providers.dart'
     show futureGetFolderAggregateProvider;
+import '../../../features/attachments/feature_level_providers.dart'
+    show
+        AttachmentArchiveLocationAvailability,
+        AttachmentArchiveLocationState,
+        attachmentArchiveLocationProvider;
 import '../../archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
 import '../../conversation_graph/feature_level_providers.dart'
@@ -16,8 +21,7 @@ import '../../conversation_graph/feature_level_providers.dart'
         conversationGraphBuildControllerProvider;
 import '../../db/app_database_files.dart';
 import '../../db/application/conversation_graph_readiness.dart';
-import '../../db/feature_level_providers.dart'
-    show attachmentArchiveDirectoryProvider, dbMaintenanceLockProvider;
+import '../../db/feature_level_providers.dart' show dbMaintenanceLockProvider;
 import '../domain/onboarding_environment_report.dart';
 import '../domain/onboarding_operation_snapshot.dart';
 import 'full_disk_access_provider.dart';
@@ -138,6 +142,9 @@ String onboardingDatabaseDirectoryPath(Ref ref) {
 
 @Riverpod(keepAlive: true)
 Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
+  final attachmentArchiveLocation = await ref.watch(
+    attachmentArchiveLocationProvider.future,
+  );
   final operationController = await ref.watch(
     onboardingOperationControllerProvider.future,
   );
@@ -149,9 +156,7 @@ Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
     messagesDatabasePath: ref.watch(onboardingMessagesDatabasePathProvider),
     addressBookEither: await ref.watch(futureGetFolderAggregateProvider.future),
     archiveRootPath: ref.watch(onboardingDatabaseDirectoryPathProvider),
-    attachmentArchiveDirectoryPath: ref.watch(
-      attachmentArchiveDirectoryProvider,
-    ),
+    attachmentArchiveLocation: attachmentArchiveLocation,
     // Readiness is an unrelated observer of the derived stores. Suppress its
     // database reads for every admitted archive mutation, including onboarding
     // import, even when that operation does not globally block its own graph
@@ -178,7 +183,7 @@ class _OnboardingEnvironmentInputs {
     required this.messagesDatabasePath,
     required this.addressBookEither,
     required this.archiveRootPath,
-    required this.attachmentArchiveDirectoryPath,
+    required this.attachmentArchiveLocation,
     required this.isMaintenanceLocked,
     required this.graphBuildState,
     required this.liveUpdateMonitorState,
@@ -193,7 +198,7 @@ class _OnboardingEnvironmentInputs {
   final Either<FolderRetrievalFailure, AddressBookFolderAggregate>
   addressBookEither;
   final String archiveRootPath;
-  final String attachmentArchiveDirectoryPath;
+  final AttachmentArchiveLocationState attachmentArchiveLocation;
   final bool isMaintenanceLocked;
   final ConversationGraphBuildState graphBuildState;
   final ChatDbChangeMonitorState liveUpdateMonitorState;
@@ -272,9 +277,28 @@ class _OnboardingEnvironmentEvaluator {
       AppDatabaseFile.conversationGraph,
       databaseDirectory: inputs.archiveRootPath,
     );
-    final attachmentArchiveProbe = databaseProbeReader.probeDirectory(
-      inputs.attachmentArchiveDirectoryPath,
-    );
+    final attachmentArchiveLocation = inputs.attachmentArchiveLocation;
+    final attachmentArchiveProbe = attachmentArchiveLocation.isAvailable
+        ? databaseProbeReader.probeDirectory(
+            attachmentArchiveLocation.requireArchiveRootPath(),
+          )
+        : OnboardingDatabaseProbe(
+            path: attachmentArchiveLocation.lastKnownDisplayPath ?? '',
+            exists: false,
+            readable: false,
+            failureMessage:
+                attachmentArchiveLocation.issue ??
+                'The configured external attachment archive is unavailable.',
+          );
+    final attachmentArchiveStatus =
+        switch (attachmentArchiveLocation.availability) {
+          AttachmentArchiveLocationAvailability.defaultAvailable ||
+          AttachmentArchiveLocationAvailability.customAvailable =>
+            OnboardingAttachmentArchiveStatus.available,
+          AttachmentArchiveLocationAvailability.customReadOnly =>
+            OnboardingAttachmentArchiveStatus.readOnly,
+          _ => OnboardingAttachmentArchiveStatus.unavailable,
+        };
     final isMaintenanceLocked = inputs.isMaintenanceLocked;
 
     final sourceMessageCount = devOverrides.simulateSparseSourceHistory
@@ -412,6 +436,9 @@ class _OnboardingEnvironmentEvaluator {
           inputs.liveUpdateMonitorState.lastChangeDetected,
       liveUpdateLastError: inputs.liveUpdateMonitorState.lastError,
       operationSnapshot: inputs.operationSnapshot,
+      attachmentArchiveStatus: attachmentArchiveStatus,
+      attachmentArchiveIssue: attachmentArchiveLocation.issue,
+      attachmentArchiveLocationGeneration: attachmentArchiveLocation.generation,
     );
   }
 

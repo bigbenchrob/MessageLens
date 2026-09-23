@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:remember_this_text/essentials/conversation_graph/application/health/graph_health_reader.dart';
+import 'package:remember_this_text/essentials/conversation_graph/application/health/graph_health_report.dart';
 import 'package:remember_this_text/essentials/conversation_graph/infrastructure/repositories/graph_health_repository.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 
@@ -321,4 +322,61 @@ void main() {
     expect(report.archiveFilesMissingCount, 3);
     expect(report.archiveRecordsWithoutGraphAttachmentCount, 3);
   });
+
+  test(
+    'unavailable archive defers physical audit without mass missing findings',
+    () async {
+      final database = await openConversationGraphTestDatabase();
+      final overlayDatabase = OverlayDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      addTearDown(overlayDatabase.close);
+      await database.database.insert('messages', {
+        'ss_id': 1,
+        'guid': 'message-1',
+        'is_from_me': 1,
+      });
+      for (var index = 0; index < 3; index++) {
+        await overlayDatabase.customStatement(
+          '''
+          INSERT INTO archived_attachments (
+            message_guid,
+            import_attachment_id,
+            archive_relative_path,
+            archived_at_utc,
+            file_size_bytes,
+            provenance
+          ) VALUES (?, ?, ?, ?, ?, ?)
+          ''',
+          <Object?>[
+            'message-$index',
+            index,
+            'payload-$index.jpg',
+            '2026-09-15T00:00:00.000Z',
+            10,
+            'archived',
+          ],
+        );
+      }
+      final reader = GraphHealthReader(
+        repository: SqliteGraphHealthRepository(
+          graphDatabase: database,
+          overlayDatabase: overlayDatabase,
+          attachmentArchiveUnavailableReason: 'Volume is disconnected.',
+        ),
+      );
+
+      final report = await reader.readHealthReport(includeRecoveryAudit: true);
+
+      expect(report.messageCount, 1);
+      expect(report.archiveRecordCount, 3);
+      expect(
+        report.archivePhysicalAuditStatus,
+        GraphArchivePhysicalAuditStatus.deferredRootUnavailable,
+      );
+      expect(report.archivePhysicalAuditIssue, 'Volume is disconnected.');
+      expect(report.archiveFilesAvailableCount, 0);
+      expect(report.archiveFilesMissingCount, 0);
+      expect(report.dryRunStillMissingEverywhereCount, 0);
+    },
+  );
 }

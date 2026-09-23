@@ -4,13 +4,11 @@ import '../../../essentials/archive_environment/domain.dart'
     show ArchiveMutationOperation;
 import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveMutationCoordinatorProvider;
+import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_runtime_providers.dart'
-    show
-        attachmentArchiveDirectoryPathProvider,
-        attachmentArchiveFileOperationsProvider,
-        attachmentArchiveSettingsStoreProvider,
-        attachmentArchiveStatsReaderProvider;
+    show attachmentArchiveFileOperationsProvider;
 import 'attachment_archive_settings_store.dart';
+import 'attachment_archive_settings_store_provider.dart';
 
 part 'archive_settings_provider.g.dart';
 
@@ -57,17 +55,11 @@ class ArchiveSettings extends _$ArchiveSettings {
     final enabledStr = await settingsStore.readSetting(_kArchiveEnabledKey);
     final enabled = enabledStr != 'false'; // Default: enabled.
 
-    final statsReader = await ref.watch(
-      attachmentArchiveStatsReaderProvider.future,
-    );
-    final stats = await statsReader.readStats();
     final sweepDebug = await _readSweepDebugState(settingsStore);
     final manualSweepDebug = await _readManualSweepDebugState(settingsStore);
 
     return ArchiveSettingsState(
       isEnabled: enabled,
-      archivedCount: stats.recordCount,
-      archiveSizeBytes: stats.sizeBytes,
       sweepDebug: sweepDebug,
       manualSweepDebug: manualSweepDebug,
     );
@@ -87,11 +79,21 @@ class ArchiveSettings extends _$ArchiveSettings {
   Future<void> clearArchive() {
     return ref
         .read(archiveMutationCoordinatorProvider.notifier)
-        .run<void>(
+        .runWithCapability<void>(
           operation: ArchiveMutationOperation.attachmentClearing,
           ownerLabel: 'attachment-archive-clear',
-          action: () async {
-            final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+          action: (mutationCapability) async {
+            final admission = await ref.read(
+              attachmentArchiveWritableRootAdmissionProvider.future,
+            );
+            final writableRootLease = admission.lease;
+            if (writableRootLease == null) {
+              throw AttachmentArchiveMutationDeferredException(
+                reason: admission.deferredReason!,
+                boundary: AttachmentArchiveMutationBoundary.operationStart,
+                issue: admission.issue,
+              );
+            }
             final archiveFileOperations = ref.read(
               attachmentArchiveFileOperationsProvider,
             );
@@ -99,7 +101,21 @@ class ArchiveSettings extends _$ArchiveSettings {
               attachmentArchiveSettingsStoreProvider.future,
             );
 
-            await archiveFileOperations.resetArchiveDirectory(archiveDir);
+            mutationCapability.requireOperation(
+              ArchiveMutationOperation.attachmentClearing,
+            );
+            await writableRootLease.requireValid(
+              operation: ArchiveMutationOperation.attachmentClearing,
+              boundary:
+                  AttachmentArchiveMutationBoundary.beforeDestructiveReset,
+            );
+            await archiveFileOperations.resetArchiveDirectory(
+              writableRootLease.archiveRootPath,
+            );
+            await writableRootLease.requireValid(
+              operation: ArchiveMutationOperation.attachmentClearing,
+              boundary: AttachmentArchiveMutationBoundary.beforeMetadataCommit,
+            );
             await settingsStore.clearArchivedAttachmentRecords();
 
             ref.invalidateSelf();
@@ -109,7 +125,8 @@ class ArchiveSettings extends _$ArchiveSettings {
 
   /// Returns the number of files copied, or `null` if the user cancelled.
   Future<int?> exportArchive() async {
-    final archiveDir = ref.read(attachmentArchiveDirectoryPathProvider);
+    final location = await ref.read(attachmentArchiveLocationProvider.future);
+    final archiveDir = location.requireArchiveRootPath();
     final archiveFileOperations = ref.read(
       attachmentArchiveFileOperationsProvider,
     );
@@ -200,32 +217,13 @@ class ArchiveSettings extends _$ArchiveSettings {
 class ArchiveSettingsState {
   const ArchiveSettingsState({
     required this.isEnabled,
-    required this.archivedCount,
-    required this.archiveSizeBytes,
     required this.sweepDebug,
     required this.manualSweepDebug,
   });
 
   final bool isEnabled;
-  final int archivedCount;
-  final int archiveSizeBytes;
   final ArchiveSweepDebugState sweepDebug;
   final ArchiveSweepRunDebugState manualSweepDebug;
-
-  String get formattedSize => _formatBytes(archiveSizeBytes);
-
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-    if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    }
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-  }
 }
 
 class ArchiveSweepDebugState {

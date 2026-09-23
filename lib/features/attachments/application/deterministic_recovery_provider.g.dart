@@ -7,7 +7,7 @@ part of 'deterministic_recovery_provider.dart';
 // **************************************************************************
 
 String _$deterministicRecoveryHash() =>
-    r'2ef2b99d29efd751e924d77fc9b710fe980af0d4';
+    r'a6a8ed51267043a524af007419158478246c554f';
 
 /// Orchestrates the full deterministic historical attachment recovery pipeline:
 /// Phase 1 (snapshot reader) → Phase 2 (mapper) → Phase 3 (archive writer).

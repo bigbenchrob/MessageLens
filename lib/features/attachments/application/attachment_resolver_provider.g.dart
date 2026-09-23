@@ -37,9 +37,11 @@ class _SystemHash {
 /// - otherwise report unresolved availability
 ///
 /// Archive enabled:
-/// - render only from the MessageLens archive
-/// - if a live file exists but the archive is missing, trigger archive ingestion
-///   and report a pending archive state
+/// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
+/// - use the live Messages file as a read-only fallback for custom roots
+/// - trigger on-demand ingestion only for the mutation-authorized internal root
+/// - preserve root-unavailable evidence without treating it as payload loss
 ///
 /// Copied from [attachmentResolver].
 @ProviderFor(attachmentResolver)
@@ -52,9 +54,11 @@ const attachmentResolverProvider = AttachmentResolverFamily();
 /// - otherwise report unresolved availability
 ///
 /// Archive enabled:
-/// - render only from the MessageLens archive
-/// - if a live file exists but the archive is missing, trigger archive ingestion
-///   and report a pending archive state
+/// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
+/// - use the live Messages file as a read-only fallback for custom roots
+/// - trigger on-demand ingestion only for the mutation-authorized internal root
+/// - preserve root-unavailable evidence without treating it as payload loss
 ///
 /// Copied from [attachmentResolver].
 class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
@@ -65,9 +69,11 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
   /// - otherwise report unresolved availability
   ///
   /// Archive enabled:
-  /// - render only from the MessageLens archive
-  /// - if a live file exists but the archive is missing, trigger archive ingestion
-  ///   and report a pending archive state
+  /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
+  /// - use the live Messages file as a read-only fallback for custom roots
+  /// - trigger on-demand ingestion only for the mutation-authorized internal root
+  /// - preserve root-unavailable evidence without treating it as payload loss
   ///
   /// Copied from [attachmentResolver].
   const AttachmentResolverFamily();
@@ -79,9 +85,11 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
   /// - otherwise report unresolved availability
   ///
   /// Archive enabled:
-  /// - render only from the MessageLens archive
-  /// - if a live file exists but the archive is missing, trigger archive ingestion
-  ///   and report a pending archive state
+  /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
+  /// - use the live Messages file as a read-only fallback for custom roots
+  /// - trigger on-demand ingestion only for the mutation-authorized internal root
+  /// - preserve root-unavailable evidence without treating it as payload loss
   ///
   /// Copied from [attachmentResolver].
   AttachmentResolverProvider call(AttachmentInfo attachmentInfo) {
@@ -117,9 +125,11 @@ class AttachmentResolverFamily extends Family<AsyncValue<ResolvedAttachment>> {
 /// - otherwise report unresolved availability
 ///
 /// Archive enabled:
-/// - render only from the MessageLens archive
-/// - if a live file exists but the archive is missing, trigger archive ingestion
-///   and report a pending archive state
+/// - render an available MessageLens archive payload first
+/// - report exact active-transaction gaps as pending historical remediation
+/// - use the live Messages file as a read-only fallback for custom roots
+/// - trigger on-demand ingestion only for the mutation-authorized internal root
+/// - preserve root-unavailable evidence without treating it as payload loss
 ///
 /// Copied from [attachmentResolver].
 class AttachmentResolverProvider
@@ -131,9 +141,11 @@ class AttachmentResolverProvider
   /// - otherwise report unresolved availability
   ///
   /// Archive enabled:
-  /// - render only from the MessageLens archive
-  /// - if a live file exists but the archive is missing, trigger archive ingestion
-  ///   and report a pending archive state
+  /// - render an available MessageLens archive payload first
+  /// - report exact active-transaction gaps as pending historical remediation
+  /// - use the live Messages file as a read-only fallback for custom roots
+  /// - trigger on-demand ingestion only for the mutation-authorized internal root
+  /// - preserve root-unavailable evidence without treating it as payload loss
   ///
   /// Copied from [attachmentResolver].
   AttachmentResolverProvider(AttachmentInfo attachmentInfo)

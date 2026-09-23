@@ -7,7 +7,7 @@ part of 'message_rich_text_enricher_provider.dart';
 // **************************************************************************
 
 String _$messageRichTextEnricherHash() =>
-    r'b819ddb66a931dca9eb8883d1c205cf588b2f523';
+    r'64154890a650cfc848706bb7ce154468e3b3dcb3';
 
 /// See also [messageRichTextEnricher].
 @ProviderFor(messageRichTextEnricher)

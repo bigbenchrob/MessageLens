@@ -1,4 +1,6 @@
 import '../../../essentials/archive_compatibility/domain/archive_compatibility_key.dart';
+import 'attachment_archive_location_provider.dart';
+import 'attachment_archive_remediation_authority.dart';
 
 class ArchivedAttachmentFileWrite {
   const ArchivedAttachmentFileWrite({
@@ -55,7 +57,11 @@ abstract interface class AttachmentArchiveFileStore {
 
   bool fileExists(String path);
 
-  Future<void> ensureArchiveDirectory(String archiveDirectoryPath);
+  Future<void> ensureArchiveDirectory(
+    String archiveDirectoryPath, {
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
+  });
 
   /// Writes an archive file under the current archive compatibility key.
   Future<ArchivedAttachmentFileWrite?> writeArchiveEntry({
@@ -63,6 +69,8 @@ abstract interface class AttachmentArchiveFileStore {
     required String sourcePath,
     required ArchiveCompatibilityKey archiveKey,
     required String? sha256Hex,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
   });
 
   /// Installs already-proven payload bytes through the canonical
@@ -73,6 +81,17 @@ abstract interface class AttachmentArchiveFileStore {
     required String sourceExtension,
     required int expectedSizeBytes,
     required String expectedSha256,
+    required Future<void> Function(AttachmentArchiveMutationBoundary boundary)
+    validateMutation,
+  });
+
+  /// Installs one transaction-bound preservation payload at its exact archive
+  /// relative path. This remains atomic and no-overwrite; it is intentionally
+  /// not a general file-copy API.
+  Future<AttachmentArchiveFileInstall> installVerifiedArchiveEntryAtPath({
+    required String archiveDirectoryPath,
+    required Stream<List<int>> sourceBytes,
+    required AttachmentArchiveRemediationAuthority remediationAuthority,
   });
 
   Future<ArchiveIntegrityFileCheck> checkIntegrity({

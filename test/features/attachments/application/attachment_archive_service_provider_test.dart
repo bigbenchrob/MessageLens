@@ -8,18 +8,17 @@ import 'package:remember_this_text/essentials/archive_compatibility/domain/archi
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
-    show
-        attachmentArchiveDirectoryProvider,
-        driftConversationGraphDatabaseProvider,
-        overlayDatabaseProvider;
+    show driftConversationGraphDatabaseProvider, overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/overlay/overlay_database.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/features/attachments/application/archive_settings_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_service_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_recovery_hint_storage.dart';
 import 'package:remember_this_text/features/attachments/application/current_messages_attachment_path_lookup.dart';
 import 'package:remember_this_text/features/attachments/application/graph_attachment_archive_providers.dart';
+import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -95,8 +94,12 @@ void main() {
             archiveFixture.authority,
           ),
           overlayDatabaseProvider.overrideWith((ref) async => overlayDb),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => tempDir.path,
+          attachmentArchiveLocationProvider.overrideWith(
+            () => _FixedAttachmentArchiveLocation(
+              AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: tempDir.path,
+              ),
+            ),
           ),
         ],
       );
@@ -194,8 +197,12 @@ void main() {
           currentMessagesAttachmentPathLookupProvider.overrideWith(
             (ref) async => attachmentPathLookup,
           ),
-          attachmentArchiveDirectoryProvider.overrideWith(
-            (ref) => '${tempDir.path}/archive',
+          attachmentArchiveLocationProvider.overrideWith(
+            () => _FixedAttachmentArchiveLocation(
+              AttachmentArchiveLocationState.defaultAvailable(
+                archiveRootPath: '${tempDir.path}/archive',
+              ),
+            ),
           ),
         ],
       );
@@ -679,4 +686,13 @@ final class _TestCurrentMessagesAttachmentPathLookup
   Future<String?> attachmentPathForSourceRowId(int sourceRowId) async {
     return pathsBySourceRowId[sourceRowId];
   }
+}
+
+final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
+  _FixedAttachmentArchiveLocation(this.location);
+
+  final AttachmentArchiveLocationState location;
+
+  @override
+  Future<AttachmentArchiveLocationState> build() async => location;
 }

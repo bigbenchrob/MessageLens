@@ -2,13 +2,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider;
-import '../../../essentials/db/feature_level_providers.dart'
-    show attachmentArchiveDirectoryProvider;
 import '../../../essentials/source_scoped_import/feature_level_providers.dart'
     show
         messagesLineageAdmissionAuthorityProvider,
         sourceScopedImportLedgerProvider;
-import '../../attachments/application/attachment_archive_store_providers.dart';
+import '../../attachments/feature_level_providers.dart'
+    show attachmentArchiveLocationProvider, attachmentArchiveReadStoreProvider;
 import '../../attachments/infrastructure/repositories/import_ledger_message_lens_attachment_evidence_reader.dart';
 import '../../attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart';
 import '../infrastructure/repositories/message_lens_historical_archive_preflight_service.dart';
@@ -22,12 +21,13 @@ messageLensHistoricalArchivePreflight(
   MessageLensHistoricalArchivePreflightRef ref,
 ) async {
   final authority = ref.watch(archiveAccessAuthorityProvider);
+  final location = await ref.watch(attachmentArchiveLocationProvider.future);
   final currentReader = ImportLedgerMessageLensAttachmentEvidenceReader(
     importLedger: await ref.watch(sourceScopedImportLedgerProvider.future),
     archiveReadStore: await ref.watch(
       attachmentArchiveReadStoreProvider.future,
     ),
-    archiveDirectoryPath: ref.watch(attachmentArchiveDirectoryProvider),
+    archiveLocation: location,
   );
   return MessageLensHistoricalArchivePreflightService(
     donorQualifier: SqliteMessageLensAttachmentRecoveryDonorQualifier(

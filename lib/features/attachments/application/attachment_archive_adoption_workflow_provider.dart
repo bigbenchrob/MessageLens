@@ -1,0 +1,688 @@
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../../essentials/db/feature_level_providers.dart'
+    show overlayDatabaseProvider;
+import '../domain/entities/attachment_archive_adoption.dart';
+import '../domain/entities/attachment_archive_candidate_verification.dart';
+import '../domain/entities/attachment_archive_location_state.dart';
+import '../infrastructure/repositories/filesystem_attachment_archive_candidate_verifier.dart';
+import '../infrastructure/repositories/overlay_attachment_archive_verification_metadata_reader.dart';
+import 'attachment_archive_adoption_enablement_provider.dart';
+import 'attachment_archive_adoption_provider.dart';
+import 'attachment_archive_adoption_workflow.dart';
+import 'attachment_archive_bookmark_adapter.dart';
+import 'attachment_archive_candidate_verifier.dart';
+import 'attachment_archive_location_dependencies_provider.dart';
+import 'attachment_archive_location_folder_chooser.dart';
+import 'attachment_archive_location_provider.dart';
+import 'attachment_showcase_source_provider.dart';
+
+part 'attachment_archive_adoption_workflow_provider.g.dart';
+
+@riverpod
+AttachmentArchiveLocationFolderChooser attachmentArchiveAdoptionFolderChooser(
+  Ref ref,
+) {
+  return ref.watch(attachmentArchiveLocationFolderChooserProvider);
+}
+
+@riverpod
+AttachmentArchiveBookmarkAdapter attachmentArchiveAdoptionBookmarkAdapter(
+  Ref ref,
+) {
+  return ref.watch(attachmentArchiveLocationNativeAdapterProvider);
+}
+
+@riverpod
+Future<AttachmentArchiveCandidateVerifier>
+attachmentArchiveAdoptionCandidateVerifier(Ref ref) async {
+  final overlayDatabase = await ref.watch(overlayDatabaseProvider.future);
+  return FilesystemAttachmentArchiveCandidateVerifier(
+    metadataReader: OverlayAttachmentArchiveVerificationMetadataReader(
+      overlayDatabase: overlayDatabase,
+    ),
+  );
+}
+
+@riverpod
+Future<AttachmentArchiveAdoptionExecutor> attachmentArchiveAdoptionExecutor(
+  Ref ref,
+) async {
+  return ref.watch(attachmentArchiveAdoptionServiceProvider.future);
+}
+
+@riverpod
+Future<AttachmentArchiveLocationState> attachmentArchiveAdoptionSourceLocation(
+  Ref ref,
+) {
+  return ref.watch(attachmentArchiveLocationProvider.future);
+}
+
+/// Ephemeral Settings workflow for checking and adopting an existing copy.
+///
+/// The complete result stays private in this notifier. Reconstructing this
+/// provider discards it, so stale ready evidence can never become UI authority.
+@Riverpod(keepAlive: true)
+class AttachmentArchiveAdoptionWorkflow
+    extends _$AttachmentArchiveAdoptionWorkflow {
+  int _operationToken = 0;
+  String? _selectedDirectoryPath;
+  String? _selectedVolumeName;
+  AttachmentArchiveCandidateVerificationResult? _readyVerification;
+  AttachmentArchiveAdoptionWorkflowState? _stableTerminalSuccess;
+
+  @override
+  AttachmentArchiveAdoptionWorkflowState build() {
+    ref.onDispose(() {
+      _operationToken++;
+      _readyVerification = null;
+      _stableTerminalSuccess = null;
+    });
+    final executionEnabled = ref.watch(
+      attachmentArchiveAdoptionExecutionEnabledProvider,
+    );
+    ref.listen(attachmentArchivePendingAdoptionTransactionProvider, (
+      previous,
+      next,
+    ) {
+      final pending = next.valueOrNull;
+      if ((pending?.hasCrossedActiveAuthorityBoundary ?? false) &&
+          state.stage != AttachmentArchiveAdoptionWorkflowStage.switching &&
+          state.stage != AttachmentArchiveAdoptionWorkflowStage.remediating &&
+          state.stage !=
+              AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage &&
+          state.stage != AttachmentArchiveAdoptionWorkflowStage.success) {
+        state = _pendingState(
+          pending!,
+          executionEnabled: _executionIsEnabled(),
+        );
+      }
+    });
+    final stableSuccess = _stableTerminalSuccess;
+    if (stableSuccess != null) {
+      return _withExecutionEnabled(stableSuccess, executionEnabled);
+    }
+    final pending = ref
+        .read(attachmentArchivePendingAdoptionTransactionProvider)
+        .valueOrNull;
+    if (pending?.hasCrossedActiveAuthorityBoundary ?? false) {
+      return _pendingState(pending!, executionEnabled: executionEnabled);
+    }
+    return AttachmentArchiveAdoptionWorkflowState.currentArchive(
+      executionEnabled: executionEnabled,
+    );
+  }
+
+  static AttachmentArchiveAdoptionWorkflowState _pendingState(
+    AttachmentArchiveAdoptionTransaction pending, {
+    required bool executionEnabled,
+  }) {
+    return AttachmentArchiveAdoptionWorkflowState(
+      stage: AttachmentArchiveAdoptionWorkflowStage.remediationPending,
+      executionEnabled: executionEnabled,
+      sourcePath: pending.sourceCanonicalIdentity,
+      candidatePath: pending.candidateCanonicalIdentity,
+      missingCount: pending.remediationPayloads.length,
+      missingBytes: pending.remediationBytes,
+      issue:
+          'The new archive is active. Historical attachments still need '
+          'to be added from the original archive.',
+    );
+  }
+
+  Future<void> chooseExistingArchive() async {
+    if (!_executionIsEnabled()) {
+      return;
+    }
+    final previousState = state;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
+    final token = ++_operationToken;
+    final chooser = ref.read(attachmentArchiveAdoptionFolderChooserProvider);
+    final String? selectedPath;
+    try {
+      selectedPath = await chooser.chooseArchiveDirectory();
+    } on Object catch (error) {
+      if (_isCurrent(token)) {
+        state = AttachmentArchiveAdoptionWorkflowState(
+          stage: AttachmentArchiveAdoptionWorkflowStage.candidateUnavailable,
+          executionEnabled: true,
+          issue: 'The archive-copy chooser could not be opened: $error',
+        );
+      }
+      return;
+    }
+    if (!_isCurrent(token) || selectedPath == null) {
+      if (_isCurrent(token)) {
+        state = previousState;
+      }
+      return;
+    }
+    _selectedDirectoryPath = selectedPath;
+    _selectedVolumeName = null;
+    _readyVerification = null;
+    await _checkSelectedCandidate(token: token);
+  }
+
+  Future<void> chooseAnotherFolder() => chooseExistingArchive();
+
+  Future<void> checkAgain() async {
+    if (!_executionIsEnabled()) {
+      return;
+    }
+    final selectedPath = _selectedDirectoryPath;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
+    if (selectedPath == null) {
+      await chooseExistingArchive();
+      return;
+    }
+    final token = ++_operationToken;
+    _readyVerification = null;
+    await _checkSelectedCandidate(token: token);
+  }
+
+  Future<void> cancelCheck() async {
+    _operationToken++;
+    _selectedDirectoryPath = null;
+    _selectedVolumeName = null;
+    _readyVerification = null;
+    _stableTerminalSuccess = null;
+    ref.read(attachmentShowcaseSourceProvider.notifier).clear();
+    state = AttachmentArchiveAdoptionWorkflowState.currentArchive(
+      executionEnabled: _executionIsEnabled(),
+    );
+  }
+
+  Future<void> useCandidate() async {
+    if (!_executionIsEnabled() || !state.canUseCandidate) {
+      return;
+    }
+    final verification = _readyVerification;
+    if (verification == null) {
+      state = _adoptionState(
+        stage:
+            AttachmentArchiveAdoptionWorkflowStage.verificationEvidenceInvalid,
+        issue: 'The archive must be checked again before it can be used.',
+      );
+      return;
+    }
+
+    final displayContext = state;
+    final token = ++_operationToken;
+    final showcase = ref.read(attachmentShowcaseSourceProvider.notifier)
+      ..begin();
+    var pendingCacheRefreshRequested = false;
+    state = _adoptionState(
+      stage: AttachmentArchiveAdoptionWorkflowStage.switching,
+    );
+    try {
+      final executor = await ref.read(
+        attachmentArchiveAdoptionExecutorProvider.future,
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      final result = await executor.adopt(
+        verification,
+        onVerificationProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          state = _adoptionState(
+            stage: AttachmentArchiveAdoptionWorkflowStage.switching,
+            progress: progress,
+          );
+        },
+        onRemediationProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          if (!pendingCacheRefreshRequested) {
+            pendingCacheRefreshRequested = true;
+            ref.invalidate(attachmentArchivePendingAdoptionTransactionProvider);
+          }
+          state = _adoptionState(
+            stage: AttachmentArchiveAdoptionWorkflowStage.remediating,
+            remediationProgress: progress,
+          );
+        },
+        onFinalCoverageProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          showcase.stop();
+          state = _adoptionState(
+            stage:
+                AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage,
+            progress: progress,
+          );
+        },
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      final pending = await _refreshPendingTransactionCache();
+      if (!_isCurrent(token)) {
+        return;
+      }
+      if (_isSuccessful(result) && pending != null) {
+        showcase.stop();
+        _readyVerification = null;
+        state = _pendingState(pending, executionEnabled: _executionIsEnabled());
+        return;
+      }
+      _readyVerification = null;
+      final next = _stateForAdoptionResult(result, basis: displayContext);
+      if (next.stage == AttachmentArchiveAdoptionWorkflowStage.success) {
+        _stableTerminalSuccess = next;
+      }
+      showcase.stop();
+      state = next;
+    } on Object catch (error) {
+      if (_isCurrent(token)) {
+        showcase.stop();
+        _readyVerification = null;
+        state = _adoptionState(
+          stage: AttachmentArchiveAdoptionWorkflowStage.failed,
+          issue: 'Archive adoption could not complete: $error',
+        );
+      }
+    }
+  }
+
+  Future<void> resumePendingRemediation() async {
+    if (!_executionIsEnabled() ||
+        state.stage !=
+            AttachmentArchiveAdoptionWorkflowStage.remediationPending) {
+      return;
+    }
+    final displayContext = state;
+    final token = ++_operationToken;
+    final showcase = ref.read(attachmentShowcaseSourceProvider.notifier)
+      ..begin();
+    try {
+      final executor = await ref.read(
+        attachmentArchiveAdoptionExecutorProvider.future,
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      final result = await executor.resumePendingRemediation(
+        onRemediationProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          state = _adoptionState(
+            stage: AttachmentArchiveAdoptionWorkflowStage.remediating,
+            remediationProgress: progress,
+          );
+        },
+        onFinalCoverageProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          showcase.stop();
+          state = _adoptionState(
+            stage:
+                AttachmentArchiveAdoptionWorkflowStage.verifyingFinalCoverage,
+            progress: progress,
+          );
+        },
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      final pending = await _refreshPendingTransactionCache();
+      if (!_isCurrent(token)) {
+        return;
+      }
+      if (_isSuccessful(result) && pending != null) {
+        showcase.stop();
+        state = _pendingState(pending, executionEnabled: _executionIsEnabled());
+        return;
+      }
+      final next = _stateForAdoptionResult(result, basis: displayContext);
+      if (next.stage == AttachmentArchiveAdoptionWorkflowStage.success) {
+        _stableTerminalSuccess = next;
+      }
+      showcase.stop();
+      state = next;
+    } on Object catch (error) {
+      if (_isCurrent(token)) {
+        showcase.stop();
+        state = _adoptionState(
+          stage: AttachmentArchiveAdoptionWorkflowStage.remediationPending,
+          issue: 'Historical remediation is still pending: $error',
+        );
+      }
+    }
+  }
+
+  Future<void> _checkSelectedCandidate({required int token}) async {
+    final selectedPath = _selectedDirectoryPath;
+    if (selectedPath == null || !_isCurrent(token)) {
+      return;
+    }
+
+    state = AttachmentArchiveAdoptionWorkflowState(
+      stage: AttachmentArchiveAdoptionWorkflowStage.checking,
+      executionEnabled: true,
+      candidatePath: selectedPath,
+    );
+
+    final resolution = await _resolveCandidate(selectedPath);
+    if (!_isCurrent(token)) {
+      return;
+    }
+    final candidateAccess = resolution.access;
+    if (candidateAccess == null) {
+      state = AttachmentArchiveAdoptionWorkflowState(
+        stage: AttachmentArchiveAdoptionWorkflowStage.candidateUnavailable,
+        executionEnabled: true,
+        candidatePath: selectedPath,
+        issue: resolution.issue,
+      );
+      return;
+    }
+    _selectedVolumeName = resolution.volumeName;
+
+    try {
+      final sourceLocation = await ref.read(
+        attachmentArchiveAdoptionSourceLocationProvider.future,
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      state = AttachmentArchiveAdoptionWorkflowState(
+        stage: AttachmentArchiveAdoptionWorkflowStage.checking,
+        executionEnabled: true,
+        sourcePath:
+            sourceLocation.archiveRootPath ??
+            sourceLocation.lastKnownDisplayPath,
+        candidatePath: candidateAccess.directoryPath,
+        candidateVolumeName: resolution.volumeName,
+      );
+
+      final verifier = await ref.read(
+        attachmentArchiveAdoptionCandidateVerifierProvider.future,
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      final result = await verifier.verify(
+        sourceLocation: sourceLocation,
+        candidate: candidateAccess,
+        onProgress: (progress) {
+          if (!_isCurrent(token)) {
+            return;
+          }
+          state = AttachmentArchiveAdoptionWorkflowState(
+            stage: AttachmentArchiveAdoptionWorkflowStage.checking,
+            executionEnabled: true,
+            sourcePath:
+                sourceLocation.archiveRootPath ??
+                sourceLocation.lastKnownDisplayPath,
+            candidatePath: candidateAccess.directoryPath,
+            candidateVolumeName: resolution.volumeName,
+            progress: progress,
+          );
+        },
+        isCancelled: () => !_isCurrent(token),
+      );
+      if (!_isCurrent(token)) {
+        return;
+      }
+      _readyVerification =
+          result is AttachmentArchiveCandidateComplete ||
+              result is AttachmentArchiveCandidateBehind
+          ? result
+          : null;
+      state = _stateForVerification(result);
+    } on AttachmentArchiveCandidateVerificationCancelled {
+      if (_isCurrent(token)) {
+        await cancelCheck();
+      }
+    } on Object catch (error) {
+      if (_isCurrent(token)) {
+        state = AttachmentArchiveAdoptionWorkflowState(
+          stage: AttachmentArchiveAdoptionWorkflowStage.verificationFailed,
+          executionEnabled: true,
+          candidatePath: candidateAccess.directoryPath,
+          candidateVolumeName: resolution.volumeName,
+          issue: 'Archive verification could not complete: $error',
+        );
+      }
+    }
+  }
+
+  Future<_CandidateResolution> _resolveCandidate(String selectedPath) async {
+    try {
+      final bookmarks = ref.read(
+        attachmentArchiveAdoptionBookmarkAdapterProvider,
+      );
+      final created = await bookmarks.createBookmark(
+        directoryPath: selectedPath,
+      );
+      final resolved = await bookmarks.resolveBookmark(
+        bookmarkDataBase64: created.bookmarkDataBase64,
+      );
+      final resolvedPath = resolved.resolvedPath;
+      switch (resolved.status) {
+        case AttachmentArchiveBookmarkResolutionStatus.available:
+          if (resolvedPath == null || resolvedPath.isEmpty) {
+            return const _CandidateResolution.unavailable(
+              'The selected archive copy did not resolve to a directory.',
+            );
+          }
+          return _CandidateResolution.available(
+            access: AttachmentArchiveCandidateAccess(
+              directoryPath: resolvedPath,
+              isPhysicallyWritable: true,
+            ),
+            volumeName: resolved.volumeName ?? created.volumeName,
+          );
+        case AttachmentArchiveBookmarkResolutionStatus.readOnly:
+          if (resolvedPath == null || resolvedPath.isEmpty) {
+            return const _CandidateResolution.unavailable(
+              'The selected archive copy did not resolve to a directory.',
+            );
+          }
+          return _CandidateResolution.available(
+            access: AttachmentArchiveCandidateAccess(
+              directoryPath: resolvedPath,
+              isPhysicallyWritable: false,
+            ),
+            volumeName: resolved.volumeName ?? created.volumeName,
+          );
+        case AttachmentArchiveBookmarkResolutionStatus.unavailable ||
+            AttachmentArchiveBookmarkResolutionStatus.permissionDenied ||
+            AttachmentArchiveBookmarkResolutionStatus
+                .configuredDirectoryMissing ||
+            AttachmentArchiveBookmarkResolutionStatus.invalidBookmark:
+          return _CandidateResolution.unavailable(
+            resolved.issue ?? 'The selected archive copy is unavailable.',
+          );
+      }
+    } on Object catch (error) {
+      return _CandidateResolution.unavailable(
+        'The selected archive copy is unavailable: $error',
+      );
+    }
+  }
+
+  AttachmentArchiveAdoptionWorkflowState _stateForVerification(
+    AttachmentArchiveCandidateVerificationResult result,
+  ) {
+    final evidence = result.evidence;
+    final sourcePath =
+        evidence?.sourceCanonicalIdentity ??
+        result.context.sourceCanonicalIdentity ??
+        result.context.requestedSourcePath;
+    final candidatePath =
+        evidence?.candidateCanonicalIdentity ??
+        result.context.candidateCanonicalIdentity ??
+        result.context.requestedCandidatePath;
+    final stage = switch (result.outcome) {
+      AttachmentArchiveCandidateVerificationOutcome.candidateComplete =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateComplete,
+      AttachmentArchiveCandidateVerificationOutcome.candidateBehind =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateBehind,
+      AttachmentArchiveCandidateVerificationOutcome.candidateInvalid =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateInvalid,
+      AttachmentArchiveCandidateVerificationOutcome.sourceUnavailable =>
+        AttachmentArchiveAdoptionWorkflowStage.sourceUnavailable,
+      AttachmentArchiveCandidateVerificationOutcome.candidateUnavailable =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateUnavailable,
+      AttachmentArchiveCandidateVerificationOutcome.verificationFailed =>
+        AttachmentArchiveAdoptionWorkflowStage.verificationFailed,
+    };
+    return AttachmentArchiveAdoptionWorkflowState(
+      stage: stage,
+      executionEnabled: true,
+      sourcePath: sourcePath,
+      candidatePath: candidatePath,
+      candidateVolumeName: _selectedVolumeName,
+      candidateIsAdoptable:
+          (stage == AttachmentArchiveAdoptionWorkflowStage.candidateComplete ||
+              stage ==
+                  AttachmentArchiveAdoptionWorkflowStage.candidateBehind) &&
+          (evidence?.candidateWasPhysicallyWritable ?? false) &&
+          (stage != AttachmentArchiveAdoptionWorkflowStage.candidateBehind ||
+              ((evidence?.hasCompleteMissingPayloadEvidence ?? false) &&
+                  (evidence?.missingCount ?? 0) > 0 &&
+                  (evidence?.missingCount ?? 0) <=
+                      AttachmentArchiveAdoptionTransaction
+                          .maximumRemediationPayloadCount &&
+                  (evidence?.missingBytes ?? 0) <=
+                      AttachmentArchiveAdoptionTransaction
+                          .maximumRemediationBytes)),
+      requiredFileCount: evidence?.requiredSourcePhysicalFileCount,
+      requiredBytes: evidence?.requiredSourceBytes,
+      verifiedFileCount: evidence?.verifiedFileCount,
+      verifiedBytes: evidence?.verifiedBytes,
+      allowedExtraCount: evidence?.allowedCandidateExtraCount,
+      allowedExtraBytes: evidence?.allowedCandidateExtraBytes,
+      missingCount: evidence?.missingCount,
+      missingBytes: evidence?.missingBytes,
+      issue: result.issue,
+    );
+  }
+
+  AttachmentArchiveAdoptionWorkflowState _stateForAdoptionResult(
+    AttachmentArchiveAdoptionResult result, {
+    AttachmentArchiveAdoptionWorkflowState? basis,
+  }) {
+    final stage = switch (result.outcome) {
+      AttachmentArchiveAdoptionOutcome.adopted =>
+        AttachmentArchiveAdoptionWorkflowStage.success,
+      AttachmentArchiveAdoptionOutcome.remediationComplete =>
+        AttachmentArchiveAdoptionWorkflowStage.success,
+      AttachmentArchiveAdoptionOutcome.remediationPending =>
+        AttachmentArchiveAdoptionWorkflowStage.remediationPending,
+      AttachmentArchiveAdoptionOutcome.sourceChangedCheckAgain ||
+      AttachmentArchiveAdoptionOutcome.candidateChangedCheckAgain =>
+        AttachmentArchiveAdoptionWorkflowStage.archiveChanged,
+      AttachmentArchiveAdoptionOutcome.sourceUnavailable =>
+        AttachmentArchiveAdoptionWorkflowStage.sourceUnavailable,
+      AttachmentArchiveAdoptionOutcome.candidateUnavailable =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateUnavailable,
+      AttachmentArchiveAdoptionOutcome.candidateNoLongerWritable =>
+        AttachmentArchiveAdoptionWorkflowStage.candidateNoLongerWritable,
+      AttachmentArchiveAdoptionOutcome.verificationEvidenceInvalid =>
+        AttachmentArchiveAdoptionWorkflowStage.verificationEvidenceInvalid,
+      AttachmentArchiveAdoptionOutcome.rollbackRestoredPrevious =>
+        AttachmentArchiveAdoptionWorkflowStage.rollbackRestoredPrevious,
+      AttachmentArchiveAdoptionOutcome.rollbackPendingPreviousUnavailable =>
+        AttachmentArchiveAdoptionWorkflowStage
+            .rollbackPendingPreviousUnavailable,
+      AttachmentArchiveAdoptionOutcome.configurationConflict =>
+        AttachmentArchiveAdoptionWorkflowStage.configurationConflict,
+      AttachmentArchiveAdoptionOutcome.noPendingRecovery ||
+      AttachmentArchiveAdoptionOutcome.preparedTransactionAbandoned ||
+      AttachmentArchiveAdoptionOutcome.failed =>
+        AttachmentArchiveAdoptionWorkflowStage.failed,
+    };
+    return _adoptionState(stage: stage, issue: result.issue, basis: basis);
+  }
+
+  AttachmentArchiveAdoptionWorkflowState _adoptionState({
+    required AttachmentArchiveAdoptionWorkflowStage stage,
+    String? issue,
+    AttachmentArchiveVerificationProgress? progress,
+    AttachmentArchiveRemediationProgress? remediationProgress,
+    AttachmentArchiveAdoptionWorkflowState? basis,
+  }) {
+    final context = basis ?? state;
+    return AttachmentArchiveAdoptionWorkflowState(
+      stage: stage,
+      executionEnabled: _executionIsEnabled(),
+      sourcePath: context.sourcePath,
+      candidatePath: context.candidatePath,
+      candidateVolumeName: context.candidateVolumeName,
+      issue: issue,
+      progress: progress,
+      missingCount: context.missingCount,
+      missingBytes: context.missingBytes,
+      remediationProgress: remediationProgress,
+    );
+  }
+
+  Future<AttachmentArchiveAdoptionTransaction?>
+  _refreshPendingTransactionCache() async {
+    ref.invalidate(attachmentArchivePendingAdoptionTransactionProvider);
+    return ref.read(attachmentArchivePendingAdoptionTransactionProvider.future);
+  }
+
+  static bool _isSuccessful(AttachmentArchiveAdoptionResult result) {
+    return result.outcome == AttachmentArchiveAdoptionOutcome.adopted ||
+        result.outcome == AttachmentArchiveAdoptionOutcome.remediationComplete;
+  }
+
+  static AttachmentArchiveAdoptionWorkflowState _withExecutionEnabled(
+    AttachmentArchiveAdoptionWorkflowState state,
+    bool executionEnabled,
+  ) {
+    return AttachmentArchiveAdoptionWorkflowState(
+      stage: state.stage,
+      executionEnabled: executionEnabled,
+      sourcePath: state.sourcePath,
+      candidatePath: state.candidatePath,
+      candidateVolumeName: state.candidateVolumeName,
+      candidateIsAdoptable: state.candidateIsAdoptable,
+      progress: state.progress,
+      requiredFileCount: state.requiredFileCount,
+      requiredBytes: state.requiredBytes,
+      verifiedFileCount: state.verifiedFileCount,
+      verifiedBytes: state.verifiedBytes,
+      allowedExtraCount: state.allowedExtraCount,
+      allowedExtraBytes: state.allowedExtraBytes,
+      missingCount: state.missingCount,
+      missingBytes: state.missingBytes,
+      issue: state.issue,
+      remediationProgress: state.remediationProgress,
+    );
+  }
+
+  bool _executionIsEnabled() {
+    return ref.read(attachmentArchiveAdoptionExecutionEnabledProvider);
+  }
+
+  bool _isCurrent(int token) => token == _operationToken;
+}
+
+final class _CandidateResolution {
+  const _CandidateResolution.available({
+    required AttachmentArchiveCandidateAccess this.access,
+    required this.volumeName,
+  }) : issue = null;
+
+  const _CandidateResolution.unavailable(String this.issue)
+    : access = null,
+      volumeName = null;
+
+  final AttachmentArchiveCandidateAccess? access;
+  final String? volumeName;
+  final String? issue;
+}

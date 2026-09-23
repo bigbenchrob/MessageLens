@@ -6,7 +6,7 @@ part of 'panel_coordinator_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panelCoordinatorHash() => r'73d6988a38205f79105f76b28234d0bdd7027468';
+String _$panelCoordinatorHash() => r'4ba5ee9e2ac99845435830d1e22adea4cc05a9fe';
 
 /// Copied from Dart SDK
 class _SystemHash {

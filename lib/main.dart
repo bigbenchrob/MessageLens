@@ -51,6 +51,8 @@ import 'essentials/onboarding/presentation/start_fresh_authorization_dialog.dart
 import 'essentials/services/startup_flags_service.dart';
 import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
+import 'features/attachments/feature_level_providers.dart'
+    show attachmentArchiveAdoptionRecoveryProvider;
 import 'features/presence_iteration_simple/presentation/linear_presence_experiment_host.dart';
 import 'frb_generated.dart';
 
@@ -353,6 +355,24 @@ Future<void> _initializePersistentStartup({
     installationState,
   )) {
     return;
+  }
+
+  final adoptionRecovery = await container.read(
+    attachmentArchiveAdoptionRecoveryProvider.future,
+  );
+  if (adoptionRecovery.transactionId != null ||
+      adoptionRecovery.requiresRecovery) {
+    final log = adoptionRecovery.requiresRecovery ? logger.warn : logger.info;
+    log(
+      'Attachment archive adoption startup recovery: '
+      '${adoptionRecovery.outcome.name}',
+      source: 'AttachmentArchiveAdoption',
+      context: {
+        if (adoptionRecovery.transactionId != null)
+          'transactionId': adoptionRecovery.transactionId,
+        if (adoptionRecovery.issue != null) 'issue': adoptionRecovery.issue,
+      },
+    );
   }
 
   try {

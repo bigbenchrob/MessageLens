@@ -14,6 +14,7 @@
       category: "AppLogger"
     )
     private var optionLaunchResetRequested = false
+    private var attachmentArchiveLocationBridge: AttachmentArchiveLocationBridge?
 
     override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
       return true
@@ -41,6 +42,10 @@
         return
       }
       let messenger = controller.engine.binaryMessenger
+
+      attachmentArchiveLocationBridge = AttachmentArchiveLocationBridge(
+        messenger: messenger
+      )
 
       let linkChannel = FlutterMethodChannel(
         name: "com.remember_this_text/link_preview",

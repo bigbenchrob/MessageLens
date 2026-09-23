@@ -3,9 +3,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../essentials/archive_environment/domain.dart'
     show ArchiveMutationOperation;
 import '../../../essentials/archive_environment/feature_level_providers.dart'
-    show archiveMutationCoordinatorProvider;
+    show ArchiveMutationCapability, archiveMutationCoordinatorProvider;
 import '../../../essentials/logging/feature_level_providers.dart'
     show appLoggerProvider;
+import 'attachment_archive_location_provider.dart';
 import 'deterministic_recovery_runtime_providers.dart'
     show
         crossSnapshotMapperProvider,
@@ -21,6 +22,7 @@ enum DeterministicRecoveryPhase {
   readingSnapshot,
   mapping,
   archiving,
+  deferred,
   complete,
   error,
 }
@@ -76,6 +78,7 @@ class DeterministicRecoveryState {
     this.phaseTotal = 0,
     this.result,
     this.errorMessage,
+    this.deferredReason,
   });
 
   final DeterministicRecoveryPhase phase;
@@ -83,6 +86,7 @@ class DeterministicRecoveryState {
   final int phaseTotal;
   final DeterministicRecoveryResult? result;
   final String? errorMessage;
+  final AttachmentArchiveMutationDeferredReason? deferredReason;
 
   bool get isRunning =>
       phase == DeterministicRecoveryPhase.validating ||
@@ -96,6 +100,7 @@ class DeterministicRecoveryState {
     int? phaseTotal,
     DeterministicRecoveryResult? result,
     String? errorMessage,
+    AttachmentArchiveMutationDeferredReason? deferredReason,
   }) {
     return DeterministicRecoveryState(
       phase: phase ?? this.phase,
@@ -103,6 +108,7 @@ class DeterministicRecoveryState {
       phaseTotal: phaseTotal ?? this.phaseTotal,
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
+      deferredReason: deferredReason ?? this.deferredReason,
     );
   }
 }
@@ -127,19 +133,49 @@ class DeterministicRecovery extends _$DeterministicRecovery {
   }) {
     return ref
         .read(archiveMutationCoordinatorProvider.notifier)
-        .run<void>(
+        .runWithCapability<void>(
           operation: ArchiveMutationOperation.automaticRecovery,
           ownerLabel: 'deterministic-attachment-recovery',
-          action: () => _recover(
-            chatDbPath: chatDbPath,
-            attachmentsFolderPath: attachmentsFolderPath,
-          ),
+          action: (mutationCapability) async {
+            final admission = await ref.read(
+              attachmentArchiveWritableRootAdmissionProvider.future,
+            );
+            final writableRootLease = admission.lease;
+            if (writableRootLease == null) {
+              state = DeterministicRecoveryState(
+                phase: DeterministicRecoveryPhase.deferred,
+                deferredReason: admission.deferredReason,
+                errorMessage: admission.issue,
+              );
+              return;
+            }
+            try {
+              await writableRootLease.requireValid(
+                operation: ArchiveMutationOperation.automaticRecovery,
+                boundary: AttachmentArchiveMutationBoundary.operationStart,
+              );
+              await _recover(
+                chatDbPath: chatDbPath,
+                attachmentsFolderPath: attachmentsFolderPath,
+                mutationCapability: mutationCapability,
+                writableRootLease: writableRootLease,
+              );
+            } on AttachmentArchiveMutationDeferredException catch (error) {
+              state = DeterministicRecoveryState(
+                phase: DeterministicRecoveryPhase.deferred,
+                deferredReason: error.reason,
+                errorMessage: error.issue,
+              );
+            }
+          },
         );
   }
 
   Future<void> _recover({
     required String chatDbPath,
     required String attachmentsFolderPath,
+    required ArchiveMutationCapability mutationCapability,
+    required AttachmentArchiveWritableRootLease writableRootLease,
   }) async {
     if (state.isRunning) {
       return;
@@ -265,7 +301,11 @@ class DeterministicRecovery extends _$DeterministicRecovery {
       final record = mappingResult.mapped[i];
 
       try {
-        final archived = await archiveWriter.archive(record);
+        final archived = await archiveWriter.archive(
+          record: record,
+          writableRootLease: writableRootLease,
+          mutationCapability: mutationCapability,
+        );
 
         if (archived == null) {
           skippedAlreadyArchived++;
@@ -273,6 +313,8 @@ class DeterministicRecovery extends _$DeterministicRecovery {
           archivedNew++;
           totalBytesArchived += archived;
         }
+      } on AttachmentArchiveMutationDeferredException {
+        rethrow;
       } on Exception catch (error) {
         archiveFailed++;
         logger.warn(

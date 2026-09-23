@@ -5,6 +5,62 @@ import XCTest
 
 class RunnerTests: XCTestCase {
 
+  func testAttachmentArchiveBookmarkRoundTrip() throws {
+    let directoryURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: directoryURL,
+      withIntermediateDirectories: true
+    )
+    addTeardownBlock {
+      try? FileManager.default.removeItem(at: directoryURL)
+    }
+
+    let service = FoundationAttachmentArchiveBookmarkService()
+    let creation = try service.createBookmark(
+      directoryPath: directoryURL.path
+    )
+    let resolution = service.resolveBookmark(
+      base64: creation.bookmarkData.base64EncodedString()
+    )
+
+    XCTAssertEqual(creation.resolvedURL, directoryURL.standardizedFileURL)
+    XCTAssertEqual(resolution.status, .available)
+    XCTAssertEqual(resolution.resolvedURL, directoryURL.standardizedFileURL)
+  }
+
+  func testAttachmentArchiveInvalidBookmarkFailsClosed() {
+    let service = FoundationAttachmentArchiveBookmarkService()
+
+    let resolution = service.resolveBookmark(base64: "not-base64")
+
+    XCTAssertEqual(resolution.status, .invalidBookmark)
+    XCTAssertNil(resolution.resolvedURL)
+  }
+
+  func testAttachmentArchiveBookmarkDoesNotRecreateDeletedDirectory() throws {
+    let directoryURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: directoryURL,
+      withIntermediateDirectories: true
+    )
+    let service = FoundationAttachmentArchiveBookmarkService()
+    let creation = try service.createBookmark(
+      directoryPath: directoryURL.path
+    )
+
+    try FileManager.default.removeItem(at: directoryURL)
+    let resolution = service.resolveBookmark(
+      base64: creation.bookmarkData.base64EncodedString()
+    )
+
+    XCTAssertFalse(FileManager.default.fileExists(atPath: directoryURL.path))
+    XCTAssertNotEqual(resolution.status, .available)
+    XCTAssertNotEqual(resolution.status, .readOnly)
+    XCTAssertNil(resolution.resolvedURL)
+  }
+
   func testDevelopmentClaimResolvesDevelopmentRoot() throws {
     let applicationSupportURL = URL(fileURLWithPath: "/tmp/ApplicationSupport")
     let resolver = MessageLensNativeArchiveClaimResolver(

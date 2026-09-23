@@ -55,10 +55,11 @@ extension SettingsViewSpecPatterns on SettingsViewSpec {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _HistoricalArchivesWorkflow value)?  historicalArchivesWorkflow,TResult Function( _MessageHistoryCoverageReport value)?  messageHistoryCoverageReport,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _AttachmentArchiveWorkflow value)?  attachmentArchiveWorkflow,TResult Function( _HistoricalArchivesWorkflow value)?  historicalArchivesWorkflow,TResult Function( _MessageHistoryCoverageReport value)?  messageHistoryCoverageReport,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
+case _AttachmentArchiveWorkflow() when attachmentArchiveWorkflow != null:
+return attachmentArchiveWorkflow(_that);case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
 return historicalArchivesWorkflow(_that);case _MessageHistoryCoverageReport() when messageHistoryCoverageReport != null:
 return messageHistoryCoverageReport(_that);case _:
   return orElse();
@@ -78,10 +79,11 @@ return messageHistoryCoverageReport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _HistoricalArchivesWorkflow value)  historicalArchivesWorkflow,required TResult Function( _MessageHistoryCoverageReport value)  messageHistoryCoverageReport,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _AttachmentArchiveWorkflow value)  attachmentArchiveWorkflow,required TResult Function( _HistoricalArchivesWorkflow value)  historicalArchivesWorkflow,required TResult Function( _MessageHistoryCoverageReport value)  messageHistoryCoverageReport,}){
 final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow():
+case _AttachmentArchiveWorkflow():
+return attachmentArchiveWorkflow(_that);case _HistoricalArchivesWorkflow():
 return historicalArchivesWorkflow(_that);case _MessageHistoryCoverageReport():
 return messageHistoryCoverageReport(_that);case _:
   throw StateError('Unexpected subclass');
@@ -100,10 +102,11 @@ return messageHistoryCoverageReport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _HistoricalArchivesWorkflow value)?  historicalArchivesWorkflow,TResult? Function( _MessageHistoryCoverageReport value)?  messageHistoryCoverageReport,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _AttachmentArchiveWorkflow value)?  attachmentArchiveWorkflow,TResult? Function( _HistoricalArchivesWorkflow value)?  historicalArchivesWorkflow,TResult? Function( _MessageHistoryCoverageReport value)?  messageHistoryCoverageReport,}){
 final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
+case _AttachmentArchiveWorkflow() when attachmentArchiveWorkflow != null:
+return attachmentArchiveWorkflow(_that);case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
 return historicalArchivesWorkflow(_that);case _MessageHistoryCoverageReport() when messageHistoryCoverageReport != null:
 return messageHistoryCoverageReport(_that);case _:
   return null;
@@ -122,9 +125,10 @@ return messageHistoryCoverageReport(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  historicalArchivesWorkflow,TResult Function()?  messageHistoryCoverageReport,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  attachmentArchiveWorkflow,TResult Function()?  historicalArchivesWorkflow,TResult Function()?  messageHistoryCoverageReport,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
+case _AttachmentArchiveWorkflow() when attachmentArchiveWorkflow != null:
+return attachmentArchiveWorkflow();case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
 return historicalArchivesWorkflow();case _MessageHistoryCoverageReport() when messageHistoryCoverageReport != null:
 return messageHistoryCoverageReport();case _:
   return orElse();
@@ -144,9 +148,10 @@ return messageHistoryCoverageReport();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  historicalArchivesWorkflow,required TResult Function()  messageHistoryCoverageReport,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  attachmentArchiveWorkflow,required TResult Function()  historicalArchivesWorkflow,required TResult Function()  messageHistoryCoverageReport,}) {final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow():
+case _AttachmentArchiveWorkflow():
+return attachmentArchiveWorkflow();case _HistoricalArchivesWorkflow():
 return historicalArchivesWorkflow();case _MessageHistoryCoverageReport():
 return messageHistoryCoverageReport();case _:
   throw StateError('Unexpected subclass');
@@ -165,9 +170,10 @@ return messageHistoryCoverageReport();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  historicalArchivesWorkflow,TResult? Function()?  messageHistoryCoverageReport,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  attachmentArchiveWorkflow,TResult? Function()?  historicalArchivesWorkflow,TResult? Function()?  messageHistoryCoverageReport,}) {final _that = this;
 switch (_that) {
-case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
+case _AttachmentArchiveWorkflow() when attachmentArchiveWorkflow != null:
+return attachmentArchiveWorkflow();case _HistoricalArchivesWorkflow() when historicalArchivesWorkflow != null:
 return historicalArchivesWorkflow();case _MessageHistoryCoverageReport() when messageHistoryCoverageReport != null:
 return messageHistoryCoverageReport();case _:
   return null;
@@ -176,6 +182,38 @@ return messageHistoryCoverageReport();case _:
 }
 
 }
+
+/// @nodoc
+
+
+class _AttachmentArchiveWorkflow implements SettingsViewSpec {
+  const _AttachmentArchiveWorkflow();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AttachmentArchiveWorkflow);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SettingsViewSpec.attachmentArchiveWorkflow()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 

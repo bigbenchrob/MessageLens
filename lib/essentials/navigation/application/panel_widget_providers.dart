@@ -482,6 +482,10 @@ bool _isCenterSpecCompatibleWithSidebar({
     },
     settings: (settingsSpec) {
       return settingsSpec.when(
+        attachmentArchiveWorkflow: () {
+          return flowState.persistentSettingsContext ==
+              SettingsMenuActionId.attachmentArchive;
+        },
         historicalArchivesWorkflow: () {
           return flowState.persistentSettingsContext ==
               SettingsMenuActionId.historicalArchives;
