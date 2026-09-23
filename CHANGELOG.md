@@ -10,6 +10,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.127] — 2026-09-22
+
+### Changed
+
+- The Environment summary copy action now uses a compact secondary button near
+  the page heading instead of presenting as the page's primary call to action.
+- The ordinary Contacts card focuses on projected Contacts aggregates; the
+  physical-source retention limitation remains explicit in Technical Details
+  and copied support summaries.
+
+### Safety
+
+- Environment still observes only current aggregate truth. Message source
+  cards remain limited to sources contributing projected Messages, and the
+  polish adds no archive, database, startup, Finder, or mutation behavior.
+
 ## [0.2.126] — 2026-09-22
 
 ### Added

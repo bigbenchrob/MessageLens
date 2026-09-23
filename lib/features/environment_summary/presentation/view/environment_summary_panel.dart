@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../config/theme/colors/theme_colors.dart';
 import '../../../../config/theme/spacing/app_spacing.dart';
 import '../../../../config/theme/theme_typography.dart';
-import '../../../../config/theme/widgets/theme_widgets.dart';
 import '../../../../core/util/count_label_formatter.dart';
 import '../../../../core/util/date_label_formatter.dart';
 import '../../../../essentials/navigation/feature_level_providers.dart'
@@ -75,27 +74,29 @@ class _EnvironmentSummaryPanelState
                         ),
                       ),
                     ),
-                    Semantics(
-                      key: EnvironmentSummaryPanel.copyButtonKey,
-                      button: true,
-                      enabled: !_copyInProgress,
-                      label: 'Copy Environment Summary',
-                      excludeSemantics: true,
-                      child: AppThemeWidgets.primaryButton(
-                        ref: ref,
-                        label: _copyInProgress
-                            ? 'Copying…'
-                            : 'Copy Environment Summary',
-                        leading: Icon(
-                          Icons.copy_outlined,
-                          size: 16,
-                          color: colors.buttons.primaryForeground,
-                        ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 280),
+                      child: TextButton.icon(
+                        key: EnvironmentSummaryPanel.copyButtonKey,
                         onPressed: _copyInProgress
                             ? null
                             : () async {
                                 await _copyEnvironmentSummary(summary);
                               },
+                        icon: const Icon(Icons.copy_outlined, size: 16),
+                        label: Text(
+                          _copyInProgress
+                              ? 'Copying…'
+                              : 'Copy Environment Summary',
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.sm,
+                          ),
+                          foregroundColor: colors.content.textSecondary,
+                          textStyle: typography.controlValue,
+                        ),
                       ),
                     ),
                   ],
@@ -526,17 +527,6 @@ class _ContactsDataSection extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             _IssueText(issue),
           ],
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            summary.physicalSourceIdentityRetained
-                ? 'Physical Contacts source identity is retained.'
-                : 'MessageLens does not retain the physical Contacts database '
-                      'that contributed these records.',
-            style: _typography(ref).caption1.copyWith(
-              color: _colors(ref).content.textSecondary,
-              height: 1.4,
-            ),
-          ),
         ],
       ),
     );
@@ -693,6 +683,12 @@ class _TechnicalDetailsBody extends ConsumerWidget {
               ),
               if (technical.maintenanceActive == true)
                 const _TechnicalRow(label: 'Maintenance', value: 'Active'),
+              _TechnicalRow(
+                label: 'Contacts physical source identity',
+                value: summary.contacts.physicalSourceIdentityRetained
+                    ? 'Retained'
+                    : 'Not retained',
+              ),
               const SizedBox(height: AppSpacing.md),
               Semantics(
                 header: true,
@@ -908,11 +904,13 @@ class _StatusBadge extends ConsumerWidget {
             children: [
               Icon(presentation.icon, size: 14, color: presentation.color),
               const SizedBox(width: AppSpacing.xs),
-              Text(
-                presentation.label,
-                style: _typography(
-                  ref,
-                ).caption.copyWith(color: presentation.color),
+              Flexible(
+                child: Text(
+                  presentation.label,
+                  style: _typography(
+                    ref,
+                  ).caption.copyWith(color: presentation.color),
+                ),
               ),
             ],
           ),

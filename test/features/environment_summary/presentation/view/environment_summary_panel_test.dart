@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/config/theme/colors/theme_colors.dart';
@@ -182,7 +183,7 @@ void main() {
         'MessageLens does not retain the physical Contacts database that '
         'contributed these records.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
@@ -228,9 +229,15 @@ void main() {
   testWidgets('production and development fixtures use the same page shape', (
     tester,
   ) async {
+    const productionRoot =
+        '/Users/test/Library/Application Support/com.bigbenchsoftware.MessageLens';
     await _pumpPanel(
       tester,
-      summary: _summary(environment: ArchiveEnvironment.production),
+      summary: _summary(
+        environment: ArchiveEnvironment.production,
+        dataRootPath: productionRoot,
+        attachmentPath: '$productionRoot/attachment_archive',
+      ),
     );
 
     expect(find.text('MessageLens'), findsOneWidget);
@@ -243,6 +250,7 @@ void main() {
       find.byKey(EnvironmentSummaryPanel.technicalToggleKey),
       findsOneWidget,
     );
+    expect(find.text(productionRoot), findsOneWidget);
   });
 
   testWidgets('expands exact technical evidence and preserves long paths', (
@@ -291,6 +299,8 @@ void main() {
     expect(find.text('7 / 8'), findsOneWidget);
     expect(find.text('Unavailable'), findsWidgets);
     expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Contacts physical source identity'), findsOneWidget);
+    expect(find.text('Not retained'), findsOneWidget);
   });
 
   for (final brightness in Brightness.values) {
@@ -336,6 +346,14 @@ void main() {
 
     expect(writer.writes, isEmpty);
     expect(find.byKey(EnvironmentSummaryPanel.copyButtonKey), findsOneWidget);
+    expect(
+      tester.widget(find.byKey(EnvironmentSummaryPanel.copyButtonKey)),
+      isA<TextButton>(),
+    );
+    expect(
+      tester.getSize(find.byKey(EnvironmentSummaryPanel.copyButtonKey)).width,
+      lessThanOrEqualTo(280),
+    );
     expect(find.text('Copy Environment Summary'), findsOneWidget);
     expect(find.textContaining('Copy path'), findsNothing);
     expect(find.textContaining('Reveal in Finder'), findsNothing);
@@ -347,6 +365,46 @@ void main() {
       const EnvironmentSummaryFormatter().format(summary),
     ]);
     expect(find.text('Environment summary copied.'), findsOneWidget);
+  });
+
+  testWidgets('supports keyboard copy and announces successful feedback', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final writer = _RecordingClipboardWriter();
+    await _pumpPanel(tester, summary: _summary(), clipboardWriter: writer);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(writer.writes, hasLength(1));
+    expect(
+      find.bySemanticsLabel('Environment summary copied.'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('wraps without clipping in a narrow scaled center panel', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      summary: _summary(),
+      surfaceSize: const Size(460, 760),
+      textScaler: const TextScaler.linear(1.5),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester
+          .getBottomRight(find.byKey(EnvironmentSummaryPanel.copyButtonKey))
+          .dx,
+      lessThanOrEqualTo(460),
+    );
+    expect(find.text('This installation'), findsOneWidget);
   });
 
   testWidgets('copies partial summaries without fabricating unsettled values', (
@@ -381,6 +439,7 @@ void main() {
   testWidgets('shows bounded failure feedback when clipboard writing fails', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await _pumpPanel(
       tester,
       summary: _summary(),
@@ -394,7 +453,14 @@ void main() {
       find.text('MessageLens could not copy the environment summary.'),
       findsOneWidget,
     );
+    expect(
+      find.bySemanticsLabel(
+        'MessageLens could not copy the environment summary.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Copy Environment Summary'), findsOneWidget);
+    semantics.dispose();
   });
 }
 
@@ -403,6 +469,8 @@ Future<ProviderContainer> _pumpPanel(
   required EnvironmentSummary summary,
   Brightness brightness = Brightness.light,
   EnvironmentSummaryClipboardWriter? clipboardWriter,
+  Size surfaceSize = const Size(1100, 900),
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   final overrides = <Override>[
     platformBrightnessProvider.overrideWith((ref) => brightness),
@@ -417,12 +485,17 @@ Future<ProviderContainer> _pumpPanel(
   }
   final container = ProviderContainer(overrides: overrides);
   addTearDown(container.dispose);
-  await tester.binding.setSurfaceSize(const Size(1100, 900));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: Scaffold(body: EnvironmentSummaryPanel())),
+      child: MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: surfaceSize, textScaler: textScaler),
+          child: const Scaffold(body: EnvironmentSummaryPanel()),
+        ),
+      ),
     ),
   );
   await tester.pump();
