@@ -38,6 +38,7 @@ final class SettingsTopMenuActionRow extends SettingsTopMenuRow {
     }
 
     return switch (actionId) {
+      SettingsMenuActionId.environment ||
       SettingsMenuActionId.attachmentArchive ||
       SettingsMenuActionId.historicalArchives ||
       SettingsMenuActionId.messageHistoryCoverage => throw StateError(

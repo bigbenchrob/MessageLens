@@ -151,6 +151,7 @@ const Set<String> _appDatabaseFileHelperAllowedFiles = {
   'lib/essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
+  'lib/features/environment_summary/infrastructure/repositories/sqlite_environment_evidence_repository.dart',
   'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
 };
 
@@ -173,6 +174,8 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
   'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
+  'lib/features/environment_summary/application/environment_evidence_providers.dart',
+  'lib/features/environment_summary/application/environment_summary_provider.dart',
   'lib/features/settings/application/message_lens_historical_archive_preflight_provider.dart',
   'lib/features/presence_iteration_simple/application/development_contacts_source_provider.dart',
   'lib/main.dart',
@@ -349,6 +352,7 @@ const Set<String> _directSqliteImportAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
+  'lib/features/environment_summary/infrastructure/repositories/sqlite_environment_evidence_repository.dart',
   'lib/features/settings/infrastructure/repositories/archive_source_inspection_repository.dart',
   'lib/main.dart',
 };
@@ -16052,7 +16056,8 @@ Future<List<String>> _findDirectSqfliteRawQueryGuardOffenders() async {
     }
 
     if (!uncommented.contains('assertReadOnlySql(') &&
-        !uncommented.contains('assertDatabaseHealthReadOnlySql(')) {
+        !uncommented.contains('assertDatabaseHealthReadOnlySql(') &&
+        !uncommented.contains('assertEnvironmentSummaryReadOnlySql(')) {
       offenders.add(filePath);
     }
   }
@@ -16086,7 +16091,8 @@ Future<List<String>> _findDirectSqlite3SelectGuardOffenders() async {
     }
 
     if (!uncommented.contains('assertReadOnlySql(') &&
-        !uncommented.contains('assertDatabaseHealthReadOnlySql(')) {
+        !uncommented.contains('assertDatabaseHealthReadOnlySql(') &&
+        !uncommented.contains('assertEnvironmentSummaryReadOnlySql(')) {
       offenders.add(filePath);
     }
   }

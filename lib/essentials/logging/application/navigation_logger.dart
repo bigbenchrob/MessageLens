@@ -105,6 +105,7 @@ class NavigationLogEntry {
       settings: (settingsSpec) => {
         'type': 'settings',
         'spec': settingsSpec.when(
+          environmentSummary: () => {'variant': 'environmentSummary'},
           attachmentArchiveWorkflow: () => {
             'variant': 'attachmentArchiveWorkflow',
           },

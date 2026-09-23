@@ -14,6 +14,8 @@ class ViewSpecCoordinator extends _$ViewSpecCoordinator {
 
   SettingsPanelRenderDescriptor resolveForSpec(SettingsViewSpec spec) {
     return spec.when(
+      environmentSummary: () =>
+          SettingsPanelRenderDescriptor.environmentSummary,
       attachmentArchiveWorkflow: () =>
           SettingsPanelRenderDescriptor.attachmentArchiveWorkflow,
       historicalArchivesWorkflow: () =>

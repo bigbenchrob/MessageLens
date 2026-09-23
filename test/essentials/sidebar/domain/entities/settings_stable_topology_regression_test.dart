@@ -22,6 +22,10 @@ void main() {
           messageScope: StableCascadeMessageScope.regular,
           persistentSettingsContext: SettingsMenuActionId.attachmentArchive,
         );
+        const environmentContext = StableCassetteTopologyContext(
+          messageScope: StableCascadeMessageScope.regular,
+          persistentSettingsContext: SettingsMenuActionId.environment,
+        );
         const messageHistoryCoverageContext = StableCassetteTopologyContext(
           messageScope: StableCascadeMessageScope.regular,
           persistentSettingsContext:
@@ -39,6 +43,11 @@ void main() {
           messageScope: StableCascadeMessageScope.regular,
         );
 
+        expect(
+          resolveStableCascadeChild(currentSpec, context: environmentContext),
+          isNull,
+          reason: 'Environment is center-pane navigation only.',
+        );
         expect(
           resolveStableCascadeChild(
             currentSpec,

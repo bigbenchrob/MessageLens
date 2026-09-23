@@ -10,13 +10,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
-## [0.2.125] — 2026-09-23
+## [0.2.128] — 2026-09-23
 
 ### Changed
 
-- Attachment Archive Settings now resolves center-panel destinations as
-  data-only descriptors and constructs the workflow only at the Settings
-  presentation edge. The visible center-panel workflow is unchanged.
+- Attachment Archive and Environment Settings now resolve center-panel
+  destinations as data-only descriptors and construct their panels only at the
+  shared Settings presentation edge. Visible center-panel behavior is
+  unchanged.
 - Catch-up remediation now opens each exact transaction-bound retained-source
   payload through attachment infrastructure rather than application
   orchestration.
@@ -29,7 +30,67 @@ No unreleased changes yet.
   entries, changed sizes, unreadable or disappeared files, conflicting
   destinations, and paths outside the exact transaction evidence. Reads stay
   streamed and the retained source remains unmodified.
-- Production archive adoption remains disabled.
+- Environment remains observation-only, and production archive adoption
+  remains disabled.
+
+## [0.2.127] — 2026-09-22
+
+### Changed
+
+- The Environment summary copy action now uses a compact secondary button near
+  the page heading instead of presenting as the page's primary call to action.
+- The ordinary Contacts card focuses on projected Contacts aggregates; the
+  physical-source retention limitation remains explicit in Technical Details
+  and copied support summaries.
+
+### Safety
+
+- Environment still observes only current aggregate truth. Message source
+  cards remain limited to sources contributing projected Messages, and the
+  polish adds no archive, database, startup, Finder, or mutation behavior.
+
+## [0.2.126] — 2026-09-22
+
+### Added
+
+- The Settings **Environment** page now provides one explicit **Copy
+  Environment Summary** action for sharing the same privacy-bounded support
+  summary shown by the existing aggregate model.
+
+### Changed
+
+- Copied summaries preserve authoritative zero counts and distinguish
+  Loading, Unknown, Unavailable, Not retained, and Failed states instead of
+  substituting fabricated values while a section is unsettled.
+
+### Safety
+
+- Copying runs only after explicit activation and adds no automatic or
+  per-path clipboard behavior, Finder integration, filesystem or database
+  discovery, startup work, archive resolution, or environment mutation.
+
+## [0.2.125] — 2026-09-22
+
+### Added
+
+- Settings now includes a read-only **Environment** center panel showing the
+  admitted installation, data folder, attachment archive, contributing
+  Message data, and projected Contacts data.
+- A default-collapsed **Technical Details** section presents the already
+  observed build, archive, database, schema, startup, maintenance, and FTS
+  evidence without initializing archive resolution or mutation workflows.
+
+### Changed
+
+- Environment evidence settles section by section so package, database,
+  Message, Contacts, attachment, or FTS failures do not replace the page or
+  hide admitted identity.
+
+### Safety
+
+- Environment remains observation-only. This release adds no Clipboard or
+  Finder action, database migration, startup work, archive traversal, archive
+  mutation, or invented Contacts provenance.
 
 ## [0.2.124] — 2026-09-21
 

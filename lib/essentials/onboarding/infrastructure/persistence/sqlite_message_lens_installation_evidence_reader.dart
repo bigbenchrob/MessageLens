@@ -17,10 +17,6 @@ final class SqliteMessageLensInstallationEvidenceReader
     implements MessageLensInstallationEvidenceReader {
   const SqliteMessageLensInstallationEvidenceReader();
 
-  static const int _currentImportSchemaVersion = 10;
-  static const int _currentOverlaySchemaVersion = 8;
-  static const int _currentPresenceSchemaVersion = 9;
-
   static const _overlayBaselineTables = <String>['overlay_settings'];
   static const _overlayCurrentTables = <String>[
     'participant_overrides',
@@ -77,7 +73,7 @@ final class SqliteMessageLensInstallationEvidenceReader
         AppDatabaseFile.overlay,
         databaseDirectory: archiveRootPath,
       ),
-      currentSchemaVersion: _currentOverlaySchemaVersion,
+      currentSchemaVersion: overlaySchemaVersion,
       baselineRequiredTables: _overlayBaselineTables,
       currentRequiredTables: _overlayCurrentTables,
       readOperationSnapshot: true,
@@ -87,7 +83,7 @@ final class SqliteMessageLensInstallationEvidenceReader
         AppDatabaseFile.sourceScopedImport,
         databaseDirectory: archiveRootPath,
       ),
-      currentSchemaVersion: _currentImportSchemaVersion,
+      currentSchemaVersion: sourceScopedImportSchemaVersion,
       baselineRequiredTables: _importRequiredTables,
       currentRequiredTables: _importRequiredTables,
       includeImportEvidence: true,
@@ -109,7 +105,7 @@ final class SqliteMessageLensInstallationEvidenceReader
         AppDatabaseFile.presence,
         databaseDirectory: archiveRootPath,
       ),
-      currentSchemaVersion: _currentPresenceSchemaVersion,
+      currentSchemaVersion: presenceSchemaVersion,
       baselineRequiredTables: _presenceRequiredTables,
       currentRequiredTables: _presenceRequiredTables,
     );

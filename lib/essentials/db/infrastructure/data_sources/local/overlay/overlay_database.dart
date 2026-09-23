@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../../../../../core/util/message_tag_normalizer.dart';
+import '../../../../app_database_schema_versions.dart';
 
 part 'overlay_database.g.dart';
 
@@ -31,7 +32,7 @@ class OverlayDatabase extends _$OverlayDatabase {
   OverlayDatabase(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => overlaySchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

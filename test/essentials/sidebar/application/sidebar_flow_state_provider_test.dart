@@ -504,6 +504,23 @@ void main() {
       );
     });
 
+    test('environment projects a center spec and no sidebar body', () {
+      container
+          .read(sidebarFlowProvider.notifier)
+          .setPersistentSettingsContext(SettingsMenuActionId.environment);
+
+      expect(
+        container.read(sidebarFlowProvider).projectedSettingsCenterSpec,
+        equals(const ViewSpec.settings(SettingsViewSpec.environmentSummary())),
+      );
+      expect(
+        container
+            .read(sidebarFlowProvider)
+            .projectedCenterSpecForMode(SidebarMode.settings),
+        equals(const ViewSpec.settings(SettingsViewSpec.environmentSummary())),
+      );
+    });
+
     test('attachment archive projects a center spec and no sidebar body', () {
       container
           .read(sidebarFlowProvider.notifier)

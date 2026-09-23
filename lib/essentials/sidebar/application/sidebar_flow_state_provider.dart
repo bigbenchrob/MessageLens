@@ -594,6 +594,9 @@ abstract class SidebarFlowState with _$SidebarFlowState {
     }());
 
     return switch (persistentSettingsContext) {
+      SettingsMenuActionId.environment => const ViewSpec.settings(
+        SettingsViewSpec.environmentSummary(),
+      ),
       SettingsMenuActionId.attachmentArchive => const ViewSpec.settings(
         SettingsViewSpec.attachmentArchiveWorkflow(),
       ),

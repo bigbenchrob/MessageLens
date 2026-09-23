@@ -31,8 +31,35 @@ final attachmentArchiveWritableRootAdmissionProvider =
 // ignore: unused_element
 typedef AttachmentArchiveWritableRootAdmissionRef =
     FutureProviderRef<AttachmentArchiveWritableRootAdmission>;
+String _$attachmentArchiveLocationObservationHash() =>
+    r'3fff8b0759d41876f67660939b907ec2dd80410e';
+
+/// Passive, presentation-safe observation seam for attachment location.
+///
+/// Watching this provider never initializes location resolution. The existing
+/// Feature 31 owner publishes snapshots after its own legitimate lifecycle
+/// work has completed. Publication remains library-private to that owner.
+///
+/// Copied from [AttachmentArchiveLocationObservation].
+@ProviderFor(AttachmentArchiveLocationObservation)
+final attachmentArchiveLocationObservationProvider =
+    NotifierProvider<
+      AttachmentArchiveLocationObservation,
+      AttachmentArchiveLocationSnapshot?
+    >.internal(
+      AttachmentArchiveLocationObservation.new,
+      name: r'attachmentArchiveLocationObservationProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$attachmentArchiveLocationObservationHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$AttachmentArchiveLocationObservation =
+    Notifier<AttachmentArchiveLocationSnapshot?>;
 String _$attachmentArchiveLocationHash() =>
-    r'f089d428584de350448e26c356f8244df7398957';
+    r'5a26cea8564b8990ba1d8d75c29de0ea00054c15';
 
 /// Publishes the active attachment-owned archive location.
 ///
