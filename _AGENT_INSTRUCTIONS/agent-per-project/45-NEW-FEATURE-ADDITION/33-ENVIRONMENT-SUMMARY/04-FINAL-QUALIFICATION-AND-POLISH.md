@@ -208,3 +208,51 @@ qualification, and generic diagnostics remain out of scope. None was begun.
 
 Feature 33 is ready to merge after this unstaged final-polish diff is reviewed
 and checkpointed. No mandatory stop gate was encountered.
+
+## Pre-integration conformance correction — 2026-09-23
+
+The accepted Project Conformance Audit identified that the Phase Two Settings
+resolver returned `EnvironmentSummaryPanel` through the application
+coordinator. That historical implementation detail is superseded by the final
+shared Settings architecture:
+
+- `ViewSpecCoordinator` now maps every new Settings variant to a data-only
+  `SettingsPanelRenderDescriptor` and imports neither Flutter nor feature
+  presentation;
+- the Settings presentation `SettingsPanelRenderRouter` is the single terminal
+  selection/construction edge for both `EnvironmentSummaryPanel` and
+  `AttachmentArchivePanel`;
+- Environment remains exposed across the feature boundary through its public
+  seam, and neither provider ownership nor read-model authority moved into
+  Settings presentation; and
+- the obsolete Environment widget resolver was removed.
+
+Architecture tests now reject Flutter/widget/presentation dependencies and
+direct panel construction in the Settings application path, prove the
+descriptor is data-only, and require panel construction at the presentation
+render edge. The correction changes no Environment rendering, progressive
+state, passive attachment observation, clipboard, database, provenance,
+startup, accessibility, or narrow-layout semantics.
+
+Correction validation completed against disposable fixtures:
+
+- 115 focused Environment read-model, provider, repository, formatter,
+  clipboard, presentation, Settings-boundary, navigation, and architecture
+  tests passed;
+- all 487 architecture tests passed;
+- the complete repository suite passed serially with 2,606 tests and the one
+  existing qualification skip;
+- `flutter analyze --no-pub` reported no issues;
+- final Riverpod/Freezed generation completed without a tracked output diff;
+  and
+- `git diff --check` passed.
+
+One attachment recovery-hint test failed only in the initial parallel full
+suite, then passed in isolation and in the complete serial suite. No product
+change was made for that process-interference result.
+
+The complete Feature 33 delta was rechecked against the corrected Feature 31
+tip and the Project Conformance Audit Standard. F33-B1 is resolved, no new
+BLOCKER or SHOULD FIX finding was identified, and no OPTIONAL finding remains.
+
+`FEATURE 33 PROJECT CONFORMANCE: PASS`

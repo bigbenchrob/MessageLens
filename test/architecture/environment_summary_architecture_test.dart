@@ -150,20 +150,8 @@ void main() {
   });
 
   test(
-    'Settings reaches the Environment panel only through its public seam',
+    'Settings uses a data-only coordinator and one presentation render edge',
     () {
-      final resolver = File(
-        path.join(
-          repositoryRoot.path,
-          'lib',
-          'features',
-          'settings',
-          'application',
-          'view_spec',
-          'resolvers',
-          'environment_summary_panel_resolver.dart',
-        ),
-      ).readAsStringSync();
       final coordinator = File(
         path.join(
           repositoryRoot.path,
@@ -176,16 +164,81 @@ void main() {
           'view_spec_coordinator.dart',
         ),
       ).readAsStringSync();
+      final descriptor = File(
+        path.join(
+          repositoryRoot.path,
+          'lib',
+          'features',
+          'settings',
+          'application',
+          'view_spec',
+          'payloads',
+          'settings_panel_render_descriptor.dart',
+        ),
+      ).readAsStringSync();
+      final renderRouter = File(
+        path.join(
+          repositoryRoot.path,
+          'lib',
+          'features',
+          'settings',
+          'presentation',
+          'rendering',
+          'settings_panel_render_router.dart',
+        ),
+      ).readAsStringSync();
 
       expect(
-        resolver,
+        renderRouter,
         contains("environment_summary/feature_level_providers.dart'"),
       );
-      expect(resolver, contains('show EnvironmentSummaryPanel'));
-      expect(resolver, isNot(contains('environment_summary/application/')));
-      expect(resolver, isNot(contains('environment_summary/domain/')));
-      expect(coordinator, contains('EnvironmentSummaryPanelResolver'));
-      expect(coordinator, contains('environmentSummary:'));
+      expect(renderRouter, contains('show EnvironmentSummaryPanel'));
+      expect(renderRouter, contains('const EnvironmentSummaryPanel()'));
+      expect(
+        coordinator,
+        contains('SettingsPanelRenderDescriptor.environmentSummary'),
+      );
+      expect(descriptor, contains('environmentSummary'));
+
+      for (final applicationSource in <String>[coordinator, descriptor]) {
+        for (final forbidden in <String>[
+          'package:flutter/',
+          'EnvironmentSummaryPanel',
+          'environment_summary/presentation/',
+        ]) {
+          expect(
+            applicationSource,
+            isNot(contains(forbidden)),
+            reason: forbidden,
+          );
+        }
+        expect(
+          RegExp(r'\bWidget\s+\w+\s*\(').hasMatch(applicationSource),
+          isFalse,
+          reason: 'application boundary must not return Widget',
+        );
+      }
+
+      final settingsApplication = Directory(
+        path.join(
+          repositoryRoot.path,
+          'lib',
+          'features',
+          'settings',
+          'application',
+        ),
+      );
+      for (final file
+          in settingsApplication
+              .listSync(recursive: true, followLinks: false)
+              .whereType<File>()
+              .where((file) => file.path.endsWith('.dart'))) {
+        expect(
+          file.readAsStringSync(),
+          isNot(contains('EnvironmentSummaryPanel(')),
+          reason: file.path,
+        );
+      }
     },
   );
 
