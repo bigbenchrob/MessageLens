@@ -294,6 +294,46 @@ void main() {
       expect(service, isNot(contains('availableCapacity')));
     });
 
+    test('remediation source filesystem mechanics stay in infrastructure', () {
+      final port = read(
+        _attachmentApplicationPath(
+          'attachment_archive_remediation_source_reader.dart',
+        ),
+      );
+      final service = read(
+        _attachmentApplicationPath('attachment_archive_adoption_service.dart'),
+      );
+      final verifier = read(
+        'lib/features/attachments/infrastructure/repositories/'
+        'filesystem_attachment_archive_candidate_verifier.dart',
+      );
+
+      expect(port, contains('AttachmentArchiveRemediationAuthority'));
+      expect(port, contains('Future<Stream<List<int>>> openVerifiedPayload'));
+      expect(port, isNot(contains('required String relativePath')));
+      expect(port, isNot(contains('required String absolutePath')));
+      expect(service, contains('_remediationSourceReader.openVerifiedPayload'));
+      for (final token in <String>[
+        "import 'dart:io'",
+        'FileSystemEntity',
+        'File(',
+        '.openRead()',
+        '.resolveSymbolicLinks()',
+      ]) {
+        expect(service, isNot(contains(token)), reason: token);
+      }
+      for (final token in <String>[
+        'AttachmentArchiveRemediationSourceReader',
+        'sourceCanonicalIdentity',
+        '_inspectExactPath',
+        'FileSystemEntityType.link',
+        'expectedSizeBytes',
+        '_readRemediationPayload',
+      ]) {
+        expect(verifier, contains(token), reason: token);
+      }
+    });
+
     test('adoption service requires normal Phase Four lease validation', () {
       final service = read(
         'lib/features/attachments/application/'

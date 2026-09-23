@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as path;
 
 const Set<String> _trackedSidebarPresentationImportExceptions = <String>{};
 
@@ -438,6 +439,13 @@ const Set<String> _platformEnvironmentAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
   'lib/features/attachments/infrastructure/repositories/local_attachment_file_access.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
+};
+
+const Set<String> _attachmentApplicationDartIoAllowedFiles = {
+  // Legacy recovery catches a filesystem exception emitted by its donor port.
+  'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
+  // Thumbnail cache composition supplies the infrastructure cache directory.
+  'lib/features/attachments/application/video_thumbnail_cache_provider.dart',
 };
 
 const Set<String> _platformRuntimeAllowedFiles = {
@@ -4395,17 +4403,19 @@ void main() {
       );
     });
 
-    test('Archive settings uses file-operations port', () async {
-      final offenders = await _findArchiveSettingsFileOperationsOffenders();
+    test('Attachments application keeps filesystem work behind ports', () async {
+      final directUsers = await _findAttachmentApplicationDartIoUsers();
 
       expect(
-        offenders,
-        isEmpty,
+        directUsers,
+        orderedEquals(
+          _attachmentApplicationDartIoAllowedFiles.toList()..sort(),
+        ),
         reason:
-            'ArchiveSettings should coordinate archive user intent through '
-            'AttachmentArchiveFileOperations. Native file picking and '
-            'directory/file IO belong in attachments infrastructure.\n'
-            'Actual offenders:\n${offenders.join('\n')}',
+            'Attachments application services must use narrow typed ports for '
+            'filesystem work. The exact reviewed exceptions are legacy '
+            'recovery exception mapping and thumbnail-cache composition.\n'
+            'Actual dart:io users:\n${directUsers.join('\n')}',
       );
     });
 
@@ -10402,33 +10412,21 @@ _findArchiveSettingsOverlayDatabaseImportOffenders() async {
   return offenders..sort();
 }
 
-Future<List<String>> _findArchiveSettingsFileOperationsOffenders() async {
-  const filePath =
-      'lib/features/attachments/application/archive_settings_provider.dart';
-  final file = File(filePath);
-  if (!file.existsSync()) {
-    return const <String>[];
+Future<List<String>> _findAttachmentApplicationDartIoUsers() async {
+  final root = Directory('lib/features/attachments/application');
+  final users = <String>[];
+  for (final file
+      in root
+          .listSync(recursive: true, followLinks: false)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))) {
+    final relativePath = path.relative(file.path, from: Directory.current.path);
+    final imports = _extractImports(_stripComments(await file.readAsString()));
+    if (imports.contains('dart:io')) {
+      users.add(relativePath);
+    }
   }
-
-  final source = await file.readAsString();
-  final uncommented = _stripComments(source);
-  final imports = _extractImports(uncommented);
-  final offenders = <String>[
-    for (final importTarget in imports)
-      if (importTarget == 'dart:io' ||
-          importTarget ==
-              'package:file_selector_platform_interface/file_selector_platform_interface.dart' ||
-          importTarget == 'package:path/path.dart')
-        '$filePath imports $importTarget',
-  ];
-
-  if (RegExp(r'(^|[^\w.])File\(').hasMatch(uncommented) ||
-      RegExp(r'(^|[^\w.])Directory\(').hasMatch(uncommented) ||
-      uncommented.contains('FileSelectorPlatform.instance')) {
-    offenders.add('$filePath performs archive filesystem work directly');
-  }
-
-  return offenders..sort();
+  return users..sort();
 }
 
 Future<List<String>>

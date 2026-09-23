@@ -226,3 +226,51 @@ manufacture that opportunity.
 The exact next step is review of this entirely unstaged checkpoint. After that
 review, checkpoint it separately before any optional development qualification.
 Do not begin onboarding showcase integration or production qualification.
+
+## Pre-integration conformance correction — 2026-09-23
+
+The accepted pre-integration Project Conformance Audit identified three final
+Feature 31 corrections. They were applied without changing the visible archive
+adoption workflow or its production gate:
+
+- Settings panel coordination now returns a data-only render descriptor.
+  `AttachmentArchivePanel` is selected and constructed only by the downstream
+  Settings presentation render router. The application coordinator no longer
+  imports Flutter or presentation code and no longer transports a `Widget`.
+- Retained-source payload inspection and streamed opening now cross the narrow
+  `AttachmentArchiveRemediationSourceReader` port. Its filesystem
+  implementation requires the active transaction-bound remediation authority,
+  proves the retained canonical source identity and exact relative path and
+  size, rejects links and non-regular entries, and maps unavailable or
+  unreadable sources to typed failures. Application orchestration retains the
+  transaction, capability, evidence, sequencing, and outcome decisions.
+- The unreachable Attachment Archive sidebar cassette, payload, resolver,
+  supplemental widget, intents, dispatcher cases, generated artifacts, and
+  sidebar-only tests were retired. The live Settings navigation entry and
+  center-panel workflow remain.
+
+Architecture tripwires now cover the Settings data-only/render-edge boundary
+and the complete attachments application layer's direct `dart:io` use, with
+only two exact pre-existing exceptions documented for legacy recovery exception
+mapping and thumbnail-cache composition. Disposable tests cover symlink,
+special-entry, wrong-size, disappeared, unreadable, correct, and streamed
+retained-source remediation behavior. No real archive, database, configuration,
+or native code was accessed or changed.
+
+Correction validation completed against disposable fixtures:
+
+- 293 focused attachment-adoption, approval, remediation, location,
+  writable-root, showcase, Settings-panel, and sidebar tests passed;
+- all 478 architecture tests passed;
+- `flutter analyze --no-pub` reported no issues;
+- generated Settings, Freezed, navigation, sidebar, and adoption providers were
+  regenerated and inspected; and
+- `git diff --check` passed.
+
+The complete corrected Feature 31 accumulated delta was rechecked against the
+Project Conformance Audit Standard. F31-B1 and F31-B2 are resolved, F31-S1 is
+resolved, and no new BLOCKER, SHOULD FIX, schema, native, authority, privacy,
+performance, state-semantics, or documentation finding was identified. No
+OPTIONAL finding remains from this correction audit.
+
+`FEATURE 31 PROJECT CONFORMANCE: PASS`

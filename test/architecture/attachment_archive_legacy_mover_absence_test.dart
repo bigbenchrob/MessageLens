@@ -30,7 +30,7 @@ void main() {
     expect(offenders, isEmpty);
   });
 
-  test('only simplified adoption actions remain in Settings', () {
+  test('Attachment Archive sidebar workflow remains retired', () {
     final settingsSources = _settingsRoutePaths
         .map((relativePath) => File(relativePath).readAsStringSync())
         .join('\n');
@@ -38,8 +38,8 @@ void main() {
     for (final token in _retiredSettingsTokens) {
       expect(settingsSources, isNot(contains(token)), reason: token);
     }
-    for (final token in _adoptionSettingsTokens) {
-      expect(settingsSources, contains(token), reason: token);
+    for (final token in _retiredSidebarAdoptionTokens) {
+      expect(settingsSources, isNot(contains(token)), reason: token);
     }
   });
 }
@@ -96,7 +96,7 @@ const _settingsRoutePaths = <String>[
   'lib/essentials/sidebar/application/sidebar_action_dispatcher.dart',
   'lib/essentials/sidebar/application/cassette_widget_coordinator_provider.dart',
   'lib/features/settings/application/sidebar_cassette_spec/coordinators/settings_coordinator.dart',
-  'lib/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart',
+  'lib/features/settings/domain/spec_classes/settings_cassette_spec.dart',
   'lib/features/settings/feature_level_providers.dart',
   'lib/features/attachments/feature_level_providers.dart',
 ];
@@ -115,7 +115,7 @@ const _retiredSettingsTokens = <String>[
   'Review Archive Move',
 ];
 
-const _adoptionSettingsTokens = <String>[
+const _retiredSidebarAdoptionTokens = <String>[
   'AttachmentArchiveUseExistingRequested',
   'AttachmentArchiveChooseAnotherFolderRequested',
   'AttachmentArchiveCheckAgainRequested',

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
@@ -27,6 +26,7 @@ import 'attachment_archive_file_store.dart';
 import 'attachment_archive_location_controller.dart';
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_remediation_authority.dart';
+import 'attachment_archive_remediation_source_reader.dart';
 import 'attachment_showcase.dart';
 
 typedef AttachmentArchiveAdoptionLocationActivator =
@@ -95,6 +95,7 @@ final class AttachmentArchiveAdoptionService
     required AttachmentArchiveAdoptionLocationActivator restoreLocation,
     required AttachmentArchiveAdoptionWritableAdmissionReader
     readWritableAdmission,
+    required AttachmentArchiveRemediationSourceReader remediationSourceReader,
     String Function()? newTransactionId,
     DateTime Function()? clock,
     AttachmentArchiveAdoptionFailureInjector? failureInjector,
@@ -114,6 +115,7 @@ final class AttachmentArchiveAdoptionService
        _activateLocation = activateLocation,
        _restoreLocation = restoreLocation,
        _readWritableAdmission = readWritableAdmission,
+       _remediationSourceReader = remediationSourceReader,
        _newTransactionId = newTransactionId ?? _newUuid,
        _clock = clock ?? _utcNow,
        _failureInjector = failureInjector ?? _noFailure,
@@ -136,6 +138,7 @@ final class AttachmentArchiveAdoptionService
   final AttachmentArchiveAdoptionLocationActivator _activateLocation;
   final AttachmentArchiveAdoptionLocationActivator _restoreLocation;
   final AttachmentArchiveAdoptionWritableAdmissionReader _readWritableAdmission;
+  final AttachmentArchiveRemediationSourceReader _remediationSourceReader;
   final String Function() _newTransactionId;
   final DateTime Function() _clock;
   final AttachmentArchiveAdoptionFailureInjector _failureInjector;
@@ -986,10 +989,6 @@ final class AttachmentArchiveAdoptionService
     );
     for (final payload in transaction.remediationPayloads) {
       await _inject(AttachmentArchiveAdoptionFailurePoint.duringRemediation);
-      final sourceFile = await _verifiedRetainedSourceFile(
-        rootPath: retainedSourcePath,
-        payload: payload,
-      );
       final authority = await AttachmentArchiveRemediationAuthority.issue(
         transaction: transaction,
         payload: payload,
@@ -998,11 +997,23 @@ final class AttachmentArchiveAdoptionService
         readLocation: _readLocation,
         writableLease: writableLease,
       );
-      final install = await fileStore.installVerifiedArchiveEntryAtPath(
-        archiveDirectoryPath: candidateRootPath,
-        sourceBytes: sourceFile.openRead(),
-        remediationAuthority: authority,
-      );
+      late final AttachmentArchiveFileInstall install;
+      try {
+        final sourceBytes = await _remediationSourceReader.openVerifiedPayload(
+          retainedSourceRootPath: retainedSourcePath,
+          remediationAuthority: authority,
+        );
+        install = await fileStore.installVerifiedArchiveEntryAtPath(
+          archiveDirectoryPath: candidateRootPath,
+          sourceBytes: sourceBytes,
+          remediationAuthority: authority,
+        );
+      } on AttachmentArchiveRemediationSourceException catch (error) {
+        throw _AttachmentArchiveAdoptionAbort(
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+          error.issue,
+        );
+      }
       if (install.status != AttachmentArchiveFileInstallStatus.installed &&
           install.status != AttachmentArchiveFileInstallStatus.alreadyPresent) {
         throw _AttachmentArchiveAdoptionAbort(
@@ -1083,42 +1094,6 @@ final class AttachmentArchiveAdoptionService
       return AttachmentShowcaseMediaKind.pdf;
     }
     return AttachmentShowcaseMediaKind.other;
-  }
-
-  Future<File> _verifiedRetainedSourceFile({
-    required String rootPath,
-    required AttachmentArchiveRemediationPayload payload,
-  }) async {
-    var currentPath = rootPath;
-    for (final component in path.split(payload.relativePath)) {
-      currentPath = path.join(currentPath, component);
-      final type = FileSystemEntity.typeSync(currentPath, followLinks: false);
-      if (type == FileSystemEntityType.link ||
-          type == FileSystemEntityType.notFound) {
-        throw _AttachmentArchiveAdoptionAbort(
-          AttachmentArchiveAdoptionOutcome.remediationPending,
-          'A retained source payload is unavailable: ${payload.relativePath}',
-        );
-      }
-    }
-    if (FileSystemEntity.typeSync(currentPath, followLinks: false) !=
-        FileSystemEntityType.file) {
-      throw _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.remediationPending,
-        'A retained source payload is not a regular file: '
-        '${payload.relativePath}',
-      );
-    }
-    final file = File(currentPath);
-    final resolved = path.normalize(await file.resolveSymbolicLinks());
-    if (!path.isWithin(rootPath, resolved) ||
-        await file.length() != payload.expectedSizeBytes) {
-      throw _AttachmentArchiveAdoptionAbort(
-        AttachmentArchiveAdoptionOutcome.remediationPending,
-        'A retained source payload changed: ${payload.relativePath}',
-      );
-    }
-    return file;
   }
 
   Future<void> _proveFinalCoverage(

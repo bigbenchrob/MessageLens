@@ -10,6 +10,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 No unreleased changes yet.
 
+## [0.2.125] — 2026-09-23
+
+### Changed
+
+- Attachment Archive Settings now resolves center-panel destinations as
+  data-only descriptors and constructs the workflow only at the Settings
+  presentation edge. The visible center-panel workflow is unchanged.
+- Catch-up remediation now opens each exact transaction-bound retained-source
+  payload through attachment infrastructure rather than application
+  orchestration.
+- Obsolete, unreachable Attachment Archive sidebar workflow code has been
+  removed. The Settings sidebar remains navigation-only.
+
+### Safety
+
+- Retained-source remediation continues to reject symbolic links, special
+  entries, changed sizes, unreadable or disappeared files, conflicting
+  destinations, and paths outside the exact transaction evidence. Reads stay
+  streamed and the retained source remains unmodified.
+- Production archive adoption remains disabled.
+
 ## [0.2.124] — 2026-09-21
 
 ### Added
