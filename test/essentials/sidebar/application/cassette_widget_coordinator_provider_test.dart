@@ -13,9 +13,6 @@ import 'package:remember_this_text/essentials/sidebar/application/renderable_sid
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_cassette_sectioning.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/entities/cassette_spec.dart';
 import 'package:remember_this_text/essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
-import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
-import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
-import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_state.dart';
 import 'package:remember_this_text/features/contacts/application/read_models/contact_summary.dart';
 import 'package:remember_this_text/features/contacts/application/read_models/contacts_list_repository_provider.dart';
 import 'package:remember_this_text/features/contacts/application/sidebar_cassette_spec/payloads/contact_chooser_cassette_payload.dart';
@@ -37,7 +34,6 @@ import 'package:remember_this_text/features/messages/application/sidebar_cassett
 import 'package:remember_this_text/features/messages/application/sidebar_cassette_spec/payloads/recovered_unlinked_navigator_cassette_payload.dart';
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_cassette_spec.dart';
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_info_cassette_spec.dart';
-import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart';
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/payloads/settings_info_actions_cassette_payload.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_cassette_spec.dart';
 import 'package:remember_this_text/features/sidebar_utilities/application/sidebar_cassette_spec/payloads/settings_top_menu_cassette_payload.dart';
@@ -56,13 +52,6 @@ void main() {
         overrides: [
           conversationGraphPopulatedProvider.overrideWith(
             _AlwaysPopulatedGraph.new,
-          ),
-          attachmentArchiveLocationProvider.overrideWith(
-            () => _FixedAttachmentArchiveLocation(
-              AttachmentArchiveLocationState.defaultAvailable(
-                archiveRootPath: '/tmp/test-attachment-archive',
-              ),
-            ),
           ),
           ...cassetteRackTestHarnessOverrides(),
         ],
@@ -308,82 +297,6 @@ void main() {
 
         expect(payload.title, 'Text Size');
         expect(payload.bodyText, 'Coming soon');
-      },
-    );
-
-    test(
-      'resolves attachment archive settings spec to location-status payload',
-      () async {
-        container
-            .read(cassetteRackStateProvider(SidebarMode.settings).notifier)
-            .setRackForTesting([
-              const CassetteSpec.settings(
-                SettingsCassetteSpec.attachmentArchive(),
-              ),
-            ]);
-
-        final payload = _attachmentArchiveSettingsPayload(
-          await _resolveSidebarCassettes(container, SidebarMode.settings),
-        );
-
-        expect(payload.renderKind, SidebarCassetteRenderKind.featureInfo);
-        expect(payload.role, SidebarCassetteRole.action);
-        expect(payload.bodyText, contains('Current archive'));
-        expect(payload.bodyText, contains('/tmp/test-attachment-archive'));
-        expect(payload.bodyText, contains('This Mac · Connected'));
-        expect(payload.bodyText, isNot(contains('Internal')));
-      },
-    );
-
-    test(
-      'renders unavailable archive with physical status and no move action',
-      () async {
-        final unavailableContainer = ProviderContainer(
-          overrides: [
-            conversationGraphPopulatedProvider.overrideWith(
-              _AlwaysPopulatedGraph.new,
-            ),
-            attachmentArchiveLocationProvider.overrideWith(
-              () => _FixedAttachmentArchiveLocation(
-                AttachmentArchiveLocationState.customUnavailable(
-                  configuration:
-                      AttachmentArchiveLocationConfiguration.customExternal(
-                        bookmarkDataBase64: 'AQID',
-                        lastKnownPath: '/Volumes/Offline/Archive',
-                        volumeName: 'Offline',
-                      ),
-                  issue: 'Volume disconnected.',
-                  generation: 5,
-                ),
-              ),
-            ),
-            ...cassetteRackTestHarnessOverrides(),
-          ],
-        );
-        addTearDown(unavailableContainer.dispose);
-        unavailableContainer
-            .read(cassetteRackStateProvider(SidebarMode.settings).notifier)
-            .setRackForTesting([
-              const CassetteSpec.settings(
-                SettingsCassetteSpec.attachmentArchive(),
-              ),
-            ]);
-
-        final payload = _attachmentArchiveSettingsPayload(
-          await _resolveSidebarCassettes(
-            unavailableContainer,
-            SidebarMode.settings,
-          ),
-        );
-
-        expect(
-          payload.bodyText,
-          contains('Archived attachments are unavailable'),
-        );
-        expect(payload.bodyText, contains('/Volumes/Offline/Archive'));
-        expect(payload.bodyText, contains('Offline · Not connected'));
-        expect(payload.bodyText, isNot(contains('customExternal')));
-        expect(payload.bodyText, isNot(contains('Move Archive')));
       },
     );
 
@@ -895,24 +808,6 @@ SettingsInfoActionsCassettePayload _settingsInfoActionsPayload(
   final payload = resolvedCassettes.single.payload;
   expect(payload, isA<SettingsInfoActionsCassettePayload>());
   return payload as SettingsInfoActionsCassettePayload;
-}
-
-AttachmentArchiveSettingsCassettePayload _attachmentArchiveSettingsPayload(
-  List<ResolvedSidebarCassette> resolvedCassettes,
-) {
-  expect(resolvedCassettes, hasLength(1));
-  final payload = resolvedCassettes.single.payload;
-  expect(payload, isA<AttachmentArchiveSettingsCassettePayload>());
-  return payload as AttachmentArchiveSettingsCassettePayload;
-}
-
-final class _FixedAttachmentArchiveLocation extends AttachmentArchiveLocation {
-  _FixedAttachmentArchiveLocation(this.location);
-
-  final AttachmentArchiveLocationState location;
-
-  @override
-  Future<AttachmentArchiveLocationState> build() async => location;
 }
 
 StaticFeatureInfoSidebarCassettePayload _staticFeatureInfoPayload(

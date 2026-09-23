@@ -12,7 +12,7 @@ import '../../../features/messages/feature_level_providers.dart'
     show viewSpecCoordinatorProvider;
 import '../../../features/settings/feature_level_providers.dart'
     as settings_feature
-    show viewSpecCoordinatorProvider;
+    show SettingsPanelRenderRouter, viewSpecCoordinatorProvider;
 import '../../onboarding/domain/spec_classes/onboarding_view_spec.dart';
 import '../../onboarding/presentation/onboarding_dev_panel.dart';
 import '../domain/entities/panel_stack.dart';
@@ -50,9 +50,14 @@ class PanelCoordinator extends _$PanelCoordinator {
       conversations: (conversationsSpec) => ref
           .read(conversations_feature.viewSpecCoordinatorProvider.notifier)
           .buildForSpec(conversationsSpec),
-      settings: (settingsSpec) => ref
-          .read(settings_feature.viewSpecCoordinatorProvider.notifier)
-          .buildForSpec(settingsSpec),
+      settings: (settingsSpec) {
+        final descriptor = ref
+            .read(settings_feature.viewSpecCoordinatorProvider.notifier)
+            .resolveForSpec(settingsSpec);
+        return const settings_feature.SettingsPanelRenderRouter().build(
+          descriptor,
+        );
+      },
       environmentReadiness: (readinessSpec) => ref
           .read(
             environment_readiness_feature.viewSpecCoordinatorProvider.notifier,

@@ -85,6 +85,7 @@ Future<AttachmentArchiveAdoptionService> attachmentArchiveAdoptionService(
     },
     readWritableAdmission: () =>
         ref.read(attachmentArchiveWritableRootAdmissionProvider.future),
+    remediationSourceReader: snapshotReader,
     candidateVerifier: snapshotReader,
     fileStore: ref.watch(attachmentArchiveFileStoreProvider),
     onShowcaseItem: (item) {

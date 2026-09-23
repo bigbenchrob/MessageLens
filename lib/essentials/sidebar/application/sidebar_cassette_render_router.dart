@@ -32,7 +32,6 @@ import '../../../features/messages/feature_level_providers.dart'
 import '../../../features/settings/feature_level_providers.dart'
     as settings_feature
     show
-        AttachmentArchiveSettingsCassettePayload,
         HistoricalArchivesSettingsCassettePayload,
         SettingsActionCardCassettePayload,
         SettingsInfoActionsCassettePayload,
@@ -152,8 +151,6 @@ Widget? _buildFeatureInfoSupplementalContent({
     settings_feature.SettingsInfoActionsCassettePayload() =>
       settings_feature.buildFeatureInfoSupplementalContent(payload: payload),
     settings_feature.HistoricalArchivesSettingsCassettePayload() =>
-      settings_feature.buildFeatureInfoSupplementalContent(payload: payload),
-    settings_feature.AttachmentArchiveSettingsCassettePayload() =>
       settings_feature.buildFeatureInfoSupplementalContent(payload: payload),
     StaticFeatureInfoSidebarCassettePayload() => null,
     FeatureInfoSidebarCassettePayload() => throw UnsupportedError(

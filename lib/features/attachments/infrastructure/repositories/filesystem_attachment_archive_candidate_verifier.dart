@@ -9,6 +9,8 @@ import 'package:unorm_dart/unorm_dart.dart' as unicode;
 import '../../application/attachment_archive_approval_added_payload_reader.dart';
 import '../../application/attachment_archive_approval_snapshot_reader.dart';
 import '../../application/attachment_archive_candidate_verifier.dart';
+import '../../application/attachment_archive_remediation_authority.dart';
+import '../../application/attachment_archive_remediation_source_reader.dart';
 import '../../application/attachment_archive_verification_metadata_reader.dart';
 import '../../domain/entities/attachment_archive_candidate_verification.dart';
 import '../../domain/entities/attachment_archive_location_configuration.dart';
@@ -26,7 +28,8 @@ final class FilesystemAttachmentArchiveCandidateVerifier
     implements
         AttachmentArchiveCandidateVerifier,
         AttachmentArchiveApprovalSnapshotReader,
-        AttachmentArchiveApprovalAddedPayloadReader {
+        AttachmentArchiveApprovalAddedPayloadReader,
+        AttachmentArchiveRemediationSourceReader {
   FilesystemAttachmentArchiveCandidateVerifier({
     required AttachmentArchiveVerificationMetadataReader metadataReader,
     DateTime Function()? clock,
@@ -68,6 +71,123 @@ final class FilesystemAttachmentArchiveCandidateVerifier
   final int metadataPageSize;
   final int diagnosticExampleLimit;
   final int remediationPayloadLimit;
+
+  @override
+  Future<Stream<List<int>>> openVerifiedPayload({
+    required String retainedSourceRootPath,
+    required AttachmentArchiveRemediationAuthority remediationAuthority,
+  }) async {
+    final payload = remediationAuthority.payload;
+    try {
+      payload.validate();
+    } on FormatException catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unsafeEntry,
+        issue: error.message,
+      );
+    }
+
+    final _CanonicalRoot sourceRoot;
+    try {
+      sourceRoot = await _canonicalRoot(
+        retainedSourceRootPath,
+        label: 'retained remediation source',
+      );
+    } on _RootUnavailable catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unavailable,
+        issue: error.message,
+      );
+    } on _RootInvalid catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unsafeEntry,
+        issue: error.message,
+      );
+    }
+    if (sourceRoot.path != remediationAuthority.sourceCanonicalIdentity) {
+      throw const AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.changed,
+        issue: 'The retained remediation source identity changed.',
+      );
+    }
+
+    final _ExactPathInspection inspection;
+    try {
+      inspection = await _inspectExactPath(
+        root: sourceRoot.path,
+        relativePath: payload.relativePath,
+      );
+    } on _SourceVerificationFailure catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unsafeEntry,
+        issue: error.message,
+      );
+    } on FileSystemException catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: _sourceReadFailureKind(error),
+        issue:
+            'The retained source payload could not be inspected: '
+            '${error.message}',
+      );
+    }
+
+    if (inspection.type == FileSystemEntityType.notFound) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unavailable,
+        issue:
+            'A retained source payload is unavailable: '
+            '${payload.relativePath}',
+      );
+    }
+    if (inspection.type != FileSystemEntityType.file) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.unsafeEntry,
+        issue:
+            'A retained source payload is not a regular file: '
+            '${payload.relativePath}',
+      );
+    }
+    if (inspection.actualRelativePath != payload.relativePath ||
+        inspection.sizeBytes != payload.expectedSizeBytes) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: AttachmentArchiveRemediationSourceFailureKind.changed,
+        issue: 'A retained source payload changed: ${payload.relativePath}',
+      );
+    }
+
+    return _readRemediationPayload(
+      absolutePath: inspection.absolutePath,
+      relativePath: payload.relativePath,
+    );
+  }
+
+  static Stream<List<int>> _readRemediationPayload({
+    required String absolutePath,
+    required String relativePath,
+  }) async* {
+    try {
+      await for (final chunk in File(absolutePath).openRead()) {
+        yield chunk;
+      }
+    } on IOException catch (error) {
+      throw AttachmentArchiveRemediationSourceException(
+        kind: _sourceReadFailureKind(error),
+        issue: 'The retained source payload could not be read: $relativePath',
+      );
+    }
+  }
+
+  static AttachmentArchiveRemediationSourceFailureKind _sourceReadFailureKind(
+    IOException error,
+  ) {
+    final errorCode = error is FileSystemException
+        ? error.osError?.errorCode
+        : null;
+    if (errorCode == 2 || errorCode == 20) {
+      return AttachmentArchiveRemediationSourceFailureKind.unavailable;
+    }
+    return AttachmentArchiveRemediationSourceFailureKind.unreadable;
+  }
 
   @override
   Future<AttachmentArchiveCandidateVerificationResult> verify({

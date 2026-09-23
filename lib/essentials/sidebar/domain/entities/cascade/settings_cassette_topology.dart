@@ -35,9 +35,6 @@ CassetteSpec? resolveSettingsChild(SettingsCassetteSpec spec) {
     imageSizeInfo: () {
       return null;
     },
-    attachmentArchive: () {
-      return null;
-    },
   );
 }
 

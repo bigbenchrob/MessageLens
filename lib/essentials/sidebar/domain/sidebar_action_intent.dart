@@ -225,24 +225,3 @@ final class SettingsTransientActionCancelled extends SidebarEphemeralIntent {
 final class ResetMessageDataRequested extends SidebarEphemeralIntent {
   const ResetMessageDataRequested();
 }
-
-final class AttachmentArchiveUseExistingRequested extends SidebarActionIntent {
-  const AttachmentArchiveUseExistingRequested();
-}
-
-final class AttachmentArchiveChooseAnotherFolderRequested
-    extends SidebarActionIntent {
-  const AttachmentArchiveChooseAnotherFolderRequested();
-}
-
-final class AttachmentArchiveCheckAgainRequested extends SidebarActionIntent {
-  const AttachmentArchiveCheckAgainRequested();
-}
-
-final class AttachmentArchiveUseCandidateRequested extends SidebarActionIntent {
-  const AttachmentArchiveUseCandidateRequested();
-}
-
-final class AttachmentArchiveCancelCheckRequested extends SidebarActionIntent {
-  const AttachmentArchiveCancelCheckRequested();
-}

@@ -29,6 +29,8 @@ import 'package:remember_this_text/features/attachments/application/attachment_a
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_dependencies_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_native_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_remediation_authority.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_remediation_source_reader.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store_provider.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_showcase.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_adoption.dart';
@@ -1011,6 +1013,175 @@ INSERT INTO archived_attachments (
       );
     });
 
+    test('remediation rejects a symlinked retained source payload', () async {
+      final relativePath = await harness.addSourcePayload(<int>[81, 82, 83]);
+      final reviewed = await harness.verifyBehind();
+      final sourceFile = File(path.join(harness.source.path, relativePath));
+      final outside = await _write(
+        harness.fixture.root,
+        'outside-remediation-source.bin',
+        <int>[81, 82, 83],
+      );
+
+      final result = await harness
+          .service(
+            injector: (point) async {
+              if (point ==
+                  AttachmentArchiveAdoptionFailurePoint
+                      .afterActiveRemediationBoundary) {
+                await sourceFile.delete();
+                await Link(sourceFile.path).create(outside.path);
+              }
+            },
+          )
+          .adopt(reviewed);
+
+      expect(
+        result.outcome,
+        AttachmentArchiveAdoptionOutcome.remediationPending,
+      );
+      expect(result.issue, contains('not a regular file'));
+      expect(await harness.transactionStore.readPending(), isNotNull);
+    });
+
+    test('remediation rejects a non-regular retained source payload', () async {
+      final relativePath = await harness.addSourcePayload(<int>[84, 85, 86]);
+      final reviewed = await harness.verifyBehind();
+      final sourceFile = File(path.join(harness.source.path, relativePath));
+      var pipeCreated = false;
+
+      final result = await harness
+          .service(
+            injector: (point) async {
+              if (point ==
+                  AttachmentArchiveAdoptionFailurePoint
+                      .afterActiveRemediationBoundary) {
+                await sourceFile.delete();
+                final pipe = await Process.run('mkfifo', <String>[
+                  sourceFile.path,
+                ]);
+                pipeCreated = pipe.exitCode == 0;
+              }
+            },
+          )
+          .adopt(reviewed);
+
+      if (pipeCreated) {
+        expect(
+          result.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+        expect(result.issue, contains('not a regular file'));
+      }
+    });
+
+    test(
+      'remediation rejects wrong-size and disappeared source payloads',
+      () async {
+        final wrongSizePath = await harness.addSourcePayload(<int>[87, 88, 89]);
+        final wrongSizeReview = await harness.verifyBehind();
+        final wrongSizeResult = await harness
+            .service(
+              injector: (point) async {
+                if (point ==
+                    AttachmentArchiveAdoptionFailurePoint
+                        .afterActiveRemediationBoundary) {
+                  await File(
+                    path.join(harness.source.path, wrongSizePath),
+                  ).writeAsBytes(<int>[87], flush: true);
+                }
+              },
+            )
+            .adopt(wrongSizeReview);
+        expect(
+          wrongSizeResult.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+        expect(wrongSizeResult.issue, contains('changed'));
+
+        await harness.dispose();
+        harness = await _Harness.create();
+        final missingPath = await harness.addSourcePayload(<int>[90, 91, 92]);
+        final missingReview = await harness.verifyBehind();
+        final missingResult = await harness
+            .service(
+              injector: (point) async {
+                if (point ==
+                    AttachmentArchiveAdoptionFailurePoint
+                        .afterActiveRemediationBoundary) {
+                  await File(
+                    path.join(harness.source.path, missingPath),
+                  ).delete();
+                }
+              },
+            )
+            .adopt(missingReview);
+        expect(
+          missingResult.outcome,
+          AttachmentArchiveAdoptionOutcome.remediationPending,
+        );
+        expect(missingResult.issue, contains('unavailable'));
+      },
+    );
+
+    test(
+      'unreadable remediation source fails through the typed port',
+      () async {
+        final relativePath = await harness.addSourcePayload(<int>[93, 94, 95]);
+        final reviewed = await harness.verifyBehind();
+        final sourcePath = path.join(harness.source.path, relativePath);
+        var permissionsChanged = false;
+
+        final result = await harness
+            .service(
+              injector: (point) async {
+                if (point ==
+                    AttachmentArchiveAdoptionFailurePoint
+                        .afterActiveRemediationBoundary) {
+                  final chmod = await Process.run('chmod', <String>[
+                    '000',
+                    sourcePath,
+                  ]);
+                  permissionsChanged = chmod.exitCode == 0;
+                }
+              },
+            )
+            .adopt(reviewed);
+        if (permissionsChanged) {
+          await Process.run('chmod', <String>['600', sourcePath]);
+          expect(
+            result.outcome,
+            AttachmentArchiveAdoptionOutcome.remediationPending,
+          );
+          expect(result.issue, contains('could not be read'));
+        }
+      },
+    );
+
+    test('remediation source bytes remain streamed and bounded', () async {
+      final bytes = List<int>.generate(
+        2 * 1024 * 1024,
+        (index) => index % 251,
+        growable: false,
+      );
+      await harness.addSourcePayload(bytes);
+      final reviewed = await harness.verifyBehind();
+      final reader = _RecordingRemediationSourceReader(harness.verifier);
+
+      final result = await harness
+          .service(remediationSourceReader: reader)
+          .adopt(reviewed);
+
+      expect(result.outcome, AttachmentArchiveAdoptionOutcome.adopted);
+      expect(reader.openCount, 1);
+      expect(reader.chunkSizes.length, greaterThan(1));
+      expect(reader.chunkSizes.every((size) => size < bytes.length), isTrue);
+      expect(
+        reader.chunkSizes.fold<int>(0, (sum, size) => sum + size),
+        bytes.length,
+      );
+    });
+
     test(
       'candidate unavailable after switch is not recreated or rolled back',
       () async {
@@ -1223,6 +1394,7 @@ INSERT INTO archived_attachments (
   AttachmentArchiveAdoptionService service({
     AttachmentArchiveAdoptionFailureInjector? injector,
     AttachmentShowcaseEventCallback? onShowcaseItem,
+    AttachmentArchiveRemediationSourceReader? remediationSourceReader,
   }) {
     final snapshots = _RecordingSnapshotReader(
       delegate: verifier,
@@ -1264,6 +1436,7 @@ INSERT INTO archived_attachments (
           attachmentArchiveWritableRootAdmissionProvider.future,
         );
       },
+      remediationSourceReader: remediationSourceReader ?? verifier,
       newTransactionId: () => transactionId,
       clock: () => fixedTime,
       failureInjector: injector,
@@ -1423,6 +1596,31 @@ final class _RecordingSnapshotReader
       candidate: candidate,
       expectedCandidateCanonicalIdentity: expectedCandidateCanonicalIdentity,
     );
+  }
+}
+
+final class _RecordingRemediationSourceReader
+    implements AttachmentArchiveRemediationSourceReader {
+  _RecordingRemediationSourceReader(this.delegate);
+
+  final AttachmentArchiveRemediationSourceReader delegate;
+  final List<int> chunkSizes = <int>[];
+  int openCount = 0;
+
+  @override
+  Future<Stream<List<int>>> openVerifiedPayload({
+    required String retainedSourceRootPath,
+    required AttachmentArchiveRemediationAuthority remediationAuthority,
+  }) async {
+    openCount++;
+    final source = await delegate.openVerifiedPayload(
+      retainedSourceRootPath: retainedSourceRootPath,
+      remediationAuthority: remediationAuthority,
+    );
+    return source.map((chunk) {
+      chunkSizes.add(chunk.length);
+      return chunk;
+    });
   }
 }
 

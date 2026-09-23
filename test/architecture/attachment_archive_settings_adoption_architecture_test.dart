@@ -12,7 +12,7 @@ void main() {
     }
   });
 
-  test('widgets and payloads carry no archive or configuration authority', () {
+  test('render edge carries no archive or configuration authority', () {
     for (final path in _renderBoundaryPaths) {
       final source = File(path).readAsStringSync();
       for (final token in <String>[
@@ -32,12 +32,16 @@ void main() {
     }
   });
 
-  test('dispatcher reaches only the adoption workflow boundary', () {
+  test('sidebar dispatcher has no Attachment Archive workflow path', () {
     final source = File(
       'lib/essentials/sidebar/application/sidebar_action_dispatcher.dart',
     ).readAsStringSync();
 
-    expect(source, contains('attachmentArchiveAdoptionWorkflowProvider'));
+    expect(source, isNot(contains('AttachmentArchiveUseExistingRequested')));
+    expect(
+      source,
+      isNot(contains('attachmentArchiveAdoptionWorkflowProvider')),
+    );
     expect(source, isNot(contains('attachmentArchiveAdoptionServiceProvider')));
     expect(source, isNot(contains('attachmentArchiveLocationProvider')));
     expect(source, isNot(contains('activateVerifiedAdoption')));
@@ -53,9 +57,8 @@ void main() {
       'lib/features/attachments/application/'
       'attachment_archive_adoption_workflow.dart',
     ).readAsStringSync();
-    final payload = File(
-      'lib/features/settings/application/sidebar_cassette_spec/payloads/'
-      'attachment_archive_settings_cassette_payload.dart',
+    final panel = File(
+      'lib/features/settings/presentation/view/attachment_archive_panel.dart',
     ).readAsStringSync();
 
     expect(
@@ -73,9 +76,9 @@ void main() {
       publicState,
       isNot(contains('AttachmentArchiveCandidateVerificationResult?')),
     );
-    expect(payload, isNot(contains('AttachmentArchiveCandidateComplete')));
-    expect(payload, isNot(contains('bookmark')));
-    expect(payload, isNot(contains('fingerprint')));
+    expect(panel, isNot(contains('AttachmentArchiveCandidateComplete')));
+    expect(panel, isNot(contains('bookmark')));
+    expect(panel, isNot(contains('fingerprint')));
   });
 
   test('workflow never discovers or invokes legacy relocation artifacts', () {
@@ -118,6 +121,17 @@ void main() {
       'lib/features/settings/application/view_spec/coordinators/'
       'view_spec_coordinator.dart',
     ).readAsStringSync();
+    final descriptor = File(
+      'lib/features/settings/application/view_spec/payloads/'
+      'settings_panel_render_descriptor.dart',
+    ).readAsStringSync();
+    final renderRouter = File(
+      'lib/features/settings/presentation/rendering/'
+      'settings_panel_render_router.dart',
+    ).readAsStringSync();
+    final cassetteSpec = File(
+      'lib/features/settings/domain/spec_classes/settings_cassette_spec.dart',
+    ).readAsStringSync();
 
     expect(flow, contains('SettingsViewSpec.attachmentArchiveWorkflow()'));
     expect(topology, contains('case SettingsMenuActionId.attachmentArchive:'));
@@ -126,7 +140,37 @@ void main() {
       settingsViewSpec,
       contains('const factory SettingsViewSpec.attachmentArchiveWorkflow()'),
     );
-    expect(centerCoordinator, contains('AttachmentArchivePanelResolver'));
+    expect(
+      centerCoordinator,
+      contains('SettingsPanelRenderDescriptor.attachmentArchiveWorkflow'),
+    );
+    expect(centerCoordinator, isNot(contains('Widget')));
+    expect(centerCoordinator, isNot(contains('AttachmentArchivePanel')));
+    expect(descriptor, contains('attachmentArchiveWorkflow'));
+    expect(descriptor, isNot(contains('package:flutter')));
+    expect(renderRouter, contains('const AttachmentArchivePanel()'));
+    expect(cassetteSpec, isNot(contains('attachmentArchive')));
+  });
+
+  test('Attachment Archive panel is constructed only at render edge', () {
+    final applicationRoot = Directory('lib/features/settings/application');
+    for (final file
+        in applicationRoot
+            .listSync(recursive: true, followLinks: false)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart'))) {
+      final source = file.readAsStringSync();
+      expect(
+        source,
+        isNot(contains('AttachmentArchivePanel(')),
+        reason: file.path,
+      );
+    }
+    final renderRouter = File(
+      'lib/features/settings/presentation/rendering/'
+      'settings_panel_render_router.dart',
+    ).readAsStringSync();
+    expect(renderRouter, contains('const AttachmentArchivePanel()'));
   });
 
   test('adoption gate is exact and has no runtime override', () {
@@ -157,15 +201,14 @@ const _settingsRoutePaths = <String>[
   'lib/essentials/sidebar/application/sidebar_action_dispatcher.dart',
   'lib/essentials/sidebar/application/cassette_widget_coordinator_provider.dart',
   'lib/features/settings/application/sidebar_cassette_spec/coordinators/settings_coordinator.dart',
-  'lib/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart',
+  'lib/features/settings/application/view_spec/coordinators/view_spec_coordinator.dart',
   'lib/features/settings/feature_level_providers.dart',
   'lib/features/attachments/feature_level_providers.dart',
 ];
 
 const _renderBoundaryPaths = <String>[
-  'lib/features/settings/application/sidebar_cassette_spec/payloads/attachment_archive_settings_cassette_payload.dart',
-  'lib/features/settings/application/sidebar_cassette_spec/widget_builders/attachment_archive_settings_supplemental_content.dart',
-  'lib/features/settings/application/sidebar_cassette_spec/widget_builders/settings_action_list.dart',
+  'lib/features/settings/presentation/rendering/settings_panel_render_router.dart',
+  'lib/features/settings/presentation/view/attachment_archive_panel.dart',
 ];
 
 const _legacyTokens = <String>[

@@ -227,7 +227,8 @@ const _settingsAndSeamPaths = <String>[
   'lib/essentials/sidebar/application/sidebar_action_dispatcher.dart',
   'lib/essentials/sidebar/application/cassette_widget_coordinator_provider.dart',
   'lib/features/settings/application/sidebar_cassette_spec/coordinators/settings_coordinator.dart',
-  'lib/features/settings/application/sidebar_cassette_spec/resolvers/attachment_archive_settings_resolver.dart',
+  'lib/features/settings/application/view_spec/coordinators/view_spec_coordinator.dart',
+  'lib/features/settings/presentation/view/attachment_archive_panel.dart',
   'lib/features/settings/feature_level_providers.dart',
   'lib/features/attachments/feature_level_providers.dart',
 ];

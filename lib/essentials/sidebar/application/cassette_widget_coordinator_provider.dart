@@ -1,12 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../features/attachments/feature_level_providers.dart'
-    as attachments_feature
-    show
-        attachmentArchiveAdoptionRecoveryProvider,
-        attachmentArchiveAdoptionWorkflowProvider,
-        attachmentArchiveLocationProvider;
 import '../../../features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import '../../../features/contacts/feature_level_providers.dart'
     as contacts_feature
@@ -282,25 +276,6 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         },
         orElse: () async => null,
       );
-      final attachmentArchiveLocation = await settingsSpec.maybeMap(
-        attachmentArchive: (_) => ref.watch(
-          attachments_feature.attachmentArchiveLocationProvider.future,
-        ),
-        orElse: () async => null,
-      );
-      final attachmentArchiveWorkflow = settingsSpec.maybeMap(
-        attachmentArchive: (_) => ref.watch(
-          attachments_feature.attachmentArchiveAdoptionWorkflowProvider,
-        ),
-        orElse: () => null,
-      );
-      final attachmentArchiveRecovery = await settingsSpec.maybeMap(
-        attachmentArchive: (_) => ref.watch(
-          attachments_feature.attachmentArchiveAdoptionRecoveryProvider.future,
-        ),
-        orElse: () async => null,
-      );
-
       final coordinator = ref.read(
         settings_feature.settingsCassetteCoordinatorProvider.notifier,
       );
@@ -308,9 +283,6 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         settingsSpec,
         cassetteIndex: cassetteIndex,
         historicalArchivesKnownSources: historicalArchivesKnownSources,
-        attachmentArchiveLocation: attachmentArchiveLocation,
-        attachmentArchiveWorkflow: attachmentArchiveWorkflow,
-        attachmentArchiveRecovery: attachmentArchiveRecovery,
       );
     },
   );

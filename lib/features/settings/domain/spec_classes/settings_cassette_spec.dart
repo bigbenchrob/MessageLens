@@ -25,11 +25,7 @@ abstract class SettingsCassetteSpec with _$SettingsCassetteSpec {
   const factory SettingsCassetteSpec.resetMessageDataPanel() =
       _ResetMessageDataPanel;
 
-  const factory SettingsCassetteSpec.textSizeInfo() =
-      _TextSizeInfo;
+  const factory SettingsCassetteSpec.textSizeInfo() = _TextSizeInfo;
 
-  const factory SettingsCassetteSpec.imageSizeInfo() =
-      _ImageSizeInfo;
-
-  const factory SettingsCassetteSpec.attachmentArchive() = _AttachmentArchive;
+  const factory SettingsCassetteSpec.imageSizeInfo() = _ImageSizeInfo;
 }

@@ -27,7 +27,7 @@ final attachmentArchivePendingAdoptionTransactionProvider =
 typedef AttachmentArchivePendingAdoptionTransactionRef =
     AutoDisposeFutureProviderRef<AttachmentArchiveAdoptionTransaction?>;
 String _$attachmentArchiveAdoptionServiceHash() =>
-    r'05bbcf69da22cf98ddfd8a329618e489b167d084';
+    r'238d51c93586b1968d0027b3a54026f3bb768b46';
 
 /// Internal composition for the approval-to-adoption transaction.
 ///

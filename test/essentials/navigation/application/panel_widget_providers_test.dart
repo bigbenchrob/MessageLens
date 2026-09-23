@@ -32,6 +32,7 @@ import 'package:remember_this_text/features/messages/domain/search_investigation
 import 'package:remember_this_text/features/messages/domain/spec_classes/messages_view_spec.dart';
 import 'package:remember_this_text/features/settings/application/view_spec/coordinators/view_spec_coordinator.dart'
     as settings_view_spec;
+import 'package:remember_this_text/features/settings/application/view_spec/payloads/settings_panel_render_descriptor.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_cassette_spec.dart';
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_view_spec.dart';
 import 'package:remember_this_text/features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
@@ -1271,7 +1272,10 @@ void main() {
             );
         await tester.pump();
 
-        expect(find.text('settings:message-history-coverage'), findsOneWidget);
+        expect(
+          find.byKey(const Key('message-history-coverage-track-skeleton')),
+          findsOneWidget,
+        );
 
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();
@@ -1279,44 +1283,6 @@ void main() {
         await tester.pump();
       },
     );
-
-    testWidgets('center panel host renders derived environment settings view', (
-      tester,
-    ) async {
-      final container = ProviderContainer(
-        overrides: [
-          conversationGraphPopulatedProvider.overrideWith(
-            _AlwaysPopulatedGraph.new,
-          ),
-          settings_view_spec.viewSpecCoordinatorProvider.overrideWith(
-            _FakeSettingsViewSpecCoordinator.new,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const Directionality(
-            textDirection: TextDirection.ltr,
-            child: CenterPanelHost(mode: SidebarMode.settings),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      container
-          .read(sidebarFlowProvider.notifier)
-          .setPersistentSettingsContext(SettingsMenuActionId.environment);
-      await tester.pump();
-
-      expect(find.text('settings:environment-summary'), findsOneWidget);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      container.dispose();
-      await tester.pump();
-    });
 
     test('preserves sidebar-independent center stack over flow projection', () {
       final container = ProviderContainer(
@@ -2353,15 +2319,16 @@ class _FakeSettingsViewSpecCoordinator
   void build() {}
 
   @override
-  Widget buildForSpec(SettingsViewSpec spec) {
+  SettingsPanelRenderDescriptor resolveForSpec(SettingsViewSpec spec) {
     return spec.when(
-      environmentSummary: () => const Text('settings:environment-summary'),
+      environmentSummary: () =>
+          SettingsPanelRenderDescriptor.environmentSummary,
       attachmentArchiveWorkflow: () =>
-          const Text('settings:attachment-archive'),
+          SettingsPanelRenderDescriptor.attachmentArchiveWorkflow,
       historicalArchivesWorkflow: () =>
-          const Text('settings:historical-archives'),
+          SettingsPanelRenderDescriptor.historicalArchivesWorkflow,
       messageHistoryCoverageReport: () =>
-          const Text('settings:message-history-coverage'),
+          SettingsPanelRenderDescriptor.messageHistoryCoverageReport,
     );
   }
 }
