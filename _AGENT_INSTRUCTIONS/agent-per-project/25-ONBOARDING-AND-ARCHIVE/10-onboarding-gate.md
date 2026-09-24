@@ -14,6 +14,12 @@ presentation and action seams. It cannot assign Journey state.
 > Schedule, or operation snapshot may publish evidence or intent. None may
 > select or advance an Onboarding Episode.
 
+> **Evidence may be distributed. Journey authority may not be.** Only
+> `OnboardingJourneyCoordinator` determines user-visible Onboarding state and
+> what happens next. Durable operation snapshots and other providers supply
+> evidence to the coordinator; presentation consumes the coordinator-owned
+> Journey projection.
+
 ## Ownership
 
 ```text

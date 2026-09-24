@@ -66,9 +66,12 @@ paths.
 Enumerable import, rich-text, and row-oriented projection work reports exact
 completed and total units at bounded cadence. Fast set-based projectors,
 derived-store reset, and final readiness probes report typed coarse substages
-without a fabricated percentage. Presentation consumes
-`OnboardingOperationSnapshot`; it does not calculate work by inspecting
-repositories.
+without a fabricated percentage. Durable operation evidence records those
+bounded facts. `OnboardingJourneyCoordinator` validates that the evidence
+belongs to the current Journey-owned operation and projects current progress
+through `OnboardingJourneyState`. Presentation consumes that coordinator-owned
+projection; it does not infer Journey meaning directly from repositories,
+services, or `OnboardingOperationSnapshot`.
 
 The app-facing setup path is the Journey coordinator plus
 `ConversationGraphBuildController` for source-scoped graph build/rebuild.
