@@ -6,6 +6,10 @@ import 'package:remember_this_text/essentials/archive_environment/application.da
     show ArchiveCheckpointReceiptValidator;
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart';
+import 'package:remember_this_text/essentials/exclusive_authority/application/exclusive_authority_registry_provider.dart'
+    show ExclusiveAuthorityRegistryTestSupport;
+import 'package:remember_this_text/essentials/exclusive_authority/feature_level_providers.dart'
+    show ExclusiveAuthorityKey, exclusiveAuthorityRegistryProvider;
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -156,6 +160,93 @@ void main() {
         ),
         throwsA(isA<ArchiveMutationCapabilityDeniedException>()),
       );
+    },
+  );
+
+  test(
+    'retained Ball-1 Zone capability stays invalid while Ball 2 is live',
+    () async {
+      final harness = await _CoordinatorHarness.create();
+      addTearDown(harness.dispose);
+      final invokeStaleCallback = Completer<void>();
+      late Future<Object?> staleCallbackResult;
+
+      await harness.coordinator.runWithCapability<void>(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        ownerLabel: 'reused-owner-label',
+        action: (capability) async {
+          capability.requireOperation(
+            ArchiveMutationOperation.attachmentReconciliation,
+          );
+          staleCallbackResult = invokeStaleCallback.future.then<Object?>((_) {
+            try {
+              capability.requireOperation(
+                ArchiveMutationOperation.attachmentReconciliation,
+              );
+              return null;
+            } on Object catch (error) {
+              return error;
+            }
+          });
+        },
+      );
+
+      await harness.coordinator.runWithCapability<void>(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        ownerLabel: 'reused-owner-label',
+        action: (currentCapability) async {
+          final currentOwnerId = harness.state.ownerId;
+          invokeStaleCallback.complete();
+          expect(
+            await staleCallbackResult,
+            isA<ArchiveMutationCapabilityDeniedException>(),
+          );
+          expect(harness.state.ownerId, currentOwnerId);
+          expect(harness.state.holdCount, 1);
+          currentCapability.requireOperation(
+            ArchiveMutationOperation.attachmentReconciliation,
+          );
+        },
+      );
+    },
+  );
+
+  test(
+    'capability rejects revoked generic tenure while archive scope stays active',
+    () async {
+      final harness = await _CoordinatorHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.coordinator.runWithCapability<void>(
+        operation: ArchiveMutationOperation.attachmentReconciliation,
+        ownerLabel: 'generic-tenure-grounding',
+        action: (capability) async {
+          capability.requireOperation(
+            ArchiveMutationOperation.attachmentReconciliation,
+          );
+          final registry = harness.container.read(
+            exclusiveAuthorityRegistryProvider.notifier,
+          );
+          final cleanup = ExclusiveAuthorityRegistryTestSupport.instance
+              .captureOnlyActiveScope(
+                registry: registry,
+                authority: ExclusiveAuthorityKey.archiveMutation,
+              );
+
+          ExclusiveAuthorityRegistryTestSupport.instance.replayCleanup(cleanup);
+
+          expect(harness.state.isLocked, isTrue);
+          expect(harness.state.holdCount, 1);
+          expect(
+            () => capability.requireOperation(
+              ArchiveMutationOperation.attachmentReconciliation,
+            ),
+            throwsA(isA<ArchiveMutationCapabilityDeniedException>()),
+          );
+        },
+      );
+
+      expect(harness.state.isLocked, isFalse);
     },
   );
 
@@ -356,6 +447,54 @@ void main() {
 
     await expectLater(operation, completes);
   });
+
+  test(
+    'provider disposal invalidates capability in its retained Zone',
+    () async {
+      final fixture = await TestArchiveFixture.create(
+        prefix: 'mutation_capability_disposal_test_',
+      );
+      addTearDown(fixture.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          admittedArchiveAccessAuthorityProvider.overrideWithValue(
+            fixture.authority,
+          ),
+        ],
+      );
+      final capabilityReady = Completer<void>();
+      final probeAfterDisposal = Completer<void>();
+      final observedFailure = Completer<Object>();
+
+      final operation = container
+          .read(archiveMutationCoordinatorProvider.notifier)
+          .runWithCapability<void>(
+            operation: ArchiveMutationOperation.attachmentReconciliation,
+            ownerLabel: 'disposing-capability-owner',
+            action: (capability) async {
+              capabilityReady.complete();
+              await probeAfterDisposal.future;
+              try {
+                capability.requireOperation(
+                  ArchiveMutationOperation.attachmentReconciliation,
+                );
+              } on Object catch (error) {
+                observedFailure.complete(error);
+              }
+            },
+          );
+
+      await capabilityReady.future;
+      container.dispose();
+      probeAfterDisposal.complete();
+
+      await expectLater(
+        observedFailure.future,
+        completion(isA<ArchiveMutationCapabilityDeniedException>()),
+      );
+      await expectLater(operation, completes);
+    },
+  );
 
   test('database reopen state derives from the admitted operation', () async {
     final harness = await _CoordinatorHarness.create();
