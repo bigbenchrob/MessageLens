@@ -3,6 +3,14 @@ import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../exclusive_authority/feature_level_providers.dart'
+    show
+        ExclusiveAuthorityDeniedException,
+        ExclusiveAuthorityKey,
+        ExclusiveAuthorityProofDeniedException,
+        ExclusiveAuthorityRegistry,
+        ExclusiveAuthorityTenure,
+        exclusiveAuthorityRegistryProvider;
 import '../domain/archive_checkpoint_required_exception.dart';
 import '../domain/archive_environment.dart';
 import '../domain/archive_instance_id.dart';
@@ -18,12 +26,14 @@ final Object _archiveMutationOwnerZoneKey = Object();
 
 final class _ArchiveMutationAsyncContext {
   const _ArchiveMutationAsyncContext({
-    required this.ownerId,
+    required this.coordinatorIdentity,
+    required this.tenure,
     required this.scopeId,
     required this.operation,
   });
 
-  final String ownerId;
+  final Object coordinatorIdentity;
+  final ExclusiveAuthorityTenure tenure;
   final int scopeId;
   final ArchiveMutationOperation operation;
 }
@@ -100,7 +110,7 @@ class ArchiveMutationCoordinatorState {
 /// authority source.
 @Riverpod(keepAlive: true)
 class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
-  var _nextOwnerSequence = 0;
+  final Object _coordinatorIdentity = Object();
   var _nextScopeSequence = 0;
   var _isDisposed = false;
   final Map<int, ArchiveMutationOperation> _activeScopes = {};
@@ -149,28 +159,57 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
     final inheritedContext =
         Zone.current[_archiveMutationOwnerZoneKey]
             as _ArchiveMutationAsyncContext?;
-    final ownerId =
-        inheritedContext?.ownerId ?? '$ownerLabel#${++_nextOwnerSequence}';
-    final scopeId = _tryAcquire(
+    try {
+      if (inheritedContext != null &&
+          identical(
+            inheritedContext.coordinatorIdentity,
+            _coordinatorIdentity,
+          )) {
+        return await _exclusiveAuthorityRegistry.runReentrant<T>(
+          tenure: inheritedContext.tenure,
+          action: () => _runAdmittedArchiveScope<T>(
+            tenure: inheritedContext.tenure,
+            operation: operation,
+            ownerLabel: ownerLabel,
+            action: action,
+          ),
+        );
+      }
+
+      return await _exclusiveAuthorityRegistry.runExclusive<T>(
+        authority: ExclusiveAuthorityKey.archiveMutation,
+        ownerLabel: ownerLabel,
+        action: (tenure) => _runAdmittedArchiveScope<T>(
+          tenure: tenure,
+          operation: operation,
+          ownerLabel: ownerLabel,
+          action: action,
+        ),
+      );
+    } on ExclusiveAuthorityDeniedException {
+      throw _archiveDenial(operation: operation, ownerLabel: ownerLabel);
+    } on ExclusiveAuthorityProofDeniedException {
+      throw _archiveDenial(operation: operation, ownerLabel: ownerLabel);
+    }
+  }
+
+  Future<T> _runAdmittedArchiveScope<T>({
+    required ExclusiveAuthorityTenure tenure,
+    required ArchiveMutationOperation operation,
+    required String ownerLabel,
+    required Future<T> Function(ArchiveMutationCapability capability) action,
+  }) async {
+    final scopeId = _activateArchiveScope(
+      tenure: tenure,
       operation: operation,
-      ownerId: ownerId,
       ownerLabel: ownerLabel,
     );
-    if (scopeId == null) {
-      throw ArchiveMutationDeniedException(
-        requestedOperation: operation,
-        requestedOwner: ownerLabel,
-        currentOperation: state.operation,
-        currentOwner: state.ownerLabel,
-      );
-    }
-
     try {
       await _requireVerifiedCheckpointWhenApplicable(operation);
       final capability = ArchiveMutationCapability._(
         operation: operation,
         isActive: () => _scopeIsActiveForCurrentCaller(
-          ownerId: ownerId,
+          tenure: tenure,
           scopeId: scopeId,
           operation: operation,
         ),
@@ -179,19 +218,20 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
         () => action(capability),
         zoneValues: {
           _archiveMutationOwnerZoneKey: _ArchiveMutationAsyncContext(
-            ownerId: ownerId,
+            coordinatorIdentity: _coordinatorIdentity,
+            tenure: tenure,
             scopeId: scopeId,
             operation: operation,
           ),
         },
       );
     } finally {
-      _release(ownerId: ownerId, scopeId: scopeId);
+      _releaseArchiveScope(scopeId);
     }
   }
 
   bool _scopeIsActiveForCurrentCaller({
-    required String ownerId,
+    required ExclusiveAuthorityTenure tenure,
     required int scopeId,
     required ArchiveMutationOperation operation,
   }) {
@@ -201,9 +241,11 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
     final context =
         Zone.current[_archiveMutationOwnerZoneKey]
             as _ArchiveMutationAsyncContext?;
-    return context?.ownerId == ownerId &&
+    return identical(context?.coordinatorIdentity, _coordinatorIdentity) &&
+        identical(context?.tenure, tenure) &&
         context?.scopeId == scopeId &&
-        context?.operation == operation;
+        context?.operation == operation &&
+        _tenureIsCurrent(tenure);
   }
 
   ArchiveMutationResourceAdmission resourceAdmissionForCurrentCaller(
@@ -217,7 +259,9 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
         Zone.current[_archiveMutationOwnerZoneKey]
             as _ArchiveMutationAsyncContext?;
     final callerOwnsMutation =
-        context != null && context.ownerId == state.ownerId;
+        context != null &&
+        identical(context.coordinatorIdentity, _coordinatorIdentity) &&
+        _tenureIsCurrent(context.tenure);
     if (!callerOwnsMutation ||
         !context.operation.permitsOwnerResourceAction(action)) {
       return ArchiveMutationResourceAdmission.deniedByActiveMutation;
@@ -259,25 +303,39 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
     }
   }
 
-  int? _tryAcquire({
+  ExclusiveAuthorityRegistry get _exclusiveAuthorityRegistry =>
+      ref.read(exclusiveAuthorityRegistryProvider.notifier);
+
+  bool _tenureIsCurrent(ExclusiveAuthorityTenure tenure) {
+    try {
+      _exclusiveAuthorityRegistry.requireCurrent(
+        authority: ExclusiveAuthorityKey.archiveMutation,
+        tenure: tenure,
+      );
+      return true;
+    } on ExclusiveAuthorityProofDeniedException {
+      return false;
+    }
+  }
+
+  int _activateArchiveScope({
+    required ExclusiveAuthorityTenure tenure,
     required ArchiveMutationOperation operation,
-    required String ownerId,
     required String ownerLabel,
   }) {
-    final now = DateTime.now().toUtc();
+    final scopeId = ++_nextScopeSequence;
     if (!state.isLocked) {
       final authority = ref.read(archiveAccessAuthorityProvider);
-      final scopeId = ++_nextScopeSequence;
       _activeScopes[scopeId] = operation;
       state = ArchiveMutationCoordinatorState(
         operation: operation,
-        ownerId: ownerId,
+        ownerId: '$ownerLabel#${tenure.diagnosticOccurrence}',
         ownerLabel: ownerLabel,
         activeOperations: List.unmodifiable(_activeScopes.values),
         environment: authority.identity.environment,
         archiveInstanceId: authority.identity.archiveInstanceId,
         holdCount: 1,
-        acquiredAtUtc: now,
+        acquiredAtUtc: tenure.issuedAtUtc,
         lastReleasedAtUtc: state.lastReleasedAtUtc,
         lastDeniedOperation: state.lastDeniedOperation,
         lastDeniedOwner: state.lastDeniedOwner,
@@ -287,54 +345,33 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
       return scopeId;
     }
 
-    if (state.ownerId == ownerId) {
-      final scopeId = ++_nextScopeSequence;
-      _activeScopes[scopeId] = operation;
-      state = ArchiveMutationCoordinatorState(
-        operation: state.operation,
-        ownerId: state.ownerId,
-        ownerLabel: state.ownerLabel,
-        activeOperations: List.unmodifiable(_activeScopes.values),
-        environment: state.environment,
-        archiveInstanceId: state.archiveInstanceId,
-        holdCount: state.holdCount + 1,
-        acquiredAtUtc: state.acquiredAtUtc,
-        lastReleasedAtUtc: state.lastReleasedAtUtc,
-        lastDeniedOperation: state.lastDeniedOperation,
-        lastDeniedOwner: state.lastDeniedOwner,
-        lastDeniedAtUtc: state.lastDeniedAtUtc,
-        deniedRequests: state.deniedRequests,
-      );
-      return scopeId;
-    }
-
+    _activeScopes[scopeId] = operation;
     state = ArchiveMutationCoordinatorState(
       operation: state.operation,
       ownerId: state.ownerId,
       ownerLabel: state.ownerLabel,
-      activeOperations: state.activeOperations,
+      activeOperations: List.unmodifiable(_activeScopes.values),
       environment: state.environment,
       archiveInstanceId: state.archiveInstanceId,
-      holdCount: state.holdCount,
+      holdCount: _activeScopes.length,
       acquiredAtUtc: state.acquiredAtUtc,
       lastReleasedAtUtc: state.lastReleasedAtUtc,
-      lastDeniedOperation: operation,
-      lastDeniedOwner: ownerLabel,
-      lastDeniedAtUtc: now,
-      deniedRequests: state.deniedRequests + 1,
+      lastDeniedOperation: state.lastDeniedOperation,
+      lastDeniedOwner: state.lastDeniedOwner,
+      lastDeniedAtUtc: state.lastDeniedAtUtc,
+      deniedRequests: state.deniedRequests,
     );
-    return null;
+    return scopeId;
   }
 
-  void _release({required String ownerId, required int scopeId}) {
+  void _releaseArchiveScope(int scopeId) {
     if (_isDisposed) {
       return;
     }
-    if (!state.isLocked || state.ownerId != ownerId) {
+    if (!state.isLocked || _activeScopes.remove(scopeId) == null) {
       return;
     }
 
-    _activeScopes.remove(scopeId);
     final nextHoldCount = _activeScopes.length;
     if (nextHoldCount > 0) {
       state = ArchiveMutationCoordinatorState(
@@ -363,6 +400,34 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
       lastDeniedAtUtc: state.lastDeniedAtUtc,
       deniedRequests: state.deniedRequests,
     );
+  }
+
+  ArchiveMutationDeniedException _archiveDenial({
+    required ArchiveMutationOperation operation,
+    required String ownerLabel,
+  }) {
+    final denial = ArchiveMutationDeniedException(
+      requestedOperation: operation,
+      requestedOwner: ownerLabel,
+      currentOperation: state.operation,
+      currentOwner: state.ownerLabel,
+    );
+    state = ArchiveMutationCoordinatorState(
+      operation: state.operation,
+      ownerId: state.ownerId,
+      ownerLabel: state.ownerLabel,
+      activeOperations: state.activeOperations,
+      environment: state.environment,
+      archiveInstanceId: state.archiveInstanceId,
+      holdCount: state.holdCount,
+      acquiredAtUtc: state.acquiredAtUtc,
+      lastReleasedAtUtc: state.lastReleasedAtUtc,
+      lastDeniedOperation: operation,
+      lastDeniedOwner: ownerLabel,
+      lastDeniedAtUtc: DateTime.now().toUtc(),
+      deniedRequests: state.deniedRequests + 1,
+    );
+    return denial;
   }
 }
 
