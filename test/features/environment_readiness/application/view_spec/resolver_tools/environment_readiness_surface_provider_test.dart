@@ -5,7 +5,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_environment_report_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart'
+    show OnboardingJourneyCoordinator;
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_operation_projection.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
 import 'package:remember_this_text/essentials/onboarding/feature_level_providers.dart'
     show onboardingJourneyCoordinatorProvider;
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
@@ -122,9 +128,12 @@ void main() {
         );
 
         await _surface(container);
+        final actionContext = container
+            .read(onboardingJourneyCoordinatorProvider)
+            .actionContext;
         container
             .read(onboardingJourneyCoordinatorProvider.notifier)
-            .acceptLocalMessageHistory();
+            .acceptLocalMessageHistory(actionContext: actionContext);
         final surface = container.read(environmentReadinessSurfaceProvider);
 
         expect(surface.kind, EnvironmentReadinessEpisodeKind.ready);
@@ -207,7 +216,7 @@ void main() {
     );
 
     test(
-      'import failure remains retryable even after source acceptance',
+      'unbound import failure truthfully offers environment re-check',
       () async {
         container = _containerFor(
           _report(
@@ -219,11 +228,80 @@ void main() {
         final surface = await _surface(container);
 
         expect(surface.kind, EnvironmentReadinessEpisodeKind.failed);
-        expect(surface.title, 'Setup needs another try');
-        expect(surface.primaryAction?.label, 'Try Import Again');
+        expect(surface.title, 'Setup needs attention');
+        expect(surface.primaryAction?.label, 'Re-check');
+        expect(
+          surface.primaryAction?.kind,
+          EnvironmentReadinessActionKind.recheck,
+        );
       },
     );
+
+    test('manual-inspection failure exposes diagnostics but no retry', () {
+      final report = _report(
+        state: OnboardingEnvironmentState.importFailed,
+        blockerKind: OnboardingBlockerKind.importFailed,
+      );
+      final operationId = OnboardingOperationId(
+        '123e4567-e89b-42d3-a456-426614174000',
+      );
+      final journey = OnboardingOperationFailed(
+        occurrence: 7,
+        summary: 'Manual inspection is required.',
+        compatibilityStatus: OnboardingStatus.preparationFailed,
+        failureAction: OnboardingJourneyFailureAction.none,
+        evidence: OnboardingPrerequisiteEvidence(
+          revision: 3,
+          observedAtUtc: DateTime.utc(2026, 9, 24),
+          report: report,
+        ),
+        operation: OnboardingJourneyOperationProjection(
+          operationId: operationId,
+          kind: OnboardingOperationKind.initialImport,
+          phase: OnboardingJourneyOperationPhase.failed,
+          stage: OnboardingOperationStage.messageDataBuild,
+          substage: OnboardingOperationSubstage.importingMessages,
+          progressRevision: 4,
+          progress: null,
+          failure: const OnboardingJourneyOperationFailure(
+            category:
+                OnboardingOperationFailureCategory.durableStateInconsistent,
+            summary: 'Manual inspection is required.',
+          ),
+          availableActions: const <OnboardingJourneyOperationAction>{},
+        ),
+      );
+      container = ProviderContainer(
+        overrides: <Override>[
+          onboardingJourneyCoordinatorProvider.overrideWith(
+            () => _FixedJourneyCoordinator(journey),
+          ),
+        ],
+      );
+
+      final surface = container.read(environmentReadinessSurfaceProvider);
+
+      expect(surface.title, 'Setup needs attention');
+      expect(surface.body, contains('Manual inspection'));
+      expect(
+        surface.actions.map((action) => action.kind),
+        isNot(contains(EnvironmentReadinessActionKind.retryOperation)),
+      );
+      expect(
+        surface.actions.map((action) => action.kind),
+        contains(EnvironmentReadinessActionKind.sendReport),
+      );
+    });
   });
+}
+
+final class _FixedJourneyCoordinator extends OnboardingJourneyCoordinator {
+  _FixedJourneyCoordinator(this._journey);
+
+  final OnboardingJourneyState _journey;
+
+  @override
+  OnboardingJourneyState build() => _journey;
 }
 
 ProviderContainer _containerFor(OnboardingEnvironmentReport report) {

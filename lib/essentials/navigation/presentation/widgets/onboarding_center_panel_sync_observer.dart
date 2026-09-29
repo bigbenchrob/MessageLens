@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../logging/feature_level_providers.dart'
     show activeBlockingPipelineIncidentProvider;
 import '../../../onboarding/feature_level_providers.dart'
-    show onboardingGateProvider;
+    show onboardingJourneyCoordinatorProvider;
 import '../../application/onboarding_center_panel_sync_controller.dart';
 import '../../application/panel_widget_providers.dart';
 import '../../domain/sidebar_mode.dart';
@@ -14,7 +14,9 @@ class OnboardingCenterPanelSyncObserver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onboardingStatus = ref.watch(onboardingGateProvider);
+    final onboardingStatus = ref
+        .watch(onboardingJourneyCoordinatorProvider)
+        .compatibilityStatus;
     final incidentReport = ref
         .watch(activeBlockingPipelineIncidentProvider)
         .valueOrNull;

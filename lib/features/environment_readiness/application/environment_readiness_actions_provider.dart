@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../essentials/onboarding/domain/onboarding_journey_state.dart';
 import '../../../essentials/onboarding/feature_level_providers.dart'
     show
         onboardingGateProvider,
@@ -23,16 +24,26 @@ class EnvironmentReadinessActions extends _$EnvironmentReadinessActions {
     ref.read(onboardingGateProvider.notifier).refreshEnvironment();
   }
 
-  Future<void> startVirginImportAndGraphBuild() async {
+  Future<void> startVirginImportAndGraphBuild(
+    OnboardingJourneyActionContext actionContext,
+  ) async {
     await ref
         .read(onboardingGateProvider.notifier)
-        .startVirginImportAndGraphBuild();
+        .startVirginImportAndGraphBuild(actionContext: actionContext);
   }
 
-  void acceptLocalMessageHistory() {
+  Future<void> retryFailedOperation(
+    OnboardingJourneyActionContext actionContext,
+  ) async {
+    await ref
+        .read(onboardingGateProvider.notifier)
+        .retryFailedOperation(actionContext: actionContext);
+  }
+
+  void acceptLocalMessageHistory(OnboardingJourneyActionContext actionContext) {
     ref
         .read(onboardingJourneyCoordinatorProvider.notifier)
-        .acceptLocalMessageHistory();
+        .acceptLocalMessageHistory(actionContext: actionContext);
   }
 
   void clearSimulationsAndRefresh() {

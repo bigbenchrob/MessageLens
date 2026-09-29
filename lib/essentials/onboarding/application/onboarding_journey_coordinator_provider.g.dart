@@ -7,14 +7,13 @@ part of 'onboarding_journey_coordinator_provider.dart';
 // **************************************************************************
 
 String _$onboardingJourneyCoordinatorHash() =>
-    r'767ba8a9b0ecea7d33a1d5958319178b97dc1069';
+    r'c233417571f262325da27ec3f73b49150ef1e23f';
 
-/// Sole authority for the active typed Onboarding Journey Episode.
+/// Sole authority for user-visible Onboarding Journey semantics.
 ///
-/// Prerequisite providers, durable operation state, lifecycle callbacks, and
-/// widgets contribute evidence or intent. This coordinator applies blocker
-/// priority and transition policy, admits operational work through the archive
-/// mutation boundary, and publishes exactly one [OnboardingJourneyState].
+/// Environment and operation providers publish evidence. This stable notifier
+/// ingests that evidence, validates its currentness, and is the only component
+/// that turns it into a user-visible Journey Episode.
 ///
 /// Copied from [OnboardingJourneyCoordinator].
 @ProviderFor(OnboardingJourneyCoordinator)

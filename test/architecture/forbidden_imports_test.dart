@@ -168,7 +168,6 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/message_lens_installation_state_provider.dart',
   'lib/essentials/onboarding/application/onboarding_durable_completion_verifier_provider.dart',
   'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
-  'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
@@ -283,6 +282,12 @@ const Set<String> _debugPrintAllowedFiles = {
 
 const Set<String> _silentCatchAllowedFiles = {
   'lib/essentials/logging/infrastructure/log_file_writer.dart',
+
+  // Journey failure is published before these best-effort persistence,
+  // diagnostics, logging, and evidence-refresh boundaries. Each boundary must
+  // remain independently contained so a secondary failure cannot erase or
+  // replace the coordinator-owned terminal state.
+  'lib/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart',
 };
 
 const Set<String> _catchErrorAllowedFiles = {
@@ -1305,16 +1310,12 @@ void main() {
         expect(path, isNot(contains('onboardingEnvironmentReportProvider')));
         expect(path, isNot(contains('StatefulWidget')));
         final verificationMethod = coordinator.substring(
-          coordinator.indexOf('Future<void> _verifyAndCompleteInstallation'),
-          coordinator.indexOf('void _finishFirstRunWithFailure'),
+          coordinator.indexOf('Future<void> _verifyAndComplete'),
+          coordinator.indexOf('Future<void> _publishFailureBeforeSideEffects'),
         );
         expect(
           verificationMethod.indexOf('.verifyInstallationReady()'),
-          lessThan(verificationMethod.indexOf('operationController.complete')),
-        );
-        expect(
-          verificationMethod.indexOf('operationController.complete'),
-          lessThan(verificationMethod.indexOf('_setWorkflowOverride')),
+          lessThan(verificationMethod.indexOf('controller.complete')),
         );
         expect(verificationMethod, isNot(contains('Future.delayed')));
         expect(verificationMethod, isNot(contains('Timer(')));
@@ -7709,7 +7710,11 @@ void main() {
       expect(onboardingGate, isNot(contains('Timer.periodic')));
       expect(
         onboardingPresentation,
-        contains('onboardingOperationSnapshotProvider'),
+        isNot(contains('onboardingOperationSnapshotProvider')),
+      );
+      expect(
+        onboardingPresentation,
+        contains('OnboardingJourneyOperationProjection'),
       );
       expect(
         onboardingPresentation,
@@ -15582,6 +15587,11 @@ Future<List<String>> _findRawInvalidationDocumentationOffenders() async {
   final offenders = <String>[];
 
   for (final filePath in files) {
+    if (filePath.contains('/prompts/') || filePath.contains('/responses/')) {
+      // Prompt/response records preserve the historical design conversation.
+      // They are not current, copyable project guidance.
+      continue;
+    }
     final source = await File(filePath).readAsString();
     if (invalidationPattern.hasMatch(source)) {
       offenders.add(filePath);

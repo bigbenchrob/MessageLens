@@ -61,7 +61,7 @@ final onboardingDatabaseDirectoryPathProvider = Provider<String>.internal(
 // ignore: unused_element
 typedef OnboardingDatabaseDirectoryPathRef = ProviderRef<String>;
 String _$onboardingEnvironmentReportHash() =>
-    r'98986d2f3d0e7bb1b38794861e688d2b608f9f0e';
+    r'd7371879e37a5b5bbd2f6a82840f067dddb2f0a3';
 
 /// See also [onboardingEnvironmentReport].
 @ProviderFor(onboardingEnvironmentReport)

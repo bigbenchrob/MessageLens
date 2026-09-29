@@ -22,7 +22,7 @@ void main() {
       'sqlite_message_lens_installation_evidence_reader.dart';
   const reconciliationPath =
       'lib/essentials/onboarding/application/'
-      'onboarding_operation_reconciliation_provider.dart';
+      'onboarding_operation_reconciliation.dart';
   const coordinatorPath =
       'lib/essentials/onboarding/application/'
       'onboarding_journey_coordinator_provider.dart';
@@ -119,12 +119,21 @@ void main() {
     expect(coordinator, contains('ArchiveMutationOperation.onboardingImport'));
   });
 
-  test('reconciliation consumes readiness evidence rather than probing', () {
+  test('reconciliation is a pure evidence interpretation owned by Journey', () {
     final reconciliation = File(reconciliationPath).readAsStringSync();
+    final coordinator = File(coordinatorPath).readAsStringSync();
 
-    expect(reconciliation, contains('onboardingEnvironmentReportProvider'));
+    expect(reconciliation, contains('OnboardingEnvironmentReport report'));
+    expect(reconciliation, contains('OnboardingOperationSnapshot snapshot'));
+    expect(reconciliation, isNot(contains('Provider')));
+    expect(reconciliation, isNot(contains('Ref ')));
+    expect(reconciliation, isNot(contains('ref.')));
     expect(reconciliation, isNot(contains('OnboardingDatabaseProbeReader')));
     expect(reconciliation, isNot(contains('probeFile')));
+    expect(
+      coordinator,
+      contains('onboardingReconciliationEvidenceFrom(report, snapshot)'),
+    );
   });
 
   test('operational persistence contains no narrator copy', () {

@@ -6,7 +6,7 @@ part of 'onboarding_gate_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$onboardingGateHash() => r'86f52e196532fe65d506b286f847786f346121cb';
+String _$onboardingGateHash() => r'bec8593555241a5286cf9d58f93bcc8906066545';
 
 /// Read-only compatibility projection for established presentation consumers.
 ///

@@ -13,6 +13,7 @@ void main() {
         importRows: 120,
         graphRows: 118,
       ),
+      const OnboardingOperationSnapshot.idle(),
     );
 
     expect(evidence.state, OnboardingDurableReconciliationState.completed);
@@ -30,6 +31,7 @@ void main() {
     () {
       final evidence = onboardingReconciliationEvidenceFrom(
         _report(state: OnboardingEnvironmentState.maintenanceInProgress),
+        const OnboardingOperationSnapshot.idle(),
       );
 
       expect(evidence.state, OnboardingDurableReconciliationState.unavailable);
@@ -46,6 +48,7 @@ void main() {
     ]) {
       final evidence = onboardingReconciliationEvidenceFrom(
         _report(state: state),
+        _interruptedRichTextSnapshot(),
       );
 
       expect(
@@ -62,12 +65,14 @@ void main() {
         state: OnboardingEnvironmentState.importFailed,
         importFailure: 'source import failed',
       ),
+      const OnboardingOperationSnapshot.idle(),
     );
     final graphEvidence = onboardingReconciliationEvidenceFrom(
       _report(
         state: OnboardingEnvironmentState.graphProjectionFailed,
         graphFailure: 'graph build failed',
       ),
+      const OnboardingOperationSnapshot.idle(),
     );
 
     expect(
@@ -87,12 +92,35 @@ void main() {
       _report(
         state: OnboardingEnvironmentState.graphProjectionFailed,
         graphFailure: 'coarse graph build failure',
-        operationSnapshot: _interruptedRichTextSnapshot(),
       ),
+      _interruptedRichTextSnapshot(),
     );
 
     expect(evidence.state, OnboardingDurableReconciliationState.resumable);
     expect(evidence.failureSummary, isNull);
+  });
+
+  test('interrupted work without an exact safe substage is inconsistent', () {
+    final startedAt = DateTime.utc(2026, 9, 13, 12);
+    final interrupted = OnboardingOperationSnapshot.running(
+      operationId: OnboardingOperationId(
+        '123e4567-e89b-42d3-a456-426614174000',
+      ),
+      processSessionId: OnboardingProcessSessionId(
+        '123e4567-e89b-42d3-a456-426614174001',
+      ),
+      kind: OnboardingOperationKind.initialImport,
+      stage: OnboardingOperationStage.messageDataBuild,
+      observedAtUtc: startedAt,
+    ).interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 1)));
+
+    final evidence = onboardingReconciliationEvidenceFrom(
+      _report(state: OnboardingEnvironmentState.readyToImport),
+      interrupted,
+    );
+
+    expect(evidence.state, OnboardingDurableReconciliationState.inconsistent);
+    expect(evidence.failureSummary, contains('no verified safe resume'));
   });
 }
 
@@ -102,8 +130,6 @@ OnboardingEnvironmentReport _report({
   int? graphRows,
   String? importFailure,
   String? graphFailure,
-  OnboardingOperationSnapshot operationSnapshot =
-      const OnboardingOperationSnapshot.idle(),
 }) {
   const availableProbe = OnboardingDatabaseProbe(
     path: '/tmp/source.db',
@@ -144,7 +170,6 @@ OnboardingEnvironmentReport _report({
             phase: OnboardingPipelinePhase.graphProjection,
             message: graphFailure,
           ),
-    operationSnapshot: operationSnapshot,
   );
 }
 

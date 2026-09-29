@@ -10,9 +10,14 @@ import '../../../features/attachments/feature_level_providers.dart'
     show
         AttachmentArchiveLocationAvailability,
         AttachmentArchiveLocationState,
-        attachmentArchiveLocationProvider;
+        attachmentArchiveLocationProvider,
+        readAttachmentArchiveLocationEvidenceWithAdmission;
+import '../../archive_environment/domain/archive_mutation_operation.dart';
 import '../../archive_environment/feature_level_providers.dart'
-    show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
+    show
+        ArchiveMutationCapability,
+        archiveAccessAuthorityProvider,
+        archiveMutationCoordinatorProvider;
 import '../../conversation_graph/feature_level_providers.dart'
     show
         ChatDbChangeMonitorState,
@@ -23,19 +28,18 @@ import '../../db/app_database_files.dart';
 import '../../db/application/conversation_graph_readiness.dart';
 import '../../db/feature_level_providers.dart' show dbMaintenanceLockProvider;
 import '../domain/onboarding_environment_report.dart';
-import '../domain/onboarding_operation_snapshot.dart';
 import 'full_disk_access_provider.dart';
 import 'messages_source_history_sufficiency_policy.dart';
 import 'onboarding_database_probe_reader.dart';
 import 'onboarding_database_probe_reader_provider.dart';
 import 'onboarding_failure_storage_provider.dart';
 import 'onboarding_failure_store.dart';
-import 'onboarding_operation_snapshot_provider.dart';
 
 part 'onboarding_environment_report_provider.g.dart';
 
 const int _automaticRecoveryMinimumImportRows = 25;
 const double _automaticRecoveryGraphToImportRatio = 0.5;
+const int _maximumAdmittedMaterialEvidenceAttempts = 2;
 
 class OnboardingDevOverridesState {
   const OnboardingDevOverridesState({
@@ -142,21 +146,23 @@ String onboardingDatabaseDirectoryPath(Ref ref) {
 
 @Riverpod(keepAlive: true)
 Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
-  final attachmentArchiveLocation = await ref.watch(
-    attachmentArchiveLocationProvider.future,
+  final failureEvidence = await _readPersistedFailureEvidence(
+    ref.watch(onboardingFailureStorageProvider),
   );
-  final operationController = await ref.watch(
-    onboardingOperationControllerProvider.future,
+  await _readMaterialOnboardingEvidence(
+    read: () => ref.watch(attachmentArchiveLocationProvider.future),
   );
-  final inputs = _OnboardingEnvironmentInputs(
-    devOverrides: ref.watch(onboardingDevOverridesProvider),
-    failureStorage: ref.watch(onboardingFailureStorageProvider),
-    databaseProbeReader: ref.watch(onboardingDatabaseProbeReaderProvider),
-    hasFullDiskAccess: ref.watch(onboardingFullDiskAccessProvider),
-    messagesDatabasePath: ref.watch(onboardingMessagesDatabasePathProvider),
-    addressBookEither: await ref.watch(futureGetFolderAggregateProvider.future),
-    archiveRootPath: ref.watch(onboardingDatabaseDirectoryPathProvider),
-    attachmentArchiveLocation: attachmentArchiveLocation,
+  await _readMaterialOnboardingEvidence(
+    read: () => ref.watch(futureGetFolderAggregateProvider.future),
+  );
+  final inputs = _readOnboardingEnvironmentInputs(
+    ref,
+    reactive: true,
+    addressBookEither: ref.watch(futureGetFolderAggregateProvider).requireValue,
+    attachmentArchiveLocation: ref
+        .watch(attachmentArchiveLocationProvider)
+        .requireValue,
+    failureEvidence: failureEvidence,
     // Readiness is an unrelated observer of the derived stores. Suppress its
     // database reads for every admitted archive mutation, including onboarding
     // import, even when that operation does not globally block its own graph
@@ -166,32 +172,272 @@ Future<OnboardingEnvironmentReport> onboardingEnvironmentReport(Ref ref) async {
         ref.watch(
           archiveMutationCoordinatorProvider.select((state) => state.isLocked),
         ),
-    graphBuildState: ref.watch(conversationGraphBuildControllerProvider),
-    liveUpdateMonitorState: ref.watch(chatDbChangeMonitorProvider),
-    operationSnapshot: operationController.current,
   );
   final evaluator = _OnboardingEnvironmentEvaluator(inputs);
   return evaluator.evaluate();
 }
 
+/// Recomputes current onboarding environment evidence for one admitted owner.
+///
+/// This is deliberately a one-shot read rather than a provider: the aggregate
+/// environment report remains owner-agnostic, while the Journey coordinator
+/// may inspect its own derived stores without treating its exact mutation
+/// scope as foreign maintenance. Both the capability and each derived-resource
+/// admission are checked before and after every awaited evidence boundary.
+Future<OnboardingEnvironmentReport> readAdmittedOnboardingEnvironmentEvidence(
+  Ref ref, {
+  required ArchiveMutationCapability capability,
+  required ArchiveMutationOperation expectedOperation,
+}) async {
+  void requireExactCapability() {
+    capability.requireOperation(expectedOperation);
+  }
+
+  void requireResourceAdmission(ArchiveMutationResourceAction action) {
+    requireExactCapability();
+    final coordinator = ref.read(archiveMutationCoordinatorProvider.notifier);
+    final admission = coordinator.resourceAdmissionForCurrentCaller(action);
+    if (!admission.isAllowed) {
+      throw StateError(
+        'The current archive-mutation owner is not admitted for '
+        '${action.name}.',
+      );
+    }
+  }
+
+  void requirePersistentArchiveStoreAdmission() {
+    requireResourceAdmission(
+      ArchiveMutationResourceAction.openPersistentArchiveStore,
+    );
+  }
+
+  void requireAllReportResourceAdmissions() {
+    requirePersistentArchiveStoreAdmission();
+    requireResourceAdmission(
+      ArchiveMutationResourceAction.openConversationGraphConnection,
+    );
+  }
+
+  _OnboardingMaterialEvidence? coherentEvidence;
+  for (
+    var attempt = 0;
+    attempt < _maximumAdmittedMaterialEvidenceAttempts;
+    attempt += 1
+  ) {
+    final first = await _readAdmittedMaterialOnboardingEvidence(
+      ref,
+      requireExactCapability: requireExactCapability,
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    );
+    final second = await _readAdmittedMaterialOnboardingEvidence(
+      ref,
+      requireExactCapability: requireExactCapability,
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    );
+    if (first.hasSameRevisionAs(second)) {
+      coherentEvidence = second;
+      break;
+    }
+  }
+  if (coherentEvidence == null) {
+    throw StateError(
+      'Onboarding material evidence did not stabilize after one bounded '
+      'retry.',
+    );
+  }
+
+  // Every asynchronous evidence dependency is settled and admission has just
+  // been re-proven. Re-read mutable prerequisites now so the returned report
+  // cannot silently carry the values that existed before an internal await.
+  final inputs = _readOnboardingEnvironmentInputs(
+    ref,
+    reactive: false,
+    addressBookEither: coherentEvidence.addressBookEither,
+    attachmentArchiveLocation: coherentEvidence.attachmentArchiveLocation,
+    failureEvidence: coherentEvidence.failureEvidence,
+    // The exact admitted owner does not classify its own non-blocking lock as
+    // maintenance. A stronger database-reopen policy was already checked via
+    // both resource admissions above and is checked again before evaluation.
+    isMaintenanceLocked: ref.read(dbMaintenanceLockProvider),
+  );
+  requireAllReportResourceAdmissions();
+  return _OnboardingEnvironmentEvaluator(inputs).evaluate();
+}
+
+Future<_OnboardingMaterialEvidence> _readAdmittedMaterialOnboardingEvidence(
+  Ref ref, {
+  required void Function() requireExactCapability,
+  required void Function() requirePersistentArchiveStoreAdmission,
+}) async {
+  final failureEvidence = await _readPersistedFailureEvidence(
+    ref.read(onboardingFailureStorageProvider),
+    requirePersistentArchiveStoreAdmission:
+        requirePersistentArchiveStoreAdmission,
+  );
+  final attachmentArchiveLocation =
+      await readAttachmentArchiveLocationEvidenceWithAdmission(
+        ref,
+        requirePersistentArchiveStoreAdmission:
+            requirePersistentArchiveStoreAdmission,
+      );
+  final addressBookEither = await _readMaterialOnboardingEvidence(
+    requireCurrentAdmission: requireExactCapability,
+    read: () => ref.read(futureGetFolderAggregateProvider.future),
+  );
+  return _OnboardingMaterialEvidence(
+    failureEvidence: failureEvidence,
+    attachmentArchiveLocation: attachmentArchiveLocation,
+    addressBookEither: addressBookEither,
+  );
+}
+
+Future<T> _readMaterialOnboardingEvidence<T>({
+  required Future<T> Function() read,
+  void Function()? requireCurrentAdmission,
+}) async {
+  requireCurrentAdmission?.call();
+  final evidence = await read();
+  requireCurrentAdmission?.call();
+  return evidence;
+}
+
+Future<_OnboardingPersistedFailureEvidence> _readPersistedFailureEvidence(
+  OnboardingFailureStore failureStorage, {
+  void Function()? requirePersistentArchiveStoreAdmission,
+}) async {
+  final sourceImport = await _readMaterialOnboardingEvidence(
+    requireCurrentAdmission: requirePersistentArchiveStoreAdmission,
+    read: () => failureStorage.loadSourceImportFailureEntry(
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    ),
+  );
+  final graphProjection = await _readMaterialOnboardingEvidence(
+    requireCurrentAdmission: requirePersistentArchiveStoreAdmission,
+    read: () => failureStorage.loadGraphProjectionFailureEntry(
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    ),
+  );
+  return _OnboardingPersistedFailureEvidence(
+    sourceImport: sourceImport,
+    graphProjection: graphProjection,
+  );
+}
+
+_OnboardingEnvironmentInputs _readOnboardingEnvironmentInputs(
+  Ref ref, {
+  required bool reactive,
+  required Either<FolderRetrievalFailure, AddressBookFolderAggregate>
+  addressBookEither,
+  required AttachmentArchiveLocationState attachmentArchiveLocation,
+  required _OnboardingPersistedFailureEvidence failureEvidence,
+  required bool isMaintenanceLocked,
+}) {
+  T observe<T>(ProviderListenable<T> provider) {
+    if (reactive) {
+      return ref.watch(provider);
+    }
+    return ref.read(provider);
+  }
+
+  return _OnboardingEnvironmentInputs(
+    devOverrides: observe(onboardingDevOverridesProvider),
+    databaseProbeReader: observe(onboardingDatabaseProbeReaderProvider),
+    hasFullDiskAccess: observe(onboardingFullDiskAccessProvider),
+    messagesDatabasePath: observe(onboardingMessagesDatabasePathProvider),
+    addressBookEither: addressBookEither,
+    archiveRootPath: observe(onboardingDatabaseDirectoryPathProvider),
+    attachmentArchiveLocation: attachmentArchiveLocation,
+    failureEvidence: failureEvidence,
+    isMaintenanceLocked: isMaintenanceLocked,
+    graphBuildState: observe(conversationGraphBuildControllerProvider),
+    liveUpdateMonitorState: observe(chatDbChangeMonitorProvider),
+  );
+}
+
+class _OnboardingPersistedFailureEvidence {
+  const _OnboardingPersistedFailureEvidence({
+    required this.sourceImport,
+    required this.graphProjection,
+  });
+
+  final PersistedOnboardingSourceImportFailure? sourceImport;
+  final PersistedOnboardingGraphProjectionFailure? graphProjection;
+
+  bool hasSameRevisionAs(_OnboardingPersistedFailureEvidence other) {
+    return _hasSameSourceFailure(sourceImport, other.sourceImport) &&
+        _hasSameGraphFailure(graphProjection, other.graphProjection);
+  }
+
+  static bool _hasSameSourceFailure(
+    PersistedOnboardingSourceImportFailure? left,
+    PersistedOnboardingSourceImportFailure? right,
+  ) {
+    return left?.recordedAt == right?.recordedAt &&
+        left?.failure.phase == right?.failure.phase &&
+        left?.failure.batchId == right?.failure.batchId &&
+        left?.failure.message == right?.failure.message;
+  }
+
+  static bool _hasSameGraphFailure(
+    PersistedOnboardingGraphProjectionFailure? left,
+    PersistedOnboardingGraphProjectionFailure? right,
+  ) {
+    return left?.recordedAt == right?.recordedAt &&
+        left?.failure.phase == right?.failure.phase &&
+        left?.failure.batchId == right?.failure.batchId &&
+        left?.failure.message == right?.failure.message;
+  }
+}
+
+class _OnboardingMaterialEvidence {
+  _OnboardingMaterialEvidence({
+    required this.failureEvidence,
+    required this.attachmentArchiveLocation,
+    required this.addressBookEither,
+  }) : addressBookFingerprint = _addressBookFingerprint(addressBookEither);
+
+  final _OnboardingPersistedFailureEvidence failureEvidence;
+  final AttachmentArchiveLocationState attachmentArchiveLocation;
+  final Either<FolderRetrievalFailure, AddressBookFolderAggregate>
+  addressBookEither;
+  final (bool isAvailable, String value) addressBookFingerprint;
+
+  bool hasSameRevisionAs(_OnboardingMaterialEvidence other) {
+    return failureEvidence.hasSameRevisionAs(other.failureEvidence) &&
+        attachmentArchiveLocation == other.attachmentArchiveLocation &&
+        addressBookFingerprint == other.addressBookFingerprint;
+  }
+
+  static (bool isAvailable, String value) _addressBookFingerprint(
+    Either<FolderRetrievalFailure, AddressBookFolderAggregate> evidence,
+  ) {
+    return evidence.fold(
+      (failure) => (false, failure.message),
+      (aggregate) => (true, aggregate.mostRecentFolderPath),
+    );
+  }
+}
+
 class _OnboardingEnvironmentInputs {
   const _OnboardingEnvironmentInputs({
     required this.devOverrides,
-    required this.failureStorage,
     required this.databaseProbeReader,
     required this.hasFullDiskAccess,
     required this.messagesDatabasePath,
     required this.addressBookEither,
     required this.archiveRootPath,
     required this.attachmentArchiveLocation,
+    required this.failureEvidence,
     required this.isMaintenanceLocked,
     required this.graphBuildState,
     required this.liveUpdateMonitorState,
-    required this.operationSnapshot,
   });
 
   final OnboardingDevOverridesState devOverrides;
-  final OnboardingFailureStore failureStorage;
   final OnboardingDatabaseProbeReader databaseProbeReader;
   final bool hasFullDiskAccess;
   final String messagesDatabasePath;
@@ -199,10 +445,10 @@ class _OnboardingEnvironmentInputs {
   addressBookEither;
   final String archiveRootPath;
   final AttachmentArchiveLocationState attachmentArchiveLocation;
+  final _OnboardingPersistedFailureEvidence failureEvidence;
   final bool isMaintenanceLocked;
   final ConversationGraphBuildState graphBuildState;
   final ChatDbChangeMonitorState liveUpdateMonitorState;
-  final OnboardingOperationSnapshot operationSnapshot;
 }
 
 class _OnboardingEnvironmentEvaluator {
@@ -210,14 +456,12 @@ class _OnboardingEnvironmentEvaluator {
 
   final _OnboardingEnvironmentInputs inputs;
 
-  Future<OnboardingEnvironmentReport> evaluate() async {
+  OnboardingEnvironmentReport evaluate() {
     final devOverrides = inputs.devOverrides;
-    final failureStorage = inputs.failureStorage;
     final databaseProbeReader = inputs.databaseProbeReader;
-    final persistedImportEntry = await failureStorage
-        .loadSourceImportFailureEntry();
-    final persistedGraphProjectionEntry = await failureStorage
-        .loadGraphProjectionFailureEntry();
+    final persistedImportEntry = inputs.failureEvidence.sourceImport;
+    final persistedGraphProjectionEntry =
+        inputs.failureEvidence.graphProjection;
     final persistedImportFailure = persistedImportEntry?.failure;
     final persistedGraphProjectionFailure =
         persistedGraphProjectionEntry?.failure;
@@ -435,7 +679,6 @@ class _OnboardingEnvironmentEvaluator {
       liveUpdateLastChangeDetectedAt:
           inputs.liveUpdateMonitorState.lastChangeDetected,
       liveUpdateLastError: inputs.liveUpdateMonitorState.lastError,
-      operationSnapshot: inputs.operationSnapshot,
       attachmentArchiveStatus: attachmentArchiveStatus,
       attachmentArchiveIssue: attachmentArchiveLocation.issue,
       attachmentArchiveLocationGeneration: attachmentArchiveLocation.generation,

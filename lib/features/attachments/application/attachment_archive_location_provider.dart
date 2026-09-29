@@ -180,6 +180,38 @@ final class AttachmentArchiveMutationDeferredException implements Exception {
   }
 }
 
+/// Performs one fresh, non-publishing attachment-location evidence read.
+///
+/// The supplied proof remains owned by the admitted caller. This function and
+/// the controller invoke it at each persistent-store boundary but never retain
+/// it or turn the result into ambient provider state.
+Future<AttachmentArchiveLocationState>
+readAttachmentArchiveLocationEvidenceWithAdmission(
+  Ref ref, {
+  required void Function() requirePersistentArchiveStoreAdmission,
+}) async {
+  final archiveAccessAuthority = ref.read(archiveAccessAuthorityProvider);
+  final nativeAdapter = ref.read(
+    attachmentArchiveLocationNativeAdapterProvider,
+  );
+  requirePersistentArchiveStoreAdmission();
+  final settingsStore = await ref.read(
+    attachmentArchiveSettingsStoreProvider.future,
+  );
+  requirePersistentArchiveStoreAdmission();
+  final controller = AttachmentArchiveLocationController(
+    archiveAccessAuthority: archiveAccessAuthority,
+    settingsStore: settingsStore,
+    nativeAdapter: nativeAdapter,
+  );
+  final location = await controller.load(
+    requirePersistentArchiveStoreAdmission:
+        requirePersistentArchiveStoreAdmission,
+  );
+  requirePersistentArchiveStoreAdmission();
+  return location;
+}
+
 /// Publishes the active attachment-owned archive location.
 ///
 /// Loading performs one overlay setting read and, for custom configuration, a

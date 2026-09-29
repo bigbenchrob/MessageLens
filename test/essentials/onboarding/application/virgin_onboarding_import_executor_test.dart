@@ -30,8 +30,13 @@ void main() {
     final executor = VirginOnboardingImportExecutor(
       operationController: controller,
     );
+    final operationId = await controller.begin(
+      kind: OnboardingOperationKind.initialImport,
+      initialStage: OnboardingOperationStage.messageDataBuild,
+    );
 
-    final operationId = await executor.run(
+    final returnedOperationId = await executor.run(
+      operationId: operationId,
       buildMessageData: (progress) async {
         buildCount += 1;
         await progress.observe(
@@ -43,6 +48,7 @@ void main() {
     );
 
     expect(buildCount, 1);
+    expect(returnedOperationId, operationId);
     expect(controller.current.operationId, operationId);
     expect(controller.current.kind, OnboardingOperationKind.initialImport);
     expect(
@@ -55,30 +61,31 @@ void main() {
     );
   });
 
-  test('construction failure remains typed and retryable', () async {
-    final executor = VirginOnboardingImportExecutor(
-      operationController: controller,
-    );
+  test(
+    'construction failure preserves original error for coordinator',
+    () async {
+      final executor = VirginOnboardingImportExecutor(
+        operationController: controller,
+      );
+      final operationId = await controller.begin(
+        kind: OnboardingOperationKind.initialImport,
+        initialStage: OnboardingOperationStage.messageDataBuild,
+      );
 
-    await expectLater(
-      executor.run(
-        buildMessageData: (_) async {
-          throw StateError('synthetic fresh construction failure');
-        },
-      ),
-      throwsStateError,
-    );
+      await expectLater(
+        executor.run(
+          operationId: operationId,
+          buildMessageData: (_) async {
+            throw StateError('synthetic fresh construction failure');
+          },
+        ),
+        throwsStateError,
+      );
 
-    expect(controller.current.status, OnboardingOperationStatus.failed);
-    expect(
-      controller.current.failure?.category,
-      OnboardingOperationFailureCategory.messageDataBuild,
-    );
-    expect(
-      controller.current.failure?.recoveryDisposition,
-      OnboardingOperationRecoveryDisposition.retryFromSafeBoundary,
-    );
-  });
+      expect(controller.current.status, OnboardingOperationStatus.running);
+      expect(controller.current.failure, isNull);
+    },
+  );
 }
 
 final class _MemorySnapshotStore implements OnboardingOperationSnapshotStore {

@@ -9,6 +9,7 @@ import '../../../../essentials/logging/domain/diagnostic_report_presentation_res
 import '../../../../essentials/logging/feature_level_providers.dart'
     show diagnosticReportExporterProvider;
 import '../../../../essentials/onboarding/domain/onboarding_environment_report.dart';
+import '../../../../essentials/onboarding/domain/onboarding_journey_state.dart';
 import '../../../../essentials/onboarding/feature_level_providers.dart'
     show onboardingDevOverridesProvider, onboardingJourneyCoordinatorProvider;
 import '../../../../essentials/onboarding/presentation/onboarding_journey_path.dart';
@@ -194,6 +195,7 @@ class _Episode extends ConsumerWidget {
                 _ReadinessActionButton(
                   action: action,
                   report: report,
+                  actionContext: surface.actionContext,
                   primary: true,
                   colors: colors,
                 ),
@@ -201,6 +203,7 @@ class _Episode extends ConsumerWidget {
                   _ReadinessActionButton(
                     action: secondaryAction,
                     report: report,
+                    actionContext: surface.actionContext,
                     primary: false,
                     colors: colors,
                   ),
@@ -219,12 +222,14 @@ class _ReadinessActionButton extends ConsumerWidget {
     required this.report,
     required this.primary,
     required this.colors,
+    required this.actionContext,
   });
 
   final EnvironmentReadinessAction action;
   final OnboardingEnvironmentReport? report;
   final bool primary;
   final ThemeColors colors;
+  final OnboardingJourneyActionContext actionContext;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -267,12 +272,17 @@ class _ReadinessActionButton extends ConsumerWidget {
       EnvironmentReadinessActionKind.acceptLocalHistory => () {
         ref
             .read(environmentReadinessActionsProvider.notifier)
-            .acceptLocalMessageHistory();
+            .acceptLocalMessageHistory(actionContext);
       },
       EnvironmentReadinessActionKind.startImport => () {
         ref
             .read(environmentReadinessActionsProvider.notifier)
-            .startVirginImportAndGraphBuild();
+            .startVirginImportAndGraphBuild(actionContext);
+      },
+      EnvironmentReadinessActionKind.retryOperation => () {
+        ref
+            .read(environmentReadinessActionsProvider.notifier)
+            .retryFailedOperation(actionContext);
       },
       EnvironmentReadinessActionKind.sendReport =>
         report == null

@@ -26,10 +26,14 @@ final class AttachmentArchiveLocationController {
   final AttachmentArchiveSettingsStore _settingsStore;
   final AttachmentArchiveLocationNativeAdapter _nativeAdapter;
 
-  Future<AttachmentArchiveLocationState> load() async {
+  Future<AttachmentArchiveLocationState> load({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    requirePersistentArchiveStoreAdmission?.call();
     final persistedValue = await _settingsStore.readSetting(
       attachmentArchiveLocationSettingKey,
     );
+    requirePersistentArchiveStoreAdmission?.call();
 
     AttachmentArchiveLocationConfiguration configuration;
     if (persistedValue == null || persistedValue.trim().isEmpty) {
@@ -58,6 +62,8 @@ final class AttachmentArchiveLocationController {
         ),
       AttachmentArchiveLocationMode.customExternal => await _resolveCustom(
         configuration,
+        requirePersistentArchiveStoreAdmission:
+            requirePersistentArchiveStoreAdmission,
       ),
     };
   }
@@ -101,8 +107,9 @@ final class AttachmentArchiveLocationController {
   }
 
   Future<AttachmentArchiveLocationState> _resolveCustom(
-    AttachmentArchiveLocationConfiguration configuration,
-  ) async {
+    AttachmentArchiveLocationConfiguration configuration, {
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
     final bookmarkData = configuration.bookmarkDataBase64;
     if (bookmarkData == null) {
       return AttachmentArchiveLocationState.configurationInvalid(
@@ -110,9 +117,11 @@ final class AttachmentArchiveLocationController {
         issue: 'Custom attachment archive bookmark data is missing.',
       );
     }
+    requirePersistentArchiveStoreAdmission?.call();
     final resolution = await _nativeAdapter.resolveBookmark(
       bookmarkDataBase64: bookmarkData,
     );
+    requirePersistentArchiveStoreAdmission?.call();
     final issue = resolution.issue ?? _defaultIssue(resolution.status);
     return switch (resolution.status) {
       AttachmentArchiveBookmarkResolutionStatus.available =>
@@ -120,12 +129,16 @@ final class AttachmentArchiveLocationController {
           configuration: configuration,
           resolution: resolution,
           readOnly: false,
+          requirePersistentArchiveStoreAdmission:
+              requirePersistentArchiveStoreAdmission,
         ),
       AttachmentArchiveBookmarkResolutionStatus.readOnly =>
         await _availableCustomState(
           configuration: configuration,
           resolution: resolution,
           readOnly: true,
+          requirePersistentArchiveStoreAdmission:
+              requirePersistentArchiveStoreAdmission,
         ),
       AttachmentArchiveBookmarkResolutionStatus.unavailable =>
         AttachmentArchiveLocationState.customUnavailable(
@@ -154,6 +167,7 @@ final class AttachmentArchiveLocationController {
     required AttachmentArchiveLocationConfiguration configuration,
     required AttachmentArchiveBookmarkResolution resolution,
     required bool readOnly,
+    void Function()? requirePersistentArchiveStoreAdmission,
   }) async {
     final resolvedPath = resolution.resolvedPath?.trim();
     if (resolvedPath == null || resolvedPath.isEmpty) {
@@ -176,7 +190,9 @@ final class AttachmentArchiveLocationController {
       volumeName: resolution.volumeName ?? configuration.volumeName,
     );
     if (refreshedConfiguration != configuration) {
+      requirePersistentArchiveStoreAdmission?.call();
       await _persistConfigurationUnchecked(refreshedConfiguration);
+      requirePersistentArchiveStoreAdmission?.call();
     }
     if (readOnly) {
       return AttachmentArchiveLocationState.customReadOnly(

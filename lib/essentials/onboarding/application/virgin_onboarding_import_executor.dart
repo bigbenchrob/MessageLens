@@ -15,17 +15,13 @@ final class VirginOnboardingImportExecutor {
   final OnboardingOperationSnapshotController _operationController;
 
   Future<OnboardingOperationId> run({
+    required OnboardingOperationId operationId,
     required Future<void> Function(OnboardingProgressReporter progress)
     buildMessageData,
   }) async {
-    final operationId = await _operationController.begin(
-      kind: OnboardingOperationKind.initialImport,
-      initialStage: OnboardingOperationStage.messageDataBuild,
-    );
     await _operationController.runStage<void>(
       operationId: operationId,
       stage: OnboardingOperationStage.messageDataBuild,
-      failureCategory: OnboardingOperationFailureCategory.messageDataBuild,
       action: buildMessageData,
     );
     await _operationController.enterStage(

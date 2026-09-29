@@ -5,9 +5,9 @@ import 'package:macos_ui/macos_ui.dart';
 
 import 'package:remember_this_text/essentials/navigation/presentation/widgets/onboarding_sidebar_visibility_owner.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_presentation_provider.dart';
-import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/advanced_start_fresh_presentation.dart';
-import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_state.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/advanced_start_fresh_overlay.dart';
 
 void main() {
@@ -92,7 +92,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          onboardingGateProvider.overrideWith(_TestOnboardingGate.new),
+          onboardingJourneyCoordinatorProvider.overrideWith(
+            _TestOnboardingJourneyCoordinator.new,
+          ),
         ],
         child: Builder(
           builder: (context) {
@@ -115,8 +117,9 @@ void main() {
     await tester.pump();
     expect(find.byKey(AdvancedStartFreshOverlay.surfaceKey), findsOneWidget);
 
-    (container.read(onboardingGateProvider.notifier) as _TestOnboardingGate)
-        .setTestStatus(OnboardingStatus.awaitingUserAction);
+    (container.read(onboardingJourneyCoordinatorProvider.notifier)
+            as _TestOnboardingJourneyCoordinator)
+        .setTestJourney(const OnboardingCheckingPrerequisites(occurrence: 2));
     await tester.pump();
 
     expect(
@@ -142,7 +145,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            onboardingGateProvider.overrideWith(_TestOnboardingGate.new),
+            onboardingJourneyCoordinatorProvider.overrideWith(
+              _TestOnboardingJourneyCoordinator.new,
+            ),
           ],
           child: Builder(
             builder: (context) {
@@ -163,8 +168,9 @@ void main() {
       expect(find.text('sidebar shown'), findsOneWidget);
       expect(find.byKey(AdvancedStartFreshOverlay.surfaceKey), findsOneWidget);
 
-      (container.read(onboardingGateProvider.notifier) as _TestOnboardingGate)
-          .setTestStatus(OnboardingStatus.awaitingUserAction);
+      (container.read(onboardingJourneyCoordinatorProvider.notifier)
+              as _TestOnboardingJourneyCoordinator)
+          .setTestJourney(const OnboardingCheckingPrerequisites(occurrence: 2));
       await tester.pump();
 
       expect(find.text('sidebar shown'), findsOneWidget);
@@ -182,12 +188,15 @@ void main() {
   );
 }
 
-final class _TestOnboardingGate extends OnboardingGate {
+final class _TestOnboardingJourneyCoordinator
+    extends OnboardingJourneyCoordinator {
   @override
-  OnboardingStatus build() => OnboardingStatus.notNeeded;
+  OnboardingJourneyState build() {
+    return const OnboardingNormalApplication(occurrence: 1);
+  }
 
-  void setTestStatus(OnboardingStatus status) {
-    state = status;
+  void setTestJourney(OnboardingJourneyState journey) {
+    state = journey;
   }
 }
 
@@ -205,7 +214,9 @@ class _SidebarHandoffHarnessState
 
   @override
   Widget build(BuildContext context) {
-    final status = ref.watch(onboardingGateProvider);
+    final status = ref
+        .watch(onboardingJourneyCoordinatorProvider)
+        .compatibilityStatus;
     return MaterialApp(
       home: MacosWindowScope(
         constraints: const BoxConstraints.tightFor(width: 900, height: 720),

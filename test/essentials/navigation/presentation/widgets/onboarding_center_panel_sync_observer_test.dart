@@ -9,7 +9,8 @@ import 'package:remember_this_text/essentials/navigation/domain/entities/view_sp
 import 'package:remember_this_text/essentials/navigation/domain/navigation_constants.dart';
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
 import 'package:remember_this_text/essentials/navigation/presentation/widgets/onboarding_center_panel_sync_observer.dart';
-import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_state.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
 import 'package:remember_this_text/features/environment_readiness/domain/spec_classes/environment_readiness_view_spec.dart';
 
@@ -19,7 +20,19 @@ void main() {
       tester,
     ) async {
       final container = ProviderContainer(
-        overrides: [onboardingGateProvider.overrideWith(_AwaitingFdaGate.new)],
+        overrides: [
+          onboardingJourneyCoordinatorProvider.overrideWith(
+            () => _TestJourneyCoordinator(
+              const OnboardingOperationFailed(
+                occurrence: 1,
+                summary: 'Messages access is required.',
+                compatibilityStatus: OnboardingStatus.awaitingFda,
+                failureAction:
+                    OnboardingJourneyFailureAction.recheckEnvironment,
+              ),
+            ),
+          ),
+        ],
       );
       final panelsSubscription = container.listen(
         panelsViewStateProvider(SidebarMode.messages),
@@ -59,7 +72,11 @@ void main() {
     ) async {
       final container = ProviderContainer(
         overrides: [
-          onboardingGateProvider.overrideWith(_AwaitingUserActionGate.new),
+          onboardingJourneyCoordinatorProvider.overrideWith(
+            () => _TestJourneyCoordinator(
+              const OnboardingCheckingPrerequisites(occurrence: 1),
+            ),
+          ),
         ],
       );
       final panelsSubscription = container.listen(
@@ -99,7 +116,13 @@ void main() {
       tester,
     ) async {
       final container = ProviderContainer(
-        overrides: [onboardingGateProvider.overrideWith(_ReadyGate.new)],
+        overrides: [
+          onboardingJourneyCoordinatorProvider.overrideWith(
+            () => _TestJourneyCoordinator(
+              const OnboardingNormalApplication(occurrence: 1),
+            ),
+          ),
+        ],
       );
       final panelsSubscription = container.listen(
         panelsViewStateProvider(SidebarMode.messages),
@@ -158,7 +181,11 @@ void main() {
         );
         final container = ProviderContainer(
           overrides: [
-            onboardingGateProvider.overrideWith(_ReadyGate.new),
+            onboardingJourneyCoordinatorProvider.overrideWith(
+              () => _TestJourneyCoordinator(
+                const OnboardingNormalApplication(occurrence: 1),
+              ),
+            ),
             activeBlockingPipelineIncidentProvider.overrideWith(
               (ref) async => report,
             ),
@@ -200,7 +227,11 @@ void main() {
       (tester) async {
         final container = ProviderContainer(
           overrides: [
-            onboardingGateProvider.overrideWith(_ReadyGate.new),
+            onboardingJourneyCoordinatorProvider.overrideWith(
+              () => _TestJourneyCoordinator(
+                const OnboardingNormalApplication(occurrence: 1),
+              ),
+            ),
             activeBlockingPipelineIncidentProvider.overrideWith(
               (ref) async => null,
             ),
@@ -243,23 +274,11 @@ void main() {
   });
 }
 
-class _AwaitingFdaGate extends OnboardingGate {
-  @override
-  OnboardingStatus build() {
-    return OnboardingStatus.awaitingFda;
-  }
-}
+final class _TestJourneyCoordinator extends OnboardingJourneyCoordinator {
+  _TestJourneyCoordinator(this.initialState);
 
-class _ReadyGate extends OnboardingGate {
-  @override
-  OnboardingStatus build() {
-    return OnboardingStatus.notNeeded;
-  }
-}
+  final OnboardingJourneyState initialState;
 
-class _AwaitingUserActionGate extends OnboardingGate {
   @override
-  OnboardingStatus build() {
-    return OnboardingStatus.awaitingUserAction;
-  }
+  OnboardingJourneyState build() => initialState;
 }

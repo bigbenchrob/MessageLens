@@ -2,6 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../../essentials/onboarding/domain/onboarding_environment_report.dart';
+import '../../../../../essentials/onboarding/domain/onboarding_journey_operation_projection.dart';
 import '../../../../../essentials/onboarding/domain/onboarding_journey_state.dart';
 import '../../../../../essentials/onboarding/feature_level_providers.dart'
     show onboardingJourneyCoordinatorProvider;
@@ -13,36 +14,68 @@ part 'environment_readiness_surface_provider.g.dart';
 EnvironmentReadinessSurfaceViewModel environmentReadinessSurface(Ref ref) {
   final journey = ref.watch(onboardingJourneyCoordinatorProvider);
   return switch (journey) {
-    OnboardingCheckingPrerequisites() => _checkingSurface(),
+    OnboardingCheckingPrerequisites() => _checkingSurface(
+      journey.actionContext,
+    ),
     OnboardingNeedsMessagesAccess(:final evidence) => _surfaceForReport(
       evidence!.report,
+      journey.actionContext,
     ),
     OnboardingNeedsLocalHistoryConfirmation(:final evidence) =>
       _sparseMessagesSurface(
         evidence!.report,
         _evidenceFor(evidence.report),
+        journey.actionContext,
         allowAcceptance: true,
       ),
     OnboardingNeedsContactsAccess(:final evidence) => _sourceBlockedSurface(
       evidence!.report,
       _evidenceFor(evidence.report),
+      journey.actionContext,
     ),
     OnboardingReadyToImport(:final evidence) => _readySurface(
       evidence!.report,
       _evidenceFor(evidence.report),
+      journey.actionContext,
     ),
-    OnboardingOperationFailed(:final summary, :final evidence) =>
+    OnboardingOperationFailed(
+      :final summary,
+      :final evidence,
+      :final operation,
+      :final failureAction,
+    ) =>
       evidence == null
-          ? _failedSurface(summary)
-          : _retrySurface(evidence.report, _evidenceFor(evidence.report)),
+          ? _failedSurface(
+              summary,
+              journey.actionContext,
+              failureAction: failureAction,
+            )
+          : _retrySurface(
+              evidence.report,
+              _evidenceFor(evidence.report),
+              journey.actionContext,
+              failureSummary: summary,
+              failureAction: failureAction,
+              retryAvailable: operation == null
+                  ? failureAction.retriesCommand
+                  : operation.availableActions.contains(
+                      OnboardingJourneyOperationAction.retry,
+                    ),
+            ),
     OnboardingNormalApplication(:final evidence) when evidence != null =>
-      _completedInstallationSurface(_evidenceFor(evidence.report)),
-    _ => _checkingSurface(),
+      _completedInstallationSurface(
+        _evidenceFor(evidence.report),
+        journey.actionContext,
+      ),
+    _ => _checkingSurface(journey.actionContext),
   };
 }
 
-EnvironmentReadinessSurfaceViewModel _checkingSurface() {
-  return const EnvironmentReadinessSurfaceViewModel(
+EnvironmentReadinessSurfaceViewModel _checkingSurface(
+  OnboardingJourneyActionContext actionContext,
+) {
+  return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.checking,
     title: 'Checking what MessageLens needs',
     body:
@@ -53,18 +86,30 @@ EnvironmentReadinessSurfaceViewModel _checkingSurface() {
   );
 }
 
-EnvironmentReadinessSurfaceViewModel _failedSurface(Object error) {
+EnvironmentReadinessSurfaceViewModel _failedSurface(
+  Object error,
+  OnboardingJourneyActionContext actionContext, {
+  required OnboardingJourneyFailureAction failureAction,
+}) {
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.failed,
     title: 'MessageLens couldn’t check readiness',
-    body:
-        'The readiness inspection did not finish. Nothing has been imported, and you can try the check again.',
+    body: failureAction.retriesCommand
+        ? 'The setup command did not start. Nothing has been imported, and you can try that command again.'
+        : 'The readiness inspection did not finish. Nothing has been imported, and you can check the environment again.',
     tone: EnvironmentReadinessTone.failure,
-    actions: const <EnvironmentReadinessAction>[
-      EnvironmentReadinessAction(
-        kind: EnvironmentReadinessActionKind.recheck,
-        label: 'Try Again',
-      ),
+    actions: <EnvironmentReadinessAction>[
+      if (failureAction.retriesCommand)
+        const EnvironmentReadinessAction(
+          kind: EnvironmentReadinessActionKind.retryOperation,
+          label: 'Try Again',
+        )
+      else if (failureAction.rechecksEnvironment)
+        const EnvironmentReadinessAction(
+          kind: EnvironmentReadinessActionKind.recheck,
+          label: 'Re-check',
+        ),
     ],
     evidence: <EnvironmentReadinessEvidence>[
       EnvironmentReadinessEvidence(
@@ -77,10 +122,12 @@ EnvironmentReadinessSurfaceViewModel _failedSurface(Object error) {
 
 EnvironmentReadinessSurfaceViewModel _surfaceForReport(
   OnboardingEnvironmentReport report,
+  OnboardingJourneyActionContext actionContext,
 ) {
   final evidence = _evidenceFor(report);
   if (_isMessagesInspectionFailure(report)) {
     return EnvironmentReadinessSurfaceViewModel(
+      actionContext: actionContext,
       kind: EnvironmentReadinessEpisodeKind.failed,
       title: 'MessageLens couldn’t check the Messages database',
       body:
@@ -103,6 +150,7 @@ EnvironmentReadinessSurfaceViewModel _surfaceForReport(
   return switch (report.state) {
     OnboardingEnvironmentState.maintenanceInProgress =>
       EnvironmentReadinessSurfaceViewModel(
+        actionContext: actionContext,
         kind: EnvironmentReadinessEpisodeKind.checking,
         title: 'Preparing MessageLens',
         body:
@@ -113,29 +161,44 @@ EnvironmentReadinessSurfaceViewModel _surfaceForReport(
       ),
     OnboardingEnvironmentState.permissionBlocked => _fdaBlockedSurface(
       evidence,
+      actionContext,
     ),
     OnboardingEnvironmentState.sourceUnavailable => _sourceBlockedSurface(
       report,
       evidence,
+      actionContext,
     ),
     OnboardingEnvironmentState.sourceSparseOrUnsynced => _sparseMessagesSurface(
       report,
       evidence,
+      actionContext,
     ),
     OnboardingEnvironmentState.importFailed ||
     OnboardingEnvironmentState.graphProjectionFailed => _retrySurface(
       report,
       evidence,
+      actionContext,
+      failureAction: OnboardingJourneyFailureAction.recheckEnvironment,
+      retryAvailable: false,
     ),
-    OnboardingEnvironmentState.readyToImport => _readySurface(report, evidence),
-    OnboardingEnvironmentState.ready => _completedInstallationSurface(evidence),
+    OnboardingEnvironmentState.readyToImport => _readySurface(
+      report,
+      evidence,
+      actionContext,
+    ),
+    OnboardingEnvironmentState.ready => _completedInstallationSurface(
+      evidence,
+      actionContext,
+    ),
   };
 }
 
 EnvironmentReadinessSurfaceViewModel _fdaBlockedSurface(
   List<EnvironmentReadinessEvidence> evidence,
+  OnboardingJourneyActionContext actionContext,
 ) {
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.blocked,
     title: 'MessageLens needs Full Disk Access',
     body:
@@ -163,9 +226,11 @@ EnvironmentReadinessSurfaceViewModel _fdaBlockedSurface(
 EnvironmentReadinessSurfaceViewModel _sourceBlockedSurface(
   OnboardingEnvironmentReport report,
   List<EnvironmentReadinessEvidence> evidence,
+  OnboardingJourneyActionContext actionContext,
 ) {
   if (report.blockerKind == OnboardingBlockerKind.addressBookUnavailable) {
     return EnvironmentReadinessSurfaceViewModel(
+      actionContext: actionContext,
       kind: EnvironmentReadinessEpisodeKind.blocked,
       title: 'MessageLens needs local Contacts data',
       body:
@@ -182,6 +247,7 @@ EnvironmentReadinessSurfaceViewModel _sourceBlockedSurface(
   }
 
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.blocked,
     title: 'MessageLens can’t find local Messages data',
     body:
@@ -199,10 +265,12 @@ EnvironmentReadinessSurfaceViewModel _sourceBlockedSurface(
 
 EnvironmentReadinessSurfaceViewModel _sparseMessagesSurface(
   OnboardingEnvironmentReport report,
-  List<EnvironmentReadinessEvidence> evidence, {
+  List<EnvironmentReadinessEvidence> evidence,
+  OnboardingJourneyActionContext actionContext, {
   bool allowAcceptance = false,
 }) {
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.blocked,
     title: 'Your local Messages history looks incomplete',
     body:
@@ -227,23 +295,37 @@ EnvironmentReadinessSurfaceViewModel _sparseMessagesSurface(
 EnvironmentReadinessSurfaceViewModel _retrySurface(
   OnboardingEnvironmentReport report,
   List<EnvironmentReadinessEvidence> evidence,
-) {
+  OnboardingJourneyActionContext actionContext, {
+  String? failureSummary,
+  required OnboardingJourneyFailureAction failureAction,
+  bool retryAvailable = true,
+}) {
   final graphFailed =
       report.state == OnboardingEnvironmentState.graphProjectionFailed;
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.failed,
-    title: 'Setup needs another try',
-    body: graphFailed
-        ? 'MessageLens imported local data, but could not finish preparing it for browsing.'
-        : 'MessageLens could not finish making its local copy of your Messages history.',
+    title: retryAvailable ? 'Setup needs another try' : 'Setup needs attention',
+    body: retryAvailable
+        ? graphFailed
+              ? 'MessageLens imported local data, but could not finish preparing it for browsing.'
+              : 'MessageLens could not finish making its local copy of your Messages history.'
+        : failureSummary ??
+              'MessageLens cannot safely retry this setup operation automatically.',
     tone: EnvironmentReadinessTone.failure,
     actions: <EnvironmentReadinessAction>[
-      EnvironmentReadinessAction(
-        kind: EnvironmentReadinessActionKind.startImport,
-        label: graphFailed
-            ? 'Retry Import and Graph Build'
-            : 'Try Import Again',
-      ),
+      if (retryAvailable)
+        EnvironmentReadinessAction(
+          kind: EnvironmentReadinessActionKind.retryOperation,
+          label: graphFailed
+              ? 'Retry Import and Graph Build'
+              : 'Try Import Again',
+        ),
+      if (!retryAvailable && failureAction.rechecksEnvironment)
+        const EnvironmentReadinessAction(
+          kind: EnvironmentReadinessActionKind.recheck,
+          label: 'Re-check',
+        ),
       const EnvironmentReadinessAction(
         kind: EnvironmentReadinessActionKind.sendReport,
         label: 'Send Report To Developer',
@@ -256,8 +338,10 @@ EnvironmentReadinessSurfaceViewModel _retrySurface(
 EnvironmentReadinessSurfaceViewModel _readySurface(
   OnboardingEnvironmentReport report,
   List<EnvironmentReadinessEvidence> evidence,
+  OnboardingJourneyActionContext actionContext,
 ) {
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.ready,
     title: 'Everything is ready',
     body:
@@ -276,8 +360,10 @@ EnvironmentReadinessSurfaceViewModel _readySurface(
 
 EnvironmentReadinessSurfaceViewModel _completedInstallationSurface(
   List<EnvironmentReadinessEvidence> evidence,
+  OnboardingJourneyActionContext actionContext,
 ) {
   return EnvironmentReadinessSurfaceViewModel(
+    actionContext: actionContext,
     kind: EnvironmentReadinessEpisodeKind.ready,
     title: 'MessageLens is ready',
     body:

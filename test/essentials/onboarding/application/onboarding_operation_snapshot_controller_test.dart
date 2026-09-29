@@ -73,14 +73,13 @@ void main() {
     expect(store.writeCount, 3);
   });
 
-  test('synchronous stage exception leaves a typed failure', () async {
+  test('synchronous stage exception remains coordinator-owned', () async {
     final operationId = await _begin(controller);
 
     await expectLater(
       controller.runStage<void>(
         operationId: operationId,
         stage: OnboardingOperationStage.messageDataBuild,
-        failureCategory: OnboardingOperationFailureCategory.messageDataBuild,
         action: (_) {
           throw StateError('synchronous failure');
         },
@@ -88,17 +87,17 @@ void main() {
       throwsStateError,
     );
 
-    _expectMessageDataFailure(controller.current, 'synchronous failure');
+    expect(controller.current.status, OnboardingOperationStatus.running);
+    expect(controller.current.failure, isNull);
   });
 
-  test('asynchronous Future failure leaves a typed failure', () async {
+  test('asynchronous Future failure remains coordinator-owned', () async {
     final operationId = await _begin(controller);
 
     await expectLater(
       controller.runStage<void>(
         operationId: operationId,
         stage: OnboardingOperationStage.messageDataBuild,
-        failureCategory: OnboardingOperationFailureCategory.messageDataBuild,
         action: (_) async {
           await Future<void>.delayed(Duration.zero);
           throw StateError('asynchronous failure');
@@ -107,7 +106,8 @@ void main() {
       throwsStateError,
     );
 
-    _expectMessageDataFailure(controller.current, 'asynchronous failure');
+    expect(controller.current.status, OnboardingOperationStatus.running);
+    expect(controller.current.failure, isNull);
   });
 
   test('progress stream failure leaves a typed failure', () async {
@@ -117,7 +117,6 @@ void main() {
     final result = controller.runStage<void>(
       operationId: operationId,
       stage: OnboardingOperationStage.messageDataBuild,
-      failureCategory: OnboardingOperationFailureCategory.messageDataBuild,
       action: (reporter) async {
         await for (final completed in progress.stream) {
           await reporter.observe(
@@ -128,19 +127,20 @@ void main() {
         }
       },
     );
+    final failureExpectation = expectLater(result, throwsStateError);
     progress.add(1);
     await Future<void>.delayed(Duration.zero);
     progress.addError(StateError('stream failure'));
     await progress.close();
 
-    await expectLater(result, throwsStateError);
-    _expectMessageDataFailure(controller.current, 'stream failure');
+    await failureExpectation;
+    expect(controller.current.status, OnboardingOperationStatus.running);
+    expect(controller.current.failure, isNull);
     expect(
       controller.current.currentSubstage,
       OnboardingOperationSubstage.importingMessages,
     );
     expect(controller.current.progress?.completedWorkUnits, 1);
-    expect(controller.current.status, isNot(OnboardingOperationStatus.running));
   });
 
   test('completion requires durable proof compatible with operation', () async {
@@ -199,6 +199,31 @@ void main() {
 
     expect(controller.current.status, OnboardingOperationStatus.interrupted);
     expect(controller.current.failure, isNull);
+  });
+
+  test('resume retains UUID and moves evidence to current session', () async {
+    final operationId = await _begin(controller);
+    await controller.dispose();
+
+    final resumedSession = OnboardingProcessSessionId(
+      '123e4567-e89b-42d3-a456-426614174002',
+    );
+    controller = OnboardingOperationSnapshotController(
+      store: store,
+      processSessionId: resumedSession,
+      now: clock.now,
+      newOperationId: () => '123e4567-e89b-42d3-a456-426614174011',
+    );
+    await controller.initialize();
+    final interruptedRevision = controller.current.progressRevision;
+
+    final resumedId = await controller.resume(operationId: operationId);
+
+    expect(resumedId, operationId);
+    expect(controller.current.operationId, operationId);
+    expect(controller.current.status, OnboardingOperationStatus.running);
+    expect(controller.current.processSessionId, resumedSession);
+    expect(controller.current.progressRevision, interruptedRevision + 1);
   });
 
   test('durable completion truth overrides interrupted snapshot', () async {
@@ -324,18 +349,6 @@ OnboardingOperationSnapshotController _controller({
     now: clock.now,
     newOperationId: () => operationId,
   );
-}
-
-void _expectMessageDataFailure(
-  OnboardingOperationSnapshot snapshot,
-  String message,
-) {
-  expect(snapshot.status, OnboardingOperationStatus.failed);
-  expect(
-    snapshot.failure?.category,
-    OnboardingOperationFailureCategory.messageDataBuild,
-  );
-  expect(snapshot.failure?.summary, contains(message));
 }
 
 final class _MemorySnapshotStore implements OnboardingOperationSnapshotStore {

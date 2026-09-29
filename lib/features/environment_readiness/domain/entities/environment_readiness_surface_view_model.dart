@@ -1,3 +1,5 @@
+import '../../../../essentials/onboarding/domain/onboarding_journey_state.dart';
+
 enum EnvironmentReadinessEpisodeKind { checking, blocked, ready, failed }
 
 enum EnvironmentReadinessTone { primary, warning, success, failure }
@@ -7,6 +9,7 @@ enum EnvironmentReadinessActionKind {
   recheck,
   acceptLocalHistory,
   startImport,
+  retryOperation,
   sendReport,
 }
 
@@ -29,6 +32,7 @@ class EnvironmentReadinessEvidence {
 
 class EnvironmentReadinessSurfaceViewModel {
   const EnvironmentReadinessSurfaceViewModel({
+    required this.actionContext,
     required this.kind,
     required this.title,
     required this.body,
@@ -39,6 +43,7 @@ class EnvironmentReadinessSurfaceViewModel {
     this.instructions = const <String>[],
   });
 
+  final OnboardingJourneyActionContext actionContext;
   final EnvironmentReadinessEpisodeKind kind;
   final String title;
   final String body;

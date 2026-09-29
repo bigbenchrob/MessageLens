@@ -5,6 +5,7 @@ import 'package:remember_this_text/essentials/logging/application/diagnostic_rep
 import 'package:remember_this_text/essentials/logging/application/diagnostic_report_exporter.dart';
 import 'package:remember_this_text/essentials/logging/domain/diagnostic_report_presentation_result.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_operation_projection.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 
 void main() {
@@ -76,13 +77,30 @@ void main() {
         message: 'foreign key failed',
       ),
       lastGraphProjectionFailureRecordedAt: DateTime.utc(2026, 4, 14, 12, 0, 0),
-      operationSnapshot: _interruptedRichTextSnapshot(),
     );
+
+    final snapshot = _interruptedRichTextSnapshot();
 
     final headerLines = buildOnboardingFailureReportHeaderLines(
       report,
       operationFailureSummary:
           'Verified archive checkpoint required for messageDataReset',
+      operation: OnboardingJourneyOperationProjection(
+        operationId: snapshot.operationId!,
+        kind: snapshot.kind!,
+        phase: OnboardingJourneyOperationPhase.interrupted,
+        stage: snapshot.currentStage!,
+        substage: snapshot.currentSubstage,
+        progressRevision: snapshot.progressRevision,
+        progress: OnboardingJourneyOperationProgress(
+          completedWorkUnits: snapshot.progress!.completedWorkUnits,
+          totalWorkUnits: snapshot.progress!.totalWorkUnits,
+        ),
+        failure: null,
+        availableActions: const <OnboardingJourneyOperationAction>{
+          OnboardingJourneyOperationAction.continueSetup,
+        },
+      ),
     );
 
     expect(headerLines, contains('Context: onboarding_failure'));

@@ -7,7 +7,7 @@ part of 'pipeline_incident_actions_provider.dart';
 // **************************************************************************
 
 String _$pipelineIncidentActionsHash() =>
-    r'0e5a40a5ecccaf9b2e051053a69a3a289d4fe6ab';
+    r'796aa1c987f9a554926def10a22adfbc5655e51c';
 
 /// See also [PipelineIncidentActions].
 @ProviderFor(PipelineIncidentActions)

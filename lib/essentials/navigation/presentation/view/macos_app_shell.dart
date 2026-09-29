@@ -25,9 +25,8 @@ import '../../../debug/feature_level_providers.dart'
         DeveloperModeValue,
         columnBandDebugMarginsProvider,
         developerModeProvider;
-import '../../../onboarding/domain/onboarding_status.dart';
 import '../../../onboarding/feature_level_providers.dart'
-    show onboardingGateProvider, onboardingOperationReconciliationProvider;
+    show onboardingJourneyCoordinatorProvider;
 import '../../../onboarding/presentation/advanced_start_fresh_overlay.dart';
 import '../../../onboarding/presentation/onboarding_overlay.dart';
 import '../../../sidebar/application/sidebar_flow_state_provider.dart';
@@ -127,19 +126,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       }
     });
 
-    final onboardingStatus = ref.watch(onboardingGateProvider);
-    ref.watch(onboardingOperationReconciliationProvider);
-    final showOnboardingOverlay = switch (onboardingStatus) {
-      OnboardingStatus.recoveringFailedAttempt ||
-      OnboardingStatus.preparationFailed ||
-      OnboardingStatus.importing ||
-      OnboardingStatus.buildingGraph ||
-      OnboardingStatus.complete ||
-      OnboardingStatus.reimporting ||
-      OnboardingStatus.reimportBuildingGraph ||
-      OnboardingStatus.reimportComplete => true,
-      _ => false,
-    };
+    final onboardingJourney = ref.watch(onboardingJourneyCoordinatorProvider);
+    final onboardingStatus = onboardingJourney.compatibilityStatus;
+    final showOnboardingOverlay = onboardingJourney.requiresOperationOverlay;
     final activeMode = ref.watch(activeSidebarModeProvider);
     final sidebarFlowState = ref.watch(sidebarFlowProvider);
     final useSearchTrackPlan =

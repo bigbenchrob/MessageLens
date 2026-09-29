@@ -23,8 +23,9 @@ class PersistedOnboardingGraphProjectionFailure {
 abstract interface class OnboardingFailureStore {
   Future<OnboardingPipelineFailure?> loadSourceImportFailure();
 
-  Future<PersistedOnboardingSourceImportFailure?>
-  loadSourceImportFailureEntry();
+  Future<PersistedOnboardingSourceImportFailure?> loadSourceImportFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  });
 
   Future<void> saveImportFailure({
     required String message,
@@ -38,7 +39,9 @@ abstract interface class OnboardingFailureStore {
   Future<OnboardingPipelineFailure?> loadGraphProjectionFailure();
 
   Future<PersistedOnboardingGraphProjectionFailure?>
-  loadGraphProjectionFailureEntry();
+  loadGraphProjectionFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  });
 
   Future<void> saveGraphProjectionFailure({
     required String message,

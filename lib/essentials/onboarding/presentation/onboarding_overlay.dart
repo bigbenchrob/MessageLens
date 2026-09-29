@@ -3,32 +3,22 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/theme_typography.dart';
-import '../../conversation_graph/feature_level_providers.dart'
-    show
-        ConversationGraphBuildStatus,
-        ConversationGraphBuildState,
-        conversationGraphBuildControllerProvider;
 import '../../logging/application/diagnostic_report_actions.dart';
 import '../../logging/domain/diagnostic_report_presentation_result.dart';
 import '../../logging/feature_level_providers.dart'
     show diagnosticReportExporterProvider;
-import '../application/onboarding_environment_report_provider.dart';
-import '../application/onboarding_gate_provider.dart';
 import '../application/onboarding_journey_coordinator_provider.dart';
-import '../application/onboarding_operation_snapshot_provider.dart';
 import '../application/onboarding_overlay_actions_provider.dart';
 import '../domain/onboarding_environment_report.dart';
+import '../domain/onboarding_journey_operation_projection.dart';
 import '../domain/onboarding_journey_state.dart';
 import '../domain/onboarding_operation_snapshot.dart';
-import '../domain/onboarding_status.dart';
 import 'onboarding_journey_path.dart';
 
 /// Full-window blocking overlay for Onboarding-owned operational phases.
 ///
 /// Renders a semi-transparent barrier over the entire app and presents
-/// a centered card whose content switches based on [OnboardingStatus]:
-///   - [importing] / [buildingGraph] → live stage progress
-///   - [complete] → success summary with "Get Started" button
+/// a centered card whose content switches only on typed Journey Episodes.
 ///
 /// Production required-source readiness is normally presented by the generic
 /// Presence runner. The FDA content remains public because that runner delegates
@@ -38,9 +28,8 @@ class OnboardingOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(onboardingGateProvider);
     final journey = ref.watch(onboardingJourneyCoordinatorProvider);
-    final report = ref.watch(onboardingEnvironmentReportProvider).valueOrNull;
+    final report = journey.evidence?.report;
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
@@ -78,22 +67,28 @@ class OnboardingOverlay extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   OnboardingJourneyPath(journey: journey),
-                  switch (status) {
-                    OnboardingStatus.recoveringFailedAttempt =>
-                      _RecoveryContent(colors: colors, typography: typography),
-                    OnboardingStatus.preparationFailed => _WelcomeContent(
-                      report: report,
+                  switch (journey) {
+                    OnboardingRecoveringDerivedData() => _RecoveryContent(
                       colors: colors,
                       typography: typography,
-                      operationFailureSummary:
-                          journey is OnboardingOperationFailed
-                          ? journey.summary
-                          : null,
-                      presentationOverride: _preparationFailurePresentation,
-                      showEnvironmentSummary: false,
-                      retriesFailedOperation: true,
                     ),
-                    OnboardingStatus.awaitingFda => OnboardingFdaContent(
+                    OnboardingOperationFailed(:final failureAction) =>
+                      _WelcomeContent(
+                        report: report,
+                        colors: colors,
+                        typography: typography,
+                        actionContext: journey.actionContext,
+                        operation: journey.operation,
+                        operationFailureSummary: journey.summary,
+                        presentationOverride: failureAction.rechecksEnvironment
+                            ? _environmentRecheckFailurePresentation
+                            : _preparationFailurePresentation,
+                        showEnvironmentSummary: false,
+                        retriesFailedOperation: failureAction.retriesCommand,
+                        rechecksEnvironment: failureAction.rechecksEnvironment,
+                        primaryActionAvailable: failureAction.retriesCommand,
+                      ),
+                    OnboardingNeedsMessagesAccess() => OnboardingFdaContent(
                       report: report,
                       colors: colors,
                       typography: typography,
@@ -108,43 +103,69 @@ class OnboardingOverlay extends ConsumerWidget {
                             .recheckEnvironment();
                       },
                     ),
-                    OnboardingStatus.awaitingUserAction => _WelcomeContent(
+                    OnboardingNeedsLocalHistoryConfirmation() =>
+                      _WelcomeContent(
+                        report: report,
+                        colors: colors,
+                        typography: typography,
+                        actionContext: journey.actionContext,
+                        acceptsLocalHistory: true,
+                        presentationOverride: _localHistoryPresentation,
+                      ),
+                    OnboardingNeedsContactsAccess() ||
+                    OnboardingReadyToImport() => _WelcomeContent(
                       report: report,
                       colors: colors,
                       typography: typography,
-                      operationFailureSummary:
-                          journey is OnboardingOperationFailed
-                          ? journey.summary
-                          : null,
-                      retriesFailedOperation:
-                          journey is OnboardingOperationFailed,
+                      actionContext: journey.actionContext,
                     ),
-                    OnboardingStatus.importing ||
-                    OnboardingStatus.buildingGraph ||
-                    OnboardingStatus.reimporting ||
-                    OnboardingStatus.reimportBuildingGraph => _ProgressContent(
+                    OnboardingOperationInterrupted() => _WelcomeContent(
                       colors: colors,
                       typography: typography,
-                      isPreparingFirstRun: status == OnboardingStatus.importing,
-                      isReimport:
-                          status == OnboardingStatus.reimporting ||
-                          status == OnboardingStatus.reimportBuildingGraph,
+                      report: report,
+                      actionContext: journey.actionContext,
+                      operation: journey.operation,
+                      presentationOverride: _interruptedPresentation,
+                      continuesInterruptedOperation: journey
+                          .operation
+                          .availableActions
+                          .contains(
+                            OnboardingJourneyOperationAction.continueSetup,
+                          ),
+                      primaryActionAvailable: journey.operation.availableActions
+                          .contains(
+                            OnboardingJourneyOperationAction.continueSetup,
+                          ),
                     ),
-                    OnboardingStatus.complete => _CompleteContent(
+                    OnboardingPreparingImport() ||
+                    OnboardingBuildingLocalData() ||
+                    OnboardingVerifyingDurableReadiness() ||
+                    OnboardingReimporting() => _ProgressContent(
                       colors: colors,
                       typography: typography,
+                      operation: journey.operation,
+                    ),
+                    OnboardingReadyToStart() => _CompleteContent(
+                      colors: colors,
+                      typography: typography,
+                      actionContext: journey.actionContext,
                       title: 'You’re ready to start',
                       body: 'Your local MessageLens browsing data is prepared.',
                       dismissLabel: 'OK',
                     ),
-                    OnboardingStatus.reimportComplete => _CompleteContent(
+                    OnboardingReimportReady() => _CompleteContent(
                       colors: colors,
                       typography: typography,
+                      actionContext: journey.actionContext,
                       title: 'MessageLens is ready',
                       body: 'Your local browsing data is prepared.',
                       dismissLabel: 'Done',
                     ),
-                    OnboardingStatus.notNeeded => const SizedBox.shrink(),
+                    OnboardingCheckingPrerequisites() => _ProgressContent(
+                      colors: colors,
+                      typography: typography,
+                    ),
+                    OnboardingNormalApplication() => const SizedBox.shrink(),
                   },
                 ],
               ),
@@ -353,24 +374,62 @@ class _WelcomeContent extends ConsumerWidget {
     required this.report,
     required this.colors,
     required this.typography,
+    required this.actionContext,
     this.presentationOverride,
     this.showEnvironmentSummary = true,
     this.operationFailureSummary,
     this.retriesFailedOperation = false,
+    this.continuesInterruptedOperation = false,
+    this.acceptsLocalHistory = false,
+    this.primaryActionAvailable = true,
+    this.rechecksEnvironment = true,
+    this.operation,
   });
 
   final OnboardingEnvironmentReport? report;
   final ThemeColors colors;
   final ThemeTypography typography;
+  final OnboardingJourneyActionContext actionContext;
   final _AwaitingUserActionPresentation? presentationOverride;
   final bool showEnvironmentSummary;
   final String? operationFailureSummary;
   final bool retriesFailedOperation;
+  final bool continuesInterruptedOperation;
+  final bool acceptsLocalHistory;
+  final bool primaryActionAvailable;
+  final bool rechecksEnvironment;
+  final OnboardingJourneyOperationProjection? operation;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final presentation =
         presentationOverride ?? _awaitingUserActionPresentation(report);
+    Widget diagnosticReportButton() {
+      return OutlinedButton(
+        onPressed: () async {
+          final diagnosticReportExporter = await ref.read(
+            diagnosticReportExporterProvider.future,
+          );
+          final result = await exportOnboardingFailureDiagnosticReport(
+            diagnosticReportExporter,
+            report: report!,
+            operationFailureSummary: operationFailureSummary,
+            operation: operation,
+          );
+          if (!context.mounted) {
+            return;
+          }
+          _showDiagnosticReportSnackBar(context, result: result);
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colors.content.textPrimary,
+          side: BorderSide(color: colors.lines.borderSubtle),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: const Text('Send Report To Developer'),
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -413,7 +472,7 @@ class _WelcomeContent extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 32),
-        if (presentation.canImportImmediately)
+        if (presentation.canImportImmediately && primaryActionAvailable)
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 12,
@@ -425,9 +484,13 @@ class _WelcomeContent extends ConsumerWidget {
                     onboardingOverlayActionsProvider.notifier,
                   );
                   if (retriesFailedOperation) {
-                    await actions.retryFailedOperation();
+                    await actions.retryFailedOperation(actionContext);
+                  } else if (continuesInterruptedOperation) {
+                    await actions.continueInterruptedOperation(actionContext);
+                  } else if (acceptsLocalHistory) {
+                    actions.acceptLocalMessageHistory(actionContext);
                   } else {
-                    await actions.startVirginImportAndGraphBuild();
+                    await actions.startVirginImportAndGraphBuild(actionContext);
                   }
                 },
                 style: FilledButton.styleFrom(
@@ -444,38 +507,10 @@ class _WelcomeContent extends ConsumerWidget {
                 child: Text(presentation.primaryActionLabel),
               ),
               if (presentation.canSendDiagnosticReport && report != null)
-                OutlinedButton(
-                  onPressed: () async {
-                    final diagnosticReportExporter = await ref.read(
-                      diagnosticReportExporterProvider.future,
-                    );
-                    final result =
-                        await exportOnboardingFailureDiagnosticReport(
-                          diagnosticReportExporter,
-                          report: report!,
-                          operationFailureSummary: operationFailureSummary,
-                        );
-                    if (!context.mounted) {
-                      return;
-                    }
-                    _showDiagnosticReportSnackBar(context, result: result);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.content.textPrimary,
-                    side: BorderSide(color: colors.lines.borderSubtle),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Send Report To Developer'),
-                ),
+                diagnosticReportButton(),
             ],
           )
-        else ...[
+        else if (rechecksEnvironment) ...[
           FilledButton(
             onPressed: () {
               ref
@@ -492,13 +527,17 @@ class _WelcomeContent extends ConsumerWidget {
             ),
             child: const Text('Re-check Environment'),
           ),
+          if (presentation.canSendDiagnosticReport && report != null) ...[
+            const SizedBox(height: 12),
+            diagnosticReportButton(),
+          ],
           if (presentation.allowsManualImport) ...[
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () async {
                 await ref
                     .read(onboardingOverlayActionsProvider.notifier)
-                    .startVirginImportAndGraphBuild();
+                    .startVirginImportAndGraphBuild(actionContext);
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: colors.content.textPrimary,
@@ -514,6 +553,8 @@ class _WelcomeContent extends ConsumerWidget {
               child: const Text('Import Anyway'),
             ),
           ],
+        ] else if (presentation.canSendDiagnosticReport && report != null) ...[
+          diagnosticReportButton(),
         ],
       ],
     );
@@ -755,6 +796,47 @@ const _preparationFailurePresentation = _AwaitingUserActionPresentation(
   iconKind: _PresentationIconKind.warning,
 );
 
+const _environmentRecheckFailurePresentation = _AwaitingUserActionPresentation(
+  title: "MessageLens couldn't confirm setup",
+  body:
+      'The current environment needs to be checked again before setup can continue.',
+  notes: [],
+  canImportImmediately: false,
+  canSendDiagnosticReport: true,
+  allowsManualImport: false,
+  primaryActionLabel: 'Re-check Environment',
+  icon: Icons.error_outline_rounded,
+  iconKind: _PresentationIconKind.warning,
+);
+
+const _interruptedPresentation = _AwaitingUserActionPresentation(
+  title: 'Setup was interrupted',
+  body:
+      'MessageLens saved the completed bounded work. Continue Setup resumes '
+      'this exact operation from its safe durable boundary.',
+  notes: [],
+  canImportImmediately: true,
+  canSendDiagnosticReport: true,
+  allowsManualImport: false,
+  primaryActionLabel: 'Continue Setup',
+  icon: Icons.sync_problem_rounded,
+  iconKind: _PresentationIconKind.warning,
+);
+
+const _localHistoryPresentation = _AwaitingUserActionPresentation(
+  title: 'Little Local Messages History Found',
+  body:
+      'MessageLens found little local history on this Mac. You can continue '
+      'with the history that is currently available.',
+  notes: [],
+  canImportImmediately: true,
+  canSendDiagnosticReport: false,
+  allowsManualImport: false,
+  primaryActionLabel: 'Use Local History',
+  icon: Icons.cloud_off_rounded,
+  iconKind: _PresentationIconKind.warning,
+);
+
 _AwaitingUserActionPresentation _awaitingUserActionPresentation(
   OnboardingEnvironmentReport? report,
 ) {
@@ -771,23 +853,6 @@ _AwaitingUserActionPresentation _awaitingUserActionPresentation(
       primaryActionLabel: 'Import My Messages',
       icon: Icons.message_rounded,
       iconKind: _PresentationIconKind.primary,
-    );
-  }
-
-  final incompleteOperationSummary = report.incompleteOperationSummary;
-  if (incompleteOperationSummary != null &&
-      (report.state == OnboardingEnvironmentState.importFailed ||
-          report.state == OnboardingEnvironmentState.graphProjectionFailed)) {
-    return _AwaitingUserActionPresentation(
-      title: 'Setup was interrupted',
-      body: incompleteOperationSummary,
-      notes: const [],
-      canImportImmediately: true,
-      canSendDiagnosticReport: true,
-      allowsManualImport: false,
-      primaryActionLabel: 'Continue Setup',
-      icon: Icons.sync_problem_rounded,
-      iconKind: _PresentationIconKind.warning,
     );
   }
 
@@ -1059,39 +1124,23 @@ class _AwaitingUserActionPresentation {
 }
 
 /// Progress panel: overall progress bar + per-stage list.
-class _ProgressContent extends ConsumerWidget {
+class _ProgressContent extends StatelessWidget {
   const _ProgressContent({
     required this.colors,
     required this.typography,
-    required this.isPreparingFirstRun,
-    this.isReimport = false,
+    this.operation,
   });
 
   final ThemeColors colors;
   final ThemeTypography typography;
-  final bool isPreparingFirstRun;
-  final bool isReimport;
+  final OnboardingJourneyOperationProjection? operation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final graphBuildState = ref.watch(conversationGraphBuildControllerProvider);
-    final operationSnapshot = ref
-        .watch(onboardingOperationSnapshotProvider)
-        .valueOrNull;
-    final statusMessage = _progressStatusMessage(
-      graphBuildState: graphBuildState,
-      isPreparingFirstRun: isPreparingFirstRun,
-      isReimport: isReimport,
-    );
-    final observedProgress = operationSnapshot?.progress;
-    final progressValue =
-        observedProgress != null && observedProgress.totalWorkUnits > 0
-        ? observedProgress.completedWorkUnits / observedProgress.totalWorkUnits
-        : !isPreparingFirstRun &&
-              graphBuildState.status == ConversationGraphBuildStatus.succeeded
-        ? 1.0
-        : null;
-    final substage = operationSnapshot?.currentSubstage;
+  Widget build(BuildContext context) {
+    final statusMessage = _progressStatusMessage(operation);
+    final observedProgress = operation?.progress;
+    final progressValue = observedProgress?.fraction;
+    final substage = operation?.substage;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1136,7 +1185,7 @@ class _ProgressContent extends ConsumerWidget {
 
 String _onboardingSubstageLabel(
   OnboardingOperationSubstage substage, {
-  required OnboardingOperationProgress? progress,
+  required OnboardingJourneyOperationProgress? progress,
 }) {
   final label = switch (substage) {
     OnboardingOperationSubstage.preparingEnvironment => 'Preparing storage',
@@ -1178,24 +1227,22 @@ String _onboardingSubstageLabel(
       '${progress.totalWorkUnits}';
 }
 
-String _progressStatusMessage({
-  required ConversationGraphBuildState graphBuildState,
-  required bool isPreparingFirstRun,
-  required bool isReimport,
-}) {
-  if (isPreparingFirstRun) {
-    return 'Preparing setup…';
+String _progressStatusMessage(OnboardingJourneyOperationProjection? operation) {
+  if (operation == null) {
+    return 'Checking setup requirements…';
   }
-
-  return switch (graphBuildState.status) {
-    ConversationGraphBuildStatus.running =>
-      isReimport ? 'Rebuilding browsing data…' : 'Building browsing data…',
-    ConversationGraphBuildStatus.succeeded =>
-      isReimport ? 'Browsing data rebuilt' : 'Browsing data ready',
-    ConversationGraphBuildStatus.failed =>
-      "MessageLens couldn't finish preparing browsing data.",
-    ConversationGraphBuildStatus.idle =>
-      isReimport ? 'Preparing rebuild…' : 'Preparing setup…',
+  return switch (operation.stage) {
+    OnboardingOperationStage.environmentPreparation ||
+    OnboardingOperationStage.automaticRecoveryReset =>
+      operation.kind == OnboardingOperationKind.reimport
+          ? 'Preparing rebuild…'
+          : 'Preparing setup…',
+    OnboardingOperationStage.messageDataBuild =>
+      operation.kind == OnboardingOperationKind.reimport
+          ? 'Rebuilding browsing data…'
+          : 'Building browsing data…',
+    OnboardingOperationStage.durableReadinessVerification =>
+      'Checking prepared browsing data…',
   };
 }
 
@@ -1207,6 +1254,7 @@ class _CompleteContent extends ConsumerWidget {
     required this.title,
     required this.body,
     required this.dismissLabel,
+    required this.actionContext,
   });
 
   final ThemeColors colors;
@@ -1214,6 +1262,7 @@ class _CompleteContent extends ConsumerWidget {
   final String title;
   final String body;
   final String dismissLabel;
+  final OnboardingJourneyActionContext actionContext;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1242,7 +1291,9 @@ class _CompleteContent extends ConsumerWidget {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () {
-            ref.read(onboardingOverlayActionsProvider.notifier).dismiss();
+            ref
+                .read(onboardingOverlayActionsProvider.notifier)
+                .dismiss(actionContext);
           },
           style: FilledButton.styleFrom(
             backgroundColor: colors.buttons.primaryBackground,

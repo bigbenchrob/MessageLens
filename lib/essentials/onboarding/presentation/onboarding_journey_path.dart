@@ -64,6 +64,7 @@ OnboardingJourneyPathProjection? projectOnboardingJourneyPath(
     OnboardingRecoveringDerivedData() ||
     OnboardingPreparingImport() ||
     OnboardingBuildingLocalData() ||
+    OnboardingOperationInterrupted() ||
     OnboardingOperationFailed() => OnboardingJourneyPathNode.import,
     // Durable verification is a mandatory internal gate, not another human
     // obligation. Import remains current until its proof makes Start truthful.

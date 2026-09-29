@@ -224,7 +224,6 @@ final class OnboardingOperationSnapshotController {
   Future<T> runStage<T>({
     required OnboardingOperationId operationId,
     required OnboardingOperationStage stage,
-    required OnboardingOperationFailureCategory failureCategory,
     required Future<T> Function(OnboardingProgressReporter progress) action,
   }) async {
     await enterStage(operationId: operationId, stage: stage);
@@ -232,21 +231,27 @@ final class OnboardingOperationSnapshotController {
       operationId: operationId,
       report: reportProgress,
     );
-    try {
-      return await Future<T>.sync(() => action(reporter));
-    } catch (error) {
-      if (_current.status == OnboardingOperationStatus.running &&
-          _current.operationId == operationId) {
-        await fail(
-          operationId: operationId,
-          category: failureCategory,
-          summary: _boundedSummary(error),
-          recoveryDisposition:
-              OnboardingOperationRecoveryDisposition.retryFromSafeBoundary,
-        );
-      }
-      rethrow;
+    return Future<T>.sync(() => action(reporter));
+  }
+
+  /// Resumes the same logical operation in this process session.
+  ///
+  /// Persistence completes before the resumed snapshot is published, so the
+  /// Journey owner never has to present an operation that is not yet durable.
+  Future<OnboardingOperationId> resume({
+    required OnboardingOperationId operationId,
+  }) async {
+    if (_current.operationId != operationId ||
+        _current.status != OnboardingOperationStatus.interrupted) {
+      throw StateError('Onboarding operation is not resumable.');
     }
+    await _publish(
+      _current.resume(
+        processSessionId: _processSessionId,
+        observedAtUtc: _now(),
+      ),
+    );
+    return operationId;
   }
 
   Future<void> fail({

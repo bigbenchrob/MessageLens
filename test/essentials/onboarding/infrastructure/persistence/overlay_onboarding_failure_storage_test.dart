@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -152,6 +154,159 @@ void main() {
 
         expect(loaded, isNull);
         expect(readFailures, ['onboarding_last_graph_projection_result']);
+      },
+    );
+
+    test(
+      'source read does not start after admission is withdrawn during database acquisition',
+      () async {
+        final databaseAcquisition = Completer<OverlayDatabase>();
+        var admissionCurrent = true;
+        var protectedReadCount = 0;
+        final storage = OverlayOnboardingFailureStorage(
+          overlayDb: databaseAcquisition.future,
+          readOverlaySetting: (database, key) async {
+            protectedReadCount += 1;
+            return database.readOverlaySetting(key);
+          },
+        );
+
+        final read = storage.loadSourceImportFailureEntry(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!admissionCurrent) {
+              throw StateError('admission withdrawn');
+            }
+          },
+        );
+        await Future<void>.delayed(Duration.zero);
+        admissionCurrent = false;
+        databaseAcquisition.complete(overlayDb);
+
+        await expectLater(read, throwsStateError);
+        expect(protectedReadCount, 0);
+      },
+    );
+
+    test(
+      'source read does not start after resource policy strengthens during database acquisition',
+      () async {
+        final databaseAcquisition = Completer<OverlayDatabase>();
+        var persistentStoreAllowed = true;
+        var protectedReadCount = 0;
+        final storage = OverlayOnboardingFailureStorage(
+          overlayDb: databaseAcquisition.future,
+          readOverlaySetting: (_, _) async {
+            protectedReadCount += 1;
+            return null;
+          },
+        );
+
+        final read = storage.loadSourceImportFailureEntry(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!persistentStoreAllowed) {
+              throw StateError('persistent store denied');
+            }
+          },
+        );
+        await Future<void>.delayed(Duration.zero);
+        persistentStoreAllowed = false;
+        databaseAcquisition.complete(overlayDb);
+
+        await expectLater(read, throwsStateError);
+        expect(protectedReadCount, 0);
+      },
+    );
+
+    test(
+      'graph primary read does not start after admission is withdrawn during database acquisition',
+      () async {
+        final databaseAcquisition = Completer<OverlayDatabase>();
+        var admissionCurrent = true;
+        var protectedReadCount = 0;
+        final storage = OverlayOnboardingFailureStorage(
+          overlayDb: databaseAcquisition.future,
+          readOverlaySetting: (_, _) async {
+            protectedReadCount += 1;
+            return null;
+          },
+        );
+
+        final read = storage.loadGraphProjectionFailureEntry(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!admissionCurrent) {
+              throw StateError('admission withdrawn');
+            }
+          },
+        );
+        await Future<void>.delayed(Duration.zero);
+        admissionCurrent = false;
+        databaseAcquisition.complete(overlayDb);
+
+        await expectLater(read, throwsStateError);
+        expect(protectedReadCount, 0);
+      },
+    );
+
+    test(
+      'graph primary read does not start after resource policy strengthens during database acquisition',
+      () async {
+        final databaseAcquisition = Completer<OverlayDatabase>();
+        var persistentStoreAllowed = true;
+        var protectedReadCount = 0;
+        final storage = OverlayOnboardingFailureStorage(
+          overlayDb: databaseAcquisition.future,
+          readOverlaySetting: (_, _) async {
+            protectedReadCount += 1;
+            return null;
+          },
+        );
+
+        final read = storage.loadGraphProjectionFailureEntry(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!persistentStoreAllowed) {
+              throw StateError('persistent store denied');
+            }
+          },
+        );
+        await Future<void>.delayed(Duration.zero);
+        persistentStoreAllowed = false;
+        databaseAcquisition.complete(overlayDb);
+
+        await expectLater(read, throwsStateError);
+        expect(protectedReadCount, 0);
+      },
+    );
+
+    test(
+      'historical graph fallback does not read after primary-null admission withdrawal',
+      () async {
+        var admissionCurrent = true;
+        var primaryReadCount = 0;
+        var historicalReadCount = 0;
+        final storage = OverlayOnboardingFailureStorage(
+          overlayDb: Future<OverlayDatabase>.value(overlayDb),
+          readOverlaySetting: (_, key) async {
+            if (key == 'onboarding_last_graph_projection_result') {
+              primaryReadCount += 1;
+              admissionCurrent = false;
+              return null;
+            }
+            historicalReadCount += 1;
+            return null;
+          },
+        );
+
+        final read = storage.loadGraphProjectionFailureEntry(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!admissionCurrent) {
+              throw StateError('admission withdrawn before fallback');
+            }
+          },
+        );
+
+        await expectLater(read, throwsStateError);
+        expect(primaryReadCount, 1);
+        expect(historicalReadCount, 0);
       },
     );
   });

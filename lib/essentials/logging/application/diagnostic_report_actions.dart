@@ -1,4 +1,5 @@
 import '../../onboarding/domain/onboarding_environment_report.dart';
+import '../../onboarding/domain/onboarding_journey_operation_projection.dart';
 import '../domain/diagnostic_report_presentation_result.dart';
 import '../domain/pipeline_incident_report.dart';
 import 'diagnostic_report_exporter.dart';
@@ -32,6 +33,7 @@ exportOnboardingFailureDiagnosticReport(
   DiagnosticReportExporter exporter, {
   required OnboardingEnvironmentReport report,
   String? operationFailureSummary,
+  OnboardingJourneyOperationProjection? operation,
 }) {
   final operationFailureLine = _operationFailureLine(operationFailureSummary);
   return exporter.exportAndPresent(
@@ -62,6 +64,7 @@ exportOnboardingFailureDiagnosticReport(
       headerLines: buildOnboardingFailureReportHeaderLines(
         report,
         operationFailureSummary: operationFailureSummary,
+        operation: operation,
       ),
     ),
   );
@@ -103,17 +106,17 @@ exportPipelineIncidentDiagnosticReport(
 List<String> buildOnboardingFailureReportHeaderLines(
   OnboardingEnvironmentReport report, {
   String? operationFailureSummary,
+  OnboardingJourneyOperationProjection? operation,
 }) {
   final lines = <String>[
     'Context: onboarding_failure',
     'State: ${report.state.name}',
     'Blocker: ${report.blockerKind.name}',
-    'Operation status: ${report.operationSnapshot.status.name}',
-    if (report.operationSnapshot.currentStage case final stage?)
-      'Operation stage: ${stage.name}',
-    if (report.operationSnapshot.currentSubstage case final substage?)
+    if (operation != null) 'Operation status: ${operation.phase.name}',
+    if (operation != null) 'Operation stage: ${operation.stage.name}',
+    if (operation?.substage case final substage?)
       'Operation substage: ${substage.name}',
-    if (report.operationSnapshot.progress case final progress?)
+    if (operation?.progress case final progress?)
       'Operation progress: ${progress.completedWorkUnits} / ${progress.totalWorkUnits}',
     if (_operationFailureLine(operationFailureSummary) case final line?) line,
     'Full Disk Access: ${report.hasFullDiskAccess ? 'available' : 'missing'}',

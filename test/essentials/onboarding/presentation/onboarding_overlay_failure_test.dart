@@ -11,7 +11,9 @@ import 'package:remember_this_text/essentials/onboarding/application/onboarding_
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_operation_projection.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/onboarding_overlay.dart';
 
@@ -41,6 +43,7 @@ void main() {
           occurrence: 1,
           summary: 'Verified archive checkpoint required for messageDataReset',
           compatibilityStatus: OnboardingStatus.preparationFailed,
+          failureAction: OnboardingJourneyFailureAction.retryInitialImport,
         ),
         report: _failureReport(
           state: OnboardingEnvironmentState.readyToImport,
@@ -89,6 +92,7 @@ void main() {
           occurrence: 1,
           summary: _technicalImportError,
           compatibilityStatus: OnboardingStatus.awaitingUserAction,
+          failureAction: OnboardingJourneyFailureAction.retryInitialImport,
         ),
         report: _failureReport(
           state: OnboardingEnvironmentState.importFailed,
@@ -112,16 +116,56 @@ void main() {
       expect(find.text(_technicalImportError), findsNothing);
       expect(find.textContaining('previous launch'), findsNothing);
       expect(find.textContaining('clean import pass'), findsNothing);
-      expect(find.text('Try Import Again'), findsOneWidget);
+      expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Send Report To Developer'), findsOneWidget);
       _expectSupportTransportCaptionAbsent();
 
-      await tester.tap(find.text('Try Import Again'));
+      await tester.tap(find.text('Try Again'));
       await tester.pump();
 
       expect(gate.retryFailedOperationCallCount, 1);
     },
   );
+
+  testWidgets('manual-inspection failure does not invent a retry action', (
+    tester,
+  ) async {
+    final gate = _FailureSurfaceGate();
+    await _pumpFailureOverlay(
+      tester,
+      gate: gate,
+      journey: OnboardingOperationFailed(
+        occurrence: 1,
+        summary: 'Manual inspection is required.',
+        compatibilityStatus: OnboardingStatus.preparationFailed,
+        failureAction: OnboardingJourneyFailureAction.none,
+        operation: OnboardingJourneyOperationProjection(
+          operationId: OnboardingOperationId(
+            '123e4567-e89b-42d3-a456-426614174000',
+          ),
+          kind: OnboardingOperationKind.initialImport,
+          phase: OnboardingJourneyOperationPhase.failed,
+          stage: OnboardingOperationStage.messageDataBuild,
+          substage: OnboardingOperationSubstage.importingMessages,
+          progressRevision: 2,
+          progress: null,
+          failure: const OnboardingJourneyOperationFailure(
+            category:
+                OnboardingOperationFailureCategory.durableStateInconsistent,
+            summary: 'Manual inspection is required.',
+          ),
+          availableActions: const <OnboardingJourneyOperationAction>{},
+        ),
+      ),
+      report: _failureReport(
+        state: OnboardingEnvironmentState.graphProjectionFailed,
+        blockerKind: OnboardingBlockerKind.graphProjectionFailed,
+      ),
+    );
+
+    expect(find.text('Try Again'), findsNothing);
+    expect(gate.retryFailedOperationCallCount, 0);
+  });
 
   testWidgets('graph failure hides diagnostics while support evidence remains', (
     tester,
@@ -136,6 +180,7 @@ void main() {
         occurrence: 1,
         summary: _technicalGraphError,
         compatibilityStatus: OnboardingStatus.awaitingUserAction,
+        failureAction: OnboardingJourneyFailureAction.retryInitialImport,
       ),
       exporter: exporter,
       report: _failureReport(
@@ -159,11 +204,11 @@ void main() {
       find.textContaining('failure happened while preparing it for browsing'),
       findsNothing,
     );
-    expect(find.text('Retry Import and Graph Build'), findsOneWidget);
+    expect(find.text('Try Again'), findsOneWidget);
     expect(find.text('Send Report To Developer'), findsOneWidget);
     _expectSupportTransportCaptionAbsent();
 
-    await tester.tap(find.text('Retry Import and Graph Build'));
+    await tester.tap(find.text('Try Again'));
     await tester.pump();
     expect(gate.retryFailedOperationCallCount, 1);
 
@@ -346,13 +391,33 @@ Future<void> _pumpFailureOverlay(
   addTearDown(tester.view.resetPhysicalSize);
 
   final resolvedExporter = exporter ?? _RecordingDiagnosticReportExporter();
+  final resolvedJourney = switch (journey) {
+    OnboardingOperationFailed(
+      :final occurrence,
+      :final summary,
+      :final failureAction,
+    ) =>
+      OnboardingOperationFailed(
+        occurrence: occurrence,
+        summary: summary,
+        compatibilityStatus: journey.compatibilityStatus,
+        failureAction: failureAction,
+        operation: journey.operation,
+        evidence: OnboardingPrerequisiteEvidence(
+          revision: 1,
+          observedAtUtc: DateTime.utc(2026, 9, 24),
+          report: report,
+        ),
+      ),
+    _ => journey,
+  };
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
         onboardingGateProvider.overrideWith(() => gate),
-        if (journey != null)
+        if (resolvedJourney != null)
           onboardingJourneyCoordinatorProvider.overrideWith(
-            () => _FixedJourneyCoordinator(journey),
+            () => _FixedJourneyCoordinator(resolvedJourney),
           ),
         onboardingEnvironmentReportProvider.overrideWith((ref) async => report),
         diagnosticReportExporterProvider.overrideWith(
@@ -448,12 +513,16 @@ final class _FailureSurfaceGate extends OnboardingGate {
   }
 
   @override
-  Future<void> startVirginImportAndGraphBuild() async {
+  Future<void> startVirginImportAndGraphBuild({
+    OnboardingJourneyActionContext? actionContext,
+  }) async {
     startImportCallCount += 1;
   }
 
   @override
-  Future<void> retryFailedOperation() async {
+  Future<void> retryFailedOperation({
+    OnboardingJourneyActionContext? actionContext,
+  }) async {
     retryFailedOperationCallCount += 1;
   }
 }

@@ -7,7 +7,7 @@ part of 'onboarding_overlay_actions_provider.dart';
 // **************************************************************************
 
 String _$onboardingOverlayActionsHash() =>
-    r'b227e2bb2fa33a1b0975a130c39275f47ad9c6db';
+    r'829e68c57a774240b3e532cb1a55ac56309cc2ee';
 
 /// See also [OnboardingOverlayActions].
 @ProviderFor(OnboardingOverlayActions)

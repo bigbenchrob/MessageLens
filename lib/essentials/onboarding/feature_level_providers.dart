@@ -12,8 +12,6 @@ export 'application/onboarding_failure_storage_provider.dart';
 export 'application/onboarding_gate_provider.dart';
 export 'application/onboarding_journey_coordinator_provider.dart'
     show onboardingJourneyCoordinatorProvider;
-export 'application/onboarding_operation_reconciliation_provider.dart'
-    show onboardingOperationReconciliationProvider;
 export 'application/onboarding_operation_snapshot_provider.dart'
     show
         onboardingOperationControllerProvider,

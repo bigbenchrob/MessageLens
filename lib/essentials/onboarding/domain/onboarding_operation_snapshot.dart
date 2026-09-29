@@ -53,14 +53,6 @@ enum OnboardingOperationRecoveryDisposition {
   notRequired,
 }
 
-enum OnboardingOperationPresenceState {
-  idle,
-  working,
-  interrupted,
-  needsAttention,
-  done,
-}
-
 @immutable
 final class OnboardingOperationId {
   OnboardingOperationId(String value) : value = _validate(value);
@@ -283,20 +275,6 @@ final class OnboardingOperationSnapshot {
 
   bool get isActive => status == OnboardingOperationStatus.running;
 
-  OnboardingOperationPresenceState get presenceState {
-    return switch (status) {
-      OnboardingOperationStatus.idle => OnboardingOperationPresenceState.idle,
-      OnboardingOperationStatus.running =>
-        OnboardingOperationPresenceState.working,
-      OnboardingOperationStatus.interrupted =>
-        OnboardingOperationPresenceState.interrupted,
-      OnboardingOperationStatus.failed =>
-        OnboardingOperationPresenceState.needsAttention,
-      OnboardingOperationStatus.completed =>
-        OnboardingOperationPresenceState.done,
-    };
-  }
-
   static OnboardingOperationSnapshot running({
     required OnboardingOperationId operationId,
     required OnboardingProcessSessionId processSessionId,
@@ -370,6 +348,23 @@ final class OnboardingOperationSnapshot {
     return _copy(
       status: OnboardingOperationStatus.interrupted,
       finishedAtUtc: observedAtUtc,
+      progressRevision: progressRevision + 1,
+    );
+  }
+
+  OnboardingOperationSnapshot resume({
+    required OnboardingProcessSessionId processSessionId,
+    required DateTime observedAtUtc,
+  }) {
+    if (status != OnboardingOperationStatus.interrupted) {
+      throw StateError('Only interrupted onboarding can resume.');
+    }
+    return _copy(
+      status: OnboardingOperationStatus.running,
+      processSessionId: processSessionId,
+      lastProgressObservedAtUtc: observedAtUtc,
+      clearFinishedAtUtc: true,
+      progressRevision: progressRevision + 1,
     );
   }
 
@@ -384,6 +379,7 @@ final class OnboardingOperationSnapshot {
       status: OnboardingOperationStatus.failed,
       failure: failure,
       finishedAtUtc: failure.occurredAtUtc,
+      progressRevision: progressRevision + 1,
     );
   }
 
@@ -403,6 +399,7 @@ final class OnboardingOperationSnapshot {
       lastProgressObservedAtUtc: verifiedAtUtc,
       finishedAtUtc: verifiedAtUtc,
       clearFailure: true,
+      progressRevision: progressRevision + 1,
     );
   }
 
@@ -539,6 +536,7 @@ final class OnboardingOperationSnapshot {
 
   OnboardingOperationSnapshot _copy({
     OnboardingOperationStatus? status,
+    OnboardingProcessSessionId? processSessionId,
     OnboardingOperationStage? currentStage,
     OnboardingOperationSubstage? currentSubstage,
     bool clearSubstage = false,
@@ -552,11 +550,12 @@ final class OnboardingOperationSnapshot {
     OnboardingOperationFailure? failure,
     bool clearFailure = false,
     DateTime? finishedAtUtc,
+    bool clearFinishedAtUtc = false,
   }) {
     return OnboardingOperationSnapshot._(
       status: status ?? this.status,
       operationId: operationId,
-      processSessionId: processSessionId,
+      processSessionId: processSessionId ?? this.processSessionId,
       kind: kind,
       currentStage: currentStage ?? this.currentStage,
       currentSubstage: clearSubstage
@@ -571,7 +570,9 @@ final class OnboardingOperationSnapshot {
       progressRevision: progressRevision ?? this.progressRevision,
       sourceAnomalyCounts: sourceAnomalyCounts ?? this.sourceAnomalyCounts,
       failure: clearFailure ? null : failure ?? this.failure,
-      finishedAtUtc: finishedAtUtc ?? this.finishedAtUtc,
+      finishedAtUtc: clearFinishedAtUtc
+          ? null
+          : finishedAtUtc ?? this.finishedAtUtc,
     );
   }
 }

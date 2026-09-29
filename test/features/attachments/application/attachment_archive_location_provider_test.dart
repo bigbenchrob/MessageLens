@@ -28,6 +28,18 @@ import 'package:remember_this_text/features/attachments/domain/entities/attachme
 
 import '../../../test_support/test_archive_fixture.dart';
 
+final _admittedAttachmentLocationEvidenceProvider = FutureProvider.autoDispose
+    .family<AttachmentArchiveLocationState, void Function()>((
+      ref,
+      requirePersistentArchiveStoreAdmission,
+    ) {
+      return readAttachmentArchiveLocationEvidenceWithAdmission(
+        ref,
+        requirePersistentArchiveStoreAdmission:
+            requirePersistentArchiveStoreAdmission,
+      );
+    });
+
 void main() {
   group('AttachmentArchiveLocationConfiguration', () {
     test('custom configuration round-trips bookmark identity and metadata', () {
@@ -336,6 +348,92 @@ void main() {
       },
     );
 
+    test(
+      'bookmark refresh write does not start after admission withdrawal during resolution',
+      () async {
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: base64Encode(<int>[51]),
+              lastKnownPath: '/Volumes/Before/Archive',
+            );
+        settingsStore.settings[attachmentArchiveLocationSettingKey] =
+            configuration.toPersistedValue();
+        final resolutionStarted = Completer<void>();
+        final releaseResolution = Completer<void>();
+        nativeAdapter
+          ..resolutionStarted = resolutionStarted
+          ..releaseResolution = releaseResolution
+          ..resolution = AttachmentArchiveBookmarkResolution(
+            status: AttachmentArchiveBookmarkResolutionStatus.available,
+            resolvedPath: '/Volumes/After/Archive',
+            refreshedBookmarkDataBase64: base64Encode(<int>[52]),
+          );
+        final controller = AttachmentArchiveLocationController(
+          archiveAccessAuthority: archiveFixture.authority,
+          settingsStore: settingsStore,
+          nativeAdapter: nativeAdapter,
+        );
+        var admissionCurrent = true;
+
+        final load = controller.load(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!admissionCurrent) {
+              throw StateError('admission withdrawn');
+            }
+          },
+        );
+        await resolutionStarted.future;
+        admissionCurrent = false;
+        releaseResolution.complete();
+
+        await expectLater(load, throwsStateError);
+        expect(settingsStore.writes, isEmpty);
+      },
+    );
+
+    test(
+      'bookmark refresh write does not start after resource policy strengthens during resolution',
+      () async {
+        final configuration =
+            AttachmentArchiveLocationConfiguration.customExternal(
+              bookmarkDataBase64: base64Encode(<int>[61]),
+              lastKnownPath: '/Volumes/Before/Archive',
+            );
+        settingsStore.settings[attachmentArchiveLocationSettingKey] =
+            configuration.toPersistedValue();
+        final resolutionStarted = Completer<void>();
+        final releaseResolution = Completer<void>();
+        nativeAdapter
+          ..resolutionStarted = resolutionStarted
+          ..releaseResolution = releaseResolution
+          ..resolution = AttachmentArchiveBookmarkResolution(
+            status: AttachmentArchiveBookmarkResolutionStatus.available,
+            resolvedPath: '/Volumes/After/Archive',
+            refreshedBookmarkDataBase64: base64Encode(<int>[62]),
+          );
+        final controller = AttachmentArchiveLocationController(
+          archiveAccessAuthority: archiveFixture.authority,
+          settingsStore: settingsStore,
+          nativeAdapter: nativeAdapter,
+        );
+        var persistentStoreAllowed = true;
+
+        final load = controller.load(
+          requirePersistentArchiveStoreAdmission: () {
+            if (!persistentStoreAllowed) {
+              throw StateError('persistent store denied');
+            }
+          },
+        );
+        await resolutionStarted.future;
+        persistentStoreAllowed = false;
+        releaseResolution.complete();
+
+        await expectLater(load, throwsStateError);
+        expect(settingsStore.writes, isEmpty);
+      },
+    );
+
     test('custom resolution statuses retain typed failure semantics', () async {
       final configuration =
           AttachmentArchiveLocationConfiguration.customExternal(
@@ -468,6 +566,48 @@ void main() {
         expect(location.requireArchiveRootPath(), archiveDirectory.path);
         expect(archiveDirectory.existsSync(), isFalse);
         expect(settingsStore.writes, isEmpty);
+      },
+    );
+
+    test(
+      'admitted one-shot read does not start setting read after store acquisition loses admission',
+      () async {
+        final settingsStore = _FakeAttachmentArchiveSettingsStore();
+        final settingsStoreAcquisition =
+            Completer<AttachmentArchiveSettingsStore>();
+        final nativeAdapter = _FakeAttachmentArchiveLocationNativeAdapter();
+        addTearDown(nativeAdapter.dispose);
+        final container = ProviderContainer(
+          overrides: [
+            admittedArchiveAccessAuthorityProvider.overrideWithValue(
+              archiveFixture.authority,
+            ),
+            attachmentArchiveSettingsStoreProvider.overrideWith(
+              (ref) => settingsStoreAcquisition.future,
+            ),
+            attachmentArchiveLocationNativeAdapterProvider.overrideWithValue(
+              nativeAdapter,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        var admissionCurrent = true;
+
+        void requireAdmission() {
+          if (!admissionCurrent) {
+            throw StateError('admission withdrawn');
+          }
+        }
+
+        final read = container.read(
+          _admittedAttachmentLocationEvidenceProvider(requireAdmission).future,
+        );
+        await Future<void>.delayed(Duration.zero);
+        admissionCurrent = false;
+        settingsStoreAcquisition.complete(settingsStore);
+
+        await expectLater(read, throwsStateError);
+        expect(settingsStore.readKeys, isEmpty);
       },
     );
 
@@ -978,6 +1118,8 @@ final class _FakeAttachmentArchiveLocationNativeAdapter
   final createdPaths = <String>[];
   final resolvedBookmarks = <String>[];
   var resolveCalls = 0;
+  Completer<void>? resolutionStarted;
+  Completer<void>? releaseResolution;
   var eventListenCount = 0;
   var eventCancelCount = 0;
 
@@ -998,6 +1140,11 @@ final class _FakeAttachmentArchiveLocationNativeAdapter
   }) async {
     resolveCalls += 1;
     resolvedBookmarks.add(bookmarkDataBase64);
+    resolutionStarted?.complete();
+    final release = releaseResolution;
+    if (release != null) {
+      await release.future;
+    }
     return resolution;
   }
 

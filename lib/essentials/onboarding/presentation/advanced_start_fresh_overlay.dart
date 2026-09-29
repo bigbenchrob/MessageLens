@@ -5,9 +5,9 @@ import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/theme_typography.dart';
 import '../application/advanced_start_fresh_action_provider.dart';
 import '../application/advanced_start_fresh_presentation_provider.dart';
-import '../application/onboarding_gate_provider.dart';
+import '../application/onboarding_journey_coordinator_provider.dart';
 import '../domain/advanced_start_fresh_presentation.dart';
-import '../domain/onboarding_status.dart';
+import '../domain/onboarding_journey_state.dart';
 
 class AdvancedStartFreshOverlayHost extends ConsumerWidget {
   const AdvancedStartFreshOverlayHost({super.key});
@@ -21,20 +21,9 @@ class AdvancedStartFreshOverlayHost extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final onboardingStatus = ref.watch(onboardingGateProvider);
-    final onboardingOwnsPresentation = switch (onboardingStatus) {
-      OnboardingStatus.awaitingFda ||
-      OnboardingStatus.awaitingUserAction ||
-      OnboardingStatus.recoveringFailedAttempt ||
-      OnboardingStatus.preparationFailed ||
-      OnboardingStatus.importing ||
-      OnboardingStatus.buildingGraph ||
-      OnboardingStatus.complete ||
-      OnboardingStatus.reimporting ||
-      OnboardingStatus.reimportBuildingGraph ||
-      OnboardingStatus.reimportComplete => true,
-      OnboardingStatus.notNeeded => false,
-    };
+    final onboardingJourney = ref.watch(onboardingJourneyCoordinatorProvider);
+    final onboardingOwnsPresentation =
+        onboardingJourney is! OnboardingNormalApplication;
     if (presentation.phase ==
             AdvancedStartFreshPresentationPhase.verifiedVirgin &&
         onboardingOwnsPresentation) {

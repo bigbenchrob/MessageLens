@@ -1,7 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../domain/onboarding_environment_report.dart';
+import '../domain/onboarding_journey_state.dart';
 import '../domain/onboarding_status.dart';
 import 'onboarding_journey_coordinator_provider.dart';
 
@@ -19,18 +19,6 @@ class OnboardingGate extends _$OnboardingGate {
     return ref.watch(onboardingJourneyCoordinatorProvider).compatibilityStatus;
   }
 
-  static OnboardingStatus resolveBuildStatus({
-    required AsyncValue<OnboardingEnvironmentReport> reportAsync,
-    required OnboardingStatus? workflowOverrideStatus,
-    required OnboardingStatus Function() fallbackBuildStatus,
-  }) {
-    return OnboardingJourneyCoordinator.resolveBuildStatus(
-      reportAsync: reportAsync,
-      workflowOverrideStatus: workflowOverrideStatus,
-      fallbackBuildStatus: fallbackBuildStatus,
-    );
-  }
-
   Future<void> openFdaSettings() async {
     await ref
         .read(onboardingJourneyCoordinatorProvider.notifier)
@@ -43,25 +31,33 @@ class OnboardingGate extends _$OnboardingGate {
         .refreshEnvironment();
   }
 
-  Future<void> startVirginImportAndGraphBuild() async {
+  Future<void> startVirginImportAndGraphBuild({
+    required OnboardingJourneyActionContext actionContext,
+  }) async {
     await ref
         .read(onboardingJourneyCoordinatorProvider.notifier)
-        .startVirginImportAndGraphBuild();
+        .startVirginImportAndGraphBuild(actionContext: actionContext);
   }
 
-  Future<void> retryFailedOperation() async {
+  Future<void> retryFailedOperation({
+    required OnboardingJourneyActionContext actionContext,
+  }) async {
     await ref
         .read(onboardingJourneyCoordinatorProvider.notifier)
-        .retryFailedOperation();
+        .retryFailedOperation(actionContext: actionContext);
   }
 
-  Future<void> startReimport() async {
+  Future<void> startReimport({
+    required OnboardingJourneyActionContext actionContext,
+  }) async {
     await ref
         .read(onboardingJourneyCoordinatorProvider.notifier)
-        .startReimport();
+        .startReimport(actionContext: actionContext);
   }
 
-  void dismiss() {
-    ref.read(onboardingJourneyCoordinatorProvider.notifier).dismiss();
+  void dismiss({required OnboardingJourneyActionContext actionContext}) {
+    ref
+        .read(onboardingJourneyCoordinatorProvider.notifier)
+        .dismiss(actionContext: actionContext);
   }
 }

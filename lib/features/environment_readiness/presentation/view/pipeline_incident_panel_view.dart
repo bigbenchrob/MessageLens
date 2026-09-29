@@ -10,9 +10,9 @@ import '../../../../essentials/logging/feature_level_providers.dart'
     show
         diagnosticReportExporterProvider,
         activeBlockingPipelineIncidentProvider;
-import '../../../../essentials/onboarding/domain/onboarding_status.dart';
+import '../../../../essentials/onboarding/domain/onboarding_journey_state.dart';
 import '../../../../essentials/onboarding/feature_level_providers.dart'
-    show onboardingGateProvider;
+    show onboardingJourneyCoordinatorProvider;
 import '../../application/pipeline_incident_actions_provider.dart';
 
 class PipelineIncidentPanelView extends ConsumerWidget {
@@ -26,7 +26,7 @@ class PipelineIncidentPanelView extends ConsumerWidget {
     final report = ref
         .watch(activeBlockingPipelineIncidentProvider)
         .valueOrNull;
-    final onboardingStatus = ref.watch(onboardingGateProvider);
+    final onboardingJourney = ref.watch(onboardingJourneyCoordinatorProvider);
 
     return ColoredBox(
       color: colors.surfaces.canvas,
@@ -44,7 +44,7 @@ class PipelineIncidentPanelView extends ConsumerWidget {
                 )
               : _PipelineIncidentBody(
                   report: report,
-                  onboardingStatus: onboardingStatus,
+                  onboardingJourney: onboardingJourney,
                   colors: colors,
                   typography: typography,
                 ),
@@ -57,20 +57,23 @@ class PipelineIncidentPanelView extends ConsumerWidget {
 class _PipelineIncidentBody extends ConsumerWidget {
   const _PipelineIncidentBody({
     required this.report,
-    required this.onboardingStatus,
+    required this.onboardingJourney,
     required this.colors,
     required this.typography,
   });
 
   final PipelineIncidentReport report;
-  final OnboardingStatus onboardingStatus;
+  final OnboardingJourneyState onboardingJourney;
   final ThemeColors colors;
   final ThemeTypography typography;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isOnboardingRetryAvailable =
-        onboardingStatus == OnboardingStatus.awaitingUserAction;
+    final isOnboardingRetryAvailable = switch (onboardingJourney) {
+      OnboardingOperationFailed(:final failureAction) =>
+        failureAction.retriesCommand,
+      _ => false,
+    };
 
     return SingleChildScrollView(
       child: Column(
@@ -183,7 +186,9 @@ class _PipelineIncidentBody extends ConsumerWidget {
                   onPressed: () {
                     ref
                         .read(pipelineIncidentActionsProvider.notifier)
-                        .retryImportAndGraphBuild();
+                        .retryImportAndGraphBuild(
+                          onboardingJourney.actionContext,
+                        );
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.buttons.primaryBackground,

@@ -399,15 +399,24 @@ final class _FakeFailureStore implements OnboardingFailureStore {
   Future<OnboardingPipelineFailure?> loadSourceImportFailure() async => null;
 
   @override
-  Future<PersistedOnboardingSourceImportFailure?>
-  loadSourceImportFailureEntry() async => null;
+  Future<PersistedOnboardingSourceImportFailure?> loadSourceImportFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    requirePersistentArchiveStoreAdmission?.call();
+    return null;
+  }
 
   @override
   Future<OnboardingPipelineFailure?> loadGraphProjectionFailure() async => null;
 
   @override
   Future<PersistedOnboardingGraphProjectionFailure?>
-  loadGraphProjectionFailureEntry() async => null;
+  loadGraphProjectionFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    requirePersistentArchiveStoreAdmission?.call();
+    return null;
+  }
 
   @override
   Future<void> saveImportFailure({

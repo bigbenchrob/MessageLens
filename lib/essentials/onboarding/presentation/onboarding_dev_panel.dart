@@ -13,14 +13,17 @@ import '../../conversation_graph/feature_level_providers.dart'
 import '../application/onboarding_dev_panel_actions_provider.dart';
 import '../application/onboarding_environment_report_provider.dart';
 import '../application/onboarding_gate_provider.dart';
+import '../application/onboarding_journey_coordinator_provider.dart';
 import '../application/onboarding_overlay_actions_provider.dart';
 import '../domain/onboarding_environment_report.dart';
 import '../domain/onboarding_status.dart';
 
-/// Developer panel that mirrors the onboarding overlay UI in the center panel.
+/// Diagnostic-only developer panel; it does not select production Journey UI.
 ///
-/// Includes a "Reset & Re-trigger" button that deletes both databases and
-/// re-checks the onboarding gate, simulating a fresh first-run scenario.
+/// Raw report and graph facts are displayed for inspection only. Production
+/// onboarding presentation remains owned by [OnboardingJourneyCoordinator].
+/// The explicit reset action is a development tool rather than a Journey
+/// transition or an alternate state authority.
 class OnboardingDevPanel extends ConsumerWidget {
   const OnboardingDevPanel({super.key});
 
@@ -529,6 +532,11 @@ class _DevWelcomeContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final actionContext = ref.watch(
+      onboardingJourneyCoordinatorProvider.select(
+        (journey) => journey.actionContext,
+      ),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -553,7 +561,7 @@ class _DevWelcomeContent extends ConsumerWidget {
           onPressed: () async {
             await ref
                 .read(onboardingOverlayActionsProvider.notifier)
-                .startVirginImportAndGraphBuild();
+                .startVirginImportAndGraphBuild(actionContext);
           },
           style: FilledButton.styleFrom(
             backgroundColor: colors.buttons.primaryBackground,
@@ -729,6 +737,11 @@ class _DevCompleteContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final graphBuildReport = graphBuildState.lastReport;
+    final actionContext = ref.watch(
+      onboardingJourneyCoordinatorProvider.select(
+        (journey) => journey.actionContext,
+      ),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -757,7 +770,9 @@ class _DevCompleteContent extends ConsumerWidget {
         ],
         FilledButton(
           onPressed: () {
-            ref.read(onboardingOverlayActionsProvider.notifier).dismiss();
+            ref
+                .read(onboardingOverlayActionsProvider.notifier)
+                .dismiss(actionContext);
           },
           style: FilledButton.styleFrom(
             backgroundColor: colors.buttons.primaryBackground,

@@ -4,7 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_environment_report.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_operation_projection.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_journey_state.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_status.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/onboarding_journey_path.dart';
 
@@ -39,20 +41,23 @@ void main() {
           evidence: evidence,
           localHistoryAccepted: false,
         ): OnboardingJourneyPathNode.ready,
-        const OnboardingRecoveringDerivedData(occurrence: 6):
+        OnboardingRecoveringDerivedData(occurrence: 6, operation: _operation()):
             OnboardingJourneyPathNode.import,
-        const OnboardingPreparingImport(occurrence: 7):
+        OnboardingPreparingImport(occurrence: 7, operation: _operation()):
             OnboardingJourneyPathNode.import,
-        const OnboardingBuildingLocalData(occurrence: 8):
+        OnboardingBuildingLocalData(occurrence: 8, operation: _operation()):
             OnboardingJourneyPathNode.import,
-        const OnboardingVerifyingDurableReadiness(occurrence: 9):
-            OnboardingJourneyPathNode.import,
+        OnboardingVerifyingDurableReadiness(
+          occurrence: 9,
+          operation: _operation(),
+        ): OnboardingJourneyPathNode.import,
         const OnboardingOperationFailed(
           occurrence: 10,
           summary: 'Import did not finish.',
           compatibilityStatus: OnboardingStatus.preparationFailed,
+          failureAction: OnboardingJourneyFailureAction.retryInitialImport,
         ): OnboardingJourneyPathNode.import,
-        const OnboardingReadyToStart(occurrence: 11):
+        OnboardingReadyToStart(occurrence: 11, operation: _operation()):
             OnboardingJourneyPathNode.start,
       };
 
@@ -69,7 +74,10 @@ void main() {
       'keeps the human path on Import during the internal verification gate',
       () {
         final projection = projectOnboardingJourneyPath(
-          const OnboardingVerifyingDurableReadiness(occurrence: 1),
+          OnboardingVerifyingDurableReadiness(
+            occurrence: 1,
+            operation: _operation(),
+          ),
         )!;
 
         expect(
@@ -116,10 +124,10 @@ void main() {
       'new occurrences and child progress cannot move the Episode marker',
       () {
         final first = projectOnboardingJourneyPath(
-          const OnboardingBuildingLocalData(occurrence: 40),
+          OnboardingBuildingLocalData(occurrence: 40, operation: _operation()),
         );
         final later = projectOnboardingJourneyPath(
-          const OnboardingBuildingLocalData(occurrence: 41),
+          OnboardingBuildingLocalData(occurrence: 41, operation: _operation()),
         );
 
         expect(first?.currentNode, OnboardingJourneyPathNode.import);
@@ -137,8 +145,9 @@ void main() {
       );
       expect(
         projectOnboardingJourneyPath(
-          const OnboardingReimporting(
+          OnboardingReimporting(
             occurrence: 2,
+            operation: _operation(kind: OnboardingOperationKind.reimport),
             status: OnboardingStatus.reimporting,
           ),
         ),
@@ -146,7 +155,10 @@ void main() {
       );
       expect(
         projectOnboardingJourneyPath(
-          const OnboardingReimportReady(occurrence: 3),
+          OnboardingReimportReady(
+            occurrence: 3,
+            operation: _operation(kind: OnboardingOperationKind.reimport),
+          ),
         ),
         isNull,
       );
@@ -162,11 +174,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MacosApp(
             home: Scaffold(
               body: OnboardingJourneyPath(
-                journey: OnboardingVerifyingDurableReadiness(occurrence: 1),
+                journey: OnboardingVerifyingDurableReadiness(
+                  occurrence: 1,
+                  operation: _operation(),
+                ),
               ),
             ),
           ),
@@ -222,6 +237,22 @@ void main() {
       isTrue,
     );
   });
+}
+
+OnboardingJourneyOperationProjection _operation({
+  OnboardingOperationKind kind = OnboardingOperationKind.initialImport,
+}) {
+  return OnboardingJourneyOperationProjection(
+    operationId: OnboardingOperationId('123e4567-e89b-42d3-a456-426614174000'),
+    kind: kind,
+    phase: OnboardingJourneyOperationPhase.active,
+    stage: OnboardingOperationStage.messageDataBuild,
+    substage: null,
+    progressRevision: 1,
+    progress: null,
+    failure: null,
+    availableActions: const <OnboardingJourneyOperationAction>{},
+  );
 }
 
 OnboardingPrerequisiteEvidence _evidence() {

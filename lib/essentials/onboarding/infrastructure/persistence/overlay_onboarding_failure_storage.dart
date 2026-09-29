@@ -7,9 +7,13 @@ import '../../domain/onboarding_environment_report.dart';
 class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
   OverlayOnboardingFailureStorage({
     required Future<OverlayDatabase> overlayDb,
+    Future<String?> Function(OverlayDatabase overlayDb, String settingKey)?
+    readOverlaySetting,
     void Function(String settingKey, Object error, StackTrace stackTrace)?
     onReadFailure,
   }) : _overlayDb = overlayDb,
+       _readOverlaySetting =
+           readOverlaySetting ?? _readOverlaySettingFromDatabase,
        _onReadFailure = onReadFailure;
 
   static const String _importFailureKey = 'onboarding_last_import_result';
@@ -22,6 +26,8 @@ class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
   static const String _recordedAtKey = 'recorded_at_utc';
 
   final Future<OverlayDatabase> _overlayDb;
+  final Future<String?> Function(OverlayDatabase overlayDb, String settingKey)
+  _readOverlaySetting;
   final void Function(String settingKey, Object error, StackTrace stackTrace)?
   _onReadFailure;
 
@@ -31,11 +37,28 @@ class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
   }
 
   @override
-  Future<PersistedOnboardingSourceImportFailure?>
-  loadSourceImportFailureEntry() async {
+  Future<PersistedOnboardingSourceImportFailure?> loadSourceImportFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    late final OverlayDatabase overlayDb;
+    requirePersistentArchiveStoreAdmission?.call();
     try {
-      final overlayDb = await _overlayDb;
-      final rawValue = await overlayDb.readOverlaySetting(_importFailureKey);
+      overlayDb = await _overlayDb;
+    } catch (error, stackTrace) {
+      _onReadFailure?.call(_importFailureKey, error, stackTrace);
+      return null;
+    }
+
+    late final String? rawValue;
+    requirePersistentArchiveStoreAdmission?.call();
+    try {
+      rawValue = await _readOverlaySetting(overlayDb, _importFailureKey);
+    } catch (error, stackTrace) {
+      _onReadFailure?.call(_importFailureKey, error, stackTrace);
+      return null;
+    }
+
+    try {
       if (rawValue == null || rawValue.isEmpty) {
         return null;
       }
@@ -97,13 +120,23 @@ class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
 
   @override
   Future<PersistedOnboardingGraphProjectionFailure?>
-  loadGraphProjectionFailureEntry() async {
-    return await _loadGraphProjectionFailureFromKey(
-          _graphProjectionFailureKey,
-        ) ??
-        await _loadGraphProjectionFailureFromKey(
-          _historicalGraphProjectionFailureKey,
-        );
+  loadGraphProjectionFailureEntry({
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    final current = await _loadGraphProjectionFailureFromKey(
+      _graphProjectionFailureKey,
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    );
+    if (current != null) {
+      return current;
+    }
+    requirePersistentArchiveStoreAdmission?.call();
+    return _loadGraphProjectionFailureFromKey(
+      _historicalGraphProjectionFailureKey,
+      requirePersistentArchiveStoreAdmission:
+          requirePersistentArchiveStoreAdmission,
+    );
   }
 
   @override
@@ -128,10 +161,29 @@ class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
   }
 
   Future<PersistedOnboardingGraphProjectionFailure?>
-  _loadGraphProjectionFailureFromKey(String settingKey) async {
+  _loadGraphProjectionFailureFromKey(
+    String settingKey, {
+    void Function()? requirePersistentArchiveStoreAdmission,
+  }) async {
+    late final OverlayDatabase overlayDb;
+    requirePersistentArchiveStoreAdmission?.call();
     try {
-      final overlayDb = await _overlayDb;
-      final rawValue = await overlayDb.readOverlaySetting(settingKey);
+      overlayDb = await _overlayDb;
+    } catch (error, stackTrace) {
+      _onReadFailure?.call(settingKey, error, stackTrace);
+      return null;
+    }
+
+    late final String? rawValue;
+    requirePersistentArchiveStoreAdmission?.call();
+    try {
+      rawValue = await _readOverlaySetting(overlayDb, settingKey);
+    } catch (error, stackTrace) {
+      _onReadFailure?.call(settingKey, error, stackTrace);
+      return null;
+    }
+
+    try {
       if (rawValue == null || rawValue.isEmpty) {
         return null;
       }
@@ -162,6 +214,13 @@ class OverlayOnboardingFailureStorage implements OnboardingFailureStore {
       _onReadFailure?.call(settingKey, error, stackTrace);
       return null;
     }
+  }
+
+  static Future<String?> _readOverlaySettingFromDatabase(
+    OverlayDatabase overlayDb,
+    String settingKey,
+  ) {
+    return overlayDb.readOverlaySetting(settingKey);
   }
 
   Future<void> _writeJsonSetting(
