@@ -6,6 +6,8 @@ enum AdvancedStartFreshPresentationPhase {
 }
 
 enum AdvancedStartFreshFailureKind {
+  installationIneligible,
+  installationStateUnavailable,
   mutationUnavailable,
   virginVerificationFailed,
   executionFailed,

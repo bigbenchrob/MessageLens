@@ -157,6 +157,7 @@ void main() {
         expect(payload.role, SidebarCassetteRole.appControl);
         expect(payload.promptLabel, 'Choose setting or action');
         expect(payload.persistentContextActionId, isNull);
+        expect(payload.expandInlineMenuWhenUnselected, isTrue);
         expect(payload.rows, hasLength(11));
       },
     );
@@ -188,6 +189,11 @@ void main() {
         );
 
         expect(resolved, hasLength(2));
+        expect(
+          (resolved.first.payload as SettingsTopMenuCassettePayload)
+              .expandInlineMenuWhenUnselected,
+          isFalse,
+        );
         expect(
           resolved.map((cassette) => cassette.spec).toList(growable: false),
           equals([

@@ -7,7 +7,7 @@ part of 'onboarding_journey_coordinator_provider.dart';
 // **************************************************************************
 
 String _$onboardingJourneyCoordinatorHash() =>
-    r'c233417571f262325da27ec3f73b49150ef1e23f';
+    r'2bb6ab2641d58ed3a149ca4531a56825a4ac5fe3';
 
 /// Sole authority for user-visible Onboarding Journey semantics.
 ///

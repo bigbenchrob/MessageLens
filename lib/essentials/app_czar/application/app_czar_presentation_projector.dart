@@ -1,0 +1,476 @@
+import 'package:meta/meta.dart';
+
+import '../../../core/util/count_label_formatter.dart';
+import '../domain/app_czar_models.dart';
+
+enum AppCzarPresentationSignificance {
+  healthy,
+  attention,
+  informational,
+  unknown,
+  pending,
+}
+
+enum AppCzarPresentationRowId {
+  developmentDataFolder,
+  messagesDatabase,
+  messagesSourceSample,
+  importStore,
+  graphStore,
+  overlay,
+  localDataset,
+  attachmentArchive,
+  newMessages,
+}
+
+@immutable
+final class AppCzarPresentationRow {
+  AppCzarPresentationRow({
+    required this.id,
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.significance,
+    required Iterable<AppCzarFactId> factIds,
+    required Iterable<String> evidence,
+  }) : factIds = List<AppCzarFactId>.unmodifiable(factIds),
+       evidence = List<String>.unmodifiable(evidence);
+
+  final AppCzarPresentationRowId id;
+  final String label;
+  final String value;
+  final String detail;
+  final AppCzarPresentationSignificance significance;
+  final List<AppCzarFactId> factIds;
+  final List<String> evidence;
+}
+
+@immutable
+final class AppCzarAssessmentPresentation {
+  AppCzarAssessmentPresentation({
+    required this.complete,
+    required Iterable<AppCzarPresentationRow> rows,
+    required this.diagnosis,
+    required this.virtualCoordinator,
+  }) : rows = List<AppCzarPresentationRow>.unmodifiable(rows);
+
+  final bool complete;
+  final List<AppCzarPresentationRow> rows;
+  final String diagnosis;
+  final String virtualCoordinator;
+
+  AppCzarPresentationRow row(AppCzarPresentationRowId id) {
+    return rows.singleWhere((row) => row.id == id);
+  }
+}
+
+/// Pure projection from current observations and evaluated facts to UI copy.
+///
+/// Significance is deliberately assigned per proposition. It never feeds back
+/// into fact evaluation or virtual-coordinator selection.
+final class AppCzarPresentationProjector {
+  const AppCzarPresentationProjector();
+
+  AppCzarAssessmentPresentation project(AppCzarAssessmentState state) {
+    final assessment = state.assessment;
+    if (assessment == null) {
+      return AppCzarAssessmentPresentation(
+        complete: false,
+        rows: _pendingRows(),
+        diagnosis: 'Still assessing…',
+        virtualCoordinator: 'Not selected yet',
+      );
+    }
+
+    final observations = state.requireObservationSet();
+    return AppCzarAssessmentPresentation(
+      complete: true,
+      rows: <AppCzarPresentationRow>[
+        _rootRow(observations.root, assessment),
+        _sourceRow(observations.source, assessment),
+        _sourceSampleRow(observations.source, assessment),
+        _databaseRow(
+          id: AppCzarPresentationRowId.importStore,
+          label: 'MessageLens import data',
+          factId: AppCzarFactId.importStoreHealthy,
+          observation: observations.importStore,
+          assessment: assessment,
+        ),
+        _databaseRow(
+          id: AppCzarPresentationRowId.graphStore,
+          label: 'MessageLens conversation data',
+          factId: AppCzarFactId.graphStoreHealthy,
+          observation: observations.graphStore,
+          assessment: assessment,
+        ),
+        _overlayRow(observations.overlay, assessment),
+        _localDatasetRow(observations, assessment),
+        _archiveRow(observations.attachmentArchive, assessment),
+        _newMessagesRow(observations, assessment),
+      ],
+      diagnosis: assessment.diagnosis,
+      virtualCoordinator: assessment.virtualCoordinator.displayName,
+    );
+  }
+
+  List<AppCzarPresentationRow> _pendingRows() {
+    const labels = <AppCzarPresentationRowId, String>{
+      AppCzarPresentationRowId.developmentDataFolder: 'Development data folder',
+      AppCzarPresentationRowId.messagesDatabase: 'Messages database',
+      AppCzarPresentationRowId.messagesSourceSample: 'Messages source sample',
+      AppCzarPresentationRowId.importStore: 'MessageLens import data',
+      AppCzarPresentationRowId.graphStore: 'MessageLens conversation data',
+      AppCzarPresentationRowId.overlay: 'MessageLens overlay',
+      AppCzarPresentationRowId.localDataset: 'Local message dataset',
+      AppCzarPresentationRowId.attachmentArchive: 'Attachment archive',
+      AppCzarPresentationRowId.newMessages: 'New messages',
+    };
+    return <AppCzarPresentationRow>[
+      for (final entry in labels.entries)
+        AppCzarPresentationRow(
+          id: entry.key,
+          label: entry.value,
+          value: 'Checking',
+          detail: 'Checking current evidence…',
+          significance: AppCzarPresentationSignificance.pending,
+          factIds: const <AppCzarFactId>[],
+          evidence: const <String>[],
+        ),
+    ];
+  }
+
+  AppCzarPresentationRow _rootRow(
+    AppCzarRootObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.developmentRootAdmitted);
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.developmentDataFolder,
+      label: 'Development data folder',
+      value: observation.admitted ? 'Admitted' : 'Not admitted',
+      detail: observation.path,
+      significance: observation.admitted
+          ? AppCzarPresentationSignificance.healthy
+          : AppCzarPresentationSignificance.attention,
+      factIds: const <AppCzarFactId>[AppCzarFactId.developmentRootAdmitted],
+      evidence: <String>[
+        'Admission result: ${observation.admitted ? 'admitted' : 'not admitted'}.',
+        'Observed data root: ${observation.path}.',
+        'Fact result: ${fact.truth.label}.',
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _sourceRow(
+    AppCzarSourceObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.messagesSourceReadable);
+    switch (observation.condition) {
+      case AppCzarSourceCondition.readable:
+        final count = observation.messageCount;
+        final highWater = observation.maxRowId;
+        return AppCzarPresentationRow(
+          id: AppCzarPresentationRowId.messagesDatabase,
+          label: 'Messages database',
+          value: count == null
+              ? 'Readable'
+              : 'Readable — ${CountLabelFormatter.messages(count)}',
+          detail: highWater == null
+              ? fact.detail
+              : 'Current high-water: $highWater.',
+          significance: AppCzarPresentationSignificance.healthy,
+          factIds: const <AppCzarFactId>[AppCzarFactId.messagesSourceReadable],
+          evidence: <String>[
+            'The current Messages source was opened read-only.',
+            if (count != null) 'Message count: $count.',
+            if (highWater != null) 'High-water: $highWater.',
+          ],
+        );
+      case AppCzarSourceCondition.accessDenied:
+      case AppCzarSourceCondition.unavailable:
+        return AppCzarPresentationRow(
+          id: AppCzarPresentationRowId.messagesDatabase,
+          label: 'Messages database',
+          value: 'Cannot currently be read',
+          detail: observation.issue ?? fact.detail,
+          significance: AppCzarPresentationSignificance.attention,
+          factIds: const <AppCzarFactId>[AppCzarFactId.messagesSourceReadable],
+          evidence: <String>[
+            'Source-readability result: unavailable.',
+            if (observation.issue != null) observation.issue!,
+          ],
+        );
+      case AppCzarSourceCondition.unknown:
+        return AppCzarPresentationRow(
+          id: AppCzarPresentationRowId.messagesDatabase,
+          label: 'Messages database',
+          value: 'Readability unknown',
+          detail: observation.issue ?? fact.detail,
+          significance: AppCzarPresentationSignificance.unknown,
+          factIds: const <AppCzarFactId>[AppCzarFactId.messagesSourceReadable],
+          evidence: <String>[
+            'Source-readability result: inconclusive.',
+            if (observation.issue != null) observation.issue!,
+          ],
+        );
+    }
+  }
+
+  AppCzarPresentationRow _sourceSampleRow(
+    AppCzarSourceObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.sourceSampleStable);
+    final stable = observation.sampleStable;
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.messagesSourceSample,
+      label: 'Messages source sample',
+      value: stable == null
+          ? 'Stability unknown'
+          : stable
+          ? 'Stable'
+          : 'Changed during assessment',
+      detail: fact.detail,
+      significance: stable == null
+          ? AppCzarPresentationSignificance.unknown
+          : stable
+          ? AppCzarPresentationSignificance.healthy
+          : AppCzarPresentationSignificance.informational,
+      factIds: const <AppCzarFactId>[AppCzarFactId.sourceSampleStable],
+      evidence: <String>[
+        if (stable == null)
+          'No completed bounded sample comparison is present.',
+        if (stable == true) 'Two bounded current samples agreed.',
+        if (stable == false) 'Two bounded current samples did not agree.',
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _databaseRow({
+    required AppCzarPresentationRowId id,
+    required String label,
+    required AppCzarFactId factId,
+    required AppCzarDatabaseObservation observation,
+    required AppCzarAssessment assessment,
+  }) {
+    final fact = assessment.fact(factId);
+    final count = observation.messageCount;
+    return AppCzarPresentationRow(
+      id: id,
+      label: label,
+      value: switch (observation.condition) {
+        AppCzarDatabaseCondition.healthy =>
+          count == null
+              ? 'Healthy'
+              : 'Healthy — ${CountLabelFormatter.messages(count)}',
+        AppCzarDatabaseCondition.absent => 'Not present',
+        AppCzarDatabaseCondition.unhealthy => 'Needs attention',
+        AppCzarDatabaseCondition.unknown => 'Status unknown',
+      },
+      detail: fact.detail,
+      significance: switch (observation.condition) {
+        AppCzarDatabaseCondition.healthy =>
+          AppCzarPresentationSignificance.healthy,
+        AppCzarDatabaseCondition.absent =>
+          AppCzarPresentationSignificance.informational,
+        AppCzarDatabaseCondition.unhealthy =>
+          AppCzarPresentationSignificance.attention,
+        AppCzarDatabaseCondition.unknown =>
+          AppCzarPresentationSignificance.unknown,
+      },
+      factIds: <AppCzarFactId>[factId],
+      evidence: <String>[
+        'Database condition: ${observation.condition.name}.',
+        if (observation.schemaVersion != null)
+          'Schema version: ${observation.schemaVersion}.',
+        if (count != null) 'Message count: $count.',
+        if (observation.issue != null) observation.issue!,
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _overlayRow(
+    AppCzarDatabaseObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.overlayHealthy);
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.overlay,
+      label: 'MessageLens overlay',
+      value: switch (observation.condition) {
+        AppCzarDatabaseCondition.healthy => 'Healthy',
+        AppCzarDatabaseCondition.absent => 'Not created yet',
+        AppCzarDatabaseCondition.unhealthy => 'Needs attention',
+        AppCzarDatabaseCondition.unknown => 'Status unknown',
+      },
+      detail: fact.detail,
+      significance: switch (observation.condition) {
+        AppCzarDatabaseCondition.healthy || AppCzarDatabaseCondition.absent =>
+          AppCzarPresentationSignificance.healthy,
+        AppCzarDatabaseCondition.unhealthy =>
+          AppCzarPresentationSignificance.attention,
+        AppCzarDatabaseCondition.unknown =>
+          AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[AppCzarFactId.overlayHealthy],
+      evidence: <String>[
+        'Overlay condition: ${observation.condition.name}.',
+        if (observation.schemaVersion != null)
+          'Schema version: ${observation.schemaVersion}.',
+        if (observation.issue != null) observation.issue!,
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _localDatasetRow(
+    AppCzarObservationSet observations,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.localDatasetComplete);
+    final count = observations.graphStore.messageCount;
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.localDataset,
+      label: 'Local message dataset',
+      value: switch (fact.truth) {
+        AppCzarTruth.trueValue =>
+          count == null
+              ? 'Complete'
+              : 'Complete — ${CountLabelFormatter.messages(count)}',
+        AppCzarTruth.falseValue => 'Incomplete',
+        AppCzarTruth.unknown => 'Completeness unknown',
+      },
+      detail: fact.detail,
+      significance: switch (fact.truth) {
+        AppCzarTruth.trueValue => AppCzarPresentationSignificance.healthy,
+        AppCzarTruth.falseValue => AppCzarPresentationSignificance.attention,
+        AppCzarTruth.unknown => AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[AppCzarFactId.localDatasetComplete],
+      evidence: <String>[
+        if (observations.importStore.messageCount != null)
+          'Import message count: ${observations.importStore.messageCount}.',
+        if (observations.graphStore.messageCount != null)
+          'Graph message count: ${observations.graphStore.messageCount}.',
+        if (observations.graphStore.chatCount != null)
+          'Graph chat count: ${observations.graphStore.chatCount}.',
+        if (observations.graphStore.chatMessageEdgeCount != null)
+          'Graph chat-message edge count: ${observations.graphStore.chatMessageEdgeCount}.',
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _archiveRow(
+    AppCzarArchiveObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.attachmentArchiveAvailable);
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.attachmentArchive,
+      label: 'Attachment archive',
+      value: switch (observation.condition) {
+        AppCzarArchiveCondition.available => 'Available — ${observation.label}',
+        AppCzarArchiveCondition.readOnly =>
+          'Available read-only — ${observation.label}',
+        AppCzarArchiveCondition.notCreated => 'Not created yet',
+        AppCzarArchiveCondition.unavailable => 'Unavailable',
+        AppCzarArchiveCondition.unknown => 'Status unknown',
+      },
+      detail: fact.detail,
+      significance: switch (observation.condition) {
+        AppCzarArchiveCondition.available ||
+        AppCzarArchiveCondition.notCreated =>
+          AppCzarPresentationSignificance.healthy,
+        AppCzarArchiveCondition.readOnly =>
+          AppCzarPresentationSignificance.informational,
+        AppCzarArchiveCondition.unavailable =>
+          AppCzarPresentationSignificance.attention,
+        AppCzarArchiveCondition.unknown =>
+          AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[AppCzarFactId.attachmentArchiveAvailable],
+      evidence: <String>[
+        'Archive condition: ${observation.condition.name}.',
+        'Archive label: ${observation.label}.',
+        if (observation.resolvedPath != null)
+          'Resolved archive path: ${observation.resolvedPath}.',
+        if (observation.issue != null) observation.issue!,
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _newMessagesRow(
+    AppCzarObservationSet observations,
+    AppCzarAssessment assessment,
+  ) {
+    final deltaKnown = assessment.fact(AppCzarFactId.sourceLocalDeltaKnown);
+    final sourceAhead = assessment.fact(AppCzarFactId.sourceAheadOfLocal);
+    final sourceCount = observations.source.messageCount;
+    final localCount = observations.importStore.liveMessageCount;
+    final sourceHighWater = observations.source.maxRowId;
+    final localHighWater = observations.importStore.liveMaxSourceRowId;
+
+    if (deltaKnown.truth != AppCzarTruth.trueValue ||
+        sourceAhead.truth == AppCzarTruth.unknown) {
+      return AppCzarPresentationRow(
+        id: AppCzarPresentationRowId.newMessages,
+        label: 'New messages',
+        value: 'Unknown',
+        detail: sourceAhead.detail,
+        significance: AppCzarPresentationSignificance.unknown,
+        factIds: const <AppCzarFactId>[
+          AppCzarFactId.sourceLocalDeltaKnown,
+          AppCzarFactId.sourceAheadOfLocal,
+        ],
+        evidence: <String>[
+          if (sourceCount != null) 'Source message count: $sourceCount.',
+          if (localCount != null) 'Local live-import count: $localCount.',
+          if (sourceHighWater != null) 'Source high-water: $sourceHighWater.',
+          if (localHighWater != null) 'Local high-water: $localHighWater.',
+          'Delta result: ${sourceAhead.detail}',
+        ],
+      );
+    }
+
+    if (sourceAhead.truth == AppCzarTruth.falseValue) {
+      return AppCzarPresentationRow(
+        id: AppCzarPresentationRowId.newMessages,
+        label: 'New messages',
+        value: '0',
+        detail: 'Source and MessageLens are current.',
+        significance: AppCzarPresentationSignificance.healthy,
+        factIds: const <AppCzarFactId>[
+          AppCzarFactId.sourceLocalDeltaKnown,
+          AppCzarFactId.sourceAheadOfLocal,
+        ],
+        evidence: <String>[
+          'Source message count: $sourceCount.',
+          'Local live-import count: $localCount.',
+          'Source high-water: $sourceHighWater.',
+          'Local high-water: $localHighWater.',
+        ],
+      );
+    }
+
+    final countDelta = sourceCount! - localCount!;
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.newMessages,
+      label: 'New messages',
+      value: countDelta > 0
+          ? CountLabelFormatter.formatCount(countDelta)
+          : 'Detected',
+      detail: 'Newer source data is available for MessageLens to update.',
+      significance: AppCzarPresentationSignificance.informational,
+      factIds: const <AppCzarFactId>[
+        AppCzarFactId.sourceLocalDeltaKnown,
+        AppCzarFactId.sourceAheadOfLocal,
+      ],
+      evidence: <String>[
+        'Source message count: $sourceCount.',
+        'Local live-import count: $localCount.',
+        'Source high-water: $sourceHighWater.',
+        'Local high-water: $localHighWater.',
+      ],
+    );
+  }
+}

@@ -36,6 +36,7 @@ import '../../../features/sidebar_utilities/feature_level_providers.dart'
 import '../../navigation/domain/sidebar_mode.dart';
 import '../domain/entities/cassette_spec.dart';
 import '../presentation/view_model/sidebar_cassette_card_view_model.dart';
+import 'ephemeral_cassette_projection_provider.dart';
 import 'renderable_sidebar_cassette_specs_provider.dart';
 import 'sidebar_cassette_sectioning.dart';
 import 'sidebar_flow_state_provider.dart';
@@ -80,6 +81,7 @@ Future<ResolvedSidebarCassette> resolvedSidebarCassette(
   final payload = await _buildPayloadForSpec(
     ref,
     spec,
+    mode: mode,
     cassetteIndex: cassetteIndex,
   );
 
@@ -154,6 +156,7 @@ SidebarCassetteResolutionState _buildSidebarCassetteResolutionState(
 Future<SidebarCassettePayload> _buildPayloadForSpec(
   Ref ref,
   CassetteSpec spec, {
+  required SidebarMode mode,
   required int cassetteIndex,
 }) {
   return spec.when(
@@ -168,6 +171,16 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         },
         orElse: () => null,
       );
+      final hasActiveTransientSettingsProjection = sidebarSpec.maybeMap(
+        settingsMenu: (_) {
+          return ref.watch(
+            ephemeralCassetteProjectionProvider(
+              mode,
+            ).select((projection) => projection.cassettes.isNotEmpty),
+          );
+        },
+        orElse: () => false,
+      );
 
       final coordinator = ref.read(
         sidebar_utilities.sidebarUtilitiesCassetteCoordinatorProvider.notifier,
@@ -176,6 +189,8 @@ Future<SidebarCassettePayload> _buildPayloadForSpec(
         sidebarSpec,
         cassetteIndex: cassetteIndex,
         persistentSettingsContextActionId: persistentSettingsContextActionId,
+        hasActiveTransientSettingsProjection:
+            hasActiveTransientSettingsProjection,
       );
     },
     contacts: (contactsSpec) async {

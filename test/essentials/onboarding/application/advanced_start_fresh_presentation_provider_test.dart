@@ -32,4 +32,35 @@ void main() {
     expect(state.occurrence, second);
     expect(state.phase, AdvancedStartFreshPresentationPhase.preparing);
   });
+
+  test(
+    'dismissal completion retains success ownership through handoff',
+    () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final controller = container.read(
+        advancedStartFreshPresentationControllerProvider.notifier,
+      );
+      final occurrence = controller.beginPreparing();
+      controller.showVerifiedVirgin(expectedOccurrence: occurrence);
+      var completed = false;
+      final dismissal = controller
+          .waitUntilDismissed(expectedOccurrence: occurrence)
+          .then((_) {
+            completed = true;
+          });
+
+      await Future<void>.value();
+      expect(completed, isFalse);
+
+      controller.dismiss(expectedOccurrence: occurrence);
+      await dismissal;
+
+      expect(completed, isTrue);
+      expect(
+        container.read(advancedStartFreshPresentationControllerProvider).phase,
+        AdvancedStartFreshPresentationPhase.idle,
+      );
+    },
+  );
 }

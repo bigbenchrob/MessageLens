@@ -56,4 +56,47 @@ void main() {
     final barriers = tester.widgetList<ModalBarrier>(find.byType(ModalBarrier));
     expect(barriers.any((barrier) => barrier.color == barrierColor), isTrue);
   });
+
+  testWidgets('Start Fresh acknowledgement admits only one submission', (
+    tester,
+  ) async {
+    var completionCount = 0;
+    bool? accepted;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return TextButton(
+                onPressed: () async {
+                  accepted = await showStartFreshAuthorizationDialog(
+                    context,
+                    barrierColor: const Color(0xFFE7EAEC),
+                  );
+                  completionCount += 1;
+                },
+                child: const Text('Open'),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    final submit = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Start Fresh'),
+    );
+
+    submit.onPressed!.call();
+    submit.onPressed!.call();
+    await tester.pump();
+
+    expect(find.text('Starting…'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(accepted, isTrue);
+    expect(completionCount, 1);
+    expect(tester.takeException(), isNull);
+  });
 }

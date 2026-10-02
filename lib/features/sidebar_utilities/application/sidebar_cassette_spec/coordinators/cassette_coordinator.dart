@@ -43,6 +43,7 @@ class SidebarUtilitiesCassetteCoordinator
     SidebarUtilityCassetteSpec spec, {
     required int cassetteIndex,
     SettingsMenuActionId? persistentSettingsContextActionId,
+    bool hasActiveTransientSettingsProjection = false,
   }) async {
     return spec.map(
       topChatMenu: (menu) => ref
@@ -57,6 +58,7 @@ class SidebarUtilitiesCassetteCoordinator
           .resolve(
             cassetteIndex: cassetteIndex,
             persistentContextActionId: persistentSettingsContextActionId,
+            hasActiveTransientProjection: hasActiveTransientSettingsProjection,
           ),
     );
   }

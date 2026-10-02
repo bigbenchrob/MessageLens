@@ -8,7 +8,42 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- The exactly qualified development installation now opens into a visible
+  AppCzar assessment harness that reports current environment evidence as
+  literal, value-oriented status rows, then displays one diagnosis and one
+  virtual coordinator without executing it.
+- AppCzar can now execute its development-only **Data Update** disposition by
+  reusing the supported incremental message, graph, and attachment workers,
+  showing their live bounded progress, then restarting for a fresh assessment.
+
+### Changed
+
+- AppCzar now reports only directly observed Messages-source readability. It
+  no longer equates source readability with the state of the macOS Full Disk
+  Access setting.
+- AppCzar presentation now assigns health, attention, informational, unknown,
+  and pending significance per proposition instead of coloring raw Boolean
+  truth. A healthy current source therefore reports **New messages: 0**.
+- A collapsed **Assessment details** disclosure shows the bounded, read-only
+  evidence supporting each visible development-only status row.
+- The existing automatic live-message updater and AppCzar Data Update now
+  share one prerequisite-aware worker, preserving the same import-ledger,
+  graph-projection, attachment-archive, and message-version behavior.
+
+### Safety
+
+- AppCzar uses bounded read-only source, database, and attachment-location
+  evidence. It neither creates or migrates stores nor starts onboarding,
+  import, repair, normal navigation, monitoring, or archive mutation.
+- Presentation significance remains a pure downstream projection and cannot
+  influence AppCzar facts, diagnosis, or virtual-coordinator selection.
+- Production and all identities outside the existing exact development gate
+  retain the previous startup path unchanged.
+- Only AppCzar's Data Update mapping is executable. Its progress is memory-only,
+  it cannot declare the app ready or Operating, and successful bounded work
+  releases mutation authority before a real macOS process restart.
 
 ## [0.2.128] — 2026-09-23
 

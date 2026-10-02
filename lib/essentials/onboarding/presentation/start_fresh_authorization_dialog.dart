@@ -19,11 +19,20 @@ Future<bool> showStartFreshAuthorizationDialog(
   return result ?? false;
 }
 
-class StartFreshAuthorizationDialog extends ConsumerWidget {
+class StartFreshAuthorizationDialog extends ConsumerStatefulWidget {
   const StartFreshAuthorizationDialog({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StartFreshAuthorizationDialog> createState() =>
+      _StartFreshAuthorizationDialogState();
+}
+
+class _StartFreshAuthorizationDialogState
+    extends ConsumerState<StartFreshAuthorizationDialog> {
+  bool _submissionClaimed = false;
+
+  @override
+  Widget build(BuildContext context) {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     final typography = ref.watch(themeTypographyProvider);
@@ -42,18 +51,31 @@ class StartFreshAuthorizationDialog extends ConsumerWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(false);
-          },
+          onPressed: _submissionClaimed ? null : _cancel,
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () {
-            Navigator.of(context).pop(true);
-          },
-          child: const Text('Start Fresh'),
+          onPressed: _submissionClaimed ? null : _accept,
+          child: Text(_submissionClaimed ? 'Starting…' : 'Start Fresh'),
         ),
       ],
     );
+  }
+
+  void _cancel() {
+    if (_submissionClaimed) {
+      return;
+    }
+    Navigator.of(context).pop(false);
+  }
+
+  void _accept() {
+    if (_submissionClaimed) {
+      return;
+    }
+    setState(() {
+      _submissionClaimed = true;
+    });
+    Navigator.of(context).pop(true);
   }
 }

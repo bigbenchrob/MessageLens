@@ -71,7 +71,11 @@ class AdvancedStartFreshOverlay extends ConsumerWidget {
       AdvancedStartFreshPresentationPhase.verifiedVirgin =>
         'Starting Onboarding',
       AdvancedStartFreshPresentationPhase.failed =>
-        "MessageLens couldn't start fresh",
+        failure?.kind == AdvancedStartFreshFailureKind.installationIneligible ||
+                failure?.kind ==
+                    AdvancedStartFreshFailureKind.installationStateUnavailable
+            ? 'Reset Message Data is unavailable'
+            : "MessageLens couldn't start fresh",
       AdvancedStartFreshPresentationPhase.idle => '',
     };
     final body = switch (presentation.phase) {

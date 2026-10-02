@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:remember_this_text/essentials/navigation/application/app_navigator_key.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_action_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_current_state_reader_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_presentation_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/message_lens_installation_state_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
@@ -24,7 +25,10 @@ void main() {
     'Settings confirmation visibly owns presentation before reset begins',
     (tester) async {
       final trace = <String>[];
-      var installationStateReadCount = 0;
+      var startupStateReadCount = 0;
+      final currentStateReader = _MutableCurrentStateReader(
+        state: _resumableState,
+      );
       final service = _RecordingStartFreshService(trace: trace);
       late ProviderContainer container;
       await tester.pumpWidget(
@@ -32,8 +36,10 @@ void main() {
           overrides: _overrides(
             service: service,
             trace: trace,
-            onInstallationStateRead: () {
-              installationStateReadCount += 1;
+            startupValidation: _resumableValidation,
+            currentStateReader: currentStateReader,
+            onStartupStateRead: () {
+              startupStateReadCount += 1;
             },
           ),
           child: Builder(
@@ -56,8 +62,10 @@ void main() {
       );
 
       await container.read(messageLensInstallationStateProvider.future);
-      expect(installationStateReadCount, 1);
+      expect(startupStateReadCount, 1);
+      expect(currentStateReader.readCount, 0);
       expect(container.exists(advancedStartFreshActionProvider), isFalse);
+      currentStateReader.state = _completedState;
       await _openAndAcceptAuthorization(tester);
 
       expect(find.text('Start with a clean MessageLens setup?'), findsNothing);
@@ -78,7 +86,8 @@ void main() {
       expect(service.entryPoints, [
         StartFreshEntryPoint.completedInstallationAdvancedReset,
       ]);
-      expect(installationStateReadCount, 1);
+      expect(startupStateReadCount, 1);
+      expect(currentStateReader.readCount, 1);
       expect(trace, [
         'preparing-host-built',
         'service-resolved',
@@ -159,20 +168,107 @@ void main() {
     expect(find.text('Try Again'), findsOneWidget);
     expect(find.text('Return to Settings'), findsOneWidget);
   });
+
+  testWidgets(
+    'startup resumable and current resumable presents ineligibility without mutation',
+    (tester) async {
+      final currentStateReader = _MutableCurrentStateReader(
+        state: _resumableState,
+      );
+      final service = _RecordingStartFreshService(trace: <String>[]);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _overrides(
+            service: service,
+            startupValidation: _resumableValidation,
+            currentStateReader: currentStateReader,
+          ),
+          child: MaterialApp(
+            navigatorKey: appNavigatorKey,
+            home: const Scaffold(
+              body: Stack(
+                children: [
+                  _ResetSettingsAction(),
+                  AdvancedStartFreshOverlayHost(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Reset message data…'));
+      await tester.pump();
+
+      expect(find.text('Start with a clean MessageLens setup?'), findsNothing);
+      expect(find.text('Reset Message Data is unavailable'), findsOneWidget);
+      expect(find.textContaining('resumable setup work'), findsOneWidget);
+      expect(find.text('Try Again'), findsNothing);
+      expect(service.entryPoints, isEmpty);
+      expect(currentStateReader.readCount, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'current abandoned state wins over completed startup classification',
+    (tester) async {
+      final currentStateReader = _MutableCurrentStateReader(
+        state: _abandonedState,
+      );
+      final service = _RecordingStartFreshService(trace: <String>[]);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _overrides(
+            service: service,
+            currentStateReader: currentStateReader,
+          ),
+          child: MaterialApp(
+            navigatorKey: appNavigatorKey,
+            home: const Scaffold(
+              body: Stack(
+                children: [
+                  _ResetSettingsAction(),
+                  AdvancedStartFreshOverlayHost(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Reset message data…'));
+      await tester.pump();
+
+      expect(find.text('Start with a clean MessageLens setup?'), findsNothing);
+      expect(find.text('Reset Message Data is unavailable'), findsOneWidget);
+      expect(find.textContaining('incomplete setup artifacts'), findsOneWidget);
+      expect(service.entryPoints, isEmpty);
+      expect(currentStateReader.readCount, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 List<Override> _overrides({
   required _RecordingStartFreshService service,
   List<String>? trace,
-  VoidCallback? onInstallationStateRead,
+  StartupInstallationValidationState startupValidation = _completedValidation,
+  AdvancedStartFreshCurrentStateReader? currentStateReader,
+  VoidCallback? onStartupStateRead,
 }) {
   return [
     messageLensInstallationStateProvider.overrideWith((ref) {
-      onInstallationStateRead?.call();
+      onStartupStateRead?.call();
       return Stream<StartupInstallationValidationState>.value(
-        _completedValidation,
+        startupValidation,
       );
     }),
+    advancedStartFreshCurrentStateReaderProvider.overrideWith(
+      (ref) =>
+          currentStateReader ??
+          _MutableCurrentStateReader(state: _completedState),
+    ),
     startFreshServiceProvider.overrideWith((ref) async {
       trace?.add('service-resolved');
       return service;
@@ -183,7 +279,8 @@ List<Override> _overrides({
 
 Future<void> _openAndAcceptAuthorization(WidgetTester tester) async {
   await tester.tap(find.text('Reset message data…'));
-  await tester.pumpAndSettle();
+  await tester.pump();
+  await tester.pump();
   expect(find.text('Start with a clean MessageLens setup?'), findsOneWidget);
 
   // Keep the modal alive across frames to exercise the provider lifecycle.
@@ -192,7 +289,8 @@ Future<void> _openAndAcceptAuthorization(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(FilledButton, 'Start Fresh'));
   await tester.pump();
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump();
+  await tester.pump(kThemeAnimationDuration);
 
   expect(find.text('Preparing a fresh start'), findsOneWidget);
 }
@@ -202,8 +300,23 @@ const _completedState = MessageLensInstallationState(
   reason: 'healthy completed test installation',
 );
 
+const _resumableState = MessageLensInstallationState(
+  kind: MessageLensInstallationStateKind.resumable,
+  reason: 'retryable test operation',
+);
+
+const _abandonedState = MessageLensInstallationState(
+  kind: MessageLensInstallationStateKind.abandoned,
+  reason: 'abandoned test operation',
+);
+
 const _completedValidation = StartupAdmissionGranted(
   installationState: _completedState,
+  basis: StartupAdmissionBasis.boundedInspection,
+);
+
+const _resumableValidation = StartupAdmissionGranted(
+  installationState: _resumableState,
   basis: StartupAdmissionBasis.boundedInspection,
 );
 
@@ -229,6 +342,20 @@ final class _RecordingStartFreshService implements StartFreshService {
     entryPoints.add(entryPoint);
     trace.add('service-started');
     return completion.future;
+  }
+}
+
+final class _MutableCurrentStateReader
+    implements AdvancedStartFreshCurrentStateReader {
+  _MutableCurrentStateReader({required this.state});
+
+  MessageLensInstallationState state;
+  int readCount = 0;
+
+  @override
+  Future<MessageLensInstallationState> readCurrentState() async {
+    readCount += 1;
+    return state;
   }
 }
 

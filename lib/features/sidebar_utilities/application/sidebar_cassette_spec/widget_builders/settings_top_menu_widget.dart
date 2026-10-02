@@ -95,6 +95,7 @@ class SettingsTopMenuWidget extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOpen = useState(
       payload.persistentContextActionId == null &&
+          payload.expandInlineMenuWhenUnselected &&
           panelPresentation == SettingsTopMenuPanelPresentation.inline,
     );
     final overlayController = useMemoized(OverlayPortalController.new);
@@ -107,14 +108,17 @@ class SettingsTopMenuWidget extends HookConsumerWidget {
         payload.persistentContextActionId?.label ?? payload.promptLabel;
     final hasSelection = payload.persistentContextActionId != null;
 
-    useEffect(() {
-      if (!hasSelection &&
-          panelPresentation == SettingsTopMenuPanelPresentation.inline) {
-        isOpen.value = true;
-      }
+    useEffect(
+      () {
+        if (!hasSelection &&
+            panelPresentation == SettingsTopMenuPanelPresentation.inline) {
+          isOpen.value = payload.expandInlineMenuWhenUnselected;
+        }
 
-      return null;
-    }, [hasSelection, panelPresentation]);
+        return null;
+      },
+      [hasSelection, panelPresentation, payload.expandInlineMenuWhenUnselected],
+    );
 
     void setOpen({required bool value}) {
       if (isOpen.value == value) {

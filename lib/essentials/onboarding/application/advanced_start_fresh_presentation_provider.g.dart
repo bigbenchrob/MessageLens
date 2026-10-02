@@ -7,7 +7,7 @@ part of 'advanced_start_fresh_presentation_provider.dart';
 // **************************************************************************
 
 String _$advancedStartFreshPresentationControllerHash() =>
-    r'c0887e9e0ade2d14b94f22d4a52ab4ef467fe0f3';
+    r'29604bbdab799937d42da9896c012b297d3963e2';
 
 /// See also [AdvancedStartFreshPresentationController].
 @ProviderFor(AdvancedStartFreshPresentationController)

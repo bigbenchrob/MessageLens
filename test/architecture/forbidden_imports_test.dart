@@ -135,6 +135,7 @@ const Set<String> _databaseHealthIdentityLiteralAllowedFiles = {
 };
 
 const Set<String> _appDatabaseFileHelperAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart',
   'lib/essentials/db/app_database_files.dart',
   'lib/essentials/db/feature_level_providers/app_database_labels.dart',
   'lib/essentials/db/feature_level_providers/database_health_audit_service_provider.dart',
@@ -151,6 +152,7 @@ const Set<String> _appDatabaseFileHelperAllowedFiles = {
   'lib/essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
+  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
   'lib/features/environment_summary/infrastructure/repositories/sqlite_environment_evidence_repository.dart',
   'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
 };
@@ -164,6 +166,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/logging/application/app_logger.dart',
   'lib/essentials/logging/application/diagnostic_report_provider.dart',
   'lib/essentials/logging/application/pipeline_incident_storage_provider.dart',
+  'lib/essentials/onboarding/application/advanced_start_fresh_current_state_reader_provider.dart',
   'lib/essentials/onboarding/application/derived_message_data_file_store_provider.dart',
   'lib/essentials/onboarding/application/message_lens_installation_state_provider.dart',
   'lib/essentials/onboarding/application/onboarding_durable_completion_verifier_provider.dart',
@@ -341,6 +344,7 @@ const Set<String> _providerInvalidationAllowedFiles = {
 };
 
 const Set<String> _directSqliteImportAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart',
   'lib/essentials/archive_environment/infrastructure/file_system_archive_checkpoint_service.dart',
   'lib/essentials/archive_environment/infrastructure/file_system_production_archive_adoption_inventory_service.dart',
   'lib/essentials/conversation_graph/infrastructure/repositories/conversation_graph_status_repository.dart',
@@ -354,6 +358,7 @@ const Set<String> _directSqliteImportAllowedFiles = {
   'lib/essentials/source_scoped_import/infrastructure/import_database_provider.dart',
   'lib/essentials/source_scoped_import/infrastructure/source_database/sqflite_source_database.dart',
   'lib/features/address_book_folders/infrastructure/data_sources/local/address_book_db_helper_multi_instance.dart',
+  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
@@ -393,6 +398,7 @@ const Set<String> _driftCustomSqlAllowedFiles = {
 const Set<String> _sqfliteFfiBootstrapAllowedFiles = {'lib/main.dart'};
 
 const Set<String> _processRunAllowedFiles = {
+  'lib/essentials/app_czar_data_update/infrastructure/macos_development_process_restarter.dart',
   'lib/essentials/logging/infrastructure/log_export_service.dart',
   'lib/essentials/onboarding/infrastructure/system/macos_full_disk_access.dart',
   'lib/essentials/source_scoped_import/infrastructure/extraction/rust_message_extractor.dart',
@@ -440,6 +446,7 @@ const Set<String> _pathProviderImportAllowedFiles = {
 };
 
 const Set<String> _platformEnvironmentAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart',
   'lib/essentials/archive_environment/infrastructure/development_archive_root_override_resolver.dart',
   'lib/essentials/conversation_graph/infrastructure/repositories/chat_summary_repository.dart',
   'lib/essentials/conversation_graph/infrastructure/repositories/graph_health_repository.dart',
@@ -458,6 +465,7 @@ const Set<String> _attachmentApplicationDartIoAllowedFiles = {
 };
 
 const Set<String> _platformRuntimeAllowedFiles = {
+  'lib/essentials/app_czar_data_update/infrastructure/macos_development_process_restarter.dart',
   'lib/essentials/conversation_graph/infrastructure/system/local_chat_db_monitor_runtime_environment.dart',
   'lib/essentials/db/infrastructure/repositories/local_database_health_runtime_environment.dart',
   'lib/essentials/logging/infrastructure/log_export_service.dart',

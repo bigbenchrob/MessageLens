@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversation_graph_build_report.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/messages/message_projection_repository.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart';
+import 'package:remember_this_text/essentials/conversation_graph/application/monitor/live_graph_update_worker.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_importer.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart';
 

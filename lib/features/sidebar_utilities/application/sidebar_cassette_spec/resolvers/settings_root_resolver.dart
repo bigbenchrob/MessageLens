@@ -15,10 +15,12 @@ class SettingsRootResolver extends _$SettingsRootResolver {
   Future<SettingsTopMenuCassettePayload> resolve({
     required int cassetteIndex,
     required SettingsMenuActionId? persistentContextActionId,
+    required bool hasActiveTransientProjection,
   }) async {
     return buildSettingsTopMenuCassettePayload(
       cassetteIndex: cassetteIndex,
       persistentContextActionId: persistentContextActionId,
+      expandInlineMenuWhenUnselected: !hasActiveTransientProjection,
     );
   }
 }

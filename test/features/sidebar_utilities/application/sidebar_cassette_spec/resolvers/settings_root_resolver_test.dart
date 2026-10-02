@@ -25,7 +25,11 @@ void main() {
       () async {
         final payload = await container
             .read(settingsRootResolverProvider.notifier)
-            .resolve(cassetteIndex: 0, persistentContextActionId: null);
+            .resolve(
+              cassetteIndex: 0,
+              persistentContextActionId: null,
+              hasActiveTransientProjection: false,
+            );
 
         expect(payload, isA<SettingsTopMenuCassettePayload>());
         expect(
@@ -35,6 +39,7 @@ void main() {
         expect(payload.role, SidebarCassetteRole.appControl);
         expect(payload.promptLabel, 'Choose setting or action');
         expect(payload.persistentContextActionId, isNull);
+        expect(payload.expandInlineMenuWhenUnselected, isTrue);
         expect(payload.rows, hasLength(11));
         expect(payload.rows.first, isA<SettingsTopMenuGroupHeaderRow>());
         expect(
@@ -103,6 +108,22 @@ void main() {
             SettingsMenuActionId.textSize,
           ),
         );
+      },
+    );
+
+    test(
+      'keeps the menu collapsed for an active transient projection',
+      () async {
+        final payload = await container
+            .read(settingsRootResolverProvider.notifier)
+            .resolve(
+              cassetteIndex: 0,
+              persistentContextActionId: null,
+              hasActiveTransientProjection: true,
+            );
+
+        expect(payload.persistentContextActionId, isNull);
+        expect(payload.expandInlineMenuWhenUnselected, isFalse);
       },
     );
   });

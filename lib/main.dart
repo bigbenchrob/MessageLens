@@ -16,6 +16,10 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'config/theme/colors/theme_colors.dart';
 import 'config/theme/theme_typography.dart';
+import 'essentials/app_czar/application/app_czar_assessment_provider.dart'
+    show appCzarObservationReaderProvider;
+import 'essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
+import 'essentials/app_czar/presentation/app_czar_startup_harness.dart';
 import 'essentials/app_mode/feature_level_providers.dart'
     show platformBrightnessProvider, switchableDarkModeProvider;
 import 'essentials/archive_environment/application.dart'
@@ -51,8 +55,12 @@ import 'essentials/onboarding/presentation/start_fresh_authorization_dialog.dart
 import 'essentials/services/startup_flags_service.dart';
 import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
+import 'features/attachments/application/attachment_archive_adoption_enablement_provider.dart'
+    show attachmentArchiveAdoptionExecutionEnabledProvider;
 import 'features/attachments/feature_level_providers.dart'
     show attachmentArchiveAdoptionRecoveryProvider;
+import 'features/attachments/infrastructure/repositories/method_channel_attachment_archive_location_native_adapter.dart';
+import 'features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart';
 import 'features/presence_iteration_simple/presentation/linear_presence_experiment_host.dart';
 import 'frb_generated.dart';
 
@@ -280,9 +288,27 @@ void main() async {
       admittedArchiveAccessAuthorityProvider.overrideWith(
         (ref) => archiveAuthority,
       ),
+      appCzarObservationReaderProvider.overrideWith(
+        (ref) => SqliteAppCzarObservationReader(
+          archiveRootPath: archiveAuthority.rootPath,
+          messagesDatabasePath:
+              SqliteAppCzarObservationReader.defaultMacosMessagesDatabasePath(),
+          attachmentArchiveProbe: ReadOnlyAppCzarAttachmentArchiveProbe(
+            archiveAccessAuthority: archiveAuthority,
+            bookmarkAdapter:
+                const MethodChannelAttachmentArchiveLocationNativeAdapter(),
+          ),
+        ),
+      ),
       // Initialize platform brightness immediately.
       platformBrightnessProvider.overrideWith((ref) => brightness),
     ],
+  );
+
+  final startupPresentation = selectMessageLensStartupPresentation(
+    exactDevelopmentGateEnabled: container.read(
+      attachmentArchiveAdoptionExecutionEnabledProvider,
+    ),
   );
 
   FlutterError.onError = FlutterError.presentError;
@@ -295,7 +321,8 @@ void main() async {
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: StartupApp(
+      child: buildMessageLensStartupPresentation(
+        presentation: startupPresentation,
         startupFlags: startupFlags,
         initializeAfterClassification: (installationState) {
           return _initializePersistentStartup(
@@ -308,6 +335,32 @@ void main() async {
       ),
     ),
   );
+}
+
+enum MessageLensStartupPresentation { appCzarHarness, legacyStartup }
+
+MessageLensStartupPresentation selectMessageLensStartupPresentation({
+  required bool exactDevelopmentGateEnabled,
+}) {
+  return exactDevelopmentGateEnabled
+      ? MessageLensStartupPresentation.appCzarHarness
+      : MessageLensStartupPresentation.legacyStartup;
+}
+
+Widget buildMessageLensStartupPresentation({
+  required MessageLensStartupPresentation presentation,
+  required StartupFlags startupFlags,
+  Future<void> Function(MessageLensInstallationState installationState)?
+  initializeAfterClassification,
+}) {
+  return switch (presentation) {
+    MessageLensStartupPresentation.appCzarHarness =>
+      const AppCzarStartupHarness(),
+    MessageLensStartupPresentation.legacyStartup => StartupApp(
+      startupFlags: startupFlags,
+      initializeAfterClassification: initializeAfterClassification,
+    ),
+  };
 }
 
 Future<void> _initializePersistentStartup({

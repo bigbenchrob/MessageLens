@@ -71,6 +71,44 @@ void main() {
     expect(shell, contains('AdvancedStartFreshOverlayHost'));
   });
 
+  test('advanced Start Fresh claims once before asynchronous work', () {
+    final action = File(
+      'lib/essentials/onboarding/application/'
+      'advanced_start_fresh_action.dart',
+    ).readAsStringSync();
+    final claimIndex = action.indexOf('_activeRequest = claimedRequest;');
+    final runIndex = action.indexOf('_activeExecution = _runClaimedRequest');
+
+    expect(claimIndex, greaterThanOrEqualTo(0));
+    expect(runIndex, greaterThan(claimIndex));
+    expect(action, contains('return activeRequest.completer.future;'));
+    expect(action, contains('waitUntilDismissed'));
+    expect(action, isNot(contains('unawaited(')));
+    expect(action, isNot(contains('Timer(')));
+  });
+
+  test('advanced Start Fresh eligibility reads current durable evidence', () {
+    final actionProvider = File(
+      'lib/essentials/onboarding/application/'
+      'advanced_start_fresh_action_provider.dart',
+    ).readAsStringSync();
+    final currentStateReader = File(
+      'lib/essentials/onboarding/application/'
+      'advanced_start_fresh_current_state_reader_provider.dart',
+    ).readAsStringSync();
+
+    expect(
+      actionProvider,
+      contains('advancedStartFreshCurrentStateReaderProvider'),
+    );
+    expect(
+      actionProvider,
+      isNot(contains('messageLensInstallationStateProvider')),
+    );
+    expect(currentStateReader, contains('evidenceReader.readBounded'));
+    expect(currentStateReader, contains('classifier.classify(evidence)'));
+  });
+
   test('installation evidence inspection cannot block the Flutter isolate', () {
     final contract = File(
       'lib/essentials/onboarding/application/'

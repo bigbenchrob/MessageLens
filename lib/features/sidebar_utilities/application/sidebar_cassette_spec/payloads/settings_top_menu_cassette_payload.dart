@@ -9,6 +9,7 @@ final class SettingsTopMenuCassettePayload
     required this.cassetteIndex,
     required this.promptLabel,
     this.persistentContextActionId,
+    this.expandInlineMenuWhenUnselected = true,
     super.title = '',
     super.role = SidebarCassetteRole.appControl,
     super.topSpacing = 0,
@@ -23,16 +24,19 @@ final class SettingsTopMenuCassettePayload
   final int cassetteIndex;
   final String promptLabel;
   final SettingsMenuActionId? persistentContextActionId;
+  final bool expandInlineMenuWhenUnselected;
 }
 
 SettingsTopMenuCassettePayload buildSettingsTopMenuCassettePayload({
   required int cassetteIndex,
   required SettingsMenuActionId? persistentContextActionId,
+  bool expandInlineMenuWhenUnselected = true,
 }) {
   return SettingsTopMenuCassettePayload(
     cassetteIndex: cassetteIndex,
     promptLabel: 'Choose setting or action',
     persistentContextActionId: persistentContextActionId,
+    expandInlineMenuWhenUnselected: expandInlineMenuWhenUnselected,
     rows: const [
       SettingsTopMenuGroupHeaderRow(label: 'Support'),
       SettingsTopMenuActionRow.persistentContext(

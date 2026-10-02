@@ -85,6 +85,38 @@ void main() {
     );
   });
 
+  testWidgets('typed ineligibility explains that reset is unavailable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: AdvancedStartFreshOverlay(
+              presentation: AdvancedStartFreshPresentation(
+                occurrence: 4,
+                phase: AdvancedStartFreshPresentationPhase.failed,
+                failure: AdvancedStartFreshFailure(
+                  kind: AdvancedStartFreshFailureKind.installationIneligible,
+                  summary: 'No data was changed.',
+                  canRetry: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Reset Message Data is unavailable'), findsOneWidget);
+    expect(find.text('No data was changed.'), findsOneWidget);
+    expect(find.byKey(AdvancedStartFreshOverlay.retryButtonKey), findsNothing);
+    expect(
+      find.byKey(AdvancedStartFreshOverlay.dismissButtonKey),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('verified virgin state yields to Onboarding presentation', (
     tester,
   ) async {
