@@ -17,6 +17,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - AppCzar can now execute its development-only **Data Update** disposition by
   reusing the supported incremental message, graph, and attachment workers,
   showing their live bounded progress, then restarting for a fresh assessment.
+- AppCzar can now execute its development-only **Source Access Repair**
+  disposition. It explains the literal source-read failure, offers navigation
+  to the relevant macOS settings pane, performs one fresh read-only check per
+  explicit request, and restarts for a new assessment after readability is
+  proven.
 
 ### Changed
 
@@ -31,6 +36,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The existing automatic live-message updater and AppCzar Data Update now
   share one prerequisite-aware worker, preserving the same import-ledger,
   graph-projection, attachment-archive, and message-version behavior.
+- Source-readability `FALSE` and `UNKNOWN` now remain distinct: only a
+  conclusive current failure selects Source Access Repair, while inconclusive
+  evidence selects Diagnostic Review without claiming an access denial.
 
 ### Safety
 
@@ -44,6 +52,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Only AppCzar's Data Update mapping is executable. Its progress is memory-only,
   it cannot declare the app ready or Operating, and successful bounded work
   releases mutation authority before a real macOS process restart.
+- Exactly two AppCzar dispositions are executable in the development harness:
+  Data Update and Source Access Repair. Source Access Repair is memory-only,
+  acquires no archive mutation authority, never polls or inspects TCC state,
+  cannot chain to another coordinator, and ends through the existing qualified
+  process restart boundary.
 
 ## [0.2.128] — 2026-09-23
 

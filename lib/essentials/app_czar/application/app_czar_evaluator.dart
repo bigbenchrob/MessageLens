@@ -339,13 +339,18 @@ final class AppCzarEvaluator {
       );
     }
 
-    if (fact(AppCzarFactId.messagesSourceReadable).truth !=
-        AppCzarTruth.trueValue) {
+    final sourceReadable = fact(AppCzarFactId.messagesSourceReadable);
+    if (sourceReadable.truth == AppCzarTruth.falseValue) {
       return const _AppCzarSelection(
         kind: AppCzarDiagnosisKind.sourceAccessUnavailable,
         diagnosis:
             'The current Messages source cannot be inspected with the available access.',
         coordinator: AppCzarVirtualCoordinator.sourceAccessRepair,
+      );
+    }
+    if (sourceReadable.truth == AppCzarTruth.unknown) {
+      return const _AppCzarSelection.diagnostic(
+        'Current evidence does not establish whether the Messages source is readable.',
       );
     }
 

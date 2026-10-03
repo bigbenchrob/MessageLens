@@ -7,6 +7,8 @@ import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import '../../app_czar_source_access/application/app_czar_source_access_controller.dart';
+import '../../app_czar_source_access/presentation/app_czar_source_access_screen.dart';
 import '../../app_mode/feature_level_providers.dart'
     show switchableDarkModeProvider;
 import '../application/app_czar_assessment_provider.dart';
@@ -37,6 +39,10 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     final dataUpdate = ref.watch(appCzarDataUpdateControllerProvider);
     if (dataUpdate.isVisible) {
       return const AppCzarDataUpdateScreen();
+    }
+    final sourceAccess = ref.watch(appCzarSourceAccessControllerProvider);
+    if (sourceAccess.isVisible) {
+      return const AppCzarSourceAccessScreen();
     }
     return const AppCzarAssessmentScreen();
   }

@@ -84,6 +84,48 @@ void main() {
       assessment.virtualCoordinator,
       AppCzarVirtualCoordinator.sourceAccessRepair,
     );
+    expect(
+      assessment.diagnosisKind,
+      AppCzarDiagnosisKind.sourceAccessUnavailable,
+    );
+  });
+
+  test('unknown source readability selects diagnostics without denial', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        source: const AppCzarSourceObservation.unknown(
+          'The bounded source probe was inconclusive.',
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.messagesSourceReadable).truth,
+      AppCzarTruth.unknown,
+    );
+    expect(
+      assessment.diagnosisKind,
+      AppCzarDiagnosisKind.contradictoryOrInsufficientEvidence,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+    expect(assessment.diagnosis, isNot(contains('access')));
+    expect(assessment.diagnosis, isNot(contains('Full Disk Access')));
+  });
+
+  test('readable source never selects source repair', () {
+    final assessment = evaluator.evaluate(_healthyObservations());
+
+    expect(
+      assessment.fact(AppCzarFactId.messagesSourceReadable).truth,
+      AppCzarTruth.trueValue,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      isNot(AppCzarVirtualCoordinator.sourceAccessRepair),
+    );
   });
 
   test('unavailable archive wins the current preservation tie rule', () {

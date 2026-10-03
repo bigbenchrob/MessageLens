@@ -90,7 +90,7 @@ void main() {
     );
   });
 
-  test('only the coordinator host may cross into Data Update presentation', () {
+  test('only the coordinator host may cross into executable presentation', () {
     final files = Directory('lib/essentials/app_czar')
         .listSync(recursive: true, followLinks: false)
         .whereType<File>()
@@ -113,6 +113,20 @@ void main() {
             'app_czar_data_update_screen.dart',
           ),
         );
+        expect(
+          source,
+          contains(
+            '../../app_czar_source_access/application/'
+            'app_czar_source_access_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_source_access/presentation/'
+            'app_czar_source_access_screen.dart',
+          ),
+        );
         continue;
       }
       expect(
@@ -120,7 +134,34 @@ void main() {
         isNot(contains('/app_czar_data_update/')),
         reason: '${file.path} must remain observation/evaluation-only',
       );
+      expect(
+        source,
+        isNot(contains('/app_czar_source_access/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
     }
+  });
+
+  test('exactly two explicit AppCzar execution predicates exist', () {
+    final sources = <File>[
+      ..._dataUpdateFiles(),
+      ..._sourceAccessFiles(),
+    ].map((file) => file.readAsStringSync()).join('\n');
+
+    expect(
+      RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
+      hasLength(2),
+    );
+    expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
+    expect(sources, contains('shouldExecuteAppCzarSourceAccessRepair'));
+    expect(
+      sources,
+      isNot(matches(RegExp(r'execute\s*\([^)]*AppCzarVirtualCoordinator'))),
+    );
+    expect(
+      sources,
+      isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
+    );
   });
 
   test('Data Update has one exact mutation-admission edge', () {
@@ -231,10 +272,104 @@ void main() {
       expect(source, isNot(contains('exit(')));
     }
   });
+
+  test('Source Access Repair has bounded observation-only jurisdiction', () {
+    final sources = _sourceAccessFiles()
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    const forbidden = <String>[
+      'ArchiveMutationCoordinator',
+      'archiveMutationCoordinatorProvider',
+      'ArchiveMutationOperation',
+      'runWithCapability',
+      'operation_snapshot',
+      'OnboardingJourneyCoordinator',
+      'onboardingJourneyCoordinatorProvider',
+      'messageDataVersionProvider',
+      'environment_readiness',
+      '/navigation/',
+      'SharedPreferences',
+      'sqlite3',
+      'TCC.db',
+      'tccutil',
+      'Process.run',
+      'Process.start',
+      'Timer.periodic',
+      'appCzarDataUpdateControllerProvider',
+      'appCzarDataUpdateExecutorProvider',
+      'AppCzarVirtualCoordinator.operatingSession',
+    ];
+    for (final term in forbidden) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Source Access Repair must not contain $term',
+      );
+    }
+    expect(
+      sources,
+      isNot(matches(RegExp(r'\bBall\b'))),
+      reason: 'Source Access Repair must not acquire the mutation Ball',
+    );
+  });
+
+  test('Source Access Repair reuses only narrow qualified seams', () {
+    const controllerPath =
+        'lib/essentials/app_czar_source_access/application/'
+        'app_czar_source_access_controller.dart';
+    for (final file in _sourceAccessFiles()) {
+      final source = file.readAsStringSync();
+      if (file.path == controllerPath) {
+        expect(
+          source,
+          contains(
+            '../../app_czar_data_update/application/'
+            'app_czar_process_restarter_provider.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../onboarding/application/'
+            'real_fda_settings_opening_authority_provider.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '.read(appCzarObservationReaderProvider)\n          .readSource()',
+          ),
+        );
+        continue;
+      }
+      expect(source, isNot(contains('/app_czar_data_update/')));
+      expect(source, isNot(contains('/onboarding/')));
+    }
+  });
+
+  test('Source Access Repair copy cannot claim Full Disk Access state', () {
+    final screen = File(
+      'lib/essentials/app_czar_source_access/presentation/'
+      'app_czar_source_access_screen.dart',
+    ).readAsStringSync();
+    final normalized = screen.toLowerCase();
+
+    expect(normalized, isNot(contains('full disk access is off')));
+    expect(normalized, isNot(contains('full disk access is on')));
+    expect(normalized, isNot(contains('permission repaired')));
+    expect(normalized, contains('cannot determine from this evidence whether'));
+  });
 }
 
 Iterable<File> _dataUpdateFiles() {
   return Directory('lib/essentials/app_czar_data_update')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
+}
+
+Iterable<File> _sourceAccessFiles() {
+  return Directory('lib/essentials/app_czar_source_access')
       .listSync(recursive: true, followLinks: false)
       .whereType<File>()
       .where((file) => file.path.endsWith('.dart'));
