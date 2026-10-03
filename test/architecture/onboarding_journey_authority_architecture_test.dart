@@ -81,7 +81,7 @@ void main() {
   const overlayPath =
       'lib/essentials/onboarding/presentation/onboarding_overlay.dart';
   const shellPath =
-      'lib/essentials/navigation/presentation/view/macos_app_shell.dart';
+      'lib/essentials/navigation/presentation/view/production_macos_app_shell.dart';
   const centerPanelObserverPath =
       'lib/essentials/navigation/presentation/widgets/'
       'onboarding_center_panel_sync_observer.dart';

@@ -16,7 +16,11 @@ import '../../../../features/messages/presentation/layout/contacts_page_message_
 import '../../../../features/messages/presentation/layout/recovered_messages_page_track_occupants.dart';
 import '../../../../features/messages/presentation/layout/search_page_message_evidence_track_occupants.dart';
 import '../../../../features/messages/presentation/layout/unfamiliar_sources_message_track_occupants.dart';
-import '../../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
+import '../../../../features/sidebar_utilities/feature_level_providers.dart'
+    show
+        SettingsMenuActionId,
+        TopChatMenuChoice,
+        settingsResetMessageDataActionAvailableProvider;
 import '../../../app_mode/feature_level_providers.dart'
     show switchableDarkModeProvider;
 import '../../../conversation_graph/presentation/status/conversation_graph_status_sheet.dart';
@@ -25,10 +29,6 @@ import '../../../debug/feature_level_providers.dart'
         DeveloperModeValue,
         columnBandDebugMarginsProvider,
         developerModeProvider;
-import '../../../onboarding/feature_level_providers.dart'
-    show onboardingJourneyCoordinatorProvider;
-import '../../../onboarding/presentation/advanced_start_fresh_overlay.dart';
-import '../../../onboarding/presentation/onboarding_overlay.dart';
 import '../../../sidebar/application/sidebar_flow_state_provider.dart';
 import '../../application/app_shell_actions_provider.dart';
 import '../../application/panel_widget_providers.dart';
@@ -42,19 +42,39 @@ import '../layout/search_page_conversation_track_occupants.dart';
 import '../layout/search_page_track_plan.dart';
 import '../layout/unfamiliar_sources_page_track_plan.dart';
 import '../widgets/app_mode_toggle.dart';
-import '../widgets/onboarding_center_panel_sync_observer.dart';
-import '../widgets/onboarding_sidebar_visibility_owner.dart';
 import 'workspace_layout.dart';
 
+typedef WorkspaceSidebarVisibilityOwnerBuilder =
+    Widget Function(VoidCallback requestNormalSidebarFocus);
+
 /// macOS window with a fixed navigation column and primary content canvas.
-class MacosAppShell extends ConsumerStatefulWidget {
-  const MacosAppShell({super.key});
+///
+/// This surface is deliberately neutral. Semantic startup owners may decorate
+/// it through presentation-only slots, but the workspace itself does not read
+/// onboarding, readiness, or startup-coordinator state.
+class MessageLensWorkspaceShell extends ConsumerStatefulWidget {
+  const MessageLensWorkspaceShell({
+    this.normalSidebarShownByDefault = true,
+    this.showConversationGraphStatusAction = false,
+    this.sidebarVisibilityOwnerBuilder,
+    this.centerOverlayObservers = const <Widget>[],
+    this.fullWindowOverlays = const <Widget>[],
+    super.key,
+  });
+
+  final bool normalSidebarShownByDefault;
+  final bool showConversationGraphStatusAction;
+  final WorkspaceSidebarVisibilityOwnerBuilder? sidebarVisibilityOwnerBuilder;
+  final List<Widget> centerOverlayObservers;
+  final List<Widget> fullWindowOverlays;
 
   @override
-  ConsumerState<MacosAppShell> createState() => _MacosAppShellState();
+  ConsumerState<MessageLensWorkspaceShell> createState() =>
+      _MessageLensWorkspaceShellState();
 }
 
-class _MacosAppShellState extends ConsumerState<MacosAppShell> {
+class _MessageLensWorkspaceShellState
+    extends ConsumerState<MessageLensWorkspaceShell> {
   static const double _toolbarHorizontalPadding = 8.0;
   static const double _toolbarVerticalPadding = 4.0;
   static const double _defaultEndSidebarWidth = 360.0;
@@ -126,9 +146,6 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       }
     });
 
-    final onboardingJourney = ref.watch(onboardingJourneyCoordinatorProvider);
-    final onboardingStatus = onboardingJourney.compatibilityStatus;
-    final showOnboardingOverlay = onboardingJourney.requiresOperationOverlay;
     final activeMode = ref.watch(activeSidebarModeProvider);
     final sidebarFlowState = ref.watch(sidebarFlowProvider);
     final useSearchTrackPlan =
@@ -315,12 +332,13 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
               availableWidth: MediaQuery.sizeOf(context).width,
             ),
             typography: typography,
+            resetMessageDataActionAvailable: ref.watch(
+              settingsResetMessageDataActionAvailableProvider,
+            ),
           );
     } else {
       messageHistoryCoverageTrackComposition = null;
     }
-
-    final onboardingOwnsSidebar = onboardingOwnsNormalSidebar(onboardingStatus);
 
     Widget window = MacosWindow(
       sidebar: Sidebar(
@@ -329,7 +347,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
         minWidth: WorkspaceLayout.navigationColumnWidth,
         maxWidth: 400,
         windowBreakpoint: 0,
-        shownByDefault: !onboardingOwnsSidebar,
+        shownByDefault: widget.normalSidebarShownByDefault,
         topOffset: 0,
         top: SizedBox(
           // macos_ui contributes 12 px before a non-null top widget. Keeping
@@ -375,7 +393,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
           title: const _ToolbarTitle(),
           centerTitle: true,
           actions: [
-            if (kDebugMode)
+            if (kDebugMode && widget.showConversationGraphStatusAction)
               ToolBarIconButton(
                 label: 'Conversation graph status',
                 icon: const MacosIcon(CupertinoIcons.waveform_path_ecg),
@@ -467,13 +485,9 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
                       WorkspaceContent(mode: SidebarMode.settings),
                     ],
                   ),
-                  OnboardingSidebarVisibilityOwner(
-                    status: onboardingStatus,
-                    onNormalApplicationRevealed: () {
-                      _normalSidebarFocusNode.requestFocus();
-                    },
-                  ),
-                  const OnboardingCenterPanelSyncObserver(),
+                  if (widget.sidebarVisibilityOwnerBuilder case final builder?)
+                    builder(_normalSidebarFocusNode.requestFocus),
+                  ...widget.centerOverlayObservers,
                   _EndSidebarSyncObserver(mode: activeMode),
                 ],
               );
@@ -496,13 +510,7 @@ class _MacosAppShellState extends ConsumerState<MacosAppShell> {
       );
     }
 
-    return Stack(
-      children: <Widget>[
-        window,
-        if (showOnboardingOverlay) const OnboardingOverlay(),
-        const AdvancedStartFreshOverlayHost(),
-      ],
-    );
+    return Stack(children: <Widget>[window, ...widget.fullWindowOverlays]);
   }
 }
 
@@ -528,7 +536,8 @@ class _EndSidebarSyncObserver extends ConsumerWidget {
               .read(appShellActionsProvider.notifier)
               .animateEndSidebarWindowWidth(
                 showing: shouldShow,
-                sidebarWidth: _MacosAppShellState._defaultEndSidebarWidth,
+                sidebarWidth:
+                    _MessageLensWorkspaceShellState._defaultEndSidebarWidth,
               ),
         );
       }

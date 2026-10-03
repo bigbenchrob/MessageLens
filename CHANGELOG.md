@@ -22,6 +22,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   to the relevant macOS settings pane, performs one fresh read-only check per
   explicit request, and restarts for a new assessment after readability is
   proven.
+- AppCzar can now admit its development-only **Operating Session** disposition
+  after one exact healthy/current assessment generation and visual window-state
+  restoration, replacing the assessment surface with the normal MessageLens
+  workspace.
 
 ### Changed
 
@@ -39,24 +43,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Source-readability `FALSE` and `UNKNOWN` now remain distinct: only a
   conclusive current failure selects Source Access Repair, while inconclusive
   evidence selects Diagnostic Review without claiming an access denial.
+- Fresh development Operating sessions begin from neutral Messages /
+  Conversations navigation and treat the prior durable navigation preference
+  as history only. Same-session navigation continues to persist normally.
+- Display identities now rebuild with the established message-data generation,
+  so a populated graph supplies contact names on first use and graph updates do
+  not require a navigation change to replace stale fallback labels.
 
 ### Safety
 
-- AppCzar uses bounded read-only source, database, and attachment-location
-  evidence. It neither creates or migrates stores nor starts onboarding,
-  import, repair, normal navigation, monitoring, or archive mutation.
+- AppCzar assessment uses bounded read-only source, database, and
+  attachment-location evidence. It neither creates nor migrates stores and it
+  does not start onboarding, ambient monitoring, or archive mutation.
 - Presentation significance remains a pure downstream projection and cannot
   influence AppCzar facts, diagnosis, or virtual-coordinator selection.
 - Production and all identities outside the existing exact development gate
   retain the previous startup path unchanged.
-- Only AppCzar's Data Update mapping is executable. Its progress is memory-only,
-  it cannot declare the app ready or Operating, and successful bounded work
-  releases mutation authority before a real macOS process restart.
-- Exactly two AppCzar dispositions are executable in the development harness:
-  Data Update and Source Access Repair. Source Access Repair is memory-only,
-  acquires no archive mutation authority, never polls or inspects TCC state,
-  cannot chain to another coordinator, and ends through the existing qualified
-  process restart boundary.
+- AppCzar Data Update progress is memory-only. It cannot declare the app ready
+  or Operating, and successful bounded work releases mutation authority before
+  a real macOS process restart.
+- Exactly three AppCzar dispositions are executable in the development harness:
+  Data Update, Source Access Repair, and Operating Session. Operating enters a
+  neutral shell without Journey/readiness observers, Advanced Start Fresh, or
+  the ambient live-update monitor; live currentness maintenance remains
+  intentionally deferred to the next milestone.
 
 ## [0.2.128] — 2026-09-23
 

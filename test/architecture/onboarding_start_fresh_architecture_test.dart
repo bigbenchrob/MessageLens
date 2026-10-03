@@ -62,7 +62,7 @@ void main() {
       'lib/essentials/onboarding/application/advanced_start_fresh_action.dart',
     ).readAsStringSync();
     final shell = File(
-      'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+      'lib/essentials/navigation/presentation/view/production_macos_app_shell.dart',
     ).readAsStringSync();
 
     expect(actionProvider, contains('@Riverpod(keepAlive: true)'));

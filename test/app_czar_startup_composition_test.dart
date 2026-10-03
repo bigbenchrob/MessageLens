@@ -9,6 +9,7 @@ import 'package:remember_this_text/main.dart';
 
 void main() {
   test('exact authorized development identity selects AppCzar only', () {
+    var admissionReports = 0;
     final container = ProviderContainer(
       overrides: [
         admittedArchiveAccessAuthorityProvider.overrideWithValue(
@@ -26,11 +27,19 @@ void main() {
     final root = buildMessageLensStartupPresentation(
       presentation: presentation,
       startupFlags: const StartupFlags.disabled(),
+      onAppCzarOperatingAdmitted: () {
+        admissionReports += 1;
+      },
     );
 
     expect(presentation, MessageLensStartupPresentation.appCzarHarness);
     expect(root, isA<AppCzarStartupHarness>());
     expect(root, isNot(isA<StartupApp>()));
+    final harness = root as AppCzarStartupHarness;
+    expect(harness.onOperatingAdmitted, isNotNull);
+    expect(admissionReports, 0);
+    harness.onOperatingAdmitted!();
+    expect(admissionReports, 1);
   });
 
   test('production identity preserves the legacy StartupApp root', () {

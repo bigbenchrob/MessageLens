@@ -21,6 +21,7 @@ import '../domain/entities/cassette_spec.dart';
 import 'cassette_rack_state_provider.dart';
 import 'sidebar_flow_preference_store.dart';
 import 'sidebar_flow_preference_store_provider.dart';
+import 'sidebar_navigation_restoration_policy_provider.dart';
 
 part 'sidebar_flow_state_provider.freezed.dart';
 part 'sidebar_flow_state_provider.g.dart';
@@ -635,7 +636,12 @@ class SidebarFlow extends _$SidebarFlow {
     ref.onDispose(() {
       _isDisposed = true;
     });
-    _scheduleNavigationPreferenceRestore();
+    final restorationEnabled = ref.watch(
+      sidebarNavigationRestorationEnabledProvider,
+    );
+    if (restorationEnabled) {
+      _scheduleNavigationPreferenceRestore();
+    }
     const initialState = SidebarFlowState();
     assert(() {
       debugAssertValidSidebarFlowState(initialState);

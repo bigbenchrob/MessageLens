@@ -7,6 +7,8 @@ import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import '../../app_czar_operating_session/application/app_czar_operating_session_controller.dart';
+import '../../app_czar_operating_session/presentation/app_czar_operating_session_app.dart';
 import '../../app_czar_source_access/application/app_czar_source_access_controller.dart';
 import '../../app_czar_source_access/presentation/app_czar_source_access_screen.dart';
 import '../../app_mode/feature_level_providers.dart'
@@ -14,8 +16,53 @@ import '../../app_mode/feature_level_providers.dart'
 import '../application/app_czar_assessment_provider.dart';
 import '../application/app_czar_presentation_projector.dart';
 
-class AppCzarStartupHarness extends ConsumerWidget {
-  const AppCzarStartupHarness({super.key});
+class AppCzarStartupHarness extends ConsumerStatefulWidget {
+  const AppCzarStartupHarness({
+    this.operatingSessionApp = const AppCzarOperatingSessionApp(),
+    this.onOperatingAdmitted,
+    super.key,
+  });
+
+  final Widget operatingSessionApp;
+  final VoidCallback? onOperatingAdmitted;
+
+  @override
+  ConsumerState<AppCzarStartupHarness> createState() =>
+      _AppCzarStartupHarnessState();
+}
+
+class _AppCzarStartupHarnessState extends ConsumerState<AppCzarStartupHarness> {
+  bool _operatingAdmissionReported = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final operatingSession = ref.watch(
+      appCzarOperatingSessionControllerProvider,
+    );
+    if (operatingSession.isAdmitted) {
+      if (!_operatingAdmissionReported) {
+        _operatingAdmissionReported = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            widget.onOperatingAdmitted?.call();
+          }
+        });
+      }
+      return widget.operatingSessionApp;
+    }
+
+    return _AppCzarAssessmentApplication(
+      operatingSessionEntryInFlight: operatingSession.isEntryInFlight,
+    );
+  }
+}
+
+class _AppCzarAssessmentApplication extends ConsumerWidget {
+  const _AppCzarAssessmentApplication({
+    required this.operatingSessionEntryInFlight,
+  });
+
+  final bool operatingSessionEntryInFlight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,13 +73,17 @@ class AppCzarStartupHarness extends ConsumerWidget {
       darkTheme: MacosThemeData.dark().copyWith(),
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
-      home: const _AppCzarCoordinatorHost(),
+      home: _AppCzarCoordinatorHost(
+        operatingSessionEntryInFlight: operatingSessionEntryInFlight,
+      ),
     );
   }
 }
 
 class _AppCzarCoordinatorHost extends ConsumerWidget {
-  const _AppCzarCoordinatorHost();
+  const _AppCzarCoordinatorHost({required this.operatingSessionEntryInFlight});
+
+  final bool operatingSessionEntryInFlight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,12 +95,19 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     if (sourceAccess.isVisible) {
       return const AppCzarSourceAccessScreen();
     }
-    return const AppCzarAssessmentScreen();
+    return AppCzarAssessmentScreen(
+      operatingSessionEntryInFlight: operatingSessionEntryInFlight,
+    );
   }
 }
 
 class AppCzarAssessmentScreen extends ConsumerStatefulWidget {
-  const AppCzarAssessmentScreen({super.key});
+  const AppCzarAssessmentScreen({
+    this.operatingSessionEntryInFlight = false,
+    super.key,
+  });
+
+  final bool operatingSessionEntryInFlight;
 
   static const screenKey = Key('app-czar-assessment-screen');
   static const diagnosisKey = Key('app-czar-diagnosis');
@@ -139,7 +197,9 @@ class _AppCzarAssessmentScreenState
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       key: AppCzarAssessmentScreen.runAgainKey,
-                      onPressed: presentation.complete
+                      onPressed:
+                          presentation.complete &&
+                              !widget.operatingSessionEntryInFlight
                           ? () {
                               setState(() {
                                 _detailsExpanded = false;

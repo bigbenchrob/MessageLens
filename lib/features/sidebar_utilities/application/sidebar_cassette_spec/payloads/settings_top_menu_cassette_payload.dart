@@ -31,48 +31,50 @@ SettingsTopMenuCassettePayload buildSettingsTopMenuCassettePayload({
   required int cassetteIndex,
   required SettingsMenuActionId? persistentContextActionId,
   bool expandInlineMenuWhenUnselected = true,
+  bool resetMessageDataActionAvailable = true,
 }) {
   return SettingsTopMenuCassettePayload(
     cassetteIndex: cassetteIndex,
     promptLabel: 'Choose setting or action',
     persistentContextActionId: persistentContextActionId,
     expandInlineMenuWhenUnselected: expandInlineMenuWhenUnselected,
-    rows: const [
-      SettingsTopMenuGroupHeaderRow(label: 'Support'),
-      SettingsTopMenuActionRow.persistentContext(
+    rows: List<SettingsTopMenuRow>.unmodifiable([
+      const SettingsTopMenuGroupHeaderRow(label: 'Support'),
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Environment',
         actionId: SettingsMenuActionId.environment,
       ),
-      SettingsTopMenuActionRow.persistentContext(
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Attachment archive',
         actionId: SettingsMenuActionId.attachmentArchive,
       ),
-      SettingsTopMenuActionRow.persistentContext(
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Historical Archives',
         actionId: SettingsMenuActionId.historicalArchives,
       ),
-      SettingsTopMenuGroupHeaderRow(label: 'Troubleshooting'),
-      SettingsTopMenuActionRow.persistentContext(
+      const SettingsTopMenuGroupHeaderRow(label: 'Troubleshooting'),
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Message history coverage report',
         actionId: SettingsMenuActionId.messageHistoryCoverage,
       ),
-      SettingsTopMenuActionRow.transientAction(
+      const SettingsTopMenuActionRow.transientAction(
         label: 'Send logs…',
         actionId: SettingsMenuActionId.sendLogs,
       ),
-      SettingsTopMenuActionRow.transientAction(
-        label: 'Reset message data…',
-        actionId: SettingsMenuActionId.resetMessageData,
-      ),
-      SettingsTopMenuGroupHeaderRow(label: 'Appearance'),
-      SettingsTopMenuActionRow.persistentContext(
+      if (resetMessageDataActionAvailable)
+        const SettingsTopMenuActionRow.transientAction(
+          label: 'Reset message data…',
+          actionId: SettingsMenuActionId.resetMessageData,
+        ),
+      const SettingsTopMenuGroupHeaderRow(label: 'Appearance'),
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Text size',
         actionId: SettingsMenuActionId.textSize,
       ),
-      SettingsTopMenuActionRow.persistentContext(
+      const SettingsTopMenuActionRow.persistentContext(
         label: 'Image size',
         actionId: SettingsMenuActionId.imageSize,
       ),
-    ],
+    ]),
   );
 }

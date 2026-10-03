@@ -1,67 +1,119 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_assessment_provider.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/presentation/app_czar_startup_harness.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
+import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
 
 void main() {
   testWidgets(
-    'projects current facts, diagnosis, and one virtual coordinator',
+    'healthy current evidence replaces assessment with Operating once',
     (tester) async {
+      var displayIdentityResolverBuilds = 0;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             appCzarObservationReaderProvider.overrideWithValue(
               const _HealthyReader(),
             ),
+            appCzarOperatingSessionVisualInitializerProvider.overrideWithValue(
+              const _ImmediateVisualInitializer(),
+            ),
+            displayIdentityResolverProvider.overrideWith((ref) async {
+              displayIdentityResolverBuilds += 1;
+              throw StateError('Operating test child must remain isolated.');
+            }),
           ],
-          child: const AppCzarStartupHarness(),
+          child: const AppCzarStartupHarness(
+            operatingSessionApp: SizedBox(
+              key: Key('admitted-operating-session'),
+            ),
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(AppCzarAssessmentScreen.screenKey), findsOneWidget);
-      expect(find.text('TRUE'), findsNothing);
-      expect(find.text('FALSE'), findsNothing);
-      expect(find.textContaining('Full Disk Access'), findsNothing);
-      expect(find.text('New messages'), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
-      expect(find.text('Source and MessageLens are current.'), findsOneWidget);
       expect(
-        find.text(
-          'This appears to be a healthy current MessageLens installation.',
-        ),
+        find.byKey(const Key('admitted-operating-session')),
         findsOneWidget,
       );
-      expect(find.text('Operating Session'), findsOneWidget);
-      expect(
-        find.text('Diagnostic only. No coordinator has been started.'),
-        findsOneWidget,
-      );
-      expect(find.text('Checking databases…'), findsNothing);
-      expect(find.text('Checking what MessageLens needs'), findsNothing);
+      expect(find.byKey(AppCzarAssessmentScreen.screenKey), findsNothing);
+      expect(displayIdentityResolverBuilds, 0);
+    },
+  );
 
-      final details = find.byKey(AppCzarAssessmentScreen.detailsKey);
-      await tester.ensureVisible(details);
-      await tester.tap(details);
+  testWidgets(
+    'Operating visual admission disables reassessment and reports once after entry',
+    (tester) async {
+      final initializer = _BlockingVisualInitializer();
+      var operatingAdmissionReports = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _HealthyReader(),
+            ),
+            appCzarOperatingSessionVisualInitializerProvider.overrideWithValue(
+              initializer,
+            ),
+          ],
+          child: AppCzarStartupHarness(
+            operatingSessionApp: const SizedBox(
+              key: Key('admitted-operating-session'),
+            ),
+            onOperatingAdmitted: () {
+              operatingAdmissionReports += 1;
+            },
+          ),
+        ),
+      );
+
+      for (
+        var attempt = 0;
+        attempt < 100 && !initializer.hasStarted;
+        attempt += 1
+      ) {
+        await tester.pump(const Duration(milliseconds: 1));
+      }
+      expect(initializer.hasStarted, isTrue);
+      final runAgain = tester.widget<TextButton>(
+        find.byKey(AppCzarAssessmentScreen.runAgainKey),
+      );
+      expect(runAgain.onPressed, isNull);
+      expect(operatingAdmissionReports, 0);
+
+      initializer.release();
       await tester.pumpAndSettle();
-      expect(find.textContaining('Message count: 100.'), findsWidgets);
-      expect(find.textContaining('High-water: 100.'), findsWidgets);
+
+      expect(
+        find.byKey(const Key('admitted-operating-session')),
+        findsOneWidget,
+      );
+      expect(operatingAdmissionReports, 1);
+      await tester.pump();
+      expect(operatingAdmissionReports, 1);
     },
   );
 
   testWidgets('shows genuine pending state before evidence resolves', (
     tester,
   ) async {
+    var displayIdentityResolverBuilds = 0;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appCzarObservationReaderProvider.overrideWithValue(
             _NeverCompletingReader(),
           ),
+          displayIdentityResolverProvider.overrideWith((ref) async {
+            displayIdentityResolverBuilds += 1;
+            throw StateError('Assessment must not construct identities.');
+          }),
         ],
         child: const AppCzarStartupHarness(),
       ),
@@ -73,7 +125,34 @@ void main() {
     expect(find.text('Checking'), findsNWidgets(9));
     expect(find.textContaining('Full Disk Access'), findsNothing);
     expect(find.textContaining('%'), findsNothing);
+    expect(displayIdentityResolverBuilds, 0);
   });
+}
+
+final class _ImmediateVisualInitializer
+    implements AppCzarOperatingSessionVisualInitializer {
+  const _ImmediateVisualInitializer();
+
+  @override
+  Future<void> initializeVisualWindowState() async {}
+}
+
+final class _BlockingVisualInitializer
+    implements AppCzarOperatingSessionVisualInitializer {
+  final Completer<void> _release = Completer<void>();
+  bool hasStarted = false;
+
+  void release() {
+    if (!_release.isCompleted) {
+      _release.complete();
+    }
+  }
+
+  @override
+  Future<void> initializeVisualWindowState() async {
+    hasStarted = true;
+    await _release.future;
+  }
 }
 
 final class _HealthyReader implements AppCzarObservationReader {

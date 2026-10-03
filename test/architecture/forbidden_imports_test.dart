@@ -490,6 +490,7 @@ const Set<String> _timerAllowedFiles = {
 };
 
 const Set<String> _deferredUiCallbackAllowedFiles = {
+  'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
   'lib/essentials/navigation/presentation/view/panel_stack_surface.dart',
   'lib/essentials/navigation/presentation/widgets/onboarding_center_panel_sync_observer.dart',
@@ -1264,7 +1265,8 @@ void main() {
       'production composition has one prerequisite Journey authority',
       () async {
         final shell = await File(
-          'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+          'lib/essentials/navigation/presentation/view/'
+          'production_macos_app_shell.dart',
         ).readAsString();
         final coordinator = await File(
           'lib/essentials/onboarding/application/'
@@ -7026,8 +7028,12 @@ void main() {
     });
 
     test('Onboarding owns only canonical sidebar visibility', () async {
-      final shell = await File(
+      final neutralShell = await File(
         'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+      ).readAsString();
+      final productionShell = await File(
+        'lib/essentials/navigation/presentation/view/'
+        'production_macos_app_shell.dart',
       ).readAsString();
       final visibilityOwner = await File(
         'lib/essentials/navigation/presentation/widgets/'
@@ -7037,8 +7043,12 @@ void main() {
         'lib/essentials/navigation/presentation/view/workspace_layout.dart',
       ).readAsString();
 
-      expect(shell, contains('sidebar: Sidebar('));
-      expect(shell, contains('OnboardingSidebarVisibilityOwner('));
+      expect(neutralShell, contains('sidebar: Sidebar('));
+      expect(
+        neutralShell,
+        isNot(contains('OnboardingSidebarVisibilityOwner(')),
+      );
+      expect(productionShell, contains('OnboardingSidebarVisibilityOwner('));
       expect(visibilityOwner, contains('scope.toggleSidebar()'));
       expect(visibilityOwner, isNot(contains('SharedPreferences')));
       expect(workspace, isNot(contains('Row(')));

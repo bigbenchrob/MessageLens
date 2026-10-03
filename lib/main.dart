@@ -53,6 +53,8 @@ import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_ins
 import 'essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_integrity_validator.dart';
 import 'essentials/onboarding/presentation/start_fresh_authorization_dialog.dart';
 import 'essentials/services/startup_flags_service.dart';
+import 'essentials/sidebar/feature_level_providers.dart'
+    show sidebarNavigationRestorationEnabledProvider;
 import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
 import 'features/attachments/application/attachment_archive_adoption_enablement_provider.dart'
@@ -62,6 +64,8 @@ import 'features/attachments/feature_level_providers.dart'
 import 'features/attachments/infrastructure/repositories/method_channel_attachment_archive_location_native_adapter.dart';
 import 'features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart';
 import 'features/presence_iteration_simple/presentation/linear_presence_experiment_host.dart';
+import 'features/sidebar_utilities/feature_level_providers.dart'
+    show settingsResetMessageDataActionAvailableProvider;
 import 'frb_generated.dart';
 
 const bool _presenceDevelopmentHarnessEnabled = bool.fromEnvironment(
@@ -302,6 +306,12 @@ void main() async {
       ),
       // Initialize platform brightness immediately.
       platformBrightnessProvider.overrideWith((ref) => brightness),
+      sidebarNavigationRestorationEnabledProvider.overrideWith((ref) {
+        return !ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider);
+      }),
+      settingsResetMessageDataActionAvailableProvider.overrideWith((ref) {
+        return !ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider);
+      }),
     ],
   );
 
@@ -310,7 +320,6 @@ void main() async {
       attachmentArchiveAdoptionExecutionEnabledProvider,
     ),
   );
-
   FlutterError.onError = FlutterError.presentError;
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint('Uncaught platform error before persistent startup: $error');
@@ -324,6 +333,9 @@ void main() async {
       child: buildMessageLensStartupPresentation(
         presentation: startupPresentation,
         startupFlags: startupFlags,
+        onAppCzarOperatingAdmitted: () {
+          delegate.attachContainer(container);
+        },
         initializeAfterClassification: (installationState) {
           return _initializePersistentStartup(
             container: container,
@@ -350,12 +362,14 @@ MessageLensStartupPresentation selectMessageLensStartupPresentation({
 Widget buildMessageLensStartupPresentation({
   required MessageLensStartupPresentation presentation,
   required StartupFlags startupFlags,
+  VoidCallback? onAppCzarOperatingAdmitted,
   Future<void> Function(MessageLensInstallationState installationState)?
   initializeAfterClassification,
 }) {
   return switch (presentation) {
-    MessageLensStartupPresentation.appCzarHarness =>
-      const AppCzarStartupHarness(),
+    MessageLensStartupPresentation.appCzarHarness => AppCzarStartupHarness(
+      onOperatingAdmitted: onAppCzarOperatingAdmitted,
+    ),
     MessageLensStartupPresentation.legacyStartup => StartupApp(
       startupFlags: startupFlags,
       initializeAfterClassification: initializeAfterClassification,

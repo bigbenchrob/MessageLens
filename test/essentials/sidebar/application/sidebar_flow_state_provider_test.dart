@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +15,10 @@ import 'package:remember_this_text/essentials/navigation/domain/entities/view_sp
 import 'package:remember_this_text/essentials/navigation/domain/navigation_constants.dart';
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
 import 'package:remember_this_text/essentials/sidebar/application/cassette_rack_state_provider.dart';
+import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_preference_store.dart';
+import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_preference_store_provider.dart';
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_state_provider.dart';
+import 'package:remember_this_text/essentials/sidebar/application/sidebar_navigation_restoration_policy_provider.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/entities/cassette_spec.dart';
 import 'package:remember_this_text/features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import 'package:remember_this_text/features/contacts/domain/spec_classes/contacts_info_cassette_spec.dart';
@@ -379,6 +384,10 @@ void main() {
     testWidgets('startup restores persisted sidebar flow navigation context', (
       tester,
     ) async {
+      expect(
+        container.read(sidebarNavigationRestorationEnabledProvider),
+        isTrue,
+      );
       await overlayDb.writeOverlaySetting(
         settingKey: sidebarFlowNavigationOverlaySettingKey,
         settingValue: SidebarFlowNavigationPreference.fromState(
@@ -426,6 +435,86 @@ void main() {
         ),
       );
     });
+
+    testWidgets(
+      'disabled startup restoration ignores stored navigation without reading '
+      'it and later same-session navigation still persists',
+      (tester) async {
+        final preferenceStore = _RecordingSidebarFlowPreferenceStore(
+          navigationPreference: SidebarFlowNavigationPreference.fromState(
+            const SidebarFlowState(
+              topMenuChoice: TopChatMenuChoice.contacts,
+              chosenContactId: 42,
+              selectedHandleId: 7,
+            ),
+          ).storageValue,
+        );
+        final neutralContainer = ProviderContainer(
+          overrides: [
+            conversationGraphPopulatedProvider.overrideWith(
+              _AlwaysPopulatedGraph.new,
+            ),
+            sidebarNavigationRestorationEnabledProvider.overrideWith(
+              (ref) => false,
+            ),
+            sidebarFlowPreferenceStoreProvider.overrideWith(
+              (ref) async => preferenceStore,
+            ),
+          ],
+        );
+        addTearDown(neutralContainer.dispose);
+
+        await _mountMessagesPanelReconciliation(tester, neutralContainer);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1));
+
+        final initialState = neutralContainer.read(sidebarFlowProvider);
+        final initialRack = neutralContainer.read(
+          cassetteRackStateProvider(SidebarMode.messages),
+        );
+        expect(initialState, const SidebarFlowState());
+        expect(
+          initialRack.cassettes.first,
+          const CassetteSpec.sidebarUtility(
+            SidebarUtilityCassetteSpec.topChatMenu(),
+          ),
+        );
+        expect(
+          initialRack.cassettes,
+          isNot(
+            contains(
+              const CassetteSpec.contacts(
+                ContactsCassetteSpec.contactSelectionControl(
+                  chosenContactId: 42,
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(preferenceStore.navigationReadCount, 0);
+        expect(preferenceStore.contactContextReadCount, 0);
+
+        neutralContainer
+            .read(sidebarFlowProvider.notifier)
+            .selectConversation(conversationId: 8796093022216);
+
+        final persistedValue = await preferenceStore.firstNavigationWrite
+            .timeout(const Duration(seconds: 1));
+        final persistedPreference = SidebarFlowNavigationPreference.fromStorage(
+          persistedValue,
+        );
+        expect(
+          persistedPreference?.state.topMenuChoice,
+          TopChatMenuChoice.conversations,
+        );
+        expect(
+          persistedPreference?.state.selectedConversationId,
+          8796093022216,
+        );
+        expect(preferenceStore.navigationReadCount, 0);
+        expect(preferenceStore.contactContextReadCount, 0);
+      },
+    );
 
     test('selected conversation derives conversation center spec', () {
       container
@@ -1246,5 +1335,40 @@ class _AlwaysPopulatedGraph extends ConversationGraphPopulated {
   @override
   bool build() {
     return true;
+  }
+}
+
+final class _RecordingSidebarFlowPreferenceStore
+    implements SidebarFlowPreferenceStore {
+  _RecordingSidebarFlowPreferenceStore({required this.navigationPreference});
+
+  final String? navigationPreference;
+  final Completer<String> _firstNavigationWrite = Completer<String>();
+
+  int contactContextReadCount = 0;
+  int navigationReadCount = 0;
+
+  Future<String> get firstNavigationWrite => _firstNavigationWrite.future;
+
+  @override
+  Future<String?> readContactContextPreference() async {
+    contactContextReadCount += 1;
+    return null;
+  }
+
+  @override
+  Future<String?> readNavigationPreference() async {
+    navigationReadCount += 1;
+    return navigationPreference;
+  }
+
+  @override
+  Future<void> writeContactContextPreference(String value) async {}
+
+  @override
+  Future<void> writeNavigationPreference(String value) async {
+    if (!_firstNavigationWrite.isCompleted) {
+      _firstNavigationWrite.complete(value);
+    }
   }
 }

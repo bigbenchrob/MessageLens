@@ -7,7 +7,7 @@ part of 'display_identity_resolver_provider.dart';
 // **************************************************************************
 
 String _$displayIdentityResolverHash() =>
-    r'100f9a3065d28c7804b0ac7e8c3aed56b542367e';
+    r'3e91c9cfa34e97c41aa1ee19860b3ef5e9cd5f4d';
 
 /// Semantic display-identity boundary.
 ///

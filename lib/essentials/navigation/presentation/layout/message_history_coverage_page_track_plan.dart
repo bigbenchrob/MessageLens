@@ -27,6 +27,7 @@ MessageHistoryCoveragePageTrackComposition
 composeMessageHistoryCoveragePageTrackLayout({
   required PresentationConstraints presentationConstraints,
   required ThemeTypography typography,
+  bool resetMessageDataActionAvailable = true,
 }) {
   final settingsOccupants = messageHistoryCoverageTrackOccupants(
     typography: typography,
@@ -36,6 +37,7 @@ composeMessageHistoryCoveragePageTrackLayout({
       payload: buildSettingsTopMenuCassettePayload(
         cassetteIndex: 0,
         persistentContextActionId: SettingsMenuActionId.messageHistoryCoverage,
+        resetMessageDataActionAvailable: resetMessageDataActionAvailable,
       ),
       selectedValueStyle: typography.controlValue,
     ),

@@ -13,6 +13,7 @@ export './application/sidebar_action_dispatcher.dart';
 export './application/sidebar_cassette_render_router.dart';
 export './application/sidebar_flow_preference_store_provider.dart';
 export './application/sidebar_flow_state_provider.dart';
+export './application/sidebar_navigation_restoration_policy_provider.dart';
 export './domain/entities/cassette_spec.dart';
 export './presentation/view/sidebar_cassette_card.dart';
 export './presentation/view/sidebar_navigation_card.dart';

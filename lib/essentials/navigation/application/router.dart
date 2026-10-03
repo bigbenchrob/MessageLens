@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../presentation/view/macos_app_shell.dart';
+import '../presentation/view/production_macos_app_shell.dart';
 import 'app_navigator_key.dart';
 
 part 'router.g.dart';

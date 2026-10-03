@@ -116,6 +116,20 @@ void main() {
         expect(
           source,
           contains(
+            '../../app_czar_operating_session/application/'
+            'app_czar_operating_session_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_operating_session/presentation/'
+            'app_czar_operating_session_app.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
             '../../app_czar_source_access/application/'
             'app_czar_source_access_controller.dart',
           ),
@@ -139,21 +153,28 @@ void main() {
         isNot(contains('/app_czar_source_access/')),
         reason: '${file.path} must remain observation/evaluation-only',
       );
+      expect(
+        source,
+        isNot(contains('/app_czar_operating_session/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
     }
   });
 
-  test('exactly two explicit AppCzar execution predicates exist', () {
+  test('exactly three explicit AppCzar execution predicates exist', () {
     final sources = <File>[
       ..._dataUpdateFiles(),
       ..._sourceAccessFiles(),
+      ..._operatingSessionFiles(),
     ].map((file) => file.readAsStringSync()).join('\n');
 
     expect(
       RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
-      hasLength(2),
+      hasLength(3),
     );
     expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
     expect(sources, contains('shouldExecuteAppCzarSourceAccessRepair'));
+    expect(sources, contains('shouldExecuteAppCzarOperatingSession'));
     expect(
       sources,
       isNot(matches(RegExp(r'execute\s*\([^)]*AppCzarVirtualCoordinator'))),
@@ -359,6 +380,141 @@ void main() {
     expect(normalized, isNot(contains('permission repaired')));
     expect(normalized, contains('cannot determine from this evidence whether'));
   });
+
+  test('Operating Session has only admitted shell jurisdiction', () {
+    final sources = _operatingSessionFiles()
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    const forbidden = <String>[
+      '/onboarding/',
+      '/environment_readiness/',
+      'production_macos_app_shell',
+      'chat_db_change_monitor',
+      'ChatDbChangeMonitor',
+      'LiveGraphUpdateWorker',
+      'archiveMutationCoordinatorProvider',
+      'ArchiveMutationCoordinator',
+      'AdvancedStartFresh',
+      'appCzarDataUpdateControllerProvider',
+      'appCzarSourceAccessControllerProvider',
+      'appCzarProcessRestarterProvider',
+      'StartupApp',
+      'Timer.periodic',
+    ];
+    for (final term in forbidden) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Operating Session Stage One must not contain $term',
+      );
+    }
+    expect(sources, isNot(matches(RegExp(r'\bBall\b'))));
+    expect(sources, contains('MessageLensWorkspaceShell'));
+    expect(sources, contains('windowStateServiceProvider'));
+  });
+
+  test('Operating shell core has no legacy semantic authority imports', () {
+    final neutralShell = File(
+      'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+    ).readAsStringSync();
+    final productionShell = File(
+      'lib/essentials/navigation/presentation/view/'
+      'production_macos_app_shell.dart',
+    ).readAsStringSync();
+    final productionRouter = File(
+      'lib/essentials/navigation/application/router.dart',
+    ).readAsStringSync();
+
+    expect(neutralShell, contains('class MessageLensWorkspaceShell'));
+    expect(neutralShell, isNot(contains('/onboarding/')));
+    expect(
+      neutralShell,
+      isNot(contains('onboardingJourneyCoordinatorProvider')),
+    );
+    expect(neutralShell, isNot(contains('OnboardingCenterPanelSyncObserver')));
+    expect(neutralShell, isNot(contains('AdvancedStartFreshOverlayHost')));
+    expect(neutralShell, isNot(contains('chatDbChangeMonitorProvider')));
+    expect(productionShell, contains('onboardingJourneyCoordinatorProvider'));
+    expect(productionShell, contains('OnboardingCenterPanelSyncObserver'));
+    expect(productionShell, contains('AdvancedStartFreshOverlayHost'));
+    expect(productionRouter, contains('production_macos_app_shell.dart'));
+  });
+
+  test('exact development gate owns neutral-history and reset policies', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final neutralShell = File(
+      'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
+    ).readAsStringSync();
+    final historyCoverageTrack = File(
+      'lib/essentials/navigation/presentation/layout/'
+      'message_history_coverage_page_track_plan.dart',
+    ).readAsStringSync();
+    expect(
+      RegExp(
+        r'sidebarNavigationRestorationEnabledProvider\.overrideWith[\s\S]*?'
+        r'attachmentArchiveAdoptionExecutionEnabledProvider',
+      ).hasMatch(mainSource),
+      isTrue,
+    );
+    expect(
+      RegExp(
+        r'settingsResetMessageDataActionAvailableProvider\.overrideWith[\s\S]*?'
+        r'attachmentArchiveAdoptionExecutionEnabledProvider',
+      ).hasMatch(mainSource),
+      isTrue,
+    );
+    expect(
+      neutralShell,
+      contains('settingsResetMessageDataActionAvailableProvider'),
+    );
+    expect(
+      historyCoverageTrack,
+      contains(
+        'resetMessageDataActionAvailable: resetMessageDataActionAvailable',
+      ),
+    );
+  });
+
+  test('window delegate authority begins only after Operating admission', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final harness = File(
+      'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+    ).readAsStringSync();
+
+    expect(mainSource, contains('onAppCzarOperatingAdmitted: ()'));
+    expect(
+      mainSource,
+      isNot(
+        matches(
+          RegExp(
+            r'startupPresentation\s*==\s*'
+            r'MessageLensStartupPresentation\.appCzarHarness[\s\S]{0,160}'
+            r'delegate\.attachContainer',
+          ),
+        ),
+      ),
+    );
+    expect(harness, contains('operatingSession.isAdmitted'));
+    expect(harness, contains('widget.onOperatingAdmitted?.call()'));
+    expect(harness, contains('operatingSession.isEntryInFlight'));
+  });
+
+  test('pre-Operating packages cannot construct display identities', () {
+    final sources =
+        <File>[
+              ...Directory(
+                'lib/essentials/app_czar',
+              ).listSync(recursive: true, followLinks: false).whereType<File>(),
+              ..._dataUpdateFiles(),
+              ..._sourceAccessFiles(),
+            ]
+            .where((file) => file.path.endsWith('.dart'))
+            .map((file) => file.readAsStringSync())
+            .join('\n');
+
+    expect(sources, isNot(contains('displayIdentityResolverProvider')));
+    expect(sources, isNot(contains('display_identity_resolver_provider.dart')));
+  });
 }
 
 Iterable<File> _dataUpdateFiles() {
@@ -370,6 +526,13 @@ Iterable<File> _dataUpdateFiles() {
 
 Iterable<File> _sourceAccessFiles() {
   return Directory('lib/essentials/app_czar_source_access')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
+}
+
+Iterable<File> _operatingSessionFiles() {
+  return Directory('lib/essentials/app_czar_operating_session')
       .listSync(recursive: true, followLinks: false)
       .whereType<File>()
       .where((file) => file.path.endsWith('.dart'));
