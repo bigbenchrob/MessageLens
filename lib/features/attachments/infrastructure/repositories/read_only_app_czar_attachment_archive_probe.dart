@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -11,17 +13,26 @@ import '../../../../essentials/db/application/read_only_sql_guard.dart';
 import '../../application/attachment_archive_bookmark_adapter.dart';
 import '../../application/attachment_archive_location_controller.dart';
 import '../../domain/entities/attachment_archive_location_configuration.dart';
+import '../../domain/entities/attachment_archive_location_state.dart';
+import 'read_only_app_czar_attachment_coverage_probe.dart';
 
 final class ReadOnlyAppCzarAttachmentArchiveProbe
     implements AppCzarAttachmentArchiveProbe {
-  const ReadOnlyAppCzarAttachmentArchiveProbe({
+  ReadOnlyAppCzarAttachmentArchiveProbe({
     required ArchiveAccessAuthority archiveAccessAuthority,
     required AttachmentArchiveBookmarkAdapter bookmarkAdapter,
+    ReadOnlyAppCzarAttachmentCoverageProbe? coverageProbe,
   }) : _archiveAccessAuthority = archiveAccessAuthority,
-       _bookmarkAdapter = bookmarkAdapter;
+       _bookmarkAdapter = bookmarkAdapter,
+       _coverageProbe =
+           coverageProbe ??
+           ReadOnlyAppCzarAttachmentCoverageProbe(
+             archiveAccessAuthority: archiveAccessAuthority,
+           );
 
   final ArchiveAccessAuthority _archiveAccessAuthority;
   final AttachmentArchiveBookmarkAdapter _bookmarkAdapter;
+  final ReadOnlyAppCzarAttachmentCoverageProbe _coverageProbe;
 
   @override
   Future<AppCzarArchiveObservation> readCurrent() async {
@@ -31,7 +42,9 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
     }
     final configuration = configurationRead.configuration!;
     return switch (configuration.mode) {
-      AttachmentArchiveLocationMode.defaultInternal => _readDefaultInternal(),
+      AttachmentArchiveLocationMode.defaultInternal => _readDefaultInternal(
+        configuration,
+      ),
       AttachmentArchiveLocationMode.customExternal => _readCustomExternal(
         configuration,
       ),
@@ -112,7 +125,9 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
     }
   }
 
-  AppCzarArchiveObservation _readDefaultInternal() {
+  Future<AppCzarArchiveObservation> _readDefaultInternal(
+    AttachmentArchiveLocationConfiguration configuration,
+  ) async {
     final archivePath = _archiveAccessAuthority.resolvePath(
       AttachmentArchiveLocationController.defaultArchiveDirectoryName,
     );
@@ -121,24 +136,29 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
       followLinks: false,
     );
     if (entityType == FileSystemEntityType.notFound) {
-      return AppCzarArchiveObservation(
+      return _readCoverageForStableScope(
         condition: AppCzarArchiveCondition.notCreated,
         label: 'Default attachment archive',
-        resolvedPath: archivePath,
+        configuration: configuration,
+        archiveRootPath: archivePath,
       );
     }
     if (entityType != FileSystemEntityType.directory) {
       return AppCzarArchiveObservation(
         condition: AppCzarArchiveCondition.unavailable,
         label: 'Default attachment archive',
+        coverage: const AppCzarAttachmentCoverageObservation.unknown(
+          issue: 'The default attachment archive is not a regular directory.',
+        ),
         resolvedPath: archivePath,
         issue: 'The default attachment archive is not a regular directory.',
       );
     }
-    return AppCzarArchiveObservation(
+    return _readCoverageForStableScope(
       condition: AppCzarArchiveCondition.available,
       label: 'Default attachment archive',
-      resolvedPath: archivePath,
+      configuration: configuration,
+      archiveRootPath: archivePath,
     );
   }
 
@@ -150,6 +170,9 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
       return const AppCzarArchiveObservation(
         condition: AppCzarArchiveCondition.unavailable,
         label: 'Configured attachment archive',
+        coverage: AppCzarAttachmentCoverageObservation.unknown(
+          issue: 'The configured attachment archive bookmark is missing.',
+        ),
         issue: 'The configured attachment archive bookmark is missing.',
       );
     }
@@ -164,16 +187,18 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
     );
     return switch (resolution.status) {
       AttachmentArchiveBookmarkResolutionStatus.available =>
-        AppCzarArchiveObservation(
+        _readCoverageForStableScope(
           condition: AppCzarArchiveCondition.available,
           label: label,
-          resolvedPath: resolvedPath,
+          configuration: configuration,
+          archiveRootPath: resolvedPath!,
         ),
       AttachmentArchiveBookmarkResolutionStatus.readOnly =>
-        AppCzarArchiveObservation(
+        _readCoverageForStableScope(
           condition: AppCzarArchiveCondition.readOnly,
           label: label,
-          resolvedPath: resolvedPath,
+          configuration: configuration,
+          archiveRootPath: resolvedPath!,
           issue: resolution.issue,
         ),
       AttachmentArchiveBookmarkResolutionStatus.unavailable ||
@@ -183,12 +208,124 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
         AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.unavailable,
           label: label,
+          coverage: AppCzarAttachmentCoverageObservation.unknown(
+            issue:
+                resolution.issue ??
+                'The configured attachment archive is unavailable.',
+          ),
           resolvedPath: resolvedPath,
           issue:
               resolution.issue ??
               'The configured attachment archive is unavailable.',
         ),
     };
+  }
+
+  Future<AppCzarArchiveObservation> _readCoverageForStableScope({
+    required AppCzarArchiveCondition condition,
+    required String label,
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String archiveRootPath,
+    String? issue,
+  }) async {
+    final initialScope = _scopeIdentity(
+      configuration: configuration,
+      archiveRootPath: archiveRootPath,
+    );
+    final coverage = await _coverageProbe.readCurrent(
+      archiveRootPath: archiveRootPath,
+      archiveScopeIdentity: initialScope,
+      archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
+    );
+
+    final endingConfigurationRead = _readConfiguration();
+    final endingConfiguration = endingConfigurationRead.configuration;
+    if (endingConfigurationRead.issue != null ||
+        endingConfiguration != configuration) {
+      return AppCzarArchiveObservation(
+        condition: condition,
+        label: label,
+        archiveScopeIdentity: initialScope,
+        archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
+        coverage: AppCzarAttachmentCoverageObservation.unknown(
+          issue:
+              'The attachment archive configuration changed during coverage inspection.',
+          archiveScopeIdentity: initialScope,
+          archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
+          requiredCount: coverage.requiredCount,
+          coveredCount: coverage.coveredCount,
+          missingCount: coverage.missingCount,
+          unverifiableCount: coverage.unverifiableCount,
+        ),
+        resolvedPath: archiveRootPath,
+        issue: issue,
+      );
+    }
+
+    final endingRootPath = await _resolveCurrentRoot(endingConfiguration!);
+    final endingScope = endingRootPath == null
+        ? null
+        : _scopeIdentity(
+            configuration: endingConfiguration,
+            archiveRootPath: endingRootPath,
+          );
+    final stable = endingScope == initialScope;
+    return AppCzarArchiveObservation(
+      condition: condition,
+      label: label,
+      archiveScopeIdentity: initialScope,
+      archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
+      coverage: stable
+          ? coverage
+          : AppCzarAttachmentCoverageObservation.unknown(
+              issue:
+                  'The attachment archive root changed during coverage inspection.',
+              archiveScopeIdentity: initialScope,
+              archiveGeneration:
+                  AttachmentArchiveLocationState.initialGeneration,
+              requiredCount: coverage.requiredCount,
+              coveredCount: coverage.coveredCount,
+              missingCount: coverage.missingCount,
+              unverifiableCount: coverage.unverifiableCount,
+            ),
+      resolvedPath: archiveRootPath,
+      issue: issue,
+    );
+  }
+
+  Future<String?> _resolveCurrentRoot(
+    AttachmentArchiveLocationConfiguration configuration,
+  ) async {
+    if (configuration.mode == AttachmentArchiveLocationMode.defaultInternal) {
+      return _archiveAccessAuthority.resolvePath(
+        AttachmentArchiveLocationController.defaultArchiveDirectoryName,
+      );
+    }
+    final bookmarkData = configuration.bookmarkDataBase64;
+    if (bookmarkData == null || bookmarkData.isEmpty) {
+      return null;
+    }
+    final resolution = await _bookmarkAdapter.resolveBookmark(
+      bookmarkDataBase64: bookmarkData,
+    );
+    return switch (resolution.status) {
+      AttachmentArchiveBookmarkResolutionStatus.available ||
+      AttachmentArchiveBookmarkResolutionStatus.readOnly =>
+        resolution.resolvedPath,
+      _ => null,
+    };
+  }
+
+  String _scopeIdentity({
+    required AttachmentArchiveLocationConfiguration configuration,
+    required String archiveRootPath,
+  }) {
+    final material = <String>[
+      _archiveAccessAuthority.identity.archiveInstanceId.value,
+      configuration.toPersistedValue(),
+      path.normalize(path.absolute(archiveRootPath)),
+    ].join('\u0000');
+    return sha256.convert(utf8.encode(material)).toString();
   }
 
   static String _archiveLabel({

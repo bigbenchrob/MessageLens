@@ -39,6 +39,10 @@ void main() {
         'lib/features/attachments/infrastructure/repositories/'
         'read_only_app_czar_attachment_archive_probe.dart',
       ),
+      File(
+        'lib/features/attachments/infrastructure/repositories/'
+        'read_only_app_czar_attachment_coverage_probe.dart',
+      ),
     ].map((file) => file.readAsStringSync()).join('\n');
 
     expect(
@@ -53,6 +57,61 @@ void main() {
     );
     expect(sources, contains('OpenMode.readOnly'));
     expect(sources, contains('PRAGMA query_only = ON'));
+  });
+
+  test('attachment coverage remains observation-only and acquires no Ball', () {
+    final source = File(
+      'lib/features/attachments/infrastructure/repositories/'
+      'read_only_app_czar_attachment_coverage_probe.dart',
+    ).readAsStringSync();
+
+    const forbidden = <String>[
+      'ArchiveMutationCoordinator',
+      'archiveMutationCoordinatorProvider',
+      'ArchiveMutationCapability',
+      'runWithCapability',
+      'mutationTenure',
+      'Ball',
+      'OperationSnapshot',
+      'updateSucceeded',
+      'preservationComplete',
+      'lastRepairSucceeded',
+      'needsRepair',
+    ];
+    for (final term in forbidden) {
+      expect(
+        source,
+        isNot(contains(term)),
+        reason: 'Probe must not contain $term',
+      );
+    }
+    expect(source, contains('OpenMode.readOnly'));
+    expect(source, contains('PRAGMA query_only = ON'));
+  });
+
+  test('availability and coverage remain distinct Operating facts', () {
+    final model = File(
+      'lib/essentials/app_czar/domain/app_czar_models.dart',
+    ).readAsStringSync();
+    final operating = File(
+      'lib/essentials/app_czar_operating_session/application/'
+      'app_czar_operating_session_controller.dart',
+    ).readAsStringSync();
+
+    expect(model, contains('attachmentArchiveAvailable'));
+    expect(model, contains('attachmentCoverageComplete'));
+    expect(
+      RegExp(
+        r'AppCzarFactId\.attachmentArchiveAvailable',
+      ).allMatches(operating),
+      hasLength(1),
+    );
+    expect(
+      RegExp(
+        r'AppCzarFactId\.attachmentCoverageComplete',
+      ).allMatches(operating),
+      hasLength(1),
+    );
   });
 
   test('virtual coordinator selection is data and has no constructor seam', () {

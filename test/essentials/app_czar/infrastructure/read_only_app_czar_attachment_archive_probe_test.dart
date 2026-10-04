@@ -58,6 +58,50 @@ void main() {
       orderedEquals(entriesBefore),
     );
   });
+
+  test(
+    'archive root change during coverage read fails closed to UNKNOWN',
+    () async {
+      final tempDirectory = await Directory.systemTemp.createTemp(
+        'app_czar_archive_scope_',
+      );
+      addTearDown(() => tempDirectory.delete(recursive: true));
+      final overlayPath = path.join(tempDirectory.path, 'user_overlays.db');
+      final database = sqlite3.open(overlayPath);
+      database.execute(
+        'CREATE TABLE overlay_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+      );
+      final configuration =
+          AttachmentArchiveLocationConfiguration.customExternal(
+            bookmarkDataBase64: 'AQID',
+            lastKnownPath: '/Volumes/ArchiveA/archive',
+            volumeName: 'ArchiveA',
+            customWritePolicy: AttachmentArchiveCustomWritePolicy.activeArchive,
+          );
+      database.execute(
+        'INSERT INTO overlay_settings (key, value) VALUES (?, ?)',
+        <Object?>[
+          attachmentArchiveLocationSettingKey,
+          configuration.toPersistedValue(),
+        ],
+      );
+      database.dispose();
+
+      final probe = ReadOnlyAppCzarAttachmentArchiveProbe(
+        archiveAccessAuthority: _authority(tempDirectory.path),
+        bookmarkAdapter: _ChangingBookmarkAdapter(),
+      );
+
+      final observation = await probe.readCurrent();
+
+      expect(observation.condition, AppCzarArchiveCondition.available);
+      expect(
+        observation.coverage.condition,
+        AppCzarAttachmentCoverageCondition.unknown,
+      );
+      expect(observation.coverage.issue, contains('root changed'));
+    },
+  );
 }
 
 ArchiveAccessAuthority _authority(String rootPath) {
@@ -99,6 +143,36 @@ final class _BookmarkAdapter implements AttachmentArchiveBookmarkAdapter {
       resolvedPath: '/Volumes/Toshiba/archive',
       refreshedBookmarkDataBase64: 'BAUG',
       volumeName: 'Toshiba',
+    );
+  }
+}
+
+final class _ChangingBookmarkAdapter
+    implements AttachmentArchiveBookmarkAdapter {
+  var _reads = 0;
+
+  @override
+  Future<AttachmentArchiveBookmarkCreation> createBookmark({
+    required String directoryPath,
+  }) {
+    throw UnsupportedError('AppCzar cannot create bookmarks.');
+  }
+
+  @override
+  Stream<AttachmentArchiveLocationEvent> get locationEvents =>
+      const Stream<AttachmentArchiveLocationEvent>.empty();
+
+  @override
+  Future<AttachmentArchiveBookmarkResolution> resolveBookmark({
+    required String bookmarkDataBase64,
+  }) async {
+    _reads += 1;
+    return AttachmentArchiveBookmarkResolution(
+      status: AttachmentArchiveBookmarkResolutionStatus.available,
+      resolvedPath: _reads == 1
+          ? '/Volumes/ArchiveA/archive'
+          : '/Volumes/ArchiveB/archive',
+      volumeName: _reads == 1 ? 'ArchiveA' : 'ArchiveB',
     );
   }
 }

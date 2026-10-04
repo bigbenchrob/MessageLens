@@ -26,6 +26,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   after one exact healthy/current assessment generation and visual window-state
   restoration, replacing the assessment surface with the normal MessageLens
   workspace.
+- AppCzar now reconstructs a current attachment-coverage fact from the live
+  graph, durable per-payload archive evidence, and bounded filesystem metadata.
+  Complete, incomplete, and inconclusive coverage remain distinct, and only
+  complete coverage can admit an Operating Session.
 
 ### Changed
 
@@ -67,6 +71,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   neutral shell without Journey/readiness observers, Advanced Start Fresh, or
   the ambient live-update monitor; live currentness maintenance remains
   intentionally deferred to the next milestone.
+- Attachment coverage inspection is read-only, acquires no archive mutation
+  capability, hashes no payload bytes, and rechecks both durable evidence and
+  payload metadata before publishing a result. Archive availability remains a
+  separate fact, and Attachment Archive Repair remains virtual.
 
 ## [0.2.128] — 2026-09-23
 

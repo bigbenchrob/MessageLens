@@ -153,6 +153,7 @@ const Set<String> _appDatabaseFileHelperAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
+  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
   'lib/features/environment_summary/infrastructure/repositories/sqlite_environment_evidence_repository.dart',
   'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
 };
@@ -359,6 +360,7 @@ const Set<String> _directSqliteImportAllowedFiles = {
   'lib/essentials/source_scoped_import/infrastructure/source_database/sqflite_source_database.dart',
   'lib/features/address_book_folders/infrastructure/data_sources/local/address_book_db_helper_multi_instance.dart',
   'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
+  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
@@ -730,6 +732,7 @@ const Set<String> _attachmentSourceScopedIdentityAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/graph_cross_snapshot_mapper.dart',
   'lib/features/attachments/infrastructure/repositories/import_ledger_message_lens_attachment_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/message_lens_attachment_identity_evidence_factory.dart',
+  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart',
 };
 

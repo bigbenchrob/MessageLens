@@ -21,6 +21,7 @@ final class AppCzarEvaluator {
       _overlayFact(observations.overlay),
       _localDatasetFact(observations),
       _archiveFact(observations.attachmentArchive),
+      _attachmentCoverageFact(observations.attachmentArchive),
       _deltaKnownFact(observations),
       _sourceAheadFact(observations),
     ];
@@ -217,6 +218,42 @@ final class AppCzarEvaluator {
     );
   }
 
+  AppCzarFact _attachmentCoverageFact(
+    AppCzarArchiveObservation archiveObservation,
+  ) {
+    final observation = archiveObservation.coverage;
+    if (!archiveObservation.hasCoherentCoverageBinding) {
+      return const AppCzarFact(
+        id: AppCzarFactId.attachmentCoverageComplete,
+        label: 'Required attachment coverage complete',
+        truth: AppCzarTruth.unknown,
+        detail:
+            'Attachment coverage evidence is not coherently bound to the current archive scope.',
+      );
+    }
+    final requiredCount = observation.requiredCount;
+    final coveredCount = observation.coveredCount;
+    final missingCount = observation.missingCount;
+    return AppCzarFact(
+      id: AppCzarFactId.attachmentCoverageComplete,
+      label: 'Required attachment coverage complete',
+      truth: switch (observation.condition) {
+        AppCzarAttachmentCoverageCondition.complete => AppCzarTruth.trueValue,
+        AppCzarAttachmentCoverageCondition.incomplete =>
+          AppCzarTruth.falseValue,
+        AppCzarAttachmentCoverageCondition.unknown => AppCzarTruth.unknown,
+      },
+      detail: switch (observation.condition) {
+        AppCzarAttachmentCoverageCondition.complete =>
+          '$coveredCount of $requiredCount required attachment payloads have current durable coverage evidence.',
+        AppCzarAttachmentCoverageCondition.incomplete =>
+          '$missingCount required attachment payloads do not have current durable coverage evidence.',
+        AppCzarAttachmentCoverageCondition.unknown =>
+          observation.issue ?? 'Required attachment coverage is inconclusive.',
+      },
+    );
+  }
+
   AppCzarFact _deltaKnownFact(AppCzarObservationSet observations) {
     final source = observations.source;
     final localComplete = _localDatasetFact(observations);
@@ -368,6 +405,21 @@ final class AppCzarEvaluator {
         diagnosis:
             'MessageLens does not currently have a complete local message dataset.',
         coordinator: AppCzarVirtualCoordinator.onboarding,
+      );
+    }
+
+    final attachmentCoverage = fact(AppCzarFactId.attachmentCoverageComplete);
+    if (attachmentCoverage.truth == AppCzarTruth.falseValue) {
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete,
+        diagnosis:
+            'The current attachment archive does not cover every required attachment payload.',
+        coordinator: AppCzarVirtualCoordinator.attachmentArchiveRepair,
+      );
+    }
+    if (attachmentCoverage.truth == AppCzarTruth.unknown) {
+      return const _AppCzarSelection.diagnostic(
+        'Current evidence does not establish complete required attachment coverage.',
       );
     }
 

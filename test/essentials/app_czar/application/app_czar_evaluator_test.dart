@@ -70,6 +70,24 @@ void main() {
     expect(assessment.virtualCoordinator, AppCzarVirtualCoordinator.onboarding);
   });
 
+  test('absent local dataset reaches Onboarding before coverage UNKNOWN', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        importStore: const AppCzarDatabaseObservation.absent(),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.notCreated,
+          label: 'Default attachment archive',
+          coverage: AppCzarAttachmentCoverageObservation.unknown(
+            issue: 'No conversation graph exists yet.',
+          ),
+        ),
+      ),
+    );
+
+    expect(assessment.virtualCoordinator, AppCzarVirtualCoordinator.onboarding);
+  });
+
   test('complete data plus inaccessible source selects source repair', () {
     final assessment = evaluator.evaluate(
       _healthyObservations(
@@ -138,6 +156,9 @@ void main() {
         attachmentArchive: const AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.unavailable,
           label: 'Toshiba',
+          coverage: AppCzarAttachmentCoverageObservation.unknown(
+            issue: 'Volume absent.',
+          ),
           issue: 'Volume absent.',
         ),
       ),
@@ -228,6 +249,9 @@ void main() {
         attachmentArchive: const AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.notCreated,
           label: 'Default attachment archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: _zeroCoverage,
         ),
       ),
     );
@@ -239,6 +263,196 @@ void main() {
     expect(
       assessment.virtualCoordinator,
       AppCzarVirtualCoordinator.operatingSession,
+    );
+  });
+
+  test('read-only available archive can prove complete coverage', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.readOnly,
+          label: 'Read-only fixture archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: _completeCoverage,
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentArchiveAvailable).truth,
+      AppCzarTruth.trueValue,
+    );
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.trueValue,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.operatingSession,
+    );
+  });
+
+  test('incomplete current coverage selects virtual archive repair', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.incomplete,
+            requiredCount: 4,
+            coveredCount: 2,
+            missingCount: 2,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentArchiveAvailable).truth,
+      AppCzarTruth.trueValue,
+    );
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.falseValue,
+    );
+    expect(
+      assessment.diagnosisKind,
+      AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.attachmentArchiveRepair,
+    );
+  });
+
+  test('source-access prerequisite remains ahead of coverage repair', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        source: const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.accessDenied,
+          issue: 'Access denied.',
+        ),
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.incomplete,
+            requiredCount: 1,
+            coveredCount: 0,
+            missingCount: 1,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.sourceAccessRepair,
+    );
+  });
+
+  test('stale archive generation cannot authorize complete coverage', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          archiveScopeIdentity: 'current-scope',
+          archiveGeneration: 4,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.complete,
+            requiredCount: 1,
+            coveredCount: 1,
+            missingCount: 0,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'current-scope',
+            archiveGeneration: 3,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.unknown,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
+  test('incoherent complete counts cannot authorize Operating', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.complete,
+            requiredCount: 2,
+            coveredCount: 1,
+            missingCount: 0,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.unknown,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      isNot(AppCzarVirtualCoordinator.operatingSession),
+    );
+  });
+
+  test('UNKNOWN coverage fails closed to diagnostics despite availability', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation.unknown(
+            issue: 'Required evidence changed during inspection.',
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentArchiveAvailable).truth,
+      AppCzarTruth.trueValue,
+    );
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.unknown,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
     );
   });
 }
@@ -272,6 +486,9 @@ AppCzarObservationSet _healthyObservations({
     condition: AppCzarArchiveCondition.available,
     label: 'Toshiba',
     resolvedPath: '/Volumes/Toshiba/archive',
+    archiveScopeIdentity: 'test-scope',
+    archiveGeneration: 0,
+    coverage: _completeCoverage,
   ),
 }) {
   return AppCzarObservationSet(
@@ -286,3 +503,23 @@ AppCzarObservationSet _healthyObservations({
     attachmentArchive: attachmentArchive,
   );
 }
+
+const _completeCoverage = AppCzarAttachmentCoverageObservation(
+  condition: AppCzarAttachmentCoverageCondition.complete,
+  requiredCount: 4,
+  coveredCount: 4,
+  missingCount: 0,
+  unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
+
+const _zeroCoverage = AppCzarAttachmentCoverageObservation(
+  condition: AppCzarAttachmentCoverageCondition.complete,
+  requiredCount: 0,
+  coveredCount: 0,
+  missingCount: 0,
+  unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);

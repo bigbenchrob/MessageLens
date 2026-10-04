@@ -76,6 +76,17 @@ final class _ArchiveProbe implements AppCzarAttachmentArchiveProbe {
     return const AppCzarArchiveObservation(
       condition: AppCzarArchiveCondition.notCreated,
       label: 'Default attachment archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      coverage: AppCzarAttachmentCoverageObservation(
+        condition: AppCzarAttachmentCoverageCondition.complete,
+        requiredCount: 0,
+        coveredCount: 0,
+        missingCount: 0,
+        unverifiableCount: 0,
+        archiveScopeIdentity: 'test-scope',
+        archiveGeneration: 0,
+      ),
     );
   }
 }

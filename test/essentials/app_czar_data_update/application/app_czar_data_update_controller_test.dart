@@ -291,6 +291,9 @@ final class _DataUpdateReader implements AppCzarObservationReader {
     return const AppCzarArchiveObservation(
       condition: AppCzarArchiveCondition.available,
       label: 'Test archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      coverage: _completeCoverage,
     );
   }
 
@@ -339,6 +342,16 @@ final class _DataUpdateReader implements AppCzarObservationReader {
     );
   }
 }
+
+const _completeCoverage = AppCzarAttachmentCoverageObservation(
+  condition: AppCzarAttachmentCoverageCondition.complete,
+  requiredCount: 1,
+  coveredCount: 1,
+  missingCount: 0,
+  unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
 
 ArchiveAccessAuthority _testAuthority() {
   return ArchiveAccessAuthority(

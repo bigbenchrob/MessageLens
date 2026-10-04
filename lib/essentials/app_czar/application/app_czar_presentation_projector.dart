@@ -20,6 +20,7 @@ enum AppCzarPresentationRowId {
   overlay,
   localDataset,
   attachmentArchive,
+  attachmentCoverage,
   newMessages,
 }
 
@@ -106,6 +107,10 @@ final class AppCzarPresentationProjector {
         _overlayRow(observations.overlay, assessment),
         _localDatasetRow(observations, assessment),
         _archiveRow(observations.attachmentArchive, assessment),
+        _attachmentCoverageRow(
+          observations.attachmentArchive.coverage,
+          assessment,
+        ),
         _newMessagesRow(observations, assessment),
       ],
       diagnosis: assessment.diagnosis,
@@ -123,6 +128,7 @@ final class AppCzarPresentationProjector {
       AppCzarPresentationRowId.overlay: 'MessageLens overlay',
       AppCzarPresentationRowId.localDataset: 'Local message dataset',
       AppCzarPresentationRowId.attachmentArchive: 'Attachment archive',
+      AppCzarPresentationRowId.attachmentCoverage: 'Attachment coverage',
       AppCzarPresentationRowId.newMessages: 'New messages',
     };
     return <AppCzarPresentationRow>[
@@ -394,6 +400,46 @@ final class AppCzarPresentationProjector {
         'Archive label: ${observation.label}.',
         if (observation.resolvedPath != null)
           'Resolved archive path: ${observation.resolvedPath}.',
+        if (observation.issue != null) observation.issue!,
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _attachmentCoverageRow(
+    AppCzarAttachmentCoverageObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.attachmentCoverageComplete);
+    final requiredCount = observation.requiredCount;
+    final coveredCount = observation.coveredCount;
+    final missingCount = observation.missingCount;
+    final unverifiableCount = observation.unverifiableCount;
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.attachmentCoverage,
+      label: 'Attachment coverage',
+      value: switch (fact.truth) {
+        AppCzarTruth.trueValue =>
+          'Complete — $coveredCount of $requiredCount required payloads covered',
+        AppCzarTruth.falseValue =>
+          'Incomplete — $missingCount required payloads are not covered',
+        AppCzarTruth.unknown => 'Could not be established',
+      },
+      detail: fact.detail,
+      significance: switch (fact.truth) {
+        AppCzarTruth.trueValue => AppCzarPresentationSignificance.healthy,
+        AppCzarTruth.falseValue => AppCzarPresentationSignificance.attention,
+        AppCzarTruth.unknown => AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[AppCzarFactId.attachmentCoverageComplete],
+      evidence: <String>[
+        'Coverage condition: ${observation.condition.name}.',
+        if (requiredCount != null) 'Required payload records: $requiredCount.',
+        if (coveredCount != null) 'Covered payload records: $coveredCount.',
+        if (missingCount != null) 'Uncovered payload records: $missingCount.',
+        if (unverifiableCount != null)
+          'Unverifiable payload records: $unverifiableCount.',
+        if (observation.archiveGeneration != null)
+          'Observed attachment generation: ${observation.archiveGeneration}.',
         if (observation.issue != null) observation.issue!,
       ],
     );

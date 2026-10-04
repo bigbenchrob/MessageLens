@@ -12,7 +12,6 @@ import 'attachment_archive_settings_store_provider.dart';
 
 part 'archive_settings_provider.g.dart';
 
-const _kArchiveEnabledKey = 'attachment_archive_enabled';
 const kArchiveSweepCursorKey = 'attachment_archive_sweep_cursor';
 const kArchiveSweepLastStartedAtUtcKey =
     'attachment_archive_sweep_last_started_at_utc';
@@ -52,7 +51,9 @@ class ArchiveSettings extends _$ArchiveSettings {
     );
 
     // Read enabled flag from overlay settings.
-    final enabledStr = await settingsStore.readSetting(_kArchiveEnabledKey);
+    final enabledStr = await settingsStore.readSetting(
+      attachmentArchiveEnabledSettingKey,
+    );
     final enabled = enabledStr != 'false'; // Default: enabled.
 
     final sweepDebug = await _readSweepDebugState(settingsStore);
@@ -70,7 +71,7 @@ class ArchiveSettings extends _$ArchiveSettings {
       attachmentArchiveSettingsStoreProvider.future,
     );
     await settingsStore.writeSetting(
-      key: _kArchiveEnabledKey,
+      key: attachmentArchiveEnabledSettingKey,
       value: enabled.toString(),
     );
     ref.invalidateSelf();

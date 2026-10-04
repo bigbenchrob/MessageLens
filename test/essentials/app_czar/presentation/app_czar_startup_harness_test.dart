@@ -122,7 +122,7 @@ void main() {
 
     expect(find.text('Still assessing…'), findsOneWidget);
     expect(find.text('Not selected yet'), findsOneWidget);
-    expect(find.text('Checking'), findsNWidgets(9));
+    expect(find.text('Checking'), findsNWidgets(10));
     expect(find.textContaining('Full Disk Access'), findsNothing);
     expect(find.textContaining('%'), findsNothing);
     expect(displayIdentityResolverBuilds, 0);
@@ -163,6 +163,9 @@ final class _HealthyReader implements AppCzarObservationReader {
     return const AppCzarArchiveObservation(
       condition: AppCzarArchiveCondition.available,
       label: 'Toshiba',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      coverage: _completeCoverage,
     );
   }
 
@@ -214,6 +217,16 @@ final class _HealthyReader implements AppCzarObservationReader {
     );
   }
 }
+
+const _completeCoverage = AppCzarAttachmentCoverageObservation(
+  condition: AppCzarAttachmentCoverageCondition.complete,
+  requiredCount: 1,
+  coveredCount: 1,
+  missingCount: 0,
+  unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
 
 final class _NeverCompletingReader implements AppCzarObservationReader {
   final _never = Completer<void>().future;

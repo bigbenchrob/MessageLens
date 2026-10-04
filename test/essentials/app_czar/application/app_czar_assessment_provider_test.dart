@@ -237,4 +237,16 @@ const _overlay = AppCzarDatabaseObservation(
 const _archive = AppCzarArchiveObservation(
   condition: AppCzarArchiveCondition.available,
   label: 'Toshiba',
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+  coverage: _completeCoverage,
+);
+const _completeCoverage = AppCzarAttachmentCoverageObservation(
+  condition: AppCzarAttachmentCoverageCondition.complete,
+  requiredCount: 1,
+  coveredCount: 1,
+  missingCount: 0,
+  unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
 );

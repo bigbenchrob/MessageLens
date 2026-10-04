@@ -22,6 +22,8 @@ enum AppCzarArchiveCondition {
   unknown,
 }
 
+enum AppCzarAttachmentCoverageCondition { complete, incomplete, unknown }
+
 enum AppCzarFactId {
   developmentRootAdmitted,
   messagesSourceReadable,
@@ -31,6 +33,7 @@ enum AppCzarFactId {
   overlayHealthy,
   localDatasetComplete,
   attachmentArchiveAvailable,
+  attachmentCoverageComplete,
   sourceLocalDeltaKnown,
   sourceAheadOfLocal,
 }
@@ -40,9 +43,91 @@ enum AppCzarDiagnosisKind {
   incompleteLocalDataset,
   sourceAccessUnavailable,
   attachmentArchiveUnavailable,
+  attachmentArchiveCoverageIncomplete,
   localDataNeedsRepair,
   sourceAheadOfLocal,
   contradictoryOrInsufficientEvidence,
+}
+
+@immutable
+final class AppCzarAttachmentCoverageObservation {
+  const AppCzarAttachmentCoverageObservation({
+    required this.condition,
+    required this.requiredCount,
+    required this.coveredCount,
+    required this.missingCount,
+    required this.unverifiableCount,
+    required this.archiveScopeIdentity,
+    required this.archiveGeneration,
+    this.issue,
+  });
+
+  const AppCzarAttachmentCoverageObservation.unknown({
+    required String issue,
+    String? archiveScopeIdentity,
+    int? archiveGeneration,
+    int? requiredCount,
+    int? coveredCount,
+    int? missingCount,
+    int? unverifiableCount,
+  }) : this(
+         condition: AppCzarAttachmentCoverageCondition.unknown,
+         requiredCount: requiredCount,
+         coveredCount: coveredCount,
+         missingCount: missingCount,
+         unverifiableCount: unverifiableCount,
+         archiveScopeIdentity: archiveScopeIdentity,
+         archiveGeneration: archiveGeneration,
+         issue: issue,
+       );
+
+  final AppCzarAttachmentCoverageCondition condition;
+  final int? requiredCount;
+  final int? coveredCount;
+  final int? missingCount;
+  final int? unverifiableCount;
+
+  /// Opaque identity for the admitted data root and one resolved attachment
+  /// archive configuration/root. It is diagnostic scope, not path authority.
+  final String? archiveScopeIdentity;
+
+  /// The attachment-location generation observed for this read-only scope.
+  /// Fresh startup probes begin at the location owner's initial generation.
+  final int? archiveGeneration;
+  final String? issue;
+
+  bool get hasCoherentMaterialCounts {
+    if (condition == AppCzarAttachmentCoverageCondition.unknown) {
+      return true;
+    }
+    final required = requiredCount;
+    final covered = coveredCount;
+    final missing = missingCount;
+    final unverifiable = unverifiableCount;
+    final scope = archiveScopeIdentity;
+    final generation = archiveGeneration;
+    if (required == null ||
+        covered == null ||
+        missing == null ||
+        unverifiable == null ||
+        required < 0 ||
+        covered < 0 ||
+        missing < 0 ||
+        unverifiable < 0 ||
+        covered + missing + unverifiable != required ||
+        scope == null ||
+        scope.isEmpty ||
+        generation == null ||
+        generation < 0) {
+      return false;
+    }
+    return switch (condition) {
+      AppCzarAttachmentCoverageCondition.complete =>
+        covered == required && missing == 0 && unverifiable == 0,
+      AppCzarAttachmentCoverageCondition.incomplete => missing > 0,
+      AppCzarAttachmentCoverageCondition.unknown => true,
+    };
+  }
 }
 
 enum AppCzarVirtualCoordinator {
@@ -121,21 +206,46 @@ final class AppCzarArchiveObservation {
   const AppCzarArchiveObservation({
     required this.condition,
     required this.label,
+    required this.coverage,
+    this.archiveScopeIdentity,
+    this.archiveGeneration,
     this.resolvedPath,
     this.issue,
   });
 
-  const AppCzarArchiveObservation.unknown(String issue)
-    : this(
-        condition: AppCzarArchiveCondition.unknown,
-        label: 'Attachment archive',
-        issue: issue,
-      );
+  factory AppCzarArchiveObservation.unknown(String issue) {
+    return AppCzarArchiveObservation(
+      condition: AppCzarArchiveCondition.unknown,
+      label: 'Attachment archive',
+      coverage: AppCzarAttachmentCoverageObservation.unknown(issue: issue),
+      issue: issue,
+    );
+  }
 
   final AppCzarArchiveCondition condition;
   final String label;
+  final AppCzarAttachmentCoverageObservation coverage;
+  final String? archiveScopeIdentity;
+  final int? archiveGeneration;
   final String? resolvedPath;
   final String? issue;
+
+  bool get hasCoherentCoverageBinding {
+    if (!coverage.hasCoherentMaterialCounts) {
+      return false;
+    }
+    if (coverage.condition == AppCzarAttachmentCoverageCondition.unknown) {
+      return true;
+    }
+    final scope = archiveScopeIdentity;
+    final generation = archiveGeneration;
+    return scope != null &&
+        scope.isNotEmpty &&
+        generation != null &&
+        generation >= 0 &&
+        coverage.archiveScopeIdentity == scope &&
+        coverage.archiveGeneration == generation;
+  }
 }
 
 @immutable

@@ -30,6 +30,7 @@ bool shouldExecuteAppCzarOperatingSession(
     AppCzarFactId.overlayHealthy,
     AppCzarFactId.localDatasetComplete,
     AppCzarFactId.attachmentArchiveAvailable,
+    AppCzarFactId.attachmentCoverageComplete,
     AppCzarFactId.sourceLocalDeltaKnown,
   };
   for (final factId in requiredTrueFacts) {
