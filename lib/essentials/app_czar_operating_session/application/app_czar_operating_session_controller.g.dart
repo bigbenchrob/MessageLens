@@ -7,7 +7,7 @@ part of 'app_czar_operating_session_controller.dart';
 // **************************************************************************
 
 String _$appCzarOperatingSessionControllerHash() =>
-    r'f7045df93b8333a4569f03ba2c80c35286afb84c';
+    r'056c42928d677bdb7cde522fb633c03f1383583b';
 
 /// See also [AppCzarOperatingSessionController].
 @ProviderFor(AppCzarOperatingSessionController)

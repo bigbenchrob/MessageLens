@@ -165,6 +165,7 @@ final class _HealthyReader implements AppCzarObservationReader {
       label: 'Toshiba',
       archiveScopeIdentity: 'test-scope',
       archiveGeneration: 0,
+      resolvedPath: '/test/archive',
       coverage: _completeCoverage,
     );
   }

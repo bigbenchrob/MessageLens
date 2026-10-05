@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/domain/app_czar_operating_session_state.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/presentation/app_czar_operating_currentness_status.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/presentation/app_czar_operating_session_app.dart';
 import 'package:remember_this_text/essentials/navigation/application/panels_view_state_provider.dart';
 import 'package:remember_this_text/essentials/navigation/application/sidebar_mode_provider.dart';
@@ -14,7 +19,7 @@ import 'package:remember_this_text/features/sidebar_utilities/feature_level_prov
     show TopChatMenuChoice, settingsResetMessageDataActionAvailableProvider;
 
 void main() {
-  test('Operating route starts with a neutral undecorated workspace', () {
+  test('Operating route keeps neutral workspace with one status observer', () {
     final container = ProviderContainer(
       overrides: [
         sidebarNavigationRestorationEnabledProvider.overrideWith(
@@ -33,7 +38,11 @@ void main() {
     expect(workspace.normalSidebarShownByDefault, isTrue);
     expect(workspace.showConversationGraphStatusAction, isFalse);
     expect(workspace.sidebarVisibilityOwnerBuilder, isNull);
-    expect(workspace.centerOverlayObservers, isEmpty);
+    expect(workspace.centerOverlayObservers, hasLength(1));
+    expect(
+      workspace.centerOverlayObservers.single,
+      isA<AppCzarOperatingCurrentnessStatusHost>(),
+    );
     expect(workspace.fullWindowOverlays, isEmpty);
 
     expect(container.read(activeSidebarModeProvider), SidebarMode.messages);
@@ -84,5 +93,40 @@ void main() {
 
     expect(find.byType(AppCzarOperatingSessionApp), findsOneWidget);
     expect(find.byKey(const Key('operating-router-child')), findsOneWidget);
+  });
+
+  test('exit permission waits for the exact draining occurrence', () async {
+    const occurrence = AppCzarOperatingSessionOccurrence(
+      processSequence: 9,
+      assessmentGeneration: 3,
+      admittedArchiveScopeIdentity: 'scope-3',
+      admittedArchiveProbeGeneration: 2,
+      admittedArchiveResolvedPath: '/test/archive',
+    );
+    const session = AppCzarOperatingSessionState(
+      phase: AppCzarOperatingSessionPhase.draining,
+      assessmentGeneration: 3,
+      occurrence: occurrence,
+    );
+    final release = Completer<void>();
+    var completed = false;
+
+    final response =
+        drainAppCzarOperatingExitRequest(
+          session: session,
+          stopAndDrain: (received) async {
+            expect(received, occurrence);
+            await release.future;
+          },
+        ).then((value) {
+          completed = true;
+          return value;
+        });
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, isFalse);
+
+    release.complete();
+    expect(await response, AppExitResponse.exit);
+    expect(completed, isTrue);
   });
 }

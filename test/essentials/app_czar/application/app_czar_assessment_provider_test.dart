@@ -239,6 +239,7 @@ const _archive = AppCzarArchiveObservation(
   label: 'Toshiba',
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
+  resolvedPath: '/test/archive',
   coverage: _completeCoverage,
 );
 const _completeCoverage = AppCzarAttachmentCoverageObservation(

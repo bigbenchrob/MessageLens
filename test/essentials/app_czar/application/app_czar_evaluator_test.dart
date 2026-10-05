@@ -249,6 +249,7 @@ void main() {
         attachmentArchive: const AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.notCreated,
           label: 'Default attachment archive',
+          resolvedPath: '/tmp/test-archive',
           archiveScopeIdentity: 'test-scope',
           archiveGeneration: 0,
           coverage: _zeroCoverage,
@@ -272,6 +273,7 @@ void main() {
         attachmentArchive: const AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.readOnly,
           label: 'Read-only fixture archive',
+          resolvedPath: '/tmp/test-archive',
           archiveScopeIdentity: 'test-scope',
           archiveGeneration: 0,
           coverage: _completeCoverage,

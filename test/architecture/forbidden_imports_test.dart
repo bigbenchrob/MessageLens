@@ -295,11 +295,24 @@ const Set<String> _silentCatchAllowedFiles = {
 };
 
 const Set<String> _catchErrorAllowedFiles = {
+  // The Operating currentness monitor starts one explicitly tracked flight
+  // outside an awaitable caller and converts every terminal error into typed
+  // issue state before completing the flight's drain signal.
+  'lib/essentials/app_czar_operating_session/application/app_czar_operating_currentness_controller.dart',
   'lib/essentials/sidebar/application/sidebar_flow_state_provider.dart',
   'lib/main.dart',
 };
 
 const Set<String> _unawaitedAllowedFiles = {
+  // The Operating currentness monitor owns its single-flight lifecycle and
+  // exposes stopAndDrain() as the awaitable shutdown boundary.
+  'lib/essentials/app_czar_operating_session/application/app_czar_operating_currentness_controller.dart',
+  // The Operating session changes state synchronously to draining, then owns
+  // the asynchronous release before it may admit a replacement occurrence.
+  'lib/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart',
+  // This status host is the named presentation-lifecycle owner that waits for
+  // an issue-bearing frame before requesting the controller-owned restart.
+  'lib/essentials/app_czar_operating_session/presentation/app_czar_operating_currentness_status.dart',
   'lib/essentials/conversation_graph/application/conversation_favourites/conversation_favourites_provider.dart',
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
@@ -480,6 +493,9 @@ const Set<String> _platformRuntimeAllowedFiles = {
 };
 
 const Set<String> _timerAllowedFiles = {
+  // The Operating currentness monitor owns its one-shot observation cadence;
+  // stopAndDrain() synchronously cancels the pending timer.
+  'lib/essentials/app_czar_operating_session/application/app_czar_operating_currentness_controller.dart',
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
@@ -493,6 +509,9 @@ const Set<String> _timerAllowedFiles = {
 
 const Set<String> _deferredUiCallbackAllowedFiles = {
   'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+  // The Operating status host starts observation only after the admitted shell
+  // is painted and preserves one issue-bearing frame before restart.
+  'lib/essentials/app_czar_operating_session/presentation/app_czar_operating_currentness_status.dart',
   'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
   'lib/essentials/navigation/presentation/view/panel_stack_surface.dart',
   'lib/essentials/navigation/presentation/widgets/onboarding_center_panel_sync_observer.dart',

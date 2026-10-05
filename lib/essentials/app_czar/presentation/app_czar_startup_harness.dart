@@ -39,8 +39,8 @@ class _AppCzarStartupHarnessState extends ConsumerState<AppCzarStartupHarness> {
     final operatingSession = ref.watch(
       appCzarOperatingSessionControllerProvider,
     );
-    if (operatingSession.isAdmitted) {
-      if (!_operatingAdmissionReported) {
+    if (operatingSession.ownsOperatingShell) {
+      if (operatingSession.isAdmitted && !_operatingAdmissionReported) {
         _operatingAdmissionReported = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {

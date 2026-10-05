@@ -5,8 +5,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_assessment_provider.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_currentness_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_currentness_observer_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/domain/app_czar_operating_currentness_models.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/domain/app_czar_operating_session_state.dart';
 
 void main() {
@@ -105,6 +108,27 @@ void main() {
       );
       expect(
         shouldExecuteAppCzarOperatingSession(AppCzarAssessmentState.initial(9)),
+        isFalse,
+      );
+
+      final otherwiseValid = _operatingAssessmentState();
+      expect(
+        shouldExecuteAppCzarOperatingSession(
+          AppCzarAssessmentState(
+            generation: otherwiseValid.generation,
+            attachmentArchive: const AppCzarArchiveObservation(
+              condition: AppCzarArchiveCondition.available,
+              label: 'Incomplete binding',
+              resolvedPath: '/tmp/test-archive',
+              archiveScopeIdentity: 'test-scope',
+              archiveGeneration: 0,
+              coverage: AppCzarAttachmentCoverageObservation.unknown(
+                issue: 'Coverage binding was omitted.',
+              ),
+            ),
+            assessment: otherwiseValid.assessment,
+          ),
+        ),
         isFalse,
       );
     });
@@ -233,11 +257,157 @@ void main() {
     expect(failed.isAdmitted, isFalse);
     expect(initializer.calls, 1);
   });
+
+  test(
+    'generation replacement keeps the old shell until its exact flight drains',
+    () async {
+      final initializer = _ControlledVisualInitializer()..release();
+      final observer = _BlockingCurrentnessObserver();
+      final container = _container(initializer, observer: observer);
+      addTearDown(container.dispose);
+      final sessionSubscription = container.listen(
+        appCzarOperatingSessionControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(sessionSubscription.close);
+      await _waitForPhase(container, AppCzarOperatingSessionPhase.admitted);
+      final oldOccurrence = container
+          .read(appCzarOperatingSessionControllerProvider)
+          .occurrence!;
+      final currentnessProvider = appCzarOperatingCurrentnessControllerProvider(
+        oldOccurrence,
+      );
+      final currentnessSubscription = container.listen(
+        currentnessProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(currentnessSubscription.close);
+      container.read(currentnessProvider.notifier).start();
+      await observer.started.future;
+
+      final rerun = container
+          .read(appCzarAssessmentControllerProvider.notifier)
+          .runAgain();
+      await _waitForPhase(container, AppCzarOperatingSessionPhase.draining);
+      final draining = container.read(
+        appCzarOperatingSessionControllerProvider,
+      );
+      expect(draining.ownsOperatingShell, isTrue);
+      expect(draining.occurrence, oldOccurrence);
+      expect(observer.release.isCompleted, isFalse);
+
+      await rerun;
+      expect(
+        container.read(appCzarOperatingSessionControllerProvider).phase,
+        AppCzarOperatingSessionPhase.draining,
+      );
+      observer.complete();
+      await _waitForGenerationPhase(
+        container,
+        generation: 1,
+        phase: AppCzarOperatingSessionPhase.admitted,
+      );
+
+      final replacement = container.read(
+        appCzarOperatingSessionControllerProvider,
+      );
+      expect(replacement.occurrence, isNot(oldOccurrence));
+      expect(
+        container.read(currentnessProvider).phase,
+        AppCzarOperatingCurrentnessPhase.stopped,
+      );
+    },
+  );
+
+  test(
+    'same-generation admission loss drains before releasing the shell',
+    () async {
+      final initializer = _ControlledVisualInitializer()..release();
+      final observer = _BlockingCurrentnessObserver();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          appCzarAssessmentControllerProvider.overrideWith(
+            _MutableAssessmentController.new,
+          ),
+          appCzarOperatingSessionVisualInitializerProvider.overrideWithValue(
+            initializer,
+          ),
+          appCzarOperatingCurrentnessObserverProvider.overrideWithValue(
+            observer,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final sessionSubscription = container.listen(
+        appCzarOperatingSessionControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(sessionSubscription.close);
+      await _waitForPhase(container, AppCzarOperatingSessionPhase.admitted);
+      final occurrence = container
+          .read(appCzarOperatingSessionControllerProvider)
+          .occurrence!;
+      final currentnessProvider = appCzarOperatingCurrentnessControllerProvider(
+        occurrence,
+      );
+      final currentnessSubscription = container.listen(
+        currentnessProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(currentnessSubscription.close);
+      container.read(currentnessProvider.notifier).start();
+      await observer.started.future;
+
+      final assessment = container.read(
+        appCzarAssessmentControllerProvider.notifier,
+      );
+      expect(assessment, isA<_MutableAssessmentController>());
+      (assessment as _MutableAssessmentController).publish(
+        _operatingAssessmentState(
+          truthOverrides: const <AppCzarFactId, AppCzarTruth>{
+            AppCzarFactId.sourceAheadOfLocal: AppCzarTruth.trueValue,
+          },
+        ),
+      );
+      await _waitForPhase(container, AppCzarOperatingSessionPhase.draining);
+      expect(
+        container.read(appCzarOperatingSessionControllerProvider).occurrence,
+        occurrence,
+      );
+      expect(
+        container
+            .read(appCzarOperatingSessionControllerProvider)
+            .ownsOperatingShell,
+        isTrue,
+      );
+
+      observer.complete();
+      await _waitForPhase(container, AppCzarOperatingSessionPhase.failed);
+      expect(
+        container
+            .read(appCzarOperatingSessionControllerProvider)
+            .ownsOperatingShell,
+        isFalse,
+      );
+      expect(
+        container.read(currentnessProvider).phase,
+        AppCzarOperatingCurrentnessPhase.stopped,
+      );
+      final failed = container.read(appCzarOperatingSessionControllerProvider);
+      expect(failed.failure, contains('facts that admitted'));
+      expect(failed.failure, isNot(contains('generation changed')));
+    },
+  );
 }
 
 ProviderContainer _container(
-  AppCzarOperatingSessionVisualInitializer initializer,
-) {
+  AppCzarOperatingSessionVisualInitializer initializer, {
+  AppCzarOperatingCurrentnessObserver? observer,
+}) {
   return ProviderContainer(
     overrides: [
       appCzarObservationReaderProvider.overrideWithValue(
@@ -246,6 +416,8 @@ ProviderContainer _container(
       appCzarOperatingSessionVisualInitializerProvider.overrideWithValue(
         initializer,
       ),
+      if (observer != null)
+        appCzarOperatingCurrentnessObserverProvider.overrideWithValue(observer),
     ],
   );
 }
@@ -310,6 +482,14 @@ AppCzarAssessmentState _operatingAssessmentState({
   ];
   return AppCzarAssessmentState(
     generation: 9,
+    attachmentArchive: const AppCzarArchiveObservation(
+      condition: AppCzarArchiveCondition.available,
+      label: 'Test archive',
+      resolvedPath: '/tmp/test-archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      coverage: _completeCoverage,
+    ),
     assessment: AppCzarAssessment(
       facts: facts,
       diagnosisKind: AppCzarDiagnosisKind.healthyCurrentInstallation,
@@ -420,3 +600,75 @@ const _completeCoverage = AppCzarAttachmentCoverageObservation(
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
 );
+
+final class _BlockingCurrentnessObserver
+    implements AppCzarOperatingCurrentnessObserver {
+  final Completer<AppCzarOperatingCoverageObservation> release =
+      Completer<AppCzarOperatingCoverageObservation>();
+  final Completer<void> started = Completer<void>();
+
+  void complete() {
+    if (!release.isCompleted) {
+      release.complete(_coverageObservation());
+    }
+  }
+
+  @override
+  Future<AppCzarOperatingCoverageObservation> readCoverage() {
+    if (!started.isCompleted) {
+      started.complete();
+    }
+    return release.future;
+  }
+
+  @override
+  Future<AppCzarOperatingCurrentnessObservation> readCurrentness() async {
+    throw StateError('Currentness must not be read before blocked coverage.');
+  }
+
+  @override
+  Future<AppCzarOperatingReadFence> readFence() async => _readFence();
+}
+
+final class _MutableAssessmentController extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => _operatingAssessmentState();
+
+  void publish(AppCzarAssessmentState next) {
+    state = next;
+  }
+}
+
+AppCzarOperatingCoverageObservation _coverageObservation() {
+  final fence = _readFence();
+  return AppCzarOperatingCoverageObservation(
+    before: fence,
+    after: fence,
+    archive: const AppCzarArchiveObservation(
+      condition: AppCzarArchiveCondition.available,
+      label: 'Test archive',
+      resolvedPath: '/tmp/test-archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      coverage: _completeCoverage,
+    ),
+  );
+}
+
+AppCzarOperatingReadFence _readFence() {
+  final token = Object();
+  return AppCzarOperatingReadFence(
+    messageDataGeneration: 1,
+    archiveLocation: const AppCzarOperatingArchiveLocationEvidence(
+      generation: 0,
+      isReadable: true,
+      isWritableMutationEligible: true,
+      resolvedPath: '/tmp/test-archive',
+    ),
+    mutation: AppCzarOperatingMutationFence(
+      isActive: false,
+      revisionToken: token,
+      lastReleasedAtMicroseconds: null,
+    ),
+  );
+}

@@ -14,7 +14,7 @@ import 'package:remember_this_text/essentials/onboarding/application/full_disk_a
 import 'package:remember_this_text/essentials/onboarding/application/full_disk_access_provider.dart';
 
 void main() {
-  test('exactly Data Update and Source Access Repair are executable', () {
+  test('exactly two restart coordinators are executable top-level', () {
     final executable = <AppCzarVirtualCoordinator>[];
     for (final coordinator in AppCzarVirtualCoordinator.values) {
       final state = _assessmentState(

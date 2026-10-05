@@ -30,6 +30,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   graph, durable per-payload archive evidence, and bounded filesystem metadata.
   Complete, incomplete, and inconclusive coverage remain distinct, and only
   complete coverage can admit an Operating Session.
+- An admitted AppCzar Operating Session now performs bounded 15-second
+  currentness observations and applies an ordinary source-ahead update in the
+  same process through the existing typed live-graph mutation authority.
 
 ### Changed
 
@@ -53,6 +56,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Display identities now rebuild with the established message-data generation,
   so a populated graph supplies contact names on first use and graph updates do
   not require a navigation change to replace stale fallback labels.
+- Successful Operating updates now preserve the current sidebar, contact,
+  conversation, and panel selection while graph-backed presentation refreshes
+  from the new message-data generation. Compact status reports only real worker
+  and attachment-preservation progress.
 
 ### Safety
 
@@ -66,15 +73,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - AppCzar Data Update progress is memory-only. It cannot declare the app ready
   or Operating, and successful bounded work releases mutation authority before
   a real macOS process restart.
-- Exactly three AppCzar dispositions are executable in the development harness:
-  Data Update, Source Access Repair, and Operating Session. Operating enters a
-  neutral shell without Journey/readiness observers, Advanced Start Fresh, or
-  the ambient live-update monitor; live currentness maintenance remains
-  intentionally deferred to the next milestone.
+- The development AppCzar route has two executable top-level coordinators,
+  Data Update and Source Access Repair, plus one executable admitted Operating
+  Session. Onboarding and all repair/diagnostic selections remain virtual.
+  Operating enters a neutral shell without Journey/readiness observers,
+  Advanced Start Fresh, or the ambient live-update monitor.
 - Attachment coverage inspection is read-only, acquires no archive mutation
   capability, hashes no payload bytes, and rechecks both durable evidence and
   payload metadata before publishing a result. Archive availability remains a
   separate fact, and Attachment Archive Repair remains virtual.
+- Operating observation acquires no mutation authority. A source-ahead update
+  holds exactly one existing live-graph mutation tenure, requires fresh
+  attachment coverage to be conclusively complete after the worker returns,
+  and drains any admitted observation or mutation before Operating teardown or
+  restart.
 
 ## [0.2.128] — 2026-09-23
 

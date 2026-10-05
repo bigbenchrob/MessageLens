@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 
 void main() {
   test('AppCzar package cannot import semantic or execution authorities', () {
@@ -220,12 +221,60 @@ void main() {
     }
   });
 
-  test('exactly three explicit AppCzar execution predicates exist', () {
+  test('every AppCzar disposition has one explicit execution category', () {
     final sources = <File>[
       ..._dataUpdateFiles(),
       ..._sourceAccessFiles(),
       ..._operatingSessionFiles(),
     ].map((file) => file.readAsStringSync()).join('\n');
+    final harness = File(
+      'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+    ).readAsStringSync();
+
+    const classifications =
+        <AppCzarVirtualCoordinator, _AppCzarExecutionCategory>{
+          AppCzarVirtualCoordinator.dataUpdate:
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
+          AppCzarVirtualCoordinator.sourceAccessRepair:
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
+          AppCzarVirtualCoordinator.operatingSession:
+              _AppCzarExecutionCategory.executableAdmittedSession,
+          AppCzarVirtualCoordinator.onboarding:
+              _AppCzarExecutionCategory.virtualOnly,
+          AppCzarVirtualCoordinator.attachmentArchiveRepair:
+              _AppCzarExecutionCategory.virtualOnly,
+          AppCzarVirtualCoordinator.localDataRepair:
+              _AppCzarExecutionCategory.virtualOnly,
+          AppCzarVirtualCoordinator.diagnosticReview:
+              _AppCzarExecutionCategory.virtualOnly,
+        };
+
+    expect(
+      classifications.keys.toSet(),
+      AppCzarVirtualCoordinator.values.toSet(),
+    );
+    expect(
+      classifications.values
+          .where(
+            (category) =>
+                category ==
+                _AppCzarExecutionCategory.executableTopLevelCoordinator,
+          )
+          .length,
+      2,
+    );
+    expect(
+      classifications.values
+          .where(
+            (category) =>
+                category == _AppCzarExecutionCategory.executableAdmittedSession,
+          )
+          .length,
+      1,
+    );
+    expect(harness, contains('appCzarDataUpdateControllerProvider'));
+    expect(harness, contains('appCzarSourceAccessControllerProvider'));
+    expect(harness, contains('appCzarOperatingSessionControllerProvider'));
 
     expect(
       RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
@@ -234,6 +283,10 @@ void main() {
     expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
     expect(sources, contains('shouldExecuteAppCzarSourceAccessRepair'));
     expect(sources, contains('shouldExecuteAppCzarOperatingSession'));
+    expect(sources, isNot(contains('shouldExecuteAppCzarOnboarding')));
+    expect(sources, isNot(contains('shouldExecuteAppCzarAttachmentRepair')));
+    expect(sources, isNot(contains('shouldExecuteAppCzarLocalDataRepair')));
+    expect(sources, isNot(contains('shouldExecuteAppCzarDiagnosticReview')));
     expect(
       sources,
       isNot(matches(RegExp(r'execute\s*\([^)]*AppCzarVirtualCoordinator'))),
@@ -440,23 +493,18 @@ void main() {
     expect(normalized, contains('cannot determine from this evidence whether'));
   });
 
-  test('Operating Session has only admitted shell jurisdiction', () {
-    final sources = _operatingSessionFiles()
-        .map((file) => file.readAsStringSync())
-        .join('\n');
+  test('Operating Session keeps one bounded internal jurisdiction', () {
+    final files = _operatingSessionFiles().toList();
+    final sources = files.map((file) => file.readAsStringSync()).join('\n');
     const forbidden = <String>[
       '/onboarding/',
       '/environment_readiness/',
       'production_macos_app_shell',
       'chat_db_change_monitor',
       'ChatDbChangeMonitor',
-      'LiveGraphUpdateWorker',
-      'archiveMutationCoordinatorProvider',
-      'ArchiveMutationCoordinator',
       'AdvancedStartFresh',
       'appCzarDataUpdateControllerProvider',
       'appCzarSourceAccessControllerProvider',
-      'appCzarProcessRestarterProvider',
       'StartupApp',
       'Timer.periodic',
     ];
@@ -464,12 +512,130 @@ void main() {
       expect(
         sources,
         isNot(contains(term)),
-        reason: 'Operating Session Stage One must not contain $term',
+        reason: 'Operating Session must not contain $term',
       );
     }
-    expect(sources, isNot(matches(RegExp(r'\bBall\b'))));
     expect(sources, contains('MessageLensWorkspaceShell'));
     expect(sources, contains('windowStateServiceProvider'));
+    expect(
+      sources,
+      isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
+    );
+    expect(
+      sources,
+      isNot(matches(RegExp(r'execute\s*\([^)]*AppCzarVirtualCoordinator'))),
+    );
+  });
+
+  test('Operating live update has one exact mutation-admission edge', () {
+    const executorPath =
+        'lib/essentials/app_czar_operating_session/application/'
+        'app_czar_operating_live_update_executor_provider.dart';
+    final files = _operatingSessionFiles().toList();
+    final sources = files.map((file) => file.readAsStringSync()).join('\n');
+
+    expect(RegExp(r'\.runWithCapability<').allMatches(sources), hasLength(1));
+    expect(
+      RegExp(
+        r'operation:\s*ArchiveMutationOperation\.liveGraphUpdate',
+      ).allMatches(sources),
+      hasLength(1),
+    );
+    for (final file in files) {
+      final source = file.readAsStringSync();
+      if (file.path == executorPath) {
+        expect(source, contains('archiveMutationCoordinatorProvider'));
+        expect(source, contains('liveGraphUpdateWorkerProvider.future'));
+        expect(source, contains('await worker.run('));
+        expect(source, contains('.runWithCapability<LiveGraphUpdateResult>'));
+        continue;
+      }
+      expect(
+        source,
+        isNot(contains('.runWithCapability<')),
+        reason: '${file.path} must not acquire mutation authority',
+      );
+      expect(
+        source,
+        isNot(contains('ArchiveMutationCapability')),
+        reason: '${file.path} must not retain a mutation capability',
+      );
+      expect(
+        source,
+        isNot(contains('ArchiveMutationOperation.liveGraphUpdate')),
+        reason: '${file.path} must not name a second mutation edge',
+      );
+    }
+  });
+
+  test('Operating currentness has one-shot observation and exact taxonomy', () {
+    final controller = File(
+      'lib/essentials/app_czar_operating_session/application/'
+      'app_czar_operating_currentness_controller.dart',
+    ).readAsStringSync();
+    final models = File(
+      'lib/essentials/app_czar_operating_session/domain/'
+      'app_czar_operating_currentness_models.dart',
+    ).readAsStringSync();
+
+    expect(controller, contains('Timer(_cadence'));
+    expect(controller, isNot(contains('Timer.periodic')));
+    expect(controller, contains('_activeFlight'));
+    expect(controller, contains('stopAndDrain()'));
+    expect(controller, contains('readCoverage()'));
+    expect(controller, contains('appCzarProcessRestarterProvider'));
+    const dispositions = <String>[
+      'noChange',
+      'sourceAhead',
+      'sourceUnreadable',
+      'sourceUnknown',
+      'sourceUnstable',
+      'localContradiction',
+      'transient',
+    ];
+    for (final disposition in dispositions) {
+      expect(models, contains(disposition));
+    }
+    expect(
+      RegExp(
+            r'enum AppCzarOperatingCurrentnessDisposition\s*\{([^}]*)\}',
+            multiLine: true,
+          )
+          .firstMatch(models)![1]!
+          .split(',')
+          .where((value) => value.trim().isNotEmpty),
+      hasLength(dispositions.length),
+    );
+  });
+
+  test('Operating exit and replacement explicitly drain exact tenure', () {
+    final session = File(
+      'lib/essentials/app_czar_operating_session/application/'
+      'app_czar_operating_session_controller.dart',
+    ).readAsStringSync();
+    final app = File(
+      'lib/essentials/app_czar_operating_session/presentation/'
+      'app_czar_operating_session_app.dart',
+    ).readAsStringSync();
+    final state = File(
+      'lib/essentials/app_czar_operating_session/domain/'
+      'app_czar_operating_session_state.dart',
+    ).readAsStringSync();
+
+    expect(state, contains('draining'));
+    expect(state, contains('ownsOperatingShell'));
+    expect(session, contains('.stopAndDrain()'));
+    expect(session, contains('await drain'));
+    expect(app, contains('session.ownsOperatingShell'));
+    expect(app, contains('await stopAndDrain(occurrence)'));
+    expect(
+      app,
+      contains(
+        'appCzarOperatingCurrentnessControllerProvider(\n'
+        '                occurrence,\n'
+        '              ).notifier',
+      ),
+    );
   });
 
   test('Operating shell core has no legacy semantic authority imports', () {
@@ -508,6 +674,8 @@ void main() {
       'lib/essentials/navigation/presentation/layout/'
       'message_history_coverage_page_track_plan.dart',
     ).readAsStringSync();
+    const exactDevelopmentGate =
+        '!ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider)';
     expect(
       RegExp(
         r'sidebarNavigationRestorationEnabledProvider\.overrideWith[\s\S]*?'
@@ -521,6 +689,22 @@ void main() {
         r'attachmentArchiveAdoptionExecutionEnabledProvider',
       ).hasMatch(mainSource),
       isTrue,
+    );
+    expect(
+      mainSource,
+      contains(
+        'sidebarNavigationRestorationEnabledProvider.overrideWith((ref) {\n'
+        '        return $exactDevelopmentGate;\n'
+        '      }),',
+      ),
+    );
+    expect(
+      mainSource,
+      contains(
+        'settingsResetMessageDataActionAvailableProvider.overrideWith((ref) {\n'
+        '        return $exactDevelopmentGate;\n'
+        '      }),',
+      ),
     );
     expect(
       neutralShell,
@@ -574,6 +758,12 @@ void main() {
     expect(sources, isNot(contains('displayIdentityResolverProvider')));
     expect(sources, isNot(contains('display_identity_resolver_provider.dart')));
   });
+}
+
+enum _AppCzarExecutionCategory {
+  executableTopLevelCoordinator,
+  executableAdmittedSession,
+  virtualOnly,
 }
 
 Iterable<File> _dataUpdateFiles() {

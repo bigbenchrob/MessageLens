@@ -11,6 +11,8 @@ import 'package:remember_this_text/essentials/conversation_graph/application/con
 import 'package:remember_this_text/essentials/conversation_graph/application/conversation_graph_build_state.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/messages/message_projection_repository.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/orchestrators/conversation_graph_build_orchestrator.dart';
+import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
+    show messageDataVersionProvider;
 import 'package:remember_this_text/essentials/source_scoped_import/application/attachments/attachment_importer.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_importer.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart';
@@ -46,6 +48,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    final generationBefore = container.read(messageDataVersionProvider);
     final result = await container
         .read(conversationGraphBuildControllerProvider.notifier)
         .runOnce(owner: 'test-owner');
@@ -56,6 +59,7 @@ void main() {
     expect(state.owner, 'test-owner');
     expect(state.lastReport?.messageProjectionResult.insertedMessageCount, 1);
     expect(state.lastError, isNull);
+    expect(container.read(messageDataVersionProvider), generationBefore + 1);
   });
 
   test('records failed graph build lifecycle state', () async {

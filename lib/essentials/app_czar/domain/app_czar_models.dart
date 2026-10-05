@@ -246,6 +246,25 @@ final class AppCzarArchiveObservation {
         coverage.archiveScopeIdentity == scope &&
         coverage.archiveGeneration == generation;
   }
+
+  /// Whether this observation identifies one exact archive occurrence.
+  ///
+  /// Operating Session uses this read-only evidence to bind its process-local
+  /// occurrence. It is not mutation authority.
+  bool get hasCompleteArchiveBinding {
+    final scope = archiveScopeIdentity;
+    final generation = archiveGeneration;
+    final path = resolvedPath;
+    return scope != null &&
+        scope.isNotEmpty &&
+        generation != null &&
+        generation >= 0 &&
+        path != null &&
+        path.isNotEmpty &&
+        coverage.archiveScopeIdentity == scope &&
+        coverage.archiveGeneration == generation &&
+        hasCoherentCoverageBinding;
+  }
 }
 
 @immutable

@@ -446,6 +446,12 @@ final class AppCzarEvaluator {
       );
     }
 
+    if (!observations.attachmentArchive.hasCompleteArchiveBinding) {
+      return const _AppCzarSelection.diagnostic(
+        'The configured archive did not provide one complete authentic location binding.',
+      );
+    }
+
     return const _AppCzarSelection(
       kind: AppCzarDiagnosisKind.healthyCurrentInstallation,
       diagnosis:
