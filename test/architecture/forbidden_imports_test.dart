@@ -153,7 +153,7 @@ const Set<String> _appDatabaseFileHelperAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
-  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
+  'lib/features/attachments/infrastructure/repositories/sqlite_required_attachment_evidence_reader.dart',
   'lib/features/environment_summary/infrastructure/repositories/sqlite_environment_evidence_repository.dart',
   'lib/features/settings/infrastructure/repositories/message_lens_historical_archive_preflight_service.dart',
 };
@@ -173,6 +173,7 @@ const Set<String> _archiveAccessAuthorityConsumerFiles = {
   'lib/essentials/onboarding/application/onboarding_durable_completion_verifier_provider.dart',
   'lib/essentials/onboarding/application/onboarding_environment_report_provider.dart',
   'lib/essentials/onboarding/application/start_fresh_service_provider.dart',
+  'lib/features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
   'lib/features/attachments/application/attachment_archive_adoption_enablement_provider.dart',
   'lib/features/attachments/application/attachment_archive_location_provider.dart',
@@ -300,6 +301,7 @@ const Set<String> _catchErrorAllowedFiles = {
 };
 
 const Set<String> _unawaitedAllowedFiles = {
+  'lib/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart',
   'lib/essentials/conversation_graph/application/conversation_favourites/conversation_favourites_provider.dart',
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',
@@ -360,7 +362,8 @@ const Set<String> _directSqliteImportAllowedFiles = {
   'lib/essentials/source_scoped_import/infrastructure/source_database/sqflite_source_database.dart',
   'lib/features/address_book_folders/infrastructure/data_sources/local/address_book_db_helper_multi_instance.dart',
   'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart',
-  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
+  'lib/features/attachments/infrastructure/repositories/source_database_current_messages_attachment_source_reader.dart',
+  'lib/features/attachments/infrastructure/repositories/sqlite_required_attachment_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_donor_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_message_lens_attachment_recovery_donor_qualifier.dart',
@@ -456,6 +459,7 @@ const Set<String> _platformEnvironmentAllowedFiles = {
   'lib/essentials/onboarding/infrastructure/system/macos_full_disk_access.dart',
   'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
   'lib/features/attachments/infrastructure/repositories/local_attachment_file_access.dart',
+  'lib/features/attachments/infrastructure/repositories/source_database_current_messages_attachment_source_reader.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_historical_snapshot_reader.dart',
 };
 
@@ -732,8 +736,8 @@ const Set<String> _attachmentSourceScopedIdentityAllowedFiles = {
   'lib/features/attachments/infrastructure/repositories/graph_cross_snapshot_mapper.dart',
   'lib/features/attachments/infrastructure/repositories/import_ledger_message_lens_attachment_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/message_lens_attachment_identity_evidence_factory.dart',
-  'lib/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart',
   'lib/features/attachments/infrastructure/repositories/sqlite_graph_attachment_archive_candidate_reader.dart',
+  'lib/features/attachments/infrastructure/repositories/sqlite_required_attachment_evidence_reader.dart',
 };
 
 const Set<String> _retiredContactNameVariantAllowedFiles = <String>{};
@@ -13353,6 +13357,7 @@ Future<List<String>> _findAttachmentArchiveDirectoryBoundaryOffenders() async {
     _attachmentArchiveAdoptionQualificationGatePath,
   };
   const activeRootConsumerPaths = <String>{
+    'lib/features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart',
     'lib/features/attachments/application/archive_settings_provider.dart',
     'lib/features/attachments/application/attachment_archive_runtime_providers.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
@@ -13413,6 +13418,7 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
   const fileStoreContractPath =
       'lib/features/attachments/application/attachment_archive_file_store.dart';
   const admissionConsumerPaths = <String>{
+    'lib/features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart',
     'lib/features/attachments/application/archive_settings_provider.dart',
     'lib/features/attachments/application/attachment_archive_adoption_provider.dart',
     'lib/features/attachments/application/attachment_archive_service_provider.dart',
@@ -13420,6 +13426,7 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
     'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor_provider.dart',
   };
   const leaseConsumerPaths = <String>{
+    'lib/features/attachments/application/admitted_attachment_archive_repair_writer.dart',
     'lib/features/attachments/application/message_lens_attachment_recovery_batch_executor.dart',
     'lib/features/attachments/application/message_lens_attachment_recovery_installer.dart',
     'lib/features/attachments/application/recovered_attachment_archive_writer.dart',
@@ -13432,6 +13439,7 @@ Future<List<String>> _findAttachmentArchiveMutationAuthorityOffenders() async {
       'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
     },
     'writeArchiveEntry(': {
+      'lib/features/attachments/application/admitted_attachment_archive_repair_writer.dart',
       'lib/features/attachments/application/attachment_archive_file_store.dart',
       'lib/features/attachments/application/attachment_archive_service_provider.dart',
       'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
@@ -13968,12 +13976,15 @@ Future<List<String>> _findConversationGraphImportLedgerNamingOffenders() async {
 
 Future<List<String>>
 _findAttachmentSourceScopedImportProviderBoundaryOffenders() async {
+  const approvedCompositionPaths = <String>{
+    'lib/features/attachments/application/graph_attachment_archive_providers.dart',
+    'lib/features/attachments/application/attachment_archive_repair_providers.dart',
+  };
   final files = await _collectDartFiles((path) {
     if (path.endsWith('.g.dart') || path.endsWith('.freezed.dart')) {
       return false;
     }
-    if (path ==
-        'lib/features/attachments/application/graph_attachment_archive_providers.dart') {
+    if (approvedCompositionPaths.contains(path)) {
       return false;
     }
     return path.startsWith('lib/features/attachments/');

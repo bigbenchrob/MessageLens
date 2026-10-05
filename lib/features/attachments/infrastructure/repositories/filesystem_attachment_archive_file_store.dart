@@ -75,7 +75,7 @@ class FilesystemAttachmentArchiveFileStore
     }
     final extension = path.extension(sourcePath).toLowerCase();
     try {
-      _safeExtension(extension);
+      normalizeAttachmentArchiveSourceExtension(extension);
     } on ArgumentError {
       return null;
     }
@@ -136,7 +136,9 @@ class FilesystemAttachmentArchiveFileStore
       archiveDirectoryPath,
       validateMutation: validateMutation,
     );
-    final extension = _safeExtension(sourceExtension);
+    final extension = normalizeAttachmentArchiveSourceExtension(
+      sourceExtension,
+    );
     final relativePath =
         '${normalizedHash.substring(0, 2)}/$normalizedHash$extension';
     return _installVerifiedAtPath(
@@ -473,21 +475,6 @@ class FilesystemAttachmentArchiveFileStore
       }
     }
     return normalized;
-  }
-
-  static String _safeExtension(String rawExtension) {
-    final extension = rawExtension.trim().toLowerCase();
-    if (extension.isEmpty) {
-      return '';
-    }
-    if (!RegExp(r'^\.[a-z0-9]{1,16}$').hasMatch(extension)) {
-      throw ArgumentError.value(
-        rawExtension,
-        'sourceExtension',
-        'Attachment extension is unsafe.',
-      );
-    }
-    return extension;
   }
 
   static Future<void> _ensureDestinationParentWithoutRecreatingRoot({

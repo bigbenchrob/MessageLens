@@ -7,6 +7,8 @@ import 'package:remember_this_text/essentials/app_czar/application/app_czar_asse
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/presentation/app_czar_startup_harness.dart';
+import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
 
@@ -127,7 +129,130 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
     expect(displayIdentityResolverBuilds, 0);
   });
+
+  testWidgets(
+    'archive unavailability remains diagnostic and does not execute repair',
+    (tester) async {
+      final factory = _RejectingRepairExecutorFactory();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _ArchiveVariantReader(_unavailableArchive),
+            ),
+            appCzarAttachmentArchiveRepairExecutorFactoryProvider
+                .overrideWithValue(factory),
+          ],
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(AppCzarAssessmentScreen.screenKey), findsOneWidget);
+      expect(
+        find.byKey(AppCzarAttachmentArchiveRepairScreen.screenKey),
+        findsNothing,
+      );
+      expect(find.text('Attachment Archive Repair'), findsOneWidget);
+      expect(factory.createCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'coverage UNKNOWN remains diagnostic and does not execute repair',
+    (tester) async {
+      final factory = _RejectingRepairExecutorFactory();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _ArchiveVariantReader(_unknownCoverageArchive),
+            ),
+            appCzarAttachmentArchiveRepairExecutorFactoryProvider
+                .overrideWithValue(factory),
+          ],
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(AppCzarAssessmentScreen.screenKey), findsOneWidget);
+      expect(
+        find.byKey(AppCzarAttachmentArchiveRepairScreen.screenKey),
+        findsNothing,
+      );
+      expect(find.text('Diagnostic Review'), findsOneWidget);
+      expect(factory.createCalls, 0);
+    },
+  );
 }
+
+final class _RejectingRepairExecutorFactory
+    implements AppCzarAttachmentArchiveRepairExecutorFactory {
+  var createCalls = 0;
+
+  @override
+  AppCzarAttachmentArchiveRepairExecutor create() {
+    createCalls += 1;
+    throw StateError('Repair must not execute for this assessment.');
+  }
+}
+
+final class _ArchiveVariantReader implements AppCzarObservationReader {
+  const _ArchiveVariantReader(this.archive);
+
+  final AppCzarArchiveObservation archive;
+
+  @override
+  Future<AppCzarArchiveObservation> readAttachmentArchive() async => archive;
+
+  @override
+  Future<AppCzarDatabaseObservation> readGraphStore() async {
+    return const _HealthyReader().readGraphStore();
+  }
+
+  @override
+  Future<AppCzarDatabaseObservation> readImportStore() async {
+    return const _HealthyReader().readImportStore();
+  }
+
+  @override
+  Future<AppCzarDatabaseObservation> readOverlay() async {
+    return const _HealthyReader().readOverlay();
+  }
+
+  @override
+  Future<AppCzarRootObservation> readRoot() async {
+    return const _HealthyReader().readRoot();
+  }
+
+  @override
+  Future<AppCzarSourceObservation> readSource() async {
+    return const _HealthyReader().readSource();
+  }
+}
+
+const _unavailableArchive = AppCzarArchiveObservation(
+  condition: AppCzarArchiveCondition.unavailable,
+  label: 'Unavailable archive',
+  coverage: AppCzarAttachmentCoverageObservation.unknown(
+    issue: 'Archive unavailable.',
+  ),
+  issue: 'Archive unavailable.',
+);
+
+const _unknownCoverageArchive = AppCzarArchiveObservation(
+  condition: AppCzarArchiveCondition.available,
+  label: 'Archive',
+  archiveScopeIdentity: 'scope-a',
+  archiveGeneration: 0,
+  resolvedPath: '/Volumes/Test/attachment_archive',
+  coverage: AppCzarAttachmentCoverageObservation.unknown(
+    issue: 'Coverage inconclusive.',
+    archiveScopeIdentity: 'scope-a',
+    archiveGeneration: 0,
+  ),
+);
 
 final class _ImmediateVisualInitializer
     implements AppCzarOperatingSessionVisualInitializer {

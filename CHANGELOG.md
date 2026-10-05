@@ -30,6 +30,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   graph, durable per-payload archive evidence, and bounded filesystem metadata.
   Complete, incomplete, and inconclusive coverage remain distinct, and only
   complete coverage can admit an Operating Session.
+- AppCzar can now execute its development-only **Attachment Archive Repair**
+  disposition. It recomputes the exact required-payload universe, reports a
+  privacy-safe current partition, and—only after explicit confirmation—uses
+  bounded fresh Messages evidence to preserve source-available payloads.
 
 ### Changed
 
@@ -66,15 +70,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - AppCzar Data Update progress is memory-only. It cannot declare the app ready
   or Operating, and successful bounded work releases mutation authority before
   a real macOS process restart.
-- Exactly three AppCzar dispositions are executable in the development harness:
-  Data Update, Source Access Repair, and Operating Session. Operating enters a
-  neutral shell without Journey/readiness observers, Advanced Start Fresh, or
-  the ambient live-update monitor; live currentness maintenance remains
-  intentionally deferred to the next milestone.
+- Exactly four AppCzar dispositions are executable in the development harness:
+  Data Update, Source Access Repair, Attachment Archive Repair, and Operating
+  Session. Onboarding, Local Data Repair, and Diagnostic Review remain virtual.
+  Operating enters a neutral shell without Journey/readiness observers,
+  Advanced Start Fresh, or the ambient live-update monitor; live currentness
+  maintenance remains intentionally deferred to the next milestone.
 - Attachment coverage inspection is read-only, acquires no archive mutation
   capability, hashes no payload bytes, and rechecks both durable evidence and
   payload metadata before publishing a result. Archive availability remains a
-  separate fact, and Attachment Archive Repair remains virtual.
+  separate fact.
+- Attachment Archive Repair retains no operation-success history or durable
+  cursor. Each confirmed bounded page receives mutation capability and a
+  writable-root lease only inside the admitted callback, installs and verifies
+  payload bytes before committing object metadata, then naturally recomputes
+  remaining work from durable facts.
 
 ## [0.2.128] — 2026-09-23
 

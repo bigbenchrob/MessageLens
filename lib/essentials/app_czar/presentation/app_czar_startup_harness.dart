@@ -1,3 +1,5 @@
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -5,6 +7,8 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
+import '../../app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart';
+import '../../app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
 import '../../app_czar_operating_session/application/app_czar_operating_session_controller.dart';
@@ -31,8 +35,32 @@ class AppCzarStartupHarness extends ConsumerStatefulWidget {
       _AppCzarStartupHarnessState();
 }
 
-class _AppCzarStartupHarnessState extends ConsumerState<AppCzarStartupHarness> {
+class _AppCzarStartupHarnessState extends ConsumerState<AppCzarStartupHarness>
+    with WidgetsBindingObserver {
   bool _operatingAdmissionReported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    final repair = ref.read(appCzarAttachmentArchiveRepairControllerProvider);
+    if (repair.isVisible) {
+      await ref
+          .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
+          .stopAndDrain();
+    }
+    return AppExitResponse.exit;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +122,12 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     final sourceAccess = ref.watch(appCzarSourceAccessControllerProvider);
     if (sourceAccess.isVisible) {
       return const AppCzarSourceAccessScreen();
+    }
+    final attachmentArchiveRepair = ref.watch(
+      appCzarAttachmentArchiveRepairControllerProvider,
+    );
+    if (attachmentArchiveRepair.isVisible) {
+      return const AppCzarAttachmentArchiveRepairScreen();
     }
     return AppCzarAssessmentScreen(
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
