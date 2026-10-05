@@ -13,6 +13,7 @@ import 'package:remember_this_text/essentials/source_scoped_import/domain/known_
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_bookmark_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
+import 'package:remember_this_text/features/attachments/application/required_attachment_evidence_reader.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -235,7 +236,7 @@ void main() {
     });
 
     test(
-      'wrong-size or symbolic-link payload is provably incomplete',
+      'wrong-size is incomplete while symbolic-link evidence is UNKNOWN',
       () async {
         final sizeFixture = await _CoverageFixture.create();
         addTearDown(sizeFixture.dispose);
@@ -286,9 +287,9 @@ void main() {
 
         expect(
           symbolicLink.condition,
-          AppCzarAttachmentCoverageCondition.incomplete,
+          AppCzarAttachmentCoverageCondition.unknown,
         );
-        expect(symbolicLink.missingCount, 1);
+        expect(symbolicLink.unverifiableCount, 1);
       },
     );
 
@@ -360,6 +361,113 @@ void main() {
       },
     );
 
+    test('maps two matching shared-reader summaries', () async {
+      final fixture = await _CoverageFixture.create();
+      addTearDown(fixture.dispose);
+      final binding = RequiredAttachmentEvidenceBinding(
+        archiveRootPath: fixture.archiveRoot.path,
+        archiveScopeIdentity: 'shared-scope',
+        archiveGeneration: 9,
+      );
+      final reader = _FakeRequiredAttachmentEvidenceReader(
+        <RequiredAttachmentEvidenceSummary>[
+          RequiredAttachmentEvidenceSummary(
+            requiredCount: 3,
+            coveredCount: 2,
+            missingCount: 1,
+            unverifiableCount: 0,
+            materialFingerprint: 'same-fingerprint',
+            binding: binding,
+          ),
+          RequiredAttachmentEvidenceSummary(
+            requiredCount: 3,
+            coveredCount: 2,
+            missingCount: 1,
+            unverifiableCount: 0,
+            materialFingerprint: 'same-fingerprint',
+            binding: binding,
+          ),
+        ],
+      );
+      final probe = ReadOnlyAppCzarAttachmentCoverageProbe(
+        archiveAccessAuthority: fixture.authority,
+        evidenceReader: reader,
+      );
+      File(fixture._graphPath).deleteSync();
+
+      final observation = await probe.readCurrent(
+        archiveRootPath: fixture.archiveRoot.path,
+        archiveScopeIdentity: 'shared-scope',
+        archiveGeneration: 9,
+      );
+
+      expect(
+        observation.condition,
+        AppCzarAttachmentCoverageCondition.incomplete,
+      );
+      expect(observation.requiredCount, 3);
+      expect(observation.coveredCount, 2);
+      expect(observation.missingCount, 1);
+      expect(reader.summaryReads, 2);
+    });
+
+    test('startup coverage adapter owns no required-set SQL', () {
+      final source = File(
+        'lib/features/attachments/infrastructure/repositories/'
+        'read_only_app_czar_attachment_coverage_probe.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('RequiredAttachmentEvidenceReader'));
+      expect(source, isNot(contains('message_to_attachment')));
+      expect(source, isNot(contains('archived_attachments')));
+      expect(source, isNot(contains('package:sqlite3')));
+      expect(source, isNot(contains('SourceScopedRowSql')));
+    });
+
+    test('rejects changing shared-reader material evidence', () async {
+      final fixture = await _CoverageFixture.create();
+      addTearDown(fixture.dispose);
+      final binding = RequiredAttachmentEvidenceBinding(
+        archiveRootPath: fixture.archiveRoot.path,
+        archiveScopeIdentity: 'shared-scope',
+        archiveGeneration: 9,
+      );
+      final reader = _FakeRequiredAttachmentEvidenceReader(
+        <RequiredAttachmentEvidenceSummary>[
+          RequiredAttachmentEvidenceSummary(
+            requiredCount: 1,
+            coveredCount: 0,
+            missingCount: 1,
+            unverifiableCount: 0,
+            materialFingerprint: 'first-fingerprint',
+            binding: binding,
+          ),
+          RequiredAttachmentEvidenceSummary(
+            requiredCount: 1,
+            coveredCount: 0,
+            missingCount: 1,
+            unverifiableCount: 0,
+            materialFingerprint: 'second-fingerprint',
+            binding: binding,
+          ),
+        ],
+      );
+      final probe = ReadOnlyAppCzarAttachmentCoverageProbe(
+        archiveAccessAuthority: fixture.authority,
+        evidenceReader: reader,
+      );
+
+      final observation = await probe.readCurrent(
+        archiveRootPath: fixture.archiveRoot.path,
+        archiveScopeIdentity: 'shared-scope',
+        archiveGeneration: 9,
+      );
+
+      expect(observation.condition, AppCzarAttachmentCoverageCondition.unknown);
+      expect(observation.issue, contains('changed during'));
+      expect(reader.summaryReads, 2);
+    });
+
     test(
       'fresh production reader reconstructs graph-current incomplete coverage and self-heals from reality',
       () async {
@@ -420,6 +528,35 @@ void main() {
       },
     );
   });
+}
+
+final class _FakeRequiredAttachmentEvidenceReader
+    implements RequiredAttachmentEvidenceReader {
+  _FakeRequiredAttachmentEvidenceReader(
+    List<RequiredAttachmentEvidenceSummary> summaries,
+  ) : _summaries = List<RequiredAttachmentEvidenceSummary>.of(summaries);
+
+  final List<RequiredAttachmentEvidenceSummary> _summaries;
+  var summaryReads = 0;
+
+  @override
+  Future<RequiredAttachmentEvidencePage> readPage({
+    required RequiredAttachmentEvidenceBinding binding,
+    RequiredAttachmentEvidenceCursor? after,
+    int limit = 75,
+  }) {
+    throw UnsupportedError('This fake only supplies aggregate summaries.');
+  }
+
+  @override
+  Future<RequiredAttachmentEvidenceSummary> readSummary({
+    required RequiredAttachmentEvidenceBinding binding,
+    int pageSize = 75,
+  }) async {
+    final result = _summaries[summaryReads];
+    summaryReads += 1;
+    return result;
+  }
 }
 
 Future<AppCzarAssessment> _waitForAssessment(

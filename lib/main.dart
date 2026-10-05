@@ -20,6 +20,8 @@ import 'essentials/app_czar/application/app_czar_assessment_provider.dart'
     show appCzarObservationReaderProvider;
 import 'essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
 import 'essentials/app_czar/presentation/app_czar_startup_harness.dart';
+import 'essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart'
+    show appCzarAttachmentArchiveRepairExecutorFactoryProvider;
 import 'essentials/app_mode/feature_level_providers.dart'
     show platformBrightnessProvider, switchableDarkModeProvider;
 import 'essentials/archive_environment/application.dart'
@@ -57,6 +59,8 @@ import 'essentials/sidebar/feature_level_providers.dart'
     show sidebarNavigationRestorationEnabledProvider;
 import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
+import 'features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart'
+    show messageLensAppCzarAttachmentArchiveRepairExecutorFactoryProvider;
 import 'features/attachments/application/attachment_archive_adoption_enablement_provider.dart'
     show attachmentArchiveAdoptionExecutionEnabledProvider;
 import 'features/attachments/feature_level_providers.dart'
@@ -302,6 +306,11 @@ void main() async {
             bookmarkAdapter:
                 const MethodChannelAttachmentArchiveLocationNativeAdapter(),
           ),
+        ),
+      ),
+      appCzarAttachmentArchiveRepairExecutorFactoryProvider.overrideWith(
+        (ref) => ref.watch(
+          messageLensAppCzarAttachmentArchiveRepairExecutorFactoryProvider,
         ),
       ),
       // Initialize platform brightness immediately.

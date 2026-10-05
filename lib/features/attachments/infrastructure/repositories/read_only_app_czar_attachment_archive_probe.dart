@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -12,6 +10,7 @@ import '../../../../essentials/db/app_database_files.dart';
 import '../../../../essentials/db/application/read_only_sql_guard.dart';
 import '../../application/attachment_archive_bookmark_adapter.dart';
 import '../../application/attachment_archive_location_controller.dart';
+import '../../application/attachment_archive_scope_identity.dart';
 import '../../domain/entities/attachment_archive_location_configuration.dart';
 import '../../domain/entities/attachment_archive_location_state.dart';
 import 'read_only_app_czar_attachment_coverage_probe.dart';
@@ -228,7 +227,9 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
     required String archiveRootPath,
     String? issue,
   }) async {
-    final initialScope = _scopeIdentity(
+    final initialScope = attachmentArchiveScopeIdentity(
+      archiveInstanceId:
+          _archiveAccessAuthority.identity.archiveInstanceId.value,
       configuration: configuration,
       archiveRootPath: archiveRootPath,
     );
@@ -265,7 +266,9 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
     final endingRootPath = await _resolveCurrentRoot(endingConfiguration!);
     final endingScope = endingRootPath == null
         ? null
-        : _scopeIdentity(
+        : attachmentArchiveScopeIdentity(
+            archiveInstanceId:
+                _archiveAccessAuthority.identity.archiveInstanceId.value,
             configuration: endingConfiguration,
             archiveRootPath: endingRootPath,
           );
@@ -314,18 +317,6 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
         resolution.resolvedPath,
       _ => null,
     };
-  }
-
-  String _scopeIdentity({
-    required AttachmentArchiveLocationConfiguration configuration,
-    required String archiveRootPath,
-  }) {
-    final material = <String>[
-      _archiveAccessAuthority.identity.archiveInstanceId.value,
-      configuration.toPersistedValue(),
-      path.normalize(path.absolute(archiveRootPath)),
-    ].join('\u0000');
-    return sha256.convert(utf8.encode(material)).toString();
   }
 
   static String _archiveLabel({

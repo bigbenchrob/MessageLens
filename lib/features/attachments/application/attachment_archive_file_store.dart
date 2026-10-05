@@ -2,6 +2,26 @@ import '../../../essentials/archive_compatibility/domain/archive_compatibility_k
 import 'attachment_archive_location_provider.dart';
 import 'attachment_archive_remediation_authority.dart';
 
+/// Returns the canonical extension accepted by the archive installer.
+///
+/// Source classification and payload installation share this predicate so an
+/// item cannot be advertised as automatically preservable when the canonical
+/// installer would deterministically reject its filename.
+String normalizeAttachmentArchiveSourceExtension(String rawExtension) {
+  final extension = rawExtension.trim().toLowerCase();
+  if (extension.isEmpty) {
+    return '';
+  }
+  if (!RegExp(r'^\.[a-z0-9]{1,16}$').hasMatch(extension)) {
+    throw ArgumentError.value(
+      rawExtension,
+      'sourceExtension',
+      'Attachment extension is unsafe.',
+    );
+  }
+  return extension;
+}
+
 class ArchivedAttachmentFileWrite {
   const ArchivedAttachmentFileWrite({
     required this.sourcePath,

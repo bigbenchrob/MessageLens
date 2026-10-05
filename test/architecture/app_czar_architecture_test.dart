@@ -44,6 +44,10 @@ void main() {
         'lib/features/attachments/infrastructure/repositories/'
         'read_only_app_czar_attachment_coverage_probe.dart',
       ),
+      File(
+        'lib/features/attachments/infrastructure/repositories/'
+        'sqlite_required_attachment_evidence_reader.dart',
+      ),
     ].map((file) => file.readAsStringSync()).join('\n');
 
     expect(
@@ -61,10 +65,15 @@ void main() {
   });
 
   test('attachment coverage remains observation-only and acquires no Ball', () {
-    final source = File(
+    final probe = File(
       'lib/features/attachments/infrastructure/repositories/'
       'read_only_app_czar_attachment_coverage_probe.dart',
     ).readAsStringSync();
+    final reader = File(
+      'lib/features/attachments/infrastructure/repositories/'
+      'sqlite_required_attachment_evidence_reader.dart',
+    ).readAsStringSync();
+    final source = '$probe\n$reader';
 
     const forbidden = <String>[
       'ArchiveMutationCoordinator',
@@ -86,8 +95,10 @@ void main() {
         reason: 'Probe must not contain $term',
       );
     }
-    expect(source, contains('OpenMode.readOnly'));
-    expect(source, contains('PRAGMA query_only = ON'));
+    expect(probe, contains('RequiredAttachmentEvidenceReader'));
+    expect(probe, isNot(contains('JOIN message_to_attachment')));
+    expect(reader, contains('OpenMode.readOnly'));
+    expect(reader, contains('PRAGMA query_only = ON'));
   });
 
   test('availability and coverage remain distinct Operating facts', () {
@@ -162,6 +173,20 @@ void main() {
         expect(
           source,
           contains(
+            '../../app_czar_attachment_archive_repair/application/'
+            'app_czar_attachment_archive_repair_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_attachment_archive_repair/presentation/'
+            'app_czar_attachment_archive_repair_screen.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
             '../../app_czar_data_update/application/'
             'app_czar_data_update_controller.dart',
           ),
@@ -205,6 +230,11 @@ void main() {
       }
       expect(
         source,
+        isNot(contains('/app_czar_attachment_archive_repair/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
+      expect(
+        source,
         isNot(contains('/app_czar_data_update/')),
         reason: '${file.path} must remain observation/evaluation-only',
       );
@@ -223,6 +253,7 @@ void main() {
 
   test('every AppCzar disposition has one explicit execution category', () {
     final sources = <File>[
+      ..._attachmentArchiveRepairFiles(),
       ..._dataUpdateFiles(),
       ..._sourceAccessFiles(),
       ..._operatingSessionFiles(),
@@ -242,7 +273,7 @@ void main() {
           AppCzarVirtualCoordinator.onboarding:
               _AppCzarExecutionCategory.virtualOnly,
           AppCzarVirtualCoordinator.attachmentArchiveRepair:
-              _AppCzarExecutionCategory.virtualOnly,
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
           AppCzarVirtualCoordinator.localDataRepair:
               _AppCzarExecutionCategory.virtualOnly,
           AppCzarVirtualCoordinator.diagnosticReview:
@@ -261,7 +292,7 @@ void main() {
                 _AppCzarExecutionCategory.executableTopLevelCoordinator,
           )
           .length,
-      2,
+      3,
     );
     expect(
       classifications.values
@@ -274,12 +305,17 @@ void main() {
     );
     expect(harness, contains('appCzarDataUpdateControllerProvider'));
     expect(harness, contains('appCzarSourceAccessControllerProvider'));
+    expect(
+      harness,
+      contains('appCzarAttachmentArchiveRepairControllerProvider'),
+    );
     expect(harness, contains('appCzarOperatingSessionControllerProvider'));
 
     expect(
       RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
-      hasLength(3),
+      hasLength(4),
     );
+    expect(sources, contains('shouldExecuteAppCzarAttachmentArchiveRepair'));
     expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
     expect(sources, contains('shouldExecuteAppCzarSourceAccessRepair'));
     expect(sources, contains('shouldExecuteAppCzarOperatingSession'));
@@ -493,6 +529,80 @@ void main() {
     expect(normalized, contains('cannot determine from this evidence whether'));
   });
 
+  test('Attachment Archive Repair has bounded specialist jurisdiction', () {
+    final sources = _attachmentArchiveRepairFiles()
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    const forbidden = <String>[
+      '/onboarding/',
+      '/environment_readiness/',
+      '/navigation/',
+      'operation_snapshot',
+      'OnboardingJourneyCoordinator',
+      'onboardingJourneyCoordinatorProvider',
+      'appCzarDataUpdateControllerProvider',
+      'appCzarSourceAccessControllerProvider',
+      'appCzarOperatingSessionControllerProvider',
+      'chatDbChangeMonitorProvider',
+      'SharedPreferences',
+      'Timer.periodic',
+      'repairCursor',
+      'lastRepairSucceeded',
+      'lastRepairFailed',
+      'repairSucceeded',
+      'repairFailed',
+    ];
+    for (final term in forbidden) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Attachment Archive Repair must not contain $term',
+      );
+    }
+    expect(sources, isNot(contains("import 'dart:io';")));
+    expect(sources, isNot(contains('Process.start')));
+    expect(sources, isNot(contains('Directory(')));
+    expect(sources, isNot(contains('File(')));
+  });
+
+  test(
+    'Attachment Archive Repair executes only its exact selected mapping',
+    () {
+      final controller = File(
+        'lib/essentials/app_czar_attachment_archive_repair/application/'
+        'app_czar_attachment_archive_repair_controller.dart',
+      ).readAsStringSync();
+
+      expect(
+        controller,
+        contains('AppCzarVirtualCoordinator.attachmentArchiveRepair'),
+      );
+      expect(
+        controller,
+        contains('AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete'),
+      );
+      expect(
+        RegExp(
+          r'AppCzarFactId\.attachmentCoverageComplete[\s\S]{0,100}'
+          r'AppCzarTruth\.falseValue',
+        ).hasMatch(controller),
+        isTrue,
+      );
+      expect(
+        RegExp(
+          r'AppCzarFactId\.attachmentArchiveAvailable[\s\S]{0,100}'
+          r'AppCzarTruth\.trueValue',
+        ).hasMatch(controller),
+        isTrue,
+      );
+      expect(controller, contains('archive.hasCoherentCoverageBinding'));
+      expect(
+        controller,
+        isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
+      );
+    },
+  );
+
   test('Operating Session keeps one bounded internal jurisdiction', () {
     final files = _operatingSessionFiles().toList();
     final sources = files.map((file) => file.readAsStringSync()).join('\n');
@@ -638,6 +748,49 @@ void main() {
     );
   });
 
+  test('exit drains remain scoped to the visible AppCzar jurisdiction', () {
+    final harness = File(
+      'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+    ).readAsStringSync();
+    final operatingApp = File(
+      'lib/essentials/app_czar_operating_session/presentation/'
+      'app_czar_operating_session_app.dart',
+    ).readAsStringSync();
+
+    expect(harness, isNot(contains('with WidgetsBindingObserver')));
+    expect(harness, isNot(contains('didRequestAppExit')));
+    expect(
+      harness,
+      contains('class _AppCzarAttachmentArchiveRepairLifecycleHost'),
+    );
+    expect(
+      harness,
+      contains('return const _AppCzarAttachmentArchiveRepairLifecycleHost();'),
+    );
+    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(1));
+    expect(
+      harness,
+      contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
+    );
+    expect(harness, contains('.stopAndDrain();'));
+    expect(
+      harness,
+      isNot(contains('appCzarOperatingCurrentnessControllerProvider')),
+    );
+    expect(
+      RegExp(r'AppLifecycleListener\(').allMatches(operatingApp),
+      hasLength(1),
+    );
+    expect(
+      operatingApp,
+      contains('appCzarOperatingCurrentnessControllerProvider'),
+    );
+    expect(
+      operatingApp,
+      isNot(contains('appCzarAttachmentArchiveRepairControllerProvider')),
+    );
+  });
+
   test('Operating shell core has no legacy semantic authority imports', () {
     final neutralShell = File(
       'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
@@ -750,6 +903,7 @@ void main() {
               ).listSync(recursive: true, followLinks: false).whereType<File>(),
               ..._dataUpdateFiles(),
               ..._sourceAccessFiles(),
+              ..._attachmentArchiveRepairFiles(),
             ]
             .where((file) => file.path.endsWith('.dart'))
             .map((file) => file.readAsStringSync())
@@ -764,6 +918,13 @@ enum _AppCzarExecutionCategory {
   executableTopLevelCoordinator,
   executableAdmittedSession,
   virtualOnly,
+}
+
+Iterable<File> _attachmentArchiveRepairFiles() {
+  return Directory('lib/essentials/app_czar_attachment_archive_repair')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
 }
 
 Iterable<File> _dataUpdateFiles() {

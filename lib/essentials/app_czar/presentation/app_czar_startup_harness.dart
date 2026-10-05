@@ -1,3 +1,5 @@
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -5,6 +7,8 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
+import '../../app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart';
+import '../../app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
 import '../../app_czar_operating_session/application/app_czar_operating_session_controller.dart';
@@ -95,9 +99,55 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     if (sourceAccess.isVisible) {
       return const AppCzarSourceAccessScreen();
     }
+    final attachmentArchiveRepair = ref.watch(
+      appCzarAttachmentArchiveRepairControllerProvider,
+    );
+    if (attachmentArchiveRepair.isVisible) {
+      return const _AppCzarAttachmentArchiveRepairLifecycleHost();
+    }
     return AppCzarAssessmentScreen(
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
     );
+  }
+}
+
+class _AppCzarAttachmentArchiveRepairLifecycleHost
+    extends ConsumerStatefulWidget {
+  const _AppCzarAttachmentArchiveRepairLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarAttachmentArchiveRepairLifecycleHost> createState() =>
+      _AppCzarAttachmentArchiveRepairLifecycleHostState();
+}
+
+class _AppCzarAttachmentArchiveRepairLifecycleHostState
+    extends ConsumerState<_AppCzarAttachmentArchiveRepairLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    await ref
+        .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
+        .stopAndDrain();
+    return AppExitResponse.exit;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppCzarAttachmentArchiveRepairScreen();
   }
 }
 
