@@ -130,13 +130,255 @@ void main() {
       expect(inspected.snapshot?.requiredCount, 13);
       expect(inspected.snapshot?.coveredCount, 10);
       expect(inspected.snapshot?.needAttentionCount, 3);
+      expect(inspected.snapshot?.nextBatchAuthorization?.itemCount, 2);
+      expect(inspected.snapshot?.nextBatchAuthorization?.totalKnownBytes, 4096);
       expect(executor.inspectCalls, 1);
       expect(executor.preserveCalls, 0);
       expect(restarter.calls, 0);
 
       await container
           .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
-          .startPreservation();
+          .startPreservation(inspected.snapshot!.nextBatchAuthorization!);
+
+      expect(executor.preserveCalls, 1);
+      expect(
+        executor.receivedAuthorizations.single.planIdentity,
+        'plan-current',
+      );
+      expect(executor.receivedAuthorizations.single.itemCount, 2);
+      expect(executor.receivedAuthorizations.single.totalKnownBytes, 4096);
+      expect(executor.stopCalls, 1);
+      expect(restarter.calls, 1);
+      expect(
+        container.read(appCzarAttachmentArchiveRepairControllerProvider).phase,
+        AppCzarAttachmentArchiveRepairPhase.restartRequested,
+      );
+    },
+  );
+
+  test(
+    'unknown batch bytes remain visible but cannot admit mutation',
+    () async {
+      final executor = _FakeExecutor(
+        inspection: _incompleteObservation(
+          snapshot: _snapshot(
+            available: 2,
+            absent: 1,
+            authorization: _authorization(count: 2, knownBytes: null),
+          ),
+        ),
+      );
+      final restarter = _RecordingRestarter();
+      final container = _container(
+        factory: _QueueExecutorFactory([executor]),
+        restarter: restarter,
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        appCzarAttachmentArchiveRepairControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      await _waitForPhase(
+        container,
+        AppCzarAttachmentArchiveRepairPhase.waitingForHuman,
+      );
+      final state = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider,
+      );
+      expect(state.snapshot?.nextBatchAuthorization?.itemCount, 2);
+      expect(state.snapshot?.nextBatchAuthorization?.totalKnownBytes, isNull);
+      expect(state.canStartPreservation, isFalse);
+
+      await container
+          .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
+          .startPreservation(state.snapshot!.nextBatchAuthorization!);
+
+      expect(executor.preserveCalls, 0);
+      expect(restarter.calls, 0);
+    },
+  );
+
+  test(
+    'one confirmation executes one batch and requires the newly published plan',
+    () async {
+      final firstAuthorization = _authorization(
+        identity: 'plan-first',
+        count: 2,
+        knownBytes: 4096,
+      );
+      final secondAuthorization = _authorization(
+        identity: 'plan-second',
+        count: 1,
+        knownBytes: 512,
+      );
+      final executor = _FakeExecutor(
+        inspection: _incompleteObservation(
+          snapshot: _snapshot(
+            available: 3,
+            absent: 0,
+            authorization: firstAuthorization,
+          ),
+        ),
+        preservations: [
+          _incompleteObservation(
+            snapshot: _snapshot(
+              available: 1,
+              absent: 0,
+              covered: 12,
+              authorization: secondAuthorization,
+            ),
+          ),
+          _completeObservation(),
+        ],
+      );
+      final restarter = _RecordingRestarter();
+      final container = _container(
+        factory: _QueueExecutorFactory([executor]),
+        restarter: restarter,
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        appCzarAttachmentArchiveRepairControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      await _waitForPhase(
+        container,
+        AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation,
+      );
+      final controller = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await controller.startPreservation(firstAuthorization);
+
+      final afterFirst = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider,
+      );
+      expect(
+        afterFirst.phase,
+        AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation,
+      );
+      expect(
+        afterFirst.snapshot?.nextBatchAuthorization,
+        same(secondAuthorization),
+      );
+      expect(executor.preserveCalls, 1);
+      expect(executor.receivedAuthorizations.single, same(firstAuthorization));
+      expect(restarter.calls, 0);
+
+      await controller.startPreservation(firstAuthorization);
+
+      expect(executor.preserveCalls, 1);
+      expect(
+        container
+            .read(appCzarAttachmentArchiveRepairControllerProvider)
+            .snapshot
+            ?.nextBatchAuthorization,
+        same(secondAuthorization),
+      );
+
+      await controller.startPreservation(secondAuthorization);
+
+      expect(executor.preserveCalls, 2);
+      expect(executor.receivedAuthorizations[0], same(firstAuthorization));
+      expect(executor.receivedAuthorizations[1], same(secondAuthorization));
+      expect(restarter.calls, 1);
+      expect(
+        container.read(appCzarAttachmentArchiveRepairControllerProvider).phase,
+        AppCzarAttachmentArchiveRepairPhase.restartRequested,
+      );
+    },
+  );
+
+  test('duplicate confirmation is single-flight', () async {
+    final preservation = Completer<AppCzarAttachmentArchiveRepairObservation>();
+    final executor = _FakeExecutor(
+      inspection: _incompleteObservation(
+        snapshot: _snapshot(available: 2, absent: 1),
+      ),
+      preservationCompleter: preservation,
+    );
+    final restarter = _RecordingRestarter();
+    final container = _container(
+      factory: _QueueExecutorFactory([executor]),
+      restarter: restarter,
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      appCzarAttachmentArchiveRepairControllerProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+
+    await _waitForPhase(
+      container,
+      AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation,
+    );
+    final controller = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    final authorization = container
+        .read(appCzarAttachmentArchiveRepairControllerProvider)
+        .snapshot!
+        .nextBatchAuthorization!;
+    final first = controller.startPreservation(authorization);
+    final duplicate = controller.startPreservation(authorization);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(executor.preserveCalls, 1);
+    preservation.complete(_completeObservation());
+    await Future.wait([first, duplicate]);
+    expect(executor.preserveCalls, 1);
+    expect(restarter.calls, 1);
+  });
+
+  test(
+    'unknown evidence after one authorized batch drains and restarts',
+    () async {
+      final executor = _FakeExecutor(
+        inspection: _incompleteObservation(
+          snapshot: _snapshot(available: 2, absent: 1),
+        ),
+        preservation: AppCzarAttachmentArchiveRepairObservation(
+          kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
+          binding: _binding(),
+        ),
+      );
+      final restarter = _RecordingRestarter(
+        onRestart: () {
+          expect(executor.active, isFalse);
+        },
+      );
+      final container = _container(
+        factory: _QueueExecutorFactory([executor]),
+        restarter: restarter,
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        appCzarAttachmentArchiveRepairControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      await _waitForPhase(
+        container,
+        AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation,
+      );
+      await container
+          .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
+          .startPreservation(
+            container
+                .read(appCzarAttachmentArchiveRepairControllerProvider)
+                .snapshot!
+                .nextBatchAuthorization!,
+          );
 
       expect(executor.preserveCalls, 1);
       expect(executor.stopCalls, 1);
@@ -557,15 +799,32 @@ AppCzarAttachmentArchiveRepairSnapshot _snapshot({
   required int available,
   required int absent,
   int unknown = 0,
+  int covered = 10,
+  AppCzarAttachmentArchiveRepairBatchAuthorization? authorization,
 }) {
   return AppCzarAttachmentArchiveRepairSnapshot(
     requiredCount: 13,
-    coveredCount: 10,
+    coveredCount: covered,
     availableFromMessagesCount: available,
     sourceAbsentCount: absent,
     sourceUnknownCount: unknown,
     recordBackedRecoveryCount: 0,
-    unsafeOrConflictingCount: 3 - available - absent - unknown,
+    unsafeOrConflictingCount: 13 - covered - available - absent - unknown,
+    nextBatchAuthorization: available == 0
+        ? null
+        : authorization ?? _authorization(count: available),
+  );
+}
+
+AppCzarAttachmentArchiveRepairBatchAuthorization _authorization({
+  String identity = 'plan-current',
+  required int count,
+  int? knownBytes = 4096,
+}) {
+  return AppCzarAttachmentArchiveRepairBatchAuthorization(
+    planIdentity: identity,
+    itemCount: count,
+    totalKnownBytes: knownBytes,
   );
 }
 
@@ -632,20 +891,27 @@ final class _FakeExecutor implements AppCzarAttachmentArchiveRepairExecutor {
   _FakeExecutor({
     this.inspection,
     this.preservation,
+    this.preservations,
     this.inspectionCompleter,
+    this.preservationCompleter,
     this.stopObservation,
   });
 
   final AppCzarAttachmentArchiveRepairObservation? inspection;
   final AppCzarAttachmentArchiveRepairObservation? preservation;
+  final List<AppCzarAttachmentArchiveRepairObservation>? preservations;
   final Completer<AppCzarAttachmentArchiveRepairObservation>?
   inspectionCompleter;
+  final Completer<AppCzarAttachmentArchiveRepairObservation>?
+  preservationCompleter;
   final AppCzarAttachmentArchiveRepairObservation? stopObservation;
 
   var inspectCalls = 0;
   var preserveCalls = 0;
   var stopCalls = 0;
   var active = false;
+  final receivedAuthorizations =
+      <AppCzarAttachmentArchiveRepairBatchAuthorization>[];
 
   @override
   Future<AppCzarAttachmentArchiveRepairObservation> inspectCurrent({
@@ -663,19 +929,29 @@ final class _FakeExecutor implements AppCzarAttachmentArchiveRepairExecutor {
   }
 
   @override
-  Future<AppCzarAttachmentArchiveRepairObservation> preserveAvailable({
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
     required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
     AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
   }) async {
     preserveCalls += 1;
+    receivedAuthorizations.add(authorization);
     active = true;
     try {
       onProgress?.call(
-        const AppCzarAttachmentArchiveRepairProgress(
-          completedCount: 2,
-          totalCount: 2,
+        AppCzarAttachmentArchiveRepairProgress(
+          completedCount: authorization.itemCount,
+          totalCount: authorization.itemCount,
         ),
       );
+      final completer = preservationCompleter;
+      if (completer != null) {
+        return await completer.future;
+      }
+      final queued = preservations;
+      if (queued != null) {
+        return queued[preserveCalls - 1];
+      }
       return preservation!;
     } finally {
       active = false;

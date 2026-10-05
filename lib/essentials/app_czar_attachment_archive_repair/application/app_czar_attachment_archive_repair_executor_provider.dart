@@ -11,8 +11,9 @@ abstract interface class AppCzarAttachmentArchiveRepairExecutor {
     required AppCzarAttachmentArchiveRepairBinding binding,
   });
 
-  Future<AppCzarAttachmentArchiveRepairObservation> preserveAvailable({
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
     required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
     AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
   });
 

@@ -5,6 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 const _repairExecutorPath =
     'lib/features/attachments/application/'
     'app_czar_attachment_archive_repair_executor.dart';
+const _repairExecutorContractPath =
+    'lib/essentials/app_czar_attachment_archive_repair/application/'
+    'app_czar_attachment_archive_repair_executor_provider.dart';
+const _repairControllerPath =
+    'lib/essentials/app_czar_attachment_archive_repair/application/'
+    'app_czar_attachment_archive_repair_controller.dart';
+const _repairModelsPath =
+    'lib/essentials/app_czar_attachment_archive_repair/domain/'
+    'app_czar_attachment_archive_repair_models.dart';
+const _repairScreenPath =
+    'lib/essentials/app_czar_attachment_archive_repair/presentation/'
+    'app_czar_attachment_archive_repair_screen.dart';
 const _repairFactoryProviderPath =
     'lib/features/attachments/application/'
     'app_czar_attachment_archive_repair_executor_factory_provider.dart';
@@ -150,6 +162,157 @@ void main() {
     );
   });
 
+  test('one confirmation identifies one exact memory-only bounded plan', () {
+    final models = _read(_repairModelsPath);
+    final executor = _read(_repairExecutorPath);
+    final contract = _read(_repairExecutorContractPath);
+    final controller = _read(_repairControllerPath);
+    final authorization = _typeBlock(
+      models,
+      'final class AppCzarAttachmentArchiveRepairBatchAuthorization',
+    );
+
+    expect(
+      models,
+      contains(
+        'const int appCzarAttachmentArchiveRepairMaximumAuthorizedItems = 75;',
+      ),
+    );
+    expect(authorization, contains('final String planIdentity;'));
+    expect(authorization, contains('final int itemCount;'));
+    expect(authorization, contains('final int? totalKnownBytes;'));
+    expect(
+      authorization,
+      contains(
+        'itemCount <= appCzarAttachmentArchiveRepairMaximumAuthorizedItems',
+      ),
+    );
+    for (final term in <String>[
+      'ArchiveCompatibilityKey',
+      'archiveScopeIdentity',
+      'archiveGeneration',
+      'resolvedArchivePath',
+      'sourcePath',
+      'messageGuid',
+      'filename',
+    ]) {
+      expect(
+        authorization,
+        isNot(contains(term)),
+        reason: 'The presentation authorization must not expose $term.',
+      );
+    }
+
+    expect(executor, contains('final class _AttachmentArchiveRepairBatchPlan'));
+    expect(
+      executor,
+      contains('final class _AttachmentArchiveRepairPlannedItem'),
+    );
+    expect(
+      executor,
+      contains('_AttachmentArchiveRepairBatchPlan? _pendingPlan;'),
+    );
+    expect(
+      executor,
+      contains('List<_AttachmentArchiveRepairPlannedItem>.unmodifiable'),
+    );
+    expect(
+      executor,
+      contains(
+        'plannedItems.length <\n'
+        '                appCzarAttachmentArchiveRepairMaximumAuthorizedItems',
+      ),
+    );
+    expect(
+      executor,
+      contains(
+        'requiredEvidence.archiveKey == other.requiredEvidence.archiveKey',
+      ),
+    );
+    expect(
+      executor,
+      contains(
+        'sourceEvidence.hasSameMaterialEvidenceAs(other.sourceEvidence)',
+      ),
+    );
+    expect(
+      executor,
+      contains(
+        'requiredEvidenceFingerprint != other.requiredEvidenceFingerprint',
+      ),
+    );
+    expect(
+      executor,
+      contains('!identical(authorizedPlan.authorization, authorization)'),
+    );
+
+    expect(contract, contains('preserveAuthorizedBatch({'));
+    expect(
+      contract,
+      contains(
+        'required AppCzarAttachmentArchiveRepairBatchAuthorization '
+        'authorization',
+      ),
+    );
+    expect(
+      controller,
+      contains(
+        'final currentAuthorization = '
+        '_current.snapshot?.nextBatchAuthorization;',
+      ),
+    );
+    expect(
+      controller,
+      contains('!identical(currentAuthorization, authorization)'),
+    );
+    expect(
+      controller,
+      contains('preservationTotalCount: authorization.itemCount'),
+    );
+    expect(controller, contains('executor.preserveAuthorizedBatch('));
+    expect(controller, isNot(contains('availableFromMessagesCount')));
+  });
+
+  test('authorized execution cannot chain or refill a later evidence page', () {
+    final executor = _read(_repairExecutorPath);
+    final allRepairSources = _repairProductionFiles()
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    final preserveMethod = _methodBlock(
+      executor,
+      'Future<AppCzarAttachmentArchiveRepairObservation> '
+      '_preserveAuthorizedBatch(',
+    );
+
+    expect(
+      RegExp(
+        r'_mutationBatchExecutor\.preserveNoRecordBatch\s*\(',
+      ).allMatches(preserveMethod),
+      hasLength(1),
+    );
+    expect(preserveMethod, contains('sources: authorizedPlan.sources'));
+    expect(preserveMethod, contains('_pendingPlan = null;'));
+    expect(preserveMethod, contains('return _inspect(binding);'));
+    expect(preserveMethod, isNot(contains('while (')));
+    expect(preserveMethod, isNot(contains('.readPage(')));
+    expect(preserveMethod, isNot(contains('cursor')));
+    expect(preserveMethod, isNot(contains('pageSize')));
+
+    for (final retiredTerm in <String>[
+      'preserveAvailable',
+      'authorizedTotal',
+      'processed < authorizedTotal',
+    ]) {
+      expect(
+        allRepairSources,
+        isNot(contains(retiredTerm)),
+        reason:
+            'One confirmation must not retain the retired $retiredTerm '
+            'multi-page authorization path.',
+      );
+    }
+  });
+
   test('capability and writable lease remain callback-local proof', () {
     final writer = _read(_repairWriterPath);
     final factoryProvider = _read(_repairFactoryProviderPath);
@@ -219,6 +382,10 @@ void main() {
       'OperationSnapshot',
       'repairCursor',
       'resumeCursor',
+      'persistedPlan',
+      'serializedPlan',
+      'repairPlanHistory',
+      'repairAuthorizationHistory',
       'lastRepairSucceeded',
       'lastRepairFailed',
       'repairSucceeded',
@@ -236,11 +403,38 @@ void main() {
     }
   });
 
+  test(
+    'batch consent is consumed inside the existing stop and drain model',
+    () {
+      final executor = _read(_repairExecutorPath);
+      final controller = _read(_repairControllerPath);
+      final executorStop = _methodBlock(
+        executor,
+        'Future<void> stopAndDrain()',
+      );
+      final controllerStop = _methodBlock(
+        controller,
+        'Future<void> stopAndDrain()',
+      );
+
+      expect(executorStop, contains('_stopRequested = true;'));
+      expect(executorStop, contains('_pendingPlan = null;'));
+      expect(executorStop, contains('await activeDrain;'));
+      expect(
+        executor,
+        contains(
+          '// Claim this displayed plan before any await so double invocation '
+          'cannot',
+        ),
+      );
+      expect(controllerStop, contains('_stopRequested = true;'));
+      expect(controllerStop, contains('await executor.stopAndDrain();'));
+      expect(controllerStop, contains('await activeRun;'));
+    },
+  );
+
   test('repair screen exposes aggregate facts only', () {
-    final screen = _read(
-      'lib/essentials/app_czar_attachment_archive_repair/presentation/'
-      'app_czar_attachment_archive_repair_screen.dart',
-    );
+    final screen = _read(_repairScreenPath);
     const forbidden = <String>[
       'resolvedArchivePath',
       'archiveScopeIdentity',
@@ -264,6 +458,13 @@ void main() {
     expect(screen, contains('Source currently absent'));
     expect(screen, contains('Source evidence unavailable'));
     expect(screen, contains('Record-backed recovery needed'));
+    expect(screen, contains('Next repair batch'));
+    expect(screen, contains('Total source size:'));
+    expect(screen, contains('Total size could not be established'));
+    expect(screen, contains("'Preserve these '"));
+    expect(screen, contains(r'${authorization.itemCount}'));
+    expect(screen, contains('await onStart(authorization)'));
+    expect(screen, isNot(contains('Preserve Available Attachments')));
   });
 
   test('production startup remains on the legacy startup branch', () {
@@ -286,6 +487,47 @@ void main() {
       hasLength(1),
     );
   });
+}
+
+String _typeBlock(String source, String declaration) {
+  final start = source.indexOf(declaration);
+  expect(start, greaterThanOrEqualTo(0), reason: '$declaration must exist');
+  final openingBrace = source.indexOf('{', start);
+  return _balancedBlock(source, declaration, start, openingBrace);
+}
+
+String _methodBlock(String source, String declaration) {
+  final start = source.indexOf(declaration);
+  expect(start, greaterThanOrEqualTo(0), reason: '$declaration must exist');
+  final asyncBody = source.indexOf(') async {', start);
+  final openingBrace = asyncBody < 0 ? -1 : asyncBody + ') async '.length;
+  return _balancedBlock(source, declaration, start, openingBrace);
+}
+
+String _balancedBlock(
+  String source,
+  String declaration,
+  int start,
+  int openingBrace,
+) {
+  expect(
+    openingBrace,
+    greaterThanOrEqualTo(0),
+    reason: '$declaration must have a body',
+  );
+  var depth = 0;
+  for (var index = openingBrace; index < source.length; index++) {
+    switch (source[index]) {
+      case '{':
+        depth += 1;
+      case '}':
+        depth -= 1;
+        if (depth == 0) {
+          return source.substring(start, index + 1);
+        }
+    }
+  }
+  fail('$declaration must have a balanced body');
 }
 
 String _read(String path) {

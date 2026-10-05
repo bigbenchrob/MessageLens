@@ -46,6 +46,17 @@ void main() {
       expect(find.text('10'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
       expect(find.text('Available from Messages'), findsOneWidget);
+      expect(find.text('Next repair batch'), findsOneWidget);
+      expect(
+        find.byKey(AppCzarAttachmentArchiveRepairScreen.nextBatchCountKey),
+        findsOneWidget,
+      );
+      expect(find.text('1 attachment'), findsOneWidget);
+      expect(
+        find.text('Total source size: 1.5 KB (1536 bytes)'),
+        findsOneWidget,
+      );
+      expect(find.text('Preserve these 1 attachment'), findsOneWidget);
       expect(executor.preserveCalls, 0);
       expect(restarter.calls, 0);
 
@@ -54,12 +65,13 @@ void main() {
       expect(find.textContaining('private-message-guid'), findsNothing);
       expect(find.textContaining('contact name'), findsNothing);
 
-      await tester.tap(
-        find.byKey(AppCzarAttachmentArchiveRepairScreen.startKey),
-      );
+      final start = find.byKey(AppCzarAttachmentArchiveRepairScreen.startKey);
+      await tester.ensureVisible(start);
+      await tester.tap(start);
       await tester.pumpAndSettle();
 
       expect(executor.preserveCalls, 1);
+      expect(executor.receivedAuthorization, same(executor.authorization));
       expect(find.text('Some payloads still need attention'), findsOneWidget);
       expect(
         find.byKey(AppCzarAttachmentArchiveRepairScreen.checkAgainKey),
@@ -78,6 +90,43 @@ void main() {
           .handleRequestAppExit();
       expect(exitAfterRepairUnmount, AppExitResponse.exit);
       expect(executor.stopCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'unknown source-byte scope is literal and has no mutation admission',
+    (tester) async {
+      final executor = _ScreenExecutor(totalKnownBytes: null);
+      final restarter = _ScreenRestarter();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _ScreenRepairReader(),
+            ),
+            appCzarAttachmentArchiveRepairExecutorFactoryProvider
+                .overrideWithValue(_ScreenExecutorFactory(executor)),
+            appCzarProcessRestarterProvider.overrideWithValue(restarter),
+          ],
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await _pumpUntilFound(
+        tester,
+        AppCzarAttachmentArchiveRepairScreen.nextBatchBytesKey,
+      );
+
+      expect(find.text('Total size could not be established'), findsOneWidget);
+      expect(
+        find.byKey(AppCzarAttachmentArchiveRepairScreen.startKey),
+        findsNothing,
+      );
+      expect(
+        find.byKey(AppCzarAttachmentArchiveRepairScreen.checkAgainKey),
+        findsOneWidget,
+      );
+      expect(executor.preserveCalls, 0);
+      expect(restarter.calls, 0);
     },
   );
 }
@@ -103,8 +152,19 @@ final class _ScreenExecutorFactory
 }
 
 final class _ScreenExecutor implements AppCzarAttachmentArchiveRepairExecutor {
+  _ScreenExecutor({int? totalKnownBytes = 1536})
+    : authorization = AppCzarAttachmentArchiveRepairBatchAuthorization(
+        planIdentity: totalKnownBytes == null
+            ? 'screen-plan-unknown-bytes'
+            : 'screen-plan-known-bytes',
+        itemCount: 1,
+        totalKnownBytes: totalKnownBytes,
+      );
+
+  final AppCzarAttachmentArchiveRepairBatchAuthorization authorization;
   var preserveCalls = 0;
   var stopCalls = 0;
+  AppCzarAttachmentArchiveRepairBatchAuthorization? receivedAuthorization;
 
   @override
   Future<AppCzarAttachmentArchiveRepairObservation> inspectCurrent({
@@ -113,7 +173,7 @@ final class _ScreenExecutor implements AppCzarAttachmentArchiveRepairExecutor {
     return AppCzarAttachmentArchiveRepairObservation(
       kind: AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete,
       binding: binding,
-      snapshot: const AppCzarAttachmentArchiveRepairSnapshot(
+      snapshot: AppCzarAttachmentArchiveRepairSnapshot(
         requiredCount: 13,
         coveredCount: 10,
         availableFromMessagesCount: 1,
@@ -121,16 +181,19 @@ final class _ScreenExecutor implements AppCzarAttachmentArchiveRepairExecutor {
         sourceUnknownCount: 0,
         recordBackedRecoveryCount: 1,
         unsafeOrConflictingCount: 0,
+        nextBatchAuthorization: authorization,
       ),
     );
   }
 
   @override
-  Future<AppCzarAttachmentArchiveRepairObservation> preserveAvailable({
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
     required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
     AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
   }) async {
     preserveCalls += 1;
+    receivedAuthorization = authorization;
     onProgress?.call(
       const AppCzarAttachmentArchiveRepairProgress(
         completedCount: 1,

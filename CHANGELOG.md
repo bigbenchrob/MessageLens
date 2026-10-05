@@ -40,6 +40,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Attachment Archive Repair now presents one exact next-batch scope of at most
+  75 attachments, including its trustworthy aggregate source size, before
+  confirmation. Each confirmation is bound to that immutable key set; stale
+  evidence is invalidated, later items cannot refill it, and another batch
+  always requires a fresh assessment and a new click.
 - AppCzar now reports only directly observed Messages-source readability. It
   no longer equates source readability with the state of the macOS Full Disk
   Access setting.
@@ -93,10 +98,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and drains any admitted observation or mutation before Operating teardown or
   restart.
 - Attachment Archive Repair retains no operation-success history or durable
-  cursor. Each confirmed bounded page receives mutation capability and a
+  cursor. Each exact confirmed batch receives mutation capability and a
   writable-root lease only inside the admitted callback, installs and verifies
-  payload bytes before committing object metadata, then naturally recomputes
-  remaining work from durable facts.
+  payload bytes before committing object metadata, releases authority, then
+  derives any next batch from fresh durable facts.
 
 ## [0.2.128] — 2026-09-23
 

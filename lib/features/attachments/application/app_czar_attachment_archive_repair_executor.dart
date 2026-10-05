@@ -4,7 +4,8 @@ import '../../../essentials/archive_compatibility/domain/archive_compatibility_k
 import 'current_messages_attachment_source_reader.dart';
 import 'required_attachment_evidence_reader.dart';
 
-const int appCzarAttachmentArchiveRepairPageSize = 75;
+const int appCzarAttachmentArchiveRepairPageSize =
+    appCzarAttachmentArchiveRepairMaximumAuthorizedItems;
 
 /// Fresh archive-location evidence used to bind one repair occurrence.
 final class AttachmentArchiveRepairArchiveContext {
@@ -84,7 +85,8 @@ final class AttachmentArchiveRepairMutationBatchResult {
 /// The only seam through which this coordinator may request archive writes.
 ///
 /// Implementations acquire one Ball tenure and writable-root lease for this
-/// bounded page. Neither proof may be retained after [preserveNoRecordBatch]
+/// bounded authorized batch. Neither proof may be retained after
+/// [preserveNoRecordBatch]
 /// settles.
 abstract interface class AttachmentArchiveRepairMutationBatchExecutor {
   Future<AttachmentArchiveRepairMutationBatchResult> preserveNoRecordBatch({
@@ -128,6 +130,8 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
 
   bool _stopRequested = false;
   Future<void>? _activeDrain;
+  _AttachmentArchiveRepairBatchPlan? _pendingPlan;
+  var _nextPlanIdentity = 0;
 
   @override
   Future<AppCzarAttachmentArchiveRepairObservation> inspectCurrent({
@@ -137,19 +141,25 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
   }
 
   @override
-  Future<AppCzarAttachmentArchiveRepairObservation> preserveAvailable({
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
     required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
     AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
   }) {
     return _runOne(
       binding,
-      () => _preserveAvailable(binding, onProgress: onProgress),
+      () => _preserveAuthorizedBatch(
+        binding,
+        authorization,
+        onProgress: onProgress,
+      ),
     );
   }
 
   @override
   Future<void> stopAndDrain() async {
     _stopRequested = true;
+    _pendingPlan = null;
     final activeDrain = _activeDrain;
     if (activeDrain != null) {
       await activeDrain;
@@ -185,6 +195,7 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
   Future<AppCzarAttachmentArchiveRepairObservation> _inspect(
     AppCzarAttachmentArchiveRepairBinding binding,
   ) async {
+    _pendingPlan = null;
     if (_stopRequested) {
       return _stopped(binding);
     }
@@ -232,6 +243,14 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
         );
       }
 
+      final plan = partition.plannedItems.isEmpty
+          ? null
+          : _createPlan(
+              binding: binding,
+              requiredEvidenceFingerprint: secondSummary.materialFingerprint,
+              items: partition.plannedItems,
+            );
+      _pendingPlan = plan;
       final snapshot = AppCzarAttachmentArchiveRepairSnapshot(
         requiredCount: partition.requiredCount,
         coveredCount: partition.coveredCount,
@@ -240,6 +259,7 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
         sourceUnknownCount: partition.sourceUnknownCount,
         recordBackedRecoveryCount: partition.recordBackedRecoveryCount,
         unsafeOrConflictingCount: partition.unsafeOrConflictingCount,
+        nextBatchAuthorization: plan?.authorization,
         automaticPreservationAllowed:
             endingContext.automaticPreservationAllowed,
       );
@@ -264,137 +284,68 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
     }
   }
 
-  Future<AppCzarAttachmentArchiveRepairObservation> _preserveAvailable(
-    AppCzarAttachmentArchiveRepairBinding binding, {
+  Future<AppCzarAttachmentArchiveRepairObservation> _preserveAuthorizedBatch(
+    AppCzarAttachmentArchiveRepairBinding binding,
+    AppCzarAttachmentArchiveRepairBatchAuthorization authorization, {
     required AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
   }) async {
-    final initial = await _inspect(binding);
-    if (initial.kind !=
-            AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete ||
-        initial.snapshot?.hasAutomaticWork != true ||
-        _stopRequested) {
-      return initial;
+    final authorizedPlan = _pendingPlan;
+    if (authorizedPlan == null ||
+        !identical(authorizedPlan.authorization, authorization) ||
+        !authorizedPlan.matchesBinding(binding) ||
+        !authorization.isCoherent ||
+        !authorization.hasKnownByteScope) {
+      return _inspect(binding);
     }
 
-    final authorizedTotal = initial.snapshot!.availableFromMessagesCount;
-    var processed = 0;
-    RequiredAttachmentEvidenceCursor? cursor;
-    final sourceReader = await _sourceReaderResolver();
-    while (!_stopRequested && processed < authorizedTotal) {
-      final currentContext = await _readMatchingContext(binding);
-      if (currentContext == null) {
-        return _bindingChanged(binding);
-      }
-      final RequiredAttachmentEvidencePage page;
-      try {
-        page = await _evidenceReader.readPage(
-          binding: currentContext.evidenceBinding,
-          after: cursor,
-          limit: pageSize,
-        );
-      } on RequiredAttachmentEvidenceReadException {
-        return _observation(
-          kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
-          binding: binding,
-        );
-      }
-      if (page.binding != currentContext.evidenceBinding) {
-        return _observation(
-          kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
-          binding: binding,
-        );
-      }
+    // Claim this displayed plan before any await so double invocation cannot
+    // reuse the same human authorization.
+    _pendingPlan = null;
+    final current = await _inspect(binding);
+    final revalidatedPlan = _pendingPlan;
+    if (current.kind !=
+            AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete ||
+        current.snapshot?.hasAutomaticWork != true ||
+        revalidatedPlan == null ||
+        !authorizedPlan.hasSameEvidenceAs(revalidatedPlan) ||
+        _stopRequested) {
+      return current;
+    }
 
-      final noRecordKeys = page.items
-          .where(
-            (item) =>
-                item.condition ==
-                    RequiredAttachmentEvidenceCondition.noDurableRecord &&
-                item.archiveKey != null,
-          )
-          .map((item) => item.archiveKey!)
-          .toList(growable: false);
-      final sourceObservations = noRecordKeys.isEmpty
-          ? const <CurrentMessagesAttachmentSourceObservation>[]
-          : await sourceReader.observeCurrentPage(noRecordKeys);
-      if (!_sourcePageIsCoherent(noRecordKeys, sourceObservations)) {
-        return _observation(
-          kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
-          binding: binding,
-        );
-      }
-      if (sourceObservations.any(
-        (item) =>
-            item.condition ==
-            CurrentMessagesAttachmentSourceCondition.sourceUnavailable,
-      )) {
+    // Consume the freshly revalidated plan too. No authorization remains for
+    // another mutation admission, even if this batch settles only partially.
+    _pendingPlan = null;
+    final batchResult = await _mutationBatchExecutor.preserveNoRecordBatch(
+      binding: binding,
+      sources: authorizedPlan.sources,
+      shouldStop: () => _stopRequested,
+    );
+    onProgress?.call(
+      AppCzarAttachmentArchiveRepairProgress(
+        completedCount: batchResult.processedCount.clamp(
+          0,
+          authorization.itemCount,
+        ),
+        totalCount: authorization.itemCount,
+      ),
+    );
+    switch (batchResult.status) {
+      case AttachmentArchiveRepairMutationBatchStatus.settled:
+        break;
+      case AttachmentArchiveRepairMutationBatchStatus.sourceAccessLost:
         return _observation(
           kind: AppCzarAttachmentArchiveRepairObservationKind.sourceAccessLost,
           binding: binding,
         );
-      }
-      if (sourceObservations.any(
-        (item) =>
-            item.condition ==
-            CurrentMessagesAttachmentSourceCondition.sourceInconclusive,
-      )) {
+      case AttachmentArchiveRepairMutationBatchStatus.sourceInconclusive:
         return _observation(
           kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
           binding: binding,
         );
-      }
-
-      final remainingAuthorization = authorizedTotal - processed;
-      final available = sourceObservations
-          .where((item) => item.isAvailable)
-          .take(remainingAuthorization)
-          .toList(growable: false);
-      if (available.isNotEmpty) {
-        final batchResult = await _mutationBatchExecutor.preserveNoRecordBatch(
-          binding: binding,
-          sources: available,
-          shouldStop: () => _stopRequested,
-        );
-        processed += batchResult.processedCount;
-        onProgress?.call(
-          AppCzarAttachmentArchiveRepairProgress(
-            completedCount: processed.clamp(0, authorizedTotal),
-            totalCount: authorizedTotal,
-          ),
-        );
-        switch (batchResult.status) {
-          case AttachmentArchiveRepairMutationBatchStatus.settled:
-            break;
-          case AttachmentArchiveRepairMutationBatchStatus.sourceAccessLost:
-            return _observation(
-              kind: AppCzarAttachmentArchiveRepairObservationKind
-                  .sourceAccessLost,
-              binding: binding,
-            );
-          case AttachmentArchiveRepairMutationBatchStatus.sourceInconclusive:
-            return _observation(
-              kind:
-                  AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
-              binding: binding,
-            );
-          case AttachmentArchiveRepairMutationBatchStatus.archiveBindingChanged:
-            return _bindingChanged(binding);
-          case AttachmentArchiveRepairMutationBatchStatus.stopped:
-            return _stopped(binding);
-        }
-      }
-
-      if (!page.hasMore || processed >= authorizedTotal) {
-        break;
-      }
-      final nextCursor = page.nextCursor;
-      if (nextCursor == null || nextCursor == cursor) {
-        return _observation(
-          kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
-          binding: binding,
-        );
-      }
-      cursor = nextCursor;
+      case AttachmentArchiveRepairMutationBatchStatus.archiveBindingChanged:
+        return _bindingChanged(binding);
+      case AttachmentArchiveRepairMutationBatchStatus.stopped:
+        return _stopped(binding);
     }
     if (_stopRequested) {
       return _stopped(binding);
@@ -480,7 +431,10 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
           RequiredAttachmentEvidenceCondition.coveredAndValid =>
             partition.addCovered(),
           RequiredAttachmentEvidenceCondition.noDurableRecord =>
-            partition.addSource(observations[observationIndex++].condition),
+            partition.addSource(
+              requiredEvidence: item,
+              sourceEvidence: observations[observationIndex++],
+            ),
           RequiredAttachmentEvidenceCondition.recordPayloadAbsent ||
           RequiredAttachmentEvidenceCondition.recordWrongSize =>
             partition.addRecordBacked(),
@@ -513,6 +467,35 @@ final class MessageLensAppCzarAttachmentArchiveRepairExecutor
     } on Object {
       return null;
     }
+  }
+
+  _AttachmentArchiveRepairBatchPlan _createPlan({
+    required AppCzarAttachmentArchiveRepairBinding binding,
+    required String requiredEvidenceFingerprint,
+    required List<_AttachmentArchiveRepairPlannedItem> items,
+  }) {
+    int? totalKnownBytes = 0;
+    for (final item in items) {
+      final bytes = item.sourceEvidence.fileSizeBytes;
+      if (bytes == null || bytes < 0) {
+        totalKnownBytes = null;
+        break;
+      }
+      totalKnownBytes = totalKnownBytes! + bytes;
+    }
+    final authorization = AppCzarAttachmentArchiveRepairBatchAuthorization(
+      planIdentity:
+          '${binding.occurrenceId}:${binding.assessmentGeneration}:'
+          '${_nextPlanIdentity++}',
+      itemCount: items.length,
+      totalKnownBytes: totalKnownBytes,
+    );
+    return _AttachmentArchiveRepairBatchPlan(
+      binding: binding,
+      requiredEvidenceFingerprint: requiredEvidenceFingerprint,
+      items: items,
+      authorization: authorization,
+    );
   }
 
   static bool _sourcePageIsCoherent(
@@ -606,6 +589,7 @@ final class _AttachmentRepairPartition {
     this.sourceUnknownCount = 0,
     this.recordBackedRecoveryCount = 0,
     this.unsafeOrConflictingCount = 0,
+    this.plannedItems = const [],
     this.terminalKind,
   });
 
@@ -615,6 +599,7 @@ final class _AttachmentRepairPartition {
   final int sourceUnknownCount;
   final int recordBackedRecoveryCount;
   final int unsafeOrConflictingCount;
+  final List<_AttachmentArchiveRepairPlannedItem> plannedItems;
   final AppCzarAttachmentArchiveRepairObservationKind? terminalKind;
 
   int get requiredCount {
@@ -638,12 +623,27 @@ final class _AttachmentRepairPartition {
     return _copy(unsafeOrConflictingCount: unsafeOrConflictingCount + 1);
   }
 
-  _AttachmentRepairPartition addSource(
-    CurrentMessagesAttachmentSourceCondition condition,
-  ) {
+  _AttachmentRepairPartition addSource({
+    required RequiredAttachmentEvidenceItem requiredEvidence,
+    required CurrentMessagesAttachmentSourceObservation sourceEvidence,
+  }) {
+    final condition = sourceEvidence.condition;
+    final nextPlannedItems =
+        condition == CurrentMessagesAttachmentSourceCondition.available &&
+            plannedItems.length <
+                appCzarAttachmentArchiveRepairMaximumAuthorizedItems
+        ? List<_AttachmentArchiveRepairPlannedItem>.unmodifiable([
+            ...plannedItems,
+            _AttachmentArchiveRepairPlannedItem(
+              requiredEvidence: requiredEvidence,
+              sourceEvidence: sourceEvidence,
+            ),
+          ])
+        : plannedItems;
     return switch (condition) {
       CurrentMessagesAttachmentSourceCondition.available => _copy(
         availableFromMessagesCount: availableFromMessagesCount + 1,
+        plannedItems: nextPlannedItems,
       ),
       CurrentMessagesAttachmentSourceCondition.absent => _copy(
         sourceAbsentCount: sourceAbsentCount + 1,
@@ -673,6 +673,7 @@ final class _AttachmentRepairPartition {
     int? sourceUnknownCount,
     int? recordBackedRecoveryCount,
     int? unsafeOrConflictingCount,
+    List<_AttachmentArchiveRepairPlannedItem>? plannedItems,
     AppCzarAttachmentArchiveRepairObservationKind? terminalKind,
   }) {
     return _AttachmentRepairPartition(
@@ -685,7 +686,75 @@ final class _AttachmentRepairPartition {
           recordBackedRecoveryCount ?? this.recordBackedRecoveryCount,
       unsafeOrConflictingCount:
           unsafeOrConflictingCount ?? this.unsafeOrConflictingCount,
+      plannedItems: plannedItems ?? this.plannedItems,
       terminalKind: terminalKind ?? this.terminalKind,
     );
+  }
+}
+
+/// One exact compatibility identity and the evidence presented for consent.
+final class _AttachmentArchiveRepairPlannedItem {
+  const _AttachmentArchiveRepairPlannedItem({
+    required this.requiredEvidence,
+    required this.sourceEvidence,
+  });
+
+  final RequiredAttachmentEvidenceItem requiredEvidence;
+  final CurrentMessagesAttachmentSourceObservation sourceEvidence;
+
+  bool hasSameEvidenceAs(_AttachmentArchiveRepairPlannedItem other) {
+    return requiredEvidence.cursor == other.requiredEvidence.cursor &&
+        requiredEvidence.archiveKey == other.requiredEvidence.archiveKey &&
+        requiredEvidence.condition == other.requiredEvidence.condition &&
+        requiredEvidence.materialFingerprint ==
+            other.requiredEvidence.materialFingerprint &&
+        sourceEvidence.hasSameMaterialEvidenceAs(other.sourceEvidence);
+  }
+}
+
+/// Exact, immutable, occurrence-owned evidence behind one visible action.
+///
+/// This plan is never persisted or exposed to presentation. Its privacy-safe
+/// authorization handle identifies it, while these ordered items establish the
+/// only compatibility keys the existing mutation boundary may receive.
+final class _AttachmentArchiveRepairBatchPlan {
+  _AttachmentArchiveRepairBatchPlan({
+    required this.binding,
+    required this.requiredEvidenceFingerprint,
+    required Iterable<_AttachmentArchiveRepairPlannedItem> items,
+    required this.authorization,
+  }) : items = List<_AttachmentArchiveRepairPlannedItem>.unmodifiable(items);
+
+  final AppCzarAttachmentArchiveRepairBinding binding;
+  final String requiredEvidenceFingerprint;
+  final List<_AttachmentArchiveRepairPlannedItem> items;
+  final AppCzarAttachmentArchiveRepairBatchAuthorization authorization;
+
+  List<CurrentMessagesAttachmentSourceObservation> get sources {
+    return List<CurrentMessagesAttachmentSourceObservation>.unmodifiable(
+      items.map((item) => item.sourceEvidence),
+    );
+  }
+
+  bool matchesBinding(AppCzarAttachmentArchiveRepairBinding other) {
+    return binding.occurrenceId == other.occurrenceId &&
+        binding.assessmentGeneration == other.assessmentGeneration &&
+        binding.hasSameArchiveBinding(other);
+  }
+
+  bool hasSameEvidenceAs(_AttachmentArchiveRepairBatchPlan other) {
+    if (!matchesBinding(other.binding) ||
+        requiredEvidenceFingerprint != other.requiredEvidenceFingerprint ||
+        authorization.itemCount != other.authorization.itemCount ||
+        authorization.totalKnownBytes != other.authorization.totalKnownBytes ||
+        items.length != other.items.length) {
+      return false;
+    }
+    for (var index = 0; index < items.length; index++) {
+      if (!items[index].hasSameEvidenceAs(other.items[index])) {
+        return false;
+      }
+    }
+    return true;
   }
 }

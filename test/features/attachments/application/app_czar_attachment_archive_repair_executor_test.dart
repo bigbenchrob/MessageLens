@@ -186,8 +186,7 @@ void main() {
 
   group('MessageLensAppCzarAttachmentArchiveRepairExecutor preservation', () {
     test(
-      'explicit preservation uses bounded batches then verifies fresh complete '
-      'coverage',
+      '151 available items require three exact human confirmations',
       () async {
         final records = List<_MutableEvidenceRecord>.generate(
           151,
@@ -211,36 +210,65 @@ void main() {
         final before = await executor.inspectCurrent(binding: _binding);
 
         expect(before.snapshot?.availableFromMessagesCount, 151);
+        expect(before.snapshot?.nextBatchAuthorization?.itemCount, 75);
+        expect(
+          before.snapshot?.nextBatchAuthorization?.totalKnownBytes,
+          List<int>.generate(
+            75,
+            (index) => index + 100,
+          ).reduce((a, b) => a + b),
+        );
         expect(mutation.batches, isEmpty);
         final summariesBeforePreservation = evidence.summaryReadCount;
 
         final progress = <AppCzarAttachmentArchiveRepairProgress>[];
-        final after = await executor.preserveAvailable(
+        final afterFirst = await executor.preserveAuthorizedBatch(
           binding: _binding,
+          authorization: before.snapshot!.nextBatchAuthorization!,
           onProgress: progress.add,
         );
 
+        expect(mutation.batches.map((batch) => batch.length), [75]);
+        expect(mutation.batches.single, List.generate(75, _key));
+        expect(mutation.batches.single, isNot(contains(_key(75))));
+        expect(
+          afterFirst.kind,
+          AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete,
+        );
+        expect(afterFirst.snapshot?.coveredCount, 75);
+        expect(afterFirst.snapshot?.availableFromMessagesCount, 76);
+        expect(afterFirst.snapshot?.nextBatchAuthorization?.itemCount, 75);
+        expect(progress.map((item) => item.completedCount), [75]);
+        expect(progress.single.totalCount, 75);
+
+        final afterSecond = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: afterFirst.snapshot!.nextBatchAuthorization!,
+        );
+
+        expect(mutation.batches.map((batch) => batch.length), [75, 75]);
+        expect(
+          mutation.batches[1],
+          List.generate(75, (index) => _key(index + 75)),
+        );
+        expect(afterSecond.snapshot?.availableFromMessagesCount, 1);
+        expect(afterSecond.snapshot?.nextBatchAuthorization?.itemCount, 1);
+
+        final afterThird = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: afterSecond.snapshot!.nextBatchAuthorization!,
+        );
+
         expect(mutation.batches.map((batch) => batch.length), [75, 75, 1]);
-        expect(
-          mutation.batches.expand((batch) => batch).toSet(),
-          hasLength(151),
-        );
-        expect(
-          mutation.batches.every(
-            (batch) => batch.length <= appCzarAttachmentArchiveRepairPageSize,
-          ),
-          isTrue,
-        );
+        expect(mutation.batches[2], [_key(150)]);
         expect(source.observedPages.every((page) => page.length <= 75), isTrue);
         expect(evidence.pageLimits.every((limit) => limit <= 75), isTrue);
-        expect(progress.map((item) => item.completedCount), [75, 150, 151]);
-        expect(progress.last.totalCount, 151);
         expect(
-          after.kind,
+          afterThird.kind,
           AppCzarAttachmentArchiveRepairObservationKind.coverageComplete,
         );
-        expect(after.snapshot?.coveredCount, 151);
-        expect(after.snapshot?.needAttentionCount, 0);
+        expect(afterThird.snapshot?.coveredCount, 151);
+        expect(afterThird.snapshot?.needAttentionCount, 0);
         expect(
           evidence.summaryReadCount,
           greaterThan(summariesBeforePreservation),
@@ -263,7 +291,7 @@ void main() {
         mutation: mutation,
       );
 
-      final manual = await executor.preserveAvailable(binding: _binding);
+      final manual = await executor.inspectCurrent(binding: _binding);
 
       expect(
         manual.kind,
@@ -276,7 +304,11 @@ void main() {
           CurrentMessagesAttachmentSourceCondition.available;
       final pageCallsBeforeRetry = evidence.pageAfters.length;
 
-      final repaired = await executor.preserveAvailable(binding: _binding);
+      final available = await executor.inspectCurrent(binding: _binding);
+      final repaired = await executor.preserveAuthorizedBatch(
+        binding: _binding,
+        authorization: available.snapshot!.nextBatchAuthorization!,
+      );
 
       expect(mutation.batches, hasLength(1));
       expect(evidence.pageAfters.skip(pageCallsBeforeRetry).first, isNull);
@@ -285,6 +317,221 @@ void main() {
         AppCzarAttachmentArchiveRepairObservationKind.coverageComplete,
       );
     });
+
+    test(
+      'stale source evidence invalidates the displayed exact plan',
+      () async {
+        final evidence = _FakeRequiredAttachmentEvidenceReader([
+          _record(0, RequiredAttachmentEvidenceCondition.noDurableRecord),
+        ]);
+        final source = _FakeCurrentMessagesAttachmentSourceReader({
+          _key(0): CurrentMessagesAttachmentSourceCondition.available,
+        });
+        final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+        final executor = _executor(
+          evidence: evidence,
+          source: source,
+          mutation: mutation,
+        );
+        final displayed = await executor.inspectCurrent(binding: _binding);
+
+        source.bumpMaterialVersion(_key(0));
+        final refreshed = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: displayed.snapshot!.nextBatchAuthorization!,
+        );
+
+        expect(mutation.batches, isEmpty);
+        expect(
+          refreshed.kind,
+          AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete,
+        );
+        expect(
+          identical(
+            refreshed.snapshot!.nextBatchAuthorization,
+            displayed.snapshot!.nextBatchAuthorization,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'stale consent cannot refill an unavailable key with item 76',
+      () async {
+        final records = List<_MutableEvidenceRecord>.generate(
+          76,
+          (index) => _record(
+            index,
+            RequiredAttachmentEvidenceCondition.noDurableRecord,
+          ),
+        );
+        final evidence = _FakeRequiredAttachmentEvidenceReader(records);
+        final source = _FakeCurrentMessagesAttachmentSourceReader({
+          for (var index = 0; index < records.length; index++)
+            _key(index): CurrentMessagesAttachmentSourceCondition.available,
+        });
+        final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+        final executor = _executor(
+          evidence: evidence,
+          source: source,
+          mutation: mutation,
+        );
+        final displayed = await executor.inspectCurrent(binding: _binding);
+
+        source.conditions[_key(0)] =
+            CurrentMessagesAttachmentSourceCondition.absent;
+        final refreshed = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: displayed.snapshot!.nextBatchAuthorization!,
+        );
+
+        expect(mutation.batches, isEmpty);
+        expect(refreshed.snapshot?.nextBatchAuthorization?.itemCount, 75);
+
+        final afterFreshConfirmation = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: refreshed.snapshot!.nextBatchAuthorization!,
+        );
+        expect(mutation.batches, hasLength(1));
+        expect(mutation.batches.single.first, _key(1));
+        expect(mutation.batches.single.last, _key(75));
+        expect(
+          afterFreshConfirmation.kind,
+          AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete,
+        );
+      },
+    );
+
+    test(
+      'new required items invalidate rather than expand old consent',
+      () async {
+        final evidence = _FakeRequiredAttachmentEvidenceReader([
+          _record(0, RequiredAttachmentEvidenceCondition.noDurableRecord),
+        ]);
+        final source = _FakeCurrentMessagesAttachmentSourceReader({
+          _key(0): CurrentMessagesAttachmentSourceCondition.available,
+          _key(1): CurrentMessagesAttachmentSourceCondition.available,
+        });
+        final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+        final executor = _executor(
+          evidence: evidence,
+          source: source,
+          mutation: mutation,
+        );
+        final displayed = await executor.inspectCurrent(binding: _binding);
+
+        evidence.records.add(
+          _record(1, RequiredAttachmentEvidenceCondition.noDurableRecord),
+        );
+        final refreshed = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: displayed.snapshot!.nextBatchAuthorization!,
+        );
+
+        expect(mutation.batches, isEmpty);
+        expect(refreshed.snapshot?.nextBatchAuthorization?.itemCount, 2);
+        expect(refreshed.snapshot?.availableFromMessagesCount, 2);
+      },
+    );
+
+    test(
+      'changed archive generation invalidates consent before mutation',
+      () async {
+        final evidence = _FakeRequiredAttachmentEvidenceReader([
+          _record(0, RequiredAttachmentEvidenceCondition.noDurableRecord),
+        ]);
+        final source = _FakeCurrentMessagesAttachmentSourceReader({
+          _key(0): CurrentMessagesAttachmentSourceCondition.available,
+        });
+        final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+        var context = _context;
+        final executor = _executor(
+          evidence: evidence,
+          source: source,
+          mutation: mutation,
+          archiveContextReader: () async => context,
+        );
+        final displayed = await executor.inspectCurrent(binding: _binding);
+
+        context = AttachmentArchiveRepairArchiveContext(
+          archiveScopeIdentity: _context.archiveScopeIdentity,
+          archiveGeneration: _context.archiveGeneration + 1,
+          resolvedArchivePath: _context.resolvedArchivePath,
+          automaticPreservationAllowed: true,
+        );
+        final result = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: displayed.snapshot!.nextBatchAuthorization!,
+        );
+
+        expect(mutation.batches, isEmpty);
+        expect(
+          result.kind,
+          AppCzarAttachmentArchiveRepairObservationKind.archiveBindingChanged,
+        );
+      },
+    );
+
+    test('direct execution without the presented plan cannot mutate', () async {
+      final evidence = _FakeRequiredAttachmentEvidenceReader([
+        _record(0, RequiredAttachmentEvidenceCondition.noDurableRecord),
+      ]);
+      final source = _FakeCurrentMessagesAttachmentSourceReader({
+        _key(0): CurrentMessagesAttachmentSourceCondition.available,
+      });
+      final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+      final executor = _executor(
+        evidence: evidence,
+        source: source,
+        mutation: mutation,
+      );
+
+      final result = await executor.preserveAuthorizedBatch(
+        binding: _binding,
+        authorization: const AppCzarAttachmentArchiveRepairBatchAuthorization(
+          planIdentity: 'not-presented-by-this-executor',
+          itemCount: 1,
+          totalKnownBytes: 100,
+        ),
+      );
+
+      expect(mutation.batches, isEmpty);
+      expect(result.snapshot?.nextBatchAuthorization?.itemCount, 1);
+    });
+
+    test(
+      'unknown byte scope is visible evidence but cannot admit mutation',
+      () async {
+        final evidence = _FakeRequiredAttachmentEvidenceReader([
+          _record(0, RequiredAttachmentEvidenceCondition.noDurableRecord),
+        ]);
+        final source = _FakeCurrentMessagesAttachmentSourceReader(
+          {_key(0): CurrentMessagesAttachmentSourceCondition.available},
+          unknownByteKeys: {_key(0)},
+        );
+        final mutation = _FakeMutationBatchExecutor(evidence: evidence);
+        final executor = _executor(
+          evidence: evidence,
+          source: source,
+          mutation: mutation,
+        );
+
+        final displayed = await executor.inspectCurrent(binding: _binding);
+
+        expect(
+          displayed.snapshot?.nextBatchAuthorization?.totalKnownBytes,
+          isNull,
+        );
+        expect(displayed.snapshot?.hasAutomaticWork, isFalse);
+        final result = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: displayed.snapshot!.nextBatchAuthorization!,
+        );
+        expect(mutation.batches, isEmpty);
+        expect(result.snapshot?.hasAutomaticWork, isFalse);
+      },
+    );
 
     test(
       'mutation source loss and inconclusive evidence fail closed',
@@ -322,11 +569,16 @@ void main() {
             statuses: [scenario.$1],
           );
 
-          final observation = await _executor(
+          final executor = _executor(
             evidence: evidence,
             source: source,
             mutation: mutation,
-          ).preserveAvailable(binding: _binding);
+          );
+          final before = await executor.inspectCurrent(binding: _binding);
+          final observation = await executor.preserveAuthorizedBatch(
+            binding: _binding,
+            authorization: before.snapshot!.nextBatchAuthorization!,
+          );
 
           expect(observation.kind, scenario.$2);
           expect(mutation.batches, hasLength(1));
@@ -345,11 +597,16 @@ void main() {
         });
         final mutation = _FakeMutationBatchExecutor(evidence: evidence);
 
-        final observation = await _executor(
+        final executor = _executor(
           evidence: evidence,
           source: source,
           mutation: mutation,
-        ).preserveAvailable(binding: _binding);
+        );
+        final before = await executor.inspectCurrent(binding: _binding);
+        final observation = await executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: before.snapshot!.nextBatchAuthorization!,
+        );
 
         expect(
           observation.kind,
@@ -384,7 +641,11 @@ void main() {
           pageSize: 1,
         );
 
-        final preservation = executor.preserveAvailable(binding: _binding);
+        final before = await executor.inspectCurrent(binding: _binding);
+        final preservation = executor.preserveAuthorizedBatch(
+          binding: _binding,
+          authorization: before.snapshot!.nextBatchAuthorization!,
+        );
         await batchStarted.future;
         var drainFinished = false;
         final drain = executor.stopAndDrain().then((_) {
@@ -453,11 +714,12 @@ MessageLensAppCzarAttachmentArchiveRepairExecutor _executor({
   required _FakeCurrentMessagesAttachmentSourceReader source,
   _FakeMutationBatchExecutor? mutation,
   int pageSize = appCzarAttachmentArchiveRepairPageSize,
+  AttachmentArchiveRepairArchiveContextReader? archiveContextReader,
 }) {
   return MessageLensAppCzarAttachmentArchiveRepairExecutor(
     evidenceReader: evidence,
     sourceReaderResolver: () async => source,
-    archiveContextReader: () async => _context,
+    archiveContextReader: archiveContextReader ?? () async => _context,
     mutationBatchExecutor:
         mutation ?? _FakeMutationBatchExecutor(evidence: evidence),
     pageSize: pageSize,
@@ -567,16 +829,24 @@ final class _FakeCurrentMessagesAttachmentSourceReader
     implements CurrentMessagesAttachmentSourceReader {
   _FakeCurrentMessagesAttachmentSourceReader(
     Map<ArchiveCompatibilityKey, CurrentMessagesAttachmentSourceCondition>
-    conditions,
-  ) : conditions =
-          Map<
-            ArchiveCompatibilityKey,
-            CurrentMessagesAttachmentSourceCondition
-          >.of(conditions);
+    conditions, {
+    Set<ArchiveCompatibilityKey> unknownByteKeys = const {},
+  }) : conditions =
+           Map<
+             ArchiveCompatibilityKey,
+             CurrentMessagesAttachmentSourceCondition
+           >.of(conditions),
+       unknownByteKeys = Set<ArchiveCompatibilityKey>.of(unknownByteKeys);
 
   final Map<ArchiveCompatibilityKey, CurrentMessagesAttachmentSourceCondition>
   conditions;
+  final Set<ArchiveCompatibilityKey> unknownByteKeys;
+  final Map<ArchiveCompatibilityKey, int> _materialVersions = {};
   final List<List<ArchiveCompatibilityKey>> observedPages = [];
+
+  void bumpMaterialVersion(ArchiveCompatibilityKey key) {
+    _materialVersions[key] = (_materialVersions[key] ?? 0) + 1;
+  }
 
   @override
   Future<CurrentMessagesAttachmentSourceObservation> observeCurrent(
@@ -598,14 +868,19 @@ final class _FakeCurrentMessagesAttachmentSourceReader
   ) {
     final condition =
         conditions[key] ?? CurrentMessagesAttachmentSourceCondition.unknown;
+    final version = _materialVersions[key] ?? 0;
     return switch (condition) {
       CurrentMessagesAttachmentSourceCondition.available =>
-        CurrentMessagesAttachmentSourceObservation.available(
+        CurrentMessagesAttachmentSourceObservation(
           archiveKey: key,
-          sourcePath: '/test/source/${key.importAttachmentId}',
+          condition: CurrentMessagesAttachmentSourceCondition.available,
+          sourcePath: '/test/source/${key.importAttachmentId}/$version',
           mimeType: 'image/png',
-          fileSizeBytes: key.importAttachmentId,
-          modifiedAtMicrosecondsSinceEpoch: key.importAttachmentId * 1000,
+          fileSizeBytes: unknownByteKeys.contains(key)
+              ? null
+              : key.importAttachmentId + version,
+          modifiedAtMicrosecondsSinceEpoch:
+              key.importAttachmentId * 1000 + version,
         ),
       CurrentMessagesAttachmentSourceCondition.absent =>
         CurrentMessagesAttachmentSourceObservation.absent(archiveKey: key),

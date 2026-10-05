@@ -16,6 +16,8 @@ class AppCzarAttachmentArchiveRepairScreen extends ConsumerWidget {
   static const requiredCountKey = Key('attachment-repair-required-count');
   static const coveredCountKey = Key('attachment-repair-covered-count');
   static const attentionCountKey = Key('attachment-repair-attention-count');
+  static const nextBatchCountKey = Key('attachment-repair-next-batch-count');
+  static const nextBatchBytesKey = Key('attachment-repair-next-batch-bytes');
   static const startKey = Key('attachment-repair-start');
   static const checkAgainKey = Key('attachment-repair-check-again');
   static const retryRestartKey = Key('attachment-repair-retry-restart');
@@ -73,6 +75,15 @@ class AppCzarAttachmentArchiveRepairScreen extends ConsumerWidget {
                       colors: colors,
                       typography: typography,
                     ),
+                    if (snapshot.nextBatchAuthorization
+                        case final authorization?) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      _RepairBatchCard(
+                        authorization: authorization,
+                        colors: colors,
+                        typography: typography,
+                      ),
+                    ],
                   ],
                   const SizedBox(height: AppSpacing.lg),
                   _RepairActions(
@@ -87,6 +98,64 @@ class AppCzarAttachmentArchiveRepairScreen extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RepairBatchCard extends StatelessWidget {
+  const _RepairBatchCard({
+    required this.authorization,
+    required this.colors,
+    required this.typography,
+  });
+
+  final AppCzarAttachmentArchiveRepairBatchAuthorization authorization;
+  final ThemeColors colors;
+  final ThemeTypography typography;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = authorization.itemCount;
+    final bytes = authorization.totalKnownBytes;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaces.surface,
+        border: Border.all(color: colors.lines.borderSubtle),
+        borderRadius: BorderRadius.circular(AppSpacing.sm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Next repair batch',
+              style: typography.title3.copyWith(
+                color: colors.content.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              key: AppCzarAttachmentArchiveRepairScreen.nextBatchCountKey,
+              '$count ${_attachmentPlural(count)}',
+              style: typography.controlValue.copyWith(
+                color: colors.content.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              key: AppCzarAttachmentArchiveRepairScreen.nextBatchBytesKey,
+              bytes == null
+                  ? 'Total size could not be established'
+                  : 'Total source size: ${_formatExactBytes(bytes)}',
+              style: typography.body.copyWith(
+                color: colors.content.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -251,7 +320,10 @@ class _RepairActions extends StatelessWidget {
   final AppCzarAttachmentArchiveRepairState state;
   final ThemeColors colors;
   final ThemeTypography typography;
-  final Future<void> Function() onStart;
+  final Future<void> Function(
+    AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
+  )
+  onStart;
   final Future<void> Function() onCheckAgain;
   final Future<void> Function() onRetryRestart;
 
@@ -292,18 +364,23 @@ class _RepairActions extends StatelessWidget {
       );
     }
 
+    final authorization = state.snapshot?.nextBatchAuthorization;
     return Wrap(
       spacing: AppSpacing.md,
       runSpacing: AppSpacing.sm,
       children: [
-        if (state.canStartPreservation)
+        if (state.canStartPreservation && authorization != null)
           TextButton.icon(
             key: AppCzarAttachmentArchiveRepairScreen.startKey,
             onPressed: () async {
-              await onStart();
+              await onStart(authorization);
             },
             icon: const Icon(Icons.archive_outlined, size: 16),
-            label: const Text('Preserve Available Attachments'),
+            label: Text(
+              'Preserve these '
+              '${authorization.itemCount} '
+              '${_attachmentPlural(authorization.itemCount)}',
+            ),
             style: TextButton.styleFrom(
               foregroundColor: colors.accents.primary,
               textStyle: typography.controlValue,
@@ -354,7 +431,7 @@ String _statusHeading(AppCzarAttachmentArchiveRepairState state) {
     AppCzarAttachmentArchiveRepairPhase.inspecting =>
       'Checking attachment coverage',
     AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation =>
-      'Available payloads can be preserved',
+      'One exact repair batch is ready',
     AppCzarAttachmentArchiveRepairPhase.preserving =>
       'Preserving available payloads',
     AppCzarAttachmentArchiveRepairPhase.waitingForHuman =>
@@ -392,8 +469,8 @@ String _statusDetail(AppCzarAttachmentArchiveRepairState state) {
     AppCzarAttachmentArchiveRepairPhase.inspecting =>
       'Reading bounded current evidence without changing the archive.',
     AppCzarAttachmentArchiveRepairPhase.awaitingConfirmation =>
-      'Review the current aggregate counts, then choose whether to preserve '
-          'payloads that are currently available from Messages.',
+      'Review the exact next-batch count and source-byte scope. One '
+          'confirmation applies only to this displayed batch.',
     AppCzarAttachmentArchiveRepairPhase.preserving =>
       '${state.preservedCount ?? 0} of '
           '${state.preservationTotalCount ?? 0} processed in this pass.',
@@ -435,4 +512,22 @@ double _progressValue(AppCzarAttachmentArchiveRepairState state) {
     return 0;
   }
   return completed / total;
+}
+
+String _attachmentPlural(int count) {
+  return count == 1 ? 'attachment' : 'attachments';
+}
+
+String _formatExactBytes(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes bytes';
+  }
+  const units = <String>['KB', 'MB', 'GB', 'TB'];
+  var value = bytes / 1024;
+  var unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return '${value.toStringAsFixed(1)} ${units[unitIndex]} ($bytes bytes)';
 }

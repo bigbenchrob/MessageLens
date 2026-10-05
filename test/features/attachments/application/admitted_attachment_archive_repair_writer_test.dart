@@ -240,7 +240,12 @@ void main() {
         mutationBatchExecutor: batchExecutor,
       );
 
-      final preservation = executor.preserveAvailable(binding: binding);
+      final inspection = await executor.inspectCurrent(binding: binding);
+      final authorization = inspection.snapshot!.nextBatchAuthorization!;
+      final preservation = executor.preserveAuthorizedBatch(
+        binding: binding,
+        authorization: authorization,
+      );
       await writerEntered.future;
       expect(mutationCoordinator.state.isLocked, isTrue);
       expect(

@@ -86,9 +86,14 @@ class AppCzarAttachmentArchiveRepairController
     return _current;
   }
 
-  Future<void> startPreservation() async {
+  Future<void> startPreservation(
+    AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
+  ) async {
     final binding = _activeBinding;
+    final currentAuthorization = _current.snapshot?.nextBatchAuthorization;
     if (binding == null ||
+        currentAuthorization == null ||
+        !identical(currentAuthorization, authorization) ||
         !_current.canStartPreservation ||
         _preservationInFlight ||
         _checkInFlight ||
@@ -104,11 +109,11 @@ class AppCzarAttachmentArchiveRepairController
         _current.copyWith(
           phase: AppCzarAttachmentArchiveRepairPhase.preserving,
           preservedCount: 0,
-          preservationTotalCount: _current.snapshot?.availableFromMessagesCount,
+          preservationTotalCount: authorization.itemCount,
           clearFailure: true,
         ),
       );
-      await _runOne(() => _preserveAvailable(binding));
+      await _runOne(() => _preserveAuthorizedBatch(binding, authorization));
     } finally {
       _preservationInFlight = false;
     }
@@ -302,8 +307,9 @@ class AppCzarAttachmentArchiveRepairController
     await _handleObservation(binding, observation);
   }
 
-  Future<void> _preserveAvailable(
+  Future<void> _preserveAuthorizedBatch(
     AppCzarAttachmentArchiveRepairBinding binding,
+    AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
   ) async {
     final executor = _executorFor(binding);
     if (executor == null) {
@@ -311,8 +317,9 @@ class AppCzarAttachmentArchiveRepairController
     }
     AppCzarAttachmentArchiveRepairObservation observation;
     try {
-      observation = await executor.preserveAvailable(
+      observation = await executor.preserveAuthorizedBatch(
         binding: binding,
+        authorization: authorization,
         onProgress: (progress) {
           if (!_canPublish(binding) || !progress.isCoherent) {
             return;
