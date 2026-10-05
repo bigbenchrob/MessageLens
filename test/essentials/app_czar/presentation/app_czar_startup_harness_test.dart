@@ -124,7 +124,7 @@ void main() {
 
     expect(find.text('Still assessing…'), findsOneWidget);
     expect(find.text('Not selected yet'), findsOneWidget);
-    expect(find.text('Checking'), findsNWidgets(10));
+    expect(find.text('Checking'), findsNWidgets(11));
     expect(find.textContaining('Full Disk Access'), findsNothing);
     expect(find.textContaining('%'), findsNothing);
     expect(displayIdentityResolverBuilds, 0);
@@ -292,6 +292,7 @@ final class _HealthyReader implements AppCzarObservationReader {
       archiveGeneration: 0,
       resolvedPath: '/test/archive',
       coverage: _completeCoverage,
+      repairability: _completeRepairability,
     );
   }
 
@@ -350,6 +351,17 @@ const _completeCoverage = AppCzarAttachmentCoverageObservation(
   coveredCount: 1,
   missingCount: 0,
   unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
+
+const _completeRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+  availableFromMessagesCount: 0,
+  sourceAbsentCount: 0,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
 );

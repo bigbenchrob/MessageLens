@@ -64,16 +64,20 @@ void main() {
     expect(sources, contains('PRAGMA query_only = ON'));
   });
 
-  test('attachment coverage remains observation-only and acquires no Ball', () {
+  test('attachment coverage and repairability remain observation-only', () {
     final probe = File(
       'lib/features/attachments/infrastructure/repositories/'
       'read_only_app_czar_attachment_coverage_probe.dart',
+    ).readAsStringSync();
+    final repairabilityReader = File(
+      'lib/features/attachments/application/'
+      'attachment_repairability_evidence_reader.dart',
     ).readAsStringSync();
     final reader = File(
       'lib/features/attachments/infrastructure/repositories/'
       'sqlite_required_attachment_evidence_reader.dart',
     ).readAsStringSync();
-    final source = '$probe\n$reader';
+    final source = '$probe\n$repairabilityReader\n$reader';
 
     const forbidden = <String>[
       'ArchiveMutationCoordinator',
@@ -87,6 +91,10 @@ void main() {
       'preservationComplete',
       'lastRepairSucceeded',
       'needsRepair',
+      'debtBaseline',
+      'grandfather',
+      'waiverGranted',
+      'coverageExemption',
     ];
     for (final term in forbidden) {
       expect(
@@ -96,12 +104,22 @@ void main() {
       );
     }
     expect(probe, contains('RequiredAttachmentEvidenceReader'));
+    expect(probe, contains('AttachmentRepairabilityEvidenceReader'));
     expect(probe, isNot(contains('JOIN message_to_attachment')));
+    expect(
+      repairabilityReader,
+      contains('RequiredAttachmentEvidenceReader _requiredEvidenceReader'),
+    );
+    expect(
+      repairabilityReader,
+      contains('_requiredEvidenceReader.readSummary'),
+    );
+    expect(repairabilityReader, contains('_requiredEvidenceReader.readPage'));
     expect(reader, contains('OpenMode.readOnly'));
     expect(reader, contains('PRAGMA query_only = ON'));
   });
 
-  test('availability and coverage remain distinct Operating facts', () {
+  test('availability coverage and repair opportunity stay distinct facts', () {
     final model = File(
       'lib/essentials/app_czar/domain/app_czar_models.dart',
     ).readAsStringSync();
@@ -112,6 +130,7 @@ void main() {
 
     expect(model, contains('attachmentArchiveAvailable'));
     expect(model, contains('attachmentCoverageComplete'));
+    expect(model, contains('attachmentRepairOpportunityPresent'));
     expect(
       RegExp(
         r'AppCzarFactId\.attachmentArchiveAvailable',
@@ -124,6 +143,15 @@ void main() {
       ).allMatches(operating),
       hasLength(1),
     );
+    expect(
+      RegExp(
+        r'AppCzarFactId\.attachmentRepairOpportunityPresent',
+      ).allMatches(operating),
+      hasLength(1),
+    );
+    expect(operating, contains('coverageTruth != AppCzarTruth.trueValue'));
+    expect(operating, contains('coverageTruth != AppCzarTruth.falseValue'));
+    expect(operating, contains('archive.repairability.isOperatingSafe'));
   });
 
   test('virtual coordinator selection is data and has no constructor seam', () {
@@ -595,7 +623,20 @@ void main() {
         ).hasMatch(controller),
         isTrue,
       );
+      expect(
+        controller,
+        contains('AppCzarFactId.attachmentRepairOpportunityPresent'),
+      );
+      expect(
+        controller,
+        contains('repairOpportunityTruth == AppCzarTruth.trueValue'),
+      );
+      expect(
+        controller,
+        contains('repairOpportunityTruth == AppCzarTruth.falseValue'),
+      );
       expect(controller, contains('archive.hasCoherentCoverageBinding'));
+      expect(controller, contains('archive.hasCoherentRepairabilityBinding'));
       expect(
         controller,
         isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
@@ -693,6 +734,19 @@ void main() {
     expect(controller, contains('_activeFlight'));
     expect(controller, contains('stopAndDrain()'));
     expect(controller, contains('readCoverage()'));
+    expect(controller, contains('_attachmentEvidencePermitsOperating'));
+    expect(controller, contains('archive.repairability.isOperatingSafe'));
+    expect(
+      controller,
+      isNot(
+        matches(
+          RegExp(
+            r'coverage\.condition\s*==\s*'
+            r'AppCzarAttachmentCoverageCondition\.complete',
+          ),
+        ),
+      ),
+    );
     expect(controller, contains('appCzarProcessRestarterProvider'));
     const dispositions = <String>[
       'noChange',
@@ -716,6 +770,46 @@ void main() {
           .where((value) => value.trim().isNotEmpty),
       hasLength(dispositions.length),
     );
+  });
+
+  test('attachment debt authority uses only current evidence', () {
+    final sources = <String>[
+      File(
+        'lib/features/attachments/application/'
+        'attachment_repairability_evidence_reader.dart',
+      ).readAsStringSync(),
+      File(
+        'lib/essentials/app_czar/application/app_czar_evaluator.dart',
+      ).readAsStringSync(),
+      File(
+        'lib/essentials/app_czar_operating_session/application/'
+        'app_czar_operating_session_controller.dart',
+      ).readAsStringSync(),
+      File(
+        'lib/essentials/app_czar_operating_session/application/'
+        'app_czar_operating_currentness_controller.dart',
+      ).readAsStringSync(),
+    ].join('\n');
+
+    for (final term in <String>[
+      'debtBaseline',
+      'historicalDebt',
+      'grandfathered',
+      'attachmentWaiver',
+      'coverageExemption',
+      'lastRepairSucceeded',
+      'previousDebtCount',
+    ]) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Current attachment jurisdiction must not contain $term.',
+      );
+    }
+    expect(sources, contains('sourceAbsentCount'));
+    expect(sources, contains('sourceUnknownCount'));
+    expect(sources, contains('recordBackedRecoveryCount'));
+    expect(sources, contains('unsafeOrConflictingCount'));
   });
 
   test('Operating exit and replacement explicitly drain exact tenure', () {

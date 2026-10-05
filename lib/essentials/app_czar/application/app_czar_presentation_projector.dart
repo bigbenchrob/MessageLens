@@ -21,6 +21,7 @@ enum AppCzarPresentationRowId {
   localDataset,
   attachmentArchive,
   attachmentCoverage,
+  attachmentRepairOpportunity,
   newMessages,
 }
 
@@ -111,6 +112,10 @@ final class AppCzarPresentationProjector {
           observations.attachmentArchive.coverage,
           assessment,
         ),
+        _attachmentRepairOpportunityRow(
+          observations.attachmentArchive.repairability,
+          assessment,
+        ),
         _newMessagesRow(observations, assessment),
       ],
       diagnosis: assessment.diagnosis,
@@ -129,6 +134,8 @@ final class AppCzarPresentationProjector {
       AppCzarPresentationRowId.localDataset: 'Local message dataset',
       AppCzarPresentationRowId.attachmentArchive: 'Attachment archive',
       AppCzarPresentationRowId.attachmentCoverage: 'Attachment coverage',
+      AppCzarPresentationRowId.attachmentRepairOpportunity:
+          'Current attachment repair opportunity',
       AppCzarPresentationRowId.newMessages: 'New messages',
     };
     return <AppCzarPresentationRow>[
@@ -516,6 +523,53 @@ final class AppCzarPresentationProjector {
         'Local live-import count: $localCount.',
         'Source high-water: $sourceHighWater.',
         'Local high-water: $localHighWater.',
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _attachmentRepairOpportunityRow(
+    AppCzarAttachmentRepairabilityObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(
+      AppCzarFactId.attachmentRepairOpportunityPresent,
+    );
+    final available = observation.availableFromMessagesCount;
+    final absent = observation.sourceAbsentCount;
+    final unknown = observation.sourceUnknownCount;
+    final recordBacked = observation.recordBackedRecoveryCount;
+    final unsafe = observation.unsafeOrConflictingCount;
+    final hasDebt = (observation.needAttentionCount ?? 0) > 0;
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.attachmentRepairOpportunity,
+      label: 'Current attachment repair opportunity',
+      value: switch (fact.truth) {
+        AppCzarTruth.trueValue =>
+          'Available — $available payloads can be preserved now',
+        AppCzarTruth.falseValue => 'No current automatic repair opportunity',
+        AppCzarTruth.unknown => 'Could not be established',
+      },
+      detail: fact.detail,
+      significance: switch (fact.truth) {
+        AppCzarTruth.trueValue => AppCzarPresentationSignificance.attention,
+        AppCzarTruth.falseValue =>
+          hasDebt
+              ? AppCzarPresentationSignificance.informational
+              : AppCzarPresentationSignificance.healthy,
+        AppCzarTruth.unknown => AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[
+        AppCzarFactId.attachmentRepairOpportunityPresent,
+      ],
+      evidence: <String>[
+        'Repair opportunity condition: ${observation.condition.name}.',
+        if (available != null) 'Available from Messages: $available.',
+        if (absent != null) 'Currently absent from Messages: $absent.',
+        if (unknown != null) 'Source evidence unknown: $unknown.',
+        if (recordBacked != null)
+          'Record-backed recovery needed: $recordBacked.',
+        if (unsafe != null) 'Unsafe or conflicting evidence: $unsafe.',
+        if (observation.issue != null) observation.issue!,
       ],
     );
   }

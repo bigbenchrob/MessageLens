@@ -253,6 +253,12 @@ class AppCzarOperatingCurrentnessController
       return null;
     }
     if (!coverage.isCoherent) {
+      _publishIssue(
+        epoch: epoch,
+        kind: AppCzarOperatingCurrentnessIssueKind.coverageUnknown,
+        detail:
+            'Current attachment evidence changed during Operating admission.',
+      );
       return null;
     }
 
@@ -292,10 +298,11 @@ class AppCzarOperatingCurrentnessController
     if (!_validateArchiveEvidence(epoch, binding, coverage.archive)) {
       return null;
     }
-    if (!_coverageIsComplete(coverage.archive)) {
-      _publishCoverageIssue(epoch, coverage.archive);
+    if (!_attachmentEvidencePermitsOperating(coverage.archive)) {
+      _publishAttachmentEvidenceIssue(epoch, coverage.archive);
       return null;
     }
+    _publishOperatingIdle(epoch, coverage.archive);
     return binding;
   }
 
@@ -317,7 +324,11 @@ class AppCzarOperatingCurrentnessController
       return;
     }
     if (!preCoverage.isCoherent) {
-      _publish(epoch, AppCzarOperatingCurrentnessState.idle(_occurrence));
+      _publishIssue(
+        epoch: epoch,
+        kind: AppCzarOperatingCurrentnessIssueKind.coverageUnknown,
+        detail: 'Current attachment evidence changed before the live update.',
+      );
       return;
     }
     if (!binding.matchesLocation(preCoverage.after.archiveLocation)) {
@@ -331,8 +342,8 @@ class AppCzarOperatingCurrentnessController
     if (!_validateArchiveEvidence(epoch, binding, preCoverage.archive)) {
       return;
     }
-    if (!_coverageIsComplete(preCoverage.archive)) {
-      _publishCoverageIssue(epoch, preCoverage.archive);
+    if (!_attachmentEvidencePermitsOperating(preCoverage.archive)) {
+      _publishAttachmentEvidenceIssue(epoch, preCoverage.archive);
       return;
     }
     if (!_archiveConditionPermitsMutation(preCoverage.archive.condition)) {
@@ -419,8 +430,8 @@ class AppCzarOperatingCurrentnessController
     if (!_validateArchiveEvidence(epoch, binding, postCoverage.archive)) {
       return;
     }
-    if (!_coverageIsComplete(postCoverage.archive)) {
-      _publishCoverageIssue(epoch, postCoverage.archive);
+    if (!_attachmentEvidencePermitsOperating(postCoverage.archive)) {
+      _publishAttachmentEvidenceIssue(epoch, postCoverage.archive);
       return;
     }
     if (!_archiveConditionPermitsMutation(postCoverage.archive.condition)) {
@@ -442,7 +453,7 @@ class AppCzarOperatingCurrentnessController
       return;
     }
 
-    _publish(epoch, AppCzarOperatingCurrentnessState.idle(_occurrence));
+    _publishOperatingIdle(epoch, postCoverage.archive);
   }
 
   Future<void> _requireCurrentMutationPrecondition({
@@ -539,18 +550,22 @@ class AppCzarOperatingCurrentnessController
     }
   }
 
-  bool _coverageIsComplete(AppCzarArchiveObservation archive) {
-    final conditionSupportsCoverage = switch (archive.condition) {
+  bool _attachmentEvidencePermitsOperating(AppCzarArchiveObservation archive) {
+    final conditionSupportsEvidence = switch (archive.condition) {
       AppCzarArchiveCondition.available ||
       AppCzarArchiveCondition.readOnly ||
       AppCzarArchiveCondition.notCreated => true,
       AppCzarArchiveCondition.unavailable ||
       AppCzarArchiveCondition.unknown => false,
     };
-    return conditionSupportsCoverage &&
+    final coverageIsKnown =
+        archive.coverage.condition !=
+        AppCzarAttachmentCoverageCondition.unknown;
+    return conditionSupportsEvidence &&
         archive.hasCoherentCoverageBinding &&
-        archive.coverage.condition ==
-            AppCzarAttachmentCoverageCondition.complete;
+        archive.hasCoherentRepairabilityBinding &&
+        coverageIsKnown &&
+        archive.repairability.isOperatingSafe;
   }
 
   bool _archiveConditionPermitsMutation(AppCzarArchiveCondition condition) {
@@ -609,6 +624,7 @@ class AppCzarOperatingCurrentnessController
       epoch: epoch,
       kind: AppCzarOperatingCurrentnessIssueKind.coverageUnknown,
       detail:
+          archive.repairability.issue ??
           archive.coverage.issue ??
           'Fresh attachment archive evidence did not contain one complete authentic binding.',
     );
@@ -624,6 +640,8 @@ class AppCzarOperatingCurrentnessController
     final archivePath = archive.resolvedPath;
     final coverageScope = archive.coverage.archiveScopeIdentity;
     final coverageGeneration = archive.coverage.archiveGeneration;
+    final repairabilityScope = archive.repairability.archiveScopeIdentity;
+    final repairabilityGeneration = archive.repairability.archiveGeneration;
     return (archiveScope != null &&
             archiveScope.isNotEmpty &&
             archiveScope != binding.scopeIdentity) ||
@@ -638,7 +656,13 @@ class AppCzarOperatingCurrentnessController
             coverageScope != binding.scopeIdentity) ||
         (coverageGeneration != null &&
             coverageGeneration >= 0 &&
-            coverageGeneration != binding.probeGeneration);
+            coverageGeneration != binding.probeGeneration) ||
+        (repairabilityScope != null &&
+            repairabilityScope.isNotEmpty &&
+            repairabilityScope != binding.scopeIdentity) ||
+        (repairabilityGeneration != null &&
+            repairabilityGeneration >= 0 &&
+            repairabilityGeneration != binding.probeGeneration);
   }
 
   bool _locationStillMatches(
@@ -648,14 +672,19 @@ class AppCzarOperatingCurrentnessController
     return binding.matchesLocation(location);
   }
 
-  void _publishCoverageIssue(int epoch, AppCzarArchiveObservation archive) {
-    if (archive.coverage.condition ==
-        AppCzarAttachmentCoverageCondition.incomplete) {
+  void _publishAttachmentEvidenceIssue(
+    int epoch,
+    AppCzarArchiveObservation archive,
+  ) {
+    final repairability = archive.repairability;
+    if (repairability.condition ==
+            AppCzarAttachmentRepairOpportunityCondition.present ||
+        (repairability.recordBackedRecoveryCount ?? 0) > 0) {
       _publishIssue(
         epoch: epoch,
         kind: AppCzarOperatingCurrentnessIssueKind.coverageIncomplete,
         detail:
-            'Required attachment coverage is incomplete for the current local graph.',
+            'Current uncovered attachment evidence requires a fresh AppCzar jurisdiction decision.',
       );
       return;
     }
@@ -663,8 +692,23 @@ class AppCzarOperatingCurrentnessController
       epoch: epoch,
       kind: AppCzarOperatingCurrentnessIssueKind.coverageUnknown,
       detail:
+          repairability.issue ??
           archive.coverage.issue ??
-          'Required attachment coverage could not be verified for the current local graph.',
+          'Current attachment repairability could not be established.',
+    );
+  }
+
+  void _publishOperatingIdle(int epoch, AppCzarArchiveObservation archive) {
+    final repairability = archive.repairability;
+    final debtCount = repairability.needAttentionCount;
+    final absentCount = repairability.sourceAbsentCount;
+    _publish(
+      epoch,
+      AppCzarOperatingCurrentnessState.idle(
+        _occurrence,
+        attachmentDebtCount: debtCount,
+        attachmentSourceAbsentCount: absentCount,
+      ),
     );
   }
 

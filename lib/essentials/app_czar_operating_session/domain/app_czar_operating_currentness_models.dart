@@ -39,16 +39,22 @@ final class AppCzarOperatingCurrentnessState {
     this.attachmentsPreserved,
     this.attachmentsSkipped,
     this.attachmentsFailed,
+    this.attachmentDebtCount,
+    this.attachmentSourceAbsentCount,
     this.issueKind,
     this.issue,
   });
 
   factory AppCzarOperatingCurrentnessState.idle(
-    AppCzarOperatingSessionOccurrence occurrence,
-  ) {
+    AppCzarOperatingSessionOccurrence occurrence, {
+    int? attachmentDebtCount,
+    int? attachmentSourceAbsentCount,
+  }) {
     return AppCzarOperatingCurrentnessState(
       occurrence: occurrence,
       phase: AppCzarOperatingCurrentnessPhase.idle,
+      attachmentDebtCount: attachmentDebtCount,
+      attachmentSourceAbsentCount: attachmentSourceAbsentCount,
     );
   }
 
@@ -61,12 +67,16 @@ final class AppCzarOperatingCurrentnessState {
   final int? attachmentsPreserved;
   final int? attachmentsSkipped;
   final int? attachmentsFailed;
+  final int? attachmentDebtCount;
+  final int? attachmentSourceAbsentCount;
   final AppCzarOperatingCurrentnessIssueKind? issueKind;
   final String? issue;
 
   bool get hasVisibleStatus {
     return switch (phase) {
-      AppCzarOperatingCurrentnessPhase.idle ||
+      AppCzarOperatingCurrentnessPhase.idle =>
+        (attachmentDebtCount ?? 0) > 0 &&
+            attachmentDebtCount == attachmentSourceAbsentCount,
       AppCzarOperatingCurrentnessPhase.stopped => false,
       _ => true,
     };
@@ -84,10 +94,13 @@ final class AppCzarOperatingCurrentnessState {
     int? attachmentsPreserved,
     int? attachmentsSkipped,
     int? attachmentsFailed,
+    int? attachmentDebtCount,
+    int? attachmentSourceAbsentCount,
     AppCzarOperatingCurrentnessIssueKind? issueKind,
     String? issue,
     bool clearProgress = false,
     bool clearIssue = false,
+    bool clearAttachmentDebt = false,
   }) {
     return AppCzarOperatingCurrentnessState(
       occurrence: occurrence,
@@ -111,6 +124,12 @@ final class AppCzarOperatingCurrentnessState {
       attachmentsFailed: clearProgress
           ? null
           : attachmentsFailed ?? this.attachmentsFailed,
+      attachmentDebtCount: clearAttachmentDebt
+          ? null
+          : attachmentDebtCount ?? this.attachmentDebtCount,
+      attachmentSourceAbsentCount: clearAttachmentDebt
+          ? null
+          : attachmentSourceAbsentCount ?? this.attachmentSourceAbsentCount,
       issueKind: clearIssue ? null : issueKind ?? this.issueKind,
       issue: clearIssue ? null : issue ?? this.issue,
     );
@@ -276,7 +295,10 @@ final class AppCzarOperatingArchiveBinding {
         archive.resolvedPath == resolvedPath &&
         archive.coverage.archiveScopeIdentity == scopeIdentity &&
         archive.coverage.archiveGeneration == probeGeneration &&
-        archive.hasCoherentCoverageBinding;
+        archive.repairability.archiveScopeIdentity == scopeIdentity &&
+        archive.repairability.archiveGeneration == probeGeneration &&
+        archive.hasCoherentCoverageBinding &&
+        archive.hasCoherentRepairabilityBinding;
   }
 }
 

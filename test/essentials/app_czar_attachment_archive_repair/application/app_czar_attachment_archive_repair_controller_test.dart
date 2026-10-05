@@ -37,6 +37,21 @@ void main() {
       );
     });
 
+    test('rejects conclusive source-absent-only coverage debt', () {
+      expect(
+        shouldExecuteAppCzarAttachmentArchiveRepair(
+          _repairAssessmentState(
+            repairOpportunityTruth: AppCzarTruth.falseValue,
+            repairOpportunityCondition:
+                AppCzarAttachmentRepairOpportunityCondition.absent,
+            availableFromMessagesCount: 0,
+            sourceAbsentCount: 3,
+          ),
+        ),
+        isFalse,
+      );
+    });
+
     test('rejects UNKNOWN, duplicate, or missing required facts', () {
       expect(
         shouldExecuteAppCzarAttachmentArchiveRepair(
@@ -722,6 +737,11 @@ AppCzarAssessmentState _repairAssessmentState({
   String resolvedPath = '/Volumes/Test/attachment_archive',
   bool duplicateCoverageFact = false,
   bool omitArchiveFact = false,
+  AppCzarTruth repairOpportunityTruth = AppCzarTruth.trueValue,
+  AppCzarAttachmentRepairOpportunityCondition repairOpportunityCondition =
+      AppCzarAttachmentRepairOpportunityCondition.present,
+  int availableFromMessagesCount = 3,
+  int sourceAbsentCount = 0,
 }) {
   final coverage = AppCzarAttachmentCoverageObservation(
     condition: coverageCondition,
@@ -744,11 +764,27 @@ AppCzarAssessmentState _repairAssessmentState({
     archiveScopeIdentity: scopeIdentity,
     archiveGeneration: coverageGeneration ?? archiveGeneration,
   );
+  final repairability = AppCzarAttachmentRepairabilityObservation(
+    condition: repairOpportunityCondition,
+    availableFromMessagesCount: availableFromMessagesCount,
+    sourceAbsentCount: sourceAbsentCount,
+    sourceUnknownCount: 0,
+    recordBackedRecoveryCount: 0,
+    unsafeOrConflictingCount: 0,
+    archiveScopeIdentity: scopeIdentity,
+    archiveGeneration: archiveGeneration,
+  );
   final facts = <AppCzarFact>[
     AppCzarFact(
       id: AppCzarFactId.attachmentCoverageComplete,
       label: 'coverage',
       truth: coverageTruth,
+      detail: 'test',
+    ),
+    AppCzarFact(
+      id: AppCzarFactId.attachmentRepairOpportunityPresent,
+      label: 'repair opportunity',
+      truth: repairOpportunityTruth,
       detail: 'test',
     ),
     if (duplicateCoverageFact)
@@ -772,6 +808,7 @@ AppCzarAssessmentState _repairAssessmentState({
       condition: AppCzarArchiveCondition.available,
       label: 'Archive',
       coverage: coverage,
+      repairability: repairability,
       archiveScopeIdentity: scopeIdentity,
       archiveGeneration: archiveGeneration,
       resolvedPath: resolvedPath,
@@ -1003,6 +1040,16 @@ final class _RepairReader implements AppCzarObservationReader {
         coveredCount: 10,
         missingCount: 3,
         unverifiableCount: 0,
+        archiveScopeIdentity: 'scope-a',
+        archiveGeneration: 0,
+      ),
+      repairability: const AppCzarAttachmentRepairabilityObservation(
+        condition: AppCzarAttachmentRepairOpportunityCondition.present,
+        availableFromMessagesCount: 3,
+        sourceAbsentCount: 0,
+        sourceUnknownCount: 0,
+        recordBackedRecoveryCount: 0,
+        unsafeOrConflictingCount: 0,
         archiveScopeIdentity: 'scope-a',
         archiveGeneration: 0,
       ),

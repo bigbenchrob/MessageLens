@@ -44,7 +44,6 @@ void main() {
         AppCzarFactId.overlayHealthy,
         AppCzarFactId.localDatasetComplete,
         AppCzarFactId.attachmentArchiveAvailable,
-        AppCzarFactId.attachmentCoverageComplete,
         AppCzarFactId.sourceLocalDeltaKnown,
       };
       for (final factId in requiredTrueFacts) {
@@ -110,6 +109,21 @@ void main() {
         shouldExecuteAppCzarOperatingSession(AppCzarAssessmentState.initial(9)),
         isFalse,
       );
+      for (final truth in <AppCzarTruth>[
+        AppCzarTruth.trueValue,
+        AppCzarTruth.unknown,
+      ]) {
+        expect(
+          shouldExecuteAppCzarOperatingSession(
+            _operatingAssessmentState(
+              truthOverrides: <AppCzarFactId, AppCzarTruth>{
+                AppCzarFactId.attachmentRepairOpportunityPresent: truth,
+              },
+            ),
+          ),
+          isFalse,
+        );
+      }
 
       final otherwiseValid = _operatingAssessmentState();
       expect(
@@ -132,6 +146,45 @@ void main() {
         isFalse,
       );
     });
+  });
+
+  test('known source-absent debt is an exact Operating admission', () {
+    expect(
+      shouldExecuteAppCzarOperatingSession(
+        _operatingAssessmentState(
+          attachmentArchive: const AppCzarArchiveObservation(
+            condition: AppCzarArchiveCondition.available,
+            label: 'Test archive',
+            resolvedPath: '/tmp/test-archive',
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+            coverage: AppCzarAttachmentCoverageObservation(
+              condition: AppCzarAttachmentCoverageCondition.incomplete,
+              requiredCount: 5,
+              coveredCount: 3,
+              missingCount: 2,
+              unverifiableCount: 0,
+              archiveScopeIdentity: 'test-scope',
+              archiveGeneration: 0,
+            ),
+            repairability: AppCzarAttachmentRepairabilityObservation(
+              condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+              availableFromMessagesCount: 0,
+              sourceAbsentCount: 2,
+              sourceUnknownCount: 0,
+              recordBackedRecoveryCount: 0,
+              unsafeOrConflictingCount: 0,
+              archiveScopeIdentity: 'test-scope',
+              archiveGeneration: 0,
+            ),
+          ),
+          truthOverrides: const <AppCzarFactId, AppCzarTruth>{
+            AppCzarFactId.attachmentCoverageComplete: AppCzarTruth.falseValue,
+          },
+        ),
+      ),
+      isTrue,
+    );
   });
 
   test(
@@ -458,6 +511,15 @@ AppCzarAssessmentState _operatingAssessmentState({
       const <AppCzarFactId, AppCzarTruth>{},
   AppCzarFactId? omittedFact,
   AppCzarFactId? duplicateFact,
+  AppCzarArchiveObservation attachmentArchive = const AppCzarArchiveObservation(
+    condition: AppCzarArchiveCondition.available,
+    label: 'Test archive',
+    resolvedPath: '/tmp/test-archive',
+    archiveScopeIdentity: 'test-scope',
+    archiveGeneration: 0,
+    coverage: _completeCoverage,
+    repairability: _completeRepairability,
+  ),
 }) {
   final facts = <AppCzarFact>[
     for (final factId in AppCzarFactId.values)
@@ -467,7 +529,8 @@ AppCzarAssessmentState _operatingAssessmentState({
           label: factId.name,
           truth:
               truthOverrides[factId] ??
-              (factId == AppCzarFactId.sourceAheadOfLocal
+              (factId == AppCzarFactId.sourceAheadOfLocal ||
+                      factId == AppCzarFactId.attachmentRepairOpportunityPresent
                   ? AppCzarTruth.falseValue
                   : AppCzarTruth.trueValue),
           detail: 'Current ${factId.name} evidence.',
@@ -482,14 +545,7 @@ AppCzarAssessmentState _operatingAssessmentState({
   ];
   return AppCzarAssessmentState(
     generation: 9,
-    attachmentArchive: const AppCzarArchiveObservation(
-      condition: AppCzarArchiveCondition.available,
-      label: 'Test archive',
-      resolvedPath: '/tmp/test-archive',
-      archiveScopeIdentity: 'test-scope',
-      archiveGeneration: 0,
-      coverage: _completeCoverage,
-    ),
+    attachmentArchive: attachmentArchive,
     assessment: AppCzarAssessment(
       facts: facts,
       diagnosisKind: AppCzarDiagnosisKind.healthyCurrentInstallation,
@@ -542,6 +598,7 @@ final class _OperatingReader implements AppCzarObservationReader {
       archiveScopeIdentity: 'test-scope',
       archiveGeneration: 0,
       coverage: _completeCoverage,
+      repairability: _completeRepairability,
     );
   }
 
@@ -601,6 +658,17 @@ const _completeCoverage = AppCzarAttachmentCoverageObservation(
   archiveGeneration: 0,
 );
 
+const _completeRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+  availableFromMessagesCount: 0,
+  sourceAbsentCount: 0,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
+
 final class _BlockingCurrentnessObserver
     implements AppCzarOperatingCurrentnessObserver {
   final Completer<AppCzarOperatingCoverageObservation> release =
@@ -651,6 +719,7 @@ AppCzarOperatingCoverageObservation _coverageObservation() {
       archiveScopeIdentity: 'test-scope',
       archiveGeneration: 0,
       coverage: _completeCoverage,
+      repairability: _completeRepairability,
     ),
   );
 }

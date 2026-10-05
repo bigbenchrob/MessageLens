@@ -250,6 +250,16 @@ final class _ScreenRepairReader implements AppCzarObservationReader {
         archiveScopeIdentity: 'private-scope',
         archiveGeneration: 0,
       ),
+      repairability: AppCzarAttachmentRepairabilityObservation(
+        condition: AppCzarAttachmentRepairOpportunityCondition.present,
+        availableFromMessagesCount: 1,
+        sourceAbsentCount: 1,
+        sourceUnknownCount: 0,
+        recordBackedRecoveryCount: 1,
+        unsafeOrConflictingCount: 0,
+        archiveScopeIdentity: 'private-scope',
+        archiveGeneration: 0,
+      ),
     );
   }
 

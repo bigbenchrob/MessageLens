@@ -29,6 +29,9 @@ const _requiredReaderPath =
 const _startupCoverageProbePath =
     'lib/features/attachments/infrastructure/repositories/'
     'read_only_app_czar_attachment_coverage_probe.dart';
+const _repairabilityReaderPath =
+    'lib/features/attachments/application/'
+    'attachment_repairability_evidence_reader.dart';
 const _archiveFileStoreContractPath =
     'lib/features/attachments/application/attachment_archive_file_store.dart';
 const _archiveFileStorePath =
@@ -42,9 +45,11 @@ void main() {
   test('startup and repair share one required attachment definition', () {
     final reader = _read(_requiredReaderPath);
     final startupProbe = _read(_startupCoverageProbePath);
+    final repairabilityReader = _read(_repairabilityReaderPath);
     final repairExecutor = _read(_repairExecutorPath);
     final allOtherRepairSources = <String>[
       startupProbe,
+      repairabilityReader,
       repairExecutor,
       ..._repairPackageFiles()
           .where((file) => file.path != _requiredReaderPath)
@@ -62,9 +67,23 @@ void main() {
     expect(reader, contains("SourceScopedRowSql.sourceId('a.ss_id')"));
 
     expect(startupProbe, contains('RequiredAttachmentEvidenceReader'));
-    expect(startupProbe, contains('_evidenceReader.readSummary'));
-    expect(repairExecutor, contains('RequiredAttachmentEvidenceReader'));
-    expect(repairExecutor, contains('.readPage('));
+    expect(startupProbe, contains('AttachmentRepairabilityEvidenceReader'));
+    expect(startupProbe, contains('_repairabilityEvidenceReader.readCurrent'));
+    expect(
+      repairabilityReader,
+      contains('RequiredAttachmentEvidenceReader _requiredEvidenceReader'),
+    );
+    expect(
+      repairabilityReader,
+      contains('_requiredEvidenceReader.readSummary'),
+    );
+    expect(repairabilityReader, contains('_requiredEvidenceReader.readPage'));
+    expect(repairExecutor, contains('AttachmentRepairabilityEvidenceReader'));
+    expect(
+      repairExecutor,
+      contains('_repairabilityEvidenceReader.readCurrent'),
+    );
+    expect(repairExecutor, isNot(contains('.readPage(')));
 
     const requiredSqlFragments = <String>[
       'JOIN message_to_attachment',
@@ -165,6 +184,7 @@ void main() {
   test('one confirmation identifies one exact memory-only bounded plan', () {
     final models = _read(_repairModelsPath);
     final executor = _read(_repairExecutorPath);
+    final repairabilityReader = _read(_repairabilityReaderPath);
     final contract = _read(_repairExecutorContractPath);
     final controller = _read(_repairControllerPath);
     final authorization = _typeBlock(
@@ -206,31 +226,22 @@ void main() {
     expect(executor, contains('final class _AttachmentArchiveRepairBatchPlan'));
     expect(
       executor,
-      contains('final class _AttachmentArchiveRepairPlannedItem'),
-    );
-    expect(
-      executor,
       contains('_AttachmentArchiveRepairBatchPlan? _pendingPlan;'),
     );
     expect(
       executor,
-      contains('List<_AttachmentArchiveRepairPlannedItem>.unmodifiable'),
+      contains('List<AttachmentRepairabilityAvailableItem>.unmodifiable'),
+    );
+    expect(
+      _read(_repairabilityReaderPath),
+      contains('availableItems.length < maximumAvailableItems'),
     );
     expect(
       executor,
-      contains(
-        'plannedItems.length <\n'
-        '                appCzarAttachmentArchiveRepairMaximumAuthorizedItems',
-      ),
+      contains('items[index].hasSameMaterialEvidenceAs(other.items[index])'),
     );
     expect(
-      executor,
-      contains(
-        'requiredEvidence.archiveKey == other.requiredEvidence.archiveKey',
-      ),
-    );
-    expect(
-      executor,
+      repairabilityReader,
       contains(
         'sourceEvidence.hasSameMaterialEvidenceAs(other.sourceEvidence)',
       ),
@@ -270,7 +281,7 @@ void main() {
       contains('preservationTotalCount: authorization.itemCount'),
     );
     expect(controller, contains('executor.preserveAuthorizedBatch('));
-    expect(controller, isNot(contains('availableFromMessagesCount')));
+    expect(controller, contains('repairability.availableFromMessagesCount'));
   });
 
   test('authorized execution cannot chain or refill a later evidence page', () {
@@ -548,6 +559,7 @@ Iterable<File> _repairProductionFiles() sync* {
   yield* _repairCoordinatorFiles();
   for (final path in <String>[
     _repairExecutorPath,
+    _repairabilityReaderPath,
     _repairFactoryProviderPath,
     _repairWriterPath,
   ]) {
@@ -562,6 +574,7 @@ Iterable<File> _repairPackageFiles() sync* {
   yield* _repairCoordinatorFiles();
   for (final path in <String>[
     _repairExecutorPath,
+    _repairabilityReaderPath,
     _repairFactoryProviderPath,
     _repairWriterPath,
     _startupCoverageProbePath,

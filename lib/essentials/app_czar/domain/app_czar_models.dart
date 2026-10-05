@@ -24,6 +24,8 @@ enum AppCzarArchiveCondition {
 
 enum AppCzarAttachmentCoverageCondition { complete, incomplete, unknown }
 
+enum AppCzarAttachmentRepairOpportunityCondition { present, absent, unknown }
+
 enum AppCzarFactId {
   developmentRootAdmitted,
   messagesSourceReadable,
@@ -34,6 +36,7 @@ enum AppCzarFactId {
   localDatasetComplete,
   attachmentArchiveAvailable,
   attachmentCoverageComplete,
+  attachmentRepairOpportunityPresent,
   sourceLocalDeltaKnown,
   sourceAheadOfLocal,
 }
@@ -44,9 +47,132 @@ enum AppCzarDiagnosisKind {
   sourceAccessUnavailable,
   attachmentArchiveUnavailable,
   attachmentArchiveCoverageIncomplete,
+  operatingWithKnownAttachmentDebt,
   localDataNeedsRepair,
   sourceAheadOfLocal,
   contradictoryOrInsufficientEvidence,
+}
+
+/// Current aggregate evidence about whether uncovered attachment payloads are
+/// automatically repairable from the presently readable Messages source.
+///
+/// This is neither coverage truth nor Operating authority. In particular,
+/// [AppCzarAttachmentRepairOpportunityCondition.absent] says only that no
+/// current automatic source-backed work was proved. Evaluators must still
+/// inspect all uncertainty, conflict, record-backed recovery, and binding
+/// evidence before selecting a coordinator.
+@immutable
+final class AppCzarAttachmentRepairabilityObservation {
+  const AppCzarAttachmentRepairabilityObservation({
+    required this.condition,
+    required this.availableFromMessagesCount,
+    required this.sourceAbsentCount,
+    required this.sourceUnknownCount,
+    required this.recordBackedRecoveryCount,
+    required this.unsafeOrConflictingCount,
+    required this.archiveScopeIdentity,
+    required this.archiveGeneration,
+    this.issue,
+  });
+
+  const AppCzarAttachmentRepairabilityObservation.unknown({
+    required String issue,
+    String? archiveScopeIdentity,
+    int? archiveGeneration,
+    int? availableFromMessagesCount,
+    int? sourceAbsentCount,
+    int? sourceUnknownCount,
+    int? recordBackedRecoveryCount,
+    int? unsafeOrConflictingCount,
+  }) : this(
+         condition: AppCzarAttachmentRepairOpportunityCondition.unknown,
+         availableFromMessagesCount: availableFromMessagesCount,
+         sourceAbsentCount: sourceAbsentCount,
+         sourceUnknownCount: sourceUnknownCount,
+         recordBackedRecoveryCount: recordBackedRecoveryCount,
+         unsafeOrConflictingCount: unsafeOrConflictingCount,
+         archiveScopeIdentity: archiveScopeIdentity,
+         archiveGeneration: archiveGeneration,
+         issue: issue,
+       );
+
+  final AppCzarAttachmentRepairOpportunityCondition condition;
+  final int? availableFromMessagesCount;
+  final int? sourceAbsentCount;
+  final int? sourceUnknownCount;
+  final int? recordBackedRecoveryCount;
+  final int? unsafeOrConflictingCount;
+  final String? archiveScopeIdentity;
+  final int? archiveGeneration;
+  final String? issue;
+
+  int? get needAttentionCount {
+    final available = availableFromMessagesCount;
+    final absent = sourceAbsentCount;
+    final unknown = sourceUnknownCount;
+    final recordBacked = recordBackedRecoveryCount;
+    final unsafe = unsafeOrConflictingCount;
+    if (available == null ||
+        absent == null ||
+        unknown == null ||
+        recordBacked == null ||
+        unsafe == null) {
+      return null;
+    }
+    return available + absent + unknown + recordBacked + unsafe;
+  }
+
+  bool hasCoherentMaterialCounts(
+    AppCzarAttachmentCoverageObservation coverage,
+  ) {
+    if (condition == AppCzarAttachmentRepairOpportunityCondition.unknown) {
+      return true;
+    }
+    final available = availableFromMessagesCount;
+    final absent = sourceAbsentCount;
+    final unknown = sourceUnknownCount;
+    final recordBacked = recordBackedRecoveryCount;
+    final unsafe = unsafeOrConflictingCount;
+    final scope = archiveScopeIdentity;
+    final generation = archiveGeneration;
+    final coverageMissing = coverage.missingCount;
+    final coverageUnverifiable = coverage.unverifiableCount;
+    if (available == null ||
+        absent == null ||
+        unknown == null ||
+        recordBacked == null ||
+        unsafe == null ||
+        available < 0 ||
+        absent < 0 ||
+        unknown < 0 ||
+        recordBacked < 0 ||
+        unsafe < 0 ||
+        coverageMissing == null ||
+        coverageUnverifiable == null ||
+        available + absent + unknown + recordBacked != coverageMissing ||
+        unsafe != coverageUnverifiable ||
+        scope == null ||
+        scope.isEmpty ||
+        generation == null ||
+        generation < 0) {
+      return false;
+    }
+    return switch (condition) {
+      AppCzarAttachmentRepairOpportunityCondition.present =>
+        available > 0 && unknown == 0 && unsafe == 0,
+      AppCzarAttachmentRepairOpportunityCondition.absent =>
+        available == 0 && unknown == 0 && unsafe == 0,
+      AppCzarAttachmentRepairOpportunityCondition.unknown => true,
+    };
+  }
+
+  bool get isOperatingSafe {
+    return condition == AppCzarAttachmentRepairOpportunityCondition.absent &&
+        availableFromMessagesCount == 0 &&
+        sourceUnknownCount == 0 &&
+        recordBackedRecoveryCount == 0 &&
+        unsafeOrConflictingCount == 0;
+  }
 }
 
 @immutable
@@ -207,6 +333,10 @@ final class AppCzarArchiveObservation {
     required this.condition,
     required this.label,
     required this.coverage,
+    this.repairability =
+        const AppCzarAttachmentRepairabilityObservation.unknown(
+          issue: 'Current attachment repairability was not observed.',
+        ),
     this.archiveScopeIdentity,
     this.archiveGeneration,
     this.resolvedPath,
@@ -218,6 +348,9 @@ final class AppCzarArchiveObservation {
       condition: AppCzarArchiveCondition.unknown,
       label: 'Attachment archive',
       coverage: AppCzarAttachmentCoverageObservation.unknown(issue: issue),
+      repairability: AppCzarAttachmentRepairabilityObservation.unknown(
+        issue: issue,
+      ),
       issue: issue,
     );
   }
@@ -225,6 +358,7 @@ final class AppCzarArchiveObservation {
   final AppCzarArchiveCondition condition;
   final String label;
   final AppCzarAttachmentCoverageObservation coverage;
+  final AppCzarAttachmentRepairabilityObservation repairability;
   final String? archiveScopeIdentity;
   final int? archiveGeneration;
   final String? resolvedPath;
@@ -247,6 +381,24 @@ final class AppCzarArchiveObservation {
         coverage.archiveGeneration == generation;
   }
 
+  bool get hasCoherentRepairabilityBinding {
+    if (!repairability.hasCoherentMaterialCounts(coverage)) {
+      return false;
+    }
+    if (repairability.condition ==
+        AppCzarAttachmentRepairOpportunityCondition.unknown) {
+      return true;
+    }
+    final scope = archiveScopeIdentity;
+    final generation = archiveGeneration;
+    return scope != null &&
+        scope.isNotEmpty &&
+        generation != null &&
+        generation >= 0 &&
+        repairability.archiveScopeIdentity == scope &&
+        repairability.archiveGeneration == generation;
+  }
+
   /// Whether this observation identifies one exact archive occurrence.
   ///
   /// Operating Session uses this read-only evidence to bind its process-local
@@ -263,7 +415,10 @@ final class AppCzarArchiveObservation {
         path.isNotEmpty &&
         coverage.archiveScopeIdentity == scope &&
         coverage.archiveGeneration == generation &&
-        hasCoherentCoverageBinding;
+        repairability.archiveScopeIdentity == scope &&
+        repairability.archiveGeneration == generation &&
+        hasCoherentCoverageBinding &&
+        hasCoherentRepairabilityBinding;
   }
 }
 

@@ -253,6 +253,7 @@ void main() {
           archiveScopeIdentity: 'test-scope',
           archiveGeneration: 0,
           coverage: _zeroCoverage,
+          repairability: _zeroRepairability,
         ),
       ),
     );
@@ -277,6 +278,7 @@ void main() {
           archiveScopeIdentity: 'test-scope',
           archiveGeneration: 0,
           coverage: _completeCoverage,
+          repairability: _completeRepairability,
         ),
       ),
     );
@@ -309,6 +311,16 @@ void main() {
             coveredCount: 2,
             missingCount: 2,
             unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation(
+            condition: AppCzarAttachmentRepairOpportunityCondition.present,
+            availableFromMessagesCount: 2,
+            sourceAbsentCount: 0,
+            sourceUnknownCount: 0,
+            recordBackedRecoveryCount: 0,
+            unsafeOrConflictingCount: 0,
             archiveScopeIdentity: 'test-scope',
             archiveGeneration: 0,
           ),
@@ -355,6 +367,16 @@ void main() {
             archiveScopeIdentity: 'test-scope',
             archiveGeneration: 0,
           ),
+          repairability: AppCzarAttachmentRepairabilityObservation(
+            condition: AppCzarAttachmentRepairOpportunityCondition.present,
+            availableFromMessagesCount: 1,
+            sourceAbsentCount: 0,
+            sourceUnknownCount: 0,
+            recordBackedRecoveryCount: 0,
+            unsafeOrConflictingCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
         ),
       ),
     );
@@ -381,6 +403,16 @@ void main() {
             unverifiableCount: 0,
             archiveScopeIdentity: 'current-scope',
             archiveGeneration: 3,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation(
+            condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+            availableFromMessagesCount: 0,
+            sourceAbsentCount: 0,
+            sourceUnknownCount: 0,
+            recordBackedRecoveryCount: 0,
+            unsafeOrConflictingCount: 0,
+            archiveScopeIdentity: 'current-scope',
+            archiveGeneration: 4,
           ),
         ),
       ),
@@ -413,6 +445,7 @@ void main() {
             archiveScopeIdentity: 'test-scope',
             archiveGeneration: 0,
           ),
+          repairability: _zeroRepairability,
         ),
       ),
     );
@@ -457,6 +490,140 @@ void main() {
       AppCzarVirtualCoordinator.diagnosticReview,
     );
   });
+
+  test('known source-absent coverage debt admits Operating literally', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          resolvedPath: '/Volumes/Toshiba/archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.incomplete,
+            requiredCount: 18281,
+            coveredCount: 4446,
+            missingCount: 13835,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation(
+            condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+            availableFromMessagesCount: 0,
+            sourceAbsentCount: 13835,
+            sourceUnknownCount: 0,
+            recordBackedRecoveryCount: 0,
+            unsafeOrConflictingCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.falseValue,
+    );
+    expect(
+      assessment.fact(AppCzarFactId.attachmentRepairOpportunityPresent).truth,
+      AppCzarTruth.falseValue,
+    );
+    expect(
+      assessment.diagnosisKind,
+      AppCzarDiagnosisKind.operatingWithKnownAttachmentDebt,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.operatingSession,
+    );
+  });
+
+  test('unknown source classification fails closed to diagnostics', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          resolvedPath: '/Volumes/Toshiba/archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.incomplete,
+            requiredCount: 4,
+            coveredCount: 2,
+            missingCount: 2,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation.unknown(
+            issue: 'One current payload could not be inspected.',
+            availableFromMessagesCount: 0,
+            sourceAbsentCount: 1,
+            sourceUnknownCount: 1,
+            recordBackedRecoveryCount: 0,
+            unsafeOrConflictingCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.attachmentCoverageComplete).truth,
+      AppCzarTruth.falseValue,
+    );
+    expect(
+      assessment.fact(AppCzarFactId.attachmentRepairOpportunityPresent).truth,
+      AppCzarTruth.unknown,
+    );
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
+  test('record-backed recovery cannot silently admit Operating', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.available,
+          label: 'Toshiba',
+          resolvedPath: '/Volumes/Toshiba/archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
+          coverage: AppCzarAttachmentCoverageObservation(
+            condition: AppCzarAttachmentCoverageCondition.incomplete,
+            requiredCount: 4,
+            coveredCount: 3,
+            missingCount: 1,
+            unverifiableCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation(
+            condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+            availableFromMessagesCount: 0,
+            sourceAbsentCount: 0,
+            sourceUnknownCount: 0,
+            recordBackedRecoveryCount: 1,
+            unsafeOrConflictingCount: 0,
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.attachmentArchiveRepair,
+    );
+  });
 }
 
 AppCzarObservationSet _healthyObservations({
@@ -491,6 +658,7 @@ AppCzarObservationSet _healthyObservations({
     archiveScopeIdentity: 'test-scope',
     archiveGeneration: 0,
     coverage: _completeCoverage,
+    repairability: _completeRepairability,
   ),
 }) {
   return AppCzarObservationSet(
@@ -525,3 +693,16 @@ const _zeroCoverage = AppCzarAttachmentCoverageObservation(
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
 );
+
+const _completeRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+  availableFromMessagesCount: 0,
+  sourceAbsentCount: 0,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
+
+const _zeroRepairability = _completeRepairability;

@@ -42,9 +42,26 @@ bool shouldExecuteAppCzarAttachmentArchiveRepair(
   final scopeIdentity = archive.archiveScopeIdentity;
   final archiveGeneration = archive.archiveGeneration;
   final resolvedPath = archive.resolvedPath;
+  final repairability = archive.repairability;
+  final repairOpportunityTruth = _uniqueFactTruth(
+    assessment,
+    AppCzarFactId.attachmentRepairOpportunityPresent,
+  );
+  final hasAutomaticRepairOpportunity =
+      repairOpportunityTruth == AppCzarTruth.trueValue &&
+      repairability.condition ==
+          AppCzarAttachmentRepairOpportunityCondition.present &&
+      (repairability.availableFromMessagesCount ?? 0) > 0;
+  final hasRecordBackedRecovery =
+      repairOpportunityTruth == AppCzarTruth.falseValue &&
+      repairability.condition ==
+          AppCzarAttachmentRepairOpportunityCondition.absent &&
+      (repairability.recordBackedRecoveryCount ?? 0) > 0;
   return archive.coverage.condition ==
           AppCzarAttachmentCoverageCondition.incomplete &&
       archive.hasCoherentCoverageBinding &&
+      archive.hasCoherentRepairabilityBinding &&
+      (hasAutomaticRepairOpportunity || hasRecordBackedRecovery) &&
       scopeIdentity != null &&
       scopeIdentity.trim().isNotEmpty &&
       archiveGeneration != null &&

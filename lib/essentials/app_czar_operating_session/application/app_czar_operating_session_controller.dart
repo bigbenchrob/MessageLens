@@ -37,13 +37,30 @@ bool shouldExecuteAppCzarOperatingSession(
     AppCzarFactId.overlayHealthy,
     AppCzarFactId.localDatasetComplete,
     AppCzarFactId.attachmentArchiveAvailable,
-    AppCzarFactId.attachmentCoverageComplete,
     AppCzarFactId.sourceLocalDeltaKnown,
   };
   for (final factId in requiredTrueFacts) {
     if (_uniqueFactTruth(assessment, factId) != AppCzarTruth.trueValue) {
       return false;
     }
+  }
+
+  if (_uniqueFactTruth(
+        assessment,
+        AppCzarFactId.attachmentRepairOpportunityPresent,
+      ) !=
+      AppCzarTruth.falseValue) {
+    return false;
+  }
+  final coverageTruth = _uniqueFactTruth(
+    assessment,
+    AppCzarFactId.attachmentCoverageComplete,
+  );
+  if ((coverageTruth != AppCzarTruth.trueValue &&
+          coverageTruth != AppCzarTruth.falseValue) ||
+      !archive.repairability.isOperatingSafe ||
+      !archive.hasCoherentRepairabilityBinding) {
+    return false;
   }
 
   return _uniqueFactTruth(assessment, AppCzarFactId.sourceAheadOfLocal) ==

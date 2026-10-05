@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_assessment_provider.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
+import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
 import 'package:remember_this_text/essentials/db/app_database_schema_versions.dart';
@@ -13,6 +14,7 @@ import 'package:remember_this_text/essentials/source_scoped_import/domain/known_
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_bookmark_adapter.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_settings_store.dart';
+import 'package:remember_this_text/features/attachments/application/current_messages_attachment_source_reader.dart';
 import 'package:remember_this_text/features/attachments/application/required_attachment_evidence_reader.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_archive_probe.dart';
 import 'package:remember_this_text/features/attachments/infrastructure/repositories/read_only_app_czar_attachment_coverage_probe.dart';
@@ -392,6 +394,7 @@ void main() {
       final probe = ReadOnlyAppCzarAttachmentCoverageProbe(
         archiveAccessAuthority: fixture.authority,
         evidenceReader: reader,
+        sourceReaderResolver: () async => const _AbsentSourceReader(),
       );
       File(fixture._graphPath).deleteSync();
 
@@ -455,6 +458,7 @@ void main() {
       final probe = ReadOnlyAppCzarAttachmentCoverageProbe(
         archiveAccessAuthority: fixture.authority,
         evidenceReader: reader,
+        sourceReaderResolver: () async => const _AbsentSourceReader(),
       );
 
       final observation = await probe.readCurrent(
@@ -538,14 +542,44 @@ final class _FakeRequiredAttachmentEvidenceReader
 
   final List<RequiredAttachmentEvidenceSummary> _summaries;
   var summaryReads = 0;
+  var pageReads = 0;
 
   @override
   Future<RequiredAttachmentEvidencePage> readPage({
     required RequiredAttachmentEvidenceBinding binding,
     RequiredAttachmentEvidenceCursor? after,
     int limit = 75,
-  }) {
-    throw UnsupportedError('This fake only supplies aggregate summaries.');
+  }) async {
+    pageReads += 1;
+    final summary = _summaries.first;
+    final items = <RequiredAttachmentEvidenceItem>[
+      for (var index = 0; index < summary.coveredCount; index++)
+        _aggregateItem(
+          index,
+          RequiredAttachmentEvidenceCondition.coveredAndValid,
+        ),
+      for (var index = 0; index < summary.missingCount; index++)
+        _aggregateItem(
+          summary.coveredCount + index,
+          RequiredAttachmentEvidenceCondition.noDurableRecord,
+        ),
+      for (var index = 0; index < summary.unverifiableCount; index++)
+        _aggregateItem(
+          summary.coveredCount + summary.missingCount + index,
+          RequiredAttachmentEvidenceCondition.unsafeOrUnverifiablePath,
+        ),
+    ];
+    final start = after == null
+        ? 0
+        : items.indexWhere((item) => item.cursor == after) + 1;
+    final end = (start + limit).clamp(0, items.length);
+    final page = items.sublist(start, end);
+    return RequiredAttachmentEvidencePage(
+      items: page,
+      nextCursor: page.isEmpty ? null : page.last.cursor,
+      hasMore: end < items.length,
+      binding: binding,
+    );
   }
 
   @override
@@ -556,6 +590,50 @@ final class _FakeRequiredAttachmentEvidenceReader
     final result = _summaries[summaryReads];
     summaryReads += 1;
     return result;
+  }
+}
+
+RequiredAttachmentEvidenceItem _aggregateItem(
+  int index,
+  RequiredAttachmentEvidenceCondition condition,
+) {
+  return RequiredAttachmentEvidenceItem(
+    cursor: RequiredAttachmentEvidenceCursor(
+      messageGuid: 'aggregate-guid-$index',
+      liveAttachmentRowId: index,
+    ),
+    archiveKey: ArchiveCompatibilityKey(
+      messageGuid: 'aggregate-guid-$index',
+      importAttachmentId: index,
+    ),
+    condition: condition,
+    materialFingerprint: 'aggregate-$index-${condition.name}',
+  );
+}
+
+final class _AbsentSourceReader
+    implements CurrentMessagesAttachmentSourceReader {
+  const _AbsentSourceReader();
+
+  @override
+  Future<CurrentMessagesAttachmentSourceObservation> observeCurrent(
+    ArchiveCompatibilityKey archiveKey,
+  ) async {
+    return CurrentMessagesAttachmentSourceObservation.absent(
+      archiveKey: archiveKey,
+    );
+  }
+
+  @override
+  Future<List<CurrentMessagesAttachmentSourceObservation>> observeCurrentPage(
+    List<ArchiveCompatibilityKey> archiveKeys,
+  ) async {
+    return <CurrentMessagesAttachmentSourceObservation>[
+      for (final archiveKey in archiveKeys)
+        CurrentMessagesAttachmentSourceObservation.absent(
+          archiveKey: archiveKey,
+        ),
+    ];
   }
 }
 
@@ -607,6 +685,11 @@ final class _DurableRestartFixture {
     final source = sqlite3.open(sourcePath);
     source
       ..execute('CREATE TABLE message (guid TEXT)')
+      ..execute('CREATE TABLE attachment (filename TEXT, mime_type TEXT)')
+      ..execute(
+        'CREATE TABLE message_attachment_join '
+        '(message_id INTEGER, attachment_id INTEGER)',
+      )
       ..execute('INSERT INTO message (ROWID, guid) VALUES (?, ?)', <Object?>[
         1,
         'initial-guid',
@@ -724,9 +807,14 @@ CREATE TABLE archived_attachments (
   }
 
   Future<AppCzarAssessmentState> readFreshAssessment() async {
+    final coverageProbe = ReadOnlyAppCzarAttachmentCoverageProbe(
+      archiveAccessAuthority: authority,
+      sourceReaderResolver: () async => _FixtureSourceReader(root),
+    );
     final archiveProbe = ReadOnlyAppCzarAttachmentArchiveProbe(
       archiveAccessAuthority: authority,
       bookmarkAdapter: const _UnsupportedBookmarkAdapter(),
+      coverageProbe: coverageProbe,
     );
     final reader = SqliteAppCzarObservationReader(
       archiveRootPath: root.path,
@@ -745,11 +833,21 @@ CREATE TABLE archived_attachments (
   }
 
   void commitCurrentDeltaWithoutPreservation() {
+    final sourcePayload = File(path.join(root.path, 'source-payload.bin'))
+      ..writeAsBytesSync(<int>[1, 2, 3], flush: true);
     final source = sqlite3.open(sourcePath);
     source
       ..execute('INSERT INTO message (ROWID, guid) VALUES (?, ?)', <Object?>[
         2,
         'required-guid',
+      ])
+      ..execute(
+        'INSERT INTO attachment (ROWID, filename, mime_type) VALUES (?, ?, ?)',
+        <Object?>[20, sourcePayload.path, 'application/octet-stream'],
+      )
+      ..execute('INSERT INTO message_attachment_join VALUES (?, ?)', <Object?>[
+        2,
+        20,
       ])
       ..dispose();
 
@@ -841,6 +939,46 @@ final class _UnsupportedBookmarkAdapter
   }) {
     throw UnsupportedError(
       'The durable restart fixture uses internal storage.',
+    );
+  }
+}
+
+final class _FixtureSourceReader
+    implements CurrentMessagesAttachmentSourceReader {
+  const _FixtureSourceReader(this.root);
+
+  final Directory root;
+
+  @override
+  Future<CurrentMessagesAttachmentSourceObservation> observeCurrent(
+    ArchiveCompatibilityKey archiveKey,
+  ) async {
+    return _observation(archiveKey);
+  }
+
+  @override
+  Future<List<CurrentMessagesAttachmentSourceObservation>> observeCurrentPage(
+    List<ArchiveCompatibilityKey> archiveKeys,
+  ) async {
+    return archiveKeys.map(_observation).toList(growable: false);
+  }
+
+  CurrentMessagesAttachmentSourceObservation _observation(
+    ArchiveCompatibilityKey archiveKey,
+  ) {
+    final payload = File(path.join(root.path, 'source-payload.bin'));
+    if (!payload.existsSync()) {
+      return CurrentMessagesAttachmentSourceObservation.absent(
+        archiveKey: archiveKey,
+      );
+    }
+    final stat = payload.statSync();
+    return CurrentMessagesAttachmentSourceObservation.available(
+      archiveKey: archiveKey,
+      sourcePath: payload.path,
+      mimeType: 'application/octet-stream',
+      fileSizeBytes: stat.size,
+      modifiedAtMicrosecondsSinceEpoch: stat.modified.microsecondsSinceEpoch,
     );
   }
 }
@@ -1004,6 +1142,7 @@ CREATE TABLE archived_attachments (
   }) {
     return ReadOnlyAppCzarAttachmentCoverageProbe(
       archiveAccessAuthority: authority,
+      sourceReaderResolver: () async => const _AbsentSourceReader(),
     ).readCurrent(
       archiveRootPath: archiveRoot.path,
       archiveScopeIdentity: scope,

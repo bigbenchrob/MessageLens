@@ -211,6 +211,59 @@ void main() {
     expect(row.significance, AppCzarPresentationSignificance.healthy);
   });
 
+  test('source-absent debt remains distinct from repair opportunity', () {
+    final presentation = projector.project(
+      _state(
+        _healthyObservations(
+          attachmentArchive: const AppCzarArchiveObservation(
+            condition: AppCzarArchiveCondition.available,
+            label: 'Toshiba',
+            resolvedPath: '/Volumes/Toshiba/archive',
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+            coverage: AppCzarAttachmentCoverageObservation(
+              condition: AppCzarAttachmentCoverageCondition.incomplete,
+              requiredCount: 18281,
+              coveredCount: 4446,
+              missingCount: 13835,
+              unverifiableCount: 0,
+              archiveScopeIdentity: 'test-scope',
+              archiveGeneration: 0,
+            ),
+            repairability: AppCzarAttachmentRepairabilityObservation(
+              condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+              availableFromMessagesCount: 0,
+              sourceAbsentCount: 13835,
+              sourceUnknownCount: 0,
+              recordBackedRecoveryCount: 0,
+              unsafeOrConflictingCount: 0,
+              archiveScopeIdentity: 'test-scope',
+              archiveGeneration: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+    final coverage = presentation.row(
+      AppCzarPresentationRowId.attachmentCoverage,
+    );
+    final opportunity = presentation.row(
+      AppCzarPresentationRowId.attachmentRepairOpportunity,
+    );
+
+    expect(
+      coverage.value,
+      'Incomplete — 13835 required payloads are not covered',
+    );
+    expect(opportunity.value, 'No current automatic repair opportunity');
+    expect(opportunity.detail, contains('13835'));
+    expect(
+      opportunity.significance,
+      AppCzarPresentationSignificance.informational,
+    );
+    expect(presentation.virtualCoordinator, 'Operating Session');
+  });
+
   test('incomplete coverage reports only the proven uncovered count', () {
     final row = projector
         .project(
@@ -351,6 +404,7 @@ AppCzarObservationSet _healthyObservations({
     archiveScopeIdentity: 'test-scope',
     archiveGeneration: 0,
     coverage: _completeCoverage,
+    repairability: _completeRepairability,
   ),
 }) {
   return AppCzarObservationSet(
@@ -375,6 +429,17 @@ const _completeCoverage = AppCzarAttachmentCoverageObservation(
   coveredCount: 4,
   missingCount: 0,
   unverifiableCount: 0,
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+);
+
+const _completeRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+  availableFromMessagesCount: 0,
+  sourceAbsentCount: 0,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
 );

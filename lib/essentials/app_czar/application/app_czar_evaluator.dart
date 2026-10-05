@@ -22,6 +22,7 @@ final class AppCzarEvaluator {
       _localDatasetFact(observations),
       _archiveFact(observations.attachmentArchive),
       _attachmentCoverageFact(observations.attachmentArchive),
+      _attachmentRepairOpportunityFact(observations.attachmentArchive),
       _deltaKnownFact(observations),
       _sourceAheadFact(observations),
     ];
@@ -276,6 +277,42 @@ final class AppCzarEvaluator {
     );
   }
 
+  AppCzarFact _attachmentRepairOpportunityFact(
+    AppCzarArchiveObservation archiveObservation,
+  ) {
+    final observation = archiveObservation.repairability;
+    if (!archiveObservation.hasCoherentRepairabilityBinding) {
+      return const AppCzarFact(
+        id: AppCzarFactId.attachmentRepairOpportunityPresent,
+        label: 'Current attachment repair opportunity present',
+        truth: AppCzarTruth.unknown,
+        detail:
+            'Attachment repairability evidence is not coherently bound to the current archive scope.',
+      );
+    }
+    return AppCzarFact(
+      id: AppCzarFactId.attachmentRepairOpportunityPresent,
+      label: 'Current attachment repair opportunity present',
+      truth: switch (observation.condition) {
+        AppCzarAttachmentRepairOpportunityCondition.present =>
+          AppCzarTruth.trueValue,
+        AppCzarAttachmentRepairOpportunityCondition.absent =>
+          AppCzarTruth.falseValue,
+        AppCzarAttachmentRepairOpportunityCondition.unknown =>
+          AppCzarTruth.unknown,
+      },
+      detail: switch (observation.condition) {
+        AppCzarAttachmentRepairOpportunityCondition.present =>
+          '${observation.availableFromMessagesCount} uncovered attachment payload(s) are currently available from Messages.',
+        AppCzarAttachmentRepairOpportunityCondition.absent =>
+          '${observation.sourceAbsentCount} uncovered attachment payload(s) are currently absent from Messages.',
+        AppCzarAttachmentRepairOpportunityCondition.unknown =>
+          observation.issue ??
+              'Current attachment repairability is inconclusive.',
+      },
+    );
+  }
+
   AppCzarFact _sourceAheadFact(AppCzarObservationSet observations) {
     final deltaKnown = _deltaKnownFact(observations);
     if (deltaKnown.truth != AppCzarTruth.trueValue) {
@@ -409,17 +446,44 @@ final class AppCzarEvaluator {
     }
 
     final attachmentCoverage = fact(AppCzarFactId.attachmentCoverageComplete);
-    if (attachmentCoverage.truth == AppCzarTruth.falseValue) {
-      return const _AppCzarSelection(
-        kind: AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete,
-        diagnosis:
-            'The current attachment archive does not cover every required attachment payload.',
-        coordinator: AppCzarVirtualCoordinator.attachmentArchiveRepair,
-      );
-    }
     if (attachmentCoverage.truth == AppCzarTruth.unknown) {
       return const _AppCzarSelection.diagnostic(
         'Current evidence does not establish complete required attachment coverage.',
+      );
+    }
+    final repairOpportunity = fact(
+      AppCzarFactId.attachmentRepairOpportunityPresent,
+    );
+    if (repairOpportunity.truth == AppCzarTruth.unknown) {
+      return const _AppCzarSelection.diagnostic(
+        'Current uncovered attachment evidence is unknown or conflicting.',
+      );
+    }
+    final repairability = observations.attachmentArchive.repairability;
+    final hasCurrentAutomaticWork =
+        repairOpportunity.truth == AppCzarTruth.trueValue &&
+        (repairability.availableFromMessagesCount ?? 0) > 0;
+    final hasRecordBackedRecovery =
+        (repairability.recordBackedRecoveryCount ?? 0) > 0;
+    if (attachmentCoverage.truth == AppCzarTruth.falseValue &&
+        (hasCurrentAutomaticWork || hasRecordBackedRecovery)) {
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete,
+        diagnosis:
+            'The current attachment archive has actionable required attachment evidence.',
+        coordinator: AppCzarVirtualCoordinator.attachmentArchiveRepair,
+      );
+    }
+    if (attachmentCoverage.truth == AppCzarTruth.falseValue &&
+        !repairability.isOperatingSafe) {
+      return const _AppCzarSelection.diagnostic(
+        'Incomplete attachment coverage is not currently safe for Operating admission.',
+      );
+    }
+    if (attachmentCoverage.truth == AppCzarTruth.trueValue &&
+        !repairability.isOperatingSafe) {
+      return const _AppCzarSelection.diagnostic(
+        'Complete attachment coverage contradicts current repairability evidence.',
       );
     }
 
@@ -452,6 +516,14 @@ final class AppCzarEvaluator {
       );
     }
 
+    if (attachmentCoverage.truth == AppCzarTruth.falseValue) {
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.operatingWithKnownAttachmentDebt,
+        diagnosis:
+            'This installation is operable with known source-absent attachment coverage debt.',
+        coordinator: AppCzarVirtualCoordinator.operatingSession,
+      );
+    }
     return const _AppCzarSelection(
       kind: AppCzarDiagnosisKind.healthyCurrentInstallation,
       diagnosis:

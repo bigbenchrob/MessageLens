@@ -233,7 +233,7 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
       configuration: configuration,
       archiveRootPath: archiveRootPath,
     );
-    final coverage = await _coverageProbe.readCurrent(
+    final evidence = await _coverageProbe.readArchiveEvidence(
       archiveRootPath: archiveRootPath,
       archiveScopeIdentity: initialScope,
       archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
@@ -253,10 +253,16 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
               'The attachment archive configuration changed during coverage inspection.',
           archiveScopeIdentity: initialScope,
           archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
-          requiredCount: coverage.requiredCount,
-          coveredCount: coverage.coveredCount,
-          missingCount: coverage.missingCount,
-          unverifiableCount: coverage.unverifiableCount,
+          requiredCount: evidence.coverage.requiredCount,
+          coveredCount: evidence.coverage.coveredCount,
+          missingCount: evidence.coverage.missingCount,
+          unverifiableCount: evidence.coverage.unverifiableCount,
+        ),
+        repairability: AppCzarAttachmentRepairabilityObservation.unknown(
+          issue:
+              'The attachment archive configuration changed during repairability inspection.',
+          archiveScopeIdentity: initialScope,
+          archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
         ),
         resolvedPath: archiveRootPath,
         issue: issue,
@@ -279,17 +285,26 @@ final class ReadOnlyAppCzarAttachmentArchiveProbe
       archiveScopeIdentity: initialScope,
       archiveGeneration: AttachmentArchiveLocationState.initialGeneration,
       coverage: stable
-          ? coverage
+          ? evidence.coverage
           : AppCzarAttachmentCoverageObservation.unknown(
               issue:
                   'The attachment archive root changed during coverage inspection.',
               archiveScopeIdentity: initialScope,
               archiveGeneration:
                   AttachmentArchiveLocationState.initialGeneration,
-              requiredCount: coverage.requiredCount,
-              coveredCount: coverage.coveredCount,
-              missingCount: coverage.missingCount,
-              unverifiableCount: coverage.unverifiableCount,
+              requiredCount: evidence.coverage.requiredCount,
+              coveredCount: evidence.coverage.coveredCount,
+              missingCount: evidence.coverage.missingCount,
+              unverifiableCount: evidence.coverage.unverifiableCount,
+            ),
+      repairability: stable
+          ? evidence.repairability
+          : AppCzarAttachmentRepairabilityObservation.unknown(
+              issue:
+                  'The attachment archive root changed during repairability inspection.',
+              archiveScopeIdentity: initialScope,
+              archiveGeneration:
+                  AttachmentArchiveLocationState.initialGeneration,
             ),
       resolvedPath: archiveRootPath,
       issue: issue,

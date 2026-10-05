@@ -7,6 +7,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
+import '../../../core/util/count_label_formatter.dart';
 import '../../conversation_graph/application/conversation_graph_build_observation.dart';
 import '../application/app_czar_operating_currentness_controller.dart';
 import '../application/app_czar_operating_session_controller.dart';
@@ -240,6 +241,11 @@ class _StatusIndicator extends ConsumerWidget {
     ref.watch(themeColorsProvider);
     final colors = ref.read(themeColorsProvider.notifier);
     return switch (phase) {
+      AppCzarOperatingCurrentnessPhase.idle => MacosIcon(
+        CupertinoIcons.info_circle_fill,
+        size: AppSpacing.lg,
+        color: colors.accents.primary,
+      ),
       AppCzarOperatingCurrentnessPhase.issue => MacosIcon(
         CupertinoIcons.exclamationmark_triangle_fill,
         size: AppSpacing.lg,
@@ -267,7 +273,11 @@ final class _StatusContent {
 
 _StatusContent _statusContent(AppCzarOperatingCurrentnessState state) {
   return switch (state.phase) {
-    AppCzarOperatingCurrentnessPhase.idle ||
+    AppCzarOperatingCurrentnessPhase.idle => _StatusContent(
+      'Attachment archive',
+      '${CountLabelFormatter.formatCount(state.attachmentDebtCount!)} required payloads are not preserved. '
+          'None are currently available from Messages.',
+    ),
     AppCzarOperatingCurrentnessPhase.stopped => const _StatusContent(''),
     AppCzarOperatingCurrentnessPhase.updating => _StatusContent(
       _progressLabel(state),

@@ -155,6 +155,20 @@ void main() {
 
   test('successful same-session update preserves navigation state', () async {
     final observer = _ScriptedObserver(
+      coverageReads: <Future<AppCzarOperatingCoverageObservation> Function()>[
+        () async => _coverageObservation(
+          coverage: _incompleteCoverage,
+          repairability: _sourceAbsentRepairability,
+        ),
+        () async => _coverageObservation(
+          coverage: _incompleteCoverage,
+          repairability: _sourceAbsentRepairability,
+        ),
+        () async => _coverageObservation(
+          coverage: _incompleteCoverage,
+          repairability: _sourceAbsentRepairability,
+        ),
+      ],
       currentnessReads:
           <Future<AppCzarOperatingCurrentnessObservation> Function()>[
             () async =>
@@ -223,6 +237,8 @@ void main() {
       harness.container.read(panelsViewStateProvider(SidebarMode.messages)),
       panelsBefore,
     );
+    expect(harness.state.attachmentDebtCount, 1);
+    expect(harness.state.attachmentSourceAbsentCount, 1);
     expect(harness.restarter.calls, 0);
   });
 
@@ -419,12 +435,15 @@ void main() {
     await drain;
   });
 
-  test('post-update FALSE coverage fails closed', () async {
+  test('post-update source-available uncovered payload fails closed', () async {
     final observer = _ScriptedObserver(
       coverageReads: <Future<AppCzarOperatingCoverageObservation> Function()>[
         () async => _coverageObservation(),
         () async => _coverageObservation(),
-        () async => _coverageObservation(coverage: _incompleteCoverage),
+        () async => _coverageObservation(
+          coverage: _incompleteCoverage,
+          repairability: _availableRepairability,
+        ),
       ],
       currentnessReads:
           <Future<AppCzarOperatingCurrentnessObservation> Function()>[
@@ -444,9 +463,64 @@ void main() {
       harness.state.issueKind,
       AppCzarOperatingCurrentnessIssueKind.coverageIncomplete,
     );
-    expect(harness.state.issue, contains('incomplete'));
+    expect(harness.state.issue, contains('fresh AppCzar jurisdiction'));
     expect(harness.notifier.triggerObservationNow(), isFalse);
   });
+
+  test(
+    'attachment-bearing update returns to the same occurrence with source-absent debt',
+    () async {
+      final postCoverage = Completer<AppCzarOperatingCoverageObservation>();
+      final observer = _ScriptedObserver(
+        coverageReads: <Future<AppCzarOperatingCoverageObservation> Function()>[
+          () async => _coverageObservation(
+            coverage: _incompleteCoverage,
+            repairability: _sourceAbsentRepairability,
+          ),
+          () async => _coverageObservation(
+            coverage: _incompleteCoverage,
+            repairability: _sourceAbsentRepairability,
+          ),
+          () => postCoverage.future,
+        ],
+        currentnessReads:
+            <Future<AppCzarOperatingCurrentnessObservation> Function()>[
+              () async =>
+                  _currentnessObservation(sourceCount: 101, sourceMax: 201),
+            ],
+      );
+      final harness = _Harness(observer: observer);
+      addTearDown(harness.dispose);
+
+      harness.notifier.start();
+      await _waitFor(
+        () =>
+            observer.coverageCalls == 3 &&
+            harness.state.phase ==
+                AppCzarOperatingCurrentnessPhase.verifyingCoverage,
+      );
+
+      expect(harness.state.attachmentsExamined, 4);
+      expect(harness.state.attachmentsPreserved, 2);
+      expect(harness.state.occurrence, _occurrence);
+
+      postCoverage.complete(
+        _coverageObservation(
+          coverage: _incompleteCoverage,
+          repairability: _sourceAbsentRepairability,
+        ),
+      );
+      await _waitFor(
+        () => harness.state.phase == AppCzarOperatingCurrentnessPhase.idle,
+      );
+
+      expect(harness.state.occurrence, _occurrence);
+      expect(harness.state.attachmentDebtCount, 1);
+      expect(harness.state.attachmentSourceAbsentCount, 1);
+      expect(harness.state.hasVisibleStatus, isTrue);
+      expect(harness.restarter.calls, 0);
+    },
+  );
 
   test(
     'post-update UNKNOWN coverage is not called incomplete or denied',
@@ -455,7 +529,10 @@ void main() {
         coverageReads: <Future<AppCzarOperatingCoverageObservation> Function()>[
           () async => _coverageObservation(),
           () async => _coverageObservation(),
-          () async => _coverageObservation(coverage: _unknownCoverage),
+          () async => _coverageObservation(
+            coverage: _unknownCoverage,
+            repairability: _unknownRepairability,
+          ),
         ],
         currentnessReads:
             <Future<AppCzarOperatingCurrentnessObservation> Function()>[
@@ -991,8 +1068,37 @@ const _unknownCoverage = AppCzarAttachmentCoverageObservation.unknown(
   archiveGeneration: 0,
 );
 
+const _availableRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.present,
+  availableFromMessagesCount: 1,
+  sourceAbsentCount: 0,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
+  archiveScopeIdentity: 'operating-scope',
+  archiveGeneration: 0,
+);
+
+const _sourceAbsentRepairability = AppCzarAttachmentRepairabilityObservation(
+  condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+  availableFromMessagesCount: 0,
+  sourceAbsentCount: 1,
+  sourceUnknownCount: 0,
+  recordBackedRecoveryCount: 0,
+  unsafeOrConflictingCount: 0,
+  archiveScopeIdentity: 'operating-scope',
+  archiveGeneration: 0,
+);
+
+const _unknownRepairability = AppCzarAttachmentRepairabilityObservation.unknown(
+  issue: 'The current repairability probe was inconclusive.',
+  archiveScopeIdentity: 'operating-scope',
+  archiveGeneration: 0,
+);
+
 AppCzarOperatingCoverageObservation _coverageObservation({
   AppCzarAttachmentCoverageObservation coverage = _completeCoverage,
+  AppCzarAttachmentRepairabilityObservation? repairability,
   AppCzarArchiveObservation? archive,
   bool locationWritable = true,
 }) {
@@ -1004,28 +1110,44 @@ AppCzarOperatingCoverageObservation _coverageObservation({
   return AppCzarOperatingCoverageObservation(
     before: fence,
     after: fence,
-    archive: archive ?? _archiveObservation(coverage: coverage),
+    archive:
+        archive ??
+        _archiveObservation(coverage: coverage, repairability: repairability),
   );
 }
 
 AppCzarArchiveObservation _archiveObservation({
   AppCzarArchiveCondition condition = AppCzarArchiveCondition.available,
   AppCzarAttachmentCoverageObservation? coverage,
+  AppCzarAttachmentRepairabilityObservation? repairability,
   String scopeIdentity = 'operating-scope',
   int probeGeneration = 0,
   String resolvedPath = '/test/archive',
 }) {
+  final resolvedCoverage =
+      coverage ??
+      AppCzarAttachmentCoverageObservation(
+        condition: AppCzarAttachmentCoverageCondition.complete,
+        requiredCount: 2,
+        coveredCount: 2,
+        missingCount: 0,
+        unverifiableCount: 0,
+        archiveScopeIdentity: scopeIdentity,
+        archiveGeneration: probeGeneration,
+      );
   return AppCzarArchiveObservation(
     condition: condition,
     label: 'Test archive',
-    coverage:
-        coverage ??
-        AppCzarAttachmentCoverageObservation(
-          condition: AppCzarAttachmentCoverageCondition.complete,
-          requiredCount: 2,
-          coveredCount: 2,
-          missingCount: 0,
-          unverifiableCount: 0,
+    coverage: resolvedCoverage,
+    repairability:
+        repairability ??
+        AppCzarAttachmentRepairabilityObservation(
+          condition: AppCzarAttachmentRepairOpportunityCondition.absent,
+          availableFromMessagesCount: 0,
+          sourceAbsentCount: 0,
+          sourceUnknownCount: 0,
+          recordBackedRecoveryCount: 0,
+          unsafeOrConflictingCount: 0,
           archiveScopeIdentity: scopeIdentity,
           archiveGeneration: probeGeneration,
         ),

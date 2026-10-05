@@ -28,8 +28,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   workspace.
 - AppCzar now reconstructs a current attachment-coverage fact from the live
   graph, durable per-payload archive evidence, and bounded filesystem metadata.
-  Complete, incomplete, and inconclusive coverage remain distinct, and only
-  complete coverage can admit an Operating Session.
+  Complete, incomplete, and inconclusive coverage remain distinct.
+- AppCzar now also reports whether current uncovered attachment payloads offer
+  an automatic repair opportunity, separately from whether historical archive
+  coverage is complete.
 - An admitted AppCzar Operating Session now performs bounded 15-second
   currentness observations and applies an ordinary source-ahead update in the
   same process through the existing typed live-graph mutation authority.
@@ -69,12 +71,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   conversation, and panel selection while graph-backed presentation refreshes
   from the new message-data generation. Compact status reports only real worker
   and attachment-preservation progress.
+- Conclusive source-absent attachment coverage debt no longer blocks the normal
+  Operating Session. The incomplete coverage remains visible in a non-blocking
+  factual status, while source-available, unknown, conflicting, or
+  record-backed deficits still leave Operating and return to fresh AppCzar
+  jurisdiction.
+- Operating live updates now use the same current attachment-actionability
+  evidence as startup. They may settle in the same process when only
+  source-absent debt remains; actionable or inconclusive evidence drains and
+  restarts for a fresh coordinator decision.
 
 ### Safety
 
 - AppCzar assessment uses bounded read-only source, database, and
   attachment-location evidence. It neither creates nor migrates stores and it
   does not start onboarding, ambient monitoring, or archive mutation.
+- Attachment coverage remains a literal preservation fact: source-absent
+  payloads stay required and uncovered. Operating admission uses only their
+  current conclusive, non-actionable classification and stores no waiver,
+  exemption, or historical debt baseline.
 - Presentation significance remains a pure downstream projection and cannot
   influence AppCzar facts, diagnosis, or virtual-coordinator selection.
 - Production and all identities outside the existing exact development gate

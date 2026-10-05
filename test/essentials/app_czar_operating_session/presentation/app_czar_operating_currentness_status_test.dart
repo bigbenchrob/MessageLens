@@ -56,6 +56,37 @@ void main() {
     );
     expect(currentness.restartCalls, 1);
   });
+
+  testWidgets('known source-absent debt is factual and non-blocking', (
+    tester,
+  ) async {
+    final currentness = _RecordingCurrentnessController(debt: true);
+    await tester.pumpWidget(
+      _host(session: _admittedSession, createCurrentness: () => currentness),
+    );
+
+    expect(find.text('Attachment archive'), findsOneWidget);
+    expect(
+      find.text(
+        '13,835 required payloads are not preserved. '
+        'None are currently available from Messages.',
+      ),
+      findsOneWidget,
+    );
+    final nonBlocking = tester.widget<IgnorePointer>(
+      find
+          .ancestor(
+            of: find.byKey(AppCzarOperatingCurrentnessStatusHost.statusKey),
+            matching: find.byType(IgnorePointer),
+          )
+          .first,
+    );
+    expect(nonBlocking.ignoring, isTrue);
+    expect(find.textContaining('lost', findRichText: true), findsNothing);
+    expect(find.textContaining('repaired', findRichText: true), findsNothing);
+    expect(find.textContaining('complete', findRichText: true), findsNothing);
+    expect(currentness.restartCalls, 0);
+  });
 }
 
 Widget _host({
@@ -89,9 +120,10 @@ final class _FixedSessionController extends AppCzarOperatingSessionController {
 
 final class _RecordingCurrentnessController
     extends AppCzarOperatingCurrentnessController {
-  _RecordingCurrentnessController({this.issue = false});
+  _RecordingCurrentnessController({this.issue = false, this.debt = false});
 
   final bool issue;
+  final bool debt;
   int startCalls = 0;
   int restartCalls = 0;
 
@@ -99,6 +131,13 @@ final class _RecordingCurrentnessController
   AppCzarOperatingCurrentnessState build(
     AppCzarOperatingSessionOccurrence occurrence,
   ) {
+    if (debt) {
+      return AppCzarOperatingCurrentnessState.idle(
+        occurrence,
+        attachmentDebtCount: 13835,
+        attachmentSourceAbsentCount: 13835,
+      );
+    }
     if (!issue) {
       return AppCzarOperatingCurrentnessState.idle(occurrence);
     }
