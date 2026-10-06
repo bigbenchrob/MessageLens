@@ -114,7 +114,7 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(claim.buildIdentity, .fdaExperiment)
     XCTAssertEqual(
       claim.canonicalRootURL,
-      configuredRootURL.resolvingSymlinksInPath().standardizedFileURL
+      try canonicalFileSystemURL(configuredRootURL)
     )
   }
 
@@ -257,8 +257,131 @@ class RunnerTests: XCTestCase {
 
     XCTAssertEqual(
       claim.canonicalRootURL,
-      configuredRootURL.resolvingSymlinksInPath().standardizedFileURL
+      try canonicalFileSystemURL(configuredRootURL)
     )
+  }
+
+  func testDevelopmentOverrideCanonicalizationMatrix() throws {
+    let parentURL = URL(
+      fileURLWithPath:
+        "/private/tmp/messagelens native root \(UUID().uuidString)",
+      isDirectory: true
+    )
+    let nestedURL = parentURL.appendingPathComponent(
+      "nested",
+      isDirectory: true
+    )
+    let symlinkURL = parentURL.appendingPathComponent(
+      "nested-link",
+      isDirectory: true
+    )
+    try FileManager.default.createDirectory(
+      at: nestedURL,
+      withIntermediateDirectories: true
+    )
+    try FileManager.default.createSymbolicLink(
+      at: symlinkURL,
+      withDestinationURL: nestedURL
+    )
+    addTeardownBlock {
+      try? FileManager.default.removeItem(at: parentURL)
+    }
+
+    let canonicalPath = nestedURL.path
+    let tmpAlias = canonicalPath.replacingOccurrences(
+      of: "/private/tmp/",
+      with: "/tmp/"
+    )
+    let vectors = [
+      canonicalPath,
+      "\(canonicalPath)/",
+      "\(parentURL.path)/./nested",
+      "\(nestedURL.path)/../nested",
+      tmpAlias,
+      symlinkURL.path,
+    ]
+
+    for vector in vectors {
+      let claim = try MessageLensNativeArchiveClaimResolver(
+        bundleInfo: developmentBundleInfo(),
+        bundleIdentifier: "com.bigbenchsoftware.MessageLens.development",
+        applicationSupportURL: URL(
+          fileURLWithPath: "/tmp/ApplicationSupport"
+        ),
+        processEnvironment: [
+          "MESSAGELENS_DEVELOPMENT_ARCHIVE_ROOT": vector
+        ],
+        signatureValidator: { _ in false }
+      ).resolve()
+
+      XCTAssertEqual(
+        claim.canonicalRootURL.path,
+        canonicalPath,
+        "vector: \(vector)"
+      )
+    }
+  }
+
+  func testDevelopmentClaimTreatsEmptyOverrideAsAbsent() throws {
+    let claim = try MessageLensNativeArchiveClaimResolver(
+      bundleInfo: developmentBundleInfo(),
+      bundleIdentifier: "com.bigbenchsoftware.MessageLens.development",
+      applicationSupportURL: URL(fileURLWithPath: "/tmp/ApplicationSupport"),
+      processEnvironment: [
+        "MESSAGELENS_DEVELOPMENT_ARCHIVE_ROOT": "  \n "
+      ],
+      signatureValidator: { _ in false }
+    ).resolve()
+
+    XCTAssertEqual(
+      claim.canonicalRootURL.path,
+      "/tmp/ApplicationSupport/com.bigbenchsoftware.MessageLens.development"
+    )
+  }
+
+  func testDevelopmentClaimRejectsRelativeConfiguredRoot() {
+    let resolver = MessageLensNativeArchiveClaimResolver(
+      bundleInfo: developmentBundleInfo(),
+      bundleIdentifier: "com.bigbenchsoftware.MessageLens.development",
+      applicationSupportURL: URL(fileURLWithPath: "/tmp/ApplicationSupport"),
+      processEnvironment: [
+        "MESSAGELENS_DEVELOPMENT_ARCHIVE_ROOT": "relative/archive"
+      ],
+      signatureValidator: { _ in false }
+    )
+
+    XCTAssertThrowsError(try resolver.resolve()) { error in
+      XCTAssertEqual(
+        error as? MessageLensNativeArchiveClaimError,
+        .invalidDevelopmentRootOverride("relative/archive")
+      )
+    }
+  }
+
+  func testDevelopmentClaimRejectsRegularFileConfiguredRoot() throws {
+    let fileURL = URL(
+      fileURLWithPath: "/private/tmp/messagelens-root-file-\(UUID().uuidString)"
+    )
+    try Data("not a directory".utf8).write(to: fileURL)
+    addTeardownBlock {
+      try? FileManager.default.removeItem(at: fileURL)
+    }
+    let resolver = MessageLensNativeArchiveClaimResolver(
+      bundleInfo: developmentBundleInfo(),
+      bundleIdentifier: "com.bigbenchsoftware.MessageLens.development",
+      applicationSupportURL: URL(fileURLWithPath: "/tmp/ApplicationSupport"),
+      processEnvironment: [
+        "MESSAGELENS_DEVELOPMENT_ARCHIVE_ROOT": fileURL.path
+      ],
+      signatureValidator: { _ in false }
+    )
+
+    XCTAssertThrowsError(try resolver.resolve()) { error in
+      XCTAssertEqual(
+        error as? MessageLensNativeArchiveClaimError,
+        .unavailableDevelopmentRootOverride(fileURL.path)
+      )
+    }
   }
 
   func testDevelopmentClaimRejectsUnavailableConfiguredRoot() {
@@ -369,4 +492,18 @@ class RunnerTests: XCTestCase {
       "CFBundleDisplayName": "MessageLens Development",
     ]
   }
+}
+
+private func canonicalFileSystemURL(_ url: URL) throws -> URL {
+  let canonicalPath = url.path.withCString { pathPointer in
+    guard let resolvedPathPointer = Darwin.realpath(pathPointer, nil) else {
+      return nil as String?
+    }
+    defer { Darwin.free(resolvedPathPointer) }
+    return String(cString: resolvedPathPointer)
+  }
+  return URL(
+    fileURLWithPath: try XCTUnwrap(canonicalPath),
+    isDirectory: true
+  )
 }

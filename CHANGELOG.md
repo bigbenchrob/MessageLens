@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Development-only archive-root overrides now use the same filesystem-realpath
+  canonical form in native bootstrap and Dart admission. Disposable roots under
+  macOS's `/tmp` / `/private/tmp` alias can therefore pass the existing exact
+  independent-root agreement without weakening production admission.
+
 ### Added
 
 - AppCzar can now execute its development-only **Onboarding** disposition for
@@ -98,6 +105,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   influence AppCzar facts, diagnosis, or virtual-coordinator selection.
 - Production and all identities outside the existing exact development gate
   retain the previous startup path unchanged.
+- Canonical-root disagreement diagnostics now report both independently derived
+  development paths, build/environment identity, and override presence before
+  the existing validator fails closed; the evidence does not grant authority.
 - AppCzar Data Update progress is memory-only. It cannot declare the app ready
   or Operating, and successful bounded work releases mutation authority before
   a real macOS process restart.

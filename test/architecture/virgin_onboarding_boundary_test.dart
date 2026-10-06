@@ -93,6 +93,33 @@ void main() {
     );
   });
 
+  test(
+    'canonical-root diagnostics remain development-only evidence before validation',
+    () {
+      final source = _read('lib/main.dart');
+      final admissionSource = source.substring(
+        source.indexOf('Future<ArchiveAccessAuthority> _admitArchive()'),
+        source.indexOf('Future<void> _reportArchiveAdmissionFailure'),
+      );
+      final diagnostic = admissionSource.indexOf(
+        'archive_admission_canonical_root_disagreement',
+      );
+      final validation = admissionSource.indexOf(
+        'validator.validateClaim(claim)',
+      );
+
+      expect(diagnostic, greaterThanOrEqualTo(0));
+      expect(validation, greaterThan(diagnostic));
+      expect(
+        admissionSource,
+        contains('claim.environment == ArchiveEnvironment.development'),
+      );
+      expect(admissionSource, contains('nativeClaimedCanonicalRoot='));
+      expect(admissionSource, contains('dartExpectedCanonicalRoot='));
+      expect(admissionSource, contains('developmentOverridePresent='));
+    },
+  );
+
   test('StartupApp gates persistent initialization on classification', () {
     final source = _read('lib/main.dart');
     final startupSource = source.substring(source.indexOf('class StartupApp'));

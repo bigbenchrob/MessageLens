@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -27,7 +28,11 @@ import 'essentials/app_mode/feature_level_providers.dart'
 import 'essentials/archive_environment/application.dart'
     show ArchiveAdmissionService, admittedArchiveAccessAuthorityProvider;
 import 'essentials/archive_environment/domain.dart'
-    show ArchiveAccessAuthority, ArchiveBuildIdentity, ArchiveIdentityValidator;
+    show
+        ArchiveAccessAuthority,
+        ArchiveBuildIdentity,
+        ArchiveEnvironment,
+        ArchiveIdentityValidator;
 import 'essentials/archive_environment/infrastructure.dart'
     show
         DevelopmentArchiveRootOverrideResolver,
@@ -169,6 +174,25 @@ Future<ArchiveAccessAuthority> _admitArchive() async {
     canonicalRoots: {claim.environment: expectedRoot},
     platformApplicationSupportRoot: applicationSupportDirectory.parent.path,
   );
+  final rootsAgree = rootPolicy.isCanonicalRoot(
+    environment: claim.environment,
+    rootPath: claim.canonicalRootPath,
+  );
+  if (!rootsAgree && claim.environment == ArchiveEnvironment.development) {
+    final overrideValue = Platform
+        .environment[DevelopmentArchiveRootOverrideResolver
+            .defaultDevelopmentArchiveRootEnvironmentVariable]
+        ?.trim();
+    debugPrint(
+      'archive_admission_canonical_root_disagreement '
+      'environment=${claim.environment.serializedName} '
+      'buildIdentity=${claim.buildIdentity.serializedName} '
+      'developmentOverridePresent='
+      '${overrideValue != null && overrideValue.isNotEmpty} '
+      'nativeClaimedCanonicalRoot=${jsonEncode(claim.canonicalRootPath)} '
+      'dartExpectedCanonicalRoot=${jsonEncode(expectedRoot)}',
+    );
+  }
   final validator = ArchiveIdentityValidator(rootPolicy: rootPolicy);
   validator.validateClaim(claim);
   final markerStore = FileSystemArchiveMarkerStore(

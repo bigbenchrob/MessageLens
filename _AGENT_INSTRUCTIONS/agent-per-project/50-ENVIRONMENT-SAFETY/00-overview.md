@@ -2,7 +2,7 @@
 tier: project
 scope: environment-safety
 owner: agent-per-project
-last_reviewed: 2026-08-27
+last_reviewed: 2026-10-06
 source_of_truth: doc
 links:
   - ../90-DATA-INGESTION-REVIEW/WORKSTREAMS/01-PRODUCTION-DATA-PROTECTION/README.md
@@ -44,6 +44,18 @@ configure the development-only environment variable
 When present, native process admission and Dart archive admission independently
 canonicalize that directory and must agree on the exact result before any
 persistent provider is constructed.
+
+For a configured override on macOS, canonical means the POSIX filesystem
+`realpath` of an already existing directory. The input is trimmed, must be
+absolute, may contain trailing separators or `.` / `..`, and may name a
+directory through a symlink; both native and Dart resolve those forms to the
+same physical-directory spelling. This includes the macOS `/tmp` alias, whose
+canonical result is beneath `/private/tmp`. A missing path, regular file,
+relative path, or path whose filesystem identity cannot be resolved fails
+closed. Filesystem case and Unicode spelling follow the identity returned by
+the active filesystem; MessageLens performs no separate case folding or
+Unicode rewriting. Native and Dart keep separate implementations and compare
+their results exactly.
 
 On the primary development machine the ignored editor launch configuration
 currently selects:

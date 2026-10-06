@@ -8,6 +8,7 @@ import 'package:remember_this_text/essentials/archive_environment/domain/archive
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_identity_validator.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_marker.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/native_archive_claim.dart';
+import 'package:remember_this_text/essentials/archive_environment/infrastructure/development_archive_root_override_resolver.dart';
 import 'package:remember_this_text/essentials/archive_environment/infrastructure/exact_canonical_archive_root_policy.dart';
 import 'package:remember_this_text/essentials/archive_environment/infrastructure/file_system_archive_marker_store.dart';
 
@@ -41,6 +42,43 @@ void main() {
       isTrue,
     );
   });
+
+  test(
+    'filesystem-canonical disposable development override is admitted',
+    () async {
+      final root = Directory(
+        '/private/tmp',
+      ).createTempSync('messagelens admission ');
+      addTearDown(() {
+        if (root.existsSync()) {
+          root.deleteSync(recursive: true);
+        }
+      });
+      final tmpAlias = root.path.replaceFirst('/private/tmp/', '/tmp/');
+      final expectedRoot = const DevelopmentArchiveRootOverrideResolver()
+          .resolveExpectedRoot(
+            environment: ArchiveEnvironment.development,
+            defaultRootPath: '/unused',
+            processEnvironment: {
+              DevelopmentArchiveRootOverrideResolver
+                      .defaultDevelopmentArchiveRootEnvironmentVariable:
+                  tmpAlias,
+            },
+          );
+      final service = _serviceFor(Directory(expectedRoot));
+
+      final authority = await service.admit(_developmentClaim(expectedRoot));
+
+      expect(expectedRoot, root.path);
+      expect(authority.rootPath, root.path);
+      expect(
+        File(
+          '${root.path}/${FileSystemArchiveMarkerStore.markerFileName}',
+        ).existsSync(),
+        isTrue,
+      );
+    },
+  );
 
   test(
     'native process lock is allowed before initial marker creation',

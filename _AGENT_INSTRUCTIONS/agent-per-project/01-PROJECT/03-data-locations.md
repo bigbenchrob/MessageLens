@@ -2,7 +2,7 @@
 tier: project
 scope: data
 owner: agent-per-project
-last_reviewed: 2026-08-14
+last_reviewed: 2026-10-06
 source_of_truth: code
 links:
   - ../10-DATABASES/00-all-databases-accessed.md
@@ -48,6 +48,12 @@ must independently resolve the same canonical existing directory. If the
 configured external root is unavailable, MessageLens stops before persistent
 provider construction rather than falling back. Production and test root
 policies are unchanged.
+
+On macOS the canonical override is the existing directory's POSIX `realpath`.
+Equivalent absolute inputs—including trailing separators, `.` / `..`,
+symlinks, and `/tmp` versus `/private/tmp`—must converge to the same exact
+filesystem path independently on the native and Dart sides. Missing paths and
+regular files are not normalized into admissible roots.
 
 Current app-owned files/directories include:
 

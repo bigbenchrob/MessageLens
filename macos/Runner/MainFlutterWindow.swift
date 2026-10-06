@@ -265,10 +265,25 @@ final class MessageLensNativeArchiveClaimResolver {
       FileManager.default.isWritableFile(atPath: configuredURL.path)
     else {
       throw MessageLensNativeArchiveClaimError
-        .unavailableDevelopmentRootOverride(configuredURL.path)
+        .unavailableDevelopmentRootOverride(configuredValue)
     }
 
-    return configuredURL.resolvingSymlinksInPath().standardizedFileURL
+    let canonicalPath = configuredURL.path.withCString { pathPointer in
+      guard let resolvedPathPointer = Darwin.realpath(pathPointer, nil) else {
+        return nil as String?
+      }
+      defer { Darwin.free(resolvedPathPointer) }
+      return String(cString: resolvedPathPointer)
+    }
+    guard let canonicalPath else {
+      throw MessageLensNativeArchiveClaimError
+        .unavailableDevelopmentRootOverride(configuredValue)
+    }
+
+    // Keep the POSIX realpath spelling. Foundation's URL symlink resolution
+    // rewrites macOS's /private/tmp result back to /tmp, while Dart's
+    // resolveSymbolicLinksSync() retains the filesystem-canonical spelling.
+    return URL(fileURLWithPath: canonicalPath, isDirectory: true)
   }
 
   private func requiredInfoValue(named key: String) throws -> String {
