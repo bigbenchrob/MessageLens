@@ -6,8 +6,10 @@ final class AppCzarEvaluator {
   AppCzarAssessment evaluate(AppCzarObservationSet observations) {
     final facts = <AppCzarFact>[
       _rootFact(observations.root),
+      _initialConstructionScopeFact(observations.initialConstructionScope),
       _sourceReadableFact(observations.source),
       _sourceStableFact(observations.source),
+      _contactsPrerequisiteFact(observations.contactsPrerequisite),
       _databaseFact(
         id: AppCzarFactId.importStoreHealthy,
         label: 'MessageLens import data',
@@ -36,6 +38,64 @@ final class AppCzarEvaluator {
       diagnosisKind: selection.kind,
       diagnosis: selection.diagnosis,
       virtualCoordinator: selection.coordinator,
+    );
+  }
+
+  AppCzarFact _initialConstructionScopeFact(
+    AppCzarInitialConstructionScopeObservation observation,
+  ) {
+    return AppCzarFact(
+      id: AppCzarFactId.initialConstructionScopeSafe,
+      label: 'Initial construction scope safe',
+      truth: switch (observation.condition) {
+        AppCzarInitialConstructionScopeCondition.safeEmpty =>
+          AppCzarTruth.trueValue,
+        AppCzarInitialConstructionScopeCondition.consequentialData ||
+        AppCzarInitialConstructionScopeCondition.protectedNonLiveData ||
+        AppCzarInitialConstructionScopeCondition.retiredOrUnsupportedMaterial ||
+        AppCzarInitialConstructionScopeCondition.unhealthy =>
+          AppCzarTruth.falseValue,
+        AppCzarInitialConstructionScopeCondition.unknown =>
+          AppCzarTruth.unknown,
+      },
+      detail: switch (observation.condition) {
+        AppCzarInitialConstructionScopeCondition.safeEmpty =>
+          'No consequential import, graph, non-live, or retired derived data is present.',
+        _ =>
+          observation.issue ??
+              'Initial-construction scope could not be established.',
+      },
+    );
+  }
+
+  AppCzarFact _contactsPrerequisiteFact(
+    AppCzarContactsPrerequisiteObservation observation,
+  ) {
+    return AppCzarFact(
+      id: AppCzarFactId.contactsPrerequisiteSatisfied,
+      label: 'Contacts source prerequisite satisfied',
+      truth: switch (observation.condition) {
+        AppCzarContactsPrerequisiteCondition.notRequiredForCurrentScope =>
+          AppCzarTruth.trueValue,
+        AppCzarContactsPrerequisiteCondition.viableWithContacts ||
+        AppCzarContactsPrerequisiteCondition.viableEmpty =>
+          AppCzarTruth.trueValue,
+        AppCzarContactsPrerequisiteCondition.accessDenied ||
+        AppCzarContactsPrerequisiteCondition.unavailable ||
+        AppCzarContactsPrerequisiteCondition.invalidOrCorrupt =>
+          AppCzarTruth.falseValue,
+        AppCzarContactsPrerequisiteCondition.unknown => AppCzarTruth.unknown,
+      },
+      detail: switch (observation.condition) {
+        AppCzarContactsPrerequisiteCondition.notRequiredForCurrentScope =>
+          'Contacts are not an input to the current jurisdiction.',
+        AppCzarContactsPrerequisiteCondition.viableWithContacts =>
+          '${observation.contactCount} contacts are available from '
+              '${observation.viableStoreCount} viable store(s).',
+        AppCzarContactsPrerequisiteCondition.viableEmpty =>
+          'The Contacts source is viable and currently contains zero contacts.',
+        _ => observation.issue ?? 'The Contacts source could not be assessed.',
+      },
     );
   }
 
@@ -364,6 +424,26 @@ final class AppCzarEvaluator {
       );
     }
 
+    final initialScope = observations.initialConstructionScope;
+    if (initialScope.condition ==
+        AppCzarInitialConstructionScopeCondition.unknown) {
+      return const _AppCzarSelection.diagnostic(
+        'Current physical evidence does not establish initial-construction scope.',
+      );
+    }
+    if (initialScope.condition ==
+            AppCzarInitialConstructionScopeCondition
+                .retiredOrUnsupportedMaterial ||
+        initialScope.condition ==
+            AppCzarInitialConstructionScopeCondition.unhealthy) {
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.localDataNeedsRepair,
+        diagnosis:
+            'Existing protected or unhealthy MessageLens data requires separate repair review.',
+        coordinator: AppCzarVirtualCoordinator.localDataRepair,
+      );
+    }
+
     final unhealthyLocalStore =
         <AppCzarDatabaseObservation>[
           observations.importStore,
@@ -413,6 +493,61 @@ final class AppCzarEvaluator {
       );
     }
 
+    final safeInitialConstructionScope =
+        initialScope.condition ==
+        AppCzarInitialConstructionScopeCondition.safeEmpty;
+    if (safeInitialConstructionScope) {
+      if (!observations.attachmentArchive.hasCompleteArchiveBinding) {
+        return const _AppCzarSelection.diagnostic(
+          'The current attachment archive identity and configuration are not coherently bound.',
+        );
+      }
+      final contacts = observations.contactsPrerequisite;
+      if (contacts.condition ==
+              AppCzarContactsPrerequisiteCondition.notRequiredForCurrentScope ||
+          contacts.condition ==
+              AppCzarContactsPrerequisiteCondition.invalidOrCorrupt ||
+          contacts.condition == AppCzarContactsPrerequisiteCondition.unknown) {
+        return const _AppCzarSelection.diagnostic(
+          'Current Contacts evidence is invalid, conflicting, or inconclusive.',
+        );
+      }
+      final sourceReadable = fact(AppCzarFactId.messagesSourceReadable);
+      if (sourceReadable.truth == AppCzarTruth.unknown) {
+        return const _AppCzarSelection.diagnostic(
+          'Current evidence does not establish whether the Messages source is readable.',
+        );
+      }
+      if (sourceReadable.truth == AppCzarTruth.trueValue &&
+          fact(AppCzarFactId.sourceSampleStable).truth !=
+              AppCzarTruth.trueValue) {
+        return const _AppCzarSelection.diagnostic(
+          'Current Messages evidence did not settle into one stable sample.',
+        );
+      }
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.incompleteLocalDataset,
+        diagnosis:
+            'This safe empty installation is ready for source-grounded construction.',
+        coordinator: AppCzarVirtualCoordinator.onboarding,
+      );
+    }
+
+    if ((initialScope.condition ==
+                AppCzarInitialConstructionScopeCondition.consequentialData ||
+            initialScope.condition ==
+                AppCzarInitialConstructionScopeCondition
+                    .protectedNonLiveData) &&
+        fact(AppCzarFactId.localDatasetComplete).truth !=
+            AppCzarTruth.trueValue) {
+      return const _AppCzarSelection(
+        kind: AppCzarDiagnosisKind.localDataNeedsRepair,
+        diagnosis:
+            'Consequential partial local data requires separate repair review.',
+        coordinator: AppCzarVirtualCoordinator.localDataRepair,
+      );
+    }
+
     final sourceReadable = fact(AppCzarFactId.messagesSourceReadable);
     if (sourceReadable.truth == AppCzarTruth.falseValue) {
       return const _AppCzarSelection(
@@ -437,11 +572,8 @@ final class AppCzarEvaluator {
 
     if (fact(AppCzarFactId.localDatasetComplete).truth ==
         AppCzarTruth.falseValue) {
-      return const _AppCzarSelection(
-        kind: AppCzarDiagnosisKind.incompleteLocalDataset,
-        diagnosis:
-            'MessageLens does not currently have a complete local message dataset.',
-        coordinator: AppCzarVirtualCoordinator.onboarding,
+      return const _AppCzarSelection.diagnostic(
+        'MessageLens does not currently have one proven complete local dataset.',
       );
     }
 

@@ -37,6 +37,11 @@ class AppCzarAssessmentController extends _$AppCzarAssessmentController {
     final reader = ref.read(appCzarObservationReaderProvider);
     await Future.wait<void>([
       _captureRoot(reader, generation),
+      if (reader is AppCzarInitialConstructionScopeReader)
+        _captureInitialConstructionScope(
+          reader as AppCzarInitialConstructionScopeReader,
+          generation,
+        ),
       _captureSource(reader, generation),
       _captureImport(reader, generation),
       _captureGraph(reader, generation),
@@ -46,9 +51,58 @@ class AppCzarAssessmentController extends _$AppCzarAssessmentController {
     if (generation != _generation) {
       return;
     }
+    if (state.initialConstructionScope == null) {
+      state = state.copyWith(
+        initialConstructionScope: _compatibilityInitialScope(state),
+      );
+    }
+    if (state.contactsPrerequisite == null) {
+      final initialScope = state.initialConstructionScope!;
+      if (initialScope.condition ==
+              AppCzarInitialConstructionScopeCondition.safeEmpty &&
+          reader is AppCzarContactsPrerequisiteReader) {
+        await _captureContactsPrerequisite(
+          reader as AppCzarContactsPrerequisiteReader,
+          generation,
+        );
+      } else {
+        state = state.copyWith(
+          contactsPrerequisite: reader is AppCzarContactsPrerequisiteReader
+              ? const AppCzarContactsPrerequisiteObservation(
+                  condition: AppCzarContactsPrerequisiteCondition
+                      .notRequiredForCurrentScope,
+                )
+              : const AppCzarContactsPrerequisiteObservation(
+                  condition: AppCzarContactsPrerequisiteCondition.viableEmpty,
+                  contactCount: 0,
+                  viableStoreCount: 1,
+                ),
+        );
+      }
+    }
+    if (generation != _generation) {
+      return;
+    }
     final observations = state.requireObservationSet();
     final assessment = const AppCzarEvaluator().evaluate(observations);
     state = state.copyWith(assessment: assessment);
+  }
+
+  Future<void> _captureInitialConstructionScope(
+    AppCzarInitialConstructionScopeReader reader,
+    int generation,
+  ) async {
+    AppCzarInitialConstructionScopeObservation observation;
+    try {
+      observation = await reader.readInitialConstructionScope();
+    } on Object catch (error) {
+      observation = AppCzarInitialConstructionScopeObservation.unknown(
+        'Initial-construction scope inspection failed: $error',
+      );
+    }
+    if (generation == _generation) {
+      state = state.copyWith(initialConstructionScope: observation);
+    }
   }
 
   Future<void> _captureRoot(
@@ -83,6 +137,23 @@ class AppCzarAssessmentController extends _$AppCzarAssessmentController {
     }
     if (generation == _generation) {
       state = state.copyWith(source: observation);
+    }
+  }
+
+  Future<void> _captureContactsPrerequisite(
+    AppCzarContactsPrerequisiteReader reader,
+    int generation,
+  ) async {
+    AppCzarContactsPrerequisiteObservation observation;
+    try {
+      observation = await reader.readContactsPrerequisite();
+    } on Object catch (error) {
+      observation = AppCzarContactsPrerequisiteObservation.unknown(
+        'Contacts source inspection failed: $error',
+      );
+    }
+    if (generation == _generation) {
+      state = state.copyWith(contactsPrerequisite: observation);
     }
   }
 
@@ -152,4 +223,13 @@ class AppCzarAssessmentController extends _$AppCzarAssessmentController {
       return AppCzarDatabaseObservation.unknown('$failurePrefix: $error');
     }
   }
+}
+
+AppCzarInitialConstructionScopeObservation _compatibilityInitialScope(
+  AppCzarAssessmentState state,
+) {
+  return deriveCompatibilityInitialConstructionScope(
+    state.importStore!,
+    state.graphStore!,
+  );
 }

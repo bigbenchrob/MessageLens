@@ -8,7 +8,7 @@ import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
 import '../../../core/util/count_label_formatter.dart';
-import '../../conversation_graph/application/conversation_graph_build_observation.dart';
+import '../../conversation_graph/presentation/conversation_graph_build_stage_label.dart';
 import '../application/app_czar_operating_currentness_controller.dart';
 import '../application/app_czar_operating_session_controller.dart';
 import '../domain/app_czar_operating_currentness_models.dart';
@@ -281,7 +281,10 @@ _StatusContent _statusContent(AppCzarOperatingCurrentnessState state) {
     AppCzarOperatingCurrentnessPhase.stopped => const _StatusContent(''),
     AppCzarOperatingCurrentnessPhase.updating => _StatusContent(
       _progressLabel(state),
-      _graphStageLabel(state.suboperation),
+      conversationGraphBuildStageLabel(
+        state.suboperation,
+        preparingLabel: 'Preparing the supported incremental update',
+      ),
     ),
     AppCzarOperatingCurrentnessPhase.preservingAttachments =>
       const _StatusContent('Preserving attachments…'),
@@ -321,44 +324,4 @@ String? _attachmentResultLabel(AppCzarOperatingCurrentnessState state) {
   }
   return '$examined examined · $preserved preserved · '
       '$skipped skipped · $failed failed';
-}
-
-String _graphStageLabel(ConversationGraphBuildSuboperation? suboperation) {
-  return switch (suboperation) {
-    null => 'Preparing the supported incremental update',
-    ConversationGraphBuildSuboperation.importChats => 'Importing conversations',
-    ConversationGraphBuildSuboperation.importHandles => 'Importing handles',
-    ConversationGraphBuildSuboperation.importContacts => 'Importing contacts',
-    ConversationGraphBuildSuboperation.importContactEmailChannels =>
-      'Importing contact email channels',
-    ConversationGraphBuildSuboperation.importContactPhoneChannels =>
-      'Importing contact phone channels',
-    ConversationGraphBuildSuboperation.importMessages => 'Importing messages',
-    ConversationGraphBuildSuboperation.extractRichText =>
-      'Reading message formatting',
-    ConversationGraphBuildSuboperation.persistRichText =>
-      'Saving message formatting',
-    ConversationGraphBuildSuboperation.importAttachments =>
-      'Importing attachment facts',
-    ConversationGraphBuildSuboperation.importChatMessageRelationships =>
-      'Linking messages to conversations',
-    ConversationGraphBuildSuboperation.importChatHandleRelationships =>
-      'Linking handles to conversations',
-    ConversationGraphBuildSuboperation.importMessageAttachmentRelationships =>
-      'Linking attachments to messages',
-    ConversationGraphBuildSuboperation.projectHandles => 'Updating handles',
-    ConversationGraphBuildSuboperation.projectContacts => 'Updating contacts',
-    ConversationGraphBuildSuboperation.projectChatHandleRelationships =>
-      'Updating conversation participants',
-    ConversationGraphBuildSuboperation.projectConversations =>
-      'Updating conversation data',
-    ConversationGraphBuildSuboperation.projectMessages =>
-      'Updating message data',
-    ConversationGraphBuildSuboperation.projectAttachments =>
-      'Updating attachment data',
-    ConversationGraphBuildSuboperation.projectChatMessageRelationships =>
-      'Updating conversation-message links',
-    ConversationGraphBuildSuboperation.projectMessageAttachmentRelationships =>
-      'Updating message-attachment links',
-  };
 }

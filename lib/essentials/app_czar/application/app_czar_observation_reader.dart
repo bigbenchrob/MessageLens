@@ -14,6 +14,15 @@ abstract interface class AppCzarObservationReader {
   Future<AppCzarArchiveObservation> readAttachmentArchive();
 }
 
+abstract interface class AppCzarInitialConstructionScopeReader {
+  Future<AppCzarInitialConstructionScopeObservation>
+  readInitialConstructionScope();
+}
+
+abstract interface class AppCzarContactsPrerequisiteReader {
+  Future<AppCzarContactsPrerequisiteObservation> readContactsPrerequisite();
+}
+
 abstract interface class AppCzarAttachmentArchiveProbe {
   Future<AppCzarArchiveObservation> readCurrent();
 }

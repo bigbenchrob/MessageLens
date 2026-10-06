@@ -17,7 +17,10 @@ class AddressBookFolderRepository {
       final candidatePaths = await folderPathsFinder.getAddressBookPaths();
       if (candidatePaths.isEmpty) {
         return const Left(
-          FolderRetrievalFailure(message: 'No address book folders found'),
+          FolderRetrievalFailure(
+            message: 'No address book folders found',
+            kind: FolderRetrievalFailureKind.sourceUnavailable,
+          ),
         );
       }
 
@@ -28,6 +31,7 @@ class AddressBookFolderRepository {
             message:
                 'No viable address book folders found'
                 '${viablePathScan.rejectionSummary}',
+            kind: viablePathScan.failureKind,
           ),
         );
       }
@@ -41,7 +45,10 @@ class AddressBookFolderRepository {
       return Right(aggregate);
     } catch (error) {
       return Left(
-        FolderRetrievalFailure(message: 'Folder retrieval failed: $error'),
+        FolderRetrievalFailure(
+          message: 'Folder retrieval failed: $error',
+          kind: classifyAddressBookFolderRetrievalFailure(error),
+        ),
       );
     }
   }
@@ -51,27 +58,35 @@ class AddressBookFolderRepository {
   ) async {
     final viablePaths = <String>[];
     final rejectedReasons = <String>[];
+    final rejectedKinds = <FolderRetrievalFailureKind>[];
     for (final path in paths) {
-      final rejectionReason = await _addressBookDbRejectionReason(path);
-      if (rejectionReason == null) {
+      final rejection = await _addressBookDbRejection(path);
+      if (rejection == null) {
         viablePaths.add(path);
       } else {
-        rejectedReasons.add('$path: $rejectionReason');
+        rejectedReasons.add('$path: ${rejection.message}');
+        rejectedKinds.add(rejection.kind);
       }
     }
     return _ViableAddressBookPathScan(
       viablePaths: viablePaths,
       rejectedReasons: rejectedReasons,
+      rejectedKinds: rejectedKinds,
     );
   }
 
-  Future<String?> _addressBookDbRejectionReason(String path) async {
+  Future<_AddressBookPathRejection?> _addressBookDbRejection(
+    String path,
+  ) async {
     final helper = AddressBookDbHelperMultiInstance(path);
     try {
       await helper.verifyReadable();
       return null;
     } catch (error) {
-      return '$error';
+      return _AddressBookPathRejection(
+        message: '$error',
+        kind: classifyAddressBookFolderRetrievalFailure(error),
+      );
     } finally {
       await helper.close();
     }
@@ -88,6 +103,7 @@ class AddressBookFolderRepository {
         message:
             'Conversion of AddressBook path to folder entity failed for '
             '$path: $error',
+        kind: classifyAddressBookFolderRetrievalFailure(error),
       );
     } finally {
       await helper.close();
@@ -106,14 +122,65 @@ class AddressBookFolderRepository {
   }
 }
 
+FolderRetrievalFailureKind classifyAddressBookFolderRetrievalFailure(
+  Object error,
+) {
+  if (error is FolderRetrievalFailure) {
+    return error.kind;
+  }
+  final normalized = '$error'.toLowerCase();
+  if (normalized.contains('permission denied') ||
+      normalized.contains('operation not permitted') ||
+      normalized.contains('not authorized') ||
+      normalized.contains('authorization denied')) {
+    return FolderRetrievalFailureKind.accessDenied;
+  }
+  if (normalized.contains('malformed') ||
+      normalized.contains('corrupt') ||
+      normalized.contains('not a database') ||
+      normalized.contains('file is encrypted')) {
+    return FolderRetrievalFailureKind.invalidOrCorrupt;
+  }
+  if (normalized.contains('no such file') ||
+      normalized.contains('cannot open') ||
+      normalized.contains("couldn't be opened")) {
+    return FolderRetrievalFailureKind.sourceUnavailable;
+  }
+  return FolderRetrievalFailureKind.unknown;
+}
+
+class _AddressBookPathRejection {
+  const _AddressBookPathRejection({required this.message, required this.kind});
+
+  final String message;
+  final FolderRetrievalFailureKind kind;
+}
+
 class _ViableAddressBookPathScan {
   const _ViableAddressBookPathScan({
     required this.viablePaths,
     required this.rejectedReasons,
+    required this.rejectedKinds,
   });
 
   final List<String> viablePaths;
   final List<String> rejectedReasons;
+  final List<FolderRetrievalFailureKind> rejectedKinds;
+
+  FolderRetrievalFailureKind get failureKind {
+    if (rejectedKinds.contains(FolderRetrievalFailureKind.accessDenied)) {
+      return FolderRetrievalFailureKind.accessDenied;
+    }
+    if (rejectedKinds.contains(FolderRetrievalFailureKind.invalidOrCorrupt)) {
+      return FolderRetrievalFailureKind.invalidOrCorrupt;
+    }
+    if (rejectedKinds.every(
+      (kind) => kind == FolderRetrievalFailureKind.sourceUnavailable,
+    )) {
+      return FolderRetrievalFailureKind.sourceUnavailable;
+    }
+    return FolderRetrievalFailureKind.unknown;
+  }
 
   String get rejectionSummary {
     if (rejectedReasons.isEmpty) {

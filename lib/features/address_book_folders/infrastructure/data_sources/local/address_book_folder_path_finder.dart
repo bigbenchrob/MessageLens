@@ -58,8 +58,17 @@ class AddressBookFolderPathsFinder {
           }
         }
       },
-      onDone: () => completer.complete(directories),
-      onError: (Object e) => completer.completeError(e),
+      onDone: () {
+        if (!completer.isCompleted) {
+          completer.complete(directories);
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (!completer.isCompleted) {
+          completer.completeError(error, stackTrace);
+        }
+      },
+      cancelOnError: true,
     );
 
     return completer.future;

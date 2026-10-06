@@ -305,6 +305,9 @@ const Set<String> _catchErrorAllowedFiles = {
 };
 
 const Set<String> _unawaitedAllowedFiles = {
+  // The AppCzar Onboarding controller owns one bounded graph-build flight and
+  // exposes stopAndDrain() as the awaitable lifecycle boundary.
+  'lib/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart',
   // The Operating currentness monitor owns its single-flight lifecycle and
   // exposes stopAndDrain() as the awaitable shutdown boundary.
   'lib/essentials/app_czar_operating_session/application/app_czar_operating_currentness_controller.dart',
@@ -836,6 +839,101 @@ const Set<String> _archiveCompatibilityKeyConstructionAllowedFiles = {
 };
 
 void main() {
+  group('AppCzar Onboarding Stage One boundaries', () {
+    test(
+      'new Onboarding package contains no legacy Journey authority',
+      () async {
+        final forbidden = RegExp(
+          r'OnboardingJourney|OnboardingStatus|onboardingGateProvider|'
+          r'OnboardingEnvironmentReport|OnboardingOperationSnapshot|'
+          r'onboardingOperationSnapshot|StartupApp|MessageDataResetService|'
+          r'StartFresh',
+        );
+        final offenders = <String>[];
+        await for (final entity in Directory(
+          'lib/essentials/app_czar_onboarding',
+        ).list(recursive: true, followLinks: false)) {
+          if (entity is File && entity.path.endsWith('.dart')) {
+            final source = await entity.readAsString();
+            if (forbidden.hasMatch(source)) {
+              offenders.add(entity.path);
+            }
+          }
+        }
+
+        expect(offenders, isEmpty);
+      },
+    );
+
+    test(
+      'Onboarding executor delegates to the one graph-build controller',
+      () async {
+        final source = await File(
+          'lib/essentials/app_czar_onboarding/application/'
+          'app_czar_onboarding_build_executor_provider.dart',
+        ).readAsString();
+
+        expect(source, contains('conversationGraphBuildControllerProvider'));
+        expect(source, contains('.runOnce('));
+        expect(source, contains("owner: 'app-czar-onboarding'"));
+        expect(source, isNot(contains('onboardingImport')));
+        expect(source, isNot(contains('ConversationGraphBuildService(')));
+      },
+    );
+
+    test('development host has one explicit Onboarding branch', () async {
+      final source = await File(
+        'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+      ).readAsString();
+
+      expect(
+        'appCzarOnboardingControllerProvider'.allMatches(source),
+        hasLength(2),
+      );
+      expect(source, contains('if (onboarding.isVisible)'));
+      expect(source, isNot(contains('execute(coordinator')));
+    });
+
+    test('production composition does not import AppCzar Onboarding', () async {
+      final offenders = <String>[];
+      await for (final entity in Directory(
+        'lib',
+      ).list(recursive: true, followLinks: false)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) {
+          continue;
+        }
+        if (entity.path.startsWith('lib/essentials/app_czar_onboarding/') ||
+            entity.path ==
+                'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart') {
+          continue;
+        }
+        final source = await entity.readAsString();
+        if (source.contains('app_czar_onboarding')) {
+          offenders.add(entity.path);
+        }
+      }
+
+      expect(offenders, isEmpty);
+    });
+
+    test(
+      'physical construction evidence has no durable cursor field',
+      () async {
+        final source = await File(
+          'lib/essentials/installation_evidence/domain/'
+          'message_lens_physical_installation_evidence.dart',
+        ).readAsString();
+        final start = source.indexOf(
+          'final class MessageLensPhysicalInstallationEvidence',
+        );
+        final declaration = source.substring(start);
+
+        expect(declaration, isNot(contains('OnboardingOperationSnapshot')));
+        expect(declaration, isNot(contains('Journey')));
+      },
+    );
+  });
+
   group('Architecture tripwires', () {
     test('Presence remains independent of MessageLens features', () async {
       final presenceFiles = await Directory('lib/essentials/presence')

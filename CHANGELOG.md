@@ -10,6 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- AppCzar can now execute its development-only **Onboarding** disposition for
+  affirmatively safe empty installations. It uses current typed Messages and
+  Contacts prerequisites, delegates one initial construction to the existing
+  graph-build pipeline, then restarts for a fresh assessment.
 - The exactly qualified development installation now opens into a visible
   AppCzar assessment harness that reports current environment evidence as
   literal, value-oriented status rows, then displays one diagnosis and one

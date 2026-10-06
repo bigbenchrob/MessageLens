@@ -857,16 +857,18 @@ void main() {
       harness,
       contains('class _AppCzarAttachmentArchiveRepairLifecycleHost'),
     );
+    expect(harness, contains('class _AppCzarOnboardingLifecycleHost'));
     expect(
       harness,
       contains('return const _AppCzarAttachmentArchiveRepairLifecycleHost();'),
     );
-    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(1));
+    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(2));
     expect(
       harness,
       contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
     );
     expect(harness, contains('.stopAndDrain();'));
+    expect(harness, contains('appCzarOnboardingControllerProvider.notifier'));
     expect(
       harness,
       isNot(contains('appCzarOperatingCurrentnessControllerProvider')),

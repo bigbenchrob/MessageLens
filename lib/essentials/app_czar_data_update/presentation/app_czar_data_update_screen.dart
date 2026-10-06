@@ -5,7 +5,7 @@ import 'package:macos_ui/macos_ui.dart';
 import '../../../config/theme/colors/theme_colors.dart';
 import '../../../config/theme/spacing/app_spacing.dart';
 import '../../../config/theme/theme_typography.dart';
-import '../../conversation_graph/application/conversation_graph_build_observation.dart';
+import '../../conversation_graph/presentation/conversation_graph_build_stage_label.dart';
 import '../application/app_czar_data_update_controller.dart';
 import '../domain/app_czar_data_update_state.dart';
 
@@ -299,52 +299,15 @@ String _stageLabel(AppCzarDataUpdateState state) {
   return switch (state.phase) {
     AppCzarDataUpdatePhase.dormant => 'Waiting for an assessment',
     AppCzarDataUpdatePhase.preparing => 'Rechecking the current source',
-    AppCzarDataUpdatePhase.updating => _graphStageLabel(state.suboperation),
+    AppCzarDataUpdatePhase.updating => conversationGraphBuildStageLabel(
+      state.suboperation,
+      preparingLabel: 'Preparing the supported incremental update',
+    ),
     AppCzarDataUpdatePhase.preservingAttachments =>
       state.attachmentsExamined == null
           ? 'Preserving newly referenced attachments'
           : 'Attachment preservation work finished',
     AppCzarDataUpdatePhase.restartRequested => 'Restarting MessageLens',
     AppCzarDataUpdatePhase.failed => 'Data Update could not finish',
-  };
-}
-
-String _graphStageLabel(ConversationGraphBuildSuboperation? suboperation) {
-  return switch (suboperation) {
-    null => 'Preparing the supported incremental update',
-    ConversationGraphBuildSuboperation.importChats => 'Importing conversations',
-    ConversationGraphBuildSuboperation.importHandles => 'Importing handles',
-    ConversationGraphBuildSuboperation.importContacts => 'Importing contacts',
-    ConversationGraphBuildSuboperation.importContactEmailChannels =>
-      'Importing contact email channels',
-    ConversationGraphBuildSuboperation.importContactPhoneChannels =>
-      'Importing contact phone channels',
-    ConversationGraphBuildSuboperation.importMessages => 'Importing messages',
-    ConversationGraphBuildSuboperation.extractRichText =>
-      'Reading message formatting',
-    ConversationGraphBuildSuboperation.persistRichText =>
-      'Saving message formatting',
-    ConversationGraphBuildSuboperation.importAttachments =>
-      'Importing attachment facts',
-    ConversationGraphBuildSuboperation.importChatMessageRelationships =>
-      'Linking messages to conversations',
-    ConversationGraphBuildSuboperation.importChatHandleRelationships =>
-      'Linking handles to conversations',
-    ConversationGraphBuildSuboperation.importMessageAttachmentRelationships =>
-      'Linking attachments to messages',
-    ConversationGraphBuildSuboperation.projectHandles => 'Updating handles',
-    ConversationGraphBuildSuboperation.projectContacts => 'Updating contacts',
-    ConversationGraphBuildSuboperation.projectChatHandleRelationships =>
-      'Updating conversation participants',
-    ConversationGraphBuildSuboperation.projectConversations =>
-      'Updating conversation data',
-    ConversationGraphBuildSuboperation.projectMessages =>
-      'Updating message data',
-    ConversationGraphBuildSuboperation.projectAttachments =>
-      'Updating attachment data',
-    ConversationGraphBuildSuboperation.projectChatMessageRelationships =>
-      'Updating conversation-message links',
-    ConversationGraphBuildSuboperation.projectMessageAttachmentRelationships =>
-      'Updating message-attachment links',
   };
 }

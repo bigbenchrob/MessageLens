@@ -301,6 +301,8 @@ void main() async {
           archiveRootPath: archiveAuthority.rootPath,
           messagesDatabasePath:
               SqliteAppCzarObservationReader.defaultMacosMessagesDatabasePath(),
+          physicalEvidenceReader:
+              const SqliteMessageLensInstallationEvidenceReader(),
           attachmentArchiveProbe: ReadOnlyAppCzarAttachmentArchiveProbe(
             archiveAccessAuthority: archiveAuthority,
             bookmarkAdapter:

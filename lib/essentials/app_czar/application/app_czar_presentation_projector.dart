@@ -13,8 +13,10 @@ enum AppCzarPresentationSignificance {
 
 enum AppCzarPresentationRowId {
   developmentDataFolder,
+  initialConstructionScope,
   messagesDatabase,
   messagesSourceSample,
+  contactsPrerequisite,
   importStore,
   graphStore,
   overlay,
@@ -89,8 +91,13 @@ final class AppCzarPresentationProjector {
       complete: true,
       rows: <AppCzarPresentationRow>[
         _rootRow(observations.root, assessment),
+        _initialConstructionScopeRow(
+          observations.initialConstructionScope,
+          assessment,
+        ),
         _sourceRow(observations.source, assessment),
         _sourceSampleRow(observations.source, assessment),
+        _contactsPrerequisiteRow(observations.contactsPrerequisite, assessment),
         _databaseRow(
           id: AppCzarPresentationRowId.importStore,
           label: 'MessageLens import data',
@@ -126,8 +133,11 @@ final class AppCzarPresentationProjector {
   List<AppCzarPresentationRow> _pendingRows() {
     const labels = <AppCzarPresentationRowId, String>{
       AppCzarPresentationRowId.developmentDataFolder: 'Development data folder',
+      AppCzarPresentationRowId.initialConstructionScope:
+          'Initial construction scope',
       AppCzarPresentationRowId.messagesDatabase: 'Messages database',
       AppCzarPresentationRowId.messagesSourceSample: 'Messages source sample',
+      AppCzarPresentationRowId.contactsPrerequisite: 'Contacts prerequisite',
       AppCzarPresentationRowId.importStore: 'MessageLens import data',
       AppCzarPresentationRowId.graphStore: 'MessageLens conversation data',
       AppCzarPresentationRowId.overlay: 'MessageLens overlay',
@@ -228,6 +238,97 @@ final class AppCzarPresentationProjector {
           ],
         );
     }
+  }
+
+  AppCzarPresentationRow _initialConstructionScopeRow(
+    AppCzarInitialConstructionScopeObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.initialConstructionScopeSafe);
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.initialConstructionScope,
+      label: 'Initial construction scope',
+      value: switch (observation.condition) {
+        AppCzarInitialConstructionScopeCondition.safeEmpty => 'Safe empty',
+        AppCzarInitialConstructionScopeCondition.consequentialData =>
+          'Consequential data present',
+        AppCzarInitialConstructionScopeCondition.protectedNonLiveData =>
+          'Protected non-live data present',
+        AppCzarInitialConstructionScopeCondition.retiredOrUnsupportedMaterial =>
+          'Retired or unsupported material present',
+        AppCzarInitialConstructionScopeCondition.unhealthy => 'Unhealthy',
+        AppCzarInitialConstructionScopeCondition.unknown => 'Unknown',
+      },
+      detail: fact.detail,
+      significance: switch (observation.condition) {
+        AppCzarInitialConstructionScopeCondition.safeEmpty =>
+          AppCzarPresentationSignificance.healthy,
+        AppCzarInitialConstructionScopeCondition.unknown =>
+          AppCzarPresentationSignificance.unknown,
+        _ => AppCzarPresentationSignificance.informational,
+      },
+      factIds: const <AppCzarFactId>[
+        AppCzarFactId.initialConstructionScopeSafe,
+      ],
+      evidence: <String>[
+        'Import messages: ${observation.importMessageCount ?? 'unknown'}.',
+        'Graph messages: ${observation.graphMessageCount ?? 'unknown'}.',
+        'Graph chats: ${observation.graphChatCount ?? 'unknown'}.',
+        'Graph edges: ${observation.graphEdgeCount ?? 'unknown'}.',
+        'Non-live sources: ${observation.nonLiveSourceCount ?? 'unknown'}.',
+        'Retired derived artifacts: ${observation.hasRetiredDerivedArtifacts}.',
+      ],
+    );
+  }
+
+  AppCzarPresentationRow _contactsPrerequisiteRow(
+    AppCzarContactsPrerequisiteObservation observation,
+    AppCzarAssessment assessment,
+  ) {
+    final fact = assessment.fact(AppCzarFactId.contactsPrerequisiteSatisfied);
+    return AppCzarPresentationRow(
+      id: AppCzarPresentationRowId.contactsPrerequisite,
+      label: 'Contacts prerequisite',
+      value: switch (observation.condition) {
+        AppCzarContactsPrerequisiteCondition.notRequiredForCurrentScope =>
+          'Not required for this jurisdiction',
+        AppCzarContactsPrerequisiteCondition.viableWithContacts =>
+          'Viable — ${observation.contactCount} contacts',
+        AppCzarContactsPrerequisiteCondition.viableEmpty =>
+          'Viable — zero contacts',
+        AppCzarContactsPrerequisiteCondition.accessDenied =>
+          'Current read denied',
+        AppCzarContactsPrerequisiteCondition.unavailable =>
+          'No viable current database',
+        AppCzarContactsPrerequisiteCondition.invalidOrCorrupt =>
+          'Invalid or corrupt',
+        AppCzarContactsPrerequisiteCondition.unknown => 'Unknown',
+      },
+      detail: observation.issue ?? fact.detail,
+      significance: switch (observation.condition) {
+        AppCzarContactsPrerequisiteCondition.viableWithContacts ||
+        AppCzarContactsPrerequisiteCondition.viableEmpty =>
+          AppCzarPresentationSignificance.healthy,
+        AppCzarContactsPrerequisiteCondition.notRequiredForCurrentScope =>
+          AppCzarPresentationSignificance.informational,
+        AppCzarContactsPrerequisiteCondition.accessDenied ||
+        AppCzarContactsPrerequisiteCondition.unavailable ||
+        AppCzarContactsPrerequisiteCondition.invalidOrCorrupt =>
+          AppCzarPresentationSignificance.attention,
+        AppCzarContactsPrerequisiteCondition.unknown =>
+          AppCzarPresentationSignificance.unknown,
+      },
+      factIds: const <AppCzarFactId>[
+        AppCzarFactId.contactsPrerequisiteSatisfied,
+      ],
+      evidence: <String>[
+        'Contacts condition: ${observation.condition.name}.',
+        if (observation.contactCount != null)
+          'Contact count: ${observation.contactCount}.',
+        if (observation.viableStoreCount != null)
+          'Viable store count: ${observation.viableStoreCount}.',
+      ],
+    );
   }
 
   AppCzarPresentationRow _sourceSampleRow(

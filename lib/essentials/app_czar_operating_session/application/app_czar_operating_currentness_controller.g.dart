@@ -27,7 +27,7 @@ final appCzarOperatingCurrentnessCadenceProvider =
 typedef AppCzarOperatingCurrentnessCadenceRef =
     AutoDisposeProviderRef<Duration>;
 String _$appCzarOperatingCurrentnessControllerHash() =>
-    r'6f7edb0e6d06e14a8150c81b922dce433f986e25';
+    r'b3446edbb5496583370f1bd7354a9b53d7c3c204';
 
 /// Copied from Dart SDK
 class _SystemHash {

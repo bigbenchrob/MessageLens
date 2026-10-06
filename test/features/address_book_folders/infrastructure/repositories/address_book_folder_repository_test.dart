@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
+import 'package:remember_this_text/features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
 import 'package:remember_this_text/features/address_book_folders/infrastructure/data_sources/local/address_book_folder_path_finder.dart';
 import 'package:remember_this_text/features/address_book_folders/infrastructure/repositories/address_book_folder_repository.dart';
 import 'package:sqflite/sqflite.dart';
@@ -37,6 +38,49 @@ void main() {
     final result = await repository.getFinalFolderAggregate();
 
     expect(result.isLeft(), isTrue);
+    expect(
+      result.fold((failure) => failure.kind, (_) => null),
+      FolderRetrievalFailureKind.sourceUnavailable,
+    );
+  });
+
+  test('viable zero-contact database remains a viable source', () async {
+    final sourcesRoot = Directory(
+      path.join(tempDirectory.path, 'one', 'two', 'three', 'Sources'),
+    );
+    final candidateDirectory = Directory(path.join(sourcesRoot.path, 'EMPTY'));
+    await candidateDirectory.create(recursive: true);
+    final databasePath = path.join(
+      candidateDirectory.path,
+      'AddressBook-v22.abcddb',
+    );
+    final database = await openDatabase(databasePath, version: 1);
+    await database.execute('''
+      CREATE TABLE ZABCDRECORD (
+        Z_PK INTEGER PRIMARY KEY,
+        ZCREATIONDATE REAL,
+        ZMODIFICATIONDATE REAL
+      )
+    ''');
+    await database.close();
+    final repository = AddressBookFolderRepository(
+      folderPathsFinder: AddressBookFolderPathsFinder.atSourcesRoot(
+        sourcesRootPath: sourcesRoot.path,
+      ),
+    );
+
+    final result = await repository.getFinalFolderAggregate();
+
+    expect(result.isRight(), isTrue);
+    expect(
+      result
+          .getOrElse(() => throw StateError('Expected viable aggregate.'))
+          .folders
+          .single
+          .recordCount
+          .getOrElse(0),
+      0,
+    );
   });
 
   test(
@@ -82,6 +126,15 @@ void main() {
             .mostRecentFolderPath,
         databasePath,
       );
+      expect(
+        result
+            .getOrElse(() => throw StateError('Expected viable aggregate.'))
+            .folders
+            .single
+            .recordCount
+            .getOrElse(0),
+        1,
+      );
     },
   );
 
@@ -110,4 +163,29 @@ void main() {
       expect(await outsideCandidate.readAsString(), 'unchanged');
     },
   );
+
+  test('Contacts retrieval failures retain their Fair-Witness taxonomy', () {
+    expect(
+      classifyAddressBookFolderRetrievalFailure(
+        const FileSystemException('Operation not permitted'),
+      ),
+      FolderRetrievalFailureKind.accessDenied,
+    );
+    expect(
+      classifyAddressBookFolderRetrievalFailure(
+        const FileSystemException('No such file'),
+      ),
+      FolderRetrievalFailureKind.sourceUnavailable,
+    );
+    expect(
+      classifyAddressBookFolderRetrievalFailure(
+        const FormatException('database disk image is malformed'),
+      ),
+      FolderRetrievalFailureKind.invalidOrCorrupt,
+    );
+    expect(
+      classifyAddressBookFolderRetrievalFailure(StateError('inconclusive')),
+      FolderRetrievalFailureKind.unknown,
+    );
+  });
 }

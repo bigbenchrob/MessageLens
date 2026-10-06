@@ -14,7 +14,9 @@ import '../../domain/message_lens_installation_state.dart';
 import '../../domain/onboarding_operation_snapshot.dart';
 
 final class SqliteMessageLensInstallationEvidenceReader
-    implements MessageLensInstallationEvidenceReader {
+    implements
+        MessageLensInstallationEvidenceReader,
+        MessageLensPhysicalInstallationEvidenceReader {
   const SqliteMessageLensInstallationEvidenceReader();
 
   static const _overlayBaselineTables = <String>['overlay_settings'];
@@ -62,6 +64,75 @@ final class SqliteMessageLensInstallationEvidenceReader
   }) {
     return Isolate.run(
       () => _readSynchronously(archiveRootPath: archiveRootPath),
+    );
+  }
+
+  @override
+  Future<MessageLensPhysicalInstallationEvidence> readPhysicalBounded({
+    required String archiveRootPath,
+  }) {
+    return Isolate.run(
+      () => _readPhysicalSynchronously(archiveRootPath: archiveRootPath),
+    );
+  }
+
+  MessageLensPhysicalInstallationEvidence _readPhysicalSynchronously({
+    required String archiveRootPath,
+  }) {
+    final sourceScopedImport = _readTimedDatabase(
+      appDatabasePath(
+        AppDatabaseFile.sourceScopedImport,
+        databaseDirectory: archiveRootPath,
+      ),
+      currentSchemaVersion: sourceScopedImportSchemaVersion,
+      baselineRequiredTables: _importRequiredTables,
+      currentRequiredTables: _importRequiredTables,
+      includeImportEvidence: true,
+    );
+    final conversationGraph = _readTimedDatabase(
+      appDatabasePath(
+        AppDatabaseFile.conversationGraph,
+        databaseDirectory: archiveRootPath,
+      ),
+      currentSchemaVersion: conversationGraphSchemaVersion,
+      baselineRequiredTables: _graphBaselineTables,
+      currentRequiredTables: _graphCurrentTables,
+      currentRequiredTriggers: _graphCurrentTriggers,
+      includeGraphEvidence: true,
+      probeFts: true,
+    );
+    final overlay = _readTimedDatabase(
+      appDatabasePath(
+        AppDatabaseFile.overlay,
+        databaseDirectory: archiveRootPath,
+      ),
+      currentSchemaVersion: overlaySchemaVersion,
+      baselineRequiredTables: _overlayBaselineTables,
+      currentRequiredTables: _overlayCurrentTables,
+    );
+    final presence = _readTimedDatabase(
+      appDatabasePath(
+        AppDatabaseFile.presence,
+        databaseDirectory: archiveRootPath,
+      ),
+      currentSchemaVersion: presenceSchemaVersion,
+      baselineRequiredTables: _presenceRequiredTables,
+      currentRequiredTables: _presenceRequiredTables,
+    );
+    return MessageLensPhysicalInstallationEvidence(
+      sourceScopedImport: sourceScopedImport.evidence,
+      conversationGraph: conversationGraph.evidence,
+      overlay: overlay.evidence,
+      presence: presence.evidence,
+      hasRetiredDerivedArtifacts:
+          <AppDatabaseFile>[
+            AppDatabaseFile.retiredMacosImport,
+            AppDatabaseFile.retiredWorking,
+          ].any(
+            (databaseFile) => File(
+              appDatabasePath(databaseFile, databaseDirectory: archiveRootPath),
+            ).existsSync(),
+          ),
     );
   }
 

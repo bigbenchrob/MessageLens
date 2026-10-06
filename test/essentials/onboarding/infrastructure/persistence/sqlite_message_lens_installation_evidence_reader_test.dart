@@ -13,6 +13,34 @@ import 'package:remember_this_text/essentials/onboarding/infrastructure/persiste
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
+  test(
+    'physical evidence boundary does not read operation snapshots',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'messagelens-physical-evidence-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final overlayPath = appDatabasePath(
+        AppDatabaseFile.overlay,
+        databaseDirectory: root.path,
+      );
+      _createOverlayDatabase(overlayPath);
+      final database = sqlite3.open(overlayPath);
+      database.execute(
+        'INSERT INTO overlay_settings (key, value) VALUES (?, ?)',
+        <Object?>[onboardingOperationSnapshotSettingKey, '{malformed'],
+      );
+      database.dispose();
+
+      final physical = await const SqliteMessageLensInstallationEvidenceReader()
+          .readPhysicalBounded(archiveRootPath: root.path);
+
+      expect(physical.overlay.passedBoundedInspection, isTrue);
+      expect(physical.sourceScopedImport.exists, isFalse);
+      expect(physical.conversationGraph.exists, isFalse);
+    },
+  );
+
   test('pristine inspection creates no archive files', () async {
     final root = Directory.systemTemp.createTempSync(
       'messagelens-installation-evidence-pristine-',

@@ -11,6 +11,8 @@ import '../../app_czar_attachment_archive_repair/application/app_czar_attachment
 import '../../app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import '../../app_czar_onboarding/application/app_czar_onboarding_controller.dart';
+import '../../app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
 import '../../app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import '../../app_czar_operating_session/presentation/app_czar_operating_session_app.dart';
 import '../../app_czar_source_access/application/app_czar_source_access_controller.dart';
@@ -95,6 +97,10 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     if (dataUpdate.isVisible) {
       return const AppCzarDataUpdateScreen();
     }
+    final onboarding = ref.watch(appCzarOnboardingControllerProvider);
+    if (onboarding.isVisible) {
+      return const _AppCzarOnboardingLifecycleHost();
+    }
     final sourceAccess = ref.watch(appCzarSourceAccessControllerProvider);
     if (sourceAccess.isVisible) {
       return const AppCzarSourceAccessScreen();
@@ -108,6 +114,43 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     return AppCzarAssessmentScreen(
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
     );
+  }
+}
+
+class _AppCzarOnboardingLifecycleHost extends ConsumerStatefulWidget {
+  const _AppCzarOnboardingLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarOnboardingLifecycleHost> createState() =>
+      _AppCzarOnboardingLifecycleHostState();
+}
+
+class _AppCzarOnboardingLifecycleHostState
+    extends ConsumerState<_AppCzarOnboardingLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    await ref.read(appCzarOnboardingControllerProvider.notifier).stopAndDrain();
+    return AppExitResponse.exit;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppCzarOnboardingScreen();
   }
 }
 

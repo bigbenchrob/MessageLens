@@ -124,7 +124,7 @@ void main() {
 
     expect(find.text('Still assessing…'), findsOneWidget);
     expect(find.text('Not selected yet'), findsOneWidget);
-    expect(find.text('Checking'), findsNWidgets(11));
+    expect(find.text('Checking'), findsNWidgets(13));
     expect(find.textContaining('Full Disk Access'), findsNothing);
     expect(find.textContaining('%'), findsNothing);
     expect(displayIdentityResolverBuilds, 0);

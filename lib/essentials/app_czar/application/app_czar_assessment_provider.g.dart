@@ -26,7 +26,7 @@ final appCzarObservationReaderProvider =
 // ignore: unused_element
 typedef AppCzarObservationReaderRef = ProviderRef<AppCzarObservationReader>;
 String _$appCzarAssessmentControllerHash() =>
-    r'ba9223a629ba7d65d3a50bc85620c77ce56afbf4';
+    r'7ba12373bf5fcfa505b46128ec6b1ce6f34570f6';
 
 /// See also [AppCzarAssessmentController].
 @ProviderFor(AppCzarAssessmentController)

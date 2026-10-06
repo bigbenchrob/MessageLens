@@ -4,26 +4,43 @@ import 'dart:isolate';
 import 'package:path/path.dart' as path;
 import 'package:sqlite3/sqlite3.dart';
 
+import '../../../features/address_book_folders/domain/failures/folder_retrieval_failure.dart';
+import '../../../features/address_book_folders/infrastructure/data_sources/local/address_book_folder_path_finder.dart';
+import '../../../features/address_book_folders/infrastructure/repositories/address_book_folder_repository.dart';
 import '../../db/app_database_files.dart';
 import '../../db/app_database_schema_versions.dart';
 import '../../db/application/read_only_sql_guard.dart';
+import '../../installation_evidence/application/message_lens_physical_installation_evidence_reader.dart';
+import '../../installation_evidence/domain/message_lens_physical_installation_evidence.dart';
 import '../../source_scoped_import/domain/known_sources.dart';
 import '../application/app_czar_observation_reader.dart';
 import '../domain/app_czar_models.dart';
 
-final class SqliteAppCzarObservationReader implements AppCzarObservationReader {
-  const SqliteAppCzarObservationReader({
+final class SqliteAppCzarObservationReader
+    implements
+        AppCzarObservationReader,
+        AppCzarInitialConstructionScopeReader,
+        AppCzarContactsPrerequisiteReader {
+  SqliteAppCzarObservationReader({
     required String archiveRootPath,
     required String messagesDatabasePath,
     required AppCzarAttachmentArchiveProbe attachmentArchiveProbe,
+    String? contactsSourcesRootPath,
+    required MessageLensPhysicalInstallationEvidenceReader
+    physicalEvidenceReader,
     bool developmentRootAdmitted = true,
   }) : _archiveRootPath = archiveRootPath,
        _messagesDatabasePath = messagesDatabasePath,
+       _contactsSourcesRootPath =
+           contactsSourcesRootPath ?? defaultMacosContactsSourcesRootPath(),
+       _physicalEvidenceReader = physicalEvidenceReader,
        _attachmentArchiveProbe = attachmentArchiveProbe,
        _developmentRootAdmitted = developmentRootAdmitted;
 
   final String _archiveRootPath;
   final String _messagesDatabasePath;
+  final String _contactsSourcesRootPath;
+  final MessageLensPhysicalInstallationEvidenceReader _physicalEvidenceReader;
   final AppCzarAttachmentArchiveProbe _attachmentArchiveProbe;
   final bool _developmentRootAdmitted;
 
@@ -35,6 +52,20 @@ final class SqliteAppCzarObservationReader implements AppCzarObservationReader {
     return path.join(homeDirectory, 'Library', 'Messages', 'chat.db');
   }
 
+  static String defaultMacosContactsSourcesRootPath() {
+    final homeDirectory = Platform.environment['HOME']?.trim();
+    if (homeDirectory == null || homeDirectory.isEmpty) {
+      throw StateError('The current macOS home directory is unavailable.');
+    }
+    return path.join(
+      homeDirectory,
+      'Library',
+      'Application Support',
+      'AddressBook',
+      'Sources',
+    );
+  }
+
   @override
   Future<AppCzarRootObservation> readRoot() async {
     return AppCzarRootObservation(
@@ -44,9 +75,57 @@ final class SqliteAppCzarObservationReader implements AppCzarObservationReader {
   }
 
   @override
+  Future<AppCzarInitialConstructionScopeObservation>
+  readInitialConstructionScope() async {
+    final evidence = await _physicalEvidenceReader.readPhysicalBounded(
+      archiveRootPath: _archiveRootPath,
+    );
+    return classifyInitialConstructionScopeEvidence(evidence);
+  }
+
+  @override
   Future<AppCzarSourceObservation> readSource() {
     final sourcePath = _messagesDatabasePath;
     return Isolate.run(() => _readSourceSynchronously(sourcePath));
+  }
+
+  @override
+  Future<AppCzarContactsPrerequisiteObservation>
+  readContactsPrerequisite() async {
+    final repository = AddressBookFolderRepository(
+      folderPathsFinder: AddressBookFolderPathsFinder.atSourcesRoot(
+        sourcesRootPath: _contactsSourcesRootPath,
+      ),
+    );
+    final result = await repository.getFinalFolderAggregate();
+    return result.fold(
+      (failure) => AppCzarContactsPrerequisiteObservation(
+        condition: switch (failure.kind) {
+          FolderRetrievalFailureKind.accessDenied =>
+            AppCzarContactsPrerequisiteCondition.accessDenied,
+          FolderRetrievalFailureKind.sourceUnavailable =>
+            AppCzarContactsPrerequisiteCondition.unavailable,
+          FolderRetrievalFailureKind.invalidOrCorrupt =>
+            AppCzarContactsPrerequisiteCondition.invalidOrCorrupt,
+          FolderRetrievalFailureKind.unknown =>
+            AppCzarContactsPrerequisiteCondition.unknown,
+        },
+        issue: failure.message,
+      ),
+      (aggregate) {
+        final count = aggregate.folders.fold<int>(
+          0,
+          (sum, folder) => sum + folder.recordCount.getOrElse(0),
+        );
+        return AppCzarContactsPrerequisiteObservation(
+          condition: count == 0
+              ? AppCzarContactsPrerequisiteCondition.viableEmpty
+              : AppCzarContactsPrerequisiteCondition.viableWithContacts,
+          contactCount: count,
+          viableStoreCount: aggregate.folders.length,
+        );
+      },
+    );
   }
 
   @override
@@ -411,6 +490,116 @@ WHERE source_id = ?;
     }
     throw FormatException('Expected an integer but found $value.');
   }
+}
+
+AppCzarInitialConstructionScopeObservation
+classifyInitialConstructionScopeEvidence(
+  MessageLensPhysicalInstallationEvidence evidence,
+) {
+  final stores = <InstallationDatabaseEvidence>[
+    evidence.sourceScopedImport,
+    evidence.conversationGraph,
+    evidence.overlay,
+    evidence.presence,
+  ];
+  if (stores.any(
+    (store) =>
+        store.boundedInspectionStatus ==
+        InstallationBoundedInspectionStatus.contention,
+  )) {
+    return const AppCzarInitialConstructionScopeObservation.unknown(
+      'A current MessageLens store was contended during bounded inspection.',
+    );
+  }
+  if (stores.any(
+    (store) =>
+        store.boundedInspectionStatus ==
+            InstallationBoundedInspectionStatus.unsupportedSchema ||
+        (store.passedBoundedInspection &&
+            store.userVersion != store.currentSchemaVersion),
+  )) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition:
+          AppCzarInitialConstructionScopeCondition.retiredOrUnsupportedMaterial,
+      importMessageCount: evidence.sourceScopedImport.messageCount,
+      graphMessageCount: evidence.conversationGraph.messageCount,
+      graphChatCount: evidence.conversationGraph.chatCount,
+      graphEdgeCount: evidence.conversationGraph.chatMessageEdgeCount,
+      nonLiveSourceCount: evidence.sourceScopedImport.nonLiveSourceCount,
+      hasRetiredDerivedArtifacts: evidence.hasRetiredDerivedArtifacts,
+      issue: 'A retired or unsupported MessageLens store requires review.',
+    );
+  }
+  if (stores.any(
+    (store) =>
+        store.boundedInspectionStatus ==
+        InstallationBoundedInspectionStatus.failed,
+  )) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.unhealthy,
+      importMessageCount: evidence.sourceScopedImport.messageCount,
+      graphMessageCount: evidence.conversationGraph.messageCount,
+      graphChatCount: evidence.conversationGraph.chatCount,
+      graphEdgeCount: evidence.conversationGraph.chatMessageEdgeCount,
+      nonLiveSourceCount: evidence.sourceScopedImport.nonLiveSourceCount,
+      hasRetiredDerivedArtifacts: evidence.hasRetiredDerivedArtifacts,
+      issue: 'A required MessageLens store failed bounded inspection.',
+    );
+  }
+  if (evidence.hasRetiredDerivedArtifacts) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition:
+          AppCzarInitialConstructionScopeCondition.retiredOrUnsupportedMaterial,
+      importMessageCount: evidence.sourceScopedImport.messageCount,
+      graphMessageCount: evidence.conversationGraph.messageCount,
+      graphChatCount: evidence.conversationGraph.chatCount,
+      graphEdgeCount: evidence.conversationGraph.chatMessageEdgeCount,
+      nonLiveSourceCount: evidence.sourceScopedImport.nonLiveSourceCount,
+      hasRetiredDerivedArtifacts: true,
+      issue: 'Retired derived database artifacts are present.',
+    );
+  }
+  final nonLiveCount = evidence.sourceScopedImport.nonLiveSourceCount ?? 0;
+  if (nonLiveCount > 0) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.protectedNonLiveData,
+      importMessageCount: evidence.sourceScopedImport.messageCount,
+      graphMessageCount: evidence.conversationGraph.messageCount,
+      graphChatCount: evidence.conversationGraph.chatCount,
+      graphEdgeCount: evidence.conversationGraph.chatMessageEdgeCount,
+      nonLiveSourceCount: nonLiveCount,
+      hasRetiredDerivedArtifacts: false,
+      issue: 'Protected non-live source data is present.',
+    );
+  }
+  final counts = <int>[
+    evidence.sourceScopedImport.messageCount ?? 0,
+    evidence.conversationGraph.messageCount ?? 0,
+    evidence.conversationGraph.chatCount ?? 0,
+    evidence.conversationGraph.chatMessageEdgeCount ?? 0,
+  ];
+  if (counts.any((count) => count > 0)) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.consequentialData,
+      importMessageCount: counts[0],
+      graphMessageCount: counts[1],
+      graphChatCount: counts[2],
+      graphEdgeCount: counts[3],
+      nonLiveSourceCount: nonLiveCount,
+      hasRetiredDerivedArtifacts: false,
+      issue: 'Consequential local import or graph data is present.',
+    );
+  }
+  return AppCzarInitialConstructionScopeObservation(
+    condition: AppCzarInitialConstructionScopeCondition.safeEmpty,
+    importMessageCount: counts[0],
+    graphMessageCount: counts[1],
+    graphChatCount: counts[2],
+    graphEdgeCount: counts[3],
+    nonLiveSourceCount: nonLiveCount,
+    hasRetiredDerivedArtifacts: false,
+    issue: null,
+  );
 }
 
 final class _SourceSample {

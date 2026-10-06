@@ -3,6 +3,170 @@ import 'package:remember_this_text/essentials/app_czar/application/app_czar_eval
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 
 void main() {
+  test('safe empty scope keeps conclusive source denial in Onboarding', () {
+    final assessment = const AppCzarEvaluator().evaluate(
+      _healthyObservations(
+        source: const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.accessDenied,
+          issue: 'denied',
+        ),
+        importStore: const AppCzarDatabaseObservation.absent(),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+      ),
+    );
+
+    expect(assessment.virtualCoordinator, AppCzarVirtualCoordinator.onboarding);
+    expect(
+      assessment.fact(AppCzarFactId.initialConstructionScopeSafe).truth,
+      AppCzarTruth.trueValue,
+    );
+  });
+
+  test('consequential partial scope never enters Onboarding', () {
+    final assessment = const AppCzarEvaluator().evaluate(
+      _healthyObservations(
+        importStore: const AppCzarDatabaseObservation(
+          condition: AppCzarDatabaseCondition.healthy,
+          schemaVersion: 10,
+          messageCount: 1,
+        ),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.localDataRepair,
+    );
+  });
+
+  test('safe empty scope with unknown Contacts evidence fails closed', () {
+    final observations = _healthyObservations(
+      importStore: const AppCzarDatabaseObservation.absent(),
+      graphStore: const AppCzarDatabaseObservation.absent(),
+    );
+    final assessment = const AppCzarEvaluator().evaluate(
+      AppCzarObservationSet(
+        root: observations.root,
+        initialConstructionScope: observations.initialConstructionScope,
+        source: observations.source,
+        contactsPrerequisite:
+            const AppCzarContactsPrerequisiteObservation.unknown('unknown'),
+        importStore: observations.importStore,
+        graphStore: observations.graphStore,
+        overlay: observations.overlay,
+        attachmentArchive: observations.attachmentArchive,
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
+  test('safe empty scope with unknown source selects diagnostics', () {
+    final assessment = const AppCzarEvaluator().evaluate(
+      _healthyObservations(
+        source: const AppCzarSourceObservation.unknown('inconclusive'),
+        importStore: const AppCzarDatabaseObservation.absent(),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
+  test('safe empty scope keeps typed Contacts human conditions onboard', () {
+    for (final condition in <AppCzarContactsPrerequisiteCondition>[
+      AppCzarContactsPrerequisiteCondition.accessDenied,
+      AppCzarContactsPrerequisiteCondition.unavailable,
+    ]) {
+      final observations = _healthyObservations(
+        importStore: const AppCzarDatabaseObservation.absent(),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+      );
+      final assessment = const AppCzarEvaluator().evaluate(
+        AppCzarObservationSet(
+          root: observations.root,
+          initialConstructionScope: observations.initialConstructionScope,
+          source: observations.source,
+          contactsPrerequisite: AppCzarContactsPrerequisiteObservation(
+            condition: condition,
+            issue: 'literal current condition',
+          ),
+          importStore: observations.importStore,
+          graphStore: observations.graphStore,
+          overlay: observations.overlay,
+          attachmentArchive: observations.attachmentArchive,
+        ),
+      );
+
+      expect(
+        assessment.virtualCoordinator,
+        AppCzarVirtualCoordinator.onboarding,
+      );
+    }
+  });
+
+  test('protected non-live partial state cannot enter Onboarding', () {
+    final observations = _healthyObservations(
+      importStore: const AppCzarDatabaseObservation.absent(),
+      graphStore: const AppCzarDatabaseObservation.absent(),
+    );
+    final assessment = const AppCzarEvaluator().evaluate(
+      AppCzarObservationSet(
+        root: observations.root,
+        initialConstructionScope:
+            const AppCzarInitialConstructionScopeObservation(
+              condition:
+                  AppCzarInitialConstructionScopeCondition.protectedNonLiveData,
+              importMessageCount: 0,
+              graphMessageCount: 0,
+              graphChatCount: 0,
+              graphEdgeCount: 0,
+              nonLiveSourceCount: 1,
+              hasRetiredDerivedArtifacts: false,
+              issue: 'historical source present',
+            ),
+        source: observations.source,
+        importStore: observations.importStore,
+        graphStore: observations.graphStore,
+        overlay: observations.overlay,
+        attachmentArchive: observations.attachmentArchive,
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.localDataRepair,
+    );
+  });
+
+  test('safe empty scope requires coherent archive identity binding', () {
+    final assessment = const AppCzarEvaluator().evaluate(
+      _healthyObservations(
+        importStore: const AppCzarDatabaseObservation.absent(),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+        attachmentArchive: const AppCzarArchiveObservation(
+          condition: AppCzarArchiveCondition.notCreated,
+          label: 'Default attachment archive',
+          coverage: AppCzarAttachmentCoverageObservation.unknown(
+            issue: 'unbound',
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
   const evaluator = AppCzarEvaluator();
 
   test('same observations always produce the same selection', () {
@@ -78,8 +242,18 @@ void main() {
         attachmentArchive: const AppCzarArchiveObservation(
           condition: AppCzarArchiveCondition.notCreated,
           label: 'Default attachment archive',
+          resolvedPath: '/tmp/attachment_archive',
+          archiveScopeIdentity: 'test-scope',
+          archiveGeneration: 0,
           coverage: AppCzarAttachmentCoverageObservation.unknown(
             issue: 'No conversation graph exists yet.',
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
+          ),
+          repairability: AppCzarAttachmentRepairabilityObservation.unknown(
+            issue: 'No conversation graph exists yet.',
+            archiveScopeIdentity: 'test-scope',
+            archiveGeneration: 0,
           ),
         ),
       ),

@@ -5,6 +5,8 @@ import 'package:path/path.dart' as path;
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
+import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'package:remember_this_text/essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -18,6 +20,8 @@ void main() {
       archiveRootPath: tempDirectory.path,
       messagesDatabasePath: sourcePath,
       attachmentArchiveProbe: const _ArchiveProbe(),
+      physicalEvidenceReader:
+          const SqliteMessageLensInstallationEvidenceReader(),
     );
 
     final importStore = await reader.readImportStore();
@@ -56,6 +60,8 @@ void main() {
         archiveRootPath: tempDirectory.path,
         messagesDatabasePath: sourcePath,
         attachmentArchiveProbe: const _ArchiveProbe(),
+        physicalEvidenceReader:
+            const SqliteMessageLensInstallationEvidenceReader(),
       );
 
       final source = await reader.readSource();
@@ -65,6 +71,137 @@ void main() {
       expect(source.maxRowId, 2);
       expect(source.sampleStable, isTrue);
     },
+  );
+
+  group('initial-construction scope classification', () {
+    test('absent or healthy-empty derived stores are safe', () {
+      expect(
+        classifyInitialConstructionScopeEvidence(_physicalEvidence()).condition,
+        AppCzarInitialConstructionScopeCondition.safeEmpty,
+      );
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            import: const InstallationDatabaseEvidence.passed(
+              userVersion: 10,
+              messageCount: 0,
+              nonLiveSourceCount: 0,
+            ),
+            graph: const InstallationDatabaseEvidence.passed(
+              userVersion: 3,
+              messageCount: 0,
+              chatCount: 0,
+              chatMessageEdgeCount: 0,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.safeEmpty,
+      );
+    });
+
+    test('any consequential import or graph material is not safe', () {
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            import: const InstallationDatabaseEvidence.passed(
+              userVersion: 10,
+              messageCount: 1,
+              nonLiveSourceCount: 0,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.consequentialData,
+      );
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            graph: const InstallationDatabaseEvidence.passed(
+              userVersion: 3,
+              messageCount: 0,
+              chatCount: 1,
+              chatMessageEdgeCount: 1,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.consequentialData,
+      );
+    });
+
+    test('non-live, retired, unhealthy, and unknown remain distinct', () {
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            import: const InstallationDatabaseEvidence.passed(
+              userVersion: 10,
+              messageCount: 0,
+              nonLiveSourceCount: 1,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.protectedNonLiveData,
+      );
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(hasRetiredDerivedArtifacts: true),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.retiredOrUnsupportedMaterial,
+      );
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            graph: const InstallationDatabaseEvidence(
+              boundedInspectionStatus:
+                  InstallationBoundedInspectionStatus.failed,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.unhealthy,
+      );
+      expect(
+        classifyInitialConstructionScopeEvidence(
+          _physicalEvidence(
+            overlay: const InstallationDatabaseEvidence(
+              boundedInspectionStatus:
+                  InstallationBoundedInspectionStatus.contention,
+            ),
+          ),
+        ).condition,
+        AppCzarInitialConstructionScopeCondition.unknown,
+      );
+    });
+
+    test('healthy overlay state does not become disposable derived data', () {
+      final result = classifyInitialConstructionScopeEvidence(
+        _physicalEvidence(
+          overlay: const InstallationDatabaseEvidence.passed(userVersion: 8),
+        ),
+      );
+
+      expect(
+        result.condition,
+        AppCzarInitialConstructionScopeCondition.safeEmpty,
+      );
+      expect(result.importMessageCount, 0);
+      expect(result.graphMessageCount, 0);
+    });
+  });
+}
+
+MessageLensPhysicalInstallationEvidence _physicalEvidence({
+  InstallationDatabaseEvidence import =
+      const InstallationDatabaseEvidence.absent(),
+  InstallationDatabaseEvidence graph =
+      const InstallationDatabaseEvidence.absent(),
+  InstallationDatabaseEvidence overlay =
+      const InstallationDatabaseEvidence.absent(),
+  bool hasRetiredDerivedArtifacts = false,
+}) {
+  return MessageLensPhysicalInstallationEvidence(
+    sourceScopedImport: import,
+    conversationGraph: graph,
+    overlay: overlay,
+    presence: const InstallationDatabaseEvidence.absent(),
+    hasRetiredDerivedArtifacts: hasRetiredDerivedArtifacts,
   );
 }
 

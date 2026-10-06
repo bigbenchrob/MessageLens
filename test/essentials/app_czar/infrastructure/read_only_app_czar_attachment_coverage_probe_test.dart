@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_assessment_provider.dart';
+import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/archive_compatibility/domain/archive_compatibility_key.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
 import 'package:remember_this_text/essentials/db/app_database_files.dart';
 import 'package:remember_this_text/essentials/db/app_database_schema_versions.dart';
+import 'package:remember_this_text/essentials/onboarding/infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/known_sources.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/domain/source_scoped_row_key.dart';
 import 'package:remember_this_text/features/attachments/application/attachment_archive_bookmark_adapter.dart';
@@ -820,9 +822,15 @@ CREATE TABLE archived_attachments (
       archiveRootPath: root.path,
       messagesDatabasePath: sourcePath,
       attachmentArchiveProbe: archiveProbe,
+      physicalEvidenceReader:
+          const SqliteMessageLensInstallationEvidenceReader(),
     );
     final container = ProviderContainer(
-      overrides: [appCzarObservationReaderProvider.overrideWithValue(reader)],
+      overrides: [
+        appCzarObservationReaderProvider.overrideWithValue(
+          _EstablishedFixtureObservationReader(reader),
+        ),
+      ],
     );
     try {
       await _waitForAssessment(container);
@@ -914,6 +922,49 @@ CREATE TABLE archived_attachments (
       )
       ..dispose();
   }
+}
+
+final class _EstablishedFixtureObservationReader
+    implements AppCzarObservationReader, AppCzarInitialConstructionScopeReader {
+  const _EstablishedFixtureObservationReader(this._delegate);
+
+  final SqliteAppCzarObservationReader _delegate;
+
+  @override
+  Future<AppCzarInitialConstructionScopeObservation>
+  readInitialConstructionScope() async {
+    return const AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.consequentialData,
+      importMessageCount: 1,
+      graphMessageCount: 1,
+      graphChatCount: 1,
+      graphEdgeCount: 1,
+      nonLiveSourceCount: 0,
+      hasRetiredDerivedArtifacts: false,
+      issue: 'The fixture represents an established current installation.',
+    );
+  }
+
+  @override
+  Future<AppCzarRootObservation> readRoot() => _delegate.readRoot();
+
+  @override
+  Future<AppCzarSourceObservation> readSource() => _delegate.readSource();
+
+  @override
+  Future<AppCzarDatabaseObservation> readImportStore() =>
+      _delegate.readImportStore();
+
+  @override
+  Future<AppCzarDatabaseObservation> readGraphStore() =>
+      _delegate.readGraphStore();
+
+  @override
+  Future<AppCzarDatabaseObservation> readOverlay() => _delegate.readOverlay();
+
+  @override
+  Future<AppCzarArchiveObservation> readAttachmentArchive() =>
+      _delegate.readAttachmentArchive();
 }
 
 final class _UnsupportedBookmarkAdapter

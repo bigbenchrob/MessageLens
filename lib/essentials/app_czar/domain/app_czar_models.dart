@@ -26,10 +26,31 @@ enum AppCzarAttachmentCoverageCondition { complete, incomplete, unknown }
 
 enum AppCzarAttachmentRepairOpportunityCondition { present, absent, unknown }
 
+enum AppCzarInitialConstructionScopeCondition {
+  safeEmpty,
+  consequentialData,
+  protectedNonLiveData,
+  retiredOrUnsupportedMaterial,
+  unhealthy,
+  unknown,
+}
+
+enum AppCzarContactsPrerequisiteCondition {
+  notRequiredForCurrentScope,
+  viableWithContacts,
+  viableEmpty,
+  accessDenied,
+  unavailable,
+  invalidOrCorrupt,
+  unknown,
+}
+
 enum AppCzarFactId {
   developmentRootAdmitted,
+  initialConstructionScopeSafe,
   messagesSourceReadable,
   sourceSampleStable,
+  contactsPrerequisiteSatisfied,
   importStoreHealthy,
   graphStoreHealthy,
   overlayHealthy,
@@ -39,6 +60,62 @@ enum AppCzarFactId {
   attachmentRepairOpportunityPresent,
   sourceLocalDeltaKnown,
   sourceAheadOfLocal,
+}
+
+@immutable
+final class AppCzarInitialConstructionScopeObservation {
+  const AppCzarInitialConstructionScopeObservation({
+    required this.condition,
+    required this.importMessageCount,
+    required this.graphMessageCount,
+    required this.graphChatCount,
+    required this.graphEdgeCount,
+    required this.nonLiveSourceCount,
+    required this.hasRetiredDerivedArtifacts,
+    required this.issue,
+  });
+
+  const AppCzarInitialConstructionScopeObservation.unknown(String issue)
+    : this(
+        condition: AppCzarInitialConstructionScopeCondition.unknown,
+        importMessageCount: null,
+        graphMessageCount: null,
+        graphChatCount: null,
+        graphEdgeCount: null,
+        nonLiveSourceCount: null,
+        hasRetiredDerivedArtifacts: false,
+        issue: issue,
+      );
+
+  final AppCzarInitialConstructionScopeCondition condition;
+  final int? importMessageCount;
+  final int? graphMessageCount;
+  final int? graphChatCount;
+  final int? graphEdgeCount;
+  final int? nonLiveSourceCount;
+  final bool hasRetiredDerivedArtifacts;
+  final String? issue;
+}
+
+@immutable
+final class AppCzarContactsPrerequisiteObservation {
+  const AppCzarContactsPrerequisiteObservation({
+    required this.condition,
+    this.contactCount,
+    this.viableStoreCount,
+    this.issue,
+  });
+
+  const AppCzarContactsPrerequisiteObservation.unknown(String issue)
+    : this(
+        condition: AppCzarContactsPrerequisiteCondition.unknown,
+        issue: issue,
+      );
+
+  final AppCzarContactsPrerequisiteCondition condition;
+  final int? contactCount;
+  final int? viableStoreCount;
+  final String? issue;
 }
 
 enum AppCzarDiagnosisKind {
@@ -424,17 +501,27 @@ final class AppCzarArchiveObservation {
 
 @immutable
 final class AppCzarObservationSet {
-  const AppCzarObservationSet({
+  AppCzarObservationSet({
     required this.root,
+    AppCzarInitialConstructionScopeObservation? initialConstructionScope,
     required this.source,
+    this.contactsPrerequisite = const AppCzarContactsPrerequisiteObservation(
+      condition: AppCzarContactsPrerequisiteCondition.viableEmpty,
+      contactCount: 0,
+      viableStoreCount: 1,
+    ),
     required this.importStore,
     required this.graphStore,
     required this.overlay,
     required this.attachmentArchive,
-  });
+  }) : initialConstructionScope =
+           initialConstructionScope ??
+           deriveCompatibilityInitialConstructionScope(importStore, graphStore);
 
   final AppCzarRootObservation root;
+  final AppCzarInitialConstructionScopeObservation initialConstructionScope;
   final AppCzarSourceObservation source;
+  final AppCzarContactsPrerequisiteObservation contactsPrerequisite;
   final AppCzarDatabaseObservation importStore;
   final AppCzarDatabaseObservation graphStore;
   final AppCzarDatabaseObservation overlay;
@@ -482,7 +569,9 @@ final class AppCzarAssessmentState {
   const AppCzarAssessmentState({
     required this.generation,
     this.root,
+    this.initialConstructionScope,
     this.source,
+    this.contactsPrerequisite,
     this.importStore,
     this.graphStore,
     this.overlay,
@@ -496,7 +585,9 @@ final class AppCzarAssessmentState {
 
   final int generation;
   final AppCzarRootObservation? root;
+  final AppCzarInitialConstructionScopeObservation? initialConstructionScope;
   final AppCzarSourceObservation? source;
+  final AppCzarContactsPrerequisiteObservation? contactsPrerequisite;
   final AppCzarDatabaseObservation? importStore;
   final AppCzarDatabaseObservation? graphStore;
   final AppCzarDatabaseObservation? overlay;
@@ -507,7 +598,9 @@ final class AppCzarAssessmentState {
 
   AppCzarAssessmentState copyWith({
     AppCzarRootObservation? root,
+    AppCzarInitialConstructionScopeObservation? initialConstructionScope,
     AppCzarSourceObservation? source,
+    AppCzarContactsPrerequisiteObservation? contactsPrerequisite,
     AppCzarDatabaseObservation? importStore,
     AppCzarDatabaseObservation? graphStore,
     AppCzarDatabaseObservation? overlay,
@@ -517,7 +610,10 @@ final class AppCzarAssessmentState {
     return AppCzarAssessmentState(
       generation: generation,
       root: root ?? this.root,
+      initialConstructionScope:
+          initialConstructionScope ?? this.initialConstructionScope,
       source: source ?? this.source,
+      contactsPrerequisite: contactsPrerequisite ?? this.contactsPrerequisite,
       importStore: importStore ?? this.importStore,
       graphStore: graphStore ?? this.graphStore,
       overlay: overlay ?? this.overlay,
@@ -529,11 +625,68 @@ final class AppCzarAssessmentState {
   AppCzarObservationSet requireObservationSet() {
     return AppCzarObservationSet(
       root: root!,
+      initialConstructionScope:
+          initialConstructionScope ??
+          deriveCompatibilityInitialConstructionScope(
+            importStore!,
+            graphStore!,
+          ),
       source: source!,
+      contactsPrerequisite:
+          contactsPrerequisite ??
+          const AppCzarContactsPrerequisiteObservation(
+            condition: AppCzarContactsPrerequisiteCondition.viableEmpty,
+            contactCount: 0,
+            viableStoreCount: 1,
+          ),
       importStore: importStore!,
       graphStore: graphStore!,
       overlay: overlay!,
       attachmentArchive: attachmentArchive!,
     );
   }
+}
+
+AppCzarInitialConstructionScopeObservation
+deriveCompatibilityInitialConstructionScope(
+  AppCzarDatabaseObservation importStore,
+  AppCzarDatabaseObservation graphStore,
+) {
+  if (importStore.condition == AppCzarDatabaseCondition.unknown ||
+      graphStore.condition == AppCzarDatabaseCondition.unknown) {
+    return const AppCzarInitialConstructionScopeObservation.unknown(
+      'The compatibility evidence did not establish local store scope.',
+    );
+  }
+  if (importStore.condition == AppCzarDatabaseCondition.unhealthy ||
+      graphStore.condition == AppCzarDatabaseCondition.unhealthy) {
+    return AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.unhealthy,
+      importMessageCount: importStore.messageCount,
+      graphMessageCount: graphStore.messageCount,
+      graphChatCount: graphStore.chatCount,
+      graphEdgeCount: graphStore.chatMessageEdgeCount,
+      nonLiveSourceCount: null,
+      hasRetiredDerivedArtifacts: false,
+      issue: 'A local store is unhealthy.',
+    );
+  }
+  final counts = <int>[
+    importStore.messageCount ?? 0,
+    graphStore.messageCount ?? 0,
+    graphStore.chatCount ?? 0,
+    graphStore.chatMessageEdgeCount ?? 0,
+  ];
+  return AppCzarInitialConstructionScopeObservation(
+    condition: counts.any((count) => count > 0)
+        ? AppCzarInitialConstructionScopeCondition.consequentialData
+        : AppCzarInitialConstructionScopeCondition.safeEmpty,
+    importMessageCount: counts[0],
+    graphMessageCount: counts[1],
+    graphChatCount: counts[2],
+    graphEdgeCount: counts[3],
+    nonLiveSourceCount: 0,
+    hasRetiredDerivedArtifacts: false,
+    issue: null,
+  );
 }
