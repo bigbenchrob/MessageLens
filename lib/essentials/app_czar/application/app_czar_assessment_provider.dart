@@ -83,9 +83,42 @@ class AppCzarAssessmentController extends _$AppCzarAssessmentController {
     if (generation != _generation) {
       return;
     }
+    if (state.initialConstructionScope?.condition ==
+            AppCzarInitialConstructionScopeCondition.consequentialData &&
+        reader is AppCzarLocalDataRepairSafetyReader) {
+      await _captureLocalDataRepairSafety(
+        reader as AppCzarLocalDataRepairSafetyReader,
+        generation,
+      );
+    }
+    if (generation != _generation) {
+      return;
+    }
     final observations = state.requireObservationSet();
     final assessment = const AppCzarEvaluator().evaluate(observations);
     state = state.copyWith(assessment: assessment);
+  }
+
+  Future<void> _captureLocalDataRepairSafety(
+    AppCzarLocalDataRepairSafetyReader reader,
+    int generation,
+  ) async {
+    AppCzarLocalDataRepairSafetyObservation observation;
+    try {
+      observation = await reader.readLocalDataRepairSafety(
+        attachmentArchive: state.attachmentArchive!,
+      );
+    } on Object catch (error) {
+      observation = AppCzarLocalDataRepairSafetyObservation.unknown(
+        issue: 'Local Data Repair safety inspection failed: $error',
+        archiveRootPath: state.root?.path,
+        archiveScopeIdentity: state.attachmentArchive?.archiveScopeIdentity,
+        archiveGeneration: state.attachmentArchive?.archiveGeneration,
+      );
+    }
+    if (generation == _generation) {
+      state = state.copyWith(localDataRepairSafety: observation);
+    }
   }
 
   Future<void> _captureInitialConstructionScope(

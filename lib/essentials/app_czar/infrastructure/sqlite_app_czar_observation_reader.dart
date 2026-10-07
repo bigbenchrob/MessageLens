@@ -15,16 +15,19 @@ import '../../installation_evidence/domain/message_lens_physical_installation_ev
 import '../../source_scoped_import/domain/known_sources.dart';
 import '../application/app_czar_observation_reader.dart';
 import '../domain/app_czar_models.dart';
+import 'sqlite_app_czar_local_data_repair_safety_reader.dart';
 
 final class SqliteAppCzarObservationReader
     implements
         AppCzarObservationReader,
         AppCzarInitialConstructionScopeReader,
-        AppCzarContactsPrerequisiteReader {
+        AppCzarContactsPrerequisiteReader,
+        AppCzarLocalDataRepairSafetyReader {
   SqliteAppCzarObservationReader({
     required String archiveRootPath,
     required String messagesDatabasePath,
     required AppCzarAttachmentArchiveProbe attachmentArchiveProbe,
+    String? archiveInstanceId,
     String? contactsSourcesRootPath,
     required MessageLensPhysicalInstallationEvidenceReader
     physicalEvidenceReader,
@@ -35,6 +38,7 @@ final class SqliteAppCzarObservationReader
            contactsSourcesRootPath ?? defaultMacosContactsSourcesRootPath(),
        _physicalEvidenceReader = physicalEvidenceReader,
        _attachmentArchiveProbe = attachmentArchiveProbe,
+       _archiveInstanceId = archiveInstanceId,
        _developmentRootAdmitted = developmentRootAdmitted;
 
   final String _archiveRootPath;
@@ -42,6 +46,7 @@ final class SqliteAppCzarObservationReader
   final String _contactsSourcesRootPath;
   final MessageLensPhysicalInstallationEvidenceReader _physicalEvidenceReader;
   final AppCzarAttachmentArchiveProbe _attachmentArchiveProbe;
+  final String? _archiveInstanceId;
   final bool _developmentRootAdmitted;
 
   static String defaultMacosMessagesDatabasePath() {
@@ -123,6 +128,7 @@ final class SqliteAppCzarObservationReader
               : AppCzarContactsPrerequisiteCondition.viableWithContacts,
           contactCount: count,
           viableStoreCount: aggregate.folders.length,
+          sourceDatabasePath: aggregate.mostRecentFolderPath,
         );
       },
     );
@@ -158,6 +164,31 @@ final class SqliteAppCzarObservationReader
   @override
   Future<AppCzarArchiveObservation> readAttachmentArchive() {
     return _attachmentArchiveProbe.readCurrent();
+  }
+
+  @override
+  Future<AppCzarLocalDataRepairSafetyObservation> readLocalDataRepairSafety({
+    required AppCzarArchiveObservation attachmentArchive,
+  }) async {
+    final archiveInstanceId = _archiveInstanceId;
+    if (archiveInstanceId == null || archiveInstanceId.isEmpty) {
+      return AppCzarLocalDataRepairSafetyObservation.unknown(
+        issue: 'The admitted archive instance identity was not supplied.',
+        archiveRootPath: _archiveRootPath,
+        archiveScopeIdentity: attachmentArchive.archiveScopeIdentity,
+        archiveGeneration: attachmentArchive.archiveGeneration,
+      );
+    }
+    final contacts = await readContactsPrerequisite();
+    return SqliteAppCzarLocalDataRepairSafetyReader(
+      archiveRootPath: _archiveRootPath,
+      archiveInstanceId: archiveInstanceId,
+      messagesDatabasePath: _messagesDatabasePath,
+      contactsDatabasePath: contacts.sourceDatabasePath,
+    ).read(
+      attachmentArchive: attachmentArchive,
+      contactsPrerequisite: contacts,
+    );
   }
 
   static AppCzarSourceObservation _readSourceSynchronously(

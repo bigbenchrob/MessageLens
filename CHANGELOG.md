@@ -22,6 +22,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- AppCzar can now execute its development-only **Local Data Repair**
+  disposition for the single proven-safe live-only partial class. It
+  revalidates source-grounded reconstructibility immediately before one typed
+  mutation, removes only the two active rebuildable derived stores, proves a
+  strict preservation postcondition, and restarts for a fresh assessment.
 - AppCzar can now execute its development-only **Onboarding** disposition for
   affirmatively safe empty installations. It uses current typed Messages and
   Contacts prerequisites, delegates one initial construction to the existing

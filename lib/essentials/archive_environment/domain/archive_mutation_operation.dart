@@ -6,6 +6,7 @@ enum ArchiveMutationOperation {
   automaticRecovery,
   startFresh,
   messageDataReset,
+  localDataRepair,
   historicalArchiveDryRun,
   historicalArchiveImport,
   historicalArchiveRemoval,
@@ -38,6 +39,7 @@ extension ArchiveMutationOperationPolicy on ArchiveMutationOperation {
   bool get blocksDatabaseReopen {
     return switch (this) {
       ArchiveMutationOperation.messageDataReset ||
+      ArchiveMutationOperation.localDataRepair ||
       ArchiveMutationOperation.startFresh ||
       ArchiveMutationOperation.historicalArchiveImport ||
       ArchiveMutationOperation.historicalArchiveRemoval ||

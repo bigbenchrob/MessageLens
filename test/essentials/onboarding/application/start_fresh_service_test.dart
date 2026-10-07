@@ -379,6 +379,13 @@ final class _FakeResetService implements MessageDataResetService {
   Future<void> resetDerivedData() async {
     throw UnsupportedError('not used');
   }
+
+  @override
+  Future<void> resetActiveDerivedDataForLocalDataRepair(
+    ArchiveMutationCapability capability,
+  ) async {
+    throw UnsupportedError('not used');
+  }
 }
 
 final class _FakeFailureStore implements OnboardingFailureStore {

@@ -26,6 +26,15 @@ enum AppCzarAttachmentCoverageCondition { complete, incomplete, unknown }
 
 enum AppCzarAttachmentRepairOpportunityCondition { present, absent, unknown }
 
+enum AppCzarLocalDataRepairSafetyCondition {
+  rebuildableLiveOnlyPartial,
+  protectedMaterialPresent,
+  sourceFactMissing,
+  retiredArtifactsPresent,
+  unsupportedOrCorrupt,
+  unknown,
+}
+
 enum AppCzarInitialConstructionScopeCondition {
   safeEmpty,
   consequentialData,
@@ -58,8 +67,80 @@ enum AppCzarFactId {
   attachmentArchiveAvailable,
   attachmentCoverageComplete,
   attachmentRepairOpportunityPresent,
+  localDataRepairMayResetDerivedStores,
   sourceLocalDeltaKnown,
   sourceAheadOfLocal,
+}
+
+@immutable
+final class AppCzarLocalDataRepairSafetyObservation {
+  const AppCzarLocalDataRepairSafetyObservation({
+    required this.condition,
+    required this.archiveRootPath,
+    required this.archiveInstanceId,
+    required this.archiveScopeIdentity,
+    required this.archiveGeneration,
+    required this.sourceFingerprint,
+    required this.evidenceFingerprint,
+    required this.resetFootprint,
+    required this.consequentialRowCounts,
+    this.issue,
+  });
+
+  const AppCzarLocalDataRepairSafetyObservation.unknown({
+    required String issue,
+    String? archiveRootPath,
+    String? archiveInstanceId,
+    String? archiveScopeIdentity,
+    int? archiveGeneration,
+  }) : this(
+         condition: AppCzarLocalDataRepairSafetyCondition.unknown,
+         archiveRootPath: archiveRootPath,
+         archiveInstanceId: archiveInstanceId,
+         archiveScopeIdentity: archiveScopeIdentity,
+         archiveGeneration: archiveGeneration,
+         sourceFingerprint: null,
+         evidenceFingerprint: null,
+         resetFootprint: const <String>[],
+         consequentialRowCounts: const <String, int>{},
+         issue: issue,
+       );
+
+  final AppCzarLocalDataRepairSafetyCondition condition;
+  final String? archiveRootPath;
+  final String? archiveInstanceId;
+  final String? archiveScopeIdentity;
+  final int? archiveGeneration;
+  final String? sourceFingerprint;
+  final String? evidenceFingerprint;
+  final List<String> resetFootprint;
+  final Map<String, int> consequentialRowCounts;
+  final String? issue;
+
+  bool get mayResetDerivedStores {
+    return condition ==
+            AppCzarLocalDataRepairSafetyCondition.rebuildableLiveOnlyPartial &&
+        archiveRootPath != null &&
+        archiveInstanceId != null &&
+        archiveScopeIdentity != null &&
+        archiveGeneration != null &&
+        sourceFingerprint != null &&
+        evidenceFingerprint != null &&
+        resetFootprint.isNotEmpty &&
+        consequentialRowCounts.values.any((count) => count > 0);
+  }
+
+  bool hasSameMutationBinding(AppCzarLocalDataRepairSafetyObservation other) {
+    return mayResetDerivedStores &&
+        other.mayResetDerivedStores &&
+        archiveRootPath == other.archiveRootPath &&
+        archiveInstanceId == other.archiveInstanceId &&
+        archiveScopeIdentity == other.archiveScopeIdentity &&
+        archiveGeneration == other.archiveGeneration &&
+        sourceFingerprint == other.sourceFingerprint &&
+        evidenceFingerprint == other.evidenceFingerprint &&
+        _sameStrings(resetFootprint, other.resetFootprint);
+  }
 }
 
 @immutable
@@ -103,6 +184,7 @@ final class AppCzarContactsPrerequisiteObservation {
     required this.condition,
     this.contactCount,
     this.viableStoreCount,
+    this.sourceDatabasePath,
     this.issue,
   });
 
@@ -115,6 +197,7 @@ final class AppCzarContactsPrerequisiteObservation {
   final AppCzarContactsPrerequisiteCondition condition;
   final int? contactCount;
   final int? viableStoreCount;
+  final String? sourceDatabasePath;
   final String? issue;
 }
 
@@ -514,6 +597,10 @@ final class AppCzarObservationSet {
     required this.graphStore,
     required this.overlay,
     required this.attachmentArchive,
+    this.localDataRepairSafety =
+        const AppCzarLocalDataRepairSafetyObservation.unknown(
+          issue: 'Local Data Repair safety was not observed.',
+        ),
   }) : initialConstructionScope =
            initialConstructionScope ??
            deriveCompatibilityInitialConstructionScope(importStore, graphStore);
@@ -526,6 +613,7 @@ final class AppCzarObservationSet {
   final AppCzarDatabaseObservation graphStore;
   final AppCzarDatabaseObservation overlay;
   final AppCzarArchiveObservation attachmentArchive;
+  final AppCzarLocalDataRepairSafetyObservation localDataRepairSafety;
 }
 
 @immutable
@@ -576,6 +664,7 @@ final class AppCzarAssessmentState {
     this.graphStore,
     this.overlay,
     this.attachmentArchive,
+    this.localDataRepairSafety,
     this.assessment,
   });
 
@@ -592,6 +681,7 @@ final class AppCzarAssessmentState {
   final AppCzarDatabaseObservation? graphStore;
   final AppCzarDatabaseObservation? overlay;
   final AppCzarArchiveObservation? attachmentArchive;
+  final AppCzarLocalDataRepairSafetyObservation? localDataRepairSafety;
   final AppCzarAssessment? assessment;
 
   bool get isComplete => assessment != null;
@@ -605,6 +695,7 @@ final class AppCzarAssessmentState {
     AppCzarDatabaseObservation? graphStore,
     AppCzarDatabaseObservation? overlay,
     AppCzarArchiveObservation? attachmentArchive,
+    AppCzarLocalDataRepairSafetyObservation? localDataRepairSafety,
     AppCzarAssessment? assessment,
   }) {
     return AppCzarAssessmentState(
@@ -618,6 +709,8 @@ final class AppCzarAssessmentState {
       graphStore: graphStore ?? this.graphStore,
       overlay: overlay ?? this.overlay,
       attachmentArchive: attachmentArchive ?? this.attachmentArchive,
+      localDataRepairSafety:
+          localDataRepairSafety ?? this.localDataRepairSafety,
       assessment: assessment ?? this.assessment,
     );
   }
@@ -643,8 +736,25 @@ final class AppCzarAssessmentState {
       graphStore: graphStore!,
       overlay: overlay!,
       attachmentArchive: attachmentArchive!,
+      localDataRepairSafety:
+          localDataRepairSafety ??
+          const AppCzarLocalDataRepairSafetyObservation.unknown(
+            issue: 'Local Data Repair safety was not observed.',
+          ),
     );
   }
+}
+
+bool _sameStrings(List<String> left, List<String> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 AppCzarInitialConstructionScopeObservation

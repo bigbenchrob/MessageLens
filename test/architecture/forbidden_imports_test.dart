@@ -85,6 +85,7 @@ const Set<String> _retiredDatabaseFilenameLiteralAllowedFiles = {
 };
 
 const Set<String> _retiredDatabaseEnumAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_local_data_repair_safety_reader.dart',
   'lib/essentials/db/app_database_files.dart',
   'lib/essentials/db/feature_level_providers/database_health_audit_service_provider.dart',
   'lib/essentials/onboarding/application/message_data_reset_service.dart',
@@ -135,6 +136,7 @@ const Set<String> _databaseHealthIdentityLiteralAllowedFiles = {
 };
 
 const Set<String> _appDatabaseFileHelperAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_local_data_repair_safety_reader.dart',
   'lib/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart',
   'lib/essentials/db/app_database_files.dart',
   'lib/essentials/db/feature_level_providers/app_database_labels.dart',
@@ -366,6 +368,7 @@ const Set<String> _providerInvalidationAllowedFiles = {
 };
 
 const Set<String> _directSqliteImportAllowedFiles = {
+  'lib/essentials/app_czar/infrastructure/sqlite_app_czar_local_data_repair_safety_reader.dart',
   'lib/essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart',
   'lib/essentials/archive_environment/infrastructure/file_system_archive_checkpoint_service.dart',
   'lib/essentials/archive_environment/infrastructure/file_system_production_archive_adoption_inventory_service.dart',
@@ -14654,7 +14657,19 @@ _findMessageDataResetPreservationInvariantOffenders() async {
     offenders.add('$resetFileStorePath is missing');
   } else {
     final uncommented = _stripComments(await resetFileStoreFile.readAsString());
-    if (RegExp(r'\bDirectory\s*\(').hasMatch(uncommented) ||
+    final directoryConstructions = RegExp(
+      r'\bDirectory\s*\(',
+    ).allMatches(uncommented).length;
+    final hasExactReadOnlyInventory =
+        directoryConstructions == 1 &&
+        uncommented.contains(
+          'final directory = Directory(databaseDirectory);',
+        ) &&
+        uncommented.contains('directory.listSync(followLinks: false)');
+    if ((directoryConstructions != 0 && !hasExactReadOnlyInventory) ||
+        RegExp(
+          r'\bdirectory\s*\.\s*delete(?:Sync)?\s*\(',
+        ).hasMatch(uncommented) ||
         uncommented.contains('.list(') ||
         uncommented.contains('recursive: true')) {
       offenders.add('$resetFileStorePath performs broad directory deletion');

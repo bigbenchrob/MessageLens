@@ -17,3 +17,21 @@ abstract interface class DerivedMessageDataFileStore {
   /// implementation deletes only the base file plus `-wal` and `-shm`.
   Future<List<String>> deleteDatabaseBaseFiles(List<String> baseNames);
 }
+
+final class LocalDataRepairPhysicalSnapshot {
+  const LocalDataRepairPhysicalSnapshot({required this.preservedEntries});
+
+  final Map<String, String> preservedEntries;
+}
+
+/// Narrow physical proof boundary used only by AppCzar Local Data Repair.
+abstract interface class LocalDataRepairPhysicalFileStore {
+  Future<LocalDataRepairPhysicalSnapshot> captureLocalDataRepairSnapshot(
+    List<String> resetBaseNames,
+  );
+
+  Future<void> requireLocalDataRepairPostcondition({
+    required LocalDataRepairPhysicalSnapshot before,
+    required List<String> resetBaseNames,
+  });
+}

@@ -324,6 +324,7 @@ void main() async {
       appCzarObservationReaderProvider.overrideWith(
         (ref) => SqliteAppCzarObservationReader(
           archiveRootPath: archiveAuthority.rootPath,
+          archiveInstanceId: archiveAuthority.identity.archiveInstanceId.value,
           messagesDatabasePath:
               SqliteAppCzarObservationReader.defaultMacosMessagesDatabasePath(),
           physicalEvidenceReader:

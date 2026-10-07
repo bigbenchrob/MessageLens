@@ -2166,6 +2166,13 @@ final class _ReplayResetService implements MessageDataResetService {
   ) async {
     throw UnsupportedError('Start Fresh is outside this replay fixture.');
   }
+
+  @override
+  Future<void> resetActiveDerivedDataForLocalDataRepair(
+    ArchiveMutationCapability capability,
+  ) async {
+    throw UnsupportedError('Local Data Repair is outside this replay fixture.');
+  }
 }
 
 final class _ReplayGraphController extends ConversationGraphBuildController {

@@ -36,7 +36,7 @@ void main() {
 
     expect(
       assessment.virtualCoordinator,
-      AppCzarVirtualCoordinator.localDataRepair,
+      AppCzarVirtualCoordinator.diagnosticReview,
     );
   });
 
@@ -142,7 +142,7 @@ void main() {
 
     expect(
       assessment.virtualCoordinator,
-      AppCzarVirtualCoordinator.localDataRepair,
+      AppCzarVirtualCoordinator.diagnosticReview,
     );
   });
 
@@ -401,7 +401,7 @@ void main() {
     expect(assessment.virtualCoordinator, AppCzarVirtualCoordinator.dataUpdate);
   });
 
-  test('an unhealthy existing store selects Local Data Repair', () {
+  test('an unhealthy existing store fails closed to diagnostics', () {
     final assessment = evaluator.evaluate(
       _healthyObservations(
         graphStore: const AppCzarDatabaseObservation(
@@ -411,6 +411,29 @@ void main() {
       ),
     );
 
+    expect(
+      assessment.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+  });
+
+  test('only exact reconstructible live-only partial state selects repair', () {
+    final assessment = evaluator.evaluate(
+      _healthyObservations(
+        importStore: const AppCzarDatabaseObservation(
+          condition: AppCzarDatabaseCondition.healthy,
+          schemaVersion: 10,
+          messageCount: 1,
+        ),
+        graphStore: const AppCzarDatabaseObservation.absent(),
+        localDataRepairSafety: _safeLocalRepair,
+      ),
+    );
+
+    expect(
+      assessment.fact(AppCzarFactId.localDataRepairMayResetDerivedStores).truth,
+      AppCzarTruth.trueValue,
+    );
     expect(
       assessment.virtualCoordinator,
       AppCzarVirtualCoordinator.localDataRepair,
@@ -834,6 +857,10 @@ AppCzarObservationSet _healthyObservations({
     coverage: _completeCoverage,
     repairability: _completeRepairability,
   ),
+  AppCzarLocalDataRepairSafetyObservation localDataRepairSafety =
+      const AppCzarLocalDataRepairSafetyObservation.unknown(
+        issue: 'not observed',
+      ),
 }) {
   return AppCzarObservationSet(
     root: const AppCzarRootObservation(
@@ -845,8 +872,21 @@ AppCzarObservationSet _healthyObservations({
     graphStore: graphStore,
     overlay: overlay,
     attachmentArchive: attachmentArchive,
+    localDataRepairSafety: localDataRepairSafety,
   );
 }
+
+const _safeLocalRepair = AppCzarLocalDataRepairSafetyObservation(
+  condition: AppCzarLocalDataRepairSafetyCondition.rebuildableLiveOnlyPartial,
+  archiveRootPath: '/Volumes/WD_ELEMENTS/MessageLens Development',
+  archiveInstanceId: 'test-archive',
+  archiveScopeIdentity: 'test-scope',
+  archiveGeneration: 0,
+  sourceFingerprint: 'source-fingerprint',
+  evidenceFingerprint: 'evidence-fingerprint',
+  resetFootprint: <String>['macos_import_ss.db', 'working_ss.db'],
+  consequentialRowCounts: <String, int>{'messages': 1},
+);
 
 const _completeCoverage = AppCzarAttachmentCoverageObservation(
   condition: AppCzarAttachmentCoverageCondition.complete,

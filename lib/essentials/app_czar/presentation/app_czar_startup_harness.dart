@@ -11,6 +11,8 @@ import '../../app_czar_attachment_archive_repair/application/app_czar_attachment
 import '../../app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import '../../app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
+import '../../app_czar_local_data_repair/presentation/app_czar_local_data_repair_screen.dart';
 import '../../app_czar_onboarding/application/app_czar_onboarding_controller.dart';
 import '../../app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
 import '../../app_czar_operating_session/application/app_czar_operating_session_controller.dart';
@@ -93,6 +95,10 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final localDataRepair = ref.watch(appCzarLocalDataRepairControllerProvider);
+    if (localDataRepair.isVisible) {
+      return const _AppCzarLocalDataRepairLifecycleHost();
+    }
     final dataUpdate = ref.watch(appCzarDataUpdateControllerProvider);
     if (dataUpdate.isVisible) {
       return const AppCzarDataUpdateScreen();
@@ -114,6 +120,45 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     return AppCzarAssessmentScreen(
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
     );
+  }
+}
+
+class _AppCzarLocalDataRepairLifecycleHost extends ConsumerStatefulWidget {
+  const _AppCzarLocalDataRepairLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarLocalDataRepairLifecycleHost> createState() =>
+      _AppCzarLocalDataRepairLifecycleHostState();
+}
+
+class _AppCzarLocalDataRepairLifecycleHostState
+    extends ConsumerState<_AppCzarLocalDataRepairLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    await ref
+        .read(appCzarLocalDataRepairControllerProvider.notifier)
+        .stopAndDrain();
+    return AppExitResponse.exit;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const AppCzarLocalDataRepairScreen();
   }
 }
 

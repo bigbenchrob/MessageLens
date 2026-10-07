@@ -229,6 +229,34 @@ void main() {
         expect(
           source,
           contains(
+            '../../app_czar_local_data_repair/application/'
+            'app_czar_local_data_repair_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_local_data_repair/presentation/'
+            'app_czar_local_data_repair_screen.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_onboarding/application/'
+            'app_czar_onboarding_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_onboarding/presentation/'
+            'app_czar_onboarding_screen.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
             '../../app_czar_operating_session/application/'
             'app_czar_operating_session_controller.dart',
           ),
@@ -276,6 +304,16 @@ void main() {
         isNot(contains('/app_czar_operating_session/')),
         reason: '${file.path} must remain observation/evaluation-only',
       );
+      expect(
+        source,
+        isNot(contains('/app_czar_local_data_repair/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
+      expect(
+        source,
+        isNot(contains('/app_czar_onboarding/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
     }
   });
 
@@ -285,6 +323,8 @@ void main() {
       ..._dataUpdateFiles(),
       ..._sourceAccessFiles(),
       ..._operatingSessionFiles(),
+      ..._onboardingFiles(),
+      ..._localDataRepairFiles(),
     ].map((file) => file.readAsStringSync()).join('\n');
     final harness = File(
       'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
@@ -299,11 +339,11 @@ void main() {
           AppCzarVirtualCoordinator.operatingSession:
               _AppCzarExecutionCategory.executableAdmittedSession,
           AppCzarVirtualCoordinator.onboarding:
-              _AppCzarExecutionCategory.virtualOnly,
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
           AppCzarVirtualCoordinator.attachmentArchiveRepair:
               _AppCzarExecutionCategory.executableTopLevelCoordinator,
           AppCzarVirtualCoordinator.localDataRepair:
-              _AppCzarExecutionCategory.virtualOnly,
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
           AppCzarVirtualCoordinator.diagnosticReview:
               _AppCzarExecutionCategory.virtualOnly,
         };
@@ -320,7 +360,7 @@ void main() {
                 _AppCzarExecutionCategory.executableTopLevelCoordinator,
           )
           .length,
-      3,
+      5,
     );
     expect(
       classifications.values
@@ -338,18 +378,20 @@ void main() {
       contains('appCzarAttachmentArchiveRepairControllerProvider'),
     );
     expect(harness, contains('appCzarOperatingSessionControllerProvider'));
+    expect(harness, contains('appCzarOnboardingControllerProvider'));
+    expect(harness, contains('appCzarLocalDataRepairControllerProvider'));
 
     expect(
       RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
-      hasLength(4),
+      hasLength(6),
     );
     expect(sources, contains('shouldExecuteAppCzarAttachmentArchiveRepair'));
     expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
     expect(sources, contains('shouldExecuteAppCzarSourceAccessRepair'));
     expect(sources, contains('shouldExecuteAppCzarOperatingSession'));
-    expect(sources, isNot(contains('shouldExecuteAppCzarOnboarding')));
+    expect(sources, contains('shouldExecuteAppCzarOnboarding'));
+    expect(sources, contains('shouldExecuteAppCzarLocalDataRepair'));
     expect(sources, isNot(contains('shouldExecuteAppCzarAttachmentRepair')));
-    expect(sources, isNot(contains('shouldExecuteAppCzarLocalDataRepair')));
     expect(sources, isNot(contains('shouldExecuteAppCzarDiagnosticReview')));
     expect(
       sources,
@@ -605,6 +647,73 @@ void main() {
     expect(sources, isNot(contains('Process.start')));
     expect(sources, isNot(contains('Directory(')));
     expect(sources, isNot(contains('File(')));
+  });
+
+  test('Local Data Repair has one typed mutation-admission edge', () {
+    const executorPath =
+        'lib/essentials/app_czar_local_data_repair/application/'
+        'app_czar_local_data_repair_executor_provider.dart';
+    final files = _localDataRepairFiles().toList();
+    final sources = files.map((file) => file.readAsStringSync()).join('\n');
+
+    expect(RegExp(r'\.runWithCapability<').allMatches(sources), hasLength(1));
+    expect(
+      RegExp(
+        r'operation:\s*ArchiveMutationOperation\.localDataRepair',
+      ).allMatches(sources),
+      hasLength(1),
+    );
+    for (final file in files) {
+      final source = file.readAsStringSync();
+      if (file.path == executorPath) {
+        expect(source, contains('archiveMutationCoordinatorProvider'));
+        expect(source, contains('readLocalDataRepairSafety'));
+        expect(source, contains('hasSameMutationBinding'));
+        expect(source, contains('resetActiveDerivedDataForLocalDataRepair'));
+        continue;
+      }
+      expect(
+        source,
+        isNot(contains('.runWithCapability<')),
+        reason: '${file.path} must not acquire mutation authority',
+      );
+      expect(
+        source,
+        isNot(contains('ArchiveMutationCapability')),
+        reason: '${file.path} must not retain a mutation capability',
+      );
+    }
+  });
+
+  test('Local Data Repair remains separate from semantic authorities', () {
+    final sources = _localDataRepairFiles()
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    const forbidden = <String>[
+      'OnboardingJourneyCoordinator',
+      'onboardingJourneyCoordinatorProvider',
+      'AdvancedStartFresh',
+      'startFresh',
+      'operation_snapshot',
+      'historicalArchive',
+      'removeHistorical',
+      'messageDataVersionProvider',
+      'SharedPreferences',
+      'Timer.periodic',
+      'AppCzarVirtualCoordinator.diagnosticReview',
+      'AppCzarVirtualCoordinator.onboarding',
+    ];
+    for (final term in forbidden) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Local Data Repair must not contain $term',
+      );
+    }
+    expect(
+      sources,
+      isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
+    );
   });
 
   test(
@@ -876,13 +985,17 @@ void main() {
       harness,
       contains('return const _AppCzarAttachmentArchiveRepairLifecycleHost();'),
     );
-    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(2));
+    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(3));
     expect(
       harness,
       contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
     );
     expect(harness, contains('.stopAndDrain();'));
     expect(harness, contains('appCzarOnboardingControllerProvider.notifier'));
+    expect(
+      harness,
+      contains('appCzarLocalDataRepairControllerProvider.notifier'),
+    );
     expect(
       harness,
       isNot(contains('appCzarOperatingCurrentnessControllerProvider')),
@@ -909,6 +1022,7 @@ void main() {
       ...Directory(
         'lib/essentials/app_czar_onboarding',
       ).listSync(recursive: true, followLinks: false).whereType<File>(),
+      ..._localDataRepairFiles(),
       ..._dataUpdateFiles(),
       ..._sourceAccessFiles(),
       ..._attachmentArchiveRepairFiles(),
@@ -1060,6 +1174,8 @@ void main() {
               ..._dataUpdateFiles(),
               ..._sourceAccessFiles(),
               ..._attachmentArchiveRepairFiles(),
+              ..._onboardingFiles(),
+              ..._localDataRepairFiles(),
             ]
             .where((file) => file.path.endsWith('.dart'))
             .map((file) => file.readAsStringSync())
@@ -1099,6 +1215,20 @@ Iterable<File> _sourceAccessFiles() {
 
 Iterable<File> _operatingSessionFiles() {
   return Directory('lib/essentials/app_czar_operating_session')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
+}
+
+Iterable<File> _onboardingFiles() {
+  return Directory('lib/essentials/app_czar_onboarding')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
+}
+
+Iterable<File> _localDataRepairFiles() {
+  return Directory('lib/essentials/app_czar_local_data_repair')
       .listSync(recursive: true, followLinks: false)
       .whereType<File>()
       .where((file) => file.path.endsWith('.dart'));

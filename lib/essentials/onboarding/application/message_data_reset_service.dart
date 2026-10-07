@@ -46,6 +46,10 @@ abstract interface class MessageDataResetService {
   Future<void> resetDerivedDataForStartFresh(
     ArchiveMutationCapability capability,
   );
+
+  Future<void> resetActiveDerivedDataForLocalDataRepair(
+    ArchiveMutationCapability capability,
+  );
 }
 
 final class MessageDataResetServiceImpl implements MessageDataResetService {
@@ -66,14 +70,27 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
     ArchiveMutationCapability capability,
   ) {
     capability.requireOperation(ArchiveMutationOperation.startFresh);
-    return _resetDerivedData(capability);
+    return _resetDerivedData(capability, includeRetired: true);
   }
 
-  Future<void> _resetDerivedData(ArchiveMutationCapability capability) async {
+  @override
+  Future<void> resetActiveDerivedDataForLocalDataRepair(
+    ArchiveMutationCapability capability,
+  ) {
+    capability.requireOperation(ArchiveMutationOperation.localDataRepair);
+    return _resetDerivedData(capability, includeRetired: false);
+  }
+
+  Future<void> _resetDerivedData(
+    ArchiveMutationCapability capability, {
+    bool includeRetired = true,
+  }) async {
     final operation = capability.operation;
     if (operation != ArchiveMutationOperation.messageDataReset &&
         operation != ArchiveMutationOperation.startFresh) {
-      throw StateError('$operation cannot reset derived message data.');
+      if (operation != ArchiveMutationOperation.localDataRepair) {
+        throw StateError('$operation cannot reset derived message data.');
+      }
     }
     capability.requireOperation(operation);
     final logger = _dependencies.logger;
@@ -96,6 +113,21 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
       final conversationGraphWasOpen = await _closeConversationGraphDatabase();
 
       final fileStore = _dependencies.fileStore;
+      final physicalStore = fileStore is LocalDataRepairPhysicalFileStore
+          ? fileStore as LocalDataRepairPhysicalFileStore
+          : null;
+      final physicalSnapshot =
+          operation == ArchiveMutationOperation.localDataRepair
+          ? await physicalStore?.captureLocalDataRepairSnapshot(
+              _activeGraphDerivedDatabaseBaseNames,
+            )
+          : null;
+      if (operation == ArchiveMutationOperation.localDataRepair &&
+          (physicalStore == null || physicalSnapshot == null)) {
+        throw StateError(
+          'Local Data Repair requires the physical postcondition boundary.',
+        );
+      }
       final deletedActiveGraphFilePaths = await fileStore
           .deleteDatabaseBaseFiles(_activeGraphDerivedDatabaseBaseNames);
       logger.info(
@@ -106,8 +138,11 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
           'deletedFiles': deletedActiveGraphFilePaths,
         },
       );
-      final deletedRetiredCleanupFilePaths = await fileStore
-          .deleteDatabaseBaseFiles(_retiredDatabaseCleanupBaseNames);
+      final deletedRetiredCleanupFilePaths = includeRetired
+          ? await fileStore.deleteDatabaseBaseFiles(
+              _retiredDatabaseCleanupBaseNames,
+            )
+          : const <String>[];
       logger.info(
         'Deleted retired database cleanup files',
         source: 'MessageDataResetService',
@@ -124,8 +159,16 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
       _dependencies.bumpMessageDataVersion();
 
       final databaseExistsAfterReset = fileStore.databaseExistenceByBaseName(
-        _messageDataResetPostCleanupCheckBaseNames,
+        includeRetired
+            ? _messageDataResetPostCleanupCheckBaseNames
+            : _activeGraphDerivedDatabaseBaseNames,
       );
+      if (physicalStore != null && physicalSnapshot != null) {
+        await physicalStore.requireLocalDataRepairPostcondition(
+          before: physicalSnapshot,
+          resetBaseNames: _activeGraphDerivedDatabaseBaseNames,
+        );
+      }
 
       logger.info(
         'Invalidated graph database providers and checked retired file cleanup',

@@ -23,6 +23,12 @@ abstract interface class AppCzarContactsPrerequisiteReader {
   Future<AppCzarContactsPrerequisiteObservation> readContactsPrerequisite();
 }
 
+abstract interface class AppCzarLocalDataRepairSafetyReader {
+  Future<AppCzarLocalDataRepairSafetyObservation> readLocalDataRepairSafety({
+    required AppCzarArchiveObservation attachmentArchive,
+  });
+}
+
 abstract interface class AppCzarAttachmentArchiveProbe {
   Future<AppCzarArchiveObservation> readCurrent();
 }

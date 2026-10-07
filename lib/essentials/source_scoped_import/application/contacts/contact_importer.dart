@@ -1,11 +1,10 @@
-import '../../../../core/util/date_converter.dart';
-import '../../../db/shared/handle_identifier_utils.dart';
 import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
 import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
+import 'contact_source_projection.dart';
 
 class ContactImportResult {
   const ContactImportResult({
@@ -91,11 +90,13 @@ class ContactImporter {
           }
           validContactRowIds.add(sourceRowId);
 
-          final first = _trim(row['ZFIRSTNAME']);
-          final middle = _trim(row['ZMIDDLENAME']);
-          final last = _trim(row['ZLASTNAME']);
-          final organization = _trim(row['ZORGANIZATION']);
-          final displayName = _buildContactDisplayName(
+          final first = readTrimmedContactSourceText(row['ZFIRSTNAME']);
+          final middle = readTrimmedContactSourceText(row['ZMIDDLENAME']);
+          final last = readTrimmedContactSourceText(row['ZLASTNAME']);
+          final organization = readTrimmedContactSourceText(
+            row['ZORGANIZATION'],
+          );
+          final displayName = buildContactDisplayName(
             firstName: first,
             middleName: middle,
             lastName: last,
@@ -116,7 +117,7 @@ class ContactImporter {
                 'first_name': first,
                 'last_name': last,
                 'organization': organization,
-                'created_at_utc': DateConverter.appleToIsoString(
+                'created_at_utc': projectContactCreatedAtUtc(
                   row['ZCREATIONDATE'],
                 ),
                 'batch_id': batchId,
@@ -147,8 +148,7 @@ class ContactImporter {
         );
         for (final row in emailRows) {
           final owner = _readNullableInt(row['ZOWNER']);
-          final address =
-              _trim(row['ZADDRESS']) ?? _trim(row['ZADDRESSNORMALIZED']);
+          final address = projectContactEmailAddress(row);
           if (owner == null ||
               !validContactRowIds.contains(owner) ||
               address == null) {
@@ -173,8 +173,8 @@ class ContactImporter {
             txn,
             sourceContactRowId: owner,
             kind: 'email',
-            value: address.toLowerCase(),
-            label: _trim(row['ZLABEL']),
+            value: address,
+            label: readTrimmedContactSourceText(row['ZLABEL']),
             batchId: batchId,
           );
           if (insertedId != 0) {
@@ -204,10 +204,10 @@ class ContactImporter {
         );
         for (final row in phoneRows) {
           final owner = _readNullableInt(row['ZOWNER']);
-          final rawNumber = _trim(row['ZFULLNUMBER']) ?? _trim(row['ZVALUE']);
+          final projectedNumber = projectContactPhoneNumber(row);
           if (owner == null ||
               !validContactRowIds.contains(owner) ||
-              rawNumber == null) {
+              projectedNumber == null) {
             omittedContactChannelCount += 1;
             completedPhoneCount += 1;
             publishSourceImportProgress(
@@ -229,8 +229,8 @@ class ContactImporter {
             txn,
             sourceContactRowId: owner,
             kind: 'phone',
-            value: normalizeHandleIdentifier(rawNumber) ?? rawNumber,
-            label: _trim(row['ZLABEL']),
+            value: projectedNumber,
+            label: readTrimmedContactSourceText(row['ZLABEL']),
             batchId: batchId,
           );
           if (insertedId != 0) {
@@ -297,38 +297,6 @@ int? _readNullableInt(Object? value) {
   }
   if (value is double) {
     return value.round();
-  }
-  return null;
-}
-
-String? _trim(Object? value) {
-  if (value is String) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      return null;
-    }
-    return trimmed;
-  }
-  return null;
-}
-
-String? _buildContactDisplayName({
-  String? firstName,
-  String? middleName,
-  String? lastName,
-  String? organization,
-}) {
-  final parts = <String>[
-    if (firstName != null) firstName,
-    if (middleName != null) middleName,
-    if (lastName != null) lastName,
-  ];
-
-  if (parts.isNotEmpty) {
-    return parts.join(' ');
-  }
-  if (organization != null) {
-    return organization;
   }
   return null;
 }

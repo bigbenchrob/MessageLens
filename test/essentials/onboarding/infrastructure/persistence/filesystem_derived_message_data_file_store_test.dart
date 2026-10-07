@@ -98,6 +98,129 @@ void main() {
       );
     });
 
+    test(
+      'local repair postcondition proves the exact active footprint',
+      () async {
+        final store = FilesystemDerivedMessageDataFileStore(
+          databaseDirectory: tempDir.path,
+        );
+        const active = <String>['macos_import_ss.db', 'working_ss.db'];
+        for (final baseName in active) {
+          for (final suffix in const <String>['', '-wal', '-shm']) {
+            await File(
+              path.join(tempDir.path, '$baseName$suffix'),
+            ).writeAsString('derived:$baseName$suffix');
+          }
+        }
+        final overlay = File(path.join(tempDir.path, 'user_overlays.db'));
+        final presence = File(path.join(tempDir.path, 'presence.db'));
+        final marker = File(
+          path.join(tempDir.path, '.messagelens-archive.json'),
+        );
+        final retired = File(path.join(tempDir.path, 'macos_import.db'));
+        final configuration = File(
+          path.join(tempDir.path, 'attachment-location-settings.json'),
+        );
+        final sentinel = File(path.join(tempDir.path, 'unrelated.txt'));
+        final archivePayload = File(
+          path.join(tempDir.path, 'attachment_archive', 'ab', 'payload.bin'),
+        );
+        await overlay.writeAsString('overlay');
+        await presence.writeAsString('presence');
+        await marker.writeAsString('marker');
+        await retired.writeAsString('retired-preserved');
+        await configuration.writeAsString('configuration');
+        await sentinel.writeAsString('sentinel');
+        await archivePayload.parent.create(recursive: true);
+        await archivePayload.writeAsBytes(<int>[0, 1, 2, 255]);
+
+        final before = await store.captureLocalDataRepairSnapshot(active);
+        await store.deleteDatabaseBaseFiles(active);
+        await store.requireLocalDataRepairPostcondition(
+          before: before,
+          resetBaseNames: active,
+        );
+
+        expect(await overlay.readAsString(), 'overlay');
+        expect(await presence.readAsString(), 'presence');
+        expect(await marker.readAsString(), 'marker');
+        expect(await retired.readAsString(), 'retired-preserved');
+        expect(await configuration.readAsString(), 'configuration');
+        expect(await sentinel.readAsString(), 'sentinel');
+        expect(await archivePayload.readAsBytes(), <int>[0, 1, 2, 255]);
+        for (final baseName in active) {
+          for (final suffix in const <String>['', '-wal', '-shm']) {
+            expect(
+              File(path.join(tempDir.path, '$baseName$suffix')).existsSync(),
+              isFalse,
+            );
+          }
+        }
+      },
+    );
+
+    test('local repair postcondition rejects a surviving target', () async {
+      final store = FilesystemDerivedMessageDataFileStore(
+        databaseDirectory: tempDir.path,
+      );
+      const active = <String>['working_ss.db'];
+      await File(path.join(tempDir.path, 'working_ss.db')).writeAsString('x');
+      final before = await store.captureLocalDataRepairSnapshot(active);
+
+      await expectLater(
+        store.requireLocalDataRepairPostcondition(
+          before: before,
+          resetBaseNames: active,
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('local repair postcondition rejects collateral changes', () async {
+      final store = FilesystemDerivedMessageDataFileStore(
+        databaseDirectory: tempDir.path,
+      );
+      const active = <String>['working_ss.db'];
+      await File(path.join(tempDir.path, 'working_ss.db')).writeAsString('x');
+      final overlay = File(path.join(tempDir.path, 'user_overlays.db'));
+      await overlay.writeAsString('before');
+      final before = await store.captureLocalDataRepairSnapshot(active);
+      await store.deleteDatabaseBaseFiles(active);
+      await overlay.writeAsString('after');
+
+      await expectLater(
+        store.requireLocalDataRepairPostcondition(
+          before: before,
+          resetBaseNames: active,
+        ),
+        throwsStateError,
+      );
+    });
+
+    test(
+      'local repair postcondition detects same-size preserved changes',
+      () async {
+        final store = FilesystemDerivedMessageDataFileStore(
+          databaseDirectory: tempDir.path,
+        );
+        const active = <String>['working_ss.db'];
+        await File(path.join(tempDir.path, 'working_ss.db')).writeAsString('x');
+        final overlay = File(path.join(tempDir.path, 'user_overlays.db'));
+        await overlay.writeAsString('before');
+        final before = await store.captureLocalDataRepairSnapshot(active);
+        await store.deleteDatabaseBaseFiles(active);
+        await overlay.writeAsString('after!');
+
+        await expectLater(
+          store.requireLocalDataRepairPostcondition(
+            before: before,
+            resetBaseNames: active,
+          ),
+          throwsStateError,
+        );
+      },
+    );
+
     test('leaves external source and donor fingerprints unchanged', () async {
       final externalSources = await Directory.systemTemp.createTemp(
         'start_fresh_external_sources_test',

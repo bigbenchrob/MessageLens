@@ -25,6 +25,7 @@ final class AppCzarEvaluator {
       _archiveFact(observations.attachmentArchive),
       _attachmentCoverageFact(observations.attachmentArchive),
       _attachmentRepairOpportunityFact(observations.attachmentArchive),
+      _localDataRepairSafetyFact(observations.localDataRepairSafety),
       _deltaKnownFact(observations),
       _sourceAheadFact(observations),
     ];
@@ -38,6 +39,27 @@ final class AppCzarEvaluator {
       diagnosisKind: selection.kind,
       diagnosis: selection.diagnosis,
       virtualCoordinator: selection.coordinator,
+    );
+  }
+
+  AppCzarFact _localDataRepairSafetyFact(
+    AppCzarLocalDataRepairSafetyObservation observation,
+  ) {
+    return AppCzarFact(
+      id: AppCzarFactId.localDataRepairMayResetDerivedStores,
+      label: 'Local Data Repair may reset derived stores',
+      truth:
+          observation.condition ==
+              AppCzarLocalDataRepairSafetyCondition.rebuildableLiveOnlyPartial
+          ? AppCzarTruth.trueValue
+          : observation.condition ==
+                AppCzarLocalDataRepairSafetyCondition.unknown
+          ? AppCzarTruth.unknown
+          : AppCzarTruth.falseValue,
+      detail: observation.mayResetDerivedStores
+          ? 'The exact active derived-store footprint is reconstructible from stable current live sources.'
+          : observation.issue ??
+                'The active derived-store footprint is not authorized for automatic reset.',
     );
   }
 
@@ -436,11 +458,8 @@ final class AppCzarEvaluator {
                 .retiredOrUnsupportedMaterial ||
         initialScope.condition ==
             AppCzarInitialConstructionScopeCondition.unhealthy) {
-      return const _AppCzarSelection(
-        kind: AppCzarDiagnosisKind.localDataNeedsRepair,
-        diagnosis:
-            'Existing protected or unhealthy MessageLens data requires separate repair review.',
-        coordinator: AppCzarVirtualCoordinator.localDataRepair,
+      return const _AppCzarSelection.diagnostic(
+        'Existing protected, retired, unsupported, or unhealthy MessageLens data requires separate review.',
       );
     }
 
@@ -454,11 +473,8 @@ final class AppCzarEvaluator {
               observation.condition == AppCzarDatabaseCondition.unhealthy,
         );
     if (unhealthyLocalStore) {
-      return const _AppCzarSelection(
-        kind: AppCzarDiagnosisKind.localDataNeedsRepair,
-        diagnosis:
-            'One or more current MessageLens data stores need repair before use.',
-        coordinator: AppCzarVirtualCoordinator.localDataRepair,
+      return const _AppCzarSelection.diagnostic(
+        'One or more current MessageLens data stores are unhealthy and cannot be reset automatically.',
       );
     }
 
@@ -540,11 +556,24 @@ final class AppCzarEvaluator {
                     .protectedNonLiveData) &&
         fact(AppCzarFactId.localDatasetComplete).truth !=
             AppCzarTruth.trueValue) {
+      final repairSafety = fact(
+        AppCzarFactId.localDataRepairMayResetDerivedStores,
+      );
+      if (initialScope.condition ==
+              AppCzarInitialConstructionScopeCondition.consequentialData &&
+          repairSafety.truth == AppCzarTruth.trueValue) {
+        return const _AppCzarSelection(
+          kind: AppCzarDiagnosisKind.localDataNeedsRepair,
+          diagnosis:
+              'The exact partial live-derived dataset can be reconstructed from current sources.',
+          coordinator: AppCzarVirtualCoordinator.localDataRepair,
+        );
+      }
       return const _AppCzarSelection(
-        kind: AppCzarDiagnosisKind.localDataNeedsRepair,
+        kind: AppCzarDiagnosisKind.contradictoryOrInsufficientEvidence,
         diagnosis:
-            'Consequential partial local data requires separate repair review.',
-        coordinator: AppCzarVirtualCoordinator.localDataRepair,
+            'Partial local data is protected, unsupported, or not proven reconstructible.',
+        coordinator: AppCzarVirtualCoordinator.diagnosticReview,
       );
     }
 
