@@ -470,6 +470,20 @@ void main() {
     }
   });
 
+  test('process restart follows AppCzar composition rather than adoption', () {
+    final provider = File(
+      'lib/essentials/app_czar_data_update/application/'
+      'app_czar_process_restarter_provider.dart',
+    ).readAsStringSync();
+
+    expect(provider, contains('AppCzarDevelopmentCompositionPolicy'));
+    expect(provider, contains('admittedArchiveAccessAuthorityProvider'));
+    expect(
+      provider,
+      isNot(contains('attachmentArchiveAdoptionExecutionEnabledProvider')),
+    );
+  });
+
   test('Source Access Repair has bounded observation-only jurisdiction', () {
     final sources = _sourceAccessFiles()
         .map((file) => file.readAsStringSync())
@@ -887,7 +901,45 @@ void main() {
     );
   });
 
-  test('Operating shell core has no legacy semantic authority imports', () {
+  test('AppCzar composition cannot import legacy presentation authority', () {
+    final sources = <File>[
+      ...Directory(
+        'lib/essentials/app_czar',
+      ).listSync(recursive: true, followLinks: false).whereType<File>(),
+      ...Directory(
+        'lib/essentials/app_czar_onboarding',
+      ).listSync(recursive: true, followLinks: false).whereType<File>(),
+      ..._dataUpdateFiles(),
+      ..._sourceAccessFiles(),
+      ..._attachmentArchiveRepairFiles(),
+      ..._operatingSessionFiles(),
+    ].where((file) => file.path.endsWith('.dart'));
+
+    const forbidden = <String>[
+      'production_macos_app_shell.dart',
+      'onboarding_overlay.dart',
+      'onboarding_journey_path.dart',
+      'onboarding_center_panel_sync_observer.dart',
+      'onboardingJourneyCoordinatorProvider',
+      'onboardingGateProvider',
+      'OnboardingOverlay',
+      'OnboardingCenterPanelSync',
+      'environmentReadinessSurfaceProvider',
+      'environmentReadinessActionsProvider',
+    ];
+    for (final file in sources) {
+      final source = file.readAsStringSync();
+      for (final term in forbidden) {
+        expect(
+          source,
+          isNot(contains(term)),
+          reason: '${file.path} must not depend on legacy authority $term',
+        );
+      }
+    }
+  });
+
+  test('production keeps the legacy semantic shell composition', () {
     final neutralShell = File(
       'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
     ).readAsStringSync();
@@ -911,11 +963,21 @@ void main() {
     expect(productionShell, contains('onboardingJourneyCoordinatorProvider'));
     expect(productionShell, contains('OnboardingCenterPanelSyncObserver'));
     expect(productionShell, contains('AdvancedStartFreshOverlayHost'));
+    expect(productionShell, contains('journey.requiresOperationOverlay'));
+    expect(productionShell, contains('const OnboardingOverlay()'));
     expect(productionRouter, contains('production_macos_app_shell.dart'));
   });
 
-  test('exact development gate owns neutral-history and reset policies', () {
+  test('development composition owns neutral-history and reset policies', () {
     final mainSource = File('lib/main.dart').readAsStringSync();
+    final compositionPolicy = File(
+      'lib/essentials/app_czar/application/'
+      'app_czar_development_composition_policy.dart',
+    ).readAsStringSync();
+    final adoptionGate = File(
+      'lib/features/attachments/application/'
+      'attachment_archive_adoption_enablement_provider.dart',
+    ).readAsStringSync();
     final neutralShell = File(
       'lib/essentials/navigation/presentation/view/macos_app_shell.dart',
     ).readAsStringSync();
@@ -923,27 +985,17 @@ void main() {
       'lib/essentials/navigation/presentation/layout/'
       'message_history_coverage_page_track_plan.dart',
     ).readAsStringSync();
-    const exactDevelopmentGate =
-        '!ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider)';
+    expect(mainSource, contains('AppCzarDevelopmentCompositionPolicy'));
+    expect(mainSource, contains('.admits(archiveAuthority)'));
     expect(
-      RegExp(
-        r'sidebarNavigationRestorationEnabledProvider\.overrideWith[\s\S]*?'
-        r'attachmentArchiveAdoptionExecutionEnabledProvider',
-      ).hasMatch(mainSource),
-      isTrue,
-    );
-    expect(
-      RegExp(
-        r'settingsResetMessageDataActionAvailableProvider\.overrideWith[\s\S]*?'
-        r'attachmentArchiveAdoptionExecutionEnabledProvider',
-      ).hasMatch(mainSource),
-      isTrue,
+      mainSource,
+      isNot(contains('attachmentArchiveAdoptionExecutionEnabledProvider')),
     );
     expect(
       mainSource,
       contains(
         'sidebarNavigationRestorationEnabledProvider.overrideWith((ref) {\n'
-        '        return $exactDevelopmentGate;\n'
+        '        return !appCzarDevelopmentCompositionEnabled;\n'
         '      }),',
       ),
     );
@@ -951,10 +1003,18 @@ void main() {
       mainSource,
       contains(
         'settingsResetMessageDataActionAvailableProvider.overrideWith((ref) {\n'
-        '        return $exactDevelopmentGate;\n'
+        '        return !appCzarDevelopmentCompositionEnabled;\n'
         '      }),',
       ),
     );
+    expect(compositionPolicy, contains('ArchiveAccessAuthority? authority'));
+    expect(compositionPolicy, contains('if (authority == null)'));
+    expect(compositionPolicy, isNot(contains('WD_ELEMENTS')));
+    expect(compositionPolicy, isNot(contains('archiveInstanceId')));
+    expect(adoptionGate, contains('_authorizedDevelopmentRoot'));
+    expect(adoptionGate, contains('_authorizedDevelopmentArchiveInstanceId'));
+    expect(adoptionGate, contains('identity.canonicalRootPath'));
+    expect(adoptionGate, contains('identity.archiveInstanceId.value'));
     expect(
       neutralShell,
       contains('settingsResetMessageDataActionAvailableProvider'),

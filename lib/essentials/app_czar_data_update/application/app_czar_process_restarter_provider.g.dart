@@ -7,7 +7,7 @@ part of 'app_czar_process_restarter_provider.dart';
 // **************************************************************************
 
 String _$appCzarProcessRestarterHash() =>
-    r'd46b737bffde57dfd4ec1d494a4e5c6e641f4b5e';
+    r'4355cf13dd4deef900294ab30e4a971b781b10be';
 
 /// See also [appCzarProcessRestarter].
 @ProviderFor(appCzarProcessRestarter)

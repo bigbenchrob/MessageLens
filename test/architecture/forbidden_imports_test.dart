@@ -159,6 +159,7 @@ const Set<String> _appDatabaseFileHelperAllowedFiles = {
 };
 
 const Set<String> _archiveAccessAuthorityConsumerFiles = {
+  'lib/essentials/app_czar_data_update/application/app_czar_process_restarter_provider.dart',
   'lib/essentials/archive_environment/application/archive_mutation_coordinator_provider.dart',
   'lib/essentials/conversation_graph/application/status/conversation_graph_status_log_writer_provider.dart',
   'lib/essentials/db/feature_level_providers/conversation_graph_readiness_provider.dart',

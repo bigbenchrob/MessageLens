@@ -9,8 +9,21 @@ import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.da
 import 'package:remember_this_text/essentials/app_czar/presentation/app_czar_startup_harness.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
+import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_onboarding/domain/app_czar_onboarding_state.dart';
+import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
+import 'package:remember_this_text/essentials/logging/feature_level_providers.dart'
+    show activeBlockingPipelineIncidentProvider;
+import 'package:remember_this_text/essentials/navigation/application/onboarding_center_panel_sync_controller.dart';
+import 'package:remember_this_text/essentials/navigation/presentation/widgets/onboarding_center_panel_sync_observer.dart';
+import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart';
+import 'package:remember_this_text/essentials/onboarding/presentation/onboarding_journey_path.dart';
+import 'package:remember_this_text/essentials/onboarding/presentation/onboarding_overlay.dart';
 import 'package:remember_this_text/features/contacts/application/display_identity/display_identity_resolver_provider.dart';
+import 'package:remember_this_text/features/environment_readiness/application/environment_readiness_actions_provider.dart';
+import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
   testWidgets(
@@ -185,6 +198,88 @@ void main() {
       expect(factory.createCalls, 0);
     },
   );
+
+  testWidgets(
+    'AppCzar Onboarding owns accessDenied without legacy semantic authority',
+    (tester) async {
+      final forbiddenAuthorityObserver = _ProviderInitializationObserver({
+        onboardingJourneyCoordinatorProvider,
+        onboardingGateProvider,
+        onboardingCenterPanelSyncControllerProvider,
+        activeBlockingPipelineIncidentProvider,
+        environmentReadinessSurfaceProvider,
+        environmentReadinessActionsProvider,
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          observers: [forbiddenAuthorityObserver],
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              _NeverCompletingReader(),
+            ),
+            appCzarOnboardingControllerProvider.overrideWith(
+              () => _FixedOnboardingController(
+                const AppCzarOnboardingState(
+                  phase: AppCzarOnboardingPhase.sourceNeedsHuman,
+                  assessmentGeneration: 1,
+                  sourceCondition: AppCzarSourceCondition.accessDenied,
+                  issue: 'macOS denied the current read-only source check.',
+                ),
+              ),
+            ),
+          ],
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(AppCzarOnboardingScreen), findsOneWidget);
+      expect(find.text('Messages access needs attention'), findsOneWidget);
+      expect(find.text('Open System Settings'), findsOneWidget);
+      expect(find.text('Check Again'), findsOneWidget);
+      expect(find.byType(OnboardingOverlay), findsNothing);
+      expect(find.byType(OnboardingJourneyPath), findsNothing);
+      expect(find.byType(OnboardingCenterPanelSyncObserver), findsNothing);
+      for (final railLabel in <String>[
+        'Messages',
+        'History',
+        'Contacts',
+        'Ready',
+        'Import',
+        'Start',
+      ]) {
+        expect(find.text(railLabel), findsNothing);
+      }
+      expect(forbiddenAuthorityObserver.initializedProviders, isEmpty);
+    },
+  );
+}
+
+final class _ProviderInitializationObserver extends ProviderObserver {
+  _ProviderInitializationObserver(this.targets);
+
+  final Set<ProviderBase<Object?>> targets;
+  final Set<ProviderBase<Object?>> initializedProviders = {};
+
+  @override
+  void didAddProvider(
+    ProviderBase<Object?> provider,
+    Object? value,
+    ProviderContainer container,
+  ) {
+    if (targets.contains(provider)) {
+      initializedProviders.add(provider);
+    }
+  }
+}
+
+final class _FixedOnboardingController extends AppCzarOnboardingController {
+  _FixedOnboardingController(this.fixedState);
+
+  final AppCzarOnboardingState fixedState;
+
+  @override
+  AppCzarOnboardingState build() => fixedState;
 }
 
 final class _RejectingRepairExecutorFactory

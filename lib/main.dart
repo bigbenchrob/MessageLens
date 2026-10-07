@@ -19,6 +19,7 @@ import 'config/theme/colors/theme_colors.dart';
 import 'config/theme/theme_typography.dart';
 import 'essentials/app_czar/application/app_czar_assessment_provider.dart'
     show appCzarObservationReaderProvider;
+import 'essentials/app_czar/application/app_czar_development_composition_policy.dart';
 import 'essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
 import 'essentials/app_czar/presentation/app_czar_startup_harness.dart';
 import 'essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart'
@@ -66,8 +67,6 @@ import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
 import 'features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart'
     show messageLensAppCzarAttachmentArchiveRepairExecutorFactoryProvider;
-import 'features/attachments/application/attachment_archive_adoption_enablement_provider.dart'
-    show attachmentArchiveAdoptionExecutionEnabledProvider;
 import 'features/attachments/feature_level_providers.dart'
     show attachmentArchiveAdoptionRecoveryProvider;
 import 'features/attachments/infrastructure/repositories/method_channel_attachment_archive_location_native_adapter.dart';
@@ -313,6 +312,8 @@ void main() async {
 
   final brightness =
       sched.SchedulerBinding.instance.platformDispatcher.platformBrightness;
+  final appCzarDevelopmentCompositionEnabled =
+      const AppCzarDevelopmentCompositionPolicy().admits(archiveAuthority);
 
   // Create provider container.
   final container = ProviderContainer(
@@ -342,18 +343,16 @@ void main() async {
       // Initialize platform brightness immediately.
       platformBrightnessProvider.overrideWith((ref) => brightness),
       sidebarNavigationRestorationEnabledProvider.overrideWith((ref) {
-        return !ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider);
+        return !appCzarDevelopmentCompositionEnabled;
       }),
       settingsResetMessageDataActionAvailableProvider.overrideWith((ref) {
-        return !ref.watch(attachmentArchiveAdoptionExecutionEnabledProvider);
+        return !appCzarDevelopmentCompositionEnabled;
       }),
     ],
   );
 
   final startupPresentation = selectMessageLensStartupPresentation(
-    exactDevelopmentGateEnabled: container.read(
-      attachmentArchiveAdoptionExecutionEnabledProvider,
-    ),
+    appCzarDevelopmentCompositionEnabled: appCzarDevelopmentCompositionEnabled,
   );
   FlutterError.onError = FlutterError.presentError;
   PlatformDispatcher.instance.onError = (error, stack) {
@@ -387,9 +386,9 @@ void main() async {
 enum MessageLensStartupPresentation { appCzarHarness, legacyStartup }
 
 MessageLensStartupPresentation selectMessageLensStartupPresentation({
-  required bool exactDevelopmentGateEnabled,
+  required bool appCzarDevelopmentCompositionEnabled,
 }) {
-  return exactDevelopmentGateEnabled
+  return appCzarDevelopmentCompositionEnabled
       ? MessageLensStartupPresentation.appCzarHarness
       : MessageLensStartupPresentation.legacyStartup;
 }

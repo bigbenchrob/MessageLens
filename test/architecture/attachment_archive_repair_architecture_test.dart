@@ -484,7 +484,7 @@ void main() {
     expect(
       mainSource,
       contains(
-        'return exactDevelopmentGateEnabled\n'
+        'return appCzarDevelopmentCompositionEnabled\n'
         '      ? MessageLensStartupPresentation.appCzarHarness\n'
         '      : MessageLensStartupPresentation.legacyStartup;',
       ),

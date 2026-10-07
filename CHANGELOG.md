@@ -10,6 +10,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Every successfully archive-admitted official MessageLens Development build
+  now uses the AppCzar startup composition, including disposable development
+  roots. The WD-root/archive-UUID predicate remains independently narrow and
+  continues to authorize attachment-adoption mutation only. Legacy Journey
+  presentation remains confined to the production startup composition.
 - Development-only archive-root overrides now use the same filesystem-realpath
   canonical form in native bootstrap and Dart admission. Disposable roots under
   macOS's `/tmp` / `/private/tmp` alias can therefore pass the existing exact
