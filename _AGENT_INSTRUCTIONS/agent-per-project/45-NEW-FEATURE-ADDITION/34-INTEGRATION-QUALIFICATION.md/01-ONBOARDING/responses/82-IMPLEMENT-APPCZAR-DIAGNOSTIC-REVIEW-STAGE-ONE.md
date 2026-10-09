@@ -36,7 +36,7 @@ commit.
 Prompt 81 and Response 81 were committed before production source edits in the
 narrow documentation-only commit:
 
-`509f470b79d77c2b1d7eb6c09d274fe31af69585`
+`509f470be0005906ec6851bab85ff5c903e1ada3`
 
 Subject:
 
