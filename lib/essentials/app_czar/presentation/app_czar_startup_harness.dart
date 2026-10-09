@@ -1,6 +1,7 @@
-import 'dart:ui' show AppExitResponse;
+import 'dart:ui' show AppExitResponse, AppExitType;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -11,6 +12,8 @@ import '../../app_czar_attachment_archive_repair/application/app_czar_attachment
 import '../../app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import '../../app_czar_data_update/application/app_czar_data_update_controller.dart';
 import '../../app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import '../../app_czar_diagnostic_review/application/app_czar_diagnostic_review_controller.dart';
+import '../../app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
 import '../../app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
 import '../../app_czar_local_data_repair/presentation/app_czar_local_data_repair_screen.dart';
 import '../../app_czar_onboarding/application/app_czar_onboarding_controller.dart';
@@ -44,6 +47,13 @@ class _AppCzarStartupHarnessState extends ConsumerState<AppCzarStartupHarness> {
 
   @override
   Widget build(BuildContext context) {
+    final assessment = ref.watch(appCzarAssessmentControllerProvider);
+    if (!assessment.isComplete ||
+        shouldExecuteAppCzarDiagnosticReview(assessment)) {
+      return const _AppCzarAssessmentApplication(
+        operatingSessionEntryInFlight: false,
+      );
+    }
     final operatingSession = ref.watch(
       appCzarOperatingSessionControllerProvider,
     );
@@ -95,6 +105,20 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final assessment = ref.watch(appCzarAssessmentControllerProvider);
+    if (!assessment.isComplete) {
+      return AppCzarAssessmentScreen(
+        operatingSessionEntryInFlight: operatingSessionEntryInFlight,
+      );
+    }
+    if (shouldExecuteAppCzarDiagnosticReview(assessment)) {
+      final diagnosticReview = ref.watch(
+        appCzarDiagnosticReviewControllerProvider,
+      );
+      if (diagnosticReview.isVisible) {
+        return const _AppCzarDiagnosticReviewLifecycleHost();
+      }
+    }
     final localDataRepair = ref.watch(appCzarLocalDataRepairControllerProvider);
     if (localDataRepair.isVisible) {
       return const _AppCzarLocalDataRepairLifecycleHost();
@@ -119,6 +143,56 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     }
     return AppCzarAssessmentScreen(
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
+    );
+  }
+}
+
+class _AppCzarDiagnosticReviewLifecycleHost extends ConsumerStatefulWidget {
+  const _AppCzarDiagnosticReviewLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarDiagnosticReviewLifecycleHost> createState() =>
+      _AppCzarDiagnosticReviewLifecycleHostState();
+}
+
+class _AppCzarDiagnosticReviewLifecycleHostState
+    extends ConsumerState<_AppCzarDiagnosticReviewLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    await ref
+        .read(appCzarDiagnosticReviewControllerProvider.notifier)
+        .stopAndDrain();
+    return AppExitResponse.exit;
+  }
+
+  Future<void> _requestExit() async {
+    await ServicesBinding.instance.exitApplication(AppExitType.cancelable);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(appCzarDiagnosticReviewControllerProvider);
+    return AppCzarDiagnosticReviewScreen(
+      state: state,
+      onTryAssessmentAgain: ref
+          .read(appCzarDiagnosticReviewControllerProvider.notifier)
+          .tryAssessmentAgain,
+      onQuitRequested: _requestExit,
     );
   }
 }

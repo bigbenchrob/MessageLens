@@ -11,6 +11,17 @@ enum AppCzarPresentationSignificance {
   pending,
 }
 
+enum AppCzarDiagnosticEvidenceStatus {
+  confirmedPositive('TRUE'),
+  confirmedNegative('FALSE'),
+  insufficient('UNKNOWN'),
+  conflict('CONFLICT');
+
+  const AppCzarDiagnosticEvidenceStatus(this.label);
+
+  final String label;
+}
+
 enum AppCzarPresentationRowId {
   developmentDataFolder,
   initialConstructionScope,
@@ -21,6 +32,7 @@ enum AppCzarPresentationRowId {
   graphStore,
   overlay,
   localDataset,
+  localDataRepairSafety,
   attachmentArchive,
   attachmentCoverage,
   attachmentRepairOpportunity,
@@ -68,12 +80,169 @@ final class AppCzarAssessmentPresentation {
   }
 }
 
+@immutable
+final class AppCzarDiagnosticProjectionInput {
+  const AppCzarDiagnosticProjectionInput({
+    required this.occurrenceSequence,
+    required this.assessmentGeneration,
+    required this.capturedAssessmentState,
+    required this.capturedAt,
+  });
+
+  final int occurrenceSequence;
+  final int assessmentGeneration;
+  final AppCzarAssessmentState capturedAssessmentState;
+  final DateTime capturedAt;
+}
+
+@immutable
+final class AppCzarDiagnosticPresentationRow {
+  const AppCzarDiagnosticPresentationRow({
+    required this.id,
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.status,
+    required this.evidence,
+  });
+
+  final AppCzarPresentationRowId id;
+  final String label;
+  final String value;
+  final String detail;
+  final AppCzarDiagnosticEvidenceStatus status;
+  final List<String> evidence;
+}
+
+@immutable
+final class AppCzarDiagnosticPresentation {
+  AppCzarDiagnosticPresentation({
+    required this.occurrenceSequence,
+    required this.assessmentGeneration,
+    required this.capturedAt,
+    required this.diagnosis,
+    required Iterable<AppCzarDiagnosticPresentationRow> rows,
+  }) : rows = List<AppCzarDiagnosticPresentationRow>.unmodifiable(rows);
+
+  final int occurrenceSequence;
+  final int assessmentGeneration;
+  final DateTime capturedAt;
+  final String diagnosis;
+  final List<AppCzarDiagnosticPresentationRow> rows;
+}
+
 /// Pure projection from current observations and evaluated facts to UI copy.
 ///
 /// Significance is deliberately assigned per proposition. It never feeds back
 /// into fact evaluation or virtual-coordinator selection.
 final class AppCzarPresentationProjector {
   const AppCzarPresentationProjector();
+
+  AppCzarDiagnosticPresentation projectDiagnostic(
+    AppCzarDiagnosticProjectionInput input,
+  ) {
+    final state = input.capturedAssessmentState;
+    final assessment = state.assessment;
+    if (!state.isComplete ||
+        assessment == null ||
+        state.generation != input.assessmentGeneration ||
+        assessment.virtualCoordinator !=
+            AppCzarVirtualCoordinator.diagnosticReview) {
+      throw StateError(
+        'Diagnostic projection requires one completed Diagnostic Review assessment generation.',
+      );
+    }
+
+    final ordinary = project(state);
+    final rows = <AppCzarDiagnosticPresentationRow>[];
+    for (final row in ordinary.rows) {
+      rows.add(_diagnosticRow(state, assessment, row));
+      if (row.id == AppCzarPresentationRowId.localDataset) {
+        rows.add(_diagnosticLocalDataRepairSafetyRow(state, assessment));
+      }
+    }
+    return AppCzarDiagnosticPresentation(
+      occurrenceSequence: input.occurrenceSequence,
+      assessmentGeneration: input.assessmentGeneration,
+      capturedAt: input.capturedAt,
+      diagnosis: assessment.diagnosis,
+      rows: rows,
+    );
+  }
+
+  AppCzarDiagnosticPresentationRow _diagnosticRow(
+    AppCzarAssessmentState state,
+    AppCzarAssessment assessment,
+    AppCzarPresentationRow row,
+  ) {
+    final evidence = <String>[
+      for (final factId in row.factIds)
+        _bounded(
+          'Fact ${assessment.fact(factId).label}: '
+          '${assessment.fact(factId).truth.label} — '
+          '${assessment.fact(factId).detail}',
+        ),
+      for (final item in row.evidence) _bounded(item),
+    ];
+    return AppCzarDiagnosticPresentationRow(
+      id: row.id,
+      label: row.label,
+      value: row.value,
+      detail: row.detail,
+      status: _diagnosticStatus(state, assessment, row),
+      evidence: List<String>.unmodifiable(evidence.take(12)),
+    );
+  }
+
+  AppCzarDiagnosticPresentationRow _diagnosticLocalDataRepairSafetyRow(
+    AppCzarAssessmentState state,
+    AppCzarAssessment assessment,
+  ) {
+    final observation = state.requireObservationSet().localDataRepairSafety;
+    final fact = assessment.fact(
+      AppCzarFactId.localDataRepairMayResetDerivedStores,
+    );
+    final evidence = <String>[
+      _bounded('Fact ${fact.label}: ${fact.truth.label} — ${fact.detail}'),
+      'Safety condition: ${observation.condition.name}.',
+      if (observation.archiveRootPath != null)
+        _bounded('Bound archive root: ${observation.archiveRootPath}.'),
+      if (observation.archiveInstanceId != null)
+        _bounded('Bound archive instance: ${observation.archiveInstanceId}.'),
+      if (observation.archiveScopeIdentity != null)
+        _bounded('Bound archive scope: ${observation.archiveScopeIdentity}.'),
+      if (observation.archiveGeneration != null)
+        'Bound archive generation: ${observation.archiveGeneration}.',
+      if (observation.issue != null) _bounded(observation.issue!),
+    ];
+    return AppCzarDiagnosticPresentationRow(
+      id: AppCzarPresentationRowId.localDataRepairSafety,
+      label: 'Local Data Repair safety',
+      value: switch (observation.condition) {
+        AppCzarLocalDataRepairSafetyCondition.rebuildableLiveOnlyPartial =>
+          'Reconstructible live-only partial data',
+        AppCzarLocalDataRepairSafetyCondition.protectedMaterialPresent =>
+          'Protected material present',
+        AppCzarLocalDataRepairSafetyCondition.sourceFactMissing =>
+          'Required current source fact missing',
+        AppCzarLocalDataRepairSafetyCondition.retiredArtifactsPresent =>
+          'Retired artifacts present',
+        AppCzarLocalDataRepairSafetyCondition.unsupportedOrCorrupt =>
+          'Unsupported or unhealthy material',
+        AppCzarLocalDataRepairSafetyCondition.unknown =>
+          'Could not be established',
+      },
+      detail: fact.detail,
+      status: switch (fact.truth) {
+        AppCzarTruth.trueValue =>
+          AppCzarDiagnosticEvidenceStatus.confirmedPositive,
+        AppCzarTruth.falseValue =>
+          AppCzarDiagnosticEvidenceStatus.confirmedNegative,
+        AppCzarTruth.unknown => AppCzarDiagnosticEvidenceStatus.insufficient,
+      },
+      evidence: List<String>.unmodifiable(evidence.take(12)),
+    );
+  }
 
   AppCzarAssessmentPresentation project(AppCzarAssessmentState state) {
     final assessment = state.assessment;
@@ -128,6 +297,82 @@ final class AppCzarPresentationProjector {
       diagnosis: assessment.diagnosis,
       virtualCoordinator: assessment.virtualCoordinator.displayName,
     );
+  }
+
+  AppCzarDiagnosticEvidenceStatus _diagnosticStatus(
+    AppCzarAssessmentState state,
+    AppCzarAssessment assessment,
+    AppCzarPresentationRow row,
+  ) {
+    if (_hasLiteralConflict(state, row.id)) {
+      return AppCzarDiagnosticEvidenceStatus.conflict;
+    }
+    final truths = row.factIds.map((id) => assessment.fact(id).truth);
+    if (truths.contains(AppCzarTruth.unknown)) {
+      return AppCzarDiagnosticEvidenceStatus.insufficient;
+    }
+    if (truths.contains(AppCzarTruth.falseValue)) {
+      return AppCzarDiagnosticEvidenceStatus.confirmedNegative;
+    }
+    return AppCzarDiagnosticEvidenceStatus.confirmedPositive;
+  }
+
+  bool _hasLiteralConflict(
+    AppCzarAssessmentState state,
+    AppCzarPresentationRowId rowId,
+  ) {
+    final observations = state.requireObservationSet();
+    return switch (rowId) {
+      AppCzarPresentationRowId.messagesSourceSample =>
+        observations.source.sampleStable == false,
+      AppCzarPresentationRowId.attachmentArchive =>
+        observations.attachmentArchive.condition ==
+                AppCzarArchiveCondition.available &&
+            !observations.attachmentArchive.hasCompleteArchiveBinding,
+      AppCzarPresentationRowId.attachmentCoverage =>
+        !observations.attachmentArchive.hasCoherentCoverageBinding,
+      AppCzarPresentationRowId.attachmentRepairOpportunity =>
+        !observations.attachmentArchive.hasCoherentRepairabilityBinding ||
+            (observations
+                        .attachmentArchive
+                        .repairability
+                        .unsafeOrConflictingCount ??
+                    0) >
+                0,
+      AppCzarPresentationRowId.newMessages => _hasSourceLocalDirectionConflict(
+        observations,
+      ),
+      AppCzarPresentationRowId.developmentDataFolder ||
+      AppCzarPresentationRowId.initialConstructionScope ||
+      AppCzarPresentationRowId.messagesDatabase ||
+      AppCzarPresentationRowId.contactsPrerequisite ||
+      AppCzarPresentationRowId.importStore ||
+      AppCzarPresentationRowId.graphStore ||
+      AppCzarPresentationRowId.overlay ||
+      AppCzarPresentationRowId.localDataset ||
+      AppCzarPresentationRowId.localDataRepairSafety => false,
+    };
+  }
+
+  bool _hasSourceLocalDirectionConflict(AppCzarObservationSet observations) {
+    final sourceCount = observations.source.messageCount;
+    final sourceHighWater = observations.source.maxRowId;
+    final localCount = observations.importStore.liveMessageCount;
+    final localHighWater = observations.importStore.liveMaxSourceRowId;
+    return (sourceCount != null &&
+            localCount != null &&
+            sourceCount < localCount) ||
+        (sourceHighWater != null &&
+            localHighWater != null &&
+            sourceHighWater < localHighWater);
+  }
+
+  String _bounded(String value) {
+    const maximumLength = 320;
+    if (value.length <= maximumLength) {
+      return value;
+    }
+    return '${value.substring(0, maximumLength - 1)}…';
   }
 
   List<AppCzarPresentationRow> _pendingRows() {

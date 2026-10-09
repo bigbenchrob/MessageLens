@@ -7,12 +7,17 @@ import 'package:remember_this_text/essentials/app_czar/application/app_czar_asse
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_observation_reader.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 import 'package:remember_this_text/essentials/app_czar/presentation/app_czar_startup_harness.dart';
+import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
+import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_data_update_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
+import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart';
-import 'package:remember_this_text/essentials/app_czar_onboarding/domain/app_czar_onboarding_state.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
+import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_source_access/application/app_czar_source_access_controller.dart';
 import 'package:remember_this_text/essentials/logging/feature_level_providers.dart'
     show activeBlockingPipelineIncidentProvider;
 import 'package:remember_this_text/essentials/navigation/application/onboarding_center_panel_sync_controller.dart';
@@ -189,13 +194,57 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(AppCzarAssessmentScreen.screenKey), findsOneWidget);
+      expect(
+        find.byKey(AppCzarDiagnosticReviewScreen.screenKey),
+        findsOneWidget,
+      );
       expect(
         find.byKey(AppCzarAttachmentArchiveRepairScreen.screenKey),
         findsNothing,
       );
-      expect(find.text('Diagnostic Review'), findsOneWidget);
+      expect(
+        find.text('MessageLens needs a diagnostic review'),
+        findsOneWidget,
+      );
       expect(factory.createCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'Diagnostic first branch constructs no specialist or legacy authority',
+    (tester) async {
+      final forbiddenAuthorityObserver = _ProviderInitializationObserver({
+        appCzarAttachmentArchiveRepairControllerProvider,
+        appCzarDataUpdateControllerProvider,
+        appCzarLocalDataRepairControllerProvider,
+        appCzarOnboardingControllerProvider,
+        appCzarOperatingSessionControllerProvider,
+        appCzarSourceAccessControllerProvider,
+        onboardingJourneyCoordinatorProvider,
+        onboardingGateProvider,
+        onboardingCenterPanelSyncControllerProvider,
+        activeBlockingPipelineIncidentProvider,
+        environmentReadinessSurfaceProvider,
+        environmentReadinessActionsProvider,
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          observers: [forbiddenAuthorityObserver],
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _ArchiveVariantReader(_unknownCoverageArchive),
+            ),
+          ],
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(AppCzarDiagnosticReviewScreen.screenKey),
+        findsOneWidget,
+      );
+      expect(forbiddenAuthorityObserver.initializedProviders, isEmpty);
     },
   );
 
@@ -215,23 +264,13 @@ void main() {
           observers: [forbiddenAuthorityObserver],
           overrides: [
             appCzarObservationReaderProvider.overrideWithValue(
-              _NeverCompletingReader(),
-            ),
-            appCzarOnboardingControllerProvider.overrideWith(
-              () => _FixedOnboardingController(
-                const AppCzarOnboardingState(
-                  phase: AppCzarOnboardingPhase.sourceNeedsHuman,
-                  assessmentGeneration: 1,
-                  sourceCondition: AppCzarSourceCondition.accessDenied,
-                  issue: 'macOS denied the current read-only source check.',
-                ),
-              ),
+              const _SafeEmptyAccessDeniedReader(),
             ),
           ],
           child: const AppCzarStartupHarness(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byType(AppCzarOnboardingScreen), findsOneWidget);
       expect(find.text('Messages access needs attention'), findsOneWidget);
@@ -271,15 +310,6 @@ final class _ProviderInitializationObserver extends ProviderObserver {
       initializedProviders.add(provider);
     }
   }
-}
-
-final class _FixedOnboardingController extends AppCzarOnboardingController {
-  _FixedOnboardingController(this.fixedState);
-
-  final AppCzarOnboardingState fixedState;
-
-  @override
-  AppCzarOnboardingState build() => fixedState;
 }
 
 final class _RejectingRepairExecutorFactory
@@ -436,6 +466,88 @@ final class _HealthyReader implements AppCzarObservationReader {
       messageCount: 100,
       maxRowId: 100,
       sampleStable: true,
+    );
+  }
+}
+
+final class _SafeEmptyAccessDeniedReader
+    implements
+        AppCzarObservationReader,
+        AppCzarInitialConstructionScopeReader,
+        AppCzarContactsPrerequisiteReader {
+  const _SafeEmptyAccessDeniedReader();
+
+  @override
+  Future<AppCzarInitialConstructionScopeObservation>
+  readInitialConstructionScope() async {
+    return const AppCzarInitialConstructionScopeObservation(
+      condition: AppCzarInitialConstructionScopeCondition.safeEmpty,
+      importMessageCount: 0,
+      graphMessageCount: 0,
+      graphChatCount: 0,
+      graphEdgeCount: 0,
+      nonLiveSourceCount: 0,
+      hasRetiredDerivedArtifacts: false,
+      issue: null,
+    );
+  }
+
+  @override
+  Future<AppCzarContactsPrerequisiteObservation>
+  readContactsPrerequisite() async {
+    return const AppCzarContactsPrerequisiteObservation(
+      condition: AppCzarContactsPrerequisiteCondition.viableEmpty,
+      contactCount: 0,
+      viableStoreCount: 1,
+    );
+  }
+
+  @override
+  Future<AppCzarArchiveObservation> readAttachmentArchive() async {
+    return const AppCzarArchiveObservation(
+      condition: AppCzarArchiveCondition.notCreated,
+      label: 'Default attachment archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      resolvedPath: '/test/attachment_archive',
+      coverage: AppCzarAttachmentCoverageObservation.unknown(
+        issue: 'No conversation graph exists yet.',
+        archiveScopeIdentity: 'test-scope',
+        archiveGeneration: 0,
+      ),
+      repairability: AppCzarAttachmentRepairabilityObservation.unknown(
+        issue: 'No conversation graph exists yet.',
+        archiveScopeIdentity: 'test-scope',
+        archiveGeneration: 0,
+      ),
+    );
+  }
+
+  @override
+  Future<AppCzarDatabaseObservation> readGraphStore() async {
+    return const AppCzarDatabaseObservation.absent();
+  }
+
+  @override
+  Future<AppCzarDatabaseObservation> readImportStore() async {
+    return const AppCzarDatabaseObservation.absent();
+  }
+
+  @override
+  Future<AppCzarDatabaseObservation> readOverlay() async {
+    return const AppCzarDatabaseObservation.absent();
+  }
+
+  @override
+  Future<AppCzarRootObservation> readRoot() async {
+    return const AppCzarRootObservation(admitted: true, path: '/test/root');
+  }
+
+  @override
+  Future<AppCzarSourceObservation> readSource() async {
+    return const AppCzarSourceObservation(
+      condition: AppCzarSourceCondition.accessDenied,
+      issue: 'macOS denied the current read-only source check.',
     );
   }
 }

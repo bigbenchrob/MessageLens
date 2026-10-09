@@ -229,6 +229,20 @@ void main() {
         expect(
           source,
           contains(
+            '../../app_czar_diagnostic_review/application/'
+            'app_czar_diagnostic_review_controller.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
+            '../../app_czar_diagnostic_review/presentation/'
+            'app_czar_diagnostic_review_screen.dart',
+          ),
+        );
+        expect(
+          source,
+          contains(
             '../../app_czar_local_data_repair/application/'
             'app_czar_local_data_repair_controller.dart',
           ),
@@ -314,6 +328,11 @@ void main() {
         isNot(contains('/app_czar_onboarding/')),
         reason: '${file.path} must remain observation/evaluation-only',
       );
+      expect(
+        source,
+        isNot(contains('/app_czar_diagnostic_review/')),
+        reason: '${file.path} must remain observation/evaluation-only',
+      );
     }
   });
 
@@ -325,6 +344,7 @@ void main() {
       ..._operatingSessionFiles(),
       ..._onboardingFiles(),
       ..._localDataRepairFiles(),
+      ..._diagnosticReviewFiles(),
     ].map((file) => file.readAsStringSync()).join('\n');
     final harness = File(
       'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
@@ -345,7 +365,7 @@ void main() {
           AppCzarVirtualCoordinator.localDataRepair:
               _AppCzarExecutionCategory.executableTopLevelCoordinator,
           AppCzarVirtualCoordinator.diagnosticReview:
-              _AppCzarExecutionCategory.virtualOnly,
+              _AppCzarExecutionCategory.executableTopLevelCoordinator,
         };
 
     expect(
@@ -360,7 +380,7 @@ void main() {
                 _AppCzarExecutionCategory.executableTopLevelCoordinator,
           )
           .length,
-      5,
+      6,
     );
     expect(
       classifications.values
@@ -380,10 +400,11 @@ void main() {
     expect(harness, contains('appCzarOperatingSessionControllerProvider'));
     expect(harness, contains('appCzarOnboardingControllerProvider'));
     expect(harness, contains('appCzarLocalDataRepairControllerProvider'));
+    expect(harness, contains('appCzarDiagnosticReviewControllerProvider'));
 
     expect(
       RegExp(r'bool shouldExecuteAppCzar').allMatches(sources),
-      hasLength(6),
+      hasLength(7),
     );
     expect(sources, contains('shouldExecuteAppCzarAttachmentArchiveRepair'));
     expect(sources, contains('shouldExecuteAppCzarDataUpdate'));
@@ -391,8 +412,8 @@ void main() {
     expect(sources, contains('shouldExecuteAppCzarOperatingSession'));
     expect(sources, contains('shouldExecuteAppCzarOnboarding'));
     expect(sources, contains('shouldExecuteAppCzarLocalDataRepair'));
+    expect(sources, contains('shouldExecuteAppCzarDiagnosticReview'));
     expect(sources, isNot(contains('shouldExecuteAppCzarAttachmentRepair')));
-    expect(sources, isNot(contains('shouldExecuteAppCzarDiagnosticReview')));
     expect(
       sources,
       isNot(matches(RegExp(r'execute\s*\([^)]*AppCzarVirtualCoordinator'))),
@@ -401,6 +422,121 @@ void main() {
       sources,
       isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
     );
+  });
+
+  test('Diagnostic Review has bounded read-only lifecycle jurisdiction', () {
+    final files = _diagnosticReviewFiles().toList();
+    final sources = files.map((file) => file.readAsStringSync()).join('\n');
+    const controllerPath =
+        'lib/essentials/app_czar_diagnostic_review/application/'
+        'app_czar_diagnostic_review_controller.dart';
+    const forbidden = <String>[
+      'ArchiveMutationCoordinator',
+      'archiveMutationCoordinatorProvider',
+      'ArchiveMutationOperation',
+      'ArchiveMutationCapability',
+      'runWithCapability',
+      'MessageDataResetService',
+      'startFresh',
+      'operation_snapshot',
+      'OnboardingJourneyCoordinator',
+      'onboardingJourneyCoordinatorProvider',
+      'environment_readiness',
+      'pipeline_incident',
+      'historicalArchive',
+      'removeHistorical',
+      'attachmentArchiveAdoption',
+      'attachmentArchiveRepairExecutor',
+      'appCzarObservationReaderProvider',
+      'sourceScopedImportDatabaseProvider',
+      'driftConversationGraphDatabaseProvider',
+      'overlayDatabaseProvider',
+      'Timer(',
+      'Timer.periodic',
+      '.runAgain(',
+      "import 'dart:io';",
+      'Process.start',
+      'Process.run',
+      'exit(',
+      'Clipboard',
+    ];
+
+    expect(
+      RegExp(r'bool shouldExecuteAppCzarDiagnosticReview').allMatches(sources),
+      hasLength(1),
+    );
+    for (final term in forbidden) {
+      expect(
+        sources,
+        isNot(contains(term)),
+        reason: 'Diagnostic Review must not contain $term',
+      );
+    }
+    expect(sources, isNot(matches(RegExp(r'\bBall\b'))));
+    for (final file in files) {
+      final source = file.readAsStringSync();
+      if (file.path == controllerPath) {
+        expect(source, contains('appCzarProcessRestarterProvider'));
+        continue;
+      }
+      expect(source, isNot(contains('appCzarProcessRestarterProvider')));
+    }
+  });
+
+  test('Diagnostic Review is the first completed-assessment host branch', () {
+    final harness = File(
+      'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+    ).readAsStringSync();
+    final diagnosticPredicate = harness.indexOf(
+      'shouldExecuteAppCzarDiagnosticReview(assessment)',
+    );
+    final diagnosticWatch = harness.indexOf(
+      'appCzarDiagnosticReviewControllerProvider',
+    );
+    final specialistWatches = <String>[
+      'appCzarLocalDataRepairControllerProvider',
+      'appCzarDataUpdateControllerProvider',
+      'appCzarOnboardingControllerProvider',
+      'appCzarSourceAccessControllerProvider',
+      'appCzarAttachmentArchiveRepairControllerProvider',
+    ].map(harness.indexOf);
+
+    expect(diagnosticPredicate, greaterThanOrEqualTo(0));
+    expect(diagnosticWatch, greaterThan(diagnosticPredicate));
+    for (final specialistWatch in specialistWatches) {
+      expect(specialistWatch, greaterThan(diagnosticWatch));
+    }
+    expect(
+      RegExp(
+        r'return const _AppCzarDiagnosticReviewLifecycleHost\(\);',
+      ).allMatches(harness),
+      hasLength(1),
+    );
+    expect(
+      harness,
+      isNot(matches(RegExp(r'switch\s*\([^)]*virtualCoordinator'))),
+    );
+  });
+
+  test('Diagnostic projection remains pure and presentation-only', () {
+    final projector = File(
+      'lib/essentials/app_czar/application/'
+      'app_czar_presentation_projector.dart',
+    ).readAsStringSync();
+    final screen = File(
+      'lib/essentials/app_czar_diagnostic_review/presentation/'
+      'app_czar_diagnostic_review_screen.dart',
+    ).readAsStringSync();
+
+    expect(projector, contains('projectDiagnostic('));
+    expect(projector, isNot(contains('AppCzarEvaluator')));
+    expect(projector, isNot(contains('Provider')));
+    expect(projector, isNot(contains('sqlite')));
+    expect(screen, isNot(contains('AppCzarFactId.')));
+    expect(screen, isNot(contains('AppCzarTruth.')));
+    expect(screen, isNot(contains('AppCzarVirtualCoordinator.')));
+    expect(screen, isNot(contains("const Text('Copy")));
+    expect(screen, isNot(contains("const Text('Export")));
   });
 
   test('Data Update has one exact mutation-admission edge', () {
@@ -985,7 +1121,11 @@ void main() {
       harness,
       contains('return const _AppCzarAttachmentArchiveRepairLifecycleHost();'),
     );
-    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(3));
+    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(4));
+    expect(
+      harness,
+      contains('appCzarDiagnosticReviewControllerProvider.notifier'),
+    );
     expect(
       harness,
       contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
@@ -1027,6 +1167,7 @@ void main() {
       ..._sourceAccessFiles(),
       ..._attachmentArchiveRepairFiles(),
       ..._operatingSessionFiles(),
+      ..._diagnosticReviewFiles(),
     ].where((file) => file.path.endsWith('.dart'));
 
     const forbidden = <String>[
@@ -1176,6 +1317,7 @@ void main() {
               ..._attachmentArchiveRepairFiles(),
               ..._onboardingFiles(),
               ..._localDataRepairFiles(),
+              ..._diagnosticReviewFiles(),
             ]
             .where((file) => file.path.endsWith('.dart'))
             .map((file) => file.readAsStringSync())
@@ -1189,7 +1331,6 @@ void main() {
 enum _AppCzarExecutionCategory {
   executableTopLevelCoordinator,
   executableAdmittedSession,
-  virtualOnly,
 }
 
 Iterable<File> _attachmentArchiveRepairFiles() {
@@ -1229,6 +1370,13 @@ Iterable<File> _onboardingFiles() {
 
 Iterable<File> _localDataRepairFiles() {
   return Directory('lib/essentials/app_czar_local_data_repair')
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
+}
+
+Iterable<File> _diagnosticReviewFiles() {
+  return Directory('lib/essentials/app_czar_diagnostic_review')
       .listSync(recursive: true, followLinks: false)
       .whereType<File>()
       .where((file) => file.path.endsWith('.dart'));

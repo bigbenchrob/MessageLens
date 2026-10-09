@@ -352,6 +352,56 @@ void main() {
     expect(row.significance, AppCzarPresentationSignificance.unknown);
     expect(row.detail, contains('not coherently bound'));
   });
+
+  test('sourceFactMissing remains an established Diagnostic FALSE', () {
+    const safety = AppCzarLocalDataRepairSafetyObservation(
+      condition: AppCzarLocalDataRepairSafetyCondition.sourceFactMissing,
+      archiveRootPath: '/test/root',
+      archiveInstanceId: 'test-archive',
+      archiveScopeIdentity: 'test-scope',
+      archiveGeneration: 0,
+      sourceFingerprint: null,
+      evidenceFingerprint: null,
+      resetFootprint: <String>[],
+      consequentialRowCounts: <String, int>{'messages': 1},
+      issue: 'A required current source fact was not present.',
+    );
+    final observations = _healthyObservations(
+      importStore: const AppCzarDatabaseObservation(
+        condition: AppCzarDatabaseCondition.healthy,
+        schemaVersion: 10,
+        messageCount: 1,
+        liveMessageCount: 1,
+        liveMaxSourceRowId: 1,
+      ),
+      graphStore: const AppCzarDatabaseObservation.absent(),
+      localDataRepairSafety: safety,
+    );
+    final state = _state(observations);
+
+    expect(
+      state.assessment!.virtualCoordinator,
+      AppCzarVirtualCoordinator.diagnosticReview,
+    );
+    final presentation = projector.projectDiagnostic(
+      AppCzarDiagnosticProjectionInput(
+        occurrenceSequence: 1,
+        assessmentGeneration: state.generation,
+        capturedAssessmentState: state,
+        capturedAt: DateTime.utc(2026, 10, 9),
+      ),
+    );
+    final row = presentation.rows.singleWhere(
+      (row) => row.id == AppCzarPresentationRowId.localDataRepairSafety,
+    );
+
+    expect(row.status, AppCzarDiagnosticEvidenceStatus.confirmedNegative);
+    expect(row.status.label, 'FALSE');
+    expect(row.value, 'Required current source fact missing');
+    expect(row.detail, 'A required current source fact was not present.');
+    expect(row.detail, isNot(contains('deleted')));
+    expect(row.detail, isNot(contains('permission')));
+  });
 }
 
 AppCzarAssessmentState _state(AppCzarObservationSet observations) {
@@ -363,6 +413,7 @@ AppCzarAssessmentState _state(AppCzarObservationSet observations) {
     graphStore: observations.graphStore,
     overlay: observations.overlay,
     attachmentArchive: observations.attachmentArchive,
+    localDataRepairSafety: observations.localDataRepairSafety,
     assessment: const AppCzarEvaluator().evaluate(observations),
   );
 }
@@ -406,6 +457,10 @@ AppCzarObservationSet _healthyObservations({
     coverage: _completeCoverage,
     repairability: _completeRepairability,
   ),
+  AppCzarLocalDataRepairSafetyObservation localDataRepairSafety =
+      const AppCzarLocalDataRepairSafetyObservation.unknown(
+        issue: 'Local Data Repair safety was not observed.',
+      ),
 }) {
   return AppCzarObservationSet(
     root: const AppCzarRootObservation(
@@ -420,6 +475,7 @@ AppCzarObservationSet _healthyObservations({
       schemaVersion: 8,
     ),
     attachmentArchive: attachmentArchive,
+    localDataRepairSafety: localDataRepairSafety,
   );
 }
 

@@ -323,6 +323,9 @@ const Set<String> _unawaitedAllowedFiles = {
   // The repair controller owns a bounded executor flight and exposes
   // stopAndDrain() as its awaitable lifecycle boundary.
   'lib/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart',
+  // Diagnostic Review publishes its draining phase synchronously, then owns
+  // exactly one process-restart flight behind stopAndDrain().
+  'lib/essentials/app_czar_diagnostic_review/application/app_czar_diagnostic_review_controller.dart',
   'lib/essentials/conversation_graph/application/conversation_favourites/conversation_favourites_provider.dart',
   'lib/essentials/conversation_graph/application/monitor/chat_db_change_monitor_provider.dart',
   'lib/essentials/conversation_graph/presentation/status/conversation_graph_status_sheet.dart',

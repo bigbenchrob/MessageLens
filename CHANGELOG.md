@@ -22,6 +22,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- AppCzar can now execute its development-only **Diagnostic Review**
+  disposition as a frozen, read-only assessment occurrence. It preserves the
+  exact completed generation, distinguishes FALSE and UNKNOWN evidence from
+  literal conflicts, and offers only process-boundary reassessment or quit.
 - AppCzar can now execute its development-only **Local Data Repair**
   disposition for the single proven-safe live-only partial class. It
   revalidates source-grounded reconstructibility immediately before one typed
