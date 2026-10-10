@@ -20,6 +20,8 @@ import 'config/theme/theme_typography.dart';
 import 'essentials/app_czar/application/app_czar_assessment_provider.dart'
     show appCzarObservationReaderProvider;
 import 'essentials/app_czar/application/app_czar_development_composition_policy.dart';
+import 'essentials/app_czar/application/app_czar_production_composition_eligibility_policy.dart';
+import 'essentials/app_czar/application/production_app_czar_activation.dart';
 import 'essentials/app_czar/infrastructure/sqlite_app_czar_observation_reader.dart';
 import 'essentials/app_czar/presentation/app_czar_startup_harness.dart';
 import 'essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart'
@@ -314,6 +316,11 @@ void main() async {
       sched.SchedulerBinding.instance.platformDispatcher.platformBrightness;
   final appCzarDevelopmentCompositionEnabled =
       const AppCzarDevelopmentCompositionPolicy().admits(archiveAuthority);
+  final appCzarProductionCompositionEligible =
+      const AppCzarProductionCompositionEligibilityPolicy().isEligible(
+        archiveAuthority,
+      );
+  const productionAppCzarActivation = ProductionAppCzarActivation.disabled;
 
   // Create provider container.
   final container = ProviderContainer(
@@ -354,6 +361,8 @@ void main() async {
 
   final startupPresentation = selectMessageLensStartupPresentation(
     appCzarDevelopmentCompositionEnabled: appCzarDevelopmentCompositionEnabled,
+    appCzarProductionCompositionEligible: appCzarProductionCompositionEligible,
+    productionAppCzarActivation: productionAppCzarActivation,
   );
   FlutterError.onError = FlutterError.presentError;
   PlatformDispatcher.instance.onError = (error, stack) {
@@ -388,8 +397,14 @@ enum MessageLensStartupPresentation { appCzarHarness, legacyStartup }
 
 MessageLensStartupPresentation selectMessageLensStartupPresentation({
   required bool appCzarDevelopmentCompositionEnabled,
+  required bool appCzarProductionCompositionEligible,
+  required ProductionAppCzarActivation productionAppCzarActivation,
 }) {
-  return appCzarDevelopmentCompositionEnabled
+  final appCzarProductionCompositionEnabled =
+      appCzarProductionCompositionEligible &&
+      productionAppCzarActivation.isEnabled;
+  return appCzarDevelopmentCompositionEnabled ||
+          appCzarProductionCompositionEnabled
       ? MessageLensStartupPresentation.appCzarHarness
       : MessageLensStartupPresentation.legacyStartup;
 }

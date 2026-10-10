@@ -484,7 +484,16 @@ void main() {
     expect(
       mainSource,
       contains(
-        'return appCzarDevelopmentCompositionEnabled\n'
+        'final appCzarProductionCompositionEnabled =\n'
+        '      appCzarProductionCompositionEligible &&\n'
+        '      productionAppCzarActivation.isEnabled;',
+      ),
+    );
+    expect(
+      mainSource,
+      contains(
+        'return appCzarDevelopmentCompositionEnabled ||\n'
+        '          appCzarProductionCompositionEnabled\n'
         '      ? MessageLensStartupPresentation.appCzarHarness\n'
         '      : MessageLensStartupPresentation.legacyStartup;',
       ),

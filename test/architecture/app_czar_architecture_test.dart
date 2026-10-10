@@ -1282,6 +1282,83 @@ void main() {
     );
   });
 
+  test('production eligibility is pure and activation is closed off', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final eligibilityPolicy = File(
+      'lib/essentials/app_czar/application/'
+      'app_czar_production_composition_eligibility_policy.dart',
+    ).readAsStringSync();
+    final activationPolicy = File(
+      'lib/essentials/app_czar/application/'
+      'production_app_czar_activation.dart',
+    ).readAsStringSync();
+    final restarter = File(
+      'lib/essentials/app_czar_data_update/application/'
+      'app_czar_process_restarter_provider.dart',
+    ).readAsStringSync();
+    final adoptionGate = File(
+      'lib/features/attachments/application/'
+      'attachment_archive_adoption_enablement_provider.dart',
+    ).readAsStringSync();
+
+    expect(eligibilityPolicy, contains('ArchiveAccessAuthority? authority'));
+    expect(eligibilityPolicy, contains('ArchiveEnvironment.production'));
+    expect(
+      eligibilityPolicy,
+      contains('ArchiveBuildIdentity.productionRelease'),
+    );
+    expect(eligibilityPolicy, isNot(contains('canonicalRootPath')));
+    expect(eligibilityPolicy, isNot(contains('archiveInstanceId')));
+    expect(eligibilityPolicy, isNot(contains('Provider')));
+    expect(eligibilityPolicy, isNot(contains('Platform.environment')));
+    expect(eligibilityPolicy, isNot(contains('SharedPreferences')));
+    expect(eligibilityPolicy, isNot(contains('Ball')));
+    expect(
+      activationPolicy,
+      contains('static const disabled = ProductionAppCzarActivation._();'),
+    );
+    expect(activationPolicy, contains('bool get isEnabled => false;'));
+    expect(activationPolicy, isNot(contains('fromEnvironment')));
+    expect(activationPolicy, isNot(contains('Platform.environment')));
+    expect(activationPolicy, isNot(contains('SharedPreferences')));
+    expect(
+      mainSource,
+      contains(
+        'const productionAppCzarActivation = '
+        'ProductionAppCzarActivation.disabled;',
+      ),
+    );
+    expect(
+      mainSource,
+      contains('AppCzarProductionCompositionEligibilityPolicy'),
+    );
+    expect(
+      mainSource.indexOf('archiveAuthority = await _admitArchive()'),
+      lessThan(
+        mainSource.indexOf(
+          'AppCzarProductionCompositionEligibilityPolicy().isEligible',
+        ),
+      ),
+    );
+    expect(
+      RegExp(
+        r'ProductionAppCzarActivation\.[A-Za-z_]\w*',
+      ).allMatches(mainSource).map((match) => match.group(0)).toList(),
+      <String>['ProductionAppCzarActivation.disabled'],
+    );
+    expect(restarter, contains('AppCzarDevelopmentCompositionPolicy'));
+    expect(
+      restarter,
+      isNot(contains('AppCzarProductionCompositionEligibilityPolicy')),
+    );
+    expect(adoptionGate, contains('_authorizedDevelopmentRoot'));
+    expect(adoptionGate, contains('_authorizedDevelopmentArchiveInstanceId'));
+    expect(
+      mainSource,
+      isNot(contains('attachmentArchiveAdoptionExecutionEnabledProvider')),
+    );
+  });
+
   test('window delegate authority begins only after Operating admission', () {
     final mainSource = File('lib/main.dart').readAsStringSync();
     final harness = File(
