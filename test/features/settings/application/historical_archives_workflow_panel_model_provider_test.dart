@@ -29,10 +29,10 @@ import 'package:remember_this_text/essentials/conversation_graph/feature_level_p
         sourceScopedArchiveGraphImportServiceProvider,
         sourceScopedArchiveGraphRemovalServiceProvider;
 import 'package:remember_this_text/essentials/db/infrastructure/data_sources/local/conversation_graph/conversation_graph_database.dart';
+import 'package:remember_this_text/essentials/messages_source/feature_level_providers.dart'
+    show currentMessagesSourcePathProvider;
 import 'package:remember_this_text/essentials/navigation/application/sidebar_mode_provider.dart';
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
-import 'package:remember_this_text/essentials/onboarding/feature_level_providers.dart'
-    show onboardingMessagesDatabasePathProvider;
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_state_provider.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/archives/historical_messages_archive_source_registrar.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/archives/source_scoped_archive_import_service.dart';
@@ -2689,7 +2689,7 @@ void main() {
             historicalArchiveImportedSourceLookupProvider.overrideWith(
               (ref) async => lookup,
             ),
-            onboardingMessagesDatabasePathProvider.overrideWith(
+            currentMessagesSourcePathProvider.overrideWith(
               (ref) => currentMessagesDatabasePath,
             ),
           ],
@@ -2907,7 +2907,7 @@ void main() {
             historicalArchiveImportedSourceLookupProvider.overrideWith(
               (ref) async => lookup,
             ),
-            onboardingMessagesDatabasePathProvider.overrideWith(
+            currentMessagesSourcePathProvider.overrideWith(
               (ref) => currentMessagesDatabasePath,
             ),
           ],
@@ -3022,7 +3022,7 @@ void main() {
             historicalArchiveImportedSourceLookupProvider.overrideWith(
               (ref) async => lookup,
             ),
-            onboardingMessagesDatabasePathProvider.overrideWith(
+            currentMessagesSourcePathProvider.overrideWith(
               (ref) => currentMessagesDatabasePath,
             ),
           ],

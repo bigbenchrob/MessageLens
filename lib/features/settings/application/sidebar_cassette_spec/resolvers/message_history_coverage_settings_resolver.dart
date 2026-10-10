@@ -4,10 +4,10 @@ import '../../../../../essentials/db/feature_level_providers.dart'
     show dbMaintenanceLockProvider;
 import '../../../../../essentials/logging/feature_level_providers.dart'
     show appLoggerProvider;
-import '../../../../../essentials/onboarding/feature_level_providers.dart'
+import '../../../../../essentials/messages_source/feature_level_providers.dart'
     show
-        onboardingFullDiskAccessProvider,
-        onboardingMessagesDatabasePathProvider;
+        CurrentMessagesSourceReadCondition,
+        currentMessagesSourceEvidenceProvider;
 import '../../../../../essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import '../../message_history_coverage_repository_provider.dart';
 import '../entities/message_history_coverage_report.dart';
@@ -40,14 +40,15 @@ Future<MessageHistoryCoverageReport> messageHistoryCoverageReport(
     );
   }
 
-  final chatDbPath = ref.read(onboardingMessagesDatabasePathProvider);
-  if (!ref.read(onboardingFullDiskAccessProvider)) {
+  final sourceEvidence = ref.read(currentMessagesSourceEvidenceProvider);
+  if (sourceEvidence.condition != CurrentMessagesSourceReadCondition.readable) {
     return MessageHistoryCoverageReport.failed(
       generatedAt: DateTime.now().toUtc(),
       detail:
           'MessageLens cannot currently read the Messages database on this Mac. Check Full Disk Access and try again.',
     );
   }
+  final chatDbPath = sourceEvidence.sourcePath;
 
   try {
     final repository = await ref.read(

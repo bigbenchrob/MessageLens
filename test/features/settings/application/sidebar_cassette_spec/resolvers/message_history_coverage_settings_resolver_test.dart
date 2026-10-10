@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/conversation_graph/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart';
-import 'package:remember_this_text/essentials/onboarding/application/onboarding_environment_report_provider.dart';
+import 'package:remember_this_text/essentials/messages_source/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/sidebar/presentation/view_model/sidebar_cassette_card_view_model.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/feature_level_providers.dart';
 import 'package:remember_this_text/features/settings/application/message_history_coverage_repository.dart';
@@ -86,9 +86,11 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           dbMaintenanceLockProvider.overrideWith((ref) => true),
-          onboardingFullDiskAccessProvider.overrideWith((ref) => true),
-          onboardingMessagesDatabasePathProvider.overrideWith(
-            (ref) => '/source/chat.db',
+          currentMessagesSourceEvidenceProvider.overrideWith(
+            (ref) => const CurrentMessagesSourceEvidence.readable(
+              sourcePath: '/source/chat.db',
+              maxRowId: 1,
+            ),
           ),
           messageHistoryCoverageRepositoryProvider.overrideWith((ref) async {
             repositoryWasRequested = true;
@@ -155,21 +157,83 @@ void main() {
       expect(report.status, MessageHistoryCoverageStatus.failed);
       expect(report.detail, contains('query failed'));
     });
+
+    test('passes the exact neutral source identity to coverage', () async {
+      final repository = _FakeCoverageRepository(
+        evidence: _evidence(
+          sourceRows: const <int>{1},
+          graphRows: const <int, CurrentSourceMessageGraphPlacement>{
+            1: CurrentSourceMessageGraphPlacement.conversationLinked,
+          },
+        ),
+      );
+      final container = _container(
+        repository: repository,
+        sourcePath: '/alternate/Library/Messages/chat.db',
+      );
+      addTearDown(container.dispose);
+
+      await container.read(messageHistoryCoverageReportProvider.future);
+
+      expect(
+        repository.lastChatDatabasePath,
+        '/alternate/Library/Messages/chat.db',
+      );
+    });
+
+    test('non-readable neutral evidence never opens coverage stores', () async {
+      for (final condition in <CurrentMessagesSourceReadCondition>[
+        CurrentMessagesSourceReadCondition.accessDenied,
+        CurrentMessagesSourceReadCondition.unavailable,
+        CurrentMessagesSourceReadCondition.unknown,
+      ]) {
+        var repositoryWasRequested = false;
+        final container = ProviderContainer(
+          overrides: [
+            dbMaintenanceLockProvider.overrideWith((ref) => false),
+            currentMessagesSourceEvidenceProvider.overrideWith(
+              (ref) => CurrentMessagesSourceEvidence.failed(
+                sourcePath: '/source/chat.db',
+                condition: condition,
+                error: StateError(condition.name),
+                stackTrace: StackTrace.empty,
+              ),
+            ),
+            messageHistoryCoverageRepositoryProvider.overrideWith((ref) async {
+              repositoryWasRequested = true;
+              throw StateError('repository must not be opened');
+            }),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final report = await container.read(
+          messageHistoryCoverageReportProvider.future,
+        );
+
+        expect(report.status, MessageHistoryCoverageStatus.failed);
+        expect(report.detail, contains('Check Full Disk Access'));
+        expect(repositoryWasRequested, isFalse);
+      }
+    });
   });
 }
 
 ProviderContainer _container({
   required MessageHistoryCoverageRepository repository,
   bool Function()? maintenance,
+  String sourcePath = '/source/chat.db',
 }) {
   return ProviderContainer(
     overrides: [
       dbMaintenanceLockProvider.overrideWith(
         (ref) => maintenance?.call() ?? false,
       ),
-      onboardingFullDiskAccessProvider.overrideWith((ref) => true),
-      onboardingMessagesDatabasePathProvider.overrideWith(
-        (ref) => '/source/chat.db',
+      currentMessagesSourceEvidenceProvider.overrideWith(
+        (ref) => CurrentMessagesSourceEvidence.readable(
+          sourcePath: sourcePath,
+          maxRowId: 1,
+        ),
       ),
       messageHistoryCoverageRepositoryProvider.overrideWith(
         (ref) async => repository,
@@ -200,12 +264,14 @@ final class _FakeCoverageRepository
 
   final MessageHistoryCoverageEvidence evidence;
   var readCount = 0;
+  String? lastChatDatabasePath;
 
   @override
   Future<MessageHistoryCoverageEvidence> readEvidence({
     required String chatDatabasePath,
   }) async {
     readCount++;
+    lastChatDatabasePath = chatDatabasePath;
     return evidence;
   }
 }

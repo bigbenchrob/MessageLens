@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/conversation_graph/infrastructure/repositories/sqlite_chat_db_source_probe_reader.dart';
+import 'package:remember_this_text/essentials/messages_source/infrastructure/probe_current_messages_source_evidence_reader.dart';
 import 'package:remember_this_text/essentials/onboarding/application/full_disk_access.dart';
 import 'package:remember_this_text/essentials/onboarding/application/messages_source_access_denied_test_agent.dart';
 import 'package:remember_this_text/essentials/onboarding/application/messages_source_access_evaluation.dart';
@@ -57,9 +58,7 @@ void main() {
     final agent = MessagesSourceReadinessTestAgent(
       evaluation: MessagesSourceAccessEvaluation(
         fullDiskAccess: MacosFullDiskAccess(
-          messagesDatabaseReadProbe:
-              const SqliteChatDbSourceProbeReader().readMaxRowId,
-          messagesDatabasePath: databasePath,
+          sourceEvidenceReader: _sourceReader(databasePath),
         ),
       ),
     );
@@ -81,9 +80,7 @@ void main() {
     final agent = MessagesSourceReadinessTestAgent(
       evaluation: MessagesSourceAccessEvaluation(
         fullDiskAccess: MacosFullDiskAccess(
-          messagesDatabaseReadProbe:
-              const SqliteChatDbSourceProbeReader().readMaxRowId,
-          messagesDatabasePath: databasePath,
+          sourceEvidenceReader: _sourceReader(databasePath),
         ),
       ),
     );
@@ -129,6 +126,13 @@ void main() {
       expect(await accessDeniedAgent.evaluate(), isFalse);
       expect(fullDiskAccess.readInvocationCount, 1);
     },
+  );
+}
+
+ProbeCurrentMessagesSourceEvidenceReader _sourceReader(String sourcePath) {
+  return ProbeCurrentMessagesSourceEvidenceReader(
+    sourceReadProbe: const SqliteChatDbSourceProbeReader().readMaxRowId,
+    sourcePathResolver: () => sourcePath,
   );
 }
 

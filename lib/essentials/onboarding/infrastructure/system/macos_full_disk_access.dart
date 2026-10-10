@@ -1,45 +1,39 @@
 import 'dart:io';
 
-import '../../../conversation_graph/application/monitor/chat_db_source_probe_reader.dart';
+import '../../../messages_source/application/current_messages_source_evidence_reader.dart';
+import '../../../messages_source/domain/current_messages_source_evidence.dart';
 import '../../application/full_disk_access.dart';
 
 class MacosFullDiskAccess implements FullDiskAccess {
   const MacosFullDiskAccess({
-    required MessagesDatabaseReadProbe messagesDatabaseReadProbe,
-    String? messagesDatabasePath,
+    required CurrentMessagesSourceEvidenceReader sourceEvidenceReader,
     void Function(Object error, StackTrace stackTrace)? onReadFailure,
-  }) : _messagesDatabaseReadProbe = messagesDatabaseReadProbe,
-       _messagesDatabasePath = messagesDatabasePath,
+  }) : _sourceEvidenceReader = sourceEvidenceReader,
        _onReadFailure = onReadFailure;
 
-  final MessagesDatabaseReadProbe _messagesDatabaseReadProbe;
-  final String? _messagesDatabasePath;
+  final CurrentMessagesSourceEvidenceReader _sourceEvidenceReader;
   final void Function(Object error, StackTrace stackTrace)? _onReadFailure;
 
   @override
-  String get messagesDatabasePath {
-    final configuredPath = _messagesDatabasePath;
-    if (configuredPath != null) {
-      return configuredPath;
-    }
-
-    final home = Platform.environment['HOME'] ?? '/Users/unknown';
-    return '$home/Library/Messages/chat.db';
-  }
+  String get messagesDatabasePath => _sourceEvidenceReader.sourcePath;
 
   @override
   MessagesSourceAccessResult inspectMessagesSourceAccess() {
-    try {
-      _messagesDatabaseReadProbe(messagesDatabasePath);
-      return MessagesSourceAccessResult.readable;
-    } catch (error, stackTrace) {
+    final evidence = _sourceEvidenceReader.read();
+    final error = evidence.error;
+    final stackTrace = evidence.stackTrace;
+    if (error != null && stackTrace != null) {
       _onReadFailure?.call(error, stackTrace);
-      if (error is ChatDbSourceProbeException &&
-          error.kind == ChatDbSourceProbeFailureKind.accessDenied) {
-        return MessagesSourceAccessResult.accessDenied;
-      }
-      return MessagesSourceAccessResult.unavailable;
     }
+    return switch (evidence.condition) {
+      CurrentMessagesSourceReadCondition.readable =>
+        MessagesSourceAccessResult.readable,
+      CurrentMessagesSourceReadCondition.accessDenied =>
+        MessagesSourceAccessResult.accessDenied,
+      CurrentMessagesSourceReadCondition.unavailable ||
+      CurrentMessagesSourceReadCondition.unknown =>
+        MessagesSourceAccessResult.unavailable,
+    };
   }
 
   @override

@@ -27,10 +27,10 @@ import '../../../essentials/db/feature_level_providers/message_data_version_prov
     show messageDataVersionProvider;
 import '../../../essentials/logging/feature_level_providers.dart'
     show appLoggerProvider;
+import '../../../essentials/messages_source/feature_level_providers.dart'
+    show currentMessagesSourcePathProvider;
 import '../../../essentials/navigation/feature_level_providers.dart'
     show SidebarMode, activeSidebarModeProvider;
-import '../../../essentials/onboarding/feature_level_providers.dart'
-    show onboardingMessagesDatabasePathProvider;
 import '../../../essentials/sidebar/feature_level_providers.dart'
     show sidebarFlowProvider;
 import '../../../essentials/source_scoped_import/domain/historical_archive_source_identity.dart';
@@ -2204,9 +2204,7 @@ class HistoricalArchivesWorkflow extends _$HistoricalArchivesWorkflow {
     final selectedChatDbPath = path.join(selectedFolderPath, 'chat.db');
     if (_isCurrentMacChatDbPath(
       selectedChatDbPath,
-      currentMessagesDatabasePath: ref.read(
-        onboardingMessagesDatabasePathProvider,
-      ),
+      currentMessagesDatabasePath: ref.read(currentMessagesSourcePathProvider),
     )) {
       _prependActivityLog(
         const HistoricalArchivesLogEntryViewModel(
@@ -2565,9 +2563,7 @@ class HistoricalArchivesWorkflow extends _$HistoricalArchivesWorkflow {
     final selectedChatDbPath = path.join(selectedFolderPath, 'chat.db');
     if (_isCurrentMacChatDbPath(
       selectedChatDbPath,
-      currentMessagesDatabasePath: ref.read(
-        onboardingMessagesDatabasePathProvider,
-      ),
+      currentMessagesDatabasePath: ref.read(currentMessagesSourcePathProvider),
     )) {
       _prependActivityLog(
         const HistoricalArchivesLogEntryViewModel(
@@ -3098,7 +3094,7 @@ HistoricalArchivesWorkflowPanelViewModel historicalArchivesWorkflowPanelModel(
   final isMaintenanceLocked = ref.watch(dbMaintenanceLockProvider);
   final workflowState = ref.watch(historicalArchivesWorkflowProvider);
   final currentMessagesDatabasePath = ref.watch(
-    onboardingMessagesDatabasePathProvider,
+    currentMessagesSourcePathProvider,
   );
 
   return buildHistoricalArchivesWorkflowPanelModel(

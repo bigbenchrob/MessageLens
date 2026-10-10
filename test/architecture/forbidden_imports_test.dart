@@ -481,7 +481,7 @@ const Set<String> _platformEnvironmentAllowedFiles = {
   'lib/essentials/conversation_graph/infrastructure/repositories/chat_summary_repository.dart',
   'lib/essentials/conversation_graph/infrastructure/repositories/graph_health_repository.dart',
   'lib/essentials/db/infrastructure/repositories/local_database_health_runtime_environment.dart',
-  'lib/essentials/onboarding/infrastructure/system/macos_full_disk_access.dart',
+  'lib/essentials/messages_source/infrastructure/probe_current_messages_source_evidence_reader.dart',
   'lib/features/attachments/infrastructure/repositories/filesystem_attachment_archive_file_store.dart',
   'lib/features/attachments/infrastructure/repositories/local_attachment_file_access.dart',
   'lib/features/attachments/infrastructure/repositories/source_database_current_messages_attachment_source_reader.dart',
@@ -7876,6 +7876,111 @@ void main() {
         isNot(contains('ConversationGraphBuildObservation')),
       );
     });
+
+    test(
+      'Settings source evidence is neutral, lazy, and Onboarding-independent',
+      () async {
+        const neutralModuleRoot = 'lib/essentials/messages_source';
+        const neutralProvider =
+            '$neutralModuleRoot/application/'
+            'current_messages_source_evidence_provider.dart';
+        const neutralReader =
+            '$neutralModuleRoot/infrastructure/'
+            'probe_current_messages_source_evidence_reader.dart';
+        const coverageResolver =
+            'lib/features/settings/application/sidebar_cassette_spec/'
+            'resolvers/message_history_coverage_settings_resolver.dart';
+        const historicalWorkflow =
+            'lib/features/settings/application/'
+            'historical_archives_workflow_panel_model_provider.dart';
+        const onboardingAdapter =
+            'lib/essentials/onboarding/application/'
+            'full_disk_access_provider.dart';
+
+        final coverageSource = await File(coverageResolver).readAsString();
+        final historicalSource = await File(historicalWorkflow).readAsString();
+        final onboardingSource = await File(onboardingAdapter).readAsString();
+        final neutralProviderSource = await File(
+          neutralProvider,
+        ).readAsString();
+        final neutralReaderSource = await File(neutralReader).readAsString();
+
+        for (final settingsSource in <String>[
+          coverageSource,
+          historicalSource,
+        ]) {
+          expect(settingsSource, contains('messages_source'));
+          expect(settingsSource, isNot(contains('essentials/onboarding')));
+          expect(settingsSource, isNot(contains('onboardingFullDiskAccess')));
+          expect(
+            settingsSource,
+            isNot(contains('onboardingMessagesDatabasePath')),
+          );
+          expect(
+            settingsSource,
+            isNot(contains('chatDbChangeMonitorProvider')),
+          );
+        }
+
+        expect(
+          onboardingSource,
+          contains('currentMessagesSourceEvidenceReaderProvider'),
+          reason:
+              'Legacy Onboarding compatibility must delegate inward to the '
+              'neutral source-evidence boundary.',
+        );
+        expect(neutralProviderSource, isNot(contains('onboarding')));
+        expect(neutralReaderSource, contains('Library/Messages/chat.db'));
+
+        final neutralFiles = Directory(neutralModuleRoot)
+            .listSync(recursive: true, followLinks: false)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart'));
+        const forbiddenNeutralDependencies = <String>[
+          'onboarding_journey',
+          'onboarding_gate',
+          'onboarding_operation',
+          'environment_readiness',
+          'app_czar_coordinator',
+          'app_czar_evaluator',
+          'support_bundle',
+          'archive_mutation',
+          'database_writer',
+        ];
+        const forbiddenNeutralWork = <String>[
+          'Timer.periodic',
+          'chatDbChangeMonitorProvider',
+          'graphUpdate',
+          'attachmentSweep',
+          'runImport',
+          'StartupApp(',
+          'App(',
+        ];
+
+        for (final file in neutralFiles) {
+          final source = await file.readAsString();
+          final imports = _extractImports(source).join('\n');
+          for (final forbiddenDependency in forbiddenNeutralDependencies) {
+            expect(
+              imports,
+              isNot(contains(forbiddenDependency)),
+              reason:
+                  '${file.path} must remain below startup, readiness, support, '
+                  'and mutation authorities.',
+            );
+          }
+          for (final forbiddenWork in forbiddenNeutralWork) {
+            expect(
+              source,
+              isNot(contains(forbiddenWork)),
+              reason:
+                  '${file.path} is a lazy bounded read boundary and must not '
+                  'start semantic or background work.',
+            );
+          }
+        }
+      },
+    );
   });
 }
 

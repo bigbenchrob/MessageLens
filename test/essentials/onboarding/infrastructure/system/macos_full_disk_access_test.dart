@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/monitor/chat_db_source_probe_reader.dart';
 import 'package:remember_this_text/essentials/conversation_graph/infrastructure/repositories/sqlite_chat_db_source_probe_reader.dart';
+import 'package:remember_this_text/essentials/messages_source/infrastructure/probe_current_messages_source_evidence_reader.dart';
 import 'package:remember_this_text/essentials/onboarding/application/full_disk_access.dart';
 import 'package:remember_this_text/essentials/onboarding/infrastructure/system/macos_full_disk_access.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -24,9 +25,10 @@ void main() {
           ..writeAsStringSync('readable but not SQLite');
         Object? reportedError;
         final access = MacosFullDiskAccess(
-          messagesDatabaseReadProbe:
-              const SqliteChatDbSourceProbeReader().readMaxRowId,
-          messagesDatabasePath: plainFile.path,
+          sourceEvidenceReader: _sourceReader(
+            sourcePath: plainFile.path,
+            readProbe: const SqliteChatDbSourceProbeReader().readMaxRowId,
+          ),
           onReadFailure: (error, stackTrace) {
             reportedError = error;
           },
@@ -69,9 +71,10 @@ void main() {
 
         Object? reportedError;
         final access = MacosFullDiskAccess(
-          messagesDatabaseReadProbe:
-              const SqliteChatDbSourceProbeReader().readMaxRowId,
-          messagesDatabasePath: databasePath,
+          sourceEvidenceReader: _sourceReader(
+            sourcePath: databasePath,
+            readProbe: const SqliteChatDbSourceProbeReader().readMaxRowId,
+          ),
           onReadFailure: (error, stackTrace) {
             reportedError = error;
           },
@@ -89,14 +92,16 @@ void main() {
     test('preserves specialist failure information while exposing false', () {
       Object? reportedError;
       final access = MacosFullDiskAccess(
-        messagesDatabaseReadProbe: (databasePath) {
-          throw ChatDbSourceProbeException(
-            kind: ChatDbSourceProbeFailureKind.sqliteOpenFailed,
-            databasePath: databasePath,
-            operation: 'read-only SQLite open',
-          );
-        },
-        messagesDatabasePath: '/protected/Library/Messages/chat.db',
+        sourceEvidenceReader: _sourceReader(
+          sourcePath: '/protected/Library/Messages/chat.db',
+          readProbe: (databasePath) {
+            throw ChatDbSourceProbeException(
+              kind: ChatDbSourceProbeFailureKind.sqliteOpenFailed,
+              databasePath: databasePath,
+              operation: 'read-only SQLite open',
+            );
+          },
+        ),
         onReadFailure: (error, stackTrace) {
           reportedError = error;
         },
@@ -119,15 +124,17 @@ void main() {
 
     test('classifies only explicit source access denial as access denied', () {
       final access = MacosFullDiskAccess(
-        messagesDatabaseReadProbe: (databasePath) {
-          throw ChatDbSourceProbeException(
-            kind: ChatDbSourceProbeFailureKind.accessDenied,
-            databasePath: databasePath,
-            operation: 'source file read verification',
-            cause: const OSError('Operation not permitted', 1),
-          );
-        },
-        messagesDatabasePath: '/protected/Library/Messages/chat.db',
+        sourceEvidenceReader: _sourceReader(
+          sourcePath: '/protected/Library/Messages/chat.db',
+          readProbe: (databasePath) {
+            throw ChatDbSourceProbeException(
+              kind: ChatDbSourceProbeFailureKind.accessDenied,
+              databasePath: databasePath,
+              operation: 'source file read verification',
+              cause: const OSError('Operation not permitted', 1),
+            );
+          },
+        ),
       );
 
       expect(
@@ -144,14 +151,16 @@ void main() {
         ChatDbSourceProbeFailureKind.filesystemReadFailed,
       ]) {
         final access = MacosFullDiskAccess(
-          messagesDatabaseReadProbe: (databasePath) {
-            throw ChatDbSourceProbeException(
-              kind: kind,
-              databasePath: databasePath,
-              operation: 'test failure',
-            );
-          },
-          messagesDatabasePath: '/test/Library/Messages/chat.db',
+          sourceEvidenceReader: _sourceReader(
+            sourcePath: '/test/Library/Messages/chat.db',
+            readProbe: (databasePath) {
+              throw ChatDbSourceProbeException(
+                kind: kind,
+                databasePath: databasePath,
+                operation: 'test failure',
+              );
+            },
+          ),
         );
 
         expect(
@@ -162,4 +171,14 @@ void main() {
       }
     });
   });
+}
+
+ProbeCurrentMessagesSourceEvidenceReader _sourceReader({
+  required String sourcePath,
+  required CurrentMessagesSourceReadProbe readProbe,
+}) {
+  return ProbeCurrentMessagesSourceEvidenceReader(
+    sourceReadProbe: readProbe,
+    sourcePathResolver: () => sourcePath,
+  );
 }
