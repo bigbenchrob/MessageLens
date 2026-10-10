@@ -61,8 +61,9 @@ final class EnvironmentSummaryFormatter {
       ..writeln('Technical')
       ..writeln(
         '  Archive instance UUID: ${summary.installation.archiveInstanceId}',
-      )
-      ..writeln('  Startup admission: ${_startupAdmission(technical)}');
+      );
+
+    _writeStartupEvidence(buffer, technical);
 
     for (final role in EnvironmentDatabaseRole.values) {
       buffer.writeln(
@@ -144,19 +145,67 @@ final class EnvironmentSummaryFormatter {
     };
   }
 
-  String _startupAdmission(EnvironmentTechnicalSummary technical) {
-    final state = technical.installationState;
-    final basis = technical.startupAdmissionBasis;
+  void _writeStartupEvidence(
+    StringBuffer buffer,
+    EnvironmentTechnicalSummary technical,
+  ) {
+    final evidence = technical.startupPresentationEvidence;
+    if (evidence.composition == StartupPresentationComposition.appCzar) {
+      buffer
+        ..writeln('  Startup composition: AppCzar')
+        ..writeln(
+          '  AppCzar disposition: '
+          '${evidence.appCzarSelectedDisposition ?? 'Unavailable'}',
+        )
+        ..writeln(
+          '  Assessment generation: '
+          '${evidence.appCzarAssessmentGeneration ?? 'Unavailable'}',
+        )
+        ..writeln('  Assessment facts: ${_appCzarFactSummary(evidence)}')
+        ..writeln(
+          '  Startup evidence scope: '
+          '${evidence.observationScope?.name ?? 'Unavailable'}',
+        );
+      return;
+    }
+
+    final state = evidence.installationState;
+    final basis = evidence.admissionBasis;
     if (state == null && basis == null) {
-      return _sectionFallback(technical.status);
+      buffer.writeln(
+        '  Startup admission: ${_sectionFallback(technical.status)}',
+      );
+      return;
     }
     if (state == null) {
-      return basis!.name;
+      buffer.writeln('  Startup admission: $basis');
+      return;
     }
     if (basis == null) {
-      return state.name;
+      buffer.writeln('  Startup admission: $state');
+      return;
     }
-    return '${state.name} · ${basis.name}';
+    buffer.writeln('  Startup admission: $state · $basis');
+  }
+
+  String _appCzarFactSummary(StartupPresentationEvidence evidence) {
+    if (!evidence.isAvailable) {
+      return evidence.unavailableReason ?? 'Unavailable';
+    }
+    var trueCount = 0;
+    var falseCount = 0;
+    var unknownCount = 0;
+    for (final fact in evidence.appCzarFacts) {
+      switch (fact.truth) {
+        case StartupPresentationFactTruth.trueValue:
+          trueCount += 1;
+        case StartupPresentationFactTruth.falseValue:
+          falseCount += 1;
+        case StartupPresentationFactTruth.unknown:
+          unknownCount += 1;
+      }
+    }
+    return 'TRUE $trueCount · FALSE $falseCount · UNKNOWN $unknownCount';
   }
 
   String _databaseSummary(

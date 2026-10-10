@@ -7,7 +7,7 @@ part of 'environment_summary_provider.dart';
 // **************************************************************************
 
 String _$environmentSummaryHash() =>
-    r'6f4ecae58f80f03fc84e2124d3c74267313b3131';
+    r'4ed3b89d00147f88469af4f6b82e6e8bbf47965c';
 
 /// See also [environmentSummary].
 @ProviderFor(environmentSummary)

@@ -6,11 +6,8 @@ import '../../../essentials/archive_environment/feature_level_providers.dart'
     show archiveAccessAuthorityProvider;
 import '../../../essentials/db/feature_level_providers.dart'
     show dbMaintenanceLockProvider;
-import '../../../essentials/onboarding/domain/message_lens_installation_state.dart';
-import '../../../essentials/onboarding/domain/startup_installation_validation.dart';
-import '../../../essentials/onboarding/domain/startup_validation_telemetry.dart';
-import '../../../essentials/onboarding/feature_level_providers.dart'
-    show startupValidationTelemetryProvider;
+import '../../../essentials/startup_presentation_evidence/feature_level_providers.dart'
+    show StartupPresentationEvidence, startupPresentationEvidenceProvider;
 import '../../attachments/feature_level_providers.dart'
     show
         AttachmentArchiveLocationAvailability,
@@ -37,7 +34,7 @@ EnvironmentSummary environmentSummary(Ref ref) {
   final contactsEvidence = ref.watch(environmentContactsEvidenceProvider);
   final databaseEvidence = ref.watch(environmentDatabaseEvidenceProvider);
   final ftsEvidence = ref.watch(environmentFtsEvidenceProvider);
-  final startupEvidence = _readAlreadyLiveStartupEvidence(ref);
+  final startupEvidence = ref.watch(startupPresentationEvidenceProvider);
   final maintenanceActive = ref.exists(dbMaintenanceLockProvider)
       ? ref.watch(dbMaintenanceLockProvider)
       : null;
@@ -184,7 +181,7 @@ EnvironmentContactsDataSummary _contactsSummary(
 EnvironmentTechnicalSummary _technicalSummary({
   required AsyncValue<List<EnvironmentDatabaseSummary>> databaseEvidence,
   required AsyncValue<EnvironmentFtsEvidence> ftsEvidence,
-  required _StartupEvidence startupEvidence,
+  required StartupPresentationEvidence startupEvidence,
   required bool? maintenanceActive,
 }) {
   final databaseStatus = _sectionStatus(databaseEvidence);
@@ -194,8 +191,7 @@ EnvironmentTechnicalSummary _technicalSummary({
     status: _combinedStatus(databaseStatus, ftsStatus),
     databaseStatus: databaseStatus,
     ftsStatus: ftsStatus,
-    startupAdmissionBasis: startupEvidence.basis,
-    installationState: startupEvidence.installationState,
+    startupPresentationEvidence: startupEvidence,
     maintenanceActive: maintenanceActive,
     ftsAvailable: fts?.isAvailable,
     ftsRowCount: fts?.rowCount,
@@ -203,22 +199,6 @@ EnvironmentTechnicalSummary _technicalSummary({
         databaseEvidence.valueOrNull ?? const <EnvironmentDatabaseSummary>[],
     issue: _issue(databaseEvidence) ?? _issue(ftsEvidence),
   );
-}
-
-_StartupEvidence _readAlreadyLiveStartupEvidence(Ref ref) {
-  if (!ref.exists(startupValidationTelemetryProvider)) {
-    return const _StartupEvidence();
-  }
-  final snapshot = ref.watch(startupValidationTelemetryProvider).snapshot();
-  for (final event in snapshot.events.reversed) {
-    if (event.kind == StartupValidationEventKind.admissionDecided) {
-      return _StartupEvidence(
-        basis: event.admissionBasis,
-        installationState: event.installationKind,
-      );
-    }
-  }
-  return const _StartupEvidence();
 }
 
 EnvironmentAvailability _attachmentAvailability(
@@ -306,11 +286,4 @@ EnvironmentRuntimeMode get _runtimeMode {
     return EnvironmentRuntimeMode.profile;
   }
   return EnvironmentRuntimeMode.debug;
-}
-
-final class _StartupEvidence {
-  const _StartupEvidence({this.basis, this.installationState});
-
-  final StartupAdmissionBasis? basis;
-  final MessageLensInstallationStateKind? installationState;
 }

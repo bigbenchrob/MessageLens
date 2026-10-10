@@ -5,8 +5,7 @@ import 'package:path/path.dart' as path;
 
 import '../../archive_environment/domain/archive_access_authority.dart';
 import '../../db/application/database_health_audit/database_health_audit_service.dart';
-import '../../onboarding/domain/onboarding_operation_snapshot.dart';
-import '../../onboarding/domain/startup_validation_telemetry.dart';
+import '../../startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 import 'log_file_writer.dart';
 
 class SupportBundleExportResult {
@@ -29,15 +28,13 @@ class SupportBundleExportService {
     this._writer,
     this._databaseHealthAuditService,
     this._archiveAuthority,
-    this._startupValidationTelemetry, [
-    this._onboardingOperationSnapshot,
-  ]);
+    this._startupSupportEvidence,
+  );
 
   final LogFileWriter _writer;
   final DatabaseHealthAuditService _databaseHealthAuditService;
   final ArchiveAccessAuthority _archiveAuthority;
-  final StartupValidationTelemetrySnapshotSource _startupValidationTelemetry;
-  final OnboardingOperationSnapshot Function()? _onboardingOperationSnapshot;
+  final StartupSupportEvidence _startupSupportEvidence;
 
   Future<SupportBundleExportResult> export({
     List<String> headerLines = const <String>[],
@@ -69,18 +66,9 @@ class SupportBundleExportService {
     );
     attachmentFiles.add(diagnosticLogFile);
 
-    attachmentFiles.add(
-      await _writeStartupValidationFile(bundleDirectory: bundleDirectory),
+    attachmentFiles.addAll(
+      await _writeStartupEvidenceArtifacts(bundleDirectory: bundleDirectory),
     );
-    final operationSnapshot = _onboardingOperationSnapshot?.call();
-    if (operationSnapshot != null) {
-      attachmentFiles.add(
-        await _writeOnboardingOperationFile(
-          bundleDirectory: bundleDirectory,
-          snapshot: operationSnapshot,
-        ),
-      );
-    }
 
     for (final auditLog in pipelineAuditLogFiles.files) {
       final copied = await _copyIfPresent(
@@ -134,44 +122,32 @@ class SupportBundleExportService {
     );
   }
 
-  Future<File> _writeStartupValidationFile({
+  Future<List<File>> _writeStartupEvidenceArtifacts({
     required Directory bundleDirectory,
   }) async {
-    final telemetryFile = File(
-      '${bundleDirectory.path}/startup_validation.json',
-    );
-    await telemetryFile.writeAsString(
-      '${const JsonEncoder.withIndent('  ').convert(_startupValidationTelemetry.snapshot().toJson())}\n',
-    );
-    return telemetryFile;
-  }
-
-  Future<File> _writeOnboardingOperationFile({
-    required Directory bundleDirectory,
-    required OnboardingOperationSnapshot snapshot,
-  }) async {
-    final operationFile = File(
-      '${bundleDirectory.path}/onboarding_operation.json',
-    );
-    final progress = snapshot.progress;
-    final failure = snapshot.failure;
-    await operationFile.writeAsString(
-      '${const JsonEncoder.withIndent('  ').convert(<String, Object?>{
-        'schema_version': 1,
-        'status': snapshot.status.name,
-        if (snapshot.kind case final kind?) 'kind': kind.name,
-        if (snapshot.currentStage case final stage?) 'stage': stage.name,
-        if (snapshot.currentSubstage case final substage?) 'substage': substage.name,
-        if (snapshot.startedAtUtc case final startedAt?) 'started_at_utc': startedAt.toUtc().toIso8601String(),
-        if (snapshot.lastProgressObservedAtUtc case final observedAt?) 'last_progress_observed_at_utc': observedAt.toUtc().toIso8601String(),
-        if (snapshot.finishedAtUtc case final finishedAt?) 'finished_at_utc': finishedAt.toUtc().toIso8601String(),
-        if (progress != null) 'progress': <String, Object?>{'completed_work_units': progress.completedWorkUnits, 'total_work_units': progress.totalWorkUnits},
-        'source_anomaly_counts': snapshot.sourceAnomalyCounts.toJson(),
-        if (failure != null) 'failure': <String, Object?>{'category': failure.category.name, 'recovery_disposition': failure.recoveryDisposition.name},
-        'privacy_notes': <String>['Operation and aggregate progress evidence only.', 'Operation identifiers, source row identifiers, content, and paths are omitted.'],
-      })}\n',
-    );
-    return operationFile;
+    const maximumArtifactBytes = 256 * 1024;
+    final files = <File>[];
+    final seenKinds = <StartupSupportArtifactKind>{};
+    for (final artifact in _startupSupportEvidence.artifacts.take(3)) {
+      if (!seenKinds.add(artifact.kind)) {
+        continue;
+      }
+      final file = File('${bundleDirectory.path}/${artifact.kind.fileName}');
+      var content =
+          '${const JsonEncoder.withIndent('  ').convert(artifact.json)}\n';
+      if (utf8.encode(content).length > maximumArtifactBytes) {
+        content =
+            '${const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+              'schema_version': 1,
+              'status': 'unavailable',
+              'reason': 'Bounded startup evidence exceeded the support artifact size limit.',
+              'privacy_notes': <String>['The oversized evidence was not exported.'],
+            })}\n';
+      }
+      await file.writeAsString(content);
+      files.add(file);
+    }
+    return files;
   }
 
   Future<void> _writeDiagnosticLog(
@@ -212,7 +188,9 @@ class SupportBundleExportService {
       ..writeln('macOS: $macosVersion')
       ..writeln('Exported: ${now.toUtc().toIso8601String()}')
       ..writeln(
-        'Contains: diagnostic_report.log, startup validation, onboarding operation evidence, active graph health, and retired cleanup inventory when available',
+        'Contains: diagnostic_report.log, '
+        '${_startupSupportEvidence.headerDescription}, active graph health, '
+        'and retired cleanup inventory when available',
       )
       ..writeln('No raw database files are included.')
       ..writeln('====================================');

@@ -14,6 +14,7 @@ import 'package:remember_this_text/essentials/onboarding/domain/message_lens_ins
 import 'package:remember_this_text/essentials/onboarding/domain/onboarding_operation_snapshot.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/startup_validation_telemetry.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 
 void main() {
   test(
@@ -40,7 +41,7 @@ void main() {
           reportWriter: const _FakeDatabaseHealthReportWriter(),
         ),
         _testAuthority(tempDirectory),
-        StartupValidationTelemetryBuffer(),
+        _supportEvidence(),
       );
 
       final result = await service.export();
@@ -78,7 +79,7 @@ void main() {
         reportWriter: const _RawDatabasePathHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
-      StartupValidationTelemetryBuffer(),
+      _supportEvidence(),
     );
 
     final result = await service.export();
@@ -115,7 +116,7 @@ void main() {
         reportWriter: _OutsideBundleHealthReportWriter(outsideDirectory),
       ),
       _testAuthority(tempDirectory),
-      StartupValidationTelemetryBuffer(),
+      _supportEvidence(),
     );
 
     final result = await service.export();
@@ -162,7 +163,7 @@ void main() {
           reportWriter: _SymlinkHealthReportWriter(outsideFile),
         ),
         _testAuthority(tempDirectory),
-        StartupValidationTelemetryBuffer(),
+        _supportEvidence(),
       );
 
       final result = await service.export();
@@ -202,7 +203,7 @@ void main() {
         reportWriter: const _FakeDatabaseHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
-      StartupValidationTelemetryBuffer(),
+      _supportEvidence(),
     );
 
     final result = await service.export();
@@ -267,7 +268,7 @@ void main() {
         reportWriter: const _FakeDatabaseHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
-      telemetry,
+      _supportEvidence(telemetry: telemetry),
     );
 
     final result = await service.export();
@@ -310,8 +311,7 @@ void main() {
         reportWriter: const _FakeDatabaseHealthReportWriter(),
       ),
       _testAuthority(tempDirectory),
-      StartupValidationTelemetryBuffer(),
-      () => snapshot,
+      _supportEvidence(operation: snapshot),
     );
 
     final result = await service.export();
@@ -364,6 +364,49 @@ OnboardingOperationSnapshot _interruptedRichTextSnapshot() {
         ),
       )
       .interrupt(observedAtUtc: startedAt.add(const Duration(seconds: 2)));
+}
+
+StartupSupportEvidence _supportEvidence({
+  StartupValidationTelemetryBuffer? telemetry,
+  OnboardingOperationSnapshot? operation,
+}) {
+  final operationProgress = operation?.progress;
+  return StartupSupportEvidence(
+    presentation: StartupPresentationEvidence.startupApp(
+      installationState: null,
+      admissionBasis: null,
+    ),
+    headerDescription: 'startup validation, onboarding operation evidence',
+    artifacts: <StartupSupportArtifact>[
+      StartupSupportArtifact(
+        kind: StartupSupportArtifactKind.startupValidation,
+        json: (telemetry ?? StartupValidationTelemetryBuffer())
+            .snapshot()
+            .toJson(),
+      ),
+      if (operation != null)
+        StartupSupportArtifact(
+          kind: StartupSupportArtifactKind.onboardingOperation,
+          json: <String, Object?>{
+            'schema_version': 1,
+            'status': operation.status.name,
+            if (operation.kind case final kind?) 'kind': kind.name,
+            if (operation.currentStage case final stage?) 'stage': stage.name,
+            if (operation.currentSubstage case final substage?)
+              'substage': substage.name,
+            if (operationProgress != null)
+              'progress': <String, Object?>{
+                'completed_work_units': operationProgress.completedWorkUnits,
+                'total_work_units': operationProgress.totalWorkUnits,
+              },
+            'source_anomaly_counts': operation.sourceAnomalyCounts.toJson(),
+            'privacy_notes': const <String>[
+              'Operation and aggregate progress evidence only.',
+            ],
+          },
+        ),
+    ],
+  );
 }
 
 ArchiveAccessAuthority _testAuthority(Directory root) {

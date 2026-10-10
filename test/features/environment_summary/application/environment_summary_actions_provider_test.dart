@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_build_identity.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_environment.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_actions_provider.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer_provider.dart';
@@ -87,6 +88,10 @@ EnvironmentSummary _summary() {
       status: EnvironmentSectionStatus.loading,
       databaseStatus: EnvironmentSectionStatus.loading,
       ftsStatus: EnvironmentSectionStatus.loading,
+      startupPresentationEvidence: StartupPresentationEvidence.unavailable(
+        composition: StartupPresentationComposition.startupApp,
+        reason: 'Loading',
+      ),
       databases: const <EnvironmentDatabaseSummary>[],
     ),
   );

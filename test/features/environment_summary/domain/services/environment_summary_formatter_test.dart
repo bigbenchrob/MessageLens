@@ -1,8 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_build_identity.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_environment.dart';
-import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
-import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 import 'package:remember_this_text/features/environment_summary/domain/entities/environment_summary.dart';
 import 'package:remember_this_text/features/environment_summary/domain/services/environment_summary_formatter.dart';
 
@@ -144,6 +143,10 @@ Technical
         status: EnvironmentSectionStatus.loading,
         databaseStatus: EnvironmentSectionStatus.loading,
         ftsStatus: EnvironmentSectionStatus.failed,
+        startupPresentationEvidence: StartupPresentationEvidence.unavailable(
+          composition: StartupPresentationComposition.startupApp,
+          reason: 'Loading',
+        ),
         databases: const <EnvironmentDatabaseSummary>[],
       ),
     );
@@ -198,6 +201,60 @@ Technical
     expect(formatted, contains('Conversations: 0'));
     expect(formatted, contains('Contacts in MessageLens: 0'));
   });
+
+  test(
+    'formats completed AppCzar evidence without legacy startup authority',
+    () {
+      final summary = _fixture(
+        productName: 'MessageLens Development',
+        environment: ArchiveEnvironment.development,
+        buildIdentity: ArchiveBuildIdentity.developmentDebug,
+        bundleIdentifier: 'com.bigbenchsoftware.MessageLens.development',
+        dataRoot: '/support',
+        dataVolume: 'This Mac',
+        attachmentRoot: '/support/attachment_archive',
+        attachmentVolume: 'This Mac',
+        startupEvidence: StartupPresentationEvidence.appCzar(
+          assessmentGeneration: 12,
+          selectedDisposition: 'Operating Session',
+          facts: const <StartupPresentationFact>[
+            StartupPresentationFact(
+              id: 'root',
+              label: 'Development data folder',
+              truth: StartupPresentationFactTruth.trueValue,
+            ),
+            StartupPresentationFact(
+              id: 'dataset',
+              label: 'Local message dataset',
+              truth: StartupPresentationFactTruth.falseValue,
+            ),
+            StartupPresentationFact(
+              id: 'coverage',
+              label: 'Attachment coverage',
+              truth: StartupPresentationFactTruth.unknown,
+            ),
+          ],
+        ),
+      );
+
+      final formatted = formatter.format(summary);
+
+      expect(formatted, contains('Startup composition: AppCzar'));
+      expect(formatted, contains('AppCzar disposition: Operating Session'));
+      expect(formatted, contains('Assessment generation: 12'));
+      expect(
+        formatted,
+        contains('Assessment facts: TRUE 1 · FALSE 1 · UNKNOWN 1'),
+      );
+      expect(
+        formatted,
+        contains(
+          'Startup evidence scope: completedAppCzarAssessmentGeneration',
+        ),
+      );
+      expect(formatted, isNot(contains('Startup admission:')));
+    },
+  );
 }
 
 EnvironmentSummary _fixture({
@@ -211,6 +268,7 @@ EnvironmentSummary _fixture({
   required String? attachmentVolume,
   String historicalLabel = 'Old Mac',
   String historicalPath = '/Volumes/Offline/Archive/chat.db',
+  StartupPresentationEvidence? startupEvidence,
 }) {
   return EnvironmentSummary(
     installation: EnvironmentInstallationSummary(
@@ -278,8 +336,12 @@ EnvironmentSummary _fixture({
       status: EnvironmentSectionStatus.ready,
       databaseStatus: EnvironmentSectionStatus.ready,
       ftsStatus: EnvironmentSectionStatus.ready,
-      startupAdmissionBasis: StartupAdmissionBasis.boundedInspection,
-      installationState: MessageLensInstallationStateKind.completed,
+      startupPresentationEvidence:
+          startupEvidence ??
+          StartupPresentationEvidence.startupApp(
+            installationState: 'completed',
+            admissionBasis: 'boundedInspection',
+          ),
       maintenanceActive: false,
       ftsAvailable: true,
       ftsRowCount: 2,

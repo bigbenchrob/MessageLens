@@ -6,8 +6,7 @@ import 'package:remember_this_text/config/theme/colors/theme_colors.dart';
 import 'package:remember_this_text/essentials/app_mode/application/app_mode_providers.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_build_identity.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_environment.dart';
-import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
-import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 import 'package:remember_this_text/features/attachments/domain/entities/attachment_archive_location_configuration.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer.dart';
 import 'package:remember_this_text/features/environment_summary/application/environment_summary_clipboard_writer_provider.dart';
@@ -303,6 +302,48 @@ void main() {
     expect(find.text('Not retained'), findsOneWidget);
   });
 
+  testWidgets('renders completed AppCzar evidence without legacy rows', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      summary: _summary(
+        startupEvidence: StartupPresentationEvidence.appCzar(
+          assessmentGeneration: 9,
+          selectedDisposition: 'Operating Session',
+          facts: const <StartupPresentationFact>[
+            StartupPresentationFact(
+              id: 'root',
+              label: 'Development data folder',
+              truth: StartupPresentationFactTruth.trueValue,
+            ),
+            StartupPresentationFact(
+              id: 'coverage',
+              label: 'Attachment coverage',
+              truth: StartupPresentationFactTruth.unknown,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(EnvironmentSummaryPanel.technicalToggleKey),
+    );
+    await tester.tap(find.byKey(EnvironmentSummaryPanel.technicalToggleKey));
+    await tester.pump();
+
+    expect(find.text('Startup composition'), findsOneWidget);
+    expect(find.text('AppCzar'), findsOneWidget);
+    expect(find.text('AppCzar disposition'), findsOneWidget);
+    expect(find.text('Operating Session'), findsOneWidget);
+    expect(find.text('Assessment generation'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(find.text('TRUE 1 · FALSE 0 · UNKNOWN 1'), findsOneWidget);
+    expect(find.text('Startup installation state'), findsNothing);
+    expect(find.text('Startup admission basis'), findsNothing);
+  });
+
   for (final brightness in Brightness.values) {
     testWidgets('uses semantic canvas color in ${brightness.name} mode', (
       tester,
@@ -517,6 +558,7 @@ EnvironmentSummary _summary({
   bool zeroCounts = false,
   String dataRootPath = '/Volumes/Development/MessageLens Development',
   ArchiveEnvironment environment = ArchiveEnvironment.development,
+  StartupPresentationEvidence? startupEvidence,
 }) {
   final count = zeroCounts ? 0 : 1234;
   final production = environment == ArchiveEnvironment.production;
@@ -613,8 +655,12 @@ EnvironmentSummary _summary({
       status: EnvironmentSectionStatus.unavailable,
       databaseStatus: EnvironmentSectionStatus.ready,
       ftsStatus: EnvironmentSectionStatus.unavailable,
-      startupAdmissionBasis: StartupAdmissionBasis.boundedInspection,
-      installationState: MessageLensInstallationStateKind.completed,
+      startupPresentationEvidence:
+          startupEvidence ??
+          StartupPresentationEvidence.startupApp(
+            installationState: 'completed',
+            admissionBasis: 'boundedInspection',
+          ),
       maintenanceActive: true,
       ftsAvailable: null,
       databases: const <EnvironmentDatabaseSummary>[

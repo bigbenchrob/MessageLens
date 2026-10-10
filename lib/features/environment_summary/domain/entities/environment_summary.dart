@@ -2,10 +2,11 @@ import 'package:meta/meta.dart';
 
 import '../../../../essentials/archive_environment/domain/archive_build_identity.dart';
 import '../../../../essentials/archive_environment/domain/archive_environment.dart';
-import '../../../../essentials/onboarding/domain/message_lens_installation_state.dart';
-import '../../../../essentials/onboarding/domain/startup_installation_validation.dart';
+import '../../../../essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 import '../../../attachments/feature_level_providers.dart'
     show AttachmentArchiveCustomWritePolicy, AttachmentArchiveLocationMode;
+
+export '../../../../essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart';
 
 enum EnvironmentAvailability {
   connected,
@@ -232,9 +233,8 @@ final class EnvironmentTechnicalSummary {
     required this.status,
     required this.databaseStatus,
     required this.ftsStatus,
+    required this.startupPresentationEvidence,
     required Iterable<EnvironmentDatabaseSummary> databases,
-    this.startupAdmissionBasis,
-    this.installationState,
     this.maintenanceActive,
     this.ftsAvailable,
     this.ftsRowCount,
@@ -244,8 +244,7 @@ final class EnvironmentTechnicalSummary {
   final EnvironmentSectionStatus status;
   final EnvironmentSectionStatus databaseStatus;
   final EnvironmentSectionStatus ftsStatus;
-  final StartupAdmissionBasis? startupAdmissionBasis;
-  final MessageLensInstallationStateKind? installationState;
+  final StartupPresentationEvidence startupPresentationEvidence;
   final bool? maintenanceActive;
   final bool? ftsAvailable;
   final int? ftsRowCount;

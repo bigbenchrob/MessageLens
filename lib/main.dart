@@ -18,7 +18,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'config/theme/colors/theme_colors.dart';
 import 'config/theme/theme_typography.dart';
 import 'essentials/app_czar/application/app_czar_assessment_provider.dart'
-    show appCzarObservationReaderProvider;
+    show appCzarAssessmentControllerProvider, appCzarObservationReaderProvider;
 import 'essentials/app_czar/application/app_czar_development_composition_policy.dart';
 import 'essentials/app_czar/application/app_czar_production_composition_eligibility_policy.dart';
 import 'essentials/app_czar/application/production_app_czar_activation.dart';
@@ -65,6 +65,11 @@ import 'essentials/onboarding/presentation/start_fresh_authorization_dialog.dart
 import 'essentials/services/startup_flags_service.dart';
 import 'essentials/sidebar/feature_level_providers.dart'
     show sidebarNavigationRestorationEnabledProvider;
+import 'essentials/startup_presentation_evidence/feature_level_providers.dart'
+    show
+        StartupPresentationComposition,
+        startupPresentationAppCzarAssessmentSnapshotProvider,
+        startupPresentationCompositionProvider;
 import 'essentials/window_state/feature_level_providers.dart'
     show windowStateServiceProvider;
 import 'features/attachments/application/app_czar_attachment_archive_repair_executor_factory_provider.dart'
@@ -321,6 +326,15 @@ void main() async {
         archiveAuthority,
       );
   const productionAppCzarActivation = ProductionAppCzarActivation.disabled;
+  final startupPresentation = selectMessageLensStartupPresentation(
+    appCzarDevelopmentCompositionEnabled: appCzarDevelopmentCompositionEnabled,
+    appCzarProductionCompositionEligible: appCzarProductionCompositionEligible,
+    productionAppCzarActivation: productionAppCzarActivation,
+  );
+  final startupPresentationComposition =
+      startupPresentation == MessageLensStartupPresentation.appCzarHarness
+      ? StartupPresentationComposition.appCzar
+      : StartupPresentationComposition.startupApp;
 
   // Create provider container.
   final container = ProviderContainer(
@@ -356,14 +370,19 @@ void main() async {
       settingsResetMessageDataActionAvailableProvider.overrideWith((ref) {
         return !appCzarDevelopmentCompositionEnabled;
       }),
+      startupPresentationCompositionProvider.overrideWith(
+        (ref) => startupPresentationComposition,
+      ),
+      startupPresentationAppCzarAssessmentSnapshotProvider.overrideWith((ref) {
+        if (!ref.exists(appCzarAssessmentControllerProvider)) {
+          return null;
+        }
+        final state = ref.watch(appCzarAssessmentControllerProvider);
+        return state.isComplete ? state : null;
+      }),
     ],
   );
 
-  final startupPresentation = selectMessageLensStartupPresentation(
-    appCzarDevelopmentCompositionEnabled: appCzarDevelopmentCompositionEnabled,
-    appCzarProductionCompositionEligible: appCzarProductionCompositionEligible,
-    productionAppCzarActivation: productionAppCzarActivation,
-  );
   FlutterError.onError = FlutterError.presentError;
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint('Uncaught platform error before persistent startup: $error');

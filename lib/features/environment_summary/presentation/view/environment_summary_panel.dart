@@ -669,18 +669,7 @@ class _TechnicalDetailsBody extends ConsumerWidget {
                     ? 'Unknown'
                     : _humanizeName(attachment.customWritePolicy!.name),
               ),
-              _TechnicalRow(
-                label: 'Startup installation state',
-                value: technical.installationState == null
-                    ? 'Unknown'
-                    : _humanizeName(technical.installationState!.name),
-              ),
-              _TechnicalRow(
-                label: 'Startup admission basis',
-                value: technical.startupAdmissionBasis == null
-                    ? 'Unknown'
-                    : _humanizeName(technical.startupAdmissionBasis!.name),
-              ),
+              ..._startupEvidenceRows(technical.startupPresentationEvidence),
               if (technical.maintenanceActive == true)
                 const _TechnicalRow(label: 'Maintenance', value: 'Active'),
               _TechnicalRow(
@@ -716,6 +705,75 @@ class _TechnicalDetailsBody extends ConsumerWidget {
       ),
     );
   }
+}
+
+List<_TechnicalRow> _startupEvidenceRows(StartupPresentationEvidence evidence) {
+  if (evidence.composition == StartupPresentationComposition.startupApp) {
+    return <_TechnicalRow>[
+      _TechnicalRow(
+        label: 'Startup installation state',
+        value: evidence.installationState == null
+            ? 'Unknown'
+            : _humanizeName(evidence.installationState!),
+      ),
+      _TechnicalRow(
+        label: 'Startup admission basis',
+        value: evidence.admissionBasis == null
+            ? 'Unknown'
+            : _humanizeName(evidence.admissionBasis!),
+      ),
+    ];
+  }
+
+  final generation = evidence.appCzarAssessmentGeneration;
+  final disposition = evidence.appCzarSelectedDisposition;
+  return <_TechnicalRow>[
+    const _TechnicalRow(label: 'Startup composition', value: 'AppCzar'),
+    _TechnicalRow(
+      label: 'AppCzar disposition',
+      value: disposition ?? 'Unavailable',
+    ),
+    _TechnicalRow(
+      label: 'Assessment generation',
+      value: generation?.toString() ?? 'Unavailable',
+    ),
+    _TechnicalRow(
+      label: 'Assessment fact summary',
+      value: _appCzarFactSummary(evidence),
+    ),
+    _TechnicalRow(
+      label: 'Startup evidence provenance',
+      value: evidence.provenance == null
+          ? 'Unavailable'
+          : _humanizeName(evidence.provenance!.name),
+    ),
+    _TechnicalRow(
+      label: 'Startup evidence scope',
+      value: evidence.observationScope == null
+          ? 'Unavailable'
+          : _humanizeName(evidence.observationScope!.name),
+    ),
+  ];
+}
+
+String _appCzarFactSummary(StartupPresentationEvidence evidence) {
+  if (!evidence.isAvailable) {
+    return evidence.unavailableReason ?? 'Unavailable';
+  }
+  var trueCount = 0;
+  var falseCount = 0;
+  var unknownCount = 0;
+  for (final fact in evidence.appCzarFacts) {
+    switch (fact.truth) {
+      case StartupPresentationFactTruth.trueValue:
+        trueCount += 1;
+      case StartupPresentationFactTruth.falseValue:
+        falseCount += 1;
+      case StartupPresentationFactTruth.unknown:
+        unknownCount += 1;
+    }
+  }
+  return 'TRUE $trueCount · FALSE $falseCount · UNKNOWN $unknownCount';
 }
 
 class _DatabaseSummaryCard extends ConsumerWidget {
