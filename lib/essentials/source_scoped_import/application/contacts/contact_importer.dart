@@ -2,7 +2,6 @@ import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
 import 'contact_source_projection.dart';
 
@@ -73,8 +72,17 @@ class ContactImporter {
       await importLedger.writeTransaction((txn) async {
         final validContactRowIds = <int>{};
         for (final row in contactRows) {
-          final sourceRowId = _readNullableInt(row['Z_PK']);
-          if (sourceRowId == null) {
+          final projection = projectSourceContact(
+            sourcePrimaryKey: row['Z_PK'],
+            rawFirstName: row['ZFIRSTNAME'],
+            rawMiddleName: row['ZMIDDLENAME'],
+            rawLastName: row['ZLASTNAME'],
+            rawOrganization: row['ZORGANIZATION'],
+            rawCreationDate: row['ZCREATIONDATE'],
+            sourceId: sourceId,
+            batchId: batchId,
+          );
+          if (projection is OmittedSourceContact) {
             omittedContactRecordCount += 1;
             completedContactCount += 1;
             publishSourceImportProgress(
@@ -88,40 +96,16 @@ class ContactImporter {
             );
             continue;
           }
-          validContactRowIds.add(sourceRowId);
+          final projectedContact = projection as ProjectedSourceContact;
+          validContactRowIds.add(projectedContact.sourceRowId);
 
-          final first = readTrimmedContactSourceText(row['ZFIRSTNAME']);
-          final middle = readTrimmedContactSourceText(row['ZMIDDLENAME']);
-          final last = readTrimmedContactSourceText(row['ZLASTNAME']);
-          final organization = readTrimmedContactSourceText(
-            row['ZORGANIZATION'],
-          );
-          final displayName = buildContactDisplayName(
-            firstName: first,
-            middleName: middle,
-            lastName: last,
-            organization: organization,
-          );
-          if (displayName == null) {
+          if (projectedContact.enrichmentUnavailable) {
             contactEnrichmentUnavailableCount += 1;
           }
-          final insertedId = await txn
-              .insertIgnore('contacts', <String, Object?>{
-                'ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceRowId,
-                ),
-                'source_id': sourceId,
-                'source_rowid': sourceRowId,
-                'display_name': displayName ?? 'Unknown Contact',
-                'first_name': first,
-                'last_name': last,
-                'organization': organization,
-                'created_at_utc': projectContactCreatedAtUtc(
-                  row['ZCREATIONDATE'],
-                ),
-                'batch_id': batchId,
-              });
+          final insertedId = await txn.insertIgnore(
+            'contacts',
+            projectedContact.ledgerValues,
+          );
           if (insertedId != 0) {
             insertedContactCount += 1;
           }
@@ -131,7 +115,7 @@ class ContactImporter {
             unit: SourceImportWorkUnit.contacts,
             completedWorkCount: completedContactCount,
             totalWorkCount: contactRows.length,
-            lastCompletedSourceRowId: sourceRowId,
+            lastCompletedSourceRowId: projectedContact.sourceRowId,
             anomalyCounts: SourceImportAnomalyCounts(
               omittedContactRecordCount: omittedContactRecordCount,
               contactEnrichmentUnavailableCount:
@@ -147,11 +131,17 @@ class ContactImporter {
           totalWorkCount: emailRows.length,
         );
         for (final row in emailRows) {
-          final owner = _readNullableInt(row['ZOWNER']);
-          final address = projectContactEmailAddress(row);
-          if (owner == null ||
-              !validContactRowIds.contains(owner) ||
-              address == null) {
+          final projection = projectSourceContactChannel(
+            rawOwner: row['ZOWNER'],
+            rawPrimaryValue: row['ZADDRESS'],
+            rawFallbackValue: row['ZADDRESSNORMALIZED'],
+            rawLabel: row['ZLABEL'],
+            kind: ContactChannelKind.email,
+            importedContactSourceRowIds: validContactRowIds,
+            sourceId: sourceId,
+            batchId: batchId,
+          );
+          if (projection is OmittedSourceContactChannel) {
             omittedContactChannelCount += 1;
             completedEmailCount += 1;
             publishSourceImportProgress(
@@ -159,7 +149,7 @@ class ContactImporter {
               unit: SourceImportWorkUnit.contactEmailChannels,
               completedWorkCount: completedEmailCount,
               totalWorkCount: emailRows.length,
-              lastCompletedSourceRowId: owner,
+              lastCompletedSourceRowId: projection.sourceContactRowId,
               anomalyCounts: SourceImportAnomalyCounts(
                 omittedContactRecordCount: omittedContactRecordCount,
                 contactEnrichmentUnavailableCount:
@@ -169,13 +159,10 @@ class ContactImporter {
             );
             continue;
           }
-          final insertedId = await _insertChannel(
-            txn,
-            sourceContactRowId: owner,
-            kind: 'email',
-            value: address,
-            label: readTrimmedContactSourceText(row['ZLABEL']),
-            batchId: batchId,
+          final projectedChannel = projection as ProjectedSourceContactChannel;
+          final insertedId = await txn.insertIgnore(
+            'contact_channels',
+            projectedChannel.ledgerValues,
           );
           if (insertedId != 0) {
             insertedChannelCount += 1;
@@ -186,7 +173,7 @@ class ContactImporter {
             unit: SourceImportWorkUnit.contactEmailChannels,
             completedWorkCount: completedEmailCount,
             totalWorkCount: emailRows.length,
-            lastCompletedSourceRowId: owner,
+            lastCompletedSourceRowId: projectedChannel.sourceContactRowId,
             anomalyCounts: SourceImportAnomalyCounts(
               omittedContactRecordCount: omittedContactRecordCount,
               contactEnrichmentUnavailableCount:
@@ -203,11 +190,17 @@ class ContactImporter {
           totalWorkCount: phoneRows.length,
         );
         for (final row in phoneRows) {
-          final owner = _readNullableInt(row['ZOWNER']);
-          final projectedNumber = projectContactPhoneNumber(row);
-          if (owner == null ||
-              !validContactRowIds.contains(owner) ||
-              projectedNumber == null) {
+          final projection = projectSourceContactChannel(
+            rawOwner: row['ZOWNER'],
+            rawPrimaryValue: row['ZFULLNUMBER'],
+            rawFallbackValue: row['ZVALUE'],
+            rawLabel: row['ZLABEL'],
+            kind: ContactChannelKind.phone,
+            importedContactSourceRowIds: validContactRowIds,
+            sourceId: sourceId,
+            batchId: batchId,
+          );
+          if (projection is OmittedSourceContactChannel) {
             omittedContactChannelCount += 1;
             completedPhoneCount += 1;
             publishSourceImportProgress(
@@ -215,7 +208,7 @@ class ContactImporter {
               unit: SourceImportWorkUnit.contactPhoneChannels,
               completedWorkCount: completedPhoneCount,
               totalWorkCount: phoneRows.length,
-              lastCompletedSourceRowId: owner,
+              lastCompletedSourceRowId: projection.sourceContactRowId,
               anomalyCounts: SourceImportAnomalyCounts(
                 omittedContactRecordCount: omittedContactRecordCount,
                 contactEnrichmentUnavailableCount:
@@ -225,13 +218,10 @@ class ContactImporter {
             );
             continue;
           }
-          final insertedId = await _insertChannel(
-            txn,
-            sourceContactRowId: owner,
-            kind: 'phone',
-            value: projectedNumber,
-            label: readTrimmedContactSourceText(row['ZLABEL']),
-            batchId: batchId,
+          final projectedChannel = projection as ProjectedSourceContactChannel;
+          final insertedId = await txn.insertIgnore(
+            'contact_channels',
+            projectedChannel.ledgerValues,
           );
           if (insertedId != 0) {
             insertedChannelCount += 1;
@@ -242,7 +232,7 @@ class ContactImporter {
             unit: SourceImportWorkUnit.contactPhoneChannels,
             completedWorkCount: completedPhoneCount,
             totalWorkCount: phoneRows.length,
-            lastCompletedSourceRowId: owner,
+            lastCompletedSourceRowId: projectedChannel.sourceContactRowId,
             anomalyCounts: SourceImportAnomalyCounts(
               omittedContactRecordCount: omittedContactRecordCount,
               contactEnrichmentUnavailableCount:
@@ -267,36 +257,4 @@ class ContactImporter {
       await sourceDb.close();
     }
   }
-
-  Future<int> _insertChannel(
-    ImportLedgerWriteTransaction txn, {
-    required int sourceContactRowId,
-    required String kind,
-    required String value,
-    required int batchId,
-    String? label,
-  }) {
-    return txn.insertIgnore('contact_channels', <String, Object?>{
-      'source_id': sourceId,
-      'source_contact_rowid': sourceContactRowId,
-      'contact_ss_id': SourceScopedRowKey.pack(
-        sourceId: sourceId,
-        sourceRowId: sourceContactRowId,
-      ),
-      'kind': kind,
-      'value': value,
-      'label': label,
-      'batch_id': batchId,
-    });
-  }
-}
-
-int? _readNullableInt(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double) {
-    return value.round();
-  }
-  return null;
 }
