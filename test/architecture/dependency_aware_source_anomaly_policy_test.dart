@@ -27,6 +27,10 @@ void main() {
         'lib/essentials/source_scoped_import/application/chats/'
         'chat_importer.dart',
       ).readAsStringSync();
+      final chatProjection = File(
+        'lib/essentials/source_scoped_import/application/chats/'
+        'chat_source_projection.dart',
+      ).readAsStringSync();
       final messageImporter = File(
         'lib/essentials/source_scoped_import/application/messages/'
         'message_importer.dart',
@@ -36,7 +40,13 @@ void main() {
         'message_source_projection.dart',
       ).readAsStringSync();
 
-      expect(chatImporter, contains("_requiredString(row, 'guid')"));
+      expect(
+        chatProjection,
+        contains("requiredGuid => _requiredString(guid, 'guid')"),
+      );
+      expect(chatProjection, contains("'guid': input.requiredGuid"));
+      expect(chatProjection, contains('DateConverter.appleToIsoString'));
+      expect(chatImporter, contains('projectSourceChat('));
       expect(
         messageProjection,
         contains("_requiredString(input.guid, 'guid')"),
