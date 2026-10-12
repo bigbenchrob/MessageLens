@@ -557,6 +557,198 @@ void main() {
     expect(result.insertedMessageCount, 2);
     expect(result.anomalyCounts.unresolvedReactionTargetCount, 0);
   });
+
+  test(
+    'characterizes the production writer persisted rows, anomalies, and progress',
+    () async {
+      const modernReadDate = 789004800000000000;
+      const modernDeliveredDate = 789091200000000000;
+      await _insertSourceMessage(
+        chatDbPath,
+        rowId: 4,
+        guid: 'message-characterization-4',
+        handleId: 24,
+        isFromMe: -1,
+        date: 364929382,
+        dateRead: modernReadDate,
+        dateDelivered: modernDeliveredDate,
+        text: 'source text',
+        associatedMessageGuid: 'associated-4',
+        itemType: 7,
+        threadOriginatorGuid: 'thread-4',
+        error: 42,
+        isSystemMessage: 1,
+        attributedBody: Uint8List.fromList(<int>[1, 2, 3]),
+        messageSummaryInfo: Uint8List.fromList(<int>[4]),
+        payloadData: Uint8List.fromList(<int>[5, 6]),
+      );
+      await _linkSourceMessageToChat(chatDbPath, rowId: 4);
+      await _insertSourceMessage(
+        chatDbPath,
+        rowId: 9,
+        guid: 'message-characterization-9',
+        handleId: 0,
+        isFromMe: 0,
+        text: '',
+        associatedMessageGuid: 'p:0/missing-target',
+        associatedMessageType: 2000,
+      );
+
+      final progress = <SourceImportWorkProgress>[];
+      final metrics = <SourceImportPageMetric>[];
+      final boundaries = <MessageImportPageBoundaryObservation>[];
+      final importer = MessageImporter(
+        chatDbPath: chatDbPath,
+        importLedger: importDatabase,
+        sourceDatabaseOpener: const SqfliteSourceDatabaseOpener(),
+        pageSize: 1,
+        onPageMetric: metrics.add,
+        onPageBoundary: boundaries.add,
+      );
+
+      final firstResult = await importer.importNewMessages(
+        onProgress: progress.add,
+      );
+      final persistedRows = await importDatabase.database.query(
+        'messages',
+        orderBy: 'source_rowid ASC',
+      );
+
+      expect(firstResult.startedAfterSourceRowId, 0);
+      expect(firstResult.insertedMessageCount, 2);
+      expect(firstResult.lastImportedSourceRowId, 9);
+      expect(firstResult.anomalyCounts.messageTimestampUnavailableCount, 1);
+      expect(firstResult.anomalyCounts.recoveredUnlinkedMessageCount, 1);
+      expect(firstResult.anomalyCounts.unresolvedReactionTargetCount, 1);
+      expect(
+        persistedRows.map(_messageLedgerRowSnapshot).toList(),
+        <Map<String, Object?>>[
+          <String, Object?>{
+            'ss_id': SourceScopedRowKey.pack(
+              sourceId: liveChatDbSourceId,
+              sourceRowId: 4,
+            ),
+            'source_id': liveChatDbSourceId,
+            'source_rowid': 4,
+            'guid': 'message-characterization-4',
+            'sender_handle_ss_id': SourceScopedRowKey.pack(
+              sourceId: liveChatDbSourceId,
+              sourceRowId: 24,
+            ),
+            'is_from_me': 1,
+            'date_utc': DateConverter.appleToIsoString(364929382),
+            'date_read_utc': DateConverter.appleToIsoString(modernReadDate),
+            'date_delivered_utc': DateConverter.appleToIsoString(
+              modernDeliveredDate,
+            ),
+            'text': 'source text',
+            'attributed_body_blob': <int>[1, 2, 3],
+            'associated_message_guid': 'associated-4',
+            'raw_item_type': 7,
+            'raw_associated_message_type': null,
+            'thread_originator_guid': 'thread-4',
+            'error_code': 42,
+            'is_system_message': 1,
+            'has_attributed_body_source': 1,
+            'has_message_summary_info': 1,
+            'has_payload_data_source': 1,
+            'batch_id': 1,
+          },
+          <String, Object?>{
+            'ss_id': SourceScopedRowKey.pack(
+              sourceId: liveChatDbSourceId,
+              sourceRowId: 9,
+            ),
+            'source_id': liveChatDbSourceId,
+            'source_rowid': 9,
+            'guid': 'message-characterization-9',
+            'sender_handle_ss_id': null,
+            'is_from_me': 0,
+            'date_utc': null,
+            'date_read_utc': null,
+            'date_delivered_utc': null,
+            'text': null,
+            'attributed_body_blob': null,
+            'associated_message_guid': 'p:0/missing-target',
+            'raw_item_type': null,
+            'raw_associated_message_type': 2000,
+            'thread_originator_guid': null,
+            'error_code': null,
+            'is_system_message': 0,
+            'has_attributed_body_source': 0,
+            'has_message_summary_info': 0,
+            'has_payload_data_source': 0,
+            'batch_id': 1,
+          },
+        ],
+      );
+      expect(
+        progress
+            .map(
+              (observation) => <Object?>[
+                observation.unit,
+                observation.completedWorkCount,
+                observation.totalWorkCount,
+                observation.lastCompletedSourceRowId,
+              ],
+            )
+            .toList(),
+        <List<Object?>>[
+          <Object?>[SourceImportWorkUnit.messages, 0, 2, null],
+          <Object?>[SourceImportWorkUnit.messages, 2, 2, 9],
+        ],
+      );
+      expect(
+        metrics
+            .map(
+              (metric) => <Object?>[
+                metric.outcome,
+                metric.pageOrdinal,
+                metric.pageRowCount,
+                metric.cumulativeCompletedCount,
+                metric.totalBlobBytes,
+                metric.maximumBlobBytes,
+              ],
+            )
+            .toList(),
+        <List<Object?>>[
+          <Object?>[SourceImportPageOutcome.completed, 1, 1, 1, 3, 3],
+          <Object?>[SourceImportPageOutcome.completed, 2, 1, 2, 0, 0],
+        ],
+      );
+      expect(
+        boundaries
+            .map(
+              (boundary) => <Object?>[
+                boundary.boundary,
+                boundary.pageOrdinal,
+                boundary.pageRowCount,
+                boundary.cumulativeCommittedCount,
+              ],
+            )
+            .toList(),
+        <List<Object?>>[
+          <Object?>[MessageImportPageBoundary.beforePersistence, 1, 1, 0],
+          <Object?>[MessageImportPageBoundary.beforePersistence, 2, 1, 1],
+        ],
+      );
+
+      final secondResult = await importer.importNewMessages();
+      expect(secondResult.startedAfterSourceRowId, 9);
+      expect(secondResult.insertedMessageCount, 0);
+      expect(secondResult.lastImportedSourceRowId, isNull);
+      expect(await importDatabase.database.query('messages'), hasLength(2));
+    },
+  );
+}
+
+Map<String, Object?> _messageLedgerRowSnapshot(Map<String, Object?> row) {
+  final snapshot = <String, Object?>{};
+  for (final entry in row.entries) {
+    final value = entry.value;
+    snapshot[entry.key] = value is Uint8List ? List<int>.from(value) : value;
+  }
+  return snapshot;
 }
 
 Future<void> _createSourceMessageTable(String chatDbPath) async {
@@ -598,6 +790,8 @@ Future<void> _insertSourceMessage(
   required int handleId,
   required int isFromMe,
   int? date,
+  int? dateRead,
+  int? dateDelivered,
   String? text,
   String? associatedMessageGuid,
   int? itemType,
@@ -616,6 +810,8 @@ Future<void> _insertSourceMessage(
     'handle_id': handleId,
     'is_from_me': isFromMe,
     'date': date,
+    'date_read': dateRead,
+    'date_delivered': dateDelivered,
     'text': text,
     'attributedBody': attributedBody,
     'associated_message_guid': associatedMessageGuid,
@@ -626,6 +822,18 @@ Future<void> _insertSourceMessage(
     'is_system_message': isSystemMessage,
     'message_summary_info': messageSummaryInfo,
     'payload_data': payloadData,
+  });
+  await db.close();
+}
+
+Future<void> _linkSourceMessageToChat(
+  String chatDbPath, {
+  required int rowId,
+}) async {
+  final db = await openDatabase(chatDbPath);
+  await db.insert('chat_message_join', <String, Object?>{
+    'chat_id': 1,
+    'message_id': rowId,
   });
   await db.close();
 }

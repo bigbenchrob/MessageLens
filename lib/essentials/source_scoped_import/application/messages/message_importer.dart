@@ -1,14 +1,11 @@
-import 'dart:typed_data';
-
-import '../../../../core/util/date_converter.dart';
 import '../../domain/apple_associated_message_reference.dart';
 import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_page_metric.dart';
 import '../source_import_work_progress.dart';
+import 'message_source_projection.dart';
 
 const int defaultMessageImportPageSize = 500;
 
@@ -143,10 +140,13 @@ class MessageImporter {
             );
           }
           pageRowCount = rows.length;
+          final projectionInputs = rows
+              .map(MessageSourceProjectionInput.fromSourceRow)
+              .toList(growable: false);
           final associatedTargetGuids = <String>{
-            for (final row in rows)
-              if (_nullableInt(row, 'associated_message_type') != null)
-                if (_nullableString(row, 'associated_message_guid')
+            for (final input in projectionInputs)
+              if (input.nullableAssociatedMessageType != null)
+                if (input.nullableAssociatedMessageGuid
                     case final String reference)
                   appleAssociatedMessageTargetGuid(reference),
           };
@@ -167,12 +167,12 @@ class MessageImporter {
             ),
           );
           await importLedger.writeTransaction((txn) async {
-            for (final row in rows) {
+            for (final input in projectionInputs) {
               int? sourceRowId;
               try {
-                sourceRowId = _requiredInt(row, 'source_rowid');
+                sourceRowId = input.requiredSourceRowId;
                 pageLastSourceRowId = sourceRowId;
-                final attributedBody = _nullableBlob(row, 'attributedBody');
+                final attributedBody = input.nullableAttributedBody;
                 if (attributedBody != null) {
                   pageBlobBytes += attributedBody.length;
                   if (attributedBody.length > maximumPageBlobBytes) {
@@ -180,18 +180,16 @@ class MessageImporter {
                   }
                 }
 
-                final dateUtc = DateConverter.appleToIsoString(row['date']);
+                final dateUtc = input.dateUtc;
                 if (dateUtc == null) {
                   pageMessageTimestampUnavailableCount += 1;
                 }
-                if (_nullableInt(row, 'has_chat_relationship') != 1) {
+                if (input.nullableHasChatRelationship != 1) {
                   pageRecoveredUnlinkedMessageCount += 1;
                 }
-                final associatedMessageReference = _nullableString(
-                  row,
-                  'associated_message_guid',
-                );
-                if (_nullableInt(row, 'associated_message_type') != null &&
+                final associatedMessageReference =
+                    input.nullableAssociatedMessageGuid;
+                if (input.nullableAssociatedMessageType != null &&
                     associatedMessageReference != null &&
                     !resolvedAssociatedTargetGuids.contains(
                       appleAssociatedMessageTargetGuid(
@@ -201,51 +199,15 @@ class MessageImporter {
                   pageUnresolvedReactionTargetCount += 1;
                 }
 
-                final insertedId = await txn.insertIgnore('messages', <
-                  String,
-                  Object?
-                >{
-                  'ss_id': SourceScopedRowKey.pack(
-                    sourceId: sourceId,
-                    sourceRowId: sourceRowId,
-                  ),
-                  'source_id': sourceId,
-                  'source_rowid': sourceRowId,
-                  'guid': _requiredString(row, 'guid'),
-                  'sender_handle_ss_id': _senderHandleSsId(row),
-                  'is_from_me': _boolInt(row, 'is_from_me'),
-                  'date_utc': dateUtc,
-                  'date_read_utc': DateConverter.appleToIsoString(
-                    row['date_read'],
-                  ),
-                  'date_delivered_utc': DateConverter.appleToIsoString(
-                    row['date_delivered'],
-                  ),
-                  'text': _nullableString(row, 'text'),
-                  'attributed_body_blob': attributedBody,
-                  'associated_message_guid': associatedMessageReference,
-                  'raw_item_type': _nullableInt(row, 'item_type'),
-                  'raw_associated_message_type': _nullableInt(
-                    row,
-                    'associated_message_type',
-                  ),
-                  'thread_originator_guid': _nullableString(
-                    row,
-                    'thread_originator_guid',
-                  ),
-                  'error_code': _nullableInt(row, 'error'),
-                  'is_system_message': _boolIntOrZero(row, 'is_system_message'),
-                  'has_attributed_body_source': attributedBody == null ? 0 : 1,
-                  'has_message_summary_info': _boolIntOrZero(
-                    row,
-                    'has_message_summary_info',
-                  ),
-                  'has_payload_data_source': _boolIntOrZero(
-                    row,
-                    'has_payload_data_source',
-                  ),
-                  'batch_id': batchId,
-                });
+                final projection = projectSourceMessage(
+                  input: input,
+                  sourceId: sourceId,
+                  batchId: batchId,
+                );
+                final insertedId = await txn.insertIgnore(
+                  'messages',
+                  projection.ledgerValues,
+                );
 
                 if (insertedId != 0) {
                   pageInsertedMessageCount += 1;
@@ -346,72 +308,5 @@ class MessageImporter {
     } finally {
       await sourceDb.close();
     }
-  }
-
-  int? _senderHandleSsId(Map<String, Object?> row) {
-    final handleId = _nullableInt(row, 'handle_id');
-    if (handleId == null || handleId <= 0) {
-      return null;
-    }
-    return SourceScopedRowKey.pack(sourceId: sourceId, sourceRowId: handleId);
-  }
-
-  static int _boolInt(Map<String, Object?> row, String field) {
-    final value = _requiredInt(row, field);
-    return value == 0 ? 0 : 1;
-  }
-
-  static int _boolIntOrZero(Map<String, Object?> row, String field) {
-    final value = _nullableInt(row, field);
-    if (value == null) {
-      return 0;
-    }
-    return value == 0 ? 0 : 1;
-  }
-
-  static String _requiredString(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is String && value.isNotEmpty) {
-      return value;
-    }
-    throw StateError('message.$field is required');
-  }
-
-  static int _requiredInt(Map<String, Object?> row, String field) {
-    final value = _nullableInt(row, field);
-    if (value == null) {
-      throw StateError('message.$field is required');
-    }
-    return value;
-  }
-
-  static int? _nullableInt(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return null;
-  }
-
-  static String? _nullableString(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is String && value.isNotEmpty) {
-      return value;
-    }
-    return null;
-  }
-
-  static Uint8List? _nullableBlob(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is Uint8List) {
-      return value;
-    }
-    if (value is List<int>) {
-      return Uint8List.fromList(value);
-    }
-    return null;
   }
 }

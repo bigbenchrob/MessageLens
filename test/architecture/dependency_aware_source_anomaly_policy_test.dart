@@ -31,10 +31,18 @@ void main() {
         'lib/essentials/source_scoped_import/application/messages/'
         'message_importer.dart',
       ).readAsStringSync();
+      final messageProjection = File(
+        'lib/essentials/source_scoped_import/application/messages/'
+        'message_source_projection.dart',
+      ).readAsStringSync();
 
       expect(chatImporter, contains("_requiredString(row, 'guid')"));
-      expect(messageImporter, contains("_requiredString(row, 'guid')"));
-      expect(messageImporter, contains('DateConverter.appleToIsoString'));
+      expect(
+        messageProjection,
+        contains("_requiredString(input.guid, 'guid')"),
+      );
+      expect(messageProjection, contains('DateConverter.appleToIsoString'));
+      expect(messageImporter, contains('projectSourceMessage('));
       expect(messageImporter, isNot(contains('DateTime(2001')));
     },
   );
