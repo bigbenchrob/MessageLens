@@ -10,6 +10,10 @@ void main() {
         'lib/essentials/source_scoped_import/application/handles/'
         'handle_importer.dart',
       ).readAsStringSync();
+      final sourceProjection = File(
+        'lib/essentials/source_scoped_import/application/handles/'
+        'handle_source_projection.dart',
+      ).readAsStringSync();
       final projection = File(
         'lib/essentials/conversation_graph/infrastructure/repositories/'
         'handle_projection_repository.dart',
@@ -18,7 +22,8 @@ void main() {
         'lib/essentials/db/shared/handle_identifier_utils.dart',
       ).readAsStringSync();
 
-      expect(importer, contains('SourceScopedRowKey.pack'));
+      expect(sourceProjection, contains('SourceScopedRowKey.pack'));
+      expect(importer, isNot(contains('SourceScopedRowKey.pack')));
       expect(importer, contains('preservedUnnormalizedHandleCount'));
       expect(projection, contains('PreservedUnnormalizedHandleIdentifier'));
       expect(projection, isNot(contains('buildCanonicalHandleGroupingKey')));

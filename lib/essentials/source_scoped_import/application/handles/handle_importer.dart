@@ -3,8 +3,8 @@ import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
+import 'handle_source_projection.dart';
 
 class HandleImportResult {
   const HandleImportResult({
@@ -143,34 +143,32 @@ class HandleImporter {
         for (final row in rows) {
           int? sourceRowId;
           try {
-            sourceRowId = _requiredInt(row, 'source_rowid');
+            final input = HandleSourceProjectionInput.fromSourceRow(row);
+            sourceRowId = input.requiredSourceRowId;
             if (sourceRowId > startedAfterSourceRowId) {
               lastImportedSourceRowId = sourceRowId;
             }
-            final rawIdentifier = _requiredString(row, 'id');
-            final interpretation = _interpretIdentifier(rawIdentifier);
-            switch (interpretation) {
+            final rawIdentifier = input.requiredIdentifier;
+            final isMe = localAccountHandleKeys.contains(
+              _handleGroupingKey(rawIdentifier),
+            );
+            final projected = projectSourceHandle(
+              input: input,
+              sourceId: sourceId,
+              batchId: batchId,
+              isMe: isMe,
+              handleIdentifierInterpreter: handleIdentifierInterpreter,
+            );
+            switch (projected.identifierInterpretation) {
               case NormalizedHandleIdentifier():
                 normalizedHandleCount += 1;
               case PreservedUnnormalizedHandleIdentifier():
                 preservedUnnormalizedHandleCount += 1;
             }
-            final isMe = localAccountHandleKeys.contains(
-              _handleGroupingKey(rawIdentifier),
+            final insertedId = await txn.insertIgnore(
+              'handles',
+              projected.ledgerValues,
             );
-            final insertedId = await txn
-                .insertIgnore('handles', <String, Object?>{
-                  'ss_id': SourceScopedRowKey.pack(
-                    sourceId: sourceId,
-                    sourceRowId: sourceRowId,
-                  ),
-                  'source_id': sourceId,
-                  'source_rowid': sourceRowId,
-                  'id': rawIdentifier,
-                  'service': _nullableString(row, 'service'),
-                  'is_me': isMe ? 1 : 0,
-                  'batch_id': batchId,
-                });
 
             if (insertedId == 0) {
               await txn.update(
@@ -217,14 +215,6 @@ class HandleImporter {
       normalizedHandleCount: normalizedHandleCount,
       preservedUnnormalizedHandleCount: preservedUnnormalizedHandleCount,
     );
-  }
-
-  HandleIdentifierInterpretation _interpretIdentifier(String rawIdentifier) {
-    try {
-      return handleIdentifierInterpreter(rawIdentifier);
-    } on HandleIdentifierNormalizationException {
-      return const HandleIdentifierInterpretation.preservedUnnormalized();
-    }
   }
 
   Future<Set<String>> _readLocalAccountHandleKeys(
