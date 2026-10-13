@@ -1,10 +1,9 @@
-import '../../../../core/util/date_converter.dart';
 import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
+import 'attachment_source_projection.dart';
 
 class AttachmentImportResult {
   const AttachmentImportResult({
@@ -82,30 +81,20 @@ class AttachmentImporter {
       );
       await importLedger.writeTransaction((txn) async {
         for (final row in rows) {
-          final sourceRowId = _requiredInt(row, 'source_rowid');
+          final projection = projectSourceAttachment(
+            input: AttachmentSourceProjectionInput.fromSourceRow(row),
+            sourceId: sourceId,
+            batchId: batchId,
+          );
+          final sourceRowId = projection.sourceRowId;
           lastImportedSourceRowId = sourceRowId;
-          if (_hasNoDescriptiveMetadata(row)) {
+          if (projection.metadataDegraded) {
             metadataDegradedCount += 1;
           }
-          final insertedId = await txn
-              .insertIgnore('attachments', <String, Object?>{
-                'ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceRowId,
-                ),
-                'source_id': sourceId,
-                'source_rowid': sourceRowId,
-                'guid': _nullableString(row, 'guid'),
-                'filename': _nullableString(row, 'filename'),
-                'transfer_name': _nullableString(row, 'transfer_name'),
-                'uti': _nullableString(row, 'uti'),
-                'mime_type': _nullableString(row, 'mime_type'),
-                'total_bytes': _nullableInt(row, 'total_bytes'),
-                'created_at_utc':
-                    DateConverter.appleToIsoString(row['created_date']) ??
-                    DateConverter.appleToIsoString(row['created_at']),
-                'batch_id': batchId,
-              });
+          final insertedId = await txn.insertIgnore(
+            'attachments',
+            projection.ledgerValues,
+          );
 
           if (insertedId != 0) {
             insertedAttachmentCount += 1;
@@ -136,40 +125,5 @@ class AttachmentImporter {
     } finally {
       await sourceDb.close();
     }
-  }
-
-  static int _requiredInt(Map<String, Object?> row, String field) {
-    final value = _nullableInt(row, field);
-    if (value == null) {
-      throw StateError('attachment.$field is required');
-    }
-    return value;
-  }
-
-  static int? _nullableInt(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is int) {
-      return value;
-    }
-    if (value is double) {
-      return value.round();
-    }
-    return null;
-  }
-
-  static String? _nullableString(Map<String, Object?> row, String field) {
-    final value = row[field];
-    if (value is String && value.isNotEmpty) {
-      return value;
-    }
-    return null;
-  }
-
-  static bool _hasNoDescriptiveMetadata(Map<String, Object?> row) {
-    return _nullableString(row, 'guid') == null &&
-        _nullableString(row, 'filename') == null &&
-        _nullableString(row, 'transfer_name') == null &&
-        _nullableString(row, 'uti') == null &&
-        _nullableString(row, 'mime_type') == null;
   }
 }
