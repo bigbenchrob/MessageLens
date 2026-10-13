@@ -2,8 +2,8 @@ import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
+import 'message_attachment_relationship_source_projection.dart';
 
 class MessageAttachmentJoinImportResult {
   const MessageAttachmentJoinImportResult({
@@ -101,13 +101,18 @@ class MessageAttachmentJoinImporter {
       await importLedger.writeTransaction((txn) async {
         for (final row in rows) {
           final sourceRowId = _requiredInt(row, 'source_rowid');
-          final sourceMessageRowId = _nullableInt(row, 'message_id');
-          final sourceAttachmentRowId = _nullableInt(row, 'attachment_id');
+          final projectionInput =
+              MessageAttachmentRelationshipSourceProjectionInput.fromSourceRow(
+                row,
+              );
+          final sourceMessageRowId = projectionInput.nullableSourceMessageRowId;
+          final sourceAttachmentRowId =
+              projectionInput.nullableSourceAttachmentRowId;
           final hasEndpoints =
               sourceMessageRowId != null &&
               sourceAttachmentRowId != null &&
-              _nullableInt(row, 'existing_message_rowid') != null &&
-              _nullableInt(row, 'existing_attachment_rowid') != null;
+              _nullableEndpointRowId(row['existing_message_rowid']) != null &&
+              _nullableEndpointRowId(row['existing_attachment_rowid']) != null;
           if (!hasEndpoints) {
             omittedJoinCount += 1;
             completedJoinCount += 1;
@@ -123,22 +128,15 @@ class MessageAttachmentJoinImporter {
             );
             continue;
           }
-          final insertedId = await txn
-              .insertIgnore('message_to_attachment', <String, Object?>{
-                'message_source_id': sourceId,
-                'attachment_source_id': sourceId,
-                'source_message_rowid': sourceMessageRowId,
-                'source_attachment_rowid': sourceAttachmentRowId,
-                'message_ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceMessageRowId,
-                ),
-                'attachment_ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceAttachmentRowId,
-                ),
-                'batch_id': batchId,
-              });
+          final projected = projectSourceMessageAttachmentRelationship(
+            projectionInput,
+            sourceId,
+            batchId,
+          );
+          final insertedId = await txn.insertIgnore(
+            'message_to_attachment',
+            projected.ledgerValues,
+          );
 
           if (insertedId != 0) {
             insertedJoinCount += 1;
@@ -168,15 +166,14 @@ class MessageAttachmentJoinImporter {
   }
 
   static int _requiredInt(Map<String, Object?> row, String field) {
-    final value = _nullableInt(row, field);
+    final value = _nullableEndpointRowId(row[field]);
     if (value != null) {
       return value;
     }
     throw StateError('message_attachment_join.$field is required');
   }
 
-  static int? _nullableInt(Map<String, Object?> row, String field) {
-    final value = row[field];
+  static int? _nullableEndpointRowId(Object? value) {
     if (value is int) {
       return value;
     }
