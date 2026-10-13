@@ -2,8 +2,8 @@ import '../../domain/known_sources.dart';
 import '../../domain/ports/import_ledger_port.dart';
 import '../../domain/ports/source_database_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
-import '../../domain/source_scoped_row_key.dart';
 import '../source_import_work_progress.dart';
+import 'chat_handle_relationship_source_projection.dart';
 
 class ChatHandleJoinImportResult {
   const ChatHandleJoinImportResult({
@@ -61,13 +61,15 @@ class ChatHandleJoinImporter {
       await importLedger.writeTransaction((txn) async {
         for (final row in rows) {
           final sourceRowId = _requiredInt(row, 'source_rowid');
-          final sourceChatRowId = _nullableInt(row, 'chat_id');
-          final sourceHandleRowId = _nullableInt(row, 'handle_id');
+          final projectionInput =
+              ChatHandleRelationshipSourceProjectionInput.fromSourceRow(row);
+          final sourceChatRowId = projectionInput.nullableSourceChatRowId;
+          final sourceHandleRowId = projectionInput.nullableSourceHandleRowId;
           final hasEndpoints =
               sourceChatRowId != null &&
               sourceHandleRowId != null &&
-              _nullableInt(row, 'existing_chat_rowid') != null &&
-              _nullableInt(row, 'existing_handle_rowid') != null;
+              _nullableEndpointRowId(row['existing_chat_rowid']) != null &&
+              _nullableEndpointRowId(row['existing_handle_rowid']) != null;
           if (!hasEndpoints) {
             omittedJoinCount += 1;
             completedJoinCount += 1;
@@ -83,21 +85,15 @@ class ChatHandleJoinImporter {
             );
             continue;
           }
-          final insertedId = await txn
-              .insertIgnore('chat_to_handle', <String, Object?>{
-                'source_id': sourceId,
-                'source_chat_rowid': sourceChatRowId,
-                'source_handle_rowid': sourceHandleRowId,
-                'chat_ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceChatRowId,
-                ),
-                'handle_ss_id': SourceScopedRowKey.pack(
-                  sourceId: sourceId,
-                  sourceRowId: sourceHandleRowId,
-                ),
-                'batch_id': batchId,
-              });
+          final projected = projectSourceChatHandleRelationship(
+            projectionInput,
+            sourceId,
+            batchId,
+          );
+          final insertedId = await txn.insertIgnore(
+            'chat_to_handle',
+            projected.ledgerValues,
+          );
 
           if (insertedId != 0) {
             insertedJoinCount += 1;
@@ -127,15 +123,14 @@ class ChatHandleJoinImporter {
   }
 
   static int _requiredInt(Map<String, Object?> row, String field) {
-    final value = _nullableInt(row, field);
+    final value = _nullableEndpointRowId(row[field]);
     if (value != null) {
       return value;
     }
     throw StateError('chat_handle_join.$field is required');
   }
 
-  static int? _nullableInt(Map<String, Object?> row, String field) {
-    final value = row[field];
+  static int? _nullableEndpointRowId(Object? value) {
     if (value is int) {
       return value;
     }
