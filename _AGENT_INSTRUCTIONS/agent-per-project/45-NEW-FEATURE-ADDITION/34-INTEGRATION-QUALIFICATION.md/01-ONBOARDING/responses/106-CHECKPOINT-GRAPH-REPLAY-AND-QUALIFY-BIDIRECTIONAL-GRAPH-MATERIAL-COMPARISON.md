@@ -72,7 +72,7 @@ tests were rerun with the verified binary at
 
 The implementation checkpoint is:
 
-`1c1f8f627e89c4a36a59fd9e0313b7657068e701` —
+`1c1f8f62b1af73991b2317aac869dbc411557594` —
 `test(graph): qualify material replay comparison`
 
 It contains only:
@@ -81,9 +81,14 @@ It contains only:
 - `test/essentials/conversation_graph/application/reconstruction/production_graph_replay_feasibility_test.dart`
 
 It was pushed before this response was written. Prompt 106 and this response
-form the separate documentation checkpoint containing this record; its exact
-resulting hash is reported in the final handoff because a commit cannot contain
-its own hash.
+were then checkpointed and pushed at:
+
+`3ce832470b1728301a5160a58085e8a32aa03f9f` —
+`docs(feature34): record graph material comparison qualification`
+
+The subsequent documentation-only correction records the authoritative full
+implementation hash above without rewriting published history; its exact hash
+is reported in the final handoff because a commit cannot contain its own hash.
 
 No `lib/`, macOS, Rust, generated, dependency, release-metadata, schema,
 migration, provider, AppCzar, archive, or Start Fresh file changed.
@@ -245,7 +250,7 @@ disposable graphs. It cannot authorize replacement or publish AppCzar facts.
 ## 11. Validation and retry provenance
 
 Final-state validation attributable to implementation commit
-`1c1f8f627e89c4a36a59fd9e0313b7657068e701`:
+`1c1f8f62b1af73991b2317aac869dbc411557594`:
 
 - pre-edit comparator characterization: **PASS**, 3/3 tests using the verified
   absolute Flutter binary
@@ -327,7 +332,7 @@ nonconvergence remains an explicit mismatch, not an exemption.
 
 The implementation checkpoint was pushed before documentation. At that
 boundary HEAD and upstream were synchronized at
-`1c1f8f627e89c4a36a59fd9e0313b7657068e701`, the tracked worktree and index
+`1c1f8f62b1af73991b2317aac869dbc411557594`, the tracked worktree and index
 were clean, and the shared-instructions submodule remained clean at
 `95326f515ef4719f155ce6e223990398daad6311`.
 
