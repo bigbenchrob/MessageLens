@@ -196,6 +196,153 @@ void main() {
   });
 
   test(
+    'trims decoded text and accounts empty decoder output as missing',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[1]),
+      );
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 101,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[2]),
+      );
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 102,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[3]),
+      );
+
+      final result = await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: importDatabase,
+        extractor: const _FakeExtractor(<int, String>{
+          100: '  decoded text  ',
+          101: '',
+          102: ' \n\t ',
+        }),
+      ).enrichMissingText();
+      final rows = await importDatabase.database.query(
+        'messages',
+        columns: <String>['source_rowid', 'text'],
+        orderBy: 'source_rowid ASC',
+      );
+
+      expect(result.enrichedMessageCount, 1);
+      expect(result.missingExtractionCount, 2);
+      expect(result.anomalyCounts.richTextDecodeUnavailableCount, 2);
+      expect(rows.map((row) => row['text']), <Object?>[
+        'decoded text',
+        null,
+        null,
+      ]);
+    },
+  );
+
+  test(
+    'admits the exact default byte ceiling and excludes one byte over',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List(defaultMaximumAttributedBodyBlobBytes),
+      );
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 101,
+        text: null,
+        attributedBodyBlob: Uint8List(
+          defaultMaximumAttributedBodyBlobBytes + 1,
+        ),
+      );
+      final extractor = _RecordingExtractor();
+
+      final result = await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: importDatabase,
+        extractor: extractor,
+      ).enrichMissingText();
+      final rows = await importDatabase.database.query(
+        'messages',
+        columns: <String>['source_rowid', 'text'],
+        orderBy: 'source_rowid ASC',
+      );
+
+      expect(extractor.calls, hasLength(1));
+      expect(
+        extractor.calls.single.values.single.length,
+        defaultMaximumAttributedBodyBlobBytes,
+      );
+      expect(result.enrichedMessageCount, 1);
+      expect(result.missingExtractionCount, 1);
+      expect(rows.map((row) => row['text']), <Object?>['decoded', null]);
+    },
+  );
+
+  test('loaded blob length mismatch is not sent to the decoder', () async {
+    await _insertImportMessage(
+      importDatabase,
+      sourceRowId: 100,
+      text: null,
+      attributedBodyBlob: Uint8List.fromList(<int>[1, 2, 3]),
+    );
+    final ssId = SourceScopedRowKey.pack(
+      sourceId: liveChatDbSourceId,
+      sourceRowId: 100,
+    );
+    final extractor = _RecordingExtractor();
+
+    final result = await MessageRichTextEnricher(
+      chatDbPath: '/fake/chat.db',
+      importLedger: _InterruptingImportLedger(
+        importDatabase,
+        truncatedBlobSsIds: <int>{ssId},
+      ),
+      extractor: extractor,
+    ).enrichMissingText();
+
+    expect(extractor.calls, isEmpty);
+    expect(result.enrichedMessageCount, 0);
+    expect(result.missingExtractionCount, 1);
+    expect(
+      (await importDatabase.database.query('messages')).single['text'],
+      isNull,
+    );
+  });
+
+  test(
+    'converted per-record decoder failures remain local omissions',
+    () async {
+      for (final rowId in <int>[100, 101]) {
+        await _insertImportMessage(
+          importDatabase,
+          sourceRowId: rowId,
+          text: null,
+          attributedBodyBlob: Uint8List.fromList(<int>[rowId]),
+        );
+      }
+
+      final result = await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: importDatabase,
+        // The extractor port represents both caught native errors and
+        // panic-converted failures by omitting the affected work ID.
+        extractor: const _FakeExtractor(<int, String>{}),
+      ).enrichMissingText();
+
+      expect(result.candidateMessageCount, 2);
+      expect(result.enrichedMessageCount, 0);
+      expect(result.missingExtractionCount, 2);
+      expect(result.anomalyCounts.richTextDecodeUnavailableCount, 2);
+    },
+  );
+
+  test(
     'over-budget body is not materialized or decoded and later rows continue',
     () async {
       await _insertImportMessage(
@@ -549,6 +696,140 @@ void main() {
   });
 
   test(
+    'conditional text update loses a concurrent-write race without overwrite',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[1, 2, 3]),
+      );
+      final ledger = _InterruptingImportLedger(
+        importDatabase,
+        onBeforeTransaction: (transactionOrdinal) async {
+          await importDatabase.database.update(
+            'messages',
+            <String, Object?>{'text': 'concurrent text'},
+            where: 'source_rowid = ?',
+            whereArgs: <Object?>[100],
+          );
+        },
+      );
+
+      final result = await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: ledger,
+        extractor: const _FakeExtractor(<int, String>{100: 'decoded text'}),
+      ).enrichMissingText();
+
+      expect(result.enrichedMessageCount, 0);
+      expect(result.missingExtractionCount, 0);
+      expect(
+        (await importDatabase.database.query('messages')).single['text'],
+        'concurrent text',
+      );
+    },
+  );
+
+  test(
+    'non-empty frozen window without a high-water identity fails closed',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[1]),
+      );
+
+      await expectLater(
+        MessageRichTextEnricher(
+          chatDbPath: '/fake/chat.db',
+          importLedger: _InterruptingImportLedger(
+            importDatabase,
+            forceNullHighWater: true,
+          ),
+          extractor: _RecordingExtractor(),
+        ).enrichMissingText(),
+        throwsA(
+          isA<SourceImportSystemicException>().having(
+            (error) => error.failureCode,
+            'failure code',
+            'rich_text_candidate_window_invalid',
+          ),
+        ),
+      );
+      expect(
+        (await importDatabase.database.query('messages')).single['text'],
+        isNull,
+      );
+    },
+  );
+
+  test(
+    'frozen candidate-count mismatch fails after committed page evidence',
+    () async {
+      await _insertImportMessage(
+        importDatabase,
+        sourceRowId: 100,
+        text: null,
+        attributedBodyBlob: Uint8List.fromList(<int>[1]),
+      );
+
+      await expectLater(
+        MessageRichTextEnricher(
+          chatDbPath: '/fake/chat.db',
+          importLedger: _InterruptingImportLedger(
+            importDatabase,
+            candidateCountOffset: 1,
+          ),
+          extractor: _RecordingExtractor(),
+        ).enrichMissingText(),
+        throwsA(
+          isA<SourceImportSystemicException>().having(
+            (error) => error.failureCode,
+            'failure code',
+            'rich_text_candidate_window_changed',
+          ),
+        ),
+      );
+      expect(
+        (await importDatabase.database.query('messages')).single['text'],
+        'decoded',
+      );
+    },
+  );
+
+  test(
+    'persists decoded candidates in ascending source-scoped order',
+    () async {
+      for (final rowId in <int>[3, 1, 2]) {
+        await _insertImportMessage(
+          importDatabase,
+          sourceRowId: rowId,
+          text: null,
+          attributedBodyBlob: Uint8List.fromList(<int>[rowId]),
+        );
+      }
+      final updatedSsIds = <int>[];
+
+      await MessageRichTextEnricher(
+        chatDbPath: '/fake/chat.db',
+        importLedger: _InterruptingImportLedger(
+          importDatabase,
+          updatedSsIds: updatedSsIds,
+        ),
+        extractor: _RecordingExtractor(),
+      ).enrichMissingText();
+
+      expect(updatedSsIds.map(SourceScopedRowKey.unpackSourceRowId), <int>[
+        1,
+        2,
+        3,
+      ]);
+    },
+  );
+
+  test(
     'reports cumulative monotonic progress including missing decodes',
     () async {
       await _insertManyImportMessages(importDatabase, count: 1001);
@@ -769,11 +1050,21 @@ final class _InterruptingImportLedger implements ImportLedger {
     this.delegate, {
     this.failBeforeTransaction,
     this.failAfterTransaction,
+    this.onBeforeTransaction,
+    this.candidateCountOffset = 0,
+    this.forceNullHighWater = false,
+    this.truncatedBlobSsIds = const <int>{},
+    this.updatedSsIds,
   });
 
   final ImportLedger delegate;
   final int? failBeforeTransaction;
   final int? failAfterTransaction;
+  final Future<void> Function(int transactionOrdinal)? onBeforeTransaction;
+  final int candidateCountOffset;
+  final bool forceNullHighWater;
+  final Set<int> truncatedBlobSsIds;
+  final List<int>? updatedSsIds;
   var _transactionCount = 0;
 
   @override
@@ -838,10 +1129,14 @@ final class _InterruptingImportLedger implements ImportLedger {
   Future<ImportLedgerMessageTextWindow> messageTextEnrichmentWindow({
     int? sourceId,
     int? startedAfterSourceRowId,
-  }) {
-    return delegate.messageTextEnrichmentWindow(
+  }) async {
+    final window = await delegate.messageTextEnrichmentWindow(
       sourceId: sourceId,
       startedAfterSourceRowId: startedAfterSourceRowId,
+    );
+    return ImportLedgerMessageTextWindow(
+      candidateCount: window.candidateCount + candidateCountOffset,
+      highWaterSsId: forceNullHighWater ? null : window.highWaterSsId,
     );
   }
 
@@ -890,11 +1185,17 @@ final class _InterruptingImportLedger implements ImportLedger {
   Future<Map<int, Uint8List>> readMessageTextEnrichmentBlobs({
     required List<int> ssIds,
     required int maximumBlobBytes,
-  }) {
-    return delegate.readMessageTextEnrichmentBlobs(
+  }) async {
+    final blobs = await delegate.readMessageTextEnrichmentBlobs(
       ssIds: ssIds,
       maximumBlobBytes: maximumBlobBytes,
     );
+    return <int, Uint8List>{
+      for (final entry in blobs.entries)
+        entry.key: truncatedBlobSsIds.contains(entry.key)
+            ? Uint8List.sublistView(entry.value, 0, entry.value.length - 1)
+            : entry.value,
+    };
   }
 
   @override
@@ -910,10 +1211,43 @@ final class _InterruptingImportLedger implements ImportLedger {
     if (_transactionCount == failBeforeTransaction) {
       throw StateError('injected before page persistence');
     }
-    final result = await delegate.writeTransaction(action);
+    if (onBeforeTransaction case final callback?) {
+      await callback(_transactionCount);
+    }
+    final result = await delegate.writeTransaction((txn) {
+      final recordedTxn = updatedSsIds == null
+          ? txn
+          : _RecordingWriteTransaction(txn, updatedSsIds!);
+      return action(recordedTxn);
+    });
     if (_transactionCount == failAfterTransaction) {
       throw StateError('injected after page persistence');
     }
     return result;
+  }
+}
+
+final class _RecordingWriteTransaction implements ImportLedgerWriteTransaction {
+  const _RecordingWriteTransaction(this.delegate, this.updatedSsIds);
+
+  final ImportLedgerWriteTransaction delegate;
+  final List<int> updatedSsIds;
+
+  @override
+  Future<int> insertIgnore(String table, Map<String, Object?> values) {
+    return delegate.insertIgnore(table, values);
+  }
+
+  @override
+  Future<int> update(
+    String table,
+    Map<String, Object?> values, {
+    String? where,
+    List<Object?>? whereArgs,
+  }) {
+    if (table == 'messages' && whereArgs != null && whereArgs.single is int) {
+      updatedSsIds.add(whereArgs.single! as int);
+    }
+    return delegate.update(table, values, where: where, whereArgs: whereArgs);
   }
 }

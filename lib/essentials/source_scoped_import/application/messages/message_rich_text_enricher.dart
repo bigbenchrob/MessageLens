@@ -5,6 +5,7 @@ import '../../domain/ports/message_extractor_port.dart';
 import '../../domain/source_import_anomaly_counts.dart';
 import '../source_import_page_metric.dart';
 import '../source_import_work_progress.dart';
+import 'message_rich_text_semantic_projection.dart';
 
 const int defaultRichTextCandidatePageSize = 500;
 const int defaultRichTextPageBlobByteTarget = 8 * 1024 * 1024;
@@ -277,14 +278,48 @@ class MessageRichTextEnricher {
           var pageMissingExtractionCount = 0;
           await importLedger.writeTransaction((txn) async {
             for (final candidate in decoderPage) {
-              final normalized = extracted[candidate.ssId]?.trim();
-              if (normalized == null || normalized.isEmpty) {
+              final loadedBlobByteCount =
+                  loadedBlobsByMessageSsId[candidate.ssId]?.length;
+              final decoderFact = switch ((
+                candidate.attributedBodyBlobByteCount,
+                loadedBlobByteCount,
+                extracted[candidate.ssId],
+              )) {
+                (final expectedBytes, _, _)
+                    when expectedBytes > maximumAttributedBodyBlobBytes =>
+                  const MessageRichTextDecoderFailure(
+                    MessageRichTextDecodeFailureKind.inputExceedsMaximumBytes,
+                  ),
+                (final expectedBytes, final loadedBytes, _)
+                    when loadedBytes != expectedBytes =>
+                  const MessageRichTextDecoderFailure(
+                    MessageRichTextDecodeFailureKind.loadedBlobLengthMismatch,
+                  ),
+                (_, _, final String decodedText) =>
+                  MessageRichTextDecoderResult(decodedText),
+                _ => const MessageRichTextDecoderFailure(
+                  MessageRichTextDecodeFailureKind.decoderDidNotProduceText,
+                ),
+              };
+              final projection = projectMessageRichTextSemantics(
+                MessageRichTextSemanticInput(
+                  ssId: candidate.ssId,
+                  sourceRowId: candidate.sourceRowId,
+                  attributedBodyBlobByteCount:
+                      candidate.attributedBodyBlobByteCount,
+                  loadedAttributedBodyBlobByteCount: loadedBlobByteCount,
+                  maximumAttributedBodyBlobBytes:
+                      maximumAttributedBodyBlobBytes,
+                  decoderFact: decoderFact,
+                ),
+              );
+              if (projection is! PersistMessageRichText) {
                 pageMissingExtractionCount += 1;
                 continue;
               }
               final updated = await txn.update(
                 'messages',
-                <String, Object?>{'text': normalized},
+                <String, Object?>{'text': projection.normalizedText},
                 where: 'ss_id = ? AND text IS NULL',
                 whereArgs: <Object?>[candidate.ssId],
               );
