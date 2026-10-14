@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -28,6 +29,381 @@ import 'package:remember_this_text/essentials/source_scoped_import/infrastructur
 import 'package:sqflite/sqflite.dart';
 
 typedef GraphMaterialSnapshot = Map<String, List<Map<String, Object?>>>;
+
+enum GraphMaterialIdentityConstraint { primaryKey, unique }
+
+final class GraphMaterialColumnSpec {
+  const GraphMaterialColumnSpec(
+    this.name,
+    this.sqliteType, {
+    this.pragmaNotNull = false,
+    this.primaryKeyPosition = 0,
+  });
+
+  final String name;
+  final String sqliteType;
+  final bool pragmaNotNull;
+  final int primaryKeyPosition;
+}
+
+final class GraphMaterialTableSpec {
+  const GraphMaterialTableSpec({
+    required this.name,
+    required this.identityColumns,
+    required this.identityConstraint,
+    required this.columns,
+  });
+
+  final String name;
+  final List<String> identityColumns;
+  final GraphMaterialIdentityConstraint identityConstraint;
+  final List<GraphMaterialColumnSpec> columns;
+
+  List<String> get columnNames => <String>[
+    for (final column in columns) column.name,
+  ];
+
+  String get selectSql =>
+      'SELECT ${columnNames.join(', ')} FROM $name '
+      'ORDER BY ${identityColumns.join(', ')} ASC';
+}
+
+const graphMaterialTableSpecs = <GraphMaterialTableSpec>[
+  GraphMaterialTableSpec(
+    name: 'messages',
+    identityColumns: <String>['ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('ss_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec('guid', 'TEXT'),
+      GraphMaterialColumnSpec('sender_handle_ss_id', 'INTEGER'),
+      GraphMaterialColumnSpec('is_from_me', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec('date_utc', 'TEXT'),
+      GraphMaterialColumnSpec('text', 'TEXT'),
+      GraphMaterialColumnSpec('associated_message_ss_id', 'INTEGER'),
+      GraphMaterialColumnSpec('sender_canonical_handle_ss_id', 'INTEGER'),
+      GraphMaterialColumnSpec('semantic_kind', 'TEXT'),
+      GraphMaterialColumnSpec('item_kind', 'TEXT'),
+      GraphMaterialColumnSpec(
+        'is_system_message',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec(
+        'is_sparse_artifact',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec(
+        'has_attributed_body_source',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec(
+        'has_message_summary_info',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec(
+        'has_payload_data_source',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec('error_code', 'INTEGER'),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'handles',
+    identityColumns: <String>['ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('ss_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec('id', 'TEXT', pragmaNotNull: true),
+      GraphMaterialColumnSpec('service', 'TEXT'),
+      GraphMaterialColumnSpec('is_me', 'INTEGER', pragmaNotNull: true),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'canonical_handles',
+    identityColumns: <String>['canonical_handle_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec(
+        'canonical_handle_ss_id',
+        'INTEGER',
+        primaryKeyPosition: 1,
+      ),
+      GraphMaterialColumnSpec('display_handle', 'TEXT', pragmaNotNull: true),
+      GraphMaterialColumnSpec(
+        'normalized_identifier',
+        'TEXT',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec('service', 'TEXT'),
+      GraphMaterialColumnSpec('alias_count', 'INTEGER', pragmaNotNull: true),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'handle_aliases',
+    identityColumns: <String>['handle_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('handle_ss_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec(
+        'canonical_handle_ss_id',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec('raw_identifier', 'TEXT', pragmaNotNull: true),
+      GraphMaterialColumnSpec(
+        'normalized_identifier',
+        'TEXT',
+        pragmaNotNull: true,
+      ),
+      GraphMaterialColumnSpec('alias_kind', 'TEXT', pragmaNotNull: true),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'chats',
+    identityColumns: <String>['ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('ss_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec('guid', 'TEXT'),
+      GraphMaterialColumnSpec('service', 'TEXT'),
+      GraphMaterialColumnSpec('is_group', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec('last_read_message_at_utc', 'TEXT'),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'chat_to_message',
+    identityColumns: <String>['chat_ss_id', 'message_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec(
+        'chat_ss_id',
+        'INTEGER',
+        pragmaNotNull: true,
+        primaryKeyPosition: 1,
+      ),
+      GraphMaterialColumnSpec(
+        'message_ss_id',
+        'INTEGER',
+        pragmaNotNull: true,
+        primaryKeyPosition: 2,
+      ),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'chat_to_handle',
+    identityColumns: <String>['chat_ss_id', 'handle_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.unique,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('chat_ss_id', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec('handle_ss_id', 'INTEGER', pragmaNotNull: true),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'contacts',
+    identityColumns: <String>['contact_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('contact_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec('display_name', 'TEXT', pragmaNotNull: true),
+      GraphMaterialColumnSpec('given_name', 'TEXT'),
+      GraphMaterialColumnSpec('family_name', 'TEXT'),
+      GraphMaterialColumnSpec('organization', 'TEXT'),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'contact_to_handle',
+    identityColumns: <String>['contact_id', 'handle_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.unique,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('contact_id', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec('handle_ss_id', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec('handle_value', 'TEXT', pragmaNotNull: true),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'attachments',
+    identityColumns: <String>['ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.primaryKey,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('ss_id', 'INTEGER', primaryKeyPosition: 1),
+      GraphMaterialColumnSpec('guid', 'TEXT'),
+      GraphMaterialColumnSpec('filename', 'TEXT'),
+      GraphMaterialColumnSpec('transfer_name', 'TEXT'),
+      GraphMaterialColumnSpec('uti', 'TEXT'),
+      GraphMaterialColumnSpec('mime_type', 'TEXT'),
+      GraphMaterialColumnSpec('total_bytes', 'INTEGER'),
+      GraphMaterialColumnSpec('created_at_utc', 'TEXT'),
+    ],
+  ),
+  GraphMaterialTableSpec(
+    name: 'message_to_attachment',
+    identityColumns: <String>['message_ss_id', 'attachment_ss_id'],
+    identityConstraint: GraphMaterialIdentityConstraint.unique,
+    columns: <GraphMaterialColumnSpec>[
+      GraphMaterialColumnSpec('message_ss_id', 'INTEGER', pragmaNotNull: true),
+      GraphMaterialColumnSpec(
+        'attachment_ss_id',
+        'INTEGER',
+        pragmaNotNull: true,
+      ),
+    ],
+  ),
+];
+
+final class GraphMaterialComparison {
+  const GraphMaterialComparison({
+    required this.totalDifferenceCount,
+    required this.diagnostics,
+    required this.diagnosticLimit,
+  });
+
+  final int totalDifferenceCount;
+  final List<String> diagnostics;
+  final int diagnosticLimit;
+
+  bool get isEqual => totalDifferenceCount == 0;
+
+  String get description {
+    if (isEqual) {
+      return '';
+    }
+    final omitted = totalDifferenceCount - diagnostics.length;
+    final lines = <String>[...diagnostics];
+    if (omitted > 0) {
+      lines.add(
+        '... $omitted additional material difference(s) omitted '
+        '(diagnostic limit $diagnosticLimit)',
+      );
+    }
+    return lines.join('\n');
+  }
+}
+
+GraphMaterialComparison compareGraphMaterialSnapshots({
+  required GraphMaterialSnapshot expected,
+  required GraphMaterialSnapshot observed,
+  int diagnosticLimit = 64,
+}) {
+  if (diagnosticLimit < 1) {
+    throw ArgumentError.value(
+      diagnosticLimit,
+      'diagnosticLimit',
+      'must be positive',
+    );
+  }
+  var differenceCount = 0;
+  final diagnostics = <String>[];
+
+  void record(String diagnostic) {
+    differenceCount += 1;
+    if (diagnostics.length < diagnosticLimit) {
+      diagnostics.add(diagnostic);
+    }
+  }
+
+  for (final spec in graphMaterialTableSpecs) {
+    final expectedRows = _indexMaterialRows(
+      spec,
+      expected[spec.name] ?? const <Map<String, Object?>>[],
+      onDuplicate: (key) {
+        record('${spec.name} $key: duplicate expected material identity');
+      },
+    );
+    final observedRows = _indexMaterialRows(
+      spec,
+      observed[spec.name] ?? const <Map<String, Object?>>[],
+      onDuplicate: (key) {
+        record('${spec.name} $key: duplicate observed material identity');
+      },
+    );
+    final allKeys = <String>{
+      ...expectedRows.keys,
+      ...observedRows.keys,
+    }.toList()..sort();
+    for (final key in allKeys) {
+      final expectedRow = expectedRows[key];
+      final observedRow = observedRows[key];
+      if (expectedRow == null) {
+        record('${spec.name} $key: extra observed row');
+        continue;
+      }
+      if (observedRow == null) {
+        record(
+          '${spec.name} $key: expected row missing from observed snapshot',
+        );
+        continue;
+      }
+      for (final column in spec.columns) {
+        final expectedHasColumn = expectedRow.containsKey(column.name);
+        final observedHasColumn = observedRow.containsKey(column.name);
+        final expectedValue = expectedRow[column.name];
+        final observedValue = observedRow[column.name];
+        if (expectedHasColumn == observedHasColumn &&
+            expectedValue == observedValue) {
+          continue;
+        }
+        record(
+          '${spec.name} $key field{${column.name}}: '
+          'expected ${_diagnosticValue(expectedHasColumn, expectedValue)}, '
+          'observed ${_diagnosticValue(observedHasColumn, observedValue)}',
+        );
+      }
+    }
+  }
+  return GraphMaterialComparison(
+    totalDifferenceCount: differenceCount,
+    diagnostics: List<String>.unmodifiable(diagnostics),
+    diagnosticLimit: diagnosticLimit,
+  );
+}
+
+Map<String, Map<String, Object?>> _indexMaterialRows(
+  GraphMaterialTableSpec spec,
+  List<Map<String, Object?>> rows, {
+  required void Function(String key) onDuplicate,
+}) {
+  final indexed = <String, Map<String, Object?>>{};
+  for (final row in rows) {
+    final key = _materialIdentity(spec, row);
+    if (indexed.containsKey(key)) {
+      onDuplicate(key);
+      continue;
+    }
+    indexed[key] = row;
+  }
+  return indexed;
+}
+
+String _materialIdentity(
+  GraphMaterialTableSpec spec,
+  Map<String, Object?> row,
+) {
+  final values = <String>[
+    for (final column in spec.identityColumns)
+      '$column=${_diagnosticValue(row.containsKey(column), row[column])}',
+  ];
+  return 'key{${values.join(',')}}';
+}
+
+String _diagnosticValue(bool isPresent, Object? value) {
+  if (!isPresent) {
+    return '<absent>';
+  }
+  if (value == null) {
+    return '<null>';
+  }
+  final encoded = jsonEncode(value);
+  const maximumLength = 160;
+  if (encoded.length <= maximumLength) {
+    return encoded;
+  }
+  return '${encoded.substring(0, maximumLength)}…';
+}
 
 enum GraphReplayStage {
   handles,
@@ -90,31 +466,6 @@ final class ProductionGraphReplayHarness {
          importLedgerDatabase: importLedger,
          graphDatabase: graph,
        );
-
-  static const _graphTableQueries = <String, String>{
-    'messages': 'SELECT * FROM messages ORDER BY ss_id ASC',
-    'message_text_fts':
-        'SELECT rowid, text FROM message_text_fts ORDER BY rowid ASC',
-    'handles': 'SELECT * FROM handles ORDER BY ss_id ASC',
-    'canonical_handles':
-        'SELECT * FROM canonical_handles ORDER BY canonical_handle_ss_id ASC',
-    'handle_aliases': 'SELECT * FROM handle_aliases ORDER BY handle_ss_id ASC',
-    'chats': 'SELECT * FROM chats ORDER BY ss_id ASC',
-    'chat_to_message':
-        'SELECT * FROM chat_to_message '
-        'ORDER BY chat_ss_id ASC, message_ss_id ASC',
-    'chat_to_handle':
-        'SELECT * FROM chat_to_handle '
-        'ORDER BY chat_ss_id ASC, handle_ss_id ASC',
-    'contacts': 'SELECT * FROM contacts ORDER BY contact_id ASC',
-    'contact_to_handle':
-        'SELECT * FROM contact_to_handle '
-        'ORDER BY contact_id ASC, handle_ss_id ASC',
-    'attachments': 'SELECT * FROM attachments ORDER BY ss_id ASC',
-    'message_to_attachment':
-        'SELECT * FROM message_to_attachment '
-        'ORDER BY message_ss_id ASC, attachment_ss_id ASC',
-  };
 
   final Directory root;
   final String importLedgerPath;
@@ -418,9 +769,41 @@ final class ProductionGraphReplayHarness {
 
   Future<GraphMaterialSnapshot> snapshot() async {
     return <String, List<Map<String, Object?>>>{
-      for (final entry in _graphTableQueries.entries)
-        entry.key: await graph.selectRows(entry.value),
+      for (final spec in graphMaterialTableSpecs)
+        spec.name: await graph.selectRows(spec.selectSql),
     };
+  }
+
+  Future<List<Map<String, Object?>>> messageTextIndexRows() {
+    return graph.selectRows(
+      'SELECT rowid, text FROM message_text_fts ORDER BY rowid ASC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> graphTableInfo(String tableName) {
+    _materialTableSpec(tableName);
+    return graph.selectRows('PRAGMA table_info($tableName)');
+  }
+
+  Future<List<List<String>>> graphUniqueIndexes(String tableName) async {
+    _materialTableSpec(tableName);
+    final indexes = await graph.selectRows('PRAGMA index_list($tableName)');
+    final result = <List<String>>[];
+    for (final index in indexes) {
+      if (index['unique'] != 1) {
+        continue;
+      }
+      final indexName = index['name'];
+      if (indexName is! String || !_sqliteIdentifier.hasMatch(indexName)) {
+        throw StateError('Unexpected SQLite index identity for $tableName.');
+      }
+      final columns = await graph.selectRows('PRAGMA index_info($indexName)');
+      result.add(<String>[
+        for (final column in columns)
+          if (column['name'] case final String name) name,
+      ]);
+    }
+    return result;
   }
 
   Future<List<int>> searchMessageIds(String expression) async {
@@ -752,4 +1135,17 @@ final class ProductionGraphReplayHarness {
       throw StateError('Disposable database path overlaps a protected root.');
     }
   }
+}
+
+final _sqliteIdentifier = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
+
+GraphMaterialTableSpec _materialTableSpec(String tableName) {
+  return graphMaterialTableSpecs.singleWhere(
+    (spec) => spec.name == tableName,
+    orElse: () => throw ArgumentError.value(
+      tableName,
+      'tableName',
+      'is not a material graph table',
+    ),
+  );
 }
