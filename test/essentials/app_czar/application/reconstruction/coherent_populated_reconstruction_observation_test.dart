@@ -1,8 +1,51 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'coherent_populated_reconstruction_observation.dart';
 
 void main() {
+  _postCleanupBoundaryTests();
+  for (final deadline in <bool>[false, true]) {
+    test(
+      'post-cleanup ${deadline ? 'deadline' : 'cancellation'} discards accepted FALSE',
+      () async {
+        final clock = _FakeClock();
+        var cancelled = false;
+        final harness = _Harness(
+          clock: clock,
+          isCancelled: () => cancelled,
+          evidenceForPhase: (attempt, phase, context) =>
+              ReconstructionPhaseEvidence.known(
+                payload: _payloadFor(phase),
+                isTrue: phase != ReconstructionObservationPhase.graph,
+              ),
+          onClose: (attempt) async {
+            if (deadline) {
+              clock.advance(const Duration(seconds: 6));
+            } else {
+              cancelled = true;
+            }
+          },
+        );
+        final result = await harness.observe();
+        expect(harness.createdAttemptIds, <int>[1]);
+        expect(harness.closeCounts, <int, int>{1: 1});
+        expect(harness.completedCloseCounts, <int, int>{1: 1});
+        expect(result.attemptCount, 1);
+        expect(result.canAuthorizeDestructiveMutation, isFalse);
+        expect(result.truth, ReconstructionObservationTruth.unknown);
+        expect(result.phaseEvidence, isEmpty);
+        expect(
+          result.unknownReason,
+          deadline
+              ? ReconstructionObservationUnknownReason.deadline
+              : ReconstructionObservationUnknownReason.cancellation,
+        );
+      },
+    );
+  }
   group('coherent populated reconstruction observation envelope', () {
     test('accepts one stable interval without destructive authority', () async {
       final harness = _Harness();
@@ -544,6 +587,202 @@ void main() {
   });
 }
 
+void _postCleanupBoundaryTests() {
+  for (final stop in <String>[
+    'cancellation',
+    'deadline-equal',
+    'deadline-exceeded',
+  ]) {
+    final reason = stop == 'cancellation'
+        ? ReconstructionObservationUnknownReason.cancellation
+        : ReconstructionObservationUnknownReason.deadline;
+    void stopDuringClose(_FakeClock clock, void Function() cancel) {
+      if (stop == 'cancellation') {
+        cancel();
+      } else {
+        clock.advance(Duration(seconds: stop == 'deadline-equal' ? 5 : 6));
+      }
+    }
+
+    for (final scenario in <String>[
+      'TRUE',
+      'FALSE',
+      'second-stable',
+      'first-mismatch',
+    ]) {
+      test('cleanup $stop discards $scenario without extra attempts', () async {
+        final clock = _FakeClock();
+        var cancelled = false;
+        final payloads = <ReconstructionPhasePayload>[];
+        final terminalAttempt = scenario == 'second-stable' ? 2 : 1;
+        final harness = _Harness(
+          clock: clock,
+          isCancelled: () => cancelled,
+          fingerprintForRead: (attempt, read) =>
+              attempt == 1 &&
+                  read == 2 &&
+                  (scenario == 'second-stable' || scenario == 'first-mismatch')
+              ? _fingerprint(graphIdentity: 'changed')
+              : _fingerprint(),
+          evidenceForPhase: (attempt, phase, context) {
+            final payload = _payloadFor(phase);
+            payloads.add(payload);
+            return ReconstructionPhaseEvidence.known(
+              payload: payload,
+              isTrue:
+                  scenario == 'TRUE' ||
+                  phase != ReconstructionObservationPhase.graph,
+            );
+          },
+          onClose: (attempt) async {
+            if (attempt == terminalAttempt) {
+              stopDuringClose(clock, () => cancelled = true);
+            }
+          },
+        );
+        final result = await harness.observe();
+        expect(result.truth, ReconstructionObservationTruth.unknown);
+        expect(result.unknownReason, reason);
+        expect(result.phaseEvidence, isEmpty);
+        expect(
+          result.phaseEvidence.any((item) => payloads.contains(item.payload)),
+          isFalse,
+        );
+        expect(result.attemptCount, terminalAttempt);
+        expect(harness.createdAttemptIds, <int>[
+          for (var i = 1; i <= terminalAttempt; i++) i,
+        ]);
+        expect(harness.closeCounts, <int, int>{
+          for (var i = 1; i <= terminalAttempt; i++) i: 1,
+        });
+        expect(harness.completedCloseCounts, harness.closeCounts);
+        expect(result.canAuthorizeDestructiveMutation, isFalse);
+      });
+    }
+
+    test('cleanup throw takes precedence over $stop', () async {
+      final clock = _FakeClock();
+      var cancelled = false;
+      final harness = _Harness(
+        clock: clock,
+        isCancelled: () => cancelled,
+        closeFailureAttempt: 1,
+        onClose: (attempt) async =>
+            stopDuringClose(clock, () => cancelled = true),
+      );
+      final result = await harness.observe();
+      expect(result.truth, ReconstructionObservationTruth.unknown);
+      expect(
+        result.unknownReason,
+        ReconstructionObservationUnknownReason.ambiguousCleanup,
+      );
+      expect(result.phaseEvidence, isEmpty);
+      expect(result.attemptCount, 1);
+      expect(harness.createdAttemptIds, <int>[1]);
+      expect(harness.closeCounts, <int, int>{1: 1});
+      expect(harness.completedCloseCounts, isEmpty);
+      expect(result.canAuthorizeDestructiveMutation, isFalse);
+    });
+
+    test(
+      'cleanup timeout takes precedence over $stop without preempting close',
+      () {
+        fakeAsync((async) {
+          final clock = _FakeClock();
+          var cancelled = false;
+          final closing = Completer<void>();
+          CoherentReconstructionObservationResult? result;
+          final harness = _Harness(
+            clock: clock,
+            isCancelled: () => cancelled,
+            onClose: (attempt) async {
+              stopDuringClose(clock, () => cancelled = true);
+              await closing.future;
+            },
+          );
+          harness.observe().then((value) => result = value);
+          async.flushMicrotasks();
+          expect(harness.closeCounts, <int, int>{1: 1});
+          expect(harness.completedCloseCounts, isEmpty);
+          expect(result, isNull);
+          async.elapse(const Duration(seconds: 1));
+          async.flushMicrotasks();
+          expect(result?.truth, ReconstructionObservationTruth.unknown);
+          expect(
+            result?.unknownReason,
+            ReconstructionObservationUnknownReason.ambiguousCleanup,
+          );
+          expect(result?.phaseEvidence, isEmpty);
+          expect(result?.attemptCount, 1);
+          expect(result?.canAuthorizeDestructiveMutation, isFalse);
+          expect(harness.completedCloseCounts, isEmpty);
+          final published = result;
+          closing.complete();
+          async.flushMicrotasks();
+          expect(result, same(published));
+          expect(harness.createdAttemptIds, <int>[1]);
+          expect(harness.closeCounts, <int, int>{1: 1});
+          expect(harness.completedCloseCounts, <int, int>{1: 1});
+          expect(async.pendingTimers, isEmpty);
+        });
+      },
+    );
+
+    test('$stop before close still completes owned cleanup once', () async {
+      final clock = _FakeClock();
+      var cancelled = false;
+      final harness = _Harness(
+        clock: clock,
+        isCancelled: () => cancelled,
+        onReadPhase: (attempt, phase) {
+          if (phase == ReconstructionObservationPhase.graph) {
+            stopDuringClose(clock, () => cancelled = true);
+          }
+        },
+      );
+      final result = await harness.observe();
+      expect(result.truth, ReconstructionObservationTruth.unknown);
+      expect(result.unknownReason, reason);
+      expect(result.phaseEvidence, isEmpty);
+      expect(harness.createdAttemptIds, <int>[1]);
+      expect(harness.closeCounts, <int, int>{1: 1});
+      expect(harness.completedCloseCounts, <int, int>{1: 1});
+      expect(result.canAuthorizeDestructiveMutation, isFalse);
+    });
+  }
+
+  test(
+    'successful awaited close below deadline preserves accepted evidence',
+    () {
+      fakeAsync((async) {
+        final clock = _FakeClock();
+        final closing = Completer<void>();
+        CoherentReconstructionObservationResult? result;
+        final harness = _Harness(
+          clock: clock,
+          onClose: (attempt) async {
+            await closing.future;
+            clock.advance(const Duration(seconds: 4));
+          },
+        );
+        harness.observe().then((value) => result = value);
+        async.flushMicrotasks();
+        expect(result, isNull);
+        expect(harness.completedCloseCounts, isEmpty);
+        closing.complete();
+        async.flushMicrotasks();
+        expect(result?.truth, ReconstructionObservationTruth.trueValue);
+        expect(result?.phaseEvidence, hasLength(8));
+        expect(harness.createdAttemptIds, <int>[1]);
+        expect(harness.closeCounts, <int, int>{1: 1});
+        expect(harness.completedCloseCounts, <int, int>{1: 1});
+        expect(result?.canAuthorizeDestructiveMutation, isFalse);
+        expect(async.pendingTimers, isEmpty);
+      });
+    },
+  );
+}
+
 final class _FakeClock {
   Duration _value = Duration.zero;
 
@@ -574,6 +813,7 @@ final class _Harness {
     this.closeFailureAttempt,
     this.onCreateAttempt,
     this.onReadPhase,
+    this.onClose,
   }) : clock = clock ?? _FakeClock(),
        isCancelled = isCancelled ?? (() => false),
        fingerprintForRead =
@@ -589,6 +829,7 @@ final class _Harness {
   final OperationalTimestampLifecycleValidator? validator;
   final ReconstructionObservationPhase? omittedPhase;
   final int? closeFailureAttempt;
+  final Future<void> Function(int attempt)? onClose;
   final void Function(int attempt)? onCreateAttempt;
   final void Function(int attempt, ReconstructionObservationPhase phase)?
   onReadPhase;
@@ -596,6 +837,7 @@ final class _Harness {
   final List<int> createdAttemptIds = <int>[];
   final List<int> phaseAttemptIds = <int>[];
   final Map<int, int> closeCounts = <int, int>{};
+  final Map<int, int> completedCloseCounts = <int, int>{};
 
   Future<CoherentReconstructionObservationResult> observe() {
     final envelope = CoherentPopulatedReconstructionObservationEnvelope(
@@ -639,9 +881,15 @@ final class _Harness {
               (count) => count + 1,
               ifAbsent: () => 1,
             );
+            await onClose?.call(attempt);
             if (closeFailureAttempt == attempt) {
               throw StateError('ambiguous cleanup');
             }
+            completedCloseCounts.update(
+              attempt,
+              (count) => count + 1,
+              ifAbsent: () => 1,
+            );
           },
         );
       },

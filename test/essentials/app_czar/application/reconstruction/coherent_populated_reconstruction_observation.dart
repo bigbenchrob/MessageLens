@@ -580,9 +580,15 @@ final class CoherentPopulatedReconstructionObservationEnvelope {
       try {
         await attempt.close().timeout(limits.cleanupTimeout);
       } on Object {
-        outcome = _AttemptOutcome.unknown(
+        return _AttemptOutcome.unknown(
           ReconstructionObservationUnknownReason.ambiguousCleanup,
         );
+      }
+      // Successful cleanup must precede the final publication/retry check.
+      try {
+        context.checkpoint();
+      } on _ObservationAbort catch (error) {
+        outcome = _AttemptOutcome.unknown(error.reason);
       }
     }
     return outcome;
