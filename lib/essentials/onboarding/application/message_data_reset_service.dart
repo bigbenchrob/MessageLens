@@ -3,7 +3,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../archive_environment/domain/archive_mutation_operation.dart';
 import '../../archive_environment/feature_level_providers.dart'
-    show ArchiveMutationCapability, archiveMutationCoordinatorProvider;
+    show
+        ArchiveMutationCapability,
+        ArchiveResetAdmissionBinding,
+        ArchiveResetDenied,
+        ArchiveResetDenialReason,
+        archiveResetAdmissionProvider,
+        archiveMutationCoordinatorProvider;
 import '../../db/app_database_files.dart';
 import '../../db/feature_level_providers.dart'
     show
@@ -59,6 +65,9 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
 
   @override
   Future<void> resetDerivedData() {
+    _dependencies.requireGeneralReset(
+      ArchiveMutationOperation.messageDataReset,
+    );
     return _dependencies.runWithMutationAuthority(
       operation: ArchiveMutationOperation.messageDataReset,
       action: _resetDerivedData,
@@ -69,6 +78,7 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
   Future<void> resetDerivedDataForStartFresh(
     ArchiveMutationCapability capability,
   ) {
+    _dependencies.requireGeneralReset(ArchiveMutationOperation.startFresh);
     capability.requireOperation(ArchiveMutationOperation.startFresh);
     return _resetDerivedData(capability, includeRetired: true);
   }
@@ -270,6 +280,7 @@ final class MessageDataResetServiceImpl implements MessageDataResetService {
 
 final class _MessageDataResetDependencies {
   const _MessageDataResetDependencies({
+    required this.requireGeneralReset,
     required this.logger,
     required this.fileStore,
     required this.runWithMutationAuthority,
@@ -279,6 +290,7 @@ final class _MessageDataResetDependencies {
     required this.closeConversationGraphDatabase,
   });
 
+  final void Function(ArchiveMutationOperation) requireGeneralReset;
   final _MessageDataResetLogSink logger;
   final DerivedMessageDataFileStore fileStore;
   final Future<void> Function({
@@ -327,9 +339,33 @@ final class _MessageDataResetLogSink {
 
 @riverpod
 MessageDataResetService messageDataResetService(Ref ref) {
+  ArchiveResetAdmissionBinding? resetBinding;
+  var disposed = false;
+  ref.onDispose(() {
+    disposed = true;
+    resetBinding?.close();
+  });
+  void requireGeneralReset(ArchiveMutationOperation operation) {
+    if (disposed) {
+      throw const ArchiveResetDenied(ArchiveResetDenialReason.bindingClosed);
+    }
+    if (resetBinding == null) {
+      try {
+        resetBinding = ref.read(archiveResetAdmissionProvider).bind();
+      } on Object {
+        throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+      }
+    }
+    if (disposed) {
+      resetBinding!.close();
+    }
+    resetBinding!.requireAllowed(operation);
+  }
+
   final logger = ref.read(appLoggerProvider.notifier);
   return MessageDataResetServiceImpl(
     _MessageDataResetDependencies(
+      requireGeneralReset: requireGeneralReset,
       logger: _MessageDataResetLogSink(
         info: logger.info,
         warn: logger.warn,

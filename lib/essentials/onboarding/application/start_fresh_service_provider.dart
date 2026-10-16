@@ -3,7 +3,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../archive_environment/domain.dart' show ArchiveMutationOperation;
 import '../../archive_environment/feature_level_providers.dart'
-    show archiveAccessAuthorityProvider, archiveMutationCoordinatorProvider;
+    show
+        ArchiveResetAdmissionBinding,
+        ArchiveResetDenied,
+        ArchiveResetDenialReason,
+        archiveResetAdmissionProvider,
+        archiveAccessAuthorityProvider,
+        archiveMutationCoordinatorProvider;
 import '../../presence/domain/repositories/presence_schedule_run_maintenance.dart';
 import '../domain/startup_installation_validation.dart';
 import '../infrastructure/persistence/sqlite_message_lens_installation_evidence_reader.dart';
@@ -23,12 +29,30 @@ part 'start_fresh_service_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 Future<StartFreshService> startFreshService(Ref ref) async {
-  final operationController = await ref.watch(
-    onboardingOperationControllerProvider.future,
+  late final ArchiveResetAdmissionBinding resetBinding;
+  try {
+    resetBinding = ref.read(archiveResetAdmissionProvider).bind();
+  } on Object {
+    throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+  }
+  ref.onDispose(resetBinding.close);
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+  Future<T> readWhileCurrent<T>(Future<T> Function() read) async {
+    resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+    try {
+      return await read();
+    } finally {
+      resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+    }
+  }
+
+  final operationController = await readWhileCurrent(
+    () => ref.watch(onboardingOperationControllerProvider.future),
   );
-  final executablePresenceRepository = await ref.watch(
-    requiredSourcesReadinessRepositoryProvider.future,
+  final executablePresenceRepository = await readWhileCurrent(
+    () => ref.watch(requiredSourcesReadinessRepositoryProvider.future),
   );
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
   if (executablePresenceRepository is! PresenceScheduleRunMaintenance) {
     throw StateError(
       'The required-sources repository does not support run maintenance.',
@@ -42,7 +66,13 @@ Future<StartFreshService> startFreshService(Ref ref) async {
     integrityValidator: SqliteMessageLensInstallationIntegrityValidator(),
   );
 
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+  final resetService = ref.watch(messageDataResetServiceProvider);
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+  final failureStore = ref.watch(onboardingFailureStorageProvider);
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
   return StartFreshServiceImpl(
+    resetBinding: resetBinding,
     archiveRootPath: authority.rootPath,
     requiredSourcesScheduleId: requiredSourcesReadinessScheduleId,
     readCurrentState: () async {
@@ -62,9 +92,9 @@ Future<StartFreshService> startFreshService(Ref ref) async {
             action: action,
           );
     },
-    messageDataResetService: ref.watch(messageDataResetServiceProvider),
+    messageDataResetService: resetService,
     operationController: operationController,
-    failureStore: ref.watch(onboardingFailureStorageProvider),
+    failureStore: failureStore,
     presenceRepository: presenceRepository,
     fullValidator: fullValidator,
     refreshAfterReset: () {

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import '../../archive_environment/domain/archive_mutation_denied_exception.dart';
+import '../../archive_environment/domain/archive_mutation_operation.dart';
+import '../../archive_environment/domain/archive_reset_admission.dart';
 import '../domain/advanced_start_fresh_presentation.dart';
 import '../domain/message_lens_installation_state.dart';
 import 'advanced_start_fresh_presentation_provider.dart';
@@ -45,6 +47,7 @@ abstract interface class AdvancedStartFreshAction {
 
 final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
   AdvancedStartFreshActionImpl({
+    required this.resetBinding,
     required this.readInstallationState,
     required this.requestAuthorization,
     required this.readStartFreshService,
@@ -53,6 +56,12 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     required this.reportFailure,
     this.reportLifecycle = _ignoreLifecycleEvent,
   });
+
+  final ArchiveResetAdmissionBinding resetBinding;
+
+  void _requireCurrent() {
+    resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+  }
 
   final Future<MessageLensInstallationState> Function() readInstallationState;
   final Future<bool> Function() requestAuthorization;
@@ -80,13 +89,18 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     );
     late final MessageLensInstallationState installationState;
     try {
+      _requireCurrent();
       installationState = await readInstallationState();
+      _requireCurrent();
       _recordLifecycle(
         AdvancedStartFreshLifecycleEvent.currentStateReadCompleted,
         requestId: requestId,
         detail: installationState.kind.name,
       );
+    } on ArchiveResetDenied {
+      rethrow;
     } catch (error, stackTrace) {
+      _requireCurrent();
       reportFailure(error, stackTrace);
       _recordLifecycle(
         AdvancedStartFreshLifecycleEvent.currentStateReadCompleted,
@@ -121,7 +135,10 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
         AdvancedStartFreshLifecycleEvent.authorizationRequested,
         requestId: requestId,
       );
-      if (!await requestAuthorization()) {
+      _requireCurrent();
+      final authorized = await requestAuthorization();
+      _requireCurrent();
+      if (!authorized) {
         _recordLifecycle(
           AdvancedStartFreshLifecycleEvent.authorizationCancelled,
           requestId: requestId,
@@ -132,7 +149,10 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
         AdvancedStartFreshLifecycleEvent.authorizationAccepted,
         requestId: requestId,
       );
+    } on ArchiveResetDenied {
+      rethrow;
     } catch (error, stackTrace) {
+      _requireCurrent();
       reportFailure(error, stackTrace);
       return _presentInitialFailure(
         const AdvancedStartFreshFailure(
@@ -146,6 +166,7 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
       );
     }
 
+    _requireCurrent();
     final occurrence = presentation.beginPreparing();
     return _execute(
       requestId: requestId,
@@ -168,6 +189,7 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     required int requestId,
     required int occurrence,
   }) async {
+    _requireCurrent();
     final nextOccurrence = presentation.beginRetry(
       expectedOccurrence: occurrence,
     );
@@ -180,6 +202,7 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
 
   @override
   void dismissFailure({required int occurrence}) {
+    _requireCurrent();
     presentation.dismiss(expectedOccurrence: occurrence);
   }
 
@@ -187,7 +210,9 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     AdvancedStartFreshFailure failure, {
     required int requestId,
   }) {
+    _requireCurrent();
     final occurrence = presentation.beginPreparing();
+    _requireCurrent();
     presentation.showFailure(expectedOccurrence: occurrence, failure: failure);
     _recordLifecycle(
       AdvancedStartFreshLifecycleEvent.terminalPresentationPublished,
@@ -202,27 +227,34 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     required int occurrence,
     StartFreshEntryPoint? entryPoint,
   }) async {
+    _requireCurrent();
     await waitForPresentationFrame();
-    if (!presentation.isCurrent(occurrence)) {
+    _requireCurrent();
+    if (!_presentationIsCurrent(occurrence)) {
       return AdvancedStartFreshActionResult.superseded;
     }
 
     try {
       final resolvedEntryPoint = entryPoint ?? await _resolveRetryEntryPoint();
+      _requireCurrent();
       final service = await readStartFreshService();
+      _requireCurrent();
       _recordLifecycle(
         AdvancedStartFreshLifecycleEvent.serviceStarted,
         requestId: requestId,
         detail: resolvedEntryPoint.name,
       );
+      _requireCurrent();
       await service.startFresh(entryPoint: resolvedEntryPoint);
+      _requireCurrent();
       _recordLifecycle(
         AdvancedStartFreshLifecycleEvent.serviceCompleted,
         requestId: requestId,
         detail: 'verifiedVirgin',
       );
+      _requireCurrent();
       presentation.showVerifiedVirgin(expectedOccurrence: occurrence);
-      if (!presentation.isCurrent(occurrence)) {
+      if (!_presentationIsCurrent(occurrence)) {
         return AdvancedStartFreshActionResult.superseded;
       }
       _recordLifecycle(
@@ -230,11 +262,16 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
         requestId: requestId,
         detail: 'verifiedVirgin',
       );
+      _requireCurrent();
       await presentation.waitUntilDismissed(expectedOccurrence: occurrence);
-      return presentation.isCurrent(occurrence)
+      _requireCurrent();
+      return _presentationIsCurrent(occurrence)
           ? AdvancedStartFreshActionResult.startedFresh
           : AdvancedStartFreshActionResult.superseded;
+    } on ArchiveResetDenied {
+      rethrow;
     } catch (error, stackTrace) {
+      _requireCurrent();
       reportFailure(error, stackTrace);
       _recordLifecycle(
         AdvancedStartFreshLifecycleEvent.serviceCompleted,
@@ -242,18 +279,19 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
         detail: 'failed',
       );
       final failure = await _failureFor(error);
+      _requireCurrent();
       presentation.showFailure(
         expectedOccurrence: occurrence,
         failure: failure,
       );
-      if (presentation.isCurrent(occurrence)) {
+      if (_presentationIsCurrent(occurrence)) {
         _recordLifecycle(
           AdvancedStartFreshLifecycleEvent.terminalPresentationPublished,
           requestId: requestId,
           detail: failure.kind.name,
         );
       }
-      return presentation.isCurrent(occurrence)
+      return _presentationIsCurrent(occurrence)
           ? AdvancedStartFreshActionResult.failed
           : AdvancedStartFreshActionResult.superseded;
     }
@@ -263,6 +301,7 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     required String origin,
     required Future<AdvancedStartFreshActionResult> Function(int requestId) run,
   }) {
+    _requireCurrent();
     final activeRequest = _activeRequest;
     if (activeRequest != null) {
       assert(
@@ -293,13 +332,9 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
       completer: Completer<AdvancedStartFreshActionResult>(),
     );
     _activeRequest = claimedRequest;
-    _recordLifecycle(
-      AdvancedStartFreshLifecycleEvent.requestClaimed,
-      requestId: requestId,
-      detail: origin,
-    );
     _activeExecution = _runClaimedRequest(
       claimedRequest: claimedRequest,
+      origin: origin,
       run: run,
     );
     return claimedRequest.completer.future;
@@ -307,35 +342,52 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
 
   Future<void> _runClaimedRequest({
     required _ActiveAdvancedStartFreshRequest claimedRequest,
+    required String origin,
     required Future<AdvancedStartFreshActionResult> Function(int requestId) run,
   }) async {
-    late final AdvancedStartFreshActionResult result;
     try {
-      result = await run(claimedRequest.requestId);
-    } catch (error, stackTrace) {
-      reportFailure(error, stackTrace);
-      result = _presentInitialFailure(
-        const AdvancedStartFreshFailure(
-          kind: AdvancedStartFreshFailureKind.executionFailed,
-          summary:
-              'MessageLens could not finish Reset Message Data. No further '
-              'data was changed.',
-          canRetry: false,
-        ),
+      AdvancedStartFreshActionResult result;
+      try {
+        _recordLifecycle(
+          AdvancedStartFreshLifecycleEvent.requestClaimed,
+          requestId: claimedRequest.requestId,
+          detail: origin,
+        );
+        result = await run(claimedRequest.requestId);
+        _requireCurrent();
+      } on ArchiveResetDenied {
+        rethrow;
+      } catch (error, stackTrace) {
+        _requireCurrent();
+        reportFailure(error, stackTrace);
+        _requireCurrent();
+        result = _presentInitialFailure(
+          const AdvancedStartFreshFailure(
+            kind: AdvancedStartFreshFailureKind.executionFailed,
+            summary:
+                'MessageLens could not finish Reset Message Data. No further '
+                'data was changed.',
+            canRetry: false,
+          ),
+          requestId: claimedRequest.requestId,
+        );
+      }
+      _recordLifecycle(
+        AdvancedStartFreshLifecycleEvent.requestReleased,
         requestId: claimedRequest.requestId,
+        detail: result.name,
       );
+      _requireCurrent();
+      claimedRequest.completer.complete(result);
+    } catch (error, stackTrace) {
+      // A denied/stale claim settles its caller without publishing failure UI.
+      claimedRequest.completer.completeError(error, stackTrace);
+    } finally {
+      if (identical(_activeRequest, claimedRequest)) {
+        _activeRequest = null;
+        _activeExecution = null;
+      }
     }
-
-    if (identical(_activeRequest, claimedRequest)) {
-      _activeRequest = null;
-      _activeExecution = null;
-    }
-    _recordLifecycle(
-      AdvancedStartFreshLifecycleEvent.requestReleased,
-      requestId: claimedRequest.requestId,
-      detail: result.name,
-    );
-    claimedRequest.completer.complete(result);
   }
 
   void _recordLifecycle(
@@ -343,15 +395,30 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     required int requestId,
     String? detail,
   }) {
+    _requireCurrent();
     try {
       reportLifecycle(event, requestId: requestId, detail: detail);
+      _requireCurrent();
+    } on ArchiveResetDenied {
+      rethrow;
     } catch (error, stackTrace) {
+      _requireCurrent();
       reportFailure(error, stackTrace);
+      _requireCurrent();
     }
   }
 
+  bool _presentationIsCurrent(int occurrence) {
+    _requireCurrent();
+    final current = presentation.isCurrent(occurrence);
+    _requireCurrent();
+    return current;
+  }
+
   Future<StartFreshEntryPoint> _resolveRetryEntryPoint() async {
+    _requireCurrent();
     final installationState = await readInstallationState();
+    _requireCurrent();
     return switch (installationState.kind) {
       MessageLensInstallationStateKind.completed =>
         StartFreshEntryPoint.completedInstallationAdvancedReset,
@@ -375,12 +442,17 @@ final class AdvancedStartFreshActionImpl implements AdvancedStartFreshAction {
     };
     var canRetry = false;
     try {
+      _requireCurrent();
       final installationState = await readInstallationState();
+      _requireCurrent();
       canRetry =
           installationState.kind ==
               MessageLensInstallationStateKind.completed ||
           installationState.mayStartFresh;
+    } on ArchiveResetDenied {
+      rethrow;
     } catch (error, stackTrace) {
+      _requireCurrent();
       reportFailure(error, stackTrace);
       canRetry = false;
     }

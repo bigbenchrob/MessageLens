@@ -16,6 +16,13 @@ import '../../../features/settings/feature_level_providers.dart'
         messageHistoryCoverageReportProvider;
 import '../../../features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import '../../../features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
+import '../../archive_environment/domain/archive_mutation_operation.dart';
+import '../../archive_environment/feature_level_providers.dart'
+    show
+        ArchiveResetAdmissionBinding,
+        ArchiveResetDenied,
+        ArchiveResetDenialReason,
+        archiveResetAdmissionProvider;
 import '../../logging/application/diagnostic_report_actions.dart';
 import '../../logging/feature_level_providers.dart'
     show diagnosticLogDirectoryPathProvider, diagnosticReportExporterProvider;
@@ -267,8 +274,21 @@ class SidebarActionDispatcher extends _$SidebarActionDispatcher {
           exportDirectoryPath: exportDirectoryPath,
         );
       case ResetMessageDataRequested():
-        final startFreshAction = ref.read(advancedStartFreshActionProvider);
-        await startFreshAction.request();
+        late final ArchiveResetAdmissionBinding resetBinding;
+        try {
+          resetBinding = ref.read(archiveResetAdmissionProvider).bind();
+        } on Object {
+          throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+        }
+        try {
+          resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+          final startFreshAction = ref.read(advancedStartFreshActionProvider);
+          resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+          // The action owns all asynchronous continuation/publication checks.
+          await startFreshAction.request();
+        } finally {
+          resetBinding.close();
+        }
     }
   }
 

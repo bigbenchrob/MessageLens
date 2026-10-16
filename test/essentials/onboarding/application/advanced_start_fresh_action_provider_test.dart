@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
+    show ArchiveResetAdmission, archiveResetAdmissionProvider;
+import 'package:remember_this_text/essentials/logging/application/app_logger.dart';
+import 'package:remember_this_text/essentials/logging/domain/log_entry.dart';
 import 'package:remember_this_text/essentials/navigation/application/app_navigator_key.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_action_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_current_state_reader_provider.dart';
@@ -18,6 +21,8 @@ import 'package:remember_this_text/essentials/onboarding/domain/onboarding_statu
 import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/advanced_start_fresh_overlay.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/sidebar_action_intent.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart'
+    show StartupPresentationComposition;
 import 'package:remember_this_text/features/settings/application/sidebar_cassette_spec/widget_builders/settings_action_list.dart';
 
 void main() {
@@ -258,6 +263,12 @@ List<Override> _overrides({
   VoidCallback? onStartupStateRead,
 }) {
   return [
+    appLoggerProvider.overrideWith(_InertLogger.new),
+    archiveResetAdmissionProvider.overrideWith(
+      (ref) => ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ),
+    ),
     messageLensInstallationStateProvider.overrideWith((ref) {
       onStartupStateRead?.call();
       return Stream<StartupInstallationValidationState>.value(
@@ -417,4 +428,16 @@ final class _ResetSettingsAction extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _InertLogger extends AppLogger {
+  @override
+  List<LogEntry> build() => [];
+  @override
+  void log(
+    LogLevel level,
+    String message, {
+    String? source,
+    Map<String, dynamic>? context,
+  }) {}
 }

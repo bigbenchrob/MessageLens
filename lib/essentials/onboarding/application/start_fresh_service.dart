@@ -1,6 +1,6 @@
 import '../../archive_environment/domain/archive_mutation_operation.dart';
 import '../../archive_environment/feature_level_providers.dart'
-    show ArchiveMutationCapability;
+    show ArchiveMutationCapability, ArchiveResetAdmissionBinding;
 import '../../presence/domain/repositories/presence_schedule_run_maintenance.dart';
 import '../domain/message_lens_installation_state.dart';
 import '../domain/startup_installation_validation.dart';
@@ -41,6 +41,7 @@ abstract interface class StartFreshService {
 
 final class StartFreshServiceImpl implements StartFreshService {
   const StartFreshServiceImpl({
+    required this.resetBinding,
     required this.archiveRootPath,
     required this.requiredSourcesScheduleId,
     required this.readCurrentState,
@@ -53,6 +54,7 @@ final class StartFreshServiceImpl implements StartFreshService {
     required this.refreshAfterReset,
   });
 
+  final ArchiveResetAdmissionBinding resetBinding;
   final String archiveRootPath;
   final int requiredSourcesScheduleId;
   final Future<MessageLensInstallationState> Function() readCurrentState;
@@ -73,7 +75,13 @@ final class StartFreshServiceImpl implements StartFreshService {
     StartFreshEntryPoint entryPoint =
         StartFreshEntryPoint.incompleteInstallation,
   }) async {
-    final currentState = await readCurrentState();
+    resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+    late final MessageLensInstallationState currentState;
+    try {
+      currentState = await readCurrentState();
+    } finally {
+      resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+    }
     if (!_isEligible(currentState: currentState, entryPoint: entryPoint)) {
       throw StateError(
         'Start Fresh through ${entryPoint.name} is unavailable for '

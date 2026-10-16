@@ -1,8 +1,63 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'SOURCE ONLY: capability reset guard dominates and local repair is unchanged',
+    () {
+      final source = File(
+        'lib/essentials/onboarding/application/message_data_reset_service.dart',
+      ).readAsStringSync();
+      final unit = parseString(content: source, throwIfDiagnostics: true).unit;
+      final implementation = unit.declarations
+          .whereType<ClassDeclaration>()
+          .singleWhere((c) => c.name.lexeme == 'MessageDataResetServiceImpl');
+      String body(String name) => implementation.members
+          .whereType<MethodDeclaration>()
+          .singleWhere((m) => m.name.lexeme == name)
+          .body
+          .toSource()
+          .replaceAll(RegExp(r'\s+'), '');
+      expect(
+        body('resetDerivedDataForStartFresh'),
+        '{_dependencies.requireGeneralReset(ArchiveMutationOperation.startFresh);capability.requireOperation(ArchiveMutationOperation.startFresh);return_resetDerivedData(capability,includeRetired:true);}',
+      );
+      expect(
+        body('resetActiveDerivedDataForLocalDataRepair'),
+        '{capability.requireOperation(ArchiveMutationOperation.localDataRepair);return_resetDerivedData(capability,includeRetired:false);}',
+      );
+      final physicalBody = source.substring(
+        source.indexOf('  Future<void> _resetDerivedData('),
+        source.indexOf('final class _MessageDataResetDependencies'),
+      );
+      expect(
+        sha256.convert(utf8.encode(physicalBody)).toString(),
+        'c66ca0c855b9079be8cd457ad88854e7e81ad7755b5afc51b3b032bc07de5cb5',
+      );
+      final factory = unit.declarations
+          .whereType<FunctionDeclaration>()
+          .singleWhere((f) => f.name.lexeme == 'messageDataResetService');
+      final statements = (factory.functionExpression.body as BlockFunctionBody)
+          .block
+          .statements;
+      // Reset input is read only inside the lazy local function, never while
+      // constructing the shared service needed by Local Data Repair.
+      for (final statement in statements.where(
+        (s) => s is! FunctionDeclarationStatement,
+      )) {
+        expect(
+          statement.toSource(),
+          isNot(contains('ref.read(archiveResetAdmissionProvider)')),
+        );
+      }
+    },
+  );
+
   test('Start Fresh is typed, authorized, and verified', () {
     final service = File(
       'lib/essentials/onboarding/application/start_fresh_service.dart',

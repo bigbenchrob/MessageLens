@@ -10,12 +10,19 @@ import 'package:remember_this_text/essentials/app_czar_operating_session/applica
 import 'package:remember_this_text/essentials/app_czar_operating_session/presentation/app_czar_operating_currentness_status.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/presentation/app_czar_operating_session_app.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain.dart';
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
+    show
+        ArchiveResetAdmission,
+        ArchiveResetDenied,
+        archiveResetAdmissionProvider;
 import 'package:remember_this_text/essentials/navigation/domain/sidebar_mode.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_action.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_action_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/start_fresh_service_provider.dart';
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_action_dispatcher.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/sidebar_action_intent.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart'
+    show StartupPresentationComposition;
 import 'package:remember_this_text/features/sidebar_utilities/application/sidebar_cassette_spec/resolver_tools/settings_reset_message_data_action_availability_provider.dart';
 import 'package:remember_this_text/main.dart';
 
@@ -84,13 +91,18 @@ void main() {
 
   for (final visible in [false, true]) {
     test(
-      'MISSING SAFEGUARD: reset dispatch reaches inert action; visible=$visible',
+      'REGRESSION: selected AppCzar denies historically reachable reset; visible=$visible',
       () async {
         var actionConstructions = 0;
         var forbiddenServiceConstructions = 0;
         final spy = _InertAction();
         final container = ProviderContainer(
           overrides: [
+            archiveResetAdmissionProvider.overrideWith(
+              (ref) => ArchiveResetAdmission.selected(
+                StartupPresentationComposition.appCzar,
+              ),
+            ),
             settingsResetMessageDataActionAvailableProvider.overrideWith(
               (ref) => visible,
             ),
@@ -115,14 +127,18 @@ void main() {
         expect(actionConstructions, 0);
         expect(spy.requests, 0);
         for (var request = 1; request <= 2; request++) {
-          await dispatcher.dispatch(
-            intent: const ResetMessageDataRequested(),
-            context: const SidebarActionDispatchContext(
-              sidebarMode: SidebarMode.settings,
+          // Response 116 historically reached this action even when hidden.
+          await expectLater(
+            dispatcher.dispatch(
+              intent: const ResetMessageDataRequested(),
+              context: const SidebarActionDispatchContext(
+                sidebarMode: SidebarMode.settings,
+              ),
             ),
+            throwsA(isA<ArchiveResetDenied>()),
           );
-          expect(actionConstructions, 1);
-          expect(spy.requests, request);
+          expect(actionConstructions, 0);
+          expect(spy.requests, 0);
           expect(forbiddenServiceConstructions, 0);
         }
         expect(container.exists(startFreshServiceProvider), isFalse);

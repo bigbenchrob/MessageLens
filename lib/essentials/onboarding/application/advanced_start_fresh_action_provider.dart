@@ -3,6 +3,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../config/theme/colors/theme_colors.dart';
+import '../../archive_environment/domain/archive_mutation_operation.dart';
+import '../../archive_environment/feature_level_providers.dart'
+    show
+        ArchiveResetAdmissionBinding,
+        ArchiveResetDenied,
+        ArchiveResetDenialReason,
+        archiveResetAdmissionProvider;
 import '../../logging/feature_level_providers.dart' show appLoggerProvider;
 import '../../navigation/application/app_navigator_key.dart';
 import '../presentation/start_fresh_authorization_dialog.dart';
@@ -15,7 +22,20 @@ part 'advanced_start_fresh_action_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 AdvancedStartFreshAction advancedStartFreshAction(Ref ref) {
+  late final ArchiveResetAdmissionBinding resetBinding;
+  try {
+    resetBinding = ref.read(archiveResetAdmissionProvider).bind();
+  } on Object {
+    throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+  }
+  ref.onDispose(resetBinding.close);
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
+  final presentation = ref.read(
+    advancedStartFreshPresentationControllerProvider.notifier,
+  );
+  resetBinding.requireAllowed(ArchiveMutationOperation.startFresh);
   return AdvancedStartFreshActionImpl(
+    resetBinding: resetBinding,
     readInstallationState: () {
       return ref
           .read(advancedStartFreshCurrentStateReaderProvider)
@@ -37,9 +57,7 @@ AdvancedStartFreshAction advancedStartFreshAction(Ref ref) {
     readStartFreshService: () {
       return ref.read(startFreshServiceProvider.future);
     },
-    presentation: ref.read(
-      advancedStartFreshPresentationControllerProvider.notifier,
-    ),
+    presentation: presentation,
     waitForPresentationFrame: () => SchedulerBinding.instance.endOfFrame,
     reportFailure: (error, stackTrace) {
       ref

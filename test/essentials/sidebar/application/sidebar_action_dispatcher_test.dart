@@ -2,7 +2,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
+    show ArchiveResetAdmission, archiveResetAdmissionProvider;
 import 'package:remember_this_text/essentials/db/feature_level_providers.dart'
     show overlayDatabaseProvider;
 import 'package:remember_this_text/essentials/db/feature_level_providers/conversation_graph_readiness_provider.dart';
@@ -20,6 +21,8 @@ import 'package:remember_this_text/essentials/sidebar/application/sidebar_action
 import 'package:remember_this_text/essentials/sidebar/application/sidebar_flow_state_provider.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/entities/cassette_spec.dart';
 import 'package:remember_this_text/essentials/sidebar/domain/sidebar_action_intent.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart'
+    show StartupPresentationComposition;
 import 'package:remember_this_text/features/contacts/domain/spec_classes/contacts_cassette_spec.dart';
 import 'package:remember_this_text/features/contacts/domain/spec_classes/contacts_info_cassette_spec.dart';
 import 'package:remember_this_text/features/conversations/domain/spec_classes/conversations_view_spec.dart';
@@ -31,6 +34,7 @@ import 'package:remember_this_text/features/settings/domain/spec_classes/setting
 import 'package:remember_this_text/features/settings/domain/spec_classes/settings_view_spec.dart';
 import 'package:remember_this_text/features/sidebar_utilities/domain/sidebar_utilities_constants.dart';
 import 'package:remember_this_text/features/sidebar_utilities/domain/spec_classes/sidebar_utility_cassette_spec.dart';
+
 import '../../../test_support/cassette_rack_test_harness.dart';
 
 void main() {
@@ -45,6 +49,11 @@ void main() {
       overlayDb = OverlayDatabase(NativeDatabase.memory());
       container = ProviderContainer(
         overrides: [
+          archiveResetAdmissionProvider.overrideWith(
+            (ref) => ArchiveResetAdmission.selected(
+              StartupPresentationComposition.startupApp,
+            ),
+          ),
           conversationGraphPopulatedProvider.overrideWith(
             _AlwaysPopulatedGraph.new,
           ),

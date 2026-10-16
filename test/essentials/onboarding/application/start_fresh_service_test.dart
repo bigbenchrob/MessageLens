@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:remember_this_text/essentials/archive_environment/application/archive_mutation_coordinator_provider.dart';
 import 'package:remember_this_text/essentials/archive_environment/domain/archive_mutation_operation.dart';
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
+    show ArchiveResetAdmission, archiveResetAdmissionProvider;
 import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
     show admittedArchiveAccessAuthorityProvider;
 import 'package:remember_this_text/essentials/onboarding/application/message_data_reset_service.dart';
@@ -17,6 +18,8 @@ import 'package:remember_this_text/essentials/onboarding/domain/onboarding_opera
 import 'package:remember_this_text/essentials/onboarding/domain/startup_installation_validation.dart';
 import 'package:remember_this_text/essentials/presence/domain/entities/schedule_run.dart';
 import 'package:remember_this_text/essentials/presence/domain/repositories/presence_schedule_run_maintenance.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart'
+    show StartupPresentationComposition;
 
 import '../../../test_support/test_archive_fixture.dart';
 
@@ -29,6 +32,11 @@ void main() {
     addTearDown(fixture.dispose);
     final container = ProviderContainer(
       overrides: [
+        archiveResetAdmissionProvider.overrideWith(
+          (ref) => ArchiveResetAdmission.selected(
+            StartupPresentationComposition.startupApp,
+          ),
+        ),
         admittedArchiveAccessAuthorityProvider.overrideWithValue(
           fixture.authority,
         ),
@@ -55,6 +63,9 @@ void main() {
     var refreshCount = 0;
 
     final service = StartFreshServiceImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       archiveRootPath: fixture.root.path,
       requiredSourcesScheduleId: 42,
       readCurrentState: () async {
@@ -123,6 +134,9 @@ void main() {
     final resetService = _FakeResetService();
 
     final service = StartFreshServiceImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       archiveRootPath: '/not-used',
       requiredSourcesScheduleId: 42,
       readCurrentState: () async {
@@ -155,6 +169,11 @@ void main() {
       addTearDown(fixture.dispose);
       final container = ProviderContainer(
         overrides: [
+          archiveResetAdmissionProvider.overrideWith(
+            (ref) => ArchiveResetAdmission.selected(
+              StartupPresentationComposition.startupApp,
+            ),
+          ),
           admittedArchiveAccessAuthorityProvider.overrideWithValue(
             fixture.authority,
           ),
@@ -172,6 +191,9 @@ void main() {
       final resetService = _FakeResetService();
 
       final service = StartFreshServiceImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         archiveRootPath: fixture.root.path,
         requiredSourcesScheduleId: 42,
         readCurrentState: () async {
@@ -218,6 +240,11 @@ void main() {
       addTearDown(fixture.dispose);
       final container = ProviderContainer(
         overrides: [
+          archiveResetAdmissionProvider.overrideWith(
+            (ref) => ArchiveResetAdmission.selected(
+              StartupPresentationComposition.startupApp,
+            ),
+          ),
           admittedArchiveAccessAuthorityProvider.overrideWithValue(
             fixture.authority,
           ),
@@ -235,6 +262,9 @@ void main() {
       final resetService = _FakeResetService()..failure = StateError('disk');
 
       final service = StartFreshServiceImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         archiveRootPath: fixture.root.path,
         requiredSourcesScheduleId: 42,
         readCurrentState: () async {
@@ -283,6 +313,11 @@ void main() {
     addTearDown(fixture.dispose);
     final container = ProviderContainer(
       overrides: [
+        archiveResetAdmissionProvider.overrideWith(
+          (ref) => ArchiveResetAdmission.selected(
+            StartupPresentationComposition.startupApp,
+          ),
+        ),
         admittedArchiveAccessAuthorityProvider.overrideWithValue(
           fixture.authority,
         ),
@@ -301,6 +336,9 @@ void main() {
     final fullValidator = _VirginFullValidator(fullIntegrityValidated: false);
     var refreshCount = 0;
     final service = StartFreshServiceImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       archiveRootPath: fixture.root.path,
       requiredSourcesScheduleId: 42,
       readCurrentState: () async {

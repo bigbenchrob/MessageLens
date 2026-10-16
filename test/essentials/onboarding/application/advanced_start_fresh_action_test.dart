@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart'
+    show ArchiveResetAdmission;
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_action.dart';
 import 'package:remember_this_text/essentials/onboarding/application/advanced_start_fresh_presentation_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/start_fresh_service.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/advanced_start_fresh_presentation.dart';
 import 'package:remember_this_text/essentials/onboarding/domain/message_lens_installation_state.dart';
+import 'package:remember_this_text/essentials/startup_presentation_evidence/domain/startup_presentation_evidence.dart'
+    show StartupPresentationComposition;
 
 void main() {
   test(
@@ -18,6 +21,9 @@ void main() {
       final authorizationRequested = Completer<void>();
       var authorizationRequests = 0;
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async => _completedState,
         requestAuthorization: () async {
           authorizationRequests += 1;
@@ -58,6 +64,9 @@ void main() {
   test('cancelled authorization performs no Start Fresh mutation', () async {
     final service = _FakeStartFreshService();
     final action = AdvancedStartFreshActionImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       readInstallationState: () async => _completedState,
       requestAuthorization: () async => false,
       readStartFreshService: () async => service,
@@ -83,6 +92,9 @@ void main() {
       var authorizationCount = 0;
       final presentation = _FakePresentationPort();
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () {
           stateReadCount += 1;
           return stateRead.future;
@@ -137,6 +149,9 @@ void main() {
       var stateReadCount = 0;
       var authorizationCount = 0;
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async {
           stateReadCount += 1;
           return _completedState;
@@ -170,6 +185,9 @@ void main() {
       final service = _ControlledStartFreshService();
       final presentation = _FakePresentationPort();
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async => _completedState,
         requestAuthorization: () async => true,
         readStartFreshService: () async => service,
@@ -197,6 +215,9 @@ void main() {
       final service = _ControlledStartFreshService();
       final presentation = _FakePresentationPort(autoDismiss: false);
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async => _completedState,
         requestAuthorization: () async => true,
         readStartFreshService: () async => service,
@@ -228,6 +249,9 @@ void main() {
     final service = _FakeStartFreshService();
     var authorizationCount = 0;
     final action = AdvancedStartFreshActionImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       readInstallationState: () async => _completedState,
       requestAuthorization: () async {
         authorizationCount += 1;
@@ -252,6 +276,9 @@ void main() {
       final service = _FakeStartFreshService();
       final presentation = _FakePresentationPort();
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async {
           return const MessageLensInstallationState(
             kind: MessageLensInstallationStateKind.abandoned,
@@ -285,6 +312,9 @@ void main() {
     final reportedFailures = <Object>[];
     final presentation = _FakePresentationPort();
     final action = AdvancedStartFreshActionImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       readInstallationState: () async => throw StateError('read failed'),
       requestAuthorization: () async => true,
       readStartFreshService: () async => _FakeStartFreshService(),
@@ -313,6 +343,9 @@ void main() {
       final presentation = _FakePresentationPort();
       var stateReadCount = 0;
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async {
           stateReadCount += 1;
           return stateReadCount == 1 ? _completedState : _abandonedState;
@@ -355,6 +388,9 @@ void main() {
     final presentation = _FakePresentationPort();
     var stateReadCount = 0;
     final action = AdvancedStartFreshActionImpl(
+      resetBinding: ArchiveResetAdmission.selected(
+        StartupPresentationComposition.startupApp,
+      ).bind(),
       readInstallationState: () async {
         stateReadCount += 1;
         return stateReadCount == 1 ? _completedState : _remediationState;
@@ -381,6 +417,9 @@ void main() {
       final presentation = _FakePresentationPort();
       var stateReadCount = 0;
       final action = AdvancedStartFreshActionImpl(
+        resetBinding: ArchiveResetAdmission.selected(
+          StartupPresentationComposition.startupApp,
+        ).bind(),
         readInstallationState: () async {
           stateReadCount += 1;
           return stateReadCount == 1 ? _completedState : _abandonedState;
