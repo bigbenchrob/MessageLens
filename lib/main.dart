@@ -36,6 +36,8 @@ import 'essentials/archive_environment/domain.dart'
         ArchiveBuildIdentity,
         ArchiveEnvironment,
         ArchiveIdentityValidator;
+import 'essentials/archive_environment/feature_level_providers.dart'
+    show ArchiveResetAdmission, archiveResetAdmissionProvider;
 import 'essentials/archive_environment/infrastructure.dart'
     show
         DevelopmentArchiveRootOverrideResolver,
@@ -336,9 +338,19 @@ void main() async {
       ? StartupPresentationComposition.appCzar
       : StartupPresentationComposition.startupApp;
 
+  final resetAdmission = ArchiveResetAdmission.selected(
+    startupPresentationComposition,
+  );
+
   // Create provider container.
   final container = ProviderContainer(
     overrides: [
+      archiveResetAdmissionProvider.overrideWith((ref) {
+        // An override bypasses the default factory's lifecycle registration.
+        // Rebuilding this override returns the same permanently revoked object.
+        ref.onDispose(resetAdmission.revoke);
+        return resetAdmission;
+      }),
       admittedArchiveAccessAuthorityProvider.overrideWith(
         (ref) => archiveAuthority,
       ),
@@ -382,6 +394,9 @@ void main() async {
       }),
     ],
   );
+
+  // Install revocation even when no reset consumer ever resolves the input.
+  container.read(archiveResetAdmissionProvider);
 
   FlutterError.onError = FlutterError.presentError;
   PlatformDispatcher.instance.onError = (error, stack) {

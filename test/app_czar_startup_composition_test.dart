@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_development_composition_policy.dart';
 import 'package:remember_this_text/essentials/app_czar/application/app_czar_production_composition_eligibility_policy.dart';
@@ -8,6 +10,28 @@ import 'package:remember_this_text/essentials/services/startup_flags_service.dar
 import 'package:remember_this_text/main.dart';
 
 void main() {
+  test('reset lifetime uses final selection and installs override disposal', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(
+      source,
+      contains(
+        'ArchiveResetAdmission.selected(\n    startupPresentationComposition,',
+      ),
+    );
+    expect(source, contains('ref.onDispose(resetAdmission.revoke)'));
+    expect(source, contains('return resetAdmission;'));
+    expect(source, contains('container.read(archiveResetAdmissionProvider)'));
+    expect(
+      source.indexOf('final startupPresentationComposition ='),
+      lessThan(source.indexOf('final resetAdmission =')),
+    );
+    expect(
+      source.indexOf('container.read(archiveResetAdmissionProvider)'),
+      lessThan(source.indexOf('  runApp(')),
+    );
+    expect(source, contains('ProductionAppCzarActivation.disabled'));
+  });
+
   const policy = AppCzarDevelopmentCompositionPolicy();
   const productionPolicy = AppCzarProductionCompositionEligibilityPolicy();
 

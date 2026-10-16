@@ -4,6 +4,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 
 void main() {
+  test('reset input has no assessment, display projection or data dependency', () {
+    final domain = File(
+      'lib/essentials/archive_environment/domain/archive_reset_admission.dart',
+    ).readAsStringSync();
+    final input = File(
+      'lib/essentials/archive_environment/application/archive_reset_admission_provider.dart',
+    ).readAsStringSync();
+    expect(domain, contains('show StartupPresentationComposition;'));
+    expect(input, contains('ArchiveResetAdmission.unavailable()'));
+    for (final forbidden in [
+      'dart:io',
+      'app_czar/',
+      'StartupSupportEvidence',
+      'startupPresentationCompositionProvider',
+      'archiveAccessAuthorityProvider',
+      'exclusiveAuthorityRegistryProvider',
+    ]) {
+      expect(domain, isNot(contains(forbidden)));
+      expect(input, isNot(contains(forbidden)));
+    }
+    expect(AppCzarVirtualCoordinator.values, hasLength(7));
+  });
+
   test('AppCzar package cannot import semantic or execution authorities', () {
     final files = Directory('lib/essentials/app_czar')
         .listSync(recursive: true, followLinks: false)

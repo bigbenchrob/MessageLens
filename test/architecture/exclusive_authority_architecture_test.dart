@@ -30,6 +30,58 @@ const _providerUseRule = 'provider-lifecycle-and-state-use';
 const _registryProofSurfaceRule = 'registry-proof-api-surface';
 
 void main() {
+  test('reset admission friend is hidden, debug fenced and inert', () {
+    const friend =
+        'lib/essentials/archive_environment/application/archive_mutation_admission_test_support.dart';
+    const allowedTest =
+        'test/essentials/archive_environment/application/archive_mutation_pre_tenure_admission_test.dart';
+    final source = File(friend).readAsStringSync();
+    expect(
+      source,
+      contains("part of 'archive_mutation_coordinator_provider.dart'"),
+    );
+    expect(source, contains('if (!kDebugMode)'));
+    expect(source, contains('_dispatchBeforeTenure<bool>'));
+    for (final forbidden in [
+      'ExclusiveAuthorityTenure',
+      'ArchiveMutationCapability',
+      'ProviderContainer',
+      'Zone.current',
+      'runExclusive',
+      'runReentrant',
+      'runWithCapability',
+      'Function(',
+    ]) {
+      expect(source, isNot(contains(forbidden)));
+    }
+    final seam = File(
+      'lib/essentials/archive_environment/feature_level_providers.dart',
+    ).readAsStringSync();
+    expect(
+      seam.replaceAll(RegExp(r'\s+'), ' '),
+      contains(
+        'hide ArchiveMutationAdmissionTestSupport, ArchiveMutationAdmissionObservation;',
+      ),
+    );
+    for (final directory in ['lib', 'test']) {
+      for (final file
+          in Directory(directory)
+              .listSync(recursive: true, followLinks: false)
+              .whereType<File>()
+              .where((file) => file.path.endsWith('.dart'))) {
+        if (file.path == friend || file.path == allowedTest) {
+          continue;
+        }
+        final text = file.readAsStringSync();
+        expect(
+          RegExp(r'ArchiveMutationAdmissionTestSupport\s*\.').hasMatch(text),
+          isFalse,
+          reason: file.path,
+        );
+      }
+    }
+  });
+
   const productionPolicy = _ExclusiveAuthorityProductionPolicy();
 
   test('generic essential has no domain or presentation dependencies', () {

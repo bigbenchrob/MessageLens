@@ -846,6 +846,40 @@ const Set<String> _archiveCompatibilityKeyConstructionAllowedFiles = {
 };
 
 void main() {
+  test(
+    'both archive APIs share pre-tenure reset veto before Zone and registry',
+    () {
+      final source = File(
+        'lib/essentials/archive_environment/application/archive_mutation_coordinator_provider.dart',
+      ).readAsStringSync();
+      final dispatch = source.substring(
+        source.indexOf('Future<T> _dispatchBeforeTenure<T>'),
+      );
+      expect(
+        dispatch.indexOf('_requireResetBinding(binding, operation)'),
+        lessThan(dispatch.indexOf('isReentrantCandidate()')),
+      );
+      expect(dispatch, contains('ArchiveResetAdmission.appliesTo(operation)'));
+      final run = source.substring(
+        source.indexOf('Future<T> _run<T>'),
+        source.indexOf('Future<T> _runAdmittedArchiveScope<T>'),
+      );
+      expect(
+        run.indexOf('_dispatchBeforeTenure<T>'),
+        lessThan(run.indexOf('Zone.current')),
+      );
+      expect(run, contains('ordinary: (binding)'));
+      expect(run, contains('reentrant: (binding)'));
+      expect(source, contains('resetBinding?.isCurrentFor(operation)'));
+      expect(
+        source,
+        contains(
+          'await _requireVerifiedCheckpointWhenApplicable(operation);\n      _requireResetBinding(resetBinding, operation);',
+        ),
+      );
+    },
+  );
+
   group('AppCzar Onboarding Stage One boundaries', () {
     test(
       'new Onboarding package contains no legacy Journey authority',

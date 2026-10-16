@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,10 +18,13 @@ import '../domain/archive_instance_id.dart';
 import '../domain/archive_mutation_capability_denied_exception.dart';
 import '../domain/archive_mutation_denied_exception.dart';
 import '../domain/archive_mutation_operation.dart';
+import '../domain/archive_reset_admission.dart';
 import 'archive_access_authority_provider.dart';
+import 'archive_reset_admission_provider.dart';
 import 'verified_archive_checkpoint_provider.dart';
 
 part 'archive_mutation_coordinator_provider.g.dart';
+part 'archive_mutation_admission_test_support.dart';
 
 final Object _archiveMutationOwnerZoneKey = Object();
 
@@ -156,34 +160,41 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
     required String ownerLabel,
     required Future<T> Function(ArchiveMutationCapability capability) action,
   }) async {
-    final inheritedContext =
-        Zone.current[_archiveMutationOwnerZoneKey]
-            as _ArchiveMutationAsyncContext?;
+    _ArchiveMutationAsyncContext? inheritedContext;
     try {
-      if (inheritedContext != null &&
-          identical(
-            inheritedContext.coordinatorIdentity,
-            _coordinatorIdentity,
-          )) {
-        return await _exclusiveAuthorityRegistry.runReentrant<T>(
-          tenure: inheritedContext.tenure,
-          action: () => _runAdmittedArchiveScope<T>(
-            tenure: inheritedContext.tenure,
+      return await _dispatchBeforeTenure<T>(
+        operation: operation,
+        readAdmission: () => ref.read(archiveResetAdmissionProvider),
+        isReentrantCandidate: () {
+          inheritedContext =
+              Zone.current[_archiveMutationOwnerZoneKey]
+                  as _ArchiveMutationAsyncContext?;
+          return inheritedContext != null &&
+              identical(
+                inheritedContext!.coordinatorIdentity,
+                _coordinatorIdentity,
+              );
+        },
+        ordinary: (binding) => _exclusiveAuthorityRegistry.runExclusive<T>(
+          authority: ExclusiveAuthorityKey.archiveMutation,
+          ownerLabel: ownerLabel,
+          action: (tenure) => _runAdmittedArchiveScope<T>(
+            tenure: tenure,
             operation: operation,
             ownerLabel: ownerLabel,
             action: action,
+            resetBinding: binding,
           ),
-        );
-      }
-
-      return await _exclusiveAuthorityRegistry.runExclusive<T>(
-        authority: ExclusiveAuthorityKey.archiveMutation,
-        ownerLabel: ownerLabel,
-        action: (tenure) => _runAdmittedArchiveScope<T>(
-          tenure: tenure,
-          operation: operation,
-          ownerLabel: ownerLabel,
-          action: action,
+        ),
+        reentrant: (binding) => _exclusiveAuthorityRegistry.runReentrant<T>(
+          tenure: inheritedContext!.tenure,
+          action: () => _runAdmittedArchiveScope<T>(
+            tenure: inheritedContext!.tenure,
+            operation: operation,
+            ownerLabel: ownerLabel,
+            action: action,
+            resetBinding: binding,
+          ),
         ),
       );
     } on ExclusiveAuthorityDeniedException {
@@ -195,10 +206,12 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
 
   Future<T> _runAdmittedArchiveScope<T>({
     required ExclusiveAuthorityTenure tenure,
+    required ArchiveResetAdmissionBinding? resetBinding,
     required ArchiveMutationOperation operation,
     required String ownerLabel,
     required Future<T> Function(ArchiveMutationCapability capability) action,
   }) async {
+    _requireResetBinding(resetBinding, operation);
     final scopeId = _activateArchiveScope(
       tenure: tenure,
       operation: operation,
@@ -206,16 +219,22 @@ class ArchiveMutationCoordinator extends _$ArchiveMutationCoordinator {
     );
     try {
       await _requireVerifiedCheckpointWhenApplicable(operation);
+      _requireResetBinding(resetBinding, operation);
       final capability = ArchiveMutationCapability._(
         operation: operation,
-        isActive: () => _scopeIsActiveForCurrentCaller(
-          tenure: tenure,
-          scopeId: scopeId,
-          operation: operation,
-        ),
+        isActive: () =>
+            (resetBinding?.isCurrentFor(operation) ?? true) &&
+            _scopeIsActiveForCurrentCaller(
+              tenure: tenure,
+              scopeId: scopeId,
+              operation: operation,
+            ),
       );
       return await runZoned(
-        () => action(capability),
+        () {
+          _requireResetBinding(resetBinding, operation);
+          return action(capability);
+        },
         zoneValues: {
           _archiveMutationOwnerZoneKey: _ArchiveMutationAsyncContext(
             coordinatorIdentity: _coordinatorIdentity,
@@ -438,4 +457,44 @@ bool archiveDatabaseReopenBlocked(Ref ref) {
       (state) => state.blocksDatabaseReopen,
     ),
   );
+}
+
+// The only branch dispatch path. Denial dominates even reading the owner Zone.
+Future<T> _dispatchBeforeTenure<T>({
+  required ArchiveMutationOperation operation,
+  required ArchiveResetAdmission Function() readAdmission,
+  required bool Function() isReentrantCandidate,
+  required Future<T> Function(ArchiveResetAdmissionBinding? binding) ordinary,
+  required Future<T> Function(ArchiveResetAdmissionBinding? binding) reentrant,
+}) async {
+  ArchiveResetAdmissionBinding? binding;
+  if (ArchiveResetAdmission.appliesTo(operation)) {
+    try {
+      binding = readAdmission().bind();
+    } on Object {
+      throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+    }
+  }
+  try {
+    _requireResetBinding(binding, operation);
+    final nested = isReentrantCandidate();
+    _requireResetBinding(binding, operation);
+    // No await between the initial check and choosing the original branch.
+    return await (nested ? reentrant(binding) : ordinary(binding));
+  } finally {
+    binding?.close();
+  }
+}
+
+void _requireResetBinding(
+  ArchiveResetAdmissionBinding? binding,
+  ArchiveMutationOperation operation,
+) {
+  if (!ArchiveResetAdmission.appliesTo(operation)) {
+    return;
+  }
+  if (binding == null) {
+    throw const ArchiveResetDenied(ArchiveResetDenialReason.unavailable);
+  }
+  binding.requireAllowed(operation);
 }
