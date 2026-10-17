@@ -7,7 +7,7 @@ part of 'app_czar_local_data_repair_controller.dart';
 // **************************************************************************
 
 String _$appCzarLocalDataRepairControllerHash() =>
-    r'652cfa312b5334ebc65df5e4317bfc032dfa0fc1';
+    r'c95e9dddf59b501f910de407fc42f2c6255bce81';
 
 /// See also [AppCzarLocalDataRepairController].
 @ProviderFor(AppCzarLocalDataRepairController)

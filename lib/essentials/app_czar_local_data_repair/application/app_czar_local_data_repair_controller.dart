@@ -28,28 +28,51 @@ class AppCzarLocalDataRepairController
   int _publicationGeneration = 0;
   Future<void>? _activeRun;
 
+  bool _stopped = false;
+  bool _restartActive = false;
+  Future<void>? _restartFlight;
+  Object? _drainFailure;
+  StackTrace? _drainFailureStack;
+  AppCzarAssessmentState? _admittedAssessment;
+
   @override
   AppCzarLocalDataRepairState build() {
-    final assessment = ref.watch(appCzarAssessmentControllerProvider);
-    if (_startedGeneration == null &&
-        shouldExecuteAppCzarLocalDataRepair(assessment)) {
+    ref.onDispose(_seal);
+    ref.listen(appCzarAssessmentControllerProvider, (_, next) {
+      _considerAssessment(next);
+      if (!_stopped) {
+        state = _current;
+      }
+    });
+    _considerAssessment(ref.read(appCzarAssessmentControllerProvider));
+    return _current;
+  }
+
+  void _considerAssessment(AppCzarAssessmentState assessment) {
+    if (_stopped) {
+      return;
+    }
+    if (_startedGeneration != null) {
+      if (!identical(assessment, _admittedAssessment)) {
+        _seal();
+      }
+      return;
+    }
+    if (shouldExecuteAppCzarLocalDataRepair(assessment)) {
+      _admittedAssessment = assessment;
       _startedGeneration = assessment.generation;
       _current = AppCzarLocalDataRepairState(
         phase: AppCzarLocalDataRepairPhase.revalidating,
         assessmentGeneration: assessment.generation,
       );
-      Future<void>.microtask(() {
+      // Retain the scheduled worker before any executor can reenter this owner.
+      _activeRun = Future<void>.microtask(() async {
         if (!_acceptingWork) {
           return;
         }
-        final publicationGeneration = _publicationGeneration;
-        _activeRun = _run(
-          assessment.localDataRepairSafety!,
-          publicationGeneration,
-        );
+        await _run(assessment.localDataRepairSafety!, _publicationGeneration);
       });
     }
-    return _current;
   }
 
   Future<void> _run(
@@ -57,7 +80,7 @@ class AppCzarLocalDataRepairController
     int publicationGeneration,
   ) async {
     try {
-      final result = await ref
+      await ref
           .read(appCzarLocalDataRepairExecutorProvider)
           .run(
             expected: expected,
@@ -74,39 +97,29 @@ class AppCzarLocalDataRepairController
               );
             },
           );
-      if (result == AppCzarLocalDataRepairExecutionResult.staleEvidence) {
-        await _restartForFreshAssessment(publicationGeneration);
-        return;
+      _queueRestart(publicationGeneration);
+    } on AppCzarLocalDataRepairExecutionException catch (error, stack) {
+      if (!_acceptingWork) {
+        _retainFailure(error, stack);
+      } else if (error.mutationMayHaveStarted) {
+        _queueRestart(publicationGeneration, priorFailure: error);
+      } else {
+        _publishFailure(error, publicationGeneration);
       }
-      await _restartForFreshAssessment(publicationGeneration);
-    } on AppCzarLocalDataRepairExecutionException catch (error) {
-      if (error.mutationMayHaveStarted) {
-        await _restartAfterMutation(error, publicationGeneration);
-        return;
+    } on Object catch (error, stack) {
+      if (!_acceptingWork) {
+        _retainFailure(error, stack);
+      } else {
+        _publishFailure(error, publicationGeneration);
       }
-      _publishFailure(error, publicationGeneration);
-    } on Object catch (error) {
-      _publishFailure(error, publicationGeneration);
-    } finally {
-      _activeRun = null;
     }
   }
 
-  Future<void> _restartAfterMutation(
-    Object originalError,
-    int publicationGeneration,
-  ) async {
-    await _restartForFreshAssessment(
-      publicationGeneration,
-      priorFailure: originalError,
-    );
-  }
-
-  Future<void> _restartForFreshAssessment(
-    int publicationGeneration, {
-    Object? priorFailure,
-  }) async {
-    if (!_acceptingWork || publicationGeneration != _publicationGeneration) {
+  void _queueRestart(int generation, {Object? priorFailure}) {
+    if (_stopped || generation != _publicationGeneration) {
+      return;
+    }
+    if (_restartFlight != null) {
       return;
     }
     _publish(
@@ -114,26 +127,50 @@ class AppCzarLocalDataRepairController
         phase: AppCzarLocalDataRepairPhase.restartRequested,
         assessmentGeneration: _startedGeneration,
       ),
-      publicationGeneration,
+      generation,
     );
     _acceptingWork = false;
-    _publicationGeneration += 1;
-    try {
-      await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
-    } on Object catch (restartError) {
-      if (_publicationGeneration != publicationGeneration + 1) {
-        return;
+    // Work never awaits this flight. It must settle before restart dispatch,
+    // because the restarter may call this owner's ordinary drain itself.
+    final flight = Future<void>.microtask(() async {
+      try {
+        await _activeRun;
+        if (_stopped || generation != _publicationGeneration) {
+          return;
+        }
+        _restartActive = true;
+        await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
+        _drainFailure = null;
+        _drainFailureStack = null;
+      } on Object catch (error, stack) {
+        _retainFailure(error, stack);
+        if (!_stopped && generation == _publicationGeneration) {
+          _current = AppCzarLocalDataRepairState(
+            phase: AppCzarLocalDataRepairPhase.failed,
+            assessmentGeneration: _startedGeneration,
+            failure: priorFailure == null
+                ? '$error'
+                : '$priorFailure; restart failed: $error',
+          );
+          state = _current;
+        }
+      } finally {
+        _restartActive = false;
+        _restartFlight = null;
       }
-      final failure = priorFailure == null
-          ? '$restartError'
-          : '$priorFailure; restart failed: $restartError';
-      _current = AppCzarLocalDataRepairState(
-        phase: AppCzarLocalDataRepairPhase.failed,
-        assessmentGeneration: _startedGeneration,
-        failure: failure,
-      );
-      state = _current;
-    }
+    });
+    _restartFlight = flight;
+  }
+
+  void _retainFailure(Object error, StackTrace stack) {
+    _drainFailure ??= error;
+    _drainFailureStack ??= stack;
+  }
+
+  void _seal() {
+    _stopped = true;
+    _acceptingWork = false;
+    _publicationGeneration += 1;
   }
 
   void _publishFailure(Object error, int publicationGeneration) {
@@ -148,13 +185,30 @@ class AppCzarLocalDataRepairController
   }
 
   Future<void> stopAndDrain() async {
-    _acceptingWork = false;
-    _publicationGeneration += 1;
+    _seal();
     await _activeRun;
+    if (_restartActive) {
+      throw StateError('Local Data Repair restart is still active.');
+    }
+    // Sealing revokes queued dispatch; await its actual retirement.
+    await _restartFlight;
+    if (_drainFailure case final failure?) {
+      Error.throwWithStackTrace(failure, _drainFailureStack!);
+    }
   }
 
-  Future<void> restartAndReassess() async {
-    await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
+  Future<void> restartAndReassess() {
+    if (_stopped) {
+      return Future<void>.value();
+    }
+    if (_restartFlight case final flight?) {
+      return flight;
+    }
+    if (_current.phase != AppCzarLocalDataRepairPhase.failed) {
+      return Future<void>.value();
+    }
+    _queueRestart(_publicationGeneration);
+    return _restartFlight ?? Future<void>.value();
   }
 
   void _publish(AppCzarLocalDataRepairState value, int publicationGeneration) {

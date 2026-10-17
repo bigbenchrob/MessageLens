@@ -18,6 +18,8 @@ import 'package:remember_this_text/essentials/app_czar_data_update/application/a
 import 'package:remember_this_text/essentials/app_czar_data_update/presentation/app_czar_data_update_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_executor_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_local_data_repair/domain/app_czar_local_data_repair_state.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_build_executor_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
@@ -42,6 +44,108 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  testWidgets('Prompt 132 Local Repair restart retry prevents successful drain', (
+    tester,
+  ) async {
+    final executor = _PreMutationRepairFailure();
+    final restart = _SourceExitRestarter(block: true);
+    final settings = _SourceExitSettings()..done.complete();
+    final container = ProviderContainer(
+      overrides: [
+        appCzarAssessmentControllerProvider.overrideWith(
+          _LocalRepairExitAssessment.new,
+        ),
+        appCzarObservationReaderProvider.overrideWithValue(
+          const _SafeEmptyAccessDeniedReader(),
+        ),
+        appCzarLocalDataRepairExecutorProvider.overrideWithValue(executor),
+        appCzarProcessRestarterProvider.overrideWithValue(restart),
+        fullDiskAccessProvider.overrideWithValue(settings),
+      ],
+    );
+    Future<void>? action;
+    Future<void>? drain;
+    Future<void>? exit;
+    try {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final owner = container.read(
+        appCzarLocalDataRepairControllerProvider.notifier,
+      );
+      expect(
+        container.read(appCzarLocalDataRepairControllerProvider).phase,
+        AppCzarLocalDataRepairPhase.failed,
+      );
+      expect(find.text('Restart and reassess'), findsOneWidget);
+      expect(executor.calls, 1);
+      expect(restart.calls, 0);
+      // Invoke the real action used by the visible failed-state button.
+      action = owner.restartAndReassess();
+      await tester.pump();
+      expect(restart.calls, 1);
+      var drainSucceeded = false;
+      Object? drainFailure;
+      drain = owner.stopAndDrain().then<void>(
+        (_) {
+          drainSucceeded = true;
+        },
+        onError: (Object error, StackTrace stack) {
+          drainFailure = error;
+        },
+      );
+      AppExitResponse? response;
+      Object? exitFailure;
+      exit = tester.binding.handleRequestAppExit().then<void>(
+        (value) {
+          response = value;
+        },
+        onError: (Object error, StackTrace stack) {
+          exitFailure = error;
+        },
+      );
+      await tester.pump();
+      final prematureSuccess = drainSucceeded;
+      final prematureExit = response;
+      printOnFailure(
+        'Prompt132 Local Repair retry: '
+        'restartCalls=${restart.calls} restartSettled=${restart.done.isCompleted} '
+        'drainSucceeded=$drainSucceeded drainFailure=$drainFailure '
+        'exitResponse=$response exitFailure=$exitFailure',
+      );
+      expect(restart.done.isCompleted, isFalse);
+      restart.done.complete();
+      await action;
+      await drain;
+      await exit;
+      expect(settings.calls, 0);
+      expect(
+        prematureSuccess,
+        isFalse,
+        reason:
+            'A pending real-owner restart retry must be awaited or refused.',
+      );
+      expect(prematureExit, isNull);
+      expect(drainFailure, isA<StateError>());
+      expect(exitFailure, isA<StateError>());
+      // The unchanged host propagates refusal; this is not confirmed cancel.
+      await owner.stopAndDrain();
+    } finally {
+      if (!restart.done.isCompleted) {
+        restart.done.complete();
+      }
+      await action;
+      await drain;
+      await exit;
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+    }
+  });
+
   testWidgets('Prompt 130 Onboarding host cancels a refused drain', (
     tester,
   ) async {
@@ -1313,5 +1417,47 @@ final class _ControlledOnboardingDrainFailure
   Future<void> _failAfterDrain(bool restart) async {
     await super.stopAndDrain(restart: restart);
     await release.future;
+  }
+}
+
+final class _LocalRepairExitAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState(
+    generation: 7,
+    localDataRepairSafety: const AppCzarLocalDataRepairSafetyObservation(
+      condition:
+          AppCzarLocalDataRepairSafetyCondition.rebuildableLiveOnlyPartial,
+      archiveRootPath: '/synthetic/local-repair',
+      archiveInstanceId: '22222222-2222-4222-8222-222222222222',
+      archiveScopeIdentity: 'synthetic-scope',
+      archiveGeneration: 0,
+      sourceFingerprint: 'synthetic-source',
+      evidenceFingerprint: 'synthetic-evidence',
+      resetFootprint: ['macos_import_ss.db', 'working_ss.db'],
+      consequentialRowCounts: {'messages': 1},
+    ),
+    assessment: AppCzarAssessment(
+      facts: const [],
+      diagnosisKind: AppCzarDiagnosisKind.localDataNeedsRepair,
+      diagnosis: 'Synthetic reconstructible live-derived data.',
+      virtualCoordinator: AppCzarVirtualCoordinator.localDataRepair,
+    ),
+  );
+}
+
+final class _PreMutationRepairFailure
+    implements AppCzarLocalDataRepairExecutor {
+  int calls = 0;
+  @override
+  Future<AppCzarLocalDataRepairExecutionResult> run({
+    required AppCzarLocalDataRepairSafetyObservation expected,
+    void Function()? onMutationAdmitted,
+    bool Function()? isMutationStillAdmitted,
+  }) async {
+    calls += 1;
+    throw const AppCzarLocalDataRepairExecutionException(
+      cause: 'synthetic pre-mutation refusal',
+      mutationMayHaveStarted: false,
+    );
   }
 }
