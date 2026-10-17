@@ -27,7 +27,7 @@ final appCzarDiagnosticReviewClockProvider =
 typedef AppCzarDiagnosticReviewClockRef =
     ProviderRef<AppCzarDiagnosticReviewClock>;
 String _$appCzarDiagnosticReviewControllerHash() =>
-    r'd5cc1c03293148cd1389ec5682357ff39ea4d148';
+    r'61c9e5989c6fad4bea94c8cc4a51ffece4676490';
 
 /// See also [AppCzarDiagnosticReviewController].
 @ProviderFor(AppCzarDiagnosticReviewController)

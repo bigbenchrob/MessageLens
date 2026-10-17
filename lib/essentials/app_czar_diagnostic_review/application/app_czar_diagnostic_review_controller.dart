@@ -36,10 +36,32 @@ class AppCzarDiagnosticReviewController
   bool _acceptingActions = true;
   int _publicationGeneration = 0;
   Future<void>? _activeLifecycleAction;
+  bool _restartActive = false;
+  bool _stopped = false;
+  bool _disposed = false;
+  Object? _drainFailure;
+  StackTrace? _drainFailureStack;
 
   @override
   AppCzarDiagnosticReviewState build() {
-    final assessment = ref.watch(appCzarAssessmentControllerProvider);
+    ref.onDispose(() {
+      _disposed = true;
+      _seal();
+    });
+    ref.listen(appCzarAssessmentControllerProvider, (_, next) {
+      _considerAssessment(next);
+      if (!_disposed) {
+        state = _current;
+      }
+    });
+    _considerAssessment(ref.read(appCzarAssessmentControllerProvider));
+    return _current;
+  }
+
+  void _considerAssessment(AppCzarAssessmentState assessment) {
+    if (_stopped) {
+      return;
+    }
     _latestAssessment = assessment;
     final occurrence = _occurrence;
     if (occurrence == null) {
@@ -49,7 +71,6 @@ class AppCzarDiagnosticReviewController
     } else if (!_isExactCurrentOccurrence(occurrence)) {
       _closeStaleOccurrence(occurrence);
     }
-    return _current;
   }
 
   void _captureOccurrence(AppCzarAssessmentState assessment) {
@@ -69,8 +90,7 @@ class AppCzarDiagnosticReviewController
   }
 
   void _closeStaleOccurrence(AppCzarDiagnosticReviewOccurrence occurrence) {
-    _acceptingActions = false;
-    _publicationGeneration += 1;
+    _seal();
     _current = AppCzarDiagnosticReviewState(
       phase: AppCzarDiagnosticReviewPhase.draining,
       actionAdmissionOpen: false,
@@ -92,21 +112,33 @@ class AppCzarDiagnosticReviewController
     _acceptingActions = false;
     _publicationGeneration += 1;
     final publicationGeneration = _publicationGeneration;
+    // Own queued work before publishing or invoking a reentrant port.
+    final action = Future<void>.microtask(() async {
+      if (_stopped ||
+          _publicationGeneration != publicationGeneration ||
+          !_isExactCurrentOccurrence(occurrence)) {
+        return;
+      }
+      _restartActive = true;
+      await _restartAtProcessBoundary(occurrence, publicationGeneration);
+    });
+    _activeLifecycleAction = action;
+    // Preserve the approved completion boundary; the admitted action itself
+    // remains owned and returned to callers, with failures retained below.
+    unawaited(
+      action.whenComplete(() {
+        if (identical(_activeLifecycleAction, action)) {
+          _restartActive = false;
+          _activeLifecycleAction = null;
+        }
+      }),
+    );
     _publish(
       AppCzarDiagnosticReviewState(
         phase: AppCzarDiagnosticReviewPhase.draining,
         actionAdmissionOpen: false,
         occurrence: occurrence,
       ),
-    );
-    final action = _restartAtProcessBoundary(occurrence, publicationGeneration);
-    _activeLifecycleAction = action;
-    unawaited(
-      action.whenComplete(() {
-        if (identical(_activeLifecycleAction, action)) {
-          _activeLifecycleAction = null;
-        }
-      }),
     );
     return action;
   }
@@ -117,8 +149,13 @@ class AppCzarDiagnosticReviewController
   ) async {
     try {
       await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
-    } on Object catch (error) {
-      if (_occurrence != occurrence ||
+      _drainFailure = null;
+      _drainFailureStack = null;
+    } on Object catch (error, stack) {
+      _drainFailure ??= error;
+      _drainFailureStack ??= stack;
+      if (_stopped ||
+          _occurrence != occurrence ||
           _publicationGeneration != publicationGeneration ||
           !_isExactCurrentOccurrence(occurrence)) {
         return;
@@ -137,9 +174,8 @@ class AppCzarDiagnosticReviewController
 
   Future<void> stopAndDrain() async {
     final occurrence = _occurrence;
-    _acceptingActions = false;
-    _publicationGeneration += 1;
-    if (occurrence != null) {
+    _seal();
+    if (!_disposed && occurrence != null) {
       _publish(
         AppCzarDiagnosticReviewState(
           phase: AppCzarDiagnosticReviewPhase.quitRequested,
@@ -148,7 +184,20 @@ class AppCzarDiagnosticReviewController
         ),
       );
     }
+    if (_restartActive) {
+      throw StateError('Diagnostic Review restart is still active.');
+    }
+    // Sealing revokes queued port dispatch; this only waits for retirement.
     await _activeLifecycleAction;
+    if (_drainFailure case final failure?) {
+      Error.throwWithStackTrace(failure, _drainFailureStack!);
+    }
+  }
+
+  void _seal() {
+    _stopped = true;
+    _acceptingActions = false;
+    _publicationGeneration += 1;
   }
 
   bool _isExactCurrentOccurrence(AppCzarDiagnosticReviewOccurrence occurrence) {

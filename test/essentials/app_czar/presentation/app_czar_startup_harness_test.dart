@@ -16,6 +16,8 @@ import 'package:remember_this_text/essentials/app_czar_data_update/application/a
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/presentation/app_czar_data_update_screen.dart';
+import 'package:remember_this_text/essentials/app_czar_diagnostic_review/application/app_czar_diagnostic_review_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_diagnostic_review/domain/app_czar_diagnostic_review_state.dart';
 import 'package:remember_this_text/essentials/app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_executor_provider.dart';
@@ -44,6 +46,105 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  testWidgets(
+    'Prompt 134 Diagnostic reentrant restart cannot drain or exit early',
+    (tester) async {
+      final restart = _DiagnosticReentrantRestarter();
+      final container = ProviderContainer(
+        overrides: [
+          appCzarObservationReaderProvider.overrideWithValue(
+            const _ArchiveVariantReader(_unknownCoverageArchive),
+          ),
+          appCzarDiagnosticReviewClockProvider.overrideWith(
+            (ref) =>
+                () => DateTime.utc(2026, 10, 17),
+          ),
+          appCzarProcessRestarterProvider.overrideWithValue(restart),
+        ],
+      );
+      Future<void>? action;
+      Future<void>? drain;
+      Future<void>? exit;
+      var drainSucceeded = false;
+      Object? drainFailure;
+      AppExitResponse? response;
+      Object? exitFailure;
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const AppCzarStartupHarness(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final owner = container.read(
+          appCzarDiagnosticReviewControllerProvider.notifier,
+        );
+        expect(
+          container.read(appCzarDiagnosticReviewControllerProvider).phase,
+          AppCzarDiagnosticReviewPhase.presenting,
+        );
+        expect(
+          find.byKey(AppCzarDiagnosticReviewScreen.screenKey),
+          findsOneWidget,
+        );
+        // Enter both real drain paths synchronously from the injected port,
+        // before returning its genuinely unfinished future to the owner.
+        restart.onEntry = () {
+          drain = owner.stopAndDrain().then<void>(
+            (_) {
+              drainSucceeded = true;
+            },
+            onError: (Object error) {
+              drainFailure = error;
+            },
+          );
+          exit = tester.binding.handleRequestAppExit().then<void>(
+            (value) {
+              response = value;
+            },
+            onError: (Object error) {
+              exitFailure = error;
+            },
+          );
+        };
+        action = owner.tryAssessmentAgain();
+        await tester.pump();
+        expect(restart.calls, 1);
+        expect(restart.done.isCompleted, isFalse);
+        final prematureDrain = drainSucceeded;
+        final prematureExit = response;
+        printOnFailure(
+          'Prompt134 Diagnostic: restartCalls=${restart.calls} restartSettled=${restart.done.isCompleted} drainSucceeded=$drainSucceeded drainFailure=$drainFailure exitResponse=$response exitFailure=$exitFailure',
+        );
+        restart.done.complete();
+        await action;
+        await drain;
+        await exit;
+        expect(
+          prematureDrain,
+          isFalse,
+          reason:
+              'Successful drain must not conceal an admitted pending restart.',
+        );
+        expect(prematureExit, isNull);
+        expect(drainFailure, isA<StateError>());
+        expect(exitFailure, isA<StateError>());
+        // The unchanged host propagates refusal; this does not establish cancel.
+        await owner.stopAndDrain();
+      } finally {
+        if (!restart.done.isCompleted) {
+          restart.done.complete();
+        }
+        await action;
+        await drain;
+        await exit;
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    },
+  );
+
   testWidgets('Prompt 132 Local Repair restart retry prevents successful drain', (
     tester,
   ) async {
@@ -1459,5 +1560,17 @@ final class _PreMutationRepairFailure
       cause: 'synthetic pre-mutation refusal',
       mutationMayHaveStarted: false,
     );
+  }
+}
+
+final class _DiagnosticReentrantRestarter implements AppCzarProcessRestarter {
+  final done = Completer<void>();
+  void Function()? onEntry;
+  int calls = 0;
+  @override
+  Future<void> restartAndReassess() {
+    calls += 1;
+    onEntry?.call();
+    return done.future;
   }
 }
