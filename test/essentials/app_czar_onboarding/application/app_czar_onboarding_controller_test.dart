@@ -16,6 +16,490 @@ import 'package:remember_this_text/essentials/onboarding/application/full_disk_a
 import 'package:remember_this_text/essentials/onboarding/application/real_fda_settings_opening_authority_provider.dart';
 
 void main() {
+  for (final failSettings in [false, true]) {
+    test('Prompt 129 Settings drain failure=$failSettings', () async {
+      final reader = _OnboardingReader(
+        source: const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.accessDenied,
+        ),
+      );
+      final executor = _BuildExecutor();
+      final restarter = _Restarter();
+      final container = _container(reader, executor, restarter);
+      final waiting = Completer<void>();
+      container.listen(appCzarOnboardingControllerProvider, (_, next) {
+        if (next.phase == AppCzarOnboardingPhase.sourceNeedsHuman &&
+            !waiting.isCompleted) {
+          waiting.complete();
+        }
+      }, fireImmediately: true);
+      await waiting.future;
+      await _flushOnboardingMicrotasks();
+      final owner = container.read(
+        appCzarOnboardingControllerProvider.notifier,
+      );
+      final before = container.read(appCzarOnboardingControllerProvider);
+      final settings = Completer<void>();
+      _fullDiskAccess.pending = settings;
+      final action = owner.openSystemSettings();
+      var drained = false;
+      Object? drainFailure;
+      final drain = owner.stopAndDrain().then(
+        (_) {
+          drained = true;
+        },
+        onError: (Object error, StackTrace stack) {
+          drained = true;
+          drainFailure = error;
+        },
+      );
+      try {
+        await _flushOnboardingMicrotasks();
+        final premature = drained;
+        expect(_fullDiskAccess.openSettingsCalls, 1);
+        if (failSettings) {
+          settings.completeError(StateError('synthetic Settings failure'));
+        } else {
+          settings.complete();
+        }
+        await action;
+        await drain;
+        final latePublication = !identical(
+          before,
+          container.read(appCzarOnboardingControllerProvider),
+        );
+        // Keep both observations visible even when the pending assertion fails.
+        printOnFailure(
+          'Prompt129 Settings failure=$failSettings '
+          'prematureDrain=$premature latePublication=$latePublication',
+        );
+        expect(premature, isFalse);
+        expect(latePublication, isFalse);
+        expect(drainFailure, failSettings ? isA<StateError>() : isNull);
+        expect(executor.calls, 0);
+        expect(restarter.calls, 0);
+      } finally {
+        if (!settings.isCompleted) {
+          settings.complete();
+        }
+        await action;
+        await drain;
+        if (!executor.started.isCompleted) {
+          executor.started.complete();
+        }
+        if (!executor.release.isCompleted) {
+          executor.release.complete();
+        }
+        if (!restarter.called.isCompleted) {
+          restarter.called.complete();
+        }
+        container.dispose();
+      }
+    });
+  }
+
+  test(
+    'Prompt 129 stop must not start a queued reassessment restart',
+    () async {
+      final executor = _BuildExecutor(block: true);
+      final restarter = _Restarter();
+      final restartRelease = Completer<void>();
+      restarter.pending = restartRelease;
+      final container = _container(_OnboardingReader(), executor, restarter);
+      container.listen(
+        appCzarOnboardingControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      await executor.started.future;
+      try {
+        await container
+            .read(appCzarAssessmentControllerProvider.notifier)
+            .runAgain();
+        await container.pump();
+        expect(restarter.calls, 0);
+        final owner = container.read(
+          appCzarOnboardingControllerProvider.notifier,
+        );
+        final drain = owner.stopAndDrain();
+        executor.release.complete();
+        await drain;
+        await _flushOnboardingMicrotasks();
+        printOnFailure(
+          'Prompt129 queued restart: drain returned; '
+          'restartCalls=${restarter.calls}; '
+          'restartSettled=${restartRelease.isCompleted}; SettingsCalls='
+          '${_fullDiskAccess.openSettingsCalls}',
+        );
+        expect(
+          restarter.calls,
+          0,
+          reason:
+              'Ordinary stop must not initiate a queued restart after sealing.',
+        );
+      } finally {
+        if (!executor.release.isCompleted) {
+          executor.release.complete();
+        }
+        restartRelease.complete();
+        await _flushOnboardingMicrotasks();
+        container.dispose();
+      }
+    },
+  );
+
+  for (final failSecond in [false, true]) {
+    test(
+      'Prompt 131 all Settings flights settle failure=$failSecond',
+      () async {
+        final scenario = await _DrainScenario.human();
+        try {
+          final first = Completer<void>();
+          final second = Completer<void>();
+          scenario.settings.pendingFlights.addAll([first, second]);
+          final a = scenario.owner.openSystemSettings();
+          final b = scenario.owner.openSystemSettings();
+          final before = scenario.container.read(
+            appCzarOnboardingControllerProvider,
+          );
+          var finished = false;
+          final drain = _drainOutcome(scenario.owner).then((result) {
+            finished = true;
+            return result;
+          });
+          final duplicate = _drainOutcome(scenario.owner);
+          await scenario.owner.openSystemSettings();
+          await scenario.owner.checkAgain();
+          expect(scenario.settings.openSettingsCalls, 2);
+          if (failSecond) {
+            second.completeError(StateError('second Settings failed'));
+          } else {
+            second.complete();
+          }
+          await b;
+          await _flushOnboardingMicrotasks();
+          expect(finished, isFalse);
+          expect(
+            scenario.container.read(appCzarOnboardingControllerProvider),
+            same(before),
+          );
+          first.complete();
+          await a;
+          expect(await drain, failSecond ? isA<StateError>() : isNull);
+          expect(await duplicate, failSecond ? isA<StateError>() : isNull);
+          expect(
+            await _drainOutcome(scenario.owner),
+            failSecond ? isA<StateError>() : isNull,
+          );
+          expect(scenario.restarter.calls, 0);
+        } finally {
+          await scenario.close();
+        }
+      },
+    );
+  }
+
+  test(
+    'Prompt 131 handled Settings failure is not retroactive drain failure',
+    () async {
+      final scenario = await _DrainScenario.human();
+      try {
+        final port = Completer<void>();
+        scenario.settings.pending = port;
+        final action = scenario.owner.openSystemSettings();
+        port.completeError(StateError('handled before seal'));
+        await action;
+        expect(
+          scenario.container.read(appCzarOnboardingControllerProvider).issue,
+          contains('handled before seal'),
+        );
+        expect(await _drainOutcome(scenario.owner), isNull);
+        await scenario.owner.openSystemSettings();
+        expect(scenario.settings.openSettingsCalls, 1);
+      } finally {
+        await scenario.close();
+      }
+    },
+  );
+
+  for (final buildOverlap in [false, true]) {
+    test(
+      'Prompt 131 Settings overlaps ${buildOverlap ? 'build' : 'prerequisites'}',
+      () async {
+        final scenario = await _DrainScenario.human(blockBuild: buildOverlap);
+        try {
+          final port = Completer<void>();
+          scenario.settings.pending = port;
+          final action = scenario.owner.openSystemSettings();
+          if (buildOverlap) {
+            scenario.reader.source = _readableSource;
+          } else {
+            scenario.reader.nextSource = Completer<AppCzarSourceObservation>();
+          }
+          final check = scenario.owner.checkAgain();
+          if (buildOverlap) {
+            await scenario.executor.started.future;
+          } else {
+            await _flushOnboardingMicrotasks();
+            expect(scenario.reader.sourceReads, 3);
+          }
+          final before = scenario.container.read(
+            appCzarOnboardingControllerProvider,
+          );
+          var finished = false;
+          final drain = _drainOutcome(scenario.owner).then((value) {
+            finished = true;
+            return value;
+          });
+          port.complete();
+          await action;
+          await _flushOnboardingMicrotasks();
+          expect(finished, isFalse);
+          if (buildOverlap) {
+            scenario.executor.release.complete();
+          } else {
+            scenario.reader.nextSource!.complete(scenario.reader.source);
+          }
+          await check;
+          expect(await drain, isNull);
+          expect(
+            scenario.container.read(appCzarOnboardingControllerProvider),
+            same(before),
+          );
+          expect(scenario.restarter.calls, 0);
+        } finally {
+          await scenario.close();
+        }
+      },
+    );
+  }
+
+  test('Prompt 131 Settings registration precedes reentrant stop', () async {
+    final scenario = await _DrainScenario.human();
+    try {
+      final port = Completer<void>();
+      Future<Object?>? drain;
+      var finished = false;
+      scenario.settings.onOpen = () {
+        drain = _drainOutcome(scenario.owner).then((value) {
+          finished = true;
+          return value;
+        });
+        return port.future;
+      };
+      final action = scenario.owner.openSystemSettings();
+      await _flushOnboardingMicrotasks();
+      expect(finished, isFalse);
+      port.complete();
+      await action;
+      expect(await drain, isNull);
+    } finally {
+      await scenario.close();
+    }
+  });
+
+  for (final failRestart in [false, true]) {
+    test(
+      'Prompt 131 active restart refuses stop failure=$failRestart',
+      () async {
+        final scenario = await _DrainScenario.human();
+        try {
+          final release = Completer<void>();
+          scenario.restarter.pending = release;
+          final restart = scenario.owner.stopAndDrain(restart: true);
+          // The explicit caller may receive the retained restart failure.
+          final observed = restart.then<Object?>(
+            (_) => null,
+            onError: (Object error, StackTrace stack) => error,
+          );
+          await scenario.restarter.called.future;
+          final before = scenario.container.read(
+            appCzarOnboardingControllerProvider,
+          );
+          expect(await _drainOutcome(scenario.owner), isA<StateError>());
+          expect(await _drainOutcome(scenario.owner), isA<StateError>());
+          if (failRestart) {
+            release.completeError(StateError('restart failed'));
+          } else {
+            release.complete();
+          }
+          expect(await observed, failRestart ? isA<StateError>() : isNull);
+          expect(
+            await _drainOutcome(scenario.owner),
+            failRestart ? isA<StateError>() : isNull,
+          );
+          expect(
+            scenario.container.read(appCzarOnboardingControllerProvider),
+            same(before),
+          );
+          expect(scenario.restarter.calls, 1);
+        } finally {
+          await scenario.close();
+        }
+      },
+    );
+  }
+
+  test(
+    'Prompt 131 restarter reentrant drain refuses without self-await',
+    () async {
+      final scenario = await _DrainScenario.human();
+      try {
+        Object? refusal;
+        scenario.restarter.onRestart = () async {
+          refusal = await _drainOutcome(scenario.owner);
+        };
+        await scenario.owner.stopAndDrain(restart: true);
+        expect(refusal, isA<StateError>());
+        expect(scenario.restarter.calls, 1);
+        expect(await _drainOutcome(scenario.owner), isNull);
+      } finally {
+        await scenario.close();
+      }
+    },
+  );
+
+  test('Prompt 131 repeated explicit restart drains Settings once', () async {
+    final scenario = await _DrainScenario.human();
+    try {
+      final port = Completer<void>();
+      scenario.settings.pending = port;
+      final action = scenario.owner.openSystemSettings();
+      final first = scenario.owner.stopAndDrain(restart: true);
+      final second = scenario.owner.stopAndDrain(restart: true);
+      await _flushOnboardingMicrotasks();
+      expect(scenario.restarter.calls, 0);
+      port.complete();
+      await action;
+      await Future.wait([first, second]);
+      expect(scenario.restarter.calls, 1);
+    } finally {
+      await scenario.close();
+    }
+  });
+
+  test('Prompt 131 ordinary stop supersedes explicit queued restart', () async {
+    final scenario = await _DrainScenario.human();
+    try {
+      final port = Completer<void>();
+      scenario.settings.pending = port;
+      final action = scenario.owner.openSystemSettings();
+      final restart = scenario.owner.stopAndDrain(restart: true);
+      final stop = scenario.owner.stopAndDrain();
+      port.complete();
+      await Future.wait([action, restart, stop]);
+      await scenario.owner.stopAndDrain(restart: true);
+      expect(scenario.restarter.calls, 0);
+    } finally {
+      await scenario.close();
+    }
+  });
+
+  for (final dispose in [false, true]) {
+    test(
+      'Prompt 131 retired Settings cannot publish dispose=$dispose',
+      () async {
+        final scenario = await _DrainScenario.human();
+        var disposed = false;
+        try {
+          final port = Completer<void>();
+          scenario.settings.pending = port;
+          final action = scenario.owner.openSystemSettings();
+          if (dispose) {
+            scenario.container.dispose();
+            disposed = true;
+          } else {
+            await scenario.container
+                .read(appCzarAssessmentControllerProvider.notifier)
+                .runAgain();
+            await scenario.container.pump();
+          }
+          final stop = _drainOutcome(scenario.owner);
+          await scenario.owner.openSystemSettings();
+          port.completeError(StateError('retired Settings'));
+          await action;
+          expect(await stop, isA<StateError>());
+          expect(scenario.settings.openSettingsCalls, 1);
+          expect(scenario.restarter.calls, 0);
+        } finally {
+          await scenario.close(alreadyDisposed: disposed);
+        }
+      },
+    );
+  }
+
+  for (final buildFailure in [false, true]) {
+    test(
+      'Prompt 131 sealed work failure refuses build=$buildFailure',
+      () async {
+        final scenario = await _DrainScenario.human(
+          blockBuild: buildFailure,
+          failBuild: buildFailure,
+        );
+        try {
+          if (buildFailure) {
+            scenario.reader.source = _readableSource;
+          } else {
+            scenario.reader.nextSource = Completer<AppCzarSourceObservation>();
+          }
+          final check = scenario.owner.checkAgain();
+          if (buildFailure) {
+            await scenario.executor.started.future;
+          } else {
+            await _flushOnboardingMicrotasks();
+          }
+          final before = scenario.container.read(
+            appCzarOnboardingControllerProvider,
+          );
+          final stop = _drainOutcome(scenario.owner);
+          if (buildFailure) {
+            scenario.executor.release.complete();
+          } else {
+            scenario.reader.nextSource!.completeError(
+              StateError('prerequisite failed'),
+            );
+          }
+          await check;
+          expect(await stop, isA<StateError>());
+          expect(
+            scenario.container.read(appCzarOnboardingControllerProvider),
+            same(before),
+          );
+          expect(scenario.restarter.calls, 0);
+        } finally {
+          await scenario.close();
+        }
+      },
+    );
+  }
+
+  test(
+    'Prompt 131 repeated assessments request only one intentional restart',
+    () async {
+      final scenario = await _DrainScenario.human();
+      try {
+        final release = Completer<void>();
+        scenario.restarter.pending = release;
+        await scenario.container
+            .read(appCzarAssessmentControllerProvider.notifier)
+            .runAgain();
+        await scenario.restarter.called.future;
+        await scenario.container
+            .read(appCzarAssessmentControllerProvider.notifier)
+            .runAgain();
+        await _flushOnboardingMicrotasks();
+        expect(scenario.restarter.calls, 1);
+        expect(await _drainOutcome(scenario.owner), isA<StateError>());
+        release.complete();
+        await _flushOnboardingMicrotasks();
+        expect(await _drainOutcome(scenario.owner), isNull);
+        expect(scenario.restarter.calls, 1);
+      } finally {
+        await scenario.close();
+      }
+    },
+  );
+
   test('safe empty viable occurrence builds once and restarts once', () async {
     final reader = _OnboardingReader();
     final executor = _BuildExecutor();
@@ -400,6 +884,9 @@ late _RecordingFullDiskAccess _fullDiskAccess;
 
 final class _RecordingFullDiskAccess implements FullDiskAccess {
   var openSettingsCalls = 0;
+  Completer<void>? pending;
+  final pendingFlights = <Completer<void>>[];
+  Future<void> Function()? onOpen;
 
   @override
   String get messagesDatabasePath => '/tmp/chat.db';
@@ -415,6 +902,13 @@ final class _RecordingFullDiskAccess implements FullDiskAccess {
   @override
   Future<void> openSettings() async {
     openSettingsCalls += 1;
+    if (onOpen != null) {
+      await onOpen!();
+    } else if (pendingFlights.isNotEmpty) {
+      await pendingFlights[openSettingsCalls - 1].future;
+    } else {
+      await pending?.future;
+    }
   }
 }
 
@@ -454,6 +948,7 @@ final class _OnboardingReader
   int scopeReads = 0;
   int sourceReads = 0;
   int contactsReads = 0;
+  Completer<AppCzarSourceObservation>? nextSource;
 
   @override
   Future<AppCzarInitialConstructionScopeObservation>
@@ -503,6 +998,9 @@ final class _OnboardingReader
   @override
   Future<AppCzarSourceObservation> readSource() async {
     sourceReads += 1;
+    if (sourceReads > 2 && nextSource != null) {
+      return nextSource!.future;
+    }
     if (sourceReads > 1 && throwOnSecondSourceRead) {
       throw StateError('source read failed');
     }
@@ -561,6 +1059,8 @@ final class _BuildExecutor implements AppCzarOnboardingBuildExecutor {
 }
 
 final class _Restarter implements AppCzarProcessRestarter {
+  Completer<void>? pending;
+  Future<void> Function()? onRestart;
   final Completer<void> called = Completer<void>();
   int calls = 0;
 
@@ -570,6 +1070,8 @@ final class _Restarter implements AppCzarProcessRestarter {
     if (!called.isCompleted) {
       called.complete();
     }
+    await onRestart?.call();
+    await pending?.future;
   }
 }
 
@@ -669,4 +1171,88 @@ AppCzarAssessmentState _assessmentState({
       virtualCoordinator: coordinator,
     ),
   );
+}
+
+Future<void> _flushOnboardingMicrotasks() async {
+  for (var i = 0; i < 20; i++) {
+    await Future<void>.microtask(() {});
+  }
+}
+
+Future<Object?> _drainOutcome(AppCzarOnboardingController owner) {
+  return owner.stopAndDrain().then<Object?>(
+    (_) => null,
+    onError: (Object error, StackTrace stack) => error,
+  );
+}
+
+final class _DrainScenario {
+  _DrainScenario(
+    this.reader,
+    this.executor,
+    this.restarter,
+    this.container,
+    this.settings,
+    this.owner,
+  );
+  final _OnboardingReader reader;
+  final _BuildExecutor executor;
+  final _Restarter restarter;
+  final ProviderContainer container;
+  final _RecordingFullDiskAccess settings;
+  final AppCzarOnboardingController owner;
+
+  static Future<_DrainScenario> human({
+    bool blockBuild = false,
+    bool failBuild = false,
+  }) async {
+    final reader = _OnboardingReader(
+      source: const AppCzarSourceObservation(
+        condition: AppCzarSourceCondition.accessDenied,
+      ),
+    );
+    final executor = _BuildExecutor(block: blockBuild, fail: failBuild);
+    final restarter = _Restarter();
+    final container = _container(reader, executor, restarter);
+    final ready = Completer<void>();
+    container.listen(appCzarOnboardingControllerProvider, (_, next) {
+      if (next.phase == AppCzarOnboardingPhase.sourceNeedsHuman &&
+          !ready.isCompleted) {
+        ready.complete();
+      }
+    }, fireImmediately: true);
+    await ready.future;
+    await _flushOnboardingMicrotasks();
+    return _DrainScenario(
+      reader,
+      executor,
+      restarter,
+      container,
+      _fullDiskAccess,
+      container.read(appCzarOnboardingControllerProvider.notifier),
+    );
+  }
+
+  Future<void> close({bool alreadyDisposed = false}) async {
+    for (final barrier in [
+      settings.pending,
+      ...settings.pendingFlights,
+      executor.started,
+      executor.release,
+      restarter.called,
+      restarter.pending,
+    ]) {
+      if (barrier != null && !barrier.isCompleted) {
+        barrier.complete();
+      }
+    }
+    if (reader.nextSource != null && !reader.nextSource!.isCompleted) {
+      reader.nextSource!.complete(reader.source);
+    }
+    await _drainOutcome(owner);
+    await _flushOnboardingMicrotasks();
+    if (!alreadyDisposed) {
+      container.dispose();
+    }
+  }
 }

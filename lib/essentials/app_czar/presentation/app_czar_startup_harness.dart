@@ -337,10 +337,14 @@ class _AppCzarOnboardingLifecycleHost extends ConsumerStatefulWidget {
 class _AppCzarOnboardingLifecycleHostState
     extends ConsumerState<_AppCzarOnboardingLifecycleHost> {
   late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
 
   @override
   void initState() {
     super.initState();
+    _stopAndDrain = ref
+        .read(appCzarOnboardingControllerProvider.notifier)
+        .stopAndDrain;
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
@@ -353,8 +357,12 @@ class _AppCzarOnboardingLifecycleHostState
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
-    await ref.read(appCzarOnboardingControllerProvider.notifier).stopAndDrain();
-    return AppExitResponse.exit;
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
   }
 
   @override

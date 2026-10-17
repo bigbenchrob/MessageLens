@@ -18,12 +18,14 @@ import 'package:remember_this_text/essentials/app_czar_data_update/application/a
 import 'package:remember_this_text/essentials/app_czar_data_update/presentation/app_czar_data_update_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_build_executor_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/app_czar_onboarding_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_source_access/application/app_czar_source_access_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_source_access/presentation/app_czar_source_access_screen.dart';
+import 'package:remember_this_text/essentials/conversation_graph/application/conversation_graph_build_observation.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/monitor/live_graph_update_worker.dart';
 import 'package:remember_this_text/essentials/logging/feature_level_providers.dart'
     show activeBlockingPipelineIncidentProvider;
@@ -40,6 +42,354 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  testWidgets('Prompt 130 Onboarding host cancels a refused drain', (
+    tester,
+  ) async {
+    final settings = _SourceExitSettings();
+    final restarter = _ExitRestarter();
+    final build = _NoOnboardingBuild();
+    final owner = _ControlledOnboardingDrainFailure();
+    final container = ProviderContainer(
+      overrides: [
+        appCzarObservationReaderProvider.overrideWithValue(
+          const _SafeEmptyAccessDeniedReader(),
+        ),
+        fullDiskAccessProvider.overrideWithValue(settings),
+        appCzarOnboardingBuildExecutorProvider.overrideWithValue(build),
+        appCzarProcessRestarterProvider.overrideWithValue(restarter),
+        appCzarOnboardingControllerProvider.overrideWith(() => owner),
+      ],
+    );
+    Future<void>? exit;
+    try {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppCzarOnboardingScreen), findsOneWidget);
+      expect(
+        container.read(appCzarOnboardingControllerProvider.notifier),
+        same(owner),
+      );
+      AppExitResponse? response;
+      Object? failure;
+      exit = tester.binding.handleRequestAppExit().then<void>(
+        (value) {
+          response = value;
+        },
+        onError: (Object error, StackTrace stack) {
+          // Observe propagation at the test boundary; this is not a host catch.
+          failure = error;
+        },
+      );
+      await tester.pump();
+      expect(owner.calls, 1);
+      expect(response, isNull);
+      expect(failure, isNull);
+      owner.release.completeError(owner.refusal);
+      await exit;
+      expect(settings.calls, 0);
+      expect(build.calls, 0);
+      expect(restarter.calls, 0);
+      printOnFailure(
+        'Prompt130 injected drain refusal: '
+        'response=$response identicalFailure=${identical(failure, owner.refusal)}',
+      );
+      expect(
+        failure,
+        isNull,
+        reason: 'The unchanged host must handle refusal as cancellation.',
+      );
+      expect(response, AppExitResponse.cancel);
+    } finally {
+      if (!owner.release.isCompleted) {
+        owner.release.complete();
+      }
+      await exit;
+      settings.done.complete();
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+    }
+  });
+
+  testWidgets('Prompt 129 Onboarding host waits for admitted Settings', (
+    tester,
+  ) async {
+    final settings = _SourceExitSettings();
+    final restarter = _ExitRestarter();
+    final build = _NoOnboardingBuild();
+    final container = ProviderContainer(
+      overrides: [
+        appCzarObservationReaderProvider.overrideWithValue(
+          const _SafeEmptyAccessDeniedReader(),
+        ),
+        fullDiskAccessProvider.overrideWithValue(settings),
+        appCzarOnboardingBuildExecutorProvider.overrideWithValue(build),
+        appCzarProcessRestarterProvider.overrideWithValue(restarter),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const AppCzarStartupHarness(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AppCzarOnboardingScreen), findsOneWidget);
+    final owner = container.read(appCzarOnboardingControllerProvider.notifier);
+    final action = owner.openSystemSettings();
+    AppExitResponse? response;
+    final exit = tester.binding.handleRequestAppExit().then((value) {
+      response = value;
+      return value;
+    });
+    try {
+      await tester.pump();
+      final premature = response;
+      expect(settings.calls, 1);
+      settings.done.complete();
+      await action;
+      await tester.pump();
+      expect(await exit, AppExitResponse.exit);
+      expect(build.calls, 0);
+      expect(restarter.calls, 0);
+      expect(
+        premature,
+        isNull,
+        reason: 'The real host must not grant exit while Settings is pending.',
+      );
+    } finally {
+      if (!settings.done.isCompleted) {
+        settings.done.complete();
+      }
+      await action;
+      await exit;
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+    }
+  });
+
+  for (final fail in [false, true]) {
+    testWidgets('Prompt 131 host drains every Settings request failure=$fail', (
+      tester,
+    ) async {
+      final settings = _SourceExitSettings();
+      final secondPort = Completer<void>();
+      settings.additional.add(secondPort);
+      final restarter = _ExitRestarter();
+      final build = _NoOnboardingBuild();
+      final container = ProviderContainer(
+        overrides: [
+          appCzarObservationReaderProvider.overrideWithValue(
+            const _SafeEmptyAccessDeniedReader(),
+          ),
+          fullDiskAccessProvider.overrideWithValue(settings),
+          appCzarOnboardingBuildExecutorProvider.overrideWithValue(build),
+          appCzarProcessRestarterProvider.overrideWithValue(restarter),
+        ],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final owner = container.read(
+        appCzarOnboardingControllerProvider.notifier,
+      );
+      final a = owner.openSystemSettings();
+      final b = owner.openSystemSettings();
+      AppExitResponse? response;
+      final exit = tester.binding.handleRequestAppExit().then((value) {
+        response = value;
+        return value;
+      });
+      final duplicate = tester.binding.handleRequestAppExit();
+      try {
+        await tester.pump();
+        expect(settings.calls, 2);
+        expect(response, isNull);
+        if (fail) {
+          secondPort.completeError(StateError('Settings navigation failed'));
+        } else {
+          secondPort.complete();
+        }
+        await b;
+        await tester.pump();
+        expect(response, isNull);
+        settings.done.complete();
+        await a;
+        await tester.pump();
+        expect(
+          await exit,
+          fail ? AppExitResponse.cancel : AppExitResponse.exit,
+        );
+        expect(
+          await duplicate,
+          fail ? AppExitResponse.cancel : AppExitResponse.exit,
+        );
+        expect(restarter.calls, 0);
+        expect(build.calls, 0);
+      } finally {
+        if (!settings.done.isCompleted) {
+          settings.done.complete();
+        }
+        if (!secondPort.isCompleted) {
+          secondPort.complete();
+        }
+        await Future.wait([a, b]);
+        await exit;
+        await duplicate;
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.exit,
+        );
+        container.dispose();
+      }
+    });
+  }
+
+  for (final fail in [false, true]) {
+    testWidgets('Prompt 131 host cancels active restart failure=$fail', (
+      tester,
+    ) async {
+      final settings = _SourceExitSettings();
+      final restarter = _SourceExitRestarter(block: true);
+      final container = ProviderContainer(
+        overrides: [
+          appCzarObservationReaderProvider.overrideWithValue(
+            const _SafeEmptyAccessDeniedReader(),
+          ),
+          fullDiskAccessProvider.overrideWithValue(settings),
+          appCzarOnboardingBuildExecutorProvider.overrideWithValue(
+            _NoOnboardingBuild(),
+          ),
+          appCzarProcessRestarterProvider.overrideWithValue(restarter),
+        ],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final owner = container.read(
+        appCzarOnboardingControllerProvider.notifier,
+      );
+      final restart = owner
+          .stopAndDrain(restart: true)
+          .then<Object?>(
+            (_) => null,
+            onError: (Object error, StackTrace stack) => error,
+          );
+      try {
+        await tester.pump();
+        expect(restarter.calls, 1);
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        if (fail) {
+          restarter.done.completeError(StateError('restart refused'));
+        } else {
+          restarter.done.complete();
+        }
+        expect(await restart, fail ? isA<StateError>() : isNull);
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          fail ? AppExitResponse.cancel : AppExitResponse.exit,
+        );
+        expect(settings.calls, 0);
+      } finally {
+        if (!restarter.done.isCompleted) {
+          restarter.done.complete();
+        }
+        await restart;
+        settings.done.complete();
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    });
+  }
+
+  testWidgets(
+    'Prompt 131 host keeps owner through invalidation and synchronous refusal',
+    (tester) async {
+      final owners = <_ControlledOnboardingDrainFailure>[];
+      final settings = _SourceExitSettings();
+      final container = ProviderContainer(
+        overrides: [
+          appCzarObservationReaderProvider.overrideWithValue(
+            const _SafeEmptyAccessDeniedReader(),
+          ),
+          fullDiskAccessProvider.overrideWithValue(settings),
+          appCzarOnboardingBuildExecutorProvider.overrideWithValue(
+            _NoOnboardingBuild(),
+          ),
+          appCzarProcessRestarterProvider.overrideWithValue(_ExitRestarter()),
+          appCzarOnboardingControllerProvider.overrideWith(() {
+            final owner = _ControlledOnboardingDrainFailure(synchronous: true);
+            owners.add(owner);
+            return owner;
+          }),
+        ],
+      );
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const AppCzarStartupHarness(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(owners, hasLength(1));
+        await tester.pump();
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        expect(owners.first.calls, 1);
+        container.invalidate(appCzarOnboardingControllerProvider);
+        await tester.pumpAndSettle();
+        // Riverpod rebuilds this notifier in place on invalidation. The host
+        // must keep using the same selected instance, without re-registration.
+        expect(owners, hasLength(1));
+        expect(
+          container.read(appCzarOnboardingControllerProvider.notifier),
+          same(owners.first),
+        );
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        expect(owners.first.calls, 2);
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.exit,
+        );
+        expect(owners.first.calls, 2);
+      } finally {
+        for (final owner in owners) {
+          owner.release.complete();
+        }
+        settings.done.complete();
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    },
+  );
+
   for (final settingsAction in [true, false]) {
     for (final fail in [true, false]) {
       testWidgets(
@@ -465,6 +815,13 @@ void main() {
             appCzarObservationReaderProvider.overrideWithValue(
               const _SafeEmptyAccessDeniedReader(),
             ),
+            fullDiskAccessProvider.overrideWithValue(
+              _SourceExitSettings()..done.complete(),
+            ),
+            appCzarOnboardingBuildExecutorProvider.overrideWithValue(
+              _NoOnboardingBuild(),
+            ),
+            appCzarProcessRestarterProvider.overrideWithValue(_ExitRestarter()),
           ],
           child: const AppCzarStartupHarness(),
         ),
@@ -893,6 +1250,7 @@ final class _SourceExitReader extends _HealthyReader {
 
 final class _SourceExitSettings implements FullDiskAccess {
   final done = Completer<void>();
+  final additional = <Completer<void>>[];
   int calls = 0;
   @override
   String get messagesDatabasePath => '/synthetic/messages';
@@ -904,7 +1262,7 @@ final class _SourceExitSettings implements FullDiskAccess {
   @override
   Future<void> openSettings() {
     calls++;
-    return done.future;
+    return calls == 1 ? done.future : additional[calls - 2].future;
   }
 }
 
@@ -919,5 +1277,41 @@ final class _SourceExitRestarter implements AppCzarProcessRestarter {
     if (block) {
       await done.future;
     }
+  }
+}
+
+final class _NoOnboardingBuild implements AppCzarOnboardingBuildExecutor {
+  int calls = 0;
+  @override
+  Future<void> run({
+    required ConversationGraphBuildObserver onObservation,
+  }) async {
+    calls += 1;
+    throw StateError('Unexpected synthetic build admission');
+  }
+}
+
+// Host-boundary fault injection only: normal admission/build and sealing remain
+// inherited. This does not claim that the production owner implements refusal.
+final class _ControlledOnboardingDrainFailure
+    extends AppCzarOnboardingController {
+  _ControlledOnboardingDrainFailure({this.synchronous = false});
+  final bool synchronous;
+  final release = Completer<void>();
+  final refusal = StateError('synthetic Onboarding drain refused');
+  int calls = 0;
+
+  @override
+  Future<void> stopAndDrain({bool restart = false}) {
+    calls += 1;
+    if (synchronous) {
+      throw refusal;
+    }
+    return _failAfterDrain(restart);
+  }
+
+  Future<void> _failAfterDrain(bool restart) async {
+    await super.stopAndDrain(restart: restart);
+    await release.future;
   }
 }

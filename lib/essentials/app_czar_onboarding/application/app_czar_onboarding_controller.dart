@@ -58,6 +58,12 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
   var _restartRequested = false;
   var _restartAfterCurrentRun = false;
   Future<void>? _activeRun;
+  final _settingsFlights = <Future<void>>{};
+  Future<void>? _restartFlight;
+  bool _restartActive = false;
+  bool _stopped = false;
+  Object? _drainFailure;
+  StackTrace? _drainFailureStack;
   String? _admittedRootPath;
   String? _admittedArchiveScopeIdentity;
   int? _admittedArchiveGeneration;
@@ -65,7 +71,21 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
 
   @override
   AppCzarOnboardingState build() {
-    final assessment = ref.watch(appCzarAssessmentControllerProvider);
+    ref.onDispose(_stopOrdinary);
+    ref.listen(appCzarAssessmentControllerProvider, (_, next) {
+      _considerAssessment(next);
+      if (!_stopped) {
+        state = _current;
+      }
+    });
+    _considerAssessment(ref.read(appCzarAssessmentControllerProvider));
+    return _current;
+  }
+
+  void _considerAssessment(AppCzarAssessmentState assessment) {
+    if (_stopped) {
+      return;
+    }
     if (_startedGeneration == null &&
         shouldExecuteAppCzarOnboarding(assessment)) {
       _startedGeneration = assessment.generation;
@@ -85,21 +105,37 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
         !_restartRequested) {
       _queueRestartAfterCurrentRun();
     }
-    return _current;
   }
 
-  Future<void> openSystemSettings() async {
+  Future<void> openSystemSettings() {
     if (!_current.canCheckAgain ||
         !_current.canOpenSystemSettings ||
         !_accepting) {
-      return;
+      return Future<void>.value();
     }
+    // Register before calling the port: even a synchronous reentrant stop must
+    // see this admitted operation. The barrier settles with the real request.
+    final settled = Completer<void>();
+    _settingsFlights.add(settled.future);
+    return _openSettings(_occurrenceGeneration, settled);
+  }
+
+  Future<void> _openSettings(int generation, Completer<void> settled) async {
     try {
       await ref.read(realFdaSettingsOpeningAuthorityProvider).openSettings();
-    } on Object catch (error) {
-      _publish(
-        _current.copyWith(issue: 'System Settings could not be opened: $error'),
-      );
+    } on Object catch (error, stack) {
+      if (_canPublish(generation)) {
+        _publish(
+          _current.copyWith(
+            issue: 'System Settings could not be opened: $error',
+          ),
+        );
+      } else {
+        _retainDrainFailure(error, stack);
+      }
+    } finally {
+      _settingsFlights.remove(settled.future);
+      settled.complete();
     }
   }
 
@@ -119,32 +155,82 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
     await _activeRun;
   }
 
-  Future<void> stopAndDrain({bool restart = false}) async {
+  void _sealAdmission() {
+    if (!_accepting) {
+      return;
+    }
     _accepting = false;
     _occurrenceGeneration += 1;
-    final active = _activeRun;
-    if (active != null) {
-      await active;
-    }
-    if (restart) {
-      await _requestRestart();
+  }
+
+  void _stopOrdinary() {
+    _stopped = true;
+    _restartAfterCurrentRun = false;
+    _sealAdmission();
+  }
+
+  Future<void> _settleWork() async {
+    await Future.wait<void>([
+      if (_activeRun != null) _activeRun!,
+      ..._settingsFlights,
+    ]);
+  }
+
+  void _throwDrainFailure() {
+    final failure = _drainFailure;
+    if (failure != null) {
+      Error.throwWithStackTrace(failure, _drainFailureStack!);
     }
   }
 
+  void _retainDrainFailure(Object error, StackTrace stack) {
+    _drainFailure ??= error;
+    _drainFailureStack ??= stack;
+  }
+
+  Future<void> stopAndDrain({bool restart = false}) async {
+    if (!restart) {
+      _stopOrdinary();
+    } else {
+      _sealAdmission();
+      // Explicit restart is dispatched only after the work below settles.
+      _restartAfterCurrentRun = false;
+    }
+    await _settleWork();
+    _throwDrainFailure();
+    if (_restartActive) {
+      // The restarter may itself request drain. Awaiting it here would recurse.
+      throw StateError('Onboarding restart is active; exit is not admitted.');
+    }
+    if (restart && !_stopped) {
+      await _requestRestart();
+    } else {
+      // A queued dispatch can only retire after the ordinary stop seal.
+      await _restartFlight;
+    }
+    _throwDrainFailure();
+  }
+
   void _schedule(Future<void> Function() action) {
-    if (_activeRun != null) {
+    if (_activeRun != null || !_accepting) {
       return;
     }
     late final Future<void> run;
     run =
         Future<void>.microtask(() async {
-          await action();
+          if (!_accepting) {
+            return;
+          }
+          try {
+            await action();
+          } on Object catch (error, stack) {
+            _retainDrainFailure(error, stack);
+          }
         }).whenComplete(() {
           if (identical(_activeRun, run)) {
             _activeRun = null;
-            if (_restartAfterCurrentRun && !_restartRequested) {
-              _restartAfterCurrentRun = false;
-              _schedule(_requestRestart);
+            if (_restartAfterCurrentRun && !_stopped) {
+              _requestRestart();
             }
           }
         });
@@ -171,9 +257,11 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
         contactsReader.readContactsPrerequisite(),
         reader.readAttachmentArchive(),
       ]);
-    } on Object {
+    } on Object catch (error, stack) {
       if (_canPublish(generation)) {
         await _restartAfterDrain();
+      } else {
+        _retainDrainFailure(error, stack);
       }
       return;
     }
@@ -255,6 +343,9 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
         clearPrerequisiteConditions: true,
       ),
     );
+    if (!_canPublish(generation)) {
+      return;
+    }
     try {
       await ref
           .read(appCzarOnboardingBuildExecutorProvider)
@@ -272,7 +363,10 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
               }
             },
           );
-    } on Object catch (error) {
+    } on Object catch (error, stack) {
+      if (!_canPublish(generation)) {
+        _retainDrainFailure(error, stack);
+      }
       if (_canPublish(generation)) {
         _publish(
           _current.copyWith(
@@ -284,51 +378,78 @@ class AppCzarOnboardingController extends _$AppCzarOnboardingController {
       }
     }
     if (_canPublish(generation)) {
-      await _requestRestart();
+      _queueRestartAfterCurrentRun();
     }
   }
 
   Future<void> _restartAfterDrain() async {
-    _accepting = false;
-    _occurrenceGeneration += 1;
-    await _requestRestart();
+    _queueRestartAfterCurrentRun();
   }
 
   void _queueRestartAfterCurrentRun() {
-    if (_restartRequested || _restartAfterCurrentRun) {
+    if (_stopped || _restartRequested || _restartAfterCurrentRun) {
       return;
     }
-    _accepting = false;
-    _occurrenceGeneration += 1;
-    if (_activeRun == null) {
-      _schedule(_requestRestart);
-      return;
-    }
+    _sealAdmission();
     _restartAfterCurrentRun = true;
+    if (_activeRun == null) {
+      _requestRestart();
+    }
   }
 
-  Future<void> _requestRestart() async {
+  Future<void> _requestRestart() {
+    if (_stopped) {
+      return Future<void>.value();
+    }
     if (_restartRequested) {
-      return;
+      return _restartFlight ?? Future<void>.value();
     }
     _restartRequested = true;
-    _publish(
-      _current.copyWith(
-        phase: AppCzarOnboardingPhase.restarting,
-        clearProgress: true,
-      ),
-    );
-    try {
-      await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
-    } on Object catch (error) {
-      _restartRequested = false;
-      _publish(
-        _current.copyWith(
-          phase: AppCzarOnboardingPhase.failed,
-          issue: 'MessageLens could not restart: $error',
-        ),
-      );
-    }
+    _restartAfterCurrentRun = false;
+    final generation = _occurrenceGeneration;
+    late final Future<void> flight;
+    flight =
+        Future<void>.microtask(() async {
+          try {
+            await _settleWork();
+            if (_stopped || generation != _occurrenceGeneration) {
+              return;
+            }
+            _throwDrainFailure();
+            _publish(
+              _current.copyWith(
+                phase: AppCzarOnboardingPhase.restarting,
+                clearProgress: true,
+              ),
+            );
+            if (_stopped || generation != _occurrenceGeneration) {
+              return;
+            }
+            _restartActive = true;
+            await ref
+                .read(appCzarProcessRestarterProvider)
+                .restartAndReassess();
+          } on Object catch (error, stack) {
+            _retainDrainFailure(error, stack);
+            _restartRequested = false;
+            if (!_stopped && generation == _occurrenceGeneration) {
+              _publish(
+                _current.copyWith(
+                  phase: AppCzarOnboardingPhase.failed,
+                  issue: 'MessageLens could not restart: $error',
+                ),
+              );
+            }
+          } finally {
+            _restartActive = false;
+          }
+        }).whenComplete(() {
+          if (identical(_restartFlight, flight)) {
+            _restartFlight = null;
+          }
+        });
+    _restartFlight = flight;
+    return flight;
   }
 
   bool _canPublish(int generation) {
