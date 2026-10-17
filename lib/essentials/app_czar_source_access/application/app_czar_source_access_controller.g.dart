@@ -7,7 +7,7 @@ part of 'app_czar_source_access_controller.dart';
 // **************************************************************************
 
 String _$appCzarSourceAccessControllerHash() =>
-    r'dd92cd5166a952d20a65e6ca7bcd2f966716ea41';
+    r'92c037a357f263ae905e075f5b5d31390a2c35b4';
 
 /// See also [AppCzarSourceAccessController].
 @ProviderFor(AppCzarSourceAccessController)

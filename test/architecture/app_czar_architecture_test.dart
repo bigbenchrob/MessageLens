@@ -1144,13 +1144,14 @@ void main() {
       harness,
       contains('return const _AppCzarAttachmentArchiveRepairLifecycleHost();'),
     );
-    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(5));
+    expect(RegExp(r'AppLifecycleListener\(').allMatches(harness), hasLength(6));
     for (final jurisdiction in [
       'DiagnosticReview',
       'Onboarding',
       'LocalDataRepair',
       'AttachmentArchiveRepair',
       'DataUpdate',
+      'SourceAccess',
     ]) {
       expect(harness, contains('class _AppCzar${jurisdiction}LifecycleHost'));
       expect(
@@ -1160,7 +1161,7 @@ void main() {
     }
     final dataUpdateHost = harness.substring(
       harness.indexOf('class _AppCzarDataUpdateLifecycleHost'),
-      harness.indexOf('class _AppCzarDiagnosticReviewLifecycleHost'),
+      harness.indexOf('class _AppCzarSourceAccessLifecycleHost'),
     );
     expect(
       RegExp(r'AppLifecycleListener\(').allMatches(dataUpdateHost),
@@ -1187,6 +1188,37 @@ void main() {
       contains('on Object {\n      return AppExitResponse.cancel;'),
     );
     expect(dataUpdateHost, contains('_lifecycleListener.dispose();'));
+    final sourceAccessHost = harness.substring(
+      harness.indexOf('class _AppCzarSourceAccessLifecycleHost'),
+      harness.indexOf('class _AppCzarDiagnosticReviewLifecycleHost'),
+    );
+    expect(
+      RegExp(r'AppLifecycleListener\(').allMatches(sourceAccessHost),
+      hasLength(1),
+    );
+    expect(sourceAccessHost, contains('onExitRequested: _handleExitRequested'));
+    expect(
+      sourceAccessHost,
+      contains('appCzarSourceAccessControllerProvider.notifier'),
+    );
+    expect(sourceAccessHost, contains('.stopAndDrain;'));
+    final sourceExitHandler = sourceAccessHost.substring(
+      sourceAccessHost.indexOf(
+        'Future<AppExitResponse> _handleExitRequested()',
+      ),
+      sourceAccessHost.indexOf('void dispose()'),
+    );
+    expect(sourceExitHandler, isNot(contains('ref.read')));
+    expect(sourceExitHandler, contains('await _stopAndDrain();'));
+    expect(
+      sourceExitHandler.indexOf('await _stopAndDrain();'),
+      lessThan(sourceExitHandler.indexOf('return AppExitResponse.exit;')),
+    );
+    expect(
+      sourceExitHandler,
+      contains('on Object {\n      return AppExitResponse.cancel;'),
+    );
+    expect(sourceAccessHost, contains('_lifecycleListener.dispose();'));
     expect(
       harness,
       contains('appCzarDiagnosticReviewControllerProvider.notifier'),

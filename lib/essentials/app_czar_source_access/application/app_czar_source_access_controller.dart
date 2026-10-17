@@ -32,51 +32,132 @@ bool shouldExecuteAppCzarSourceAccessRepair(
 class AppCzarSourceAccessController extends _$AppCzarSourceAccessController {
   AppCzarSourceAccessState _current = const AppCzarSourceAccessState.dormant();
   int? _startedGeneration;
-  bool _checkInFlight = false;
-  bool _settingsOpenInFlight = false;
+  bool _accepting = true;
   bool _restartRequested = false;
+  Future<void>? _settingsFlight;
+  Future<AppCzarSourceObservation>? _checkFlight;
+  Future<void>? _checkContinuation;
+  Future<void>? _restartFlight;
+  Object? _drainFailure;
+  StackTrace? _drainFailureStack;
 
   @override
   AppCzarSourceAccessState build() {
-    final assessmentState = ref.watch(appCzarAssessmentControllerProvider);
-    if (_startedGeneration == null &&
-        shouldExecuteAppCzarSourceAccessRepair(assessmentState)) {
-      _startedGeneration = assessmentState.generation;
-      _current = AppCzarSourceAccessState(
-        phase: AppCzarSourceAccessPhase.waitingForHuman,
-        assessmentGeneration: assessmentState.generation,
-        sourceReason: _literalSourceReason(assessmentState.source!),
-      );
+    ref.onDispose(_sealAdmission);
+    void considerAssessment(AppCzarAssessmentState assessment) {
+      if (!_accepting) {
+        return;
+      }
+      if (_startedGeneration != null) {
+        if (assessment.generation != _startedGeneration ||
+            !shouldExecuteAppCzarSourceAccessRepair(assessment)) {
+          _sealAdmission();
+        }
+        return;
+      }
+      if (shouldExecuteAppCzarSourceAccessRepair(assessment)) {
+        _startedGeneration = assessment.generation;
+        _current = AppCzarSourceAccessState(
+          phase: AppCzarSourceAccessPhase.waitingForHuman,
+          assessmentGeneration: assessment.generation,
+          sourceReason: _literalSourceReason(assessment.source!),
+        );
+      }
     }
+
+    ref.listen(appCzarAssessmentControllerProvider, (_, next) {
+      considerAssessment(next);
+      _publish(_current);
+    });
+    considerAssessment(ref.read(appCzarAssessmentControllerProvider));
     return _current;
   }
 
-  Future<void> openSystemSettings() async {
-    if (!_current.isVisible ||
-        _settingsOpenInFlight ||
-        _current.phase == AppCzarSourceAccessPhase.restartRequested) {
+  void _sealAdmission() {
+    _accepting = false;
+  }
+
+  /// Waits for admitted source/Settings work. A pending restart is a refusal,
+  /// never quiescence: awaiting it here could recursively await this drain.
+  Future<void> stopAndDrain() async {
+    _sealAdmission();
+    await Future.wait<Object?>([
+      if (_settingsFlight != null) _settingsFlight!,
+      if (_checkFlight != null) _checkFlight!,
+    ]);
+    final failure = _drainFailure;
+    if (failure != null) {
+      Error.throwWithStackTrace(failure, _drainFailureStack!);
+    }
+    if (_restartFlight != null) {
+      throw StateError(
+        'Source Access restart is still in flight; exit is not admitted.',
+      );
+    }
+    // Admission is sealed and no restart is active: the remaining check
+    // continuation can only retire, so awaiting it cannot await a restarter.
+    await _checkContinuation;
+  }
+
+  Future<void> openSystemSettings() {
+    if (!_accepting ||
+        !_current.isVisible ||
+        _settingsFlight != null ||
+        _restartRequested) {
+      return Future<void>.value();
+    }
+    late final Future<void> flight;
+    flight = Future<void>.microtask(_openSettings).whenComplete(() {
+      if (identical(_settingsFlight, flight)) {
+        _settingsFlight = null;
+      }
+    });
+    _settingsFlight = flight;
+    return flight;
+  }
+
+  Future<void> _openSettings() async {
+    if (!_accepting) {
       return;
     }
-    _settingsOpenInFlight = true;
     try {
       await ref.read(realFdaSettingsOpeningAuthorityProvider).openSettings();
       _publish(_current.copyWith(clearSettingsFailure: true));
-    } on Object catch (error) {
+    } on Object catch (error, stack) {
+      _retainDrainFailure(error, stack);
       _publish(
         _current.copyWith(
           settingsFailure: 'System Settings could not be opened: $error',
         ),
       );
-    } finally {
-      _settingsOpenInFlight = false;
     }
   }
 
-  Future<void> checkAgain() async {
-    if (!_current.canCheckAgain || _checkInFlight || _restartRequested) {
-      return;
+  Future<void> checkAgain() {
+    if (!_accepting ||
+        !_current.canCheckAgain ||
+        _checkContinuation != null ||
+        _restartRequested) {
+      return Future<void>.value();
     }
-    _checkInFlight = true;
+    final check = Future<AppCzarSourceObservation>.microtask(_readSource);
+    _checkFlight = check;
+    late final Future<void> continuation;
+    continuation = _finishCheck(check).whenComplete(() {
+      if (identical(_checkContinuation, continuation)) {
+        _checkContinuation = null;
+      }
+    });
+    _checkContinuation = continuation;
+    return continuation;
+  }
+
+  Future<AppCzarSourceObservation> _readSource() async {
+    if (!_accepting) {
+      return const AppCzarSourceObservation.unknown(
+        'Source check admission closed.',
+      );
+    }
     _publish(
       _current.copyWith(
         phase: AppCzarSourceAccessPhase.checking,
@@ -84,19 +165,28 @@ class AppCzarSourceAccessController extends _$AppCzarSourceAccessController {
         clearRestartFailure: true,
       ),
     );
-
-    AppCzarSourceObservation observation;
     try {
-      observation = await ref
+      final observation = await ref
           .read(appCzarObservationReaderProvider)
           .readSource();
-    } on Object catch (error) {
-      observation = AppCzarSourceObservation.unknown(
+      return observation;
+    } on Object catch (error, stack) {
+      _retainDrainFailure(error, stack);
+      return AppCzarSourceObservation.unknown(
         'The fresh Messages source check did not complete: $error',
       );
     }
+  }
 
+  Future<void> _finishCheck(Future<AppCzarSourceObservation> check) async {
     try {
+      final observation = await check;
+      if (identical(_checkFlight, check)) {
+        _checkFlight = null;
+      }
+      if (!_accepting) {
+        return;
+      }
       switch (observation.condition) {
         case AppCzarSourceCondition.readable:
           _publish(
@@ -126,33 +216,62 @@ class AppCzarSourceAccessController extends _$AppCzarSourceAccessController {
             ),
           );
       }
-    } finally {
-      _checkInFlight = false;
+    } on Object catch (error, stack) {
+      _retainDrainFailure(error, stack);
+      _publish(
+        _current.copyWith(
+          phase: AppCzarSourceAccessPhase.inconclusive,
+          sourceReason:
+              'The fresh Messages source check did not complete: $error',
+        ),
+      );
     }
   }
 
-  Future<void> restartAndReassess() async {
-    if (!_current.canRestartAndReassess || _restartRequested) {
-      return;
+  Future<void> restartAndReassess() {
+    if (!_accepting || !_current.canRestartAndReassess || _restartRequested) {
+      return Future<void>.value();
     }
-    await _requestRestart();
+    return _requestRestart();
   }
 
-  Future<void> _requestRestart() async {
-    if (_restartRequested) {
-      return;
+  Future<void> _requestRestart() {
+    if (!_accepting || _restartRequested) {
+      return Future<void>.value();
     }
     _restartRequested = true;
-    _publish(
-      _current.copyWith(
-        phase: AppCzarSourceAccessPhase.restartRequested,
-        clearRestartFailure: true,
-      ),
-    );
+    late final Future<void> flight;
+    flight = Future<void>.microtask(_restartAfterWork).whenComplete(() {
+      if (identical(_restartFlight, flight)) {
+        _restartFlight = null;
+      }
+    });
+    _restartFlight = flight;
+    return flight;
+  }
+
+  Future<void> _restartAfterWork() async {
     try {
+      await Future.wait<Object?>([
+        if (_settingsFlight != null) _settingsFlight!,
+        if (_checkFlight != null) _checkFlight!,
+      ]);
+      if (!_accepting) {
+        return;
+      }
+      _publish(
+        _current.copyWith(
+          phase: AppCzarSourceAccessPhase.restartRequested,
+          clearRestartFailure: true,
+        ),
+      );
+      if (!_accepting) {
+        return;
+      }
       await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
-    } on Object catch (error) {
+    } on Object catch (error, stack) {
       _restartRequested = false;
+      _retainDrainFailure(error, stack);
       _publish(
         _current.copyWith(
           phase: AppCzarSourceAccessPhase.restartFailed,
@@ -162,7 +281,19 @@ class AppCzarSourceAccessController extends _$AppCzarSourceAccessController {
     }
   }
 
+  void _retainDrainFailure(Object error, StackTrace stack) {
+    // Before sealing, errors are handled by the existing presentation states.
+    // An error while draining must instead make the exit request fail closed.
+    if (!_accepting) {
+      _drainFailure ??= error;
+      _drainFailureStack ??= stack;
+    }
+  }
+
   void _publish(AppCzarSourceAccessState next) {
+    if (!_accepting) {
+      return;
+    }
     _current = next;
     state = next;
   }

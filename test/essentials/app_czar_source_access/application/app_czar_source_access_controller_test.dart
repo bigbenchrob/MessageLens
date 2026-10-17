@@ -59,6 +59,350 @@ void main() {
     );
   });
 
+  test('selected and dormant construction perform no port actions', () async {
+    for (final selected in [true, false]) {
+      final f = _fixture(selected: selected);
+      expect(f.reader.calls, 0);
+      expect(f.settings.openCalls, 0);
+      expect(f.restarter.calls, 0);
+      await f.owner.stopAndDrain();
+      await f.owner.openSystemSettings();
+      await f.owner.checkAgain();
+      await f.owner.restartAndReassess();
+      expect(f.reader.calls, 0);
+      expect(f.settings.openCalls, 0);
+      expect(f.restarter.calls, 0);
+    }
+  });
+
+  for (final settingsAction in [true, false]) {
+    for (final fails in [false, true]) {
+      test(
+        'drain waits for Settings=$settingsAction and refuses failure=$fails',
+        () async {
+          final done = Completer<void>();
+          final settings = _FakeFullDiskAccess(action: () => done.future);
+          final f = _fixture(settings: settings);
+          final action = settingsAction
+              ? f.owner.openSystemSettings()
+              : f.owner.checkAgain();
+          await (settingsAction
+              ? settings.started.future
+              : f.reader.started.future);
+          final before = f.container.read(
+            appCzarSourceAccessControllerProvider,
+          );
+          var drained = false;
+          final drain = f.owner.stopAndDrain().then((_) {
+            drained = true;
+          });
+          final duplicate = f.owner.stopAndDrain();
+          final expectations = fails
+              ? Future.wait([
+                  expectLater(drain, throwsStateError),
+                  expectLater(duplicate, throwsStateError),
+                ])
+              : Future.wait([drain, duplicate]);
+          await f.owner.checkAgain();
+          await f.owner.openSystemSettings();
+          await f.owner.restartAndReassess();
+          expect(drained, isFalse);
+          expect(f.restarter.calls, 0);
+          if (settingsAction) {
+            if (fails) {
+              done.completeError(StateError('synthetic Settings failure'));
+            } else {
+              done.complete();
+            }
+          } else {
+            if (fails) {
+              f.reader.done.completeError(StateError('synthetic read failure'));
+            } else {
+              f.reader.done.complete(
+                const AppCzarSourceObservation(
+                  condition: AppCzarSourceCondition.readable,
+                ),
+              );
+            }
+            done.complete();
+          }
+          await action;
+          await expectations;
+          expect(
+            f.container.read(appCzarSourceAccessControllerProvider),
+            same(before),
+          );
+          expect(f.restarter.calls, 0);
+          expect(f.settings.openCalls, settingsAction ? 1 : 0);
+          expect(f.reader.calls, settingsAction ? 0 : 1);
+        },
+      );
+    }
+  }
+
+  for (final condition in AppCzarSourceCondition.values) {
+    test('source outcome stays exact: ${condition.name}', () async {
+      final f = _fixture();
+      final check = f.owner.checkAgain();
+      await f.reader.started.future;
+      await f.owner.checkAgain();
+      f.reader.done.complete(
+        AppCzarSourceObservation(condition: condition, issue: 'literal result'),
+      );
+      await check;
+      expect(f.reader.calls, 1);
+      final state = f.container.read(appCzarSourceAccessControllerProvider);
+      expect(state.phase, switch (condition) {
+        AppCzarSourceCondition.readable =>
+          AppCzarSourceAccessPhase.restartRequested,
+        AppCzarSourceCondition.unknown => AppCzarSourceAccessPhase.inconclusive,
+        _ => AppCzarSourceAccessPhase.waitingForHuman,
+      });
+      expect(
+        f.restarter.calls,
+        condition == AppCzarSourceCondition.readable ? 1 : 0,
+      );
+    });
+  }
+
+  test(
+    'open-admission Settings, source and restart errors retain reporting',
+    () async {
+      final f = _fixture(
+        settings: _FakeFullDiskAccess(
+          action: () async {
+            throw StateError('settings');
+          },
+        ),
+        restarter: _RecordingRestarter(
+          action: () async {
+            throw StateError('restart');
+          },
+        ),
+      );
+      await f.owner.openSystemSettings();
+      expect(
+        f.container.read(appCzarSourceAccessControllerProvider).settingsFailure,
+        contains('settings'),
+      );
+      final check = f.owner.checkAgain();
+      await f.reader.started.future;
+      f.reader.done.completeError(StateError('source'));
+      await check;
+      expect(
+        f.container.read(appCzarSourceAccessControllerProvider).phase,
+        AppCzarSourceAccessPhase.inconclusive,
+      );
+      expect(
+        f.container.read(appCzarSourceAccessControllerProvider).sourceReason,
+        contains('source'),
+      );
+      await f.owner.restartAndReassess();
+      expect(
+        f.container.read(appCzarSourceAccessControllerProvider).phase,
+        AppCzarSourceAccessPhase.restartFailed,
+      );
+      expect(
+        f.container.read(appCzarSourceAccessControllerProvider).restartFailure,
+        contains('restart'),
+      );
+    },
+  );
+
+  test(
+    'pending restart refuses reentrant and external drain without self-await',
+    () async {
+      late AppCzarSourceAccessController owner;
+      final reentered = Completer<void>();
+      final release = Completer<void>();
+      final restart = _RecordingRestarter(
+        action: () async {
+          await expectLater(owner.stopAndDrain(), throwsStateError);
+          reentered.complete();
+          await release.future;
+        },
+      );
+      final f = _fixture(restarter: restart);
+      owner = f.owner;
+      final check = owner.checkAgain();
+      await f.reader.started.future;
+      f.reader.done.complete(const AppCzarSourceObservation.unknown('unknown'));
+      await check;
+      final run = owner.restartAndReassess();
+      await owner.restartAndReassess();
+      await reentered.future;
+      await expectLater(owner.stopAndDrain(), throwsStateError);
+      expect(restart.calls, 1);
+      release.complete();
+      await run;
+      await owner.stopAndDrain(); // Only now is the restart actually settled.
+    },
+  );
+
+  test('quit seals a queued manual restart before port dispatch', () async {
+    final f = _fixture();
+    final check = f.owner.checkAgain();
+    await f.reader.started.future;
+    f.reader.done.complete(const AppCzarSourceObservation.unknown('unknown'));
+    await check;
+    final restart = f.owner.restartAndReassess();
+    await expectLater(f.owner.stopAndDrain(), throwsStateError);
+    await restart;
+    await f.owner.stopAndDrain();
+    expect(f.restarter.calls, 0);
+  });
+
+  test('drain waits for both independent non-restart flights', () async {
+    final release = Completer<void>();
+    final settings = _FakeFullDiskAccess(action: () => release.future);
+    final f = _fixture(settings: settings);
+    final open = f.owner.openSystemSettings();
+    final check = f.owner.checkAgain();
+    await settings.started.future;
+    await f.reader.started.future;
+    var settled = false;
+    final drain = f.owner.stopAndDrain().then((_) {
+      settled = true;
+    });
+    release.complete();
+    await open;
+    expect(settled, isFalse);
+    expect(f.restarter.calls, 0);
+    f.reader.done.complete(
+      const AppCzarSourceObservation(
+        condition: AppCzarSourceCondition.readable,
+      ),
+    );
+    await check;
+    await drain;
+    expect(settled, isTrue);
+    expect(f.restarter.calls, 0);
+  });
+
+  test(
+    'restart waits for independent Settings request before dispatch',
+    () async {
+      final release = Completer<void>();
+      final settings = _FakeFullDiskAccess(action: () => release.future);
+      final f = _fixture(settings: settings);
+      final open = f.owner.openSystemSettings();
+      await settings.started.future;
+      final check = f.owner.checkAgain();
+      await f.reader.started.future;
+      f.reader.done.complete(
+        const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.readable,
+        ),
+      );
+      await Future<void>.value();
+      expect(f.restarter.calls, 0);
+      release.complete();
+      await Future.wait([open, check]);
+      expect(f.restarter.calls, 1);
+    },
+  );
+
+  test(
+    'stop between readable publication and dispatch prevents restart',
+    () async {
+      final f = _fixture();
+      Future<void>? drain;
+      final sub = f.container.listen(appCzarSourceAccessControllerProvider, (
+        _,
+        next,
+      ) {
+        if (next.phase == AppCzarSourceAccessPhase.restartRequested) {
+          drain = f.owner.stopAndDrain();
+        }
+      });
+      addTearDown(sub.close);
+      final check = f.owner.checkAgain();
+      await f.reader.started.future;
+      f.reader.done.complete(
+        const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.readable,
+        ),
+      );
+      await check;
+      expect(drain, isNotNull);
+      await drain;
+      expect(f.restarter.calls, 0);
+    },
+  );
+
+  for (final dispose in [true, false]) {
+    test('late source result suppressed on dispose=$dispose', () async {
+      final f = _fixture(disposeAtTeardown: !dispose);
+      final check = f.owner.checkAgain();
+      await f.reader.started.future;
+      final before = f.container.read(appCzarSourceAccessControllerProvider);
+      if (dispose) {
+        f.container.dispose();
+      } else {
+        (f.container.read(appCzarAssessmentControllerProvider.notifier)
+                as _SelectedAssessment)
+            .replace();
+      }
+      f.reader.done.complete(
+        const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.readable,
+        ),
+      );
+      await check;
+      await f.owner.stopAndDrain();
+      expect(f.restarter.calls, 0);
+      if (!dispose) {
+        expect(
+          f.container.read(appCzarSourceAccessControllerProvider),
+          same(before),
+        );
+      }
+    });
+  }
+
+  test(
+    'characterization: Settings and source check settle independently',
+    () async {
+      final settingsDone = Completer<void>();
+      final sourceDone = Completer<AppCzarSourceObservation>();
+      final settings = _FakeFullDiskAccess(action: () => settingsDone.future);
+      final restarter = _RecordingRestarter();
+      final reader = _SourceAccessReader(retests: [sourceDone.future]);
+      final container = _container(reader, settings, restarter);
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        appCzarSourceAccessControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await _waitForPhase(container, AppCzarSourceAccessPhase.waitingForHuman);
+      expect(settings.openCalls, 0);
+      expect(reader.sourceReads, 1); // Initial fake assessment only.
+      final owner = container.read(
+        appCzarSourceAccessControllerProvider.notifier,
+      );
+      var settingsSettled = false;
+      final settingsRun = owner.openSystemSettings().then((_) {
+        settingsSettled = true;
+      });
+      final check = owner.checkAgain();
+      await owner.openSystemSettings();
+      expect(settings.openCalls, 1);
+      expect(restarter.calls, 0);
+      sourceDone.complete(
+        const AppCzarSourceObservation(
+          condition: AppCzarSourceCondition.accessDenied,
+        ),
+      );
+      await check;
+      expect(settingsSettled, isFalse);
+      settingsDone.complete();
+      await settingsRun;
+      expect(restarter.calls, 0);
+    },
+  );
+
   test('starts once and opening Settings is navigation only', () async {
     final reader = _SourceAccessReader(
       retests: <Future<AppCzarSourceObservation>>[],
@@ -246,13 +590,20 @@ Future<void> _waitForPhase(
   ProviderContainer container,
   AppCzarSourceAccessPhase phase,
 ) async {
-  for (var attempt = 0; attempt < 100; attempt += 1) {
-    if (container.read(appCzarSourceAccessControllerProvider).phase == phase) {
-      return;
+  final ready = Completer<void>();
+  final subscription = container.listen(appCzarSourceAccessControllerProvider, (
+    _,
+    next,
+  ) {
+    if (next.phase == phase && !ready.isCompleted) {
+      ready.complete();
     }
-    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }, fireImmediately: true);
+  try {
+    await ready.future;
+  } finally {
+    subscription.close();
   }
-  fail('Timed out waiting for ${phase.name}.');
 }
 
 AppCzarAssessmentState _assessmentState({
@@ -327,7 +678,10 @@ final class _SourceAccessReader implements AppCzarObservationReader {
 }
 
 final class _FakeFullDiskAccess implements FullDiskAccess {
+  _FakeFullDiskAccess({this.action});
+  final Future<void> Function()? action;
   int openCalls = 0;
+  final started = Completer<void>();
 
   @override
   String get messagesDatabasePath => '/test/Library/Messages/chat.db';
@@ -342,15 +696,22 @@ final class _FakeFullDiskAccess implements FullDiskAccess {
   @override
   Future<void> openSettings() async {
     openCalls += 1;
+    if (!started.isCompleted) {
+      started.complete();
+    }
+    await action?.call();
   }
 }
 
 final class _RecordingRestarter implements AppCzarProcessRestarter {
+  _RecordingRestarter({this.action});
+  final Future<void> Function()? action;
   int calls = 0;
 
   @override
   Future<void> restartAndReassess() async {
     calls += 1;
+    await action?.call();
   }
 }
 
@@ -388,3 +749,92 @@ const _completeCoverage = AppCzarAttachmentCoverageObservation(
   archiveScopeIdentity: 'test-scope',
   archiveGeneration: 0,
 );
+
+final class _SelectedAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => _assessmentState(
+    coordinator: AppCzarVirtualCoordinator.sourceAccessRepair,
+    truth: AppCzarTruth.falseValue,
+    sourceCondition: AppCzarSourceCondition.accessDenied,
+  );
+  void replace() {
+    state = AppCzarAssessmentState.initial(8);
+  }
+}
+
+final class _DormantAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState.initial(0);
+}
+
+final class _ControlledReader implements AppCzarObservationReader {
+  final done = Completer<AppCzarSourceObservation>();
+  final started = Completer<void>();
+  int calls = 0;
+  @override
+  Future<AppCzarSourceObservation> readSource() {
+    calls++;
+    if (!started.isCompleted) {
+      started.complete();
+    }
+    return done.future;
+  }
+
+  @override
+  Future<AppCzarRootObservation> readRoot() async =>
+      const AppCzarRootObservation(admitted: true, path: '/synthetic');
+  @override
+  Future<AppCzarDatabaseObservation> readImportStore() async => _importStore;
+  @override
+  Future<AppCzarDatabaseObservation> readGraphStore() async => _graphStore;
+  @override
+  Future<AppCzarDatabaseObservation> readOverlay() async => _overlay;
+  @override
+  Future<AppCzarArchiveObservation> readAttachmentArchive() async => _archive;
+}
+
+({
+  ProviderContainer container,
+  AppCzarSourceAccessController owner,
+  _ControlledReader reader,
+  _FakeFullDiskAccess settings,
+  _RecordingRestarter restarter,
+})
+_fixture({
+  bool selected = true,
+  _FakeFullDiskAccess? settings,
+  _RecordingRestarter? restarter,
+  bool disposeAtTeardown = true,
+}) {
+  final reader = _ControlledReader();
+  final opener = settings ?? _FakeFullDiskAccess();
+  final restart = restarter ?? _RecordingRestarter();
+  final container = ProviderContainer(
+    overrides: [
+      appCzarAssessmentControllerProvider.overrideWith(
+        selected ? _SelectedAssessment.new : _DormantAssessment.new,
+      ),
+      appCzarObservationReaderProvider.overrideWithValue(reader),
+      fullDiskAccessProvider.overrideWithValue(opener),
+      appCzarProcessRestarterProvider.overrideWithValue(restart),
+    ],
+  );
+  if (disposeAtTeardown) {
+    addTearDown(container.dispose);
+  }
+  final sub = container.listen(
+    appCzarSourceAccessControllerProvider,
+    (_, _) {},
+    fireImmediately: true,
+  );
+  if (disposeAtTeardown) {
+    addTearDown(sub.close);
+  }
+  return (
+    container: container,
+    owner: container.read(appCzarSourceAccessControllerProvider.notifier),
+    reader: reader,
+    settings: opener,
+    restarter: restart,
+  );
+}

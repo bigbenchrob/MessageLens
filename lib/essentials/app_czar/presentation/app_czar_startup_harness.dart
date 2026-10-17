@@ -133,7 +133,7 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     }
     final sourceAccess = ref.watch(appCzarSourceAccessControllerProvider);
     if (sourceAccess.isVisible) {
-      return const AppCzarSourceAccessScreen();
+      return const _AppCzarSourceAccessLifecycleHost();
     }
     final attachmentArchiveRepair = ref.watch(
       appCzarAttachmentArchiveRepairControllerProvider,
@@ -190,6 +190,51 @@ class _AppCzarDataUpdateLifecycleHostState
 
   @override
   Widget build(BuildContext context) => const AppCzarDataUpdateScreen();
+}
+
+class _AppCzarSourceAccessLifecycleHost extends ConsumerStatefulWidget {
+  const _AppCzarSourceAccessLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarSourceAccessLifecycleHost> createState() =>
+      _AppCzarSourceAccessLifecycleHostState();
+}
+
+class _AppCzarSourceAccessLifecycleHostState
+    extends ConsumerState<_AppCzarSourceAccessLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
+
+  @override
+  void initState() {
+    super.initState();
+    // Capture the already selected owner, rather than resolving a replacement
+    // controller when an exit request arrives.
+    _stopAndDrain = ref
+        .read(appCzarSourceAccessControllerProvider.notifier)
+        .stopAndDrain;
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const AppCzarSourceAccessScreen();
 }
 
 class _AppCzarDiagnosticReviewLifecycleHost extends ConsumerStatefulWidget {

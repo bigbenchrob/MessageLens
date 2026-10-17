@@ -23,11 +23,14 @@ import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/a
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_source_access/application/app_czar_source_access_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_source_access/presentation/app_czar_source_access_screen.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/monitor/live_graph_update_worker.dart';
 import 'package:remember_this_text/essentials/logging/feature_level_providers.dart'
     show activeBlockingPipelineIncidentProvider;
 import 'package:remember_this_text/essentials/navigation/application/onboarding_center_panel_sync_controller.dart';
 import 'package:remember_this_text/essentials/navigation/presentation/widgets/onboarding_center_panel_sync_observer.dart';
+import 'package:remember_this_text/essentials/onboarding/application/full_disk_access.dart';
+import 'package:remember_this_text/essentials/onboarding/application/full_disk_access_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_gate_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/application/onboarding_journey_coordinator_provider.dart';
 import 'package:remember_this_text/essentials/onboarding/presentation/onboarding_journey_path.dart';
@@ -37,6 +40,141 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  for (final settingsAction in [true, false]) {
+    for (final fail in [true, false]) {
+      testWidgets(
+        'Source Access host drains Settings=$settingsAction failure=$fail',
+        (tester) async {
+          final reader = _SourceExitReader();
+          final settings = _SourceExitSettings();
+          final restart = _SourceExitRestarter();
+          final container = ProviderContainer(
+            overrides: [
+              appCzarAssessmentControllerProvider.overrideWith(
+                _SourceExitAssessment.new,
+              ),
+              appCzarObservationReaderProvider.overrideWithValue(reader),
+              fullDiskAccessProvider.overrideWithValue(settings),
+              appCzarProcessRestarterProvider.overrideWithValue(restart),
+            ],
+          );
+          addTearDown(container.dispose);
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: const AppCzarStartupHarness(),
+            ),
+          );
+          expect(find.byType(AppCzarSourceAccessScreen), findsOneWidget);
+          final owner = container.read(
+            appCzarSourceAccessControllerProvider.notifier,
+          );
+          final action = settingsAction
+              ? owner.openSystemSettings()
+              : owner.checkAgain();
+          await tester.pump();
+          expect(settings.calls, settingsAction ? 1 : 0);
+          expect(reader.calls, settingsAction ? 0 : 1);
+          AppExitResponse? response;
+          final exit = tester.binding.handleRequestAppExit().then((value) {
+            response = value;
+            return value;
+          });
+          final duplicate = tester.binding.handleRequestAppExit();
+          await tester.pump();
+          expect(response, isNull);
+          expect(restart.calls, 0);
+          if (settingsAction) {
+            if (fail) {
+              settings.done.completeError(StateError('Settings failed'));
+            } else {
+              settings.done.complete();
+            }
+          } else {
+            if (fail) {
+              reader.done.completeError(StateError('source failed'));
+            } else {
+              reader.done.complete(
+                const AppCzarSourceObservation(
+                  condition: AppCzarSourceCondition.readable,
+                ),
+              );
+            }
+          }
+          await tester.pump();
+          await action;
+          expect(
+            await exit,
+            fail ? AppExitResponse.cancel : AppExitResponse.exit,
+          );
+          expect(
+            await duplicate,
+            fail ? AppExitResponse.cancel : AppExitResponse.exit,
+          );
+          expect(
+            identical(
+              owner,
+              container.read(appCzarSourceAccessControllerProvider.notifier),
+            ),
+            isTrue,
+          );
+          expect(restart.calls, 0);
+          await tester.pumpWidget(const SizedBox.shrink());
+          expect(
+            await tester.binding.handleRequestAppExit(),
+            AppExitResponse.exit,
+          );
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'Source Access exit refuses pending restart until actual settlement',
+    (tester) async {
+      final reader = _SourceExitReader();
+      final settings = _SourceExitSettings();
+      final restarter = _SourceExitRestarter(block: true);
+      final container = ProviderContainer(
+        overrides: [
+          appCzarAssessmentControllerProvider.overrideWith(
+            _SourceExitAssessment.new,
+          ),
+          appCzarObservationReaderProvider.overrideWithValue(reader),
+          fullDiskAccessProvider.overrideWithValue(settings),
+          appCzarProcessRestarterProvider.overrideWithValue(restarter),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      final owner = container.read(
+        appCzarSourceAccessControllerProvider.notifier,
+      );
+      final check = owner.checkAgain();
+      await tester.pump();
+      reader.done.complete(const AppCzarSourceObservation.unknown('unknown'));
+      await tester.pump();
+      await check;
+      final restart = owner.restartAndReassess();
+      await tester.pump();
+      expect(restarter.calls, 1);
+      expect(
+        await tester.binding.handleRequestAppExit(),
+        AppExitResponse.cancel,
+      );
+      restarter.done.complete();
+      await tester.pump();
+      await restart;
+      expect(await tester.binding.handleRequestAppExit(), AppExitResponse.exit);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   for (final fail in [false, true]) {
     testWidgets('Data Update exit awaits work and refuses failure=$fail', (
       tester,
@@ -719,3 +857,67 @@ LiveGraphUpdateResult _exitResult() => const LiveGraphUpdateResult(
     trigger: StartupProbeTrigger.rowIdAdvanced,
   ),
 );
+
+final class _SourceExitAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState(
+    generation: 9,
+    source: const AppCzarSourceObservation(
+      condition: AppCzarSourceCondition.accessDenied,
+    ),
+    assessment: AppCzarAssessment(
+      facts: const [
+        AppCzarFact(
+          id: AppCzarFactId.messagesSourceReadable,
+          label: 'source',
+          truth: AppCzarTruth.falseValue,
+          detail: 'synthetic',
+        ),
+      ],
+      diagnosisKind: AppCzarDiagnosisKind.sourceAccessUnavailable,
+      diagnosis: 'synthetic',
+      virtualCoordinator: AppCzarVirtualCoordinator.sourceAccessRepair,
+    ),
+  );
+}
+
+final class _SourceExitReader extends _HealthyReader {
+  final done = Completer<AppCzarSourceObservation>();
+  int calls = 0;
+  @override
+  Future<AppCzarSourceObservation> readSource() {
+    calls++;
+    return done.future;
+  }
+}
+
+final class _SourceExitSettings implements FullDiskAccess {
+  final done = Completer<void>();
+  int calls = 0;
+  @override
+  String get messagesDatabasePath => '/synthetic/messages';
+  @override
+  bool canReadMessagesDatabase() => false;
+  @override
+  MessagesSourceAccessResult inspectMessagesSourceAccess() =>
+      MessagesSourceAccessResult.accessDenied;
+  @override
+  Future<void> openSettings() {
+    calls++;
+    return done.future;
+  }
+}
+
+final class _SourceExitRestarter implements AppCzarProcessRestarter {
+  _SourceExitRestarter({this.block = false});
+  final bool block;
+  final done = Completer<void>();
+  int calls = 0;
+  @override
+  Future<void> restartAndReassess() async {
+    calls++;
+    if (block) {
+      await done.future;
+    }
+  }
+}
