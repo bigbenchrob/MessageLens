@@ -4,6 +4,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.dart';
 
 void main() {
+  for (final owner in ['DiagnosticReview', 'LocalDataRepair']) {
+    test('$owner exit captures its selected drain and cancels failures', () {
+      final source = File(
+        'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+      ).readAsStringSync();
+      final start = source.indexOf('class _AppCzar${owner}LifecycleHostState');
+      final end = source.indexOf('\nclass ', start + 1);
+      final host = source.substring(start, end);
+      final callbackStart = host.indexOf(
+        'Future<AppExitResponse> _handleExitRequested()',
+      );
+      final callbackEnd = host.indexOf('\n  }', callbackStart);
+      final callback = host.substring(callbackStart, callbackEnd);
+      expect(
+        host,
+        contains('late final Future<void> Function() _stopAndDrain;'),
+      );
+      expect(
+        host.indexOf('_stopAndDrain ='),
+        lessThan(host.indexOf('_lifecycleListener =')),
+      );
+      expect(callback, contains('await _stopAndDrain();'));
+      expect(callback, contains('return AppExitResponse.exit;'));
+      expect(callback, contains('on Object {'));
+      expect(callback, contains('return AppExitResponse.cancel;'));
+      expect(callback, isNot(contains('ref.read')));
+      expect(host, contains('_lifecycleListener.dispose();'));
+      expect(RegExp(r'AppLifecycleListener\(').allMatches(host), hasLength(1));
+    });
+  }
+
   test('reset input has no assessment, display projection or data dependency', () {
     final domain = File(
       'lib/essentials/archive_environment/domain/archive_reset_admission.dart',

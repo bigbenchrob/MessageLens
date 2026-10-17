@@ -47,6 +47,305 @@ import 'package:remember_this_text/features/environment_readiness/application/vi
 
 void main() {
   testWidgets(
+    'Prompt 136 Diagnostic active restart cancels repeated ordinary exits',
+    (tester) async {
+      final restart = _DiagnosticReentrantRestarter();
+      final container = ProviderContainer(
+        overrides: [
+          appCzarObservationReaderProvider.overrideWithValue(
+            const _ArchiveVariantReader(_unknownCoverageArchive),
+          ),
+          appCzarDiagnosticReviewClockProvider.overrideWithValue(
+            () => DateTime.utc(2026),
+          ),
+          appCzarProcessRestarterProvider.overrideWithValue(restart),
+        ],
+      );
+      Future<void>? action;
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const AppCzarStartupHarness(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final owner = container.read(
+          appCzarDiagnosticReviewControllerProvider.notifier,
+        );
+        action = owner.tryAssessmentAgain();
+        await tester.pump();
+        expect(restart.calls, 1);
+        expect(restart.done.isCompleted, isFalse);
+        await expectLater(owner.stopAndDrain(), throwsStateError);
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.cancel,
+        );
+        expect(restart.done.isCompleted, isFalse);
+        expect(restart.calls, 1);
+        restart.done.complete();
+        await action;
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.exit,
+        );
+      } finally {
+        if (!restart.done.isCompleted) {
+          restart.done.complete();
+        }
+        await action;
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    },
+  );
+
+  for (final diagnostic in [true, false]) {
+    for (final outcome in [
+      'synchronous failure',
+      'asynchronous failure',
+      'success',
+    ]) {
+      testWidgets(
+        'Prompt 136 injected drain diagnostic=$diagnostic outcome=$outcome',
+        (tester) async {
+          final release = Completer<void>();
+          var calls = 0;
+          var constructions = 0;
+          Future<void> drain() {
+            calls += 1;
+            if (outcome == 'synchronous failure') {
+              throw StateError('injected synchronous refusal');
+            }
+            return release.future;
+          }
+
+          final container = ProviderContainer(
+            overrides: [
+              appCzarObservationReaderProvider.overrideWithValue(
+                const _ArchiveVariantReader(_unknownCoverageArchive),
+              ),
+              appCzarDiagnosticReviewClockProvider.overrideWithValue(
+                () => DateTime.utc(2026),
+              ),
+              appCzarProcessRestarterProvider.overrideWithValue(
+                _ExitRestarter(),
+              ),
+              appCzarLocalDataRepairExecutorProvider.overrideWithValue(
+                _PreMutationRepairFailure(),
+              ),
+              if (diagnostic)
+                appCzarDiagnosticReviewControllerProvider.overrideWith(() {
+                  constructions += 1;
+                  return _InjectedDiagnosticDrain(drain);
+                })
+              else ...[
+                appCzarAssessmentControllerProvider.overrideWith(
+                  _LocalRepairExitAssessment.new,
+                ),
+                appCzarLocalDataRepairControllerProvider.overrideWith(() {
+                  constructions += 1;
+                  return _InjectedLocalDrain(drain);
+                }),
+              ],
+            ],
+          );
+          Future<Object>? first;
+          Future<Object>? second;
+          Future<Object> observe() => tester.binding
+              .handleRequestAppExit()
+              .then<Object>((value) => value, onError: (Object error) => error);
+          try {
+            await tester.pumpWidget(
+              UncontrolledProviderScope(
+                container: container,
+                child: const AppCzarStartupHarness(),
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(constructions, 1);
+            var completed = 0;
+            first = observe().then((value) {
+              completed += 1;
+              return value;
+            });
+            second = observe().then((value) {
+              completed += 1;
+              return value;
+            });
+            await tester.pump();
+            expect(calls, 2);
+            if (outcome != 'synchronous failure') {
+              expect(completed, 0);
+              if (outcome == 'success') {
+                release.complete();
+              } else {
+                release.completeError(
+                  StateError('injected asynchronous refusal'),
+                );
+              }
+            } else {
+              release.complete();
+            }
+            final results = await Future.wait([first, second]);
+            expect(constructions, 1);
+            expect(
+              results,
+              everyElement(
+                outcome == 'success'
+                    ? AppExitResponse.exit
+                    : AppExitResponse.cancel,
+              ),
+            );
+            if (diagnostic) {
+              container.invalidate(appCzarDiagnosticReviewControllerProvider);
+            } else {
+              container.invalidate(appCzarLocalDataRepairControllerProvider);
+            }
+            await tester.pumpAndSettle();
+            expect(
+              await observe(),
+              outcome == 'success'
+                  ? AppExitResponse.exit
+                  : AppExitResponse.cancel,
+            );
+            expect(constructions, 1);
+            expect(calls, 3);
+            await tester.pumpWidget(const SizedBox.shrink());
+            expect(await observe(), AppExitResponse.exit);
+            expect(
+              calls,
+              3,
+              reason: 'Unmount must remove the actual listener.',
+            );
+          } finally {
+            if (!release.isCompleted) {
+              release.complete();
+            }
+            await first;
+            await second;
+            await tester.pumpWidget(const SizedBox.shrink());
+            container.dispose();
+          }
+        },
+      );
+    }
+
+    testWidgets(
+      'Prompt 136 real retained restart failure diagnostic=$diagnostic',
+      (tester) async {
+        final restart = _DiagnosticReentrantRestarter();
+        final container = ProviderContainer(
+          overrides: [
+            appCzarObservationReaderProvider.overrideWithValue(
+              const _ArchiveVariantReader(_unknownCoverageArchive),
+            ),
+            appCzarDiagnosticReviewClockProvider.overrideWithValue(
+              () => DateTime.utc(2026),
+            ),
+            appCzarProcessRestarterProvider.overrideWithValue(restart),
+            appCzarLocalDataRepairExecutorProvider.overrideWithValue(
+              _PreMutationRepairFailure(),
+            ),
+            if (!diagnostic)
+              appCzarAssessmentControllerProvider.overrideWith(
+                _LocalRepairExitAssessment.new,
+              ),
+          ],
+        );
+        Future<void>? action;
+        try {
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: const AppCzarStartupHarness(),
+            ),
+          );
+          await tester.pumpAndSettle();
+          action = diagnostic
+              ? container
+                    .read(appCzarDiagnosticReviewControllerProvider.notifier)
+                    .tryAssessmentAgain()
+              : container
+                    .read(appCzarLocalDataRepairControllerProvider.notifier)
+                    .restartAndReassess();
+          await tester.pump();
+          expect(restart.calls, 1);
+          restart.done.completeError(StateError('inert restart failed'));
+          await action;
+          final result = await tester.binding
+              .handleRequestAppExit()
+              .then<Object>((value) => value, onError: (Object error) => error);
+          expect(result, AppExitResponse.cancel);
+          expect(restart.calls, 1);
+        } finally {
+          if (!restart.done.isCompleted) {
+            restart.done.complete();
+          }
+          await action;
+          await tester.pumpWidget(const SizedBox.shrink());
+          container.dispose();
+        }
+      },
+    );
+  }
+
+  testWidgets(
+    'Prompt 136 real Local Repair work blocks exit until settlement',
+    (tester) async {
+      final executor = _PendingLocalExitExecutor();
+      final restart = _ExitRestarter();
+      final container = ProviderContainer(
+        overrides: [
+          appCzarAssessmentControllerProvider.overrideWith(
+            _LocalRepairExitAssessment.new,
+          ),
+          appCzarLocalDataRepairExecutorProvider.overrideWithValue(executor),
+          appCzarProcessRestarterProvider.overrideWithValue(restart),
+        ],
+      );
+      Future<AppExitResponse>? exit;
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const AppCzarStartupHarness(),
+          ),
+        );
+        await tester.pump();
+        await executor.started.future;
+        var completed = false;
+        exit = tester.binding.handleRequestAppExit().then((value) {
+          completed = true;
+          return value;
+        });
+        await tester.pump();
+        expect(completed, isFalse);
+        executor.done.complete(
+          AppCzarLocalDataRepairExecutionResult.staleEvidence,
+        );
+        expect(await exit, AppExitResponse.exit);
+        expect(restart.calls, 0);
+        expect(executor.calls, 1);
+      } finally {
+        if (!executor.done.isCompleted) {
+          executor.done.complete(
+            AppCzarLocalDataRepairExecutionResult.staleEvidence,
+          );
+        }
+        await exit;
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    },
+  );
+
+  testWidgets(
     'Prompt 134 Diagnostic reentrant restart cannot drain or exit early',
     (tester) async {
       final restart = _DiagnosticReentrantRestarter();
@@ -127,11 +426,15 @@ void main() {
           reason:
               'Successful drain must not conceal an admitted pending restart.',
         );
-        expect(prematureExit, isNull);
+        expect(prematureExit, AppExitResponse.cancel);
         expect(drainFailure, isA<StateError>());
-        expect(exitFailure, isA<StateError>());
-        // The unchanged host propagates refusal; this does not establish cancel.
+        expect(exitFailure, isNull);
+        // Prompt 136 qualifies cancellation at the actual listener boundary.
         await owner.stopAndDrain();
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.exit,
+        );
       } finally {
         if (!restart.done.isCompleted) {
           restart.done.complete();
@@ -230,11 +533,12 @@ void main() {
         reason:
             'A pending real-owner restart retry must be awaited or refused.',
       );
-      expect(prematureExit, isNull);
+      expect(prematureExit, AppExitResponse.cancel);
       expect(drainFailure, isA<StateError>());
-      expect(exitFailure, isA<StateError>());
-      // The unchanged host propagates refusal; this is not confirmed cancel.
+      expect(exitFailure, isNull);
+      // Prompt 136 qualifies cancellation at the actual listener boundary.
       await owner.stopAndDrain();
+      expect(await tester.binding.handleRequestAppExit(), AppExitResponse.exit);
     } finally {
       if (!restart.done.isCompleted) {
         restart.done.complete();
@@ -1571,6 +1875,38 @@ final class _DiagnosticReentrantRestarter implements AppCzarProcessRestarter {
   Future<void> restartAndReassess() {
     calls += 1;
     onEntry?.call();
+    return done.future;
+  }
+}
+
+// Explicit fault injection: these tests prove callback translation only.
+final class _InjectedDiagnosticDrain extends AppCzarDiagnosticReviewController {
+  _InjectedDiagnosticDrain(this.drain);
+  final Future<void> Function() drain;
+  @override
+  Future<void> stopAndDrain() => drain();
+}
+
+final class _InjectedLocalDrain extends AppCzarLocalDataRepairController {
+  _InjectedLocalDrain(this.drain);
+  final Future<void> Function() drain;
+  @override
+  Future<void> stopAndDrain() => drain();
+}
+
+final class _PendingLocalExitExecutor
+    implements AppCzarLocalDataRepairExecutor {
+  final started = Completer<void>();
+  final done = Completer<AppCzarLocalDataRepairExecutionResult>();
+  int calls = 0;
+  @override
+  Future<AppCzarLocalDataRepairExecutionResult> run({
+    required AppCzarLocalDataRepairSafetyObservation expected,
+    void Function()? onMutationAdmitted,
+    bool Function()? isMutationStillAdmitted,
+  }) {
+    calls += 1;
+    started.complete();
     return done.future;
   }
 }

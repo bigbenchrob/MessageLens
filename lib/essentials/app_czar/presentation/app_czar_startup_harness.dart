@@ -248,10 +248,14 @@ class _AppCzarDiagnosticReviewLifecycleHost extends ConsumerStatefulWidget {
 class _AppCzarDiagnosticReviewLifecycleHostState
     extends ConsumerState<_AppCzarDiagnosticReviewLifecycleHost> {
   late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
 
   @override
   void initState() {
     super.initState();
+    _stopAndDrain = ref
+        .read(appCzarDiagnosticReviewControllerProvider.notifier)
+        .stopAndDrain;
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
@@ -264,10 +268,12 @@ class _AppCzarDiagnosticReviewLifecycleHostState
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
-    await ref
-        .read(appCzarDiagnosticReviewControllerProvider.notifier)
-        .stopAndDrain();
-    return AppExitResponse.exit;
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
   }
 
   Future<void> _requestExit() async {
@@ -298,10 +304,14 @@ class _AppCzarLocalDataRepairLifecycleHost extends ConsumerStatefulWidget {
 class _AppCzarLocalDataRepairLifecycleHostState
     extends ConsumerState<_AppCzarLocalDataRepairLifecycleHost> {
   late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
 
   @override
   void initState() {
     super.initState();
+    _stopAndDrain = ref
+        .read(appCzarLocalDataRepairControllerProvider.notifier)
+        .stopAndDrain;
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
@@ -314,10 +324,12 @@ class _AppCzarLocalDataRepairLifecycleHostState
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
-    await ref
-        .read(appCzarLocalDataRepairControllerProvider.notifier)
-        .stopAndDrain();
-    return AppExitResponse.exit;
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
   }
 
   @override
