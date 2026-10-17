@@ -7,7 +7,7 @@ part of 'app_czar_data_update_controller.dart';
 // **************************************************************************
 
 String _$appCzarDataUpdateControllerHash() =>
-    r'fe409a1f5fc70b9f86689f99c116117e1a178dde';
+    r'c1e0a1f92a84d1bb28d2df23984b131a2872f88f';
 
 /// See also [AppCzarDataUpdateController].
 @ProviderFor(AppCzarDataUpdateController)

@@ -10,13 +10,13 @@ import 'package:remember_this_text/essentials/app_czar_data_update/application/a
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/domain/app_czar_data_update_state.dart';
-import 'package:remember_this_text/essentials/archive_environment/domain.dart';
-import 'package:remember_this_text/essentials/archive_environment/feature_level_providers.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/conversation_graph_build_report.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/messages/message_projection_repository.dart';
 import 'package:remember_this_text/essentials/conversation_graph/application/monitor/live_graph_update_worker.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_importer.dart';
 import 'package:remember_this_text/essentials/source_scoped_import/application/messages/message_rich_text_enricher.dart';
+import 'package:remember_this_text/features/attachments/application/attachment_archive_location_provider.dart'
+    show AttachmentArchiveMutationDeferredReason;
 import 'package:remember_this_text/features/attachments/application/attachment_archive_service_provider.dart';
 
 void main() {
@@ -82,7 +82,7 @@ void main() {
       await container
           .read(appCzarAssessmentControllerProvider.notifier)
           .runAgain();
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.value();
       expect(executor.calls, 1);
       expect(restarter.calls, 1);
     },
@@ -128,80 +128,340 @@ void main() {
     expect(restarter.calls, 1);
   });
 
+  test('stop before scheduled execution constructs no executor', () async {
+    var constructions = 0;
+    final restarter = _RecordingRestarter();
+    final container = ProviderContainer(
+      overrides: [
+        appCzarAssessmentControllerProvider.overrideWith(
+          _SelectedAssessment.new,
+        ),
+        appCzarDataUpdateExecutorProvider.overrideWith((ref) {
+          constructions++;
+          return _ControlledExecutor();
+        }),
+        appCzarProcessRestarterProvider.overrideWithValue(restarter),
+      ],
+    );
+    addTearDown(container.dispose);
+    final owner = container.read(appCzarDataUpdateControllerProvider.notifier);
+    await Future.wait([owner.stopAndDrain(), owner.stopAndDrain()]);
+    expect(constructions, 0);
+    expect(restarter.calls, 0);
+  });
+
+  for (final stage in ['prerequisite', 'graph', 'preservation']) {
+    test('stop during $stage waits for executor settlement', () async {
+      final executor = _ControlledExecutor(phased: true);
+      final fixture = _lifecycleFixture(executor: executor);
+      final owner = fixture.container.read(
+        appCzarDataUpdateControllerProvider.notifier,
+      );
+      final stageIndex = [
+        'prerequisite',
+        'graph',
+        'preservation',
+      ].indexOf(stage);
+      for (var index = 0; index < stageIndex; index++) {
+        await executor.entered[index].future;
+        executor.phases[index].complete();
+      }
+      await executor.entered[stageIndex].future;
+      final before = fixture.container.read(
+        appCzarDataUpdateControllerProvider,
+      );
+      var drained = false;
+      final first = owner.stopAndDrain().then((_) {
+        drained = true;
+      });
+      final second = owner.stopAndDrain();
+      fixture.executor.observer?.call(
+        const LiveGraphUpdateObservation.preservingAttachments(),
+      );
+      await Future<void>.value();
+      expect(drained, isFalse);
+      expect(fixture.restarter.calls, 0);
+      expect(
+        fixture.container.read(appCzarDataUpdateControllerProvider),
+        same(before),
+      );
+      for (var index = stageIndex; index < executor.phases.length; index++) {
+        executor.phases[index].complete();
+        if (index + 1 < executor.phases.length) {
+          await executor.entered[index + 1].future;
+          expect(drained, isFalse);
+          expect(fixture.restarter.calls, 0);
+        }
+      }
+      fixture.executor.result.complete(await _SuccessfulExecutor().run());
+      await Future.wait([first, second]);
+      expect(drained, isTrue);
+      expect(fixture.restarter.calls, 0);
+      expect(fixture.executor.calls, 1);
+    });
+  }
+
   test(
-    'restart is requested only after the mutation tenure is released',
+    'deferred preservation fails and still permits explicit restart',
     () async {
-      late ProviderContainer container;
-      final restarter = _RecordingRestarter(
-        onRestart: () {
-          final mutation = container.read(archiveMutationCoordinatorProvider);
-          expect(mutation.isLocked, isFalse);
-          expect(mutation.holdCount, 0);
-          expect(mutation.lastReleasedAtUtc, isNotNull);
-        },
+      final fixture = _lifecycleFixture();
+      await fixture.executor.started.future;
+      final successful = await _SuccessfulExecutor().run();
+      final failed = _waitForPhase(
+        fixture.container,
+        AppCzarDataUpdatePhase.failed,
       );
-      final worker = LiveGraphUpdateWorker(
-        readPrerequisites: () async {
-          return const LiveGraphUpdatePrerequisiteSnapshot(
-            appDataReady: true,
-            liveMaxRowId: 108,
-            importedMaxSourceRowId: 100,
-            liveImportableMessageCount: 108,
-            importedMessageCount: 100,
-          );
-        },
-        runGraphBuild: (_) async => _report(),
-        preserveAttachments: (_) async {
-          return const AttachmentArchiveResult(
-            totalScanned: 1,
-            newlyArchived: 1,
-            skipped: 0,
-            failed: 0,
-          );
-        },
+      fixture.executor.result.complete(
+        LiveGraphUpdateResult(
+          prerequisites: successful.prerequisites,
+          decision: successful.decision,
+          graphBuildReport: successful.graphBuildReport,
+          attachmentResult: const AttachmentArchiveResult.deferred(
+            AttachmentArchiveMutationDeferredReason.customArchiveUnavailable,
+          ),
+        ),
       );
-      container = ProviderContainer(
+      await failed;
+      expect(
+        fixture.container.read(appCzarDataUpdateControllerProvider).failure,
+        contains('deferred'),
+      );
+      expect(fixture.restarter.calls, 0);
+      await fixture.container
+          .read(appCzarDataUpdateControllerProvider.notifier)
+          .restartAndReassess();
+      expect(fixture.restarter.calls, 1);
+    },
+  );
+
+  test(
+    'dormant controller constructs neither executor nor restarter',
+    () async {
+      var constructions = 0;
+      final container = ProviderContainer(
         overrides: [
-          admittedArchiveAccessAuthorityProvider.overrideWithValue(
-            _testAuthority(),
+          appCzarAssessmentControllerProvider.overrideWith(
+            _DormantAssessment.new,
           ),
-          appCzarObservationReaderProvider.overrideWithValue(
-            const _DataUpdateReader(),
-          ),
-          liveGraphUpdateWorkerProvider.overrideWith((ref) async => worker),
-          appCzarProcessRestarterProvider.overrideWithValue(restarter),
+          appCzarDataUpdateExecutorProvider.overrideWith((ref) {
+            constructions++;
+            return _ControlledExecutor();
+          }),
+          appCzarProcessRestarterProvider.overrideWith((ref) {
+            constructions++;
+            return _RecordingRestarter();
+          }),
         ],
       );
       addTearDown(container.dispose);
-      final subscription = container.listen(
-        appCzarDataUpdateControllerProvider,
-        (_, _) {},
-        fireImmediately: true,
+      final owner = container.read(
+        appCzarDataUpdateControllerProvider.notifier,
       );
-      addTearDown(subscription.close);
-
-      await restarter.called.future.timeout(const Duration(seconds: 2));
-
-      expect(restarter.calls, 1);
-      expect(
-        container.read(appCzarDataUpdateControllerProvider).phase,
-        AppCzarDataUpdatePhase.restartRequested,
-      );
+      await owner.stopAndDrain();
+      expect(constructions, 0);
     },
   );
+
+  test('success racing stop cannot dispatch restart', () async {
+    final fixture = _lifecycleFixture();
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    fixture.executor.result.complete(await _SuccessfulExecutor().run());
+    await owner.stopAndDrain();
+    expect(fixture.restarter.calls, 0);
+  });
+
+  test('restarter reenters drain without awaiting itself', () async {
+    late AppCzarDataUpdateController owner;
+    final restarter = _RecordingRestarter(
+      onRestart: () async {
+        await owner.stopAndDrain();
+      },
+    );
+    final fixture = _lifecycleFixture(restarter: restarter);
+    owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    fixture.executor.result.complete(await _SuccessfulExecutor().run());
+    await restarter.called.future;
+    expect(restarter.calls, 1);
+  });
+
+  test('worker error, duplicate manual restart, and quit race', () async {
+    final fixture = _lifecycleFixture();
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    final failed = _waitForPhase(
+      fixture.container,
+      AppCzarDataUpdatePhase.failed,
+    );
+    fixture.executor.result.completeError(
+      StateError('synthetic worker failure'),
+    );
+    await failed;
+    final one = owner.restartAndReassess();
+    final two = owner.restartAndReassess();
+    await expectLater(owner.stopAndDrain(), throwsStateError);
+    await Future.wait([one, two]);
+    expect(fixture.restarter.calls, 0);
+  });
+
+  test('duplicate manual restart shares one dispatch', () async {
+    final fixture = _lifecycleFixture();
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    final failed = _waitForPhase(
+      fixture.container,
+      AppCzarDataUpdatePhase.failed,
+    );
+    fixture.executor.result.completeError(
+      StateError('synthetic worker failure'),
+    );
+    await failed;
+    await Future.wait([owner.restartAndReassess(), owner.restartAndReassess()]);
+    expect(fixture.restarter.calls, 1);
+  });
+
+  test(
+    'restarter failure is factual and never automatically retried',
+    () async {
+      final restarter = _RecordingRestarter(
+        onRestart: () {
+          throw StateError('inert restart failure');
+        },
+      );
+      final fixture = _lifecycleFixture(restarter: restarter);
+      fixture.container.read(appCzarDataUpdateControllerProvider);
+      await fixture.executor.started.future;
+      final failed = _waitForPhase(
+        fixture.container,
+        AppCzarDataUpdatePhase.failed,
+      );
+      fixture.executor.result.complete(await _SuccessfulExecutor().run());
+      await failed;
+      expect(
+        fixture.container.read(appCzarDataUpdateControllerProvider).failure,
+        contains('inert restart failure'),
+      );
+      expect(restarter.calls, 1);
+      await fixture.container
+          .read(appCzarDataUpdateControllerProvider.notifier)
+          .stopAndDrain();
+      expect(restarter.calls, 1);
+    },
+  );
+
+  test('assessment replacement suppresses late results and restart', () async {
+    final fixture = _lifecycleFixture();
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    (fixture.container.read(appCzarAssessmentControllerProvider.notifier)
+            as _SelectedAssessment)
+        .replace();
+    final before = fixture.container.read(appCzarDataUpdateControllerProvider);
+    fixture.executor.observer?.call(
+      const LiveGraphUpdateObservation.preservingAttachments(),
+    );
+    fixture.executor.result.complete(await _SuccessfulExecutor().run());
+    await owner.stopAndDrain();
+    expect(
+      fixture.container.read(appCzarDataUpdateControllerProvider),
+      same(before),
+    );
+    expect(fixture.restarter.calls, 0);
+  });
+
+  test('disposal suppresses late callback and failure publication', () async {
+    final fixture = _lifecycleFixture(disposeAtTeardown: false);
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    fixture.container.dispose();
+    fixture.executor.observer?.call(
+      const LiveGraphUpdateObservation.preservingAttachments(),
+    );
+    fixture.executor.result.completeError(StateError('after disposal'));
+    await expectLater(owner.stopAndDrain(), throwsStateError);
+    expect(fixture.restarter.calls, 0);
+  });
+
+  test('unsettled executor cannot produce quiescence', () async {
+    final fixture = _lifecycleFixture();
+    final owner = fixture.container.read(
+      appCzarDataUpdateControllerProvider.notifier,
+    );
+    await fixture.executor.started.future;
+    var settled = false;
+    final drain = owner.stopAndDrain().then((_) {
+      settled = true;
+    });
+    await Future<void>.value();
+    expect(settled, isFalse);
+    await owner.restartAndReassess();
+    expect(settled, isFalse);
+    expect(fixture.restarter.calls, 0);
+    // Explicit cleanup; before this release no completion was possible.
+    fixture.executor.result.complete(await _SuccessfulExecutor().run());
+    await drain;
+  });
+
+  test('characterization: scheduled worker waits before restart', () async {
+    final executor = _ControlledExecutor();
+    final restarter = _RecordingRestarter();
+    final container = ProviderContainer(
+      overrides: [
+        appCzarObservationReaderProvider.overrideWithValue(
+          const _DataUpdateReader(),
+        ),
+        appCzarDataUpdateExecutorProvider.overrideWithValue(executor),
+        appCzarProcessRestarterProvider.overrideWithValue(restarter),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      appCzarDataUpdateControllerProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    expect(executor.calls, 0);
+    await executor.started.future;
+    expect(restarter.calls, 0);
+    executor.result.complete(await _SuccessfulExecutor().run());
+    await restarter.called.future;
+    expect(executor.calls, 1);
+    expect(restarter.calls, 1);
+  });
 }
 
 Future<void> _waitForPhase(
   ProviderContainer container,
   AppCzarDataUpdatePhase phase,
 ) async {
-  for (var attempt = 0; attempt < 100; attempt++) {
-    if (container.read(appCzarDataUpdateControllerProvider).phase == phase) {
-      return;
+  final reached = Completer<void>();
+  final subscription = container.listen(appCzarDataUpdateControllerProvider, (
+    _,
+    next,
+  ) {
+    if (next.phase == phase && !reached.isCompleted) {
+      reached.complete();
     }
-    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }, fireImmediately: true);
+  try {
+    await reached.future;
+  } finally {
+    subscription.close();
   }
-  fail('Timed out waiting for ${phase.name}.');
 }
 
 final class _SuccessfulExecutor implements AppCzarDataUpdateExecutor {
@@ -239,7 +499,7 @@ final class _SuccessfulExecutor implements AppCzarDataUpdateExecutor {
     onObservation?.call(
       const LiveGraphUpdateObservation.attachmentsPreserved(attachments),
     );
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.value();
     active = false;
     return LiveGraphUpdateResult(
       prerequisites: prerequisites,
@@ -269,14 +529,14 @@ final class _FailingExecutor implements AppCzarDataUpdateExecutor {
 final class _RecordingRestarter implements AppCzarProcessRestarter {
   _RecordingRestarter({this.onRestart});
 
-  final void Function()? onRestart;
+  final FutureOr<void> Function()? onRestart;
   final Completer<void> called = Completer<void>();
   int calls = 0;
 
   @override
   Future<void> restartAndReassess() async {
     calls++;
-    onRestart?.call();
+    await onRestart?.call();
     if (!called.isCompleted) {
       called.complete();
     }
@@ -365,21 +625,6 @@ const _completeRepairability = AppCzarAttachmentRepairabilityObservation(
   archiveGeneration: 0,
 );
 
-ArchiveAccessAuthority _testAuthority() {
-  return ArchiveAccessAuthority(
-    identity: ResolvedArchiveIdentity(
-      environment: ArchiveEnvironment.test,
-      buildIdentity: ArchiveBuildIdentity.testHarness,
-      archiveInstanceId: ArchiveInstanceId(
-        '22222222-2222-4222-8222-222222222222',
-      ),
-      canonicalRootPath: '/tmp/app-czar-controller-test',
-      bundleIdentifier: 'test.bundle',
-      productName: 'MessageLens Test',
-    ),
-  );
-}
-
 ConversationGraphBuildReport _report() {
   final startedAt = DateTime.utc(2026, 10, 2, 12);
   return ConversationGraphBuildReport(
@@ -403,4 +648,84 @@ ConversationGraphBuildReport _report() {
       insertedMessageCount: 8,
     ),
   );
+}
+
+final class _ControlledExecutor implements AppCzarDataUpdateExecutor {
+  _ControlledExecutor({this.phased = false});
+  final bool phased;
+  final phases = List.generate(3, (_) => Completer<void>());
+  final entered = List.generate(3, (_) => Completer<void>());
+  final started = Completer<void>();
+  final result = Completer<LiveGraphUpdateResult>();
+  int calls = 0;
+  LiveGraphUpdateObserver? observer;
+  @override
+  Future<LiveGraphUpdateResult> run({
+    LiveGraphUpdateObserver? onObservation,
+  }) async {
+    calls++;
+    observer = onObservation;
+    started.complete();
+    if (phased) {
+      for (var index = 0; index < phases.length; index++) {
+        entered[index].complete();
+        await phases[index].future;
+      }
+    }
+    return result.future;
+  }
+}
+
+final class _SelectedAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState(
+    generation: 7,
+    assessment: AppCzarAssessment(
+      facts: const [],
+      diagnosisKind: AppCzarDiagnosisKind.sourceAheadOfLocal,
+      diagnosis: 'synthetic',
+      virtualCoordinator: AppCzarVirtualCoordinator.dataUpdate,
+    ),
+  );
+  void replace() {
+    state = AppCzarAssessmentState.initial(8);
+  }
+}
+
+({
+  ProviderContainer container,
+  _ControlledExecutor executor,
+  _RecordingRestarter restarter,
+})
+_lifecycleFixture({
+  _RecordingRestarter? restarter,
+  _ControlledExecutor? executor,
+  bool disposeAtTeardown = true,
+}) {
+  executor ??= _ControlledExecutor();
+  final restart = restarter ?? _RecordingRestarter();
+  final container = ProviderContainer(
+    overrides: [
+      appCzarAssessmentControllerProvider.overrideWith(_SelectedAssessment.new),
+      appCzarDataUpdateExecutorProvider.overrideWithValue(executor),
+      appCzarProcessRestarterProvider.overrideWithValue(restart),
+    ],
+  );
+  if (disposeAtTeardown) {
+    addTearDown(container.dispose);
+  }
+  final subscription = container.listen(
+    appCzarDataUpdateControllerProvider,
+    (_, _) {},
+    fireImmediately: true,
+  );
+  if (disposeAtTeardown) {
+    addTearDown(subscription.close);
+  }
+  return (container: container, executor: executor, restarter: restart);
+}
+
+final class _DormantAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState.initial(0);
 }

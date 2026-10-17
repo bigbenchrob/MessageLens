@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,10 @@ import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_data_update_controller.dart';
+import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_data_update_executor_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter.dart';
+import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_data_update/presentation/app_czar_data_update_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_diagnostic_review/presentation/app_czar_diagnostic_review_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_local_data_repair/application/app_czar_local_data_repair_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_onboarding/application/app_czar_onboarding_controller.dart';
@@ -18,6 +23,7 @@ import 'package:remember_this_text/essentials/app_czar_onboarding/presentation/a
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_operating_session/application/app_czar_operating_session_visual_initializer_provider.dart';
 import 'package:remember_this_text/essentials/app_czar_source_access/application/app_czar_source_access_controller.dart';
+import 'package:remember_this_text/essentials/conversation_graph/application/monitor/live_graph_update_worker.dart';
 import 'package:remember_this_text/essentials/logging/feature_level_providers.dart'
     show activeBlockingPipelineIncidentProvider;
 import 'package:remember_this_text/essentials/navigation/application/onboarding_center_panel_sync_controller.dart';
@@ -31,6 +37,61 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  for (final fail in [false, true]) {
+    testWidgets('Data Update exit awaits work and refuses failure=$fail', (
+      tester,
+    ) async {
+      final executor = _ExitExecutor();
+      final restarter = _ExitRestarter();
+      var constructions = 0;
+      final container = ProviderContainer(
+        overrides: [
+          appCzarAssessmentControllerProvider.overrideWith(_ExitAssessment.new),
+          appCzarDataUpdateExecutorProvider.overrideWith((ref) {
+            constructions++;
+            return executor;
+          }),
+          appCzarProcessRestarterProvider.overrideWithValue(restarter),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const AppCzarStartupHarness(),
+        ),
+      );
+      await tester.pump();
+      expect(find.byType(AppCzarDataUpdateScreen), findsOneWidget);
+      expect(constructions, 1);
+      expect(executor.calls, 1);
+      AppExitResponse? response;
+      final first = tester.binding.handleRequestAppExit().then((value) {
+        response = value;
+        return value;
+      });
+      final second = tester.binding.handleRequestAppExit();
+      await tester.pump();
+      expect(response, isNull);
+      expect(restarter.calls, 0);
+      if (fail) {
+        executor.done.completeError(StateError('inert drain failure'));
+      } else {
+        executor.done.complete(_exitResult());
+      }
+      await tester.pump();
+      expect(await first, fail ? AppExitResponse.cancel : AppExitResponse.exit);
+      expect(
+        await second,
+        fail ? AppExitResponse.cancel : AppExitResponse.exit,
+      );
+      expect(executor.calls, 1);
+      expect(restarter.calls, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(await tester.binding.handleRequestAppExit(), AppExitResponse.exit);
+      expect(constructions, 1);
+    });
+  }
   testWidgets(
     'healthy current evidence replaces assessment with Operating once',
     (tester) async {
@@ -612,3 +673,49 @@ final class _NeverCompletingReader implements AppCzarObservationReader {
     throw StateError('unreachable');
   }
 }
+
+final class _ExitAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => AppCzarAssessmentState(
+    generation: 7,
+    assessment: AppCzarAssessment(
+      facts: const [],
+      diagnosisKind: AppCzarDiagnosisKind.sourceAheadOfLocal,
+      diagnosis: 'synthetic',
+      virtualCoordinator: AppCzarVirtualCoordinator.dataUpdate,
+    ),
+  );
+}
+
+final class _ExitExecutor implements AppCzarDataUpdateExecutor {
+  final done = Completer<LiveGraphUpdateResult>();
+  int calls = 0;
+  @override
+  Future<LiveGraphUpdateResult> run({LiveGraphUpdateObserver? onObservation}) {
+    calls++;
+    return done.future;
+  }
+}
+
+final class _ExitRestarter implements AppCzarProcessRestarter {
+  int calls = 0;
+  @override
+  Future<void> restartAndReassess() async {
+    calls++;
+  }
+}
+
+LiveGraphUpdateResult _exitResult() => const LiveGraphUpdateResult(
+  prerequisites: LiveGraphUpdatePrerequisiteSnapshot(
+    appDataReady: true,
+    liveMaxRowId: 0,
+    importedMaxSourceRowId: 0,
+    liveImportableMessageCount: 0,
+    importedMessageCount: 0,
+  ),
+  decision: StartupProbeDecision(
+    shouldSchedule: false,
+    reason: 'synthetic',
+    trigger: StartupProbeTrigger.rowIdAdvanced,
+  ),
+);

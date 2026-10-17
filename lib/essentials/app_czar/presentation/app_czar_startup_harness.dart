@@ -125,7 +125,7 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
     }
     final dataUpdate = ref.watch(appCzarDataUpdateControllerProvider);
     if (dataUpdate.isVisible) {
-      return const AppCzarDataUpdateScreen();
+      return const _AppCzarDataUpdateLifecycleHost();
     }
     final onboarding = ref.watch(appCzarOnboardingControllerProvider);
     if (onboarding.isVisible) {
@@ -145,6 +145,51 @@ class _AppCzarCoordinatorHost extends ConsumerWidget {
       operatingSessionEntryInFlight: operatingSessionEntryInFlight,
     );
   }
+}
+
+class _AppCzarDataUpdateLifecycleHost extends ConsumerStatefulWidget {
+  const _AppCzarDataUpdateLifecycleHost();
+
+  @override
+  ConsumerState<_AppCzarDataUpdateLifecycleHost> createState() =>
+      _AppCzarDataUpdateLifecycleHostState();
+}
+
+class _AppCzarDataUpdateLifecycleHostState
+    extends ConsumerState<_AppCzarDataUpdateLifecycleHost> {
+  late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
+
+  @override
+  void initState() {
+    super.initState();
+    // Capture the already selected owner, rather than resolving a replacement
+    // controller when an exit request arrives.
+    _stopAndDrain = ref
+        .read(appCzarDataUpdateControllerProvider.notifier)
+        .stopAndDrain;
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequested,
+    );
+  }
+
+  Future<AppExitResponse> _handleExitRequested() async {
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const AppCzarDataUpdateScreen();
 }
 
 class _AppCzarDiagnosticReviewLifecycleHost extends ConsumerStatefulWidget {
