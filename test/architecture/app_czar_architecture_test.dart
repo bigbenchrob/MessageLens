@@ -1155,6 +1155,49 @@ void main() {
     );
   });
 
+  test(
+    'Attachment exit captures selected drain and refuses failed settlement',
+    () {
+      final harness = File(
+        'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
+      ).readAsStringSync();
+      final host = harness.substring(
+        harness.indexOf(
+          'class _AppCzarAttachmentArchiveRepairLifecycleHostState',
+        ),
+        harness.indexOf('class AppCzarAssessmentScreen'),
+      );
+      final init = host.substring(
+        host.indexOf('void initState()'),
+        host.indexOf('void dispose()'),
+      );
+      expect(
+        init,
+        contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
+      );
+      expect(init, contains('.stopAndDrain;'));
+      expect(RegExp(r'AppLifecycleListener\(').allMatches(host), hasLength(1));
+      expect(host, contains('_lifecycleListener.dispose();'));
+      final handler = host.substring(
+        host.indexOf('Future<AppExitResponse> _handleExitRequested()'),
+        host.indexOf('Widget build('),
+      );
+      expect(handler, isNot(contains('ref.read')));
+      expect(
+        handler.indexOf('await _stopAndDrain();'),
+        greaterThanOrEqualTo(0),
+      );
+      expect(
+        handler.indexOf('await _stopAndDrain();'),
+        lessThan(handler.indexOf('return AppExitResponse.exit;')),
+      );
+      expect(
+        handler,
+        contains('on Object {\n      return AppExitResponse.cancel;'),
+      );
+    },
+  );
+
   test('exit drains remain scoped to the visible AppCzar jurisdiction', () {
     final harness = File(
       'lib/essentials/app_czar/presentation/app_czar_startup_harness.dart',
@@ -1258,7 +1301,7 @@ void main() {
       harness,
       contains('appCzarAttachmentArchiveRepairControllerProvider.notifier'),
     );
-    expect(harness, contains('.stopAndDrain();'));
+    expect(harness, contains('await _stopAndDrain();'));
     expect(harness, contains('appCzarOnboardingControllerProvider.notifier'));
     expect(
       harness,

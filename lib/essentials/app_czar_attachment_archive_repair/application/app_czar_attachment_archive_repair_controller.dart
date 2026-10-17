@@ -78,133 +78,159 @@ class AppCzarAttachmentArchiveRepairController
   AppCzarAttachmentArchiveRepairBinding? _activeBinding;
   AppCzarAttachmentArchiveRepairExecutor? _activeExecutor;
   Future<void>? _activeRun;
+  Future<void>? _restartFlight;
+  Future<void>? _ordinaryStopFlight;
+  Future<void>? _executorDrain;
+  var _executorDrainSucceeded = true;
+  AppCzarAttachmentArchiveRepairExecutor? _drainingExecutor;
+  Object? _drainFailure;
+  StackTrace? _drainFailureStack;
   var _nextOccurrenceId = 0;
-  var _checkInFlight = false;
-  var _preservationInFlight = false;
   var _restartRequested = false;
+  var _restartActive = false;
   var _stopRequested = false;
-  var _staleDrainInFlight = false;
+  var _sealed = false;
+  var _disposed = false;
 
   @override
   AppCzarAttachmentArchiveRepairState build() {
-    final assessmentState = ref.watch(appCzarAssessmentControllerProvider);
-    final binding = _activeBinding;
-    if (binding != null &&
-        !_isCurrentAssessmentBinding(assessmentState, binding)) {
-      _beginStaleDrain(binding);
-      return _current;
-    }
-
-    if (binding == null &&
-        !_staleDrainInFlight &&
-        shouldExecuteAppCzarAttachmentArchiveRepair(assessmentState)) {
-      _beginOccurrence(assessmentState, publish: false);
-    }
+    ref.onDispose(() {
+      _disposed = true;
+      _sealed = true;
+      _stopRequested = true;
+    });
+    ref.listen(appCzarAssessmentControllerProvider, (_, next) {
+      _considerAssessment(next, publish: true);
+    });
+    _considerAssessment(
+      ref.read(appCzarAssessmentControllerProvider),
+      publish: false,
+    );
     return _current;
+  }
+
+  void _considerAssessment(
+    AppCzarAssessmentState assessment, {
+    required bool publish,
+  }) {
+    if (_sealed) {
+      return;
+    }
+    final binding = _activeBinding;
+    if (binding != null && !_isCurrentAssessmentBinding(assessment, binding)) {
+      _queueRestart(binding);
+    } else if (binding == null &&
+        _activeRun == null &&
+        shouldExecuteAppCzarAttachmentArchiveRepair(assessment)) {
+      _current = AppCzarAttachmentArchiveRepairState(
+        phase: AppCzarAttachmentArchiveRepairPhase.inspecting,
+        assessmentGeneration: assessment.generation,
+        occurrenceId: _nextOccurrenceId,
+      );
+      final run = _scheduleOne(() => _beginOccurrence(assessment));
+      if (publish) {
+        _publish(_current);
+      }
+      // The retained flight owns construction as well as inspection.
+      unawaited(run);
+    }
   }
 
   Future<void> startPreservation(
     AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
-  ) async {
+  ) {
     final binding = _activeBinding;
     final currentAuthorization = _current.snapshot?.nextBatchAuthorization;
     if (binding == null ||
-        currentAuthorization == null ||
-        !identical(currentAuthorization, authorization) ||
-        !_current.canStartPreservation ||
-        _preservationInFlight ||
-        _checkInFlight ||
-        _restartRequested ||
+        _sealed ||
         _stopRequested ||
+        _activeRun != null ||
+        !_current.canStartPreservation ||
+        !identical(currentAuthorization, authorization) ||
         !_isCurrentBinding(binding)) {
-      return;
+      return Future<void>.value();
     }
-
-    _preservationInFlight = true;
-    try {
-      _publish(
-        _current.copyWith(
-          phase: AppCzarAttachmentArchiveRepairPhase.preserving,
-          preservedCount: 0,
-          preservationTotalCount: authorization.itemCount,
-          clearFailure: true,
-        ),
-      );
-      await _runOne(() => _preserveAuthorizedBatch(binding, authorization));
-    } finally {
-      _preservationInFlight = false;
-    }
+    _resetExecutorDrain();
+    final run = _scheduleOne(
+      () => _preserveAuthorizedBatch(binding, authorization),
+    );
+    _publish(
+      _current.copyWith(
+        phase: AppCzarAttachmentArchiveRepairPhase.preserving,
+        preservedCount: 0,
+        preservationTotalCount: authorization.itemCount,
+        clearFailure: true,
+      ),
+    );
+    return _finishHumanAction(run);
   }
 
-  Future<void> checkAgain() async {
-    final oldBinding = _activeBinding;
-    final oldExecutor = _activeExecutor;
-    if (oldBinding == null ||
-        !_current.canCheckAgain ||
-        _checkInFlight ||
-        _preservationInFlight ||
-        _restartRequested ||
-        _stopRequested) {
-      return;
-    }
-
-    _checkInFlight = true;
-    try {
-      _publish(
-        _current.copyWith(
-          phase: AppCzarAttachmentArchiveRepairPhase.inspecting,
-          clearProgress: true,
-          clearFailure: true,
-        ),
-      );
-      if (oldExecutor != null) {
-        try {
-          await oldExecutor.stopAndDrain();
-        } on Object {
-          if (_isActiveOccurrence(oldBinding)) {
-            _publishFailure(
-              oldBinding,
-              AppCzarAttachmentArchiveRepairFailureKind.drainFailed,
-            );
-          }
-          return;
-        }
-      }
-      if (_activeBinding != oldBinding || _stopRequested) {
-        return;
-      }
-
-      final assessmentState = ref.read(appCzarAssessmentControllerProvider);
-      if (!shouldExecuteAppCzarAttachmentArchiveRepair(
-        assessmentState,
-        expectedAssessmentGeneration: oldBinding.assessmentGeneration,
-      )) {
-        await _restartForFreshAssessment(oldBinding);
-        return;
-      }
-
-      _activeBinding = null;
-      _activeExecutor = null;
-      _beginOccurrence(assessmentState, publish: true);
-    } finally {
-      _checkInFlight = false;
-    }
+  Future<void> _finishHumanAction(Future<void> run) async {
+    await run;
+    await _restartFlight;
   }
 
-  Future<void> retryRestart() async {
+  Future<void> checkAgain() {
     final binding = _activeBinding;
-    if (binding == null || !_current.canRetryRestart || _restartRequested) {
-      return;
+    if (binding == null ||
+        _sealed ||
+        _stopRequested ||
+        _activeRun != null ||
+        !_current.canCheckAgain) {
+      return Future<void>.value();
     }
-    await _restartForFreshAssessment(binding);
+    _resetExecutorDrain();
+    final run = _scheduleOne(() async {
+      if (!await _drainExecutor()) {
+        _publishFailure(
+          binding,
+          AppCzarAttachmentArchiveRepairFailureKind.drainFailed,
+        );
+        return;
+      }
+      if (_sealed || _stopRequested) {
+        return;
+      }
+      final assessment = ref.read(appCzarAssessmentControllerProvider);
+      if (!_isCurrentAssessmentBinding(assessment, binding)) {
+        _queueRestart(binding);
+        return;
+      }
+      await _beginOccurrence(assessment);
+    });
+    _publish(
+      _current.copyWith(
+        phase: AppCzarAttachmentArchiveRepairPhase.inspecting,
+        clearProgress: true,
+        clearFailure: true,
+      ),
+    );
+    return _finishHumanAction(run);
   }
 
-  /// Stops admission synchronously and then drains all active repair work.
+  Future<void> retryRestart() {
+    if (_sealed) {
+      return Future<void>.value();
+    }
+    final flight = _restartFlight;
+    if (flight != null) {
+      return flight;
+    }
+    final binding = _activeBinding;
+    if (binding == null || !_current.canRetryRestart) {
+      return Future<void>.value();
+    }
+    _resetExecutorDrain();
+    _queueRestart(binding, retry: true);
+    return _restartFlight ?? Future<void>.value();
+  }
+
+  /// Ordinary exit permanently seals admission. An active restart can call this
+  /// method itself, so refusing it must precede every asynchronous wait.
   Future<void> stopAndDrain() async {
-    final binding = _activeBinding;
-    final executor = _activeExecutor;
+    _sealed = true;
     _stopRequested = true;
-    if (binding != null && _current.isVisible) {
+    if (!_disposed && _current.isVisible) {
       _publish(
         _current.copyWith(
           phase: AppCzarAttachmentArchiveRepairPhase.stopping,
@@ -212,107 +238,144 @@ class AppCzarAttachmentArchiveRepairController
         ),
       );
     }
-    if (executor != null) {
-      try {
-        await executor.stopAndDrain();
-      } finally {
-        final activeRun = _activeRun;
-        if (activeRun != null) {
-          await activeRun;
+    if (_restartActive) {
+      throw StateError('Attachment Archive Repair restart is still active.');
+    }
+    // Register the whole ordinary drain before any executor port can reenter.
+    _ordinaryStopFlight ??= Future<void>.microtask(() async {
+      final executor = _activeExecutor;
+      if (executor != null) {
+        if (identical(_drainingExecutor, executor)) {
+          await _executorDrain;
+        } else {
+          try {
+            await executor.stopAndDrain();
+          } on Object catch (error, stack) {
+            _retainFailure(error, stack);
+          }
         }
       }
-    } else {
       final activeRun = _activeRun;
       if (activeRun != null) {
         await activeRun;
       }
-    }
+      // A factory entered before sealing may have returned a new executor.
+      if (!identical(executor, _activeExecutor)) {
+        await _drainExecutor();
+      }
+      await _restartFlight;
+      final failure = _drainFailure;
+      if (failure != null) {
+        Error.throwWithStackTrace(failure, _drainFailureStack!);
+      }
+    });
+    await _ordinaryStopFlight;
   }
 
-  void _beginOccurrence(
-    AppCzarAssessmentState assessmentState, {
-    required bool publish,
-  }) {
-    final archive = assessmentState.attachmentArchive!;
+  Future<void> _beginOccurrence(AppCzarAssessmentState assessment) async {
+    if (_sealed || _stopRequested) {
+      return;
+    }
+    final archive = assessment.attachmentArchive!;
     final binding = AppCzarAttachmentArchiveRepairBinding(
-      occurrenceId: _nextOccurrenceId,
-      assessmentGeneration: assessmentState.generation,
+      occurrenceId: _nextOccurrenceId++,
+      assessmentGeneration: assessment.generation,
       archiveScopeIdentity: archive.archiveScopeIdentity!,
       archiveGeneration: archive.archiveGeneration!,
       resolvedArchivePath: archive.resolvedPath!,
     );
-    _nextOccurrenceId += 1;
-    _stopRequested = false;
-    _restartRequested = false;
-
-    AppCzarAttachmentArchiveRepairExecutor executor;
-    try {
-      executor = ref
-          .read(appCzarAttachmentArchiveRepairExecutorFactoryProvider)
-          .create();
-    } on Object {
-      _activeBinding = binding;
-      _activeExecutor = null;
-      _current = AppCzarAttachmentArchiveRepairState(
-        phase: AppCzarAttachmentArchiveRepairPhase.failed,
-        assessmentGeneration: binding.assessmentGeneration,
-        occurrenceId: binding.occurrenceId,
-        failureKind: AppCzarAttachmentArchiveRepairFailureKind.inspectionFailed,
-      );
-      if (publish) {
-        state = _current;
-      }
-      return;
-    }
-
     _activeBinding = binding;
-    _activeExecutor = executor;
+    _activeExecutor = null;
     _current = AppCzarAttachmentArchiveRepairState(
       phase: AppCzarAttachmentArchiveRepairPhase.inspecting,
       assessmentGeneration: binding.assessmentGeneration,
       occurrenceId: binding.occurrenceId,
     );
-    if (publish) {
-      state = _current;
+    if (!_isCurrentBinding(binding)) {
+      _queueRestart(binding);
+      return;
     }
-    _scheduleOne(() => _inspectCurrent(binding));
+    try {
+      _activeExecutor = ref
+          .read(appCzarAttachmentArchiveRepairExecutorFactoryProvider)
+          .create();
+    } on Object catch (error, stack) {
+      _retainFailure(error, stack);
+      _publishFailure(
+        binding,
+        AppCzarAttachmentArchiveRepairFailureKind.inspectionFailed,
+      );
+      return;
+    }
+    if (_sealed || _stopRequested) {
+      return;
+    }
+    _publish(_current);
+    await _inspectCurrent(binding);
   }
 
-  void _scheduleOne(Future<void> Function() action) {
-    final run = Future<void>.microtask(action);
+  Future<void> _scheduleOne(Future<void> Function() action) {
+    final run = Future<void>.microtask(() async {
+      if (!_sealed && !_stopRequested) {
+        await action();
+      }
+    });
     _activeRun = run;
     unawaited(
       run.whenComplete(() {
-        if (_activeRun == run) {
+        if (identical(_activeRun, run)) {
           _activeRun = null;
         }
       }),
     );
+    return run;
   }
 
-  Future<void> _runOne(Future<void> Function() action) async {
-    final run = action();
-    _activeRun = run;
-    try {
-      await run;
-    } finally {
-      if (_activeRun == run) {
-        _activeRun = null;
-      }
+  Future<bool> _drainExecutor() async {
+    final executor = _activeExecutor;
+    if (executor == null) {
+      return true;
     }
+    if (!identical(_drainingExecutor, executor)) {
+      _drainingExecutor = executor;
+      _executorDrainSucceeded = true;
+      // Register before invoking a potentially reentrant executor port.
+      _executorDrain = Future<void>.microtask(() async {
+        try {
+          await executor.stopAndDrain();
+        } on Object catch (error, stack) {
+          _executorDrainSucceeded = false;
+          _retainFailure(error, stack);
+        }
+      });
+    }
+    await _executorDrain;
+    return _executorDrainSucceeded;
+  }
+
+  void _retainFailure(Object error, StackTrace stack) {
+    _drainFailure ??= error;
+    _drainFailureStack ??= stack;
+  }
+
+  void _resetExecutorDrain() {
+    // Explicit human retry may retry an executor drain that previously failed.
+    _drainingExecutor = null;
+    _executorDrain = null;
   }
 
   Future<void> _inspectCurrent(
     AppCzarAttachmentArchiveRepairBinding binding,
   ) async {
     final executor = _executorFor(binding);
-    if (executor == null) {
+    if (executor == null || _sealed || _stopRequested) {
       return;
     }
     AppCzarAttachmentArchiveRepairObservation observation;
     try {
       observation = await executor.inspectCurrent(binding: binding);
-    } on Object {
+    } on Object catch (error, stack) {
+      _retainFailure(error, stack);
       if (_canPublish(binding)) {
         _publishFailure(
           binding,
@@ -329,7 +392,7 @@ class AppCzarAttachmentArchiveRepairController
     AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
   ) async {
     final executor = _executorFor(binding);
-    if (executor == null) {
+    if (executor == null || _sealed || _stopRequested) {
       return;
     }
     AppCzarAttachmentArchiveRepairObservation observation;
@@ -350,7 +413,8 @@ class AppCzarAttachmentArchiveRepairController
           );
         },
       );
-    } on Object {
+    } on Object catch (error, stack) {
+      _retainFailure(error, stack);
       if (_canPublish(binding)) {
         _publishFailure(
           binding,
@@ -370,7 +434,7 @@ class AppCzarAttachmentArchiveRepairController
       return;
     }
     if (!_observationMatches(binding, observation)) {
-      await _restartForFreshAssessment(binding);
+      _queueRestart(binding);
       return;
     }
     if (!observation.isCoherent) {
@@ -381,12 +445,14 @@ class AppCzarAttachmentArchiveRepairController
       return;
     }
 
+    _drainFailure = null;
+    _drainFailureStack = null;
     switch (observation.kind) {
       case AppCzarAttachmentArchiveRepairObservationKind.coverageComplete:
       case AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown:
       case AppCzarAttachmentArchiveRepairObservationKind.sourceAccessLost:
       case AppCzarAttachmentArchiveRepairObservationKind.archiveBindingChanged:
-        await _restartForFreshAssessment(binding);
+        _queueRestart(binding);
         return;
       case AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete:
         final snapshot = observation.snapshot!;
@@ -406,26 +472,26 @@ class AppCzarAttachmentArchiveRepairController
     }
   }
 
-  Future<void> _restartForFreshAssessment(
-    AppCzarAttachmentArchiveRepairBinding binding,
-  ) async {
-    if (!_isActiveOccurrence(binding) || _restartRequested) {
+  void _queueRestart(
+    AppCzarAttachmentArchiveRepairBinding binding, {
+    bool retry = false,
+  }) {
+    if (_sealed || !_isActiveOccurrence(binding) || _restartRequested) {
       return;
     }
     _restartRequested = true;
     _stopRequested = true;
-    _publish(
-      _current.copyWith(
-        phase: AppCzarAttachmentArchiveRepairPhase.stopping,
-        clearProgress: true,
-        clearFailure: true,
-      ),
-    );
-    final executor = _activeExecutor;
-    if (executor != null) {
-      try {
-        await executor.stopAndDrain();
-      } on Object {
+    final priorRun = _activeRun;
+    // This is separate from priorRun: a worker never awaits its own restart.
+    final flight = Future<void>.microtask(() async {
+      // Ask the executor to stop before waiting for its controller continuation.
+      final drain = _drainExecutor();
+      await priorRun;
+      final drained = await drain;
+      if (_sealed || !_isActiveOccurrence(binding)) {
+        return;
+      }
+      if (!drained || (!retry && _drainFailure != null)) {
         _restartRequested = false;
         _publish(
           _current.copyWith(
@@ -435,89 +501,51 @@ class AppCzarAttachmentArchiveRepairController
         );
         return;
       }
-    }
-    if (!_isActiveOccurrence(binding)) {
-      return;
-    }
-    await _restartAfterSettledDrain(binding);
-  }
-
-  Future<void> _restartAfterSettledDrain(
-    AppCzarAttachmentArchiveRepairBinding binding,
-  ) async {
-    if (!_isActiveOccurrence(binding)) {
-      return;
-    }
-    _publish(
-      _current.copyWith(
-        phase: AppCzarAttachmentArchiveRepairPhase.restartRequested,
-        clearProgress: true,
-        clearFailure: true,
-      ),
-    );
-    try {
-      await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
-    } on Object {
-      _restartRequested = false;
+      _restartActive = true;
       _publish(
         _current.copyWith(
-          phase: AppCzarAttachmentArchiveRepairPhase.restartFailed,
-          failureKind: AppCzarAttachmentArchiveRepairFailureKind.restartFailed,
+          phase: AppCzarAttachmentArchiveRepairPhase.restartRequested,
+          clearProgress: true,
+          clearFailure: true,
         ),
       );
-    }
-  }
-
-  void _beginStaleDrain(AppCzarAttachmentArchiveRepairBinding binding) {
-    if (_staleDrainInFlight) {
-      return;
-    }
-    _staleDrainInFlight = true;
-    _stopRequested = true;
-    _current = _current.copyWith(
-      phase: AppCzarAttachmentArchiveRepairPhase.stopping,
-      clearProgress: true,
+      try {
+        if (_sealed) {
+          return;
+        }
+        await ref.read(appCzarProcessRestarterProvider).restartAndReassess();
+        _drainFailure = null;
+        _drainFailureStack = null;
+      } on Object catch (error, stack) {
+        _restartRequested = false;
+        _retainFailure(error, stack);
+        if (!_sealed) {
+          _publish(
+            _current.copyWith(
+              phase: AppCzarAttachmentArchiveRepairPhase.restartFailed,
+              failureKind:
+                  AppCzarAttachmentArchiveRepairFailureKind.restartFailed,
+            ),
+          );
+        }
+      } finally {
+        _restartActive = false;
+      }
+    });
+    _restartFlight = flight;
+    unawaited(
+      flight.whenComplete(() {
+        if (identical(_restartFlight, flight)) {
+          _restartFlight = null;
+        }
+      }),
     );
-    unawaited(_finishStaleDrain(binding));
-  }
-
-  Future<void> _finishStaleDrain(
-    AppCzarAttachmentArchiveRepairBinding binding,
-  ) async {
-    var drainFailed = false;
-    final executor = _executorFor(binding);
-    if (executor != null) {
-      try {
-        await executor.stopAndDrain();
-      } on Object {
-        drainFailed = true;
-      }
-    }
-    final activeRun = _activeRun;
-    if (activeRun != null) {
-      try {
-        await activeRun;
-      } on Object {
-        drainFailed = true;
-      }
-    }
-    if (!_isActiveOccurrence(binding)) {
-      _staleDrainInFlight = false;
-      return;
-    }
-    if (drainFailed) {
-      _staleDrainInFlight = false;
-      _restartRequested = false;
-      _current = _current.copyWith(
-        phase: AppCzarAttachmentArchiveRepairPhase.restartFailed,
-        failureKind: AppCzarAttachmentArchiveRepairFailureKind.drainFailed,
-      );
-      state = _current;
-      return;
-    }
-    _staleDrainInFlight = false;
-    _restartRequested = true;
-    await _restartAfterSettledDrain(binding);
+    _publish(
+      _current.copyWith(
+        phase: AppCzarAttachmentArchiveRepairPhase.stopping,
+        clearProgress: true,
+      ),
+    );
   }
 
   void _publishFailure(
@@ -587,6 +615,9 @@ class AppCzarAttachmentArchiveRepairController
   }
 
   void _publish(AppCzarAttachmentArchiveRepairState next) {
+    if (_disposed) {
+      return;
+    }
     _current = next;
     state = next;
   }

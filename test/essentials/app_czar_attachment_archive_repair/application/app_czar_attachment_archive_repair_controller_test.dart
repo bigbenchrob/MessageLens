@@ -13,6 +13,549 @@ import 'package:remember_this_text/essentials/app_czar_data_update/application/a
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_process_restarter_provider.dart';
 
 void main() {
+  testWidgets(
+    'Prompt 137 completed restart does not dispatch again on assessment events',
+    (tester) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final container = _fixedContainer(
+        _QueueExecutorFactory([executor]),
+        restart,
+      );
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await tester.pump();
+      executor.inspection.complete(_completeObservation());
+      await tester.pump();
+      restart.done.complete();
+      await tester.pump();
+      (container.read(appCzarAssessmentControllerProvider.notifier)
+              as _FixedRepairAssessment)
+          .replace(_repairAssessmentState(generation: 1));
+      await tester.pump();
+      await owner.retryRestart();
+      await owner.stopAndDrain();
+      container.dispose();
+      expect(restart.calls, 1);
+    },
+  );
+
+  testWidgets(
+    'Prompt 137 stop revokes preservation scheduled before port entry',
+    (tester) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final container = _fixedContainer(
+        _QueueExecutorFactory([executor]),
+        restart,
+      );
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await tester.pump();
+      final authorization = _authorization(count: 1);
+      executor.inspection.complete(
+        _incompleteObservation(
+          snapshot: _snapshot(
+            available: 1,
+            absent: 2,
+            authorization: authorization,
+          ),
+        ),
+      );
+      await tester.pump();
+      final action = owner.startPreservation(authorization);
+      final stop = owner.stopAndDrain();
+      await tester.pump();
+      await Future.wait([action, stop]);
+      container.dispose();
+      expect(executor.preserveCalls, 0);
+      expect(restart.calls, 0);
+    },
+  );
+
+  testWidgets('Prompt 137 stop revokes queued human retry before port entry', (
+    tester,
+  ) async {
+    final executor = _BarrierExecutor();
+    final restart = _BarrierRestarter();
+    final container = _fixedContainer(
+      _QueueExecutorFactory([executor]),
+      restart,
+    );
+    final owner = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    await tester.pump();
+    executor.inspection.complete(_completeObservation());
+    await tester.pump();
+    restart.done.completeError(StateError('first restart failed'));
+    await tester.pump();
+    final retry = owner.retryRestart();
+    final duplicate = owner.retryRestart();
+    final stop = expectLater(owner.stopAndDrain(), throwsStateError);
+    await tester.pump();
+    await Future.wait([retry, duplicate, stop]);
+    container.dispose();
+    expect(restart.calls, 1);
+  });
+
+  testWidgets(
+    'Prompt 137 disposal before scheduler prevents executor construction',
+    (tester) async {
+      final factory = _QueueExecutorFactory([_BarrierExecutor()]);
+      final container = _fixedContainer(factory, _BarrierRestarter());
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      container.dispose();
+      await tester.pump();
+      await owner.stopAndDrain();
+      expect(factory.createCalls, 0);
+    },
+  );
+
+  for (final failBatch in [false, true]) {
+    testWidgets('Prompt 137 pending preservation drain failure=$failBatch', (
+      tester,
+    ) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final factory = _QueueExecutorFactory([executor]);
+      final container = _fixedContainer(factory, restart);
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await tester.pump();
+      final authorization = _authorization(count: 1);
+      executor.inspection.complete(
+        _incompleteObservation(
+          snapshot: _snapshot(
+            available: 1,
+            absent: 2,
+            authorization: authorization,
+          ),
+        ),
+      );
+      await tester.pump();
+      final action = owner.startPreservation(authorization);
+      final duplicate = owner.startPreservation(authorization);
+      await tester.pump();
+      var settled = false;
+      Object? failure;
+      final drain = owner.stopAndDrain().then(
+        (_) {
+          settled = true;
+        },
+        onError: (Object e) {
+          failure = e;
+        },
+      );
+      final repeated = owner.stopAndDrain().then(
+        (_) {},
+        onError: (Object _) {},
+      );
+      await tester.pump();
+      final pending = !settled && failure == null;
+      final stoppedState = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider,
+      );
+      executor.progress?.call(
+        const AppCzarAttachmentArchiveRepairProgress(
+          completedCount: 1,
+          totalCount: 1,
+        ),
+      );
+      if (failBatch) {
+        executor.preservation.completeError(StateError('inert batch failure'));
+      } else {
+        executor.preservation.complete(_completeObservation());
+      }
+      await tester.pump();
+      await Future.wait([action, duplicate, drain, repeated]);
+      await owner.startPreservation(authorization);
+      await owner.checkAgain();
+      await owner.retryRestart();
+      final after = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider,
+      );
+      container.dispose();
+      expect(pending, isTrue);
+      expect(failure, failBatch ? isStateError : isNull);
+      expect(settled, !failBatch);
+      expect(identical(stoppedState, after), isTrue);
+      expect(executor.preserveCalls, 1);
+      expect(executor.stopCalls, 1);
+      expect(factory.createCalls, 1);
+      expect(restart.calls, 0);
+    });
+  }
+
+  for (final failDrain in [false, true]) {
+    testWidgets(
+      'Prompt 137 check drain is owned and seals replacement failure=$failDrain',
+      (tester) async {
+        final executor = _BarrierExecutor()..drainBarrier = Completer<void>();
+        final factory = _QueueExecutorFactory([executor]);
+        final container = _fixedContainer(factory, _BarrierRestarter());
+        final owner = container.read(
+          appCzarAttachmentArchiveRepairControllerProvider.notifier,
+        );
+        await tester.pump();
+        executor.inspection.complete(
+          _incompleteObservation(snapshot: _snapshot(available: 0, absent: 3)),
+        );
+        await tester.pump();
+        final check = owner.checkAgain();
+        final duplicate = owner.checkAgain();
+        await tester.pump();
+        var finished = false;
+        Object? failure;
+        final stop = owner.stopAndDrain().then(
+          (_) {
+            finished = true;
+          },
+          onError: (Object e) {
+            failure = e;
+          },
+        );
+        await tester.pump();
+        final pending = !finished && failure == null;
+        if (failDrain) {
+          executor.drainBarrier!.completeError(
+            StateError('inert executor drain failure'),
+          );
+        } else {
+          executor.drainBarrier!.complete();
+        }
+        await tester.pump();
+        await Future.wait([check, duplicate, stop]);
+        container.dispose();
+        expect(pending, isTrue);
+        expect(failure, failDrain ? isStateError : isNull);
+        expect(factory.createCalls, 1);
+        expect(executor.stopCalls, 1);
+      },
+    );
+  }
+
+  for (final duringPreservation in [false, true]) {
+    testWidgets(
+      'Prompt 137 stale assessment queued restart revoked batch=$duringPreservation',
+      (tester) async {
+        final executor = _BarrierExecutor();
+        final restart = _BarrierRestarter();
+        final factory = _QueueExecutorFactory([executor]);
+        final container = _fixedContainer(factory, restart);
+        final owner = container.read(
+          appCzarAttachmentArchiveRepairControllerProvider.notifier,
+        );
+        await tester.pump();
+        Future<void>? action;
+        if (duringPreservation) {
+          final auth = _authorization(count: 1);
+          executor.inspection.complete(
+            _incompleteObservation(
+              snapshot: _snapshot(available: 1, absent: 2, authorization: auth),
+            ),
+          );
+          await tester.pump();
+          action = owner.startPreservation(auth);
+          await tester.pump();
+        }
+        (container.read(appCzarAssessmentControllerProvider.notifier)
+                as _FixedRepairAssessment)
+            .replace(
+              _repairAssessmentState(
+                generation: 1,
+                resolvedPath: '/synthetic/replacement',
+              ),
+            );
+        await tester.pump();
+        var finished = false;
+        final stop = owner.stopAndDrain().then((_) {
+          finished = true;
+        });
+        await tester.pump();
+        final pending = !finished;
+        (duringPreservation ? executor.preservation : executor.inspection)
+            .complete(_completeObservation());
+        await tester.pump();
+        await action;
+        await stop;
+        container.dispose();
+        expect(pending, isTrue);
+        expect(restart.calls, 0);
+        expect(factory.createCalls, 1);
+      },
+    );
+  }
+
+  for (final kind in [
+    AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
+    AppCzarAttachmentArchiveRepairObservationKind.sourceAccessLost,
+    AppCzarAttachmentArchiveRepairObservationKind.archiveBindingChanged,
+  ]) {
+    testWidgets('Prompt 137 stopped terminal evidence cannot dispatch $kind', (
+      tester,
+    ) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final container = _fixedContainer(
+        _QueueExecutorFactory([executor]),
+        restart,
+      );
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await tester.pump();
+      final stop = owner.stopAndDrain();
+      executor.inspection.complete(
+        AppCzarAttachmentArchiveRepairObservation(
+          kind: kind,
+          binding: _binding(),
+        ),
+      );
+      await tester.pump();
+      await stop;
+      final state = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider,
+      );
+      container.dispose();
+      expect(state.phase, AppCzarAttachmentArchiveRepairPhase.stopping);
+      expect(state.snapshot, isNull);
+      expect(restart.calls, 0);
+    });
+  }
+
+  testWidgets(
+    'Prompt 137 factory synchronous stop retains construction and drains returned executor',
+    (tester) async {
+      final executor = _BarrierExecutor()..drainBarrier = Completer<void>();
+      final factory = _CallbackFactory(executor);
+      final container = _fixedContainer(factory, _BarrierRestarter());
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      var finished = false;
+      Future<void>? stop;
+      factory.onCreate = () {
+        stop = owner.stopAndDrain().then((_) {
+          finished = true;
+        });
+      };
+      await tester.pump();
+      final pending = !finished;
+      executor.drainBarrier!.complete();
+      await tester.pump();
+      await stop;
+      container.dispose();
+      expect(pending, isTrue);
+      expect(executor.inspectCalls, 0);
+      expect(executor.stopCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'Prompt 137 retry coalesces and active restart refuses ordinary quit',
+    (tester) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final container = _fixedContainer(
+        _QueueExecutorFactory([executor]),
+        restart,
+      );
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      await tester.pump();
+      executor.inspection.complete(_completeObservation());
+      await tester.pump();
+      restart.done.completeError(StateError('inert restart failure'));
+      await tester.pump();
+      final failed = container
+          .read(appCzarAttachmentArchiveRepairControllerProvider)
+          .phase;
+      restart.done = Completer<void>();
+      final retry = owner.retryRestart();
+      final duplicate = owner.retryRestart();
+      await tester.pump();
+      Object? refusal;
+      await owner.stopAndDrain().then(
+        (_) {},
+        onError: (Object e) {
+          refusal = e;
+        },
+      );
+      final pending = !restart.done.isCompleted;
+      restart.done.complete();
+      await tester.pump();
+      await Future.wait([retry, duplicate]);
+      await owner.stopAndDrain();
+      await owner.retryRestart();
+      container.dispose();
+      expect(failed, AppCzarAttachmentArchiveRepairPhase.restartFailed);
+      expect(refusal, isStateError);
+      expect(pending, isTrue);
+      expect(restart.calls, 2);
+    },
+  );
+
+  testWidgets('Prompt 137 late restart failure retained after permanent stop', (
+    tester,
+  ) async {
+    final executor = _BarrierExecutor();
+    final restart = _BarrierRestarter();
+    final container = _fixedContainer(
+      _QueueExecutorFactory([executor]),
+      restart,
+    );
+    final owner = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    await tester.pump();
+    executor.inspection.complete(_completeObservation());
+    await tester.pump();
+    await expectLater(owner.stopAndDrain(), throwsStateError);
+    final stopped = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider,
+    );
+    restart.done.completeError(StateError('late restart failure'));
+    await tester.pump();
+    await expectLater(owner.stopAndDrain(), throwsStateError);
+    await owner.retryRestart();
+    expect(
+      container
+          .read(appCzarAttachmentArchiveRepairControllerProvider)
+          .failureKind,
+      stopped.failureKind,
+    );
+    container.dispose();
+    expect(restart.calls, 1);
+  });
+
+  testWidgets('Prompt 137 disposal seals publication but drain still waits', (
+    tester,
+  ) async {
+    final executor = _BarrierExecutor();
+    final restart = _BarrierRestarter();
+    final container = _fixedContainer(
+      _QueueExecutorFactory([executor]),
+      restart,
+    );
+    final owner = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    await tester.pump();
+    container.dispose();
+    var finished = false;
+    final drain = owner.stopAndDrain().then((_) {
+      finished = true;
+    });
+    await tester.pump();
+    final pending = !finished;
+    executor.inspection.complete(_completeObservation());
+    await tester.pump();
+    await drain;
+    expect(pending, isTrue);
+    expect(restart.calls, 0);
+  });
+
+  testWidgets('Prompt 137 stop before scheduler prevents construction', (
+    tester,
+  ) async {
+    final executor = _BarrierExecutor();
+    final factory = _QueueExecutorFactory([executor]);
+    final container = _fixedContainer(factory, _BarrierRestarter());
+    final owner = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    final drain = owner.stopAndDrain();
+    await tester.pump();
+    // Always release a legacy admitted inspection before asserting the red.
+    executor.inspection.complete(_completeObservation());
+    await drain;
+    container.dispose();
+    expect(factory.createCalls, 0);
+    expect(executor.inspectCalls, 0);
+  });
+
+  testWidgets(
+    'Prompt 137 reentrant active restart refuses without self-await',
+    (tester) async {
+      final executor = _BarrierExecutor();
+      final restart = _BarrierRestarter();
+      final container = _fixedContainer(
+        _QueueExecutorFactory([executor]),
+        restart,
+      );
+      final owner = container.read(
+        appCzarAttachmentArchiveRepairControllerProvider.notifier,
+      );
+      Object? refusal;
+      var drained = false;
+      Future<void>? reentrant;
+      restart.onEntry = () {
+        reentrant = owner.stopAndDrain().then(
+          (_) {
+            drained = true;
+          },
+          onError: (Object error) {
+            refusal = error;
+          },
+        );
+      };
+      await tester.pump();
+      executor.inspection.complete(_completeObservation());
+      await tester.pump();
+      final refusedWhilePending = refusal is StateError;
+      final drainedWhilePending = drained;
+      restart.done.complete();
+      await tester.pump();
+      await reentrant;
+      await owner.stopAndDrain();
+      container.dispose();
+      expect(restart.calls, 1);
+      expect(drainedWhilePending, isFalse);
+      expect(refusedWhilePending, isTrue);
+    },
+  );
+
+  testWidgets('Prompt 137 pending inspection error is retained after stop', (
+    tester,
+  ) async {
+    final executor = _BarrierExecutor();
+    final restart = _BarrierRestarter();
+    final container = _fixedContainer(
+      _QueueExecutorFactory([executor]),
+      restart,
+    );
+    final owner = container.read(
+      appCzarAttachmentArchiveRepairControllerProvider.notifier,
+    );
+    await tester.pump();
+    Object? failure;
+    var finished = false;
+    final drain = owner.stopAndDrain().then(
+      (_) {
+        finished = true;
+      },
+      onError: (Object error) {
+        failure = error;
+      },
+    );
+    await tester.pump();
+    final pending = !finished && failure == null;
+    executor.inspection.completeError(StateError('inert inspection failure'));
+    await tester.pump();
+    await drain;
+    container.dispose();
+    expect(pending, isTrue);
+    expect(failure, isStateError);
+    expect(restart.calls, 0);
+  });
+
   group('shouldExecuteAppCzarAttachmentArchiveRepair', () {
     test('accepts only coherently bound conclusive incomplete coverage', () {
       final state = _repairAssessmentState();
@@ -1099,5 +1642,97 @@ final class _RepairReader implements AppCzarObservationReader {
       maxRowId: 100,
       sampleStable: true,
     );
+  }
+}
+
+// Prompt 137: only inert ports, installed before the actual owner is built.
+ProviderContainer _fixedContainer(
+  AppCzarAttachmentArchiveRepairExecutorFactory factory,
+  AppCzarProcessRestarter restart,
+) => ProviderContainer(
+  overrides: [
+    appCzarAssessmentControllerProvider.overrideWith(
+      _FixedRepairAssessment.new,
+    ),
+    appCzarAttachmentArchiveRepairExecutorFactoryProvider.overrideWithValue(
+      factory,
+    ),
+    appCzarProcessRestarterProvider.overrideWithValue(restart),
+  ],
+);
+
+class _FixedRepairAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => _repairAssessmentState(generation: 0);
+  void replace(AppCzarAssessmentState next) {
+    state = next;
+  }
+}
+
+class _BarrierExecutor implements AppCzarAttachmentArchiveRepairExecutor {
+  final inspection = Completer<AppCzarAttachmentArchiveRepairObservation>();
+  final preservation = Completer<AppCzarAttachmentArchiveRepairObservation>();
+  int inspectCalls = 0;
+  int preserveCalls = 0;
+  int stopCalls = 0;
+  Future<void>? pending;
+  Completer<void>? drainBarrier;
+  AppCzarAttachmentArchiveRepairProgressObserver? progress;
+  @override
+  Future<AppCzarAttachmentArchiveRepairObservation> inspectCurrent({
+    required AppCzarAttachmentArchiveRepairBinding binding,
+  }) {
+    inspectCalls++;
+    pending = inspection.future.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return inspection.future;
+  }
+
+  @override
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
+    required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
+    AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
+  }) {
+    preserveCalls++;
+    progress = onProgress;
+    pending = preservation.future.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return preservation.future;
+  }
+
+  @override
+  Future<void> stopAndDrain() async {
+    stopCalls++;
+    await pending;
+    await drainBarrier?.future;
+  }
+}
+
+class _BarrierRestarter implements AppCzarProcessRestarter {
+  var done = Completer<void>();
+  void Function()? onEntry;
+  int calls = 0;
+  @override
+  Future<void> restartAndReassess() {
+    calls++;
+    onEntry?.call();
+    return done.future;
+  }
+}
+
+class _CallbackFactory
+    implements AppCzarAttachmentArchiveRepairExecutorFactory {
+  _CallbackFactory(this.executor);
+  final AppCzarAttachmentArchiveRepairExecutor executor;
+  void Function()? onCreate;
+  @override
+  AppCzarAttachmentArchiveRepairExecutor create() {
+    onCreate?.call();
+    return executor;
   }
 }

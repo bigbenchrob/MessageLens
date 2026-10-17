@@ -10,6 +10,7 @@ import 'package:remember_this_text/essentials/app_czar/domain/app_czar_models.da
 import 'package:remember_this_text/essentials/app_czar/presentation/app_czar_startup_harness.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/application/app_czar_attachment_archive_repair_executor_provider.dart';
+import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/domain/app_czar_attachment_archive_repair_models.dart';
 import 'package:remember_this_text/essentials/app_czar_attachment_archive_repair/presentation/app_czar_attachment_archive_repair_screen.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_data_update_controller.dart';
 import 'package:remember_this_text/essentials/app_czar_data_update/application/app_czar_data_update_executor_provider.dart';
@@ -46,6 +47,275 @@ import 'package:remember_this_text/features/environment_readiness/application/en
 import 'package:remember_this_text/features/environment_readiness/application/view_spec/resolver_tools/environment_readiness_surface_provider.dart';
 
 void main() {
+  for (final batch in [false, true]) {
+    for (final failure in [false, true]) {
+      testWidgets(
+        'Prompt 137 actual Attachment exit awaits work batch=$batch failure=$failure',
+        (tester) async {
+          final executor = _AttachmentExitExecutor();
+          final factory = _AttachmentExitFactory(executor);
+          final restart = _DiagnosticReentrantRestarter();
+          final container = _attachmentExitContainer(factory, restart);
+          Future<void>? action;
+          final exits = <Future<AppExitResponse>>[];
+          final responses = <AppExitResponse>[];
+          final errors = <Object>[];
+          try {
+            await tester.pumpWidget(
+              UncontrolledProviderScope(
+                container: container,
+                child: const AppCzarStartupHarness(),
+              ),
+            );
+            await tester.pump();
+            final owner = container.read(
+              appCzarAttachmentArchiveRepairControllerProvider.notifier,
+            );
+            if (batch) {
+              executor.inspection.complete(executor.incomplete());
+              await tester.pump();
+              action = owner.startPreservation(executor.authorization);
+              await tester.pump();
+            }
+            expect(
+              find.byKey(AppCzarAttachmentArchiveRepairScreen.screenKey),
+              findsOneWidget,
+            );
+            for (var i = 0; i < 2; i++) {
+              exits.add(
+                tester.binding.handleRequestAppExit().then(
+                  (value) {
+                    responses.add(value);
+                    return value;
+                  },
+                  onError: (Object error) {
+                    errors.add(error);
+                    return AppExitResponse.cancel;
+                  },
+                ),
+              );
+            }
+            await tester.pump();
+            expect(responses, isEmpty);
+            expect(errors, isEmpty);
+            final work = batch ? executor.preservation : executor.inspection;
+            if (failure) {
+              work.completeError(StateError('inert Attachment work failed'));
+            } else {
+              work.complete(executor.complete());
+            }
+            await tester.pump();
+            await action;
+            await Future.wait(exits);
+            final expected = failure
+                ? AppExitResponse.cancel
+                : AppExitResponse.exit;
+            expect(responses, [expected, expected]);
+            expect(errors, isEmpty);
+            expect(restart.calls, 0);
+            expect(factory.calls, 1);
+            expect(executor.stopCalls, 1);
+            await tester.pumpWidget(const SizedBox.shrink());
+            expect(
+              await tester.binding.handleRequestAppExit(),
+              AppExitResponse.exit,
+            );
+            expect(executor.stopCalls, 1);
+          } finally {
+            if (!executor.inspection.isCompleted) {
+              executor.inspection.complete(executor.complete());
+            }
+            if (!executor.preservation.isCompleted) {
+              executor.preservation.complete(executor.complete());
+            }
+            if (!restart.done.isCompleted) {
+              restart.done.complete();
+            }
+            await tester.pump();
+            await action;
+            await Future.wait(exits);
+            await tester.pumpWidget(const SizedBox.shrink());
+            container.dispose();
+          }
+        },
+      );
+    }
+  }
+
+  for (final failure in [false, true]) {
+    testWidgets(
+      'Prompt 137 actual Attachment restart reentry cancels and settles failure=$failure',
+      (tester) async {
+        final executor = _AttachmentExitExecutor();
+        final factory = _AttachmentExitFactory(executor);
+        final restart = _DiagnosticReentrantRestarter();
+        final container = _attachmentExitContainer(factory, restart);
+        Future<void>? direct;
+        Future<AppExitResponse>? exit;
+        Object? refusal;
+        Object? escaped;
+        AppExitResponse? response;
+        try {
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: const AppCzarStartupHarness(),
+            ),
+          );
+          await tester.pump();
+          final owner = container.read(
+            appCzarAttachmentArchiveRepairControllerProvider.notifier,
+          );
+          restart.onEntry = () {
+            direct = owner.stopAndDrain().then(
+              (_) {},
+              onError: (Object e) {
+                refusal = e;
+              },
+            );
+            exit = tester.binding.handleRequestAppExit().then(
+              (value) {
+                response = value;
+                return value;
+              },
+              onError: (Object e) {
+                escaped = e;
+                return AppExitResponse.cancel;
+              },
+            );
+          };
+          executor.inspection.complete(executor.complete());
+          await tester.pump();
+          await direct;
+          await exit;
+          expect(refusal, isStateError);
+          expect(response, AppExitResponse.cancel);
+          expect(escaped, isNull);
+          expect(restart.done.isCompleted, isFalse);
+          expect(
+            await tester.binding.handleRequestAppExit(),
+            AppExitResponse.cancel,
+          );
+          if (failure) {
+            restart.done.completeError(StateError('inert restart failed'));
+          } else {
+            restart.done.complete();
+          }
+          await tester.pump();
+          expect(
+            await tester.binding.handleRequestAppExit(),
+            failure ? AppExitResponse.cancel : AppExitResponse.exit,
+          );
+          expect(restart.calls, 1);
+          expect(factory.calls, 1);
+        } finally {
+          if (!executor.inspection.isCompleted) {
+            executor.inspection.complete(executor.complete());
+          }
+          if (!restart.done.isCompleted) {
+            restart.done.complete();
+          }
+          await tester.pump();
+          await direct;
+          await exit;
+          await tester.pumpWidget(const SizedBox.shrink());
+          container.dispose();
+        }
+      },
+    );
+  }
+
+  for (final mode in ['sync', 'async', 'success']) {
+    testWidgets('Prompt 137 injected Attachment captured drain $mode', (
+      tester,
+    ) async {
+      final barrier = Completer<void>();
+      var calls = 0;
+      var owners = 0;
+      final executor = _AttachmentExitExecutor();
+      final factory = _AttachmentExitFactory(executor);
+      final container = ProviderContainer(
+        overrides: [
+          appCzarAssessmentControllerProvider.overrideWith(
+            _AttachmentExitAssessment.new,
+          ),
+          appCzarAttachmentArchiveRepairExecutorFactoryProvider
+              .overrideWithValue(factory),
+          appCzarAttachmentArchiveRepairControllerProvider.overrideWith(() {
+            owners++;
+            return _InjectedAttachmentDrain(() {
+              calls++;
+              if (mode == 'sync') {
+                throw StateError('injected sync');
+              }
+              return barrier.future;
+            });
+          }),
+        ],
+      );
+      Future<AppExitResponse>? exit;
+      Object? escaped;
+      AppExitResponse? response;
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const AppCzarStartupHarness(),
+          ),
+        );
+        await tester.pump();
+        executor.inspection.complete(executor.incomplete());
+        await tester.pump();
+        exit = tester.binding.handleRequestAppExit().then(
+          (value) {
+            response = value;
+            return value;
+          },
+          onError: (Object e) {
+            escaped = e;
+            return AppExitResponse.cancel;
+          },
+        );
+        await tester.pump();
+        if (mode != 'sync') {
+          expect(response, isNull);
+          if (mode == 'async') {
+            barrier.completeError(StateError('injected async'));
+          } else {
+            barrier.complete();
+          }
+        }
+        await tester.pump();
+        await exit;
+        expect(
+          response,
+          mode == 'success' ? AppExitResponse.exit : AppExitResponse.cancel,
+        );
+        expect(escaped, isNull);
+        expect(owners, 1);
+        expect(factory.calls, 1);
+        expect(calls, 1);
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(
+          await tester.binding.handleRequestAppExit(),
+          AppExitResponse.exit,
+        );
+        expect(calls, 1);
+      } finally {
+        if (!executor.inspection.isCompleted) {
+          executor.inspection.complete(executor.incomplete());
+        }
+        if (!barrier.isCompleted) {
+          barrier.complete();
+        }
+        await tester.pump();
+        await exit;
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+      }
+    });
+  }
+
   testWidgets(
     'Prompt 136 Diagnostic active restart cancels repeated ordinary exits',
     (tester) async {
@@ -1909,4 +2179,230 @@ final class _PendingLocalExitExecutor
     started.complete();
     return done.future;
   }
+}
+
+ProviderContainer _attachmentExitContainer(
+  _AttachmentExitFactory factory,
+  AppCzarProcessRestarter restart,
+) => ProviderContainer(
+  overrides: [
+    appCzarAssessmentControllerProvider.overrideWith(
+      _AttachmentExitAssessment.new,
+    ),
+    appCzarAttachmentArchiveRepairExecutorFactoryProvider.overrideWithValue(
+      factory,
+    ),
+    appCzarProcessRestarterProvider.overrideWithValue(restart),
+  ],
+);
+
+class _AttachmentExitAssessment extends AppCzarAssessmentController {
+  @override
+  AppCzarAssessmentState build() => _attachmentExitAssessment();
+}
+
+class _AttachmentExitFactory
+    implements AppCzarAttachmentArchiveRepairExecutorFactory {
+  _AttachmentExitFactory(this.executor);
+  final _AttachmentExitExecutor executor;
+  int calls = 0;
+  @override
+  AppCzarAttachmentArchiveRepairExecutor create() {
+    calls++;
+    return executor;
+  }
+}
+
+class _AttachmentExitExecutor
+    implements AppCzarAttachmentArchiveRepairExecutor {
+  final inspection = Completer<AppCzarAttachmentArchiveRepairObservation>();
+  final preservation = Completer<AppCzarAttachmentArchiveRepairObservation>();
+  final authorization = const AppCzarAttachmentArchiveRepairBatchAuthorization(
+    planIdentity: 'inert',
+    itemCount: 1,
+    totalKnownBytes: 1,
+  );
+  late AppCzarAttachmentArchiveRepairBinding binding;
+  Future<void>? pending;
+  int stopCalls = 0;
+  @override
+  Future<AppCzarAttachmentArchiveRepairObservation> inspectCurrent({
+    required AppCzarAttachmentArchiveRepairBinding binding,
+  }) {
+    this.binding = binding;
+    pending = inspection.future.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return inspection.future;
+  }
+
+  @override
+  Future<AppCzarAttachmentArchiveRepairObservation> preserveAuthorizedBatch({
+    required AppCzarAttachmentArchiveRepairBinding binding,
+    required AppCzarAttachmentArchiveRepairBatchAuthorization authorization,
+    AppCzarAttachmentArchiveRepairProgressObserver? onProgress,
+  }) {
+    pending = preservation.future.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return preservation.future;
+  }
+
+  @override
+  Future<void> stopAndDrain() async {
+    stopCalls++;
+    await pending;
+  }
+
+  AppCzarAttachmentArchiveRepairObservation complete() =>
+      AppCzarAttachmentArchiveRepairObservation(
+        kind: AppCzarAttachmentArchiveRepairObservationKind.coverageUnknown,
+        binding: binding,
+      );
+  AppCzarAttachmentArchiveRepairObservation incomplete() =>
+      AppCzarAttachmentArchiveRepairObservation(
+        kind: AppCzarAttachmentArchiveRepairObservationKind.coverageIncomplete,
+        binding: binding,
+        snapshot: AppCzarAttachmentArchiveRepairSnapshot(
+          requiredCount: 1,
+          coveredCount: 0,
+          availableFromMessagesCount: 1,
+          sourceAbsentCount: 0,
+          sourceUnknownCount: 0,
+          recordBackedRecoveryCount: 0,
+          unsafeOrConflictingCount: 0,
+          nextBatchAuthorization: authorization,
+        ),
+      );
+}
+
+class _InjectedAttachmentDrain
+    extends AppCzarAttachmentArchiveRepairController {
+  _InjectedAttachmentDrain(this.drain);
+  final Future<void> Function() drain;
+  @override
+  Future<void> stopAndDrain() => drain();
+}
+
+AppCzarAssessmentState _attachmentExitAssessment({
+  int generation = 4,
+  AppCzarDiagnosisKind diagnosisKind =
+      AppCzarDiagnosisKind.attachmentArchiveCoverageIncomplete,
+  AppCzarTruth coverageTruth = AppCzarTruth.falseValue,
+  AppCzarTruth archiveTruth = AppCzarTruth.trueValue,
+  AppCzarAttachmentCoverageCondition coverageCondition =
+      AppCzarAttachmentCoverageCondition.incomplete,
+  String scopeIdentity = 'scope-a',
+  int archiveGeneration = 0,
+  int? coverageGeneration,
+  String resolvedPath = '/Volumes/Test/attachment_archive',
+  bool duplicateCoverageFact = false,
+  bool omitArchiveFact = false,
+  AppCzarTruth repairOpportunityTruth = AppCzarTruth.trueValue,
+  AppCzarAttachmentRepairOpportunityCondition repairOpportunityCondition =
+      AppCzarAttachmentRepairOpportunityCondition.present,
+  int availableFromMessagesCount = 3,
+  int sourceAbsentCount = 0,
+}) {
+  final coverage = AppCzarAttachmentCoverageObservation(
+    condition: coverageCondition,
+    requiredCount:
+        coverageCondition == AppCzarAttachmentCoverageCondition.unknown
+        ? null
+        : 13,
+    coveredCount:
+        coverageCondition == AppCzarAttachmentCoverageCondition.unknown
+        ? null
+        : 10,
+    missingCount:
+        coverageCondition == AppCzarAttachmentCoverageCondition.unknown
+        ? null
+        : 3,
+    unverifiableCount:
+        coverageCondition == AppCzarAttachmentCoverageCondition.unknown
+        ? null
+        : 0,
+    archiveScopeIdentity: scopeIdentity,
+    archiveGeneration: coverageGeneration ?? archiveGeneration,
+  );
+  final repairability = AppCzarAttachmentRepairabilityObservation(
+    condition: repairOpportunityCondition,
+    availableFromMessagesCount: availableFromMessagesCount,
+    sourceAbsentCount: sourceAbsentCount,
+    sourceUnknownCount: 0,
+    recordBackedRecoveryCount: 0,
+    unsafeOrConflictingCount: 0,
+    archiveScopeIdentity: scopeIdentity,
+    archiveGeneration: archiveGeneration,
+  );
+  final facts = <AppCzarFact>[
+    AppCzarFact(
+      id: AppCzarFactId.attachmentCoverageComplete,
+      label: 'coverage',
+      truth: coverageTruth,
+      detail: 'test',
+    ),
+    AppCzarFact(
+      id: AppCzarFactId.attachmentRepairOpportunityPresent,
+      label: 'repair opportunity',
+      truth: repairOpportunityTruth,
+      detail: 'test',
+    ),
+    if (duplicateCoverageFact)
+      AppCzarFact(
+        id: AppCzarFactId.attachmentCoverageComplete,
+        label: 'duplicate coverage',
+        truth: coverageTruth,
+        detail: 'test',
+      ),
+    if (!omitArchiveFact)
+      AppCzarFact(
+        id: AppCzarFactId.attachmentArchiveAvailable,
+        label: 'archive',
+        truth: archiveTruth,
+        detail: 'test',
+      ),
+  ];
+  return AppCzarAssessmentState(
+    generation: generation,
+    root: const AppCzarRootObservation(admitted: true, path: '/synthetic'),
+    source: const AppCzarSourceObservation(
+      condition: AppCzarSourceCondition.readable,
+      messageCount: 100,
+      maxRowId: 100,
+      sampleStable: true,
+    ),
+    importStore: const AppCzarDatabaseObservation(
+      condition: AppCzarDatabaseCondition.healthy,
+      messageCount: 100,
+      liveMessageCount: 100,
+      liveMaxSourceRowId: 100,
+    ),
+    graphStore: const AppCzarDatabaseObservation(
+      condition: AppCzarDatabaseCondition.healthy,
+      messageCount: 100,
+      chatCount: 4,
+      chatMessageEdgeCount: 100,
+    ),
+    overlay: const AppCzarDatabaseObservation(
+      condition: AppCzarDatabaseCondition.healthy,
+    ),
+    attachmentArchive: AppCzarArchiveObservation(
+      condition: AppCzarArchiveCondition.available,
+      label: 'Archive',
+      coverage: coverage,
+      repairability: repairability,
+      archiveScopeIdentity: scopeIdentity,
+      archiveGeneration: archiveGeneration,
+      resolvedPath: resolvedPath,
+    ),
+    assessment: AppCzarAssessment(
+      facts: facts,
+      diagnosisKind: diagnosisKind,
+      diagnosis: 'test',
+      virtualCoordinator: AppCzarVirtualCoordinator.attachmentArchiveRepair,
+    ),
+  );
 }

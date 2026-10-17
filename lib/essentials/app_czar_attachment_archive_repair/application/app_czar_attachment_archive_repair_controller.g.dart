@@ -7,7 +7,7 @@ part of 'app_czar_attachment_archive_repair_controller.dart';
 // **************************************************************************
 
 String _$appCzarAttachmentArchiveRepairControllerHash() =>
-    r'4c76cef0700fb81960699593c98c0eca3880b8b5';
+    r'da4af8176fd9f6490d25617e66de1e9e97823bc4';
 
 /// See also [AppCzarAttachmentArchiveRepairController].
 @ProviderFor(AppCzarAttachmentArchiveRepairController)

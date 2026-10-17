@@ -395,10 +395,14 @@ class _AppCzarAttachmentArchiveRepairLifecycleHost
 class _AppCzarAttachmentArchiveRepairLifecycleHostState
     extends ConsumerState<_AppCzarAttachmentArchiveRepairLifecycleHost> {
   late final AppLifecycleListener _lifecycleListener;
+  late final Future<void> Function() _stopAndDrain;
 
   @override
   void initState() {
     super.initState();
+    _stopAndDrain = ref
+        .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
+        .stopAndDrain;
     _lifecycleListener = AppLifecycleListener(
       onExitRequested: _handleExitRequested,
     );
@@ -411,10 +415,12 @@ class _AppCzarAttachmentArchiveRepairLifecycleHostState
   }
 
   Future<AppExitResponse> _handleExitRequested() async {
-    await ref
-        .read(appCzarAttachmentArchiveRepairControllerProvider.notifier)
-        .stopAndDrain();
-    return AppExitResponse.exit;
+    try {
+      await _stopAndDrain();
+      return AppExitResponse.exit;
+    } on Object {
+      return AppExitResponse.cancel;
+    }
   }
 
   @override
